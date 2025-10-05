@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getUserProfile, upsertUserProfile, getProfileCompletionPercentage } from '@/lib/supabase/profile'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,15 +10,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const profile = await getUserProfile(user.id)
-    const completionPercentage = await getProfileCompletionPercentage(user.id)
+    // Fetch user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
 
-    return NextResponse.json({ 
-      profile, 
-      completionPercentage 
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Error fetching profile:', profileError)
+      return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+    }
+
+    // Calculate completion percentage
+    const { data: completionData, error: completionError } = await supabase
+      .rpc('calculate_profile_completion', { p_user_id: user.id })
+
+    if (completionError) {
+      console.error('Error calculating completion:', completionError)
+    }
+
+    return NextResponse.json({
+      profile: profile || {},
+      completionPercentage: completionData || 0
     })
   } catch (error) {
-    console.error('Error fetching profile:', error)
+    console.error('Profile API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -33,29 +49,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { profileData } = body
+    const profileData = await request.json()
 
-    if (!profileData) {
-      return NextResponse.json({ error: 'Profile data is required' }, { status: 400 })
+    // Update or insert profile
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .upsert({
+        user_id: user.id,
+        ...profileData,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error saving profile:', error)
+      return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 })
     }
 
-    // Remove any fields that shouldn't be updated directly
-    const { id, user_id, created_at, updated_at, ...allowedUpdates } = profileData
-
-    const updatedProfile = await upsertUserProfile(user.id, allowedUpdates)
-    const completionPercentage = await getProfileCompletionPercentage(user.id)
-
-    if (!updatedProfile) {
-      return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
-    }
-
-    return NextResponse.json({ 
-      profile: updatedProfile,
-      completionPercentage 
-    })
+    return NextResponse.json({ profile: data })
   } catch (error) {
-    console.error('Error updating profile:', error)
+    console.error('Profile save error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
