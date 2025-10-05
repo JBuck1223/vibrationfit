@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {

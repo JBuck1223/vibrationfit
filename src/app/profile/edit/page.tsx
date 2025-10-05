@@ -345,7 +345,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Badge variant="primary" className="flex items-center gap-2">
+            <Badge variant="info" className="flex items-center gap-2">
               {completionPercentage}% Complete
             </Badge>
             <Button
@@ -436,7 +436,7 @@ export default function ProfilePage() {
                             Version {version.version_number}
                           </span>
                           {version.is_draft && (
-                            <Badge variant="secondary" size="sm">Draft</Badge>
+                            <Badge variant="neutral">Draft</Badge>
                           )}
                         </div>
                         <p className="text-sm text-neutral-400">
@@ -446,7 +446,7 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Badge variant="primary" size="sm">
+                      <Badge variant="info">
                         {version.completion_percentage}% Complete
                       </Badge>
                       <Button

@@ -3,12 +3,17 @@ import { createClient } from './server'
 export interface UserProfile {
   id?: string
   user_id: string
+  first_name?: string | null
+  last_name?: string | null
+  email?: string | null
+  phone?: string | null
   profile_picture_url?: string | null
   date_of_birth?: string | null
   gender?: string | null
   ethnicity?: string | null
   relationship_status?: string | null
   relationship_length?: string | null
+  partner_name?: string | null
   has_children?: boolean | null
   number_of_children?: number | null
   children_ages?: string[] | null
@@ -16,6 +21,8 @@ export interface UserProfile {
   height?: number | null
   weight?: number | null
   exercise_frequency?: string | null
+  health_conditions?: string | null
+  medications?: string | null
   living_situation?: string | null
   time_at_location?: string | null
   city?: string | null
@@ -36,7 +43,7 @@ export interface UserProfile {
 }
 
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data, error } = await supabase
     .from('user_profiles')
@@ -53,7 +60,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 }
 
 export async function createUserProfile(profile: Partial<UserProfile>): Promise<UserProfile | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data, error } = await supabase
     .from('user_profiles')
@@ -70,7 +77,7 @@ export async function createUserProfile(profile: Partial<UserProfile>): Promise<
 }
 
 export async function updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data, error } = await supabase
     .from('user_profiles')
@@ -88,7 +95,7 @@ export async function updateUserProfile(userId: string, updates: Partial<UserPro
 }
 
 export async function upsertUserProfile(userId: string, profile: Partial<UserProfile>): Promise<UserProfile | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data, error } = await supabase
     .from('user_profiles')
@@ -108,7 +115,7 @@ export async function upsertUserProfile(userId: string, profile: Partial<UserPro
 }
 
 export async function getProfileCompletionPercentage(userId: string): Promise<number> {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data, error } = await supabase
     .rpc('get_profile_completion_percentage', { user_uuid: userId })
@@ -122,7 +129,7 @@ export async function getProfileCompletionPercentage(userId: string): Promise<nu
 }
 
 export async function deleteUserProfile(userId: string): Promise<boolean> {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { error } = await supabase
     .from('user_profiles')

@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     try {
       let profile = null
       let completionPercentage = 0
-      let versions = []
+      let versions: any[] = []
 
       // Get latest profile version
       const { data: latestVersion, error: versionError } = await supabase
