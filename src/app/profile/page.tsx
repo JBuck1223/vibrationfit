@@ -399,9 +399,14 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                             {version.completion_percentage}% complete
                           </span>
                         </div>
-                        <p className="text-xs text-neutral-500">
-                          Created: {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
-                        </p>
+                        <div className="space-y-1">
+                          <p className="text-xs text-neutral-500">
+                            <span className="font-mono">ID:</span> {version.id}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            <span className="font-medium">Submitted:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
