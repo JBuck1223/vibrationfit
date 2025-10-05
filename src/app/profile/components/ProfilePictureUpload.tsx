@@ -27,8 +27,10 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
     y: 0,
   })
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null)
+  const [circularPreview, setCircularPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,7 +57,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         setPreviewUrl(reader.result as string)
         setShowCropper(true)
         
-        // Set initial crop to center square
+        // Set initial crop to full width square
         const size = Math.min(img.width, img.height)
         setCrop({
           unit: 'px',
@@ -74,6 +76,68 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
   const rotateImage = () => {
     setImageRotation(prev => (prev + 90) % 360)
   }
+
+  // Generate circular preview
+  const generateCircularPreview = useCallback(() => {
+    if (!originalImage || !completedCrop || !previewCanvasRef.current) return
+
+    const canvas = previewCanvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Set canvas size for circular preview
+    canvas.width = 128
+    canvas.height = 128
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    // Create circular clipping path
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, 0, Math.PI * 2)
+    ctx.clip()
+
+    // Calculate scale factors
+    const scaleX = originalImage.naturalWidth / originalImage.width
+    const scaleY = originalImage.naturalHeight / originalImage.height
+
+    // Calculate rotation
+    const radians = (imageRotation * Math.PI) / 180
+    
+    // Move to center of canvas
+    ctx.translate(canvas.width / 2, canvas.height / 2)
+    
+    // Rotate
+    ctx.rotate(radians)
+    
+    // Draw cropped and rotated image
+    ctx.drawImage(
+      originalImage,
+      completedCrop.x * scaleX,
+      completedCrop.y * scaleY,
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+      -canvas.width / 2,
+      -canvas.height / 2,
+      canvas.width,
+      canvas.height
+    )
+    
+    // Restore context
+    ctx.restore()
+    
+    // Convert to data URL for preview
+    const dataURL = canvas.toDataURL('image/jpeg', 0.9)
+    setCircularPreview(dataURL)
+  }, [originalImage, completedCrop, imageRotation])
+
+  // Update circular preview when crop or rotation changes
+  React.useEffect(() => {
+    if (completedCrop) {
+      generateCircularPreview()
+    }
+  }, [completedCrop, imageRotation, generateCircularPreview])
 
   // Crop and convert to blob
   const cropImage = useCallback((): Promise<Blob> => {
@@ -171,6 +235,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       setOriginalImage(null)
       setImageRotation(0)
       setCompletedCrop(null)
+      setCircularPreview(null)
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
@@ -197,7 +262,13 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         {/* Current/Preview Image */}
         <div className="relative inline-block mb-4">
           <div className="w-32 h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center">
-            {currentImageUrl || previewUrl ? (
+            {showCropper && circularPreview ? (
+              <img
+                src={circularPreview}
+                alt="Profile picture preview"
+                className="w-full h-full object-cover"
+              />
+            ) : currentImageUrl || previewUrl ? (
               <NextImage
                 src={previewUrl || currentImageUrl || ''}
                 alt="Profile picture"
@@ -291,6 +362,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                       setOriginalImage(null)
                       setImageRotation(0)
                       setCompletedCrop(null)
+                      setCircularPreview(null)
                       if (previewUrl) URL.revokeObjectURL(previewUrl)
                       setPreviewUrl(null)
                       if (fileInputRef.current) {
@@ -339,6 +411,12 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         {/* Hidden canvas for cropping */}
         <canvas
           ref={canvasRef}
+          className="hidden"
+        />
+        
+        {/* Hidden canvas for circular preview */}
+        <canvas
+          ref={previewCanvasRef}
           className="hidden"
         />
       </div>
