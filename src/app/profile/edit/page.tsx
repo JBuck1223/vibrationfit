@@ -208,7 +208,10 @@ export default function ProfilePage() {
 
   // Debounced auto-save
   const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
+    console.log('ProfilePage: Received updates:', updates)
+    console.log('ProfilePage: Current profile before update:', profile)
     const newProfile = { ...profile, ...updates }
+    console.log('ProfilePage: New profile after update:', newProfile)
     setProfile(newProfile)
 
     // Clear existing timeout
@@ -218,6 +221,7 @@ export default function ProfilePage() {
 
     // Set new timeout for auto-save
     const timeout = setTimeout(() => {
+      console.log('ProfilePage: Auto-saving profile:', newProfile)
       saveProfile(newProfile)
     }, 1000) // 1 second delay
 
