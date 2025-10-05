@@ -48,9 +48,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get current profile (latest version or user_profiles table)
+    // Get current profile (use most recent data from either table)
     try {
-      // First try to get the latest profile version
+      let profile = null
+      let completionPercentage = 0
+      let versions = []
+
+      // Get latest profile version
       const { data: latestVersion, error: versionError } = await supabase
         .from('profile_versions')
         .select('*')
@@ -59,27 +63,39 @@ export async function GET(request: NextRequest) {
         .limit(1)
         .single()
 
-      let profile = null
-      let completionPercentage = 0
-      let versions = []
+      // Get current user profile
+      const { data: userProfile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
 
-      if (!versionError && latestVersion) {
+      // Use whichever has the most recent updated_at timestamp
+      if (userProfile && latestVersion) {
+        const userProfileDate = new Date(userProfile.updated_at)
+        const versionDate = new Date(latestVersion.updated_at)
+        
+        if (userProfileDate > versionDate) {
+          // User profile is more recent
+          profile = userProfile
+          completionPercentage = calculateCompletionManually(userProfile)
+        } else {
+          // Version is more recent
+          profile = latestVersion.profile_data
+          completionPercentage = latestVersion.completion_percentage
+        }
+      } else if (userProfile) {
+        // Only user profile exists
+        profile = userProfile
+        completionPercentage = calculateCompletionManually(userProfile)
+      } else if (latestVersion) {
+        // Only version exists
         profile = latestVersion.profile_data
         completionPercentage = latestVersion.completion_percentage
       } else {
-        // Fallback to user_profiles table
-        const { data: userProfile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single()
-
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('Profile fetch error:', profileError)
-        }
-
-        profile = userProfile || {}
-        completionPercentage = calculateCompletionManually(profile)
+        // Neither exists
+        profile = {}
+        completionPercentage = 0
       }
 
       // Get all versions if requested
