@@ -1,51 +1,47 @@
 
+'use client'
+
 import { PageLayout, Container, Button } from '@/lib/design-system'
 
 export default function Home() {
   return (
     <PageLayout>
       {/* Hero Section with Video */}
-      <header className="relative w-full bg-black">
-        <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none h-[480px]">
-          <video
-            className="w-full h-[480px] object-cover opacity-40"
-            autoPlay
-            loop
-            muted
-            playsInline
-            poster="https://vumbnail.com/1069293549.jpg"
-            style={{ pointerEvents: 'none' }}
-          >
-            <source src="https://vibrationfit-public.s3.amazonaws.com/hero-demo.mp4" type="video/mp4" />
-            {/* Fallback message for browsers that don't support the video tag */}
-            Your browser does not support the video tag.
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/80 to-black/90" />
-        </div>
-        <div className="relative z-10 flex flex-col items-center justify-center text-center pt-24 pb-16 px-6">
-          <h2 className="text-5xl md:text-7xl font-extrabold mb-6 bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent drop-shadow-lg">
-            Build Your Vision.<br />
-            Align Daily.<br />
-            Actualize Your Dreams.
-          </h2>
-          <p className="text-xl md:text-2xl text-neutral-200 mb-8 max-w-2xl mx-auto">
-            The all-in-one platform for conscious creators to manifest their goals with AI-powered guidance and daily alignment.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" asChild>
-              <a href="/auth/signup">Start Your Journey</a>
-            </Button>
-            <Button variant="secondary" size="lg" asChild>
-              <a href="#features">See How It Works</a>
-            </Button>
-          </div>
-        </div>
-        {/* Video message note */}
-        <div className="relative z-10 flex justify-center mt-[-40px]">
-          <div className="bg-black/70 text-primary-500 px-6 py-2 rounded-full text-sm font-medium shadow-lg border border-primary-500">
-            <span>
-              <span className="font-bold">Note:</span> The video above is a message from our founder.
-            </span>
+      <header className="relative w-full bg-gradient-to-br from-neutral-900 to-black">
+        {/* Video Section */}
+        <div className="max-w-6xl mx-auto px-6 pt-16 pb-16">
+          <div className="bg-neutral-900 rounded-2xl p-6 shadow-2xl border border-neutral-700">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-white mb-2">Message from Our Founders</h3>
+              <p className="text-neutral-400">Watch this introduction to understand the VibrationFit vision</p>
+            </div>
+            
+            <div className="relative bg-black rounded-xl overflow-hidden shadow-lg">
+              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  className="absolute top-0 left-0 w-full h-full rounded-xl"
+                  src="https://player.vimeo.com/video/1069293549?autoplay=0&controls=1&muted=0&title=1&byline=0&portrait=0"
+                  frameBorder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  title="VibrationFit Founder Message"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-6 text-center">
+              <p className="text-lg text-neutral-200 mb-8 max-w-2xl mx-auto">
+                The all-in-one platform for conscious creators to manifest their goals with AI-powered guidance and daily alignment.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" asChild>
+                  <a href="/auth/signup">Start Your Journey</a>
+                </Button>
+                <Button variant="secondary" size="lg" asChild>
+                  <a href="#features">See How It Works</a>
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </header>

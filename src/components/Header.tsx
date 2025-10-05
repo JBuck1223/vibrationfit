@@ -12,10 +12,10 @@ export function Header() {
 
   const navigationItems = [
     { name: 'Home', href: '/' },
-    { name: 'Features', href: '/features' },
-    { name: 'Pricing', href: '/pricing' },
-    { name: 'About', href: '/about' },
-    { name: 'Contact', href: '/contact' },
+    { name: 'Life Vision', href: '/life-vision' },
+    { name: 'Journal', href: '/journal' },
+    { name: 'Vision Board', href: '/vision-board' },
+    { name: 'Dashboard', href: '/dashboard' },
   ]
 
   return (
