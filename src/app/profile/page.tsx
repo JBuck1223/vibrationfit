@@ -35,6 +35,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProfile()
@@ -58,6 +59,14 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
       const data = await response.json()
       setProfile(data.profile || {})
       setCompletionPercentage(data.completionPercentage || 0)
+      
+      // Get user ID from Supabase
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+      }
     } catch (error) {
       console.error('Error fetching profile:', error)
       setError('Failed to load profile data')
@@ -243,9 +252,14 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 : 'Your Name'
               }
             </h3>
-            <p className="text-neutral-400 mb-4">
+            <p className="text-neutral-400 mb-2">
               {profile.email || 'your.email@example.com'}
             </p>
+            {userId && (
+              <p className="text-xs text-neutral-500 mb-4 font-mono">
+                ID: {userId}
+              </p>
+            )}
             <Button
               onClick={() => router.push('/profile/edit')}
               variant="outline"
