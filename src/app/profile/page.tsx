@@ -489,6 +489,30 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
           {/* Quick Stats */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Version Information */}
+            {isViewingVersion && getCurrentVersionInfo() && (
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <History className="w-5 h-5 text-blue-500" />
+                  Version Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-neutral-400">Version ID:</span>
+                    <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
+                      {getCurrentVersionInfo()?.id}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-neutral-400">Submitted:</span>
+                    <span className="text-sm text-white">
+                      {new Date(getCurrentVersionInfo()?.created_at).toLocaleDateString()} at {new Date(getCurrentVersionInfo()?.created_at).toLocaleTimeString()}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            )}
+            
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <User className="w-5 h-5 text-primary-500" />
