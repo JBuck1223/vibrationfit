@@ -13,6 +13,7 @@ import {
   Briefcase, 
   DollarSign,
   Edit3,
+  FileText,
   ArrowLeft,
   Calendar,
   Phone,
@@ -822,6 +823,44 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               </div>
             </div>
           </Card>
+
+          {/* Version Notes */}
+          {profile.version_notes && (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary-500" />
+                Version Notes
+              </h3>
+              <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
+                <p className="text-white whitespace-pre-wrap">{profile.version_notes}</p>
+              </div>
+            </Card>
+          )}
+
+          {/* Progress Photos */}
+          {profile.progress_photos && profile.progress_photos.length > 0 && (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Camera className="w-5 h-5 text-primary-500" />
+                Progress Photos
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {profile.progress_photos.map((photo, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={photo}
+                      alt={`Progress photo ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                      onClick={() => window.open(photo, '_blank')}
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-neutral-400 mt-3">
+                {profile.progress_photos.length} photo{profile.progress_photos.length !== 1 ? 's' : ''} • Click to view full size
+              </p>
+            </Card>
+          )}
         </div>
 
         {/* Action Buttons */}

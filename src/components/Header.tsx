@@ -1,14 +1,43 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/lib/design-system/components'
 import { Container } from '@/lib/design-system/components'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
+import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+    }
+
+    getUser()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase.auth])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
+  }
 
   const navigationItems = [
     { name: 'Home', href: '/' },
@@ -50,12 +79,27 @@ export function Header() {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/auth/login">Sign In</Link>
-            </Button>
-            <Button asChild variant="primary" size="sm">
-              <Link href="/auth/signup">Get Started</Link>
-            </Button>
+            {loading ? (
+              <div className="w-20 h-8 bg-neutral-800 rounded animate-pulse" />
+            ) : user ? (
+              <>
+                <span className="text-neutral-300 text-sm">
+                  {user.email}
+                </span>
+                <Button onClick={handleLogout} variant="ghost" size="sm">
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/auth/login">Sign In</Link>
+                </Button>
+                <Button asChild variant="primary" size="sm">
+                  <Link href="/auth/signup">Get Started</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -104,16 +148,31 @@ export function Header() {
                 </Link>
               ))}
               <div className="flex flex-col space-y-3 pt-4 border-t border-neutral-800">
-                <Button asChild variant="ghost" size="sm" className="w-full">
-                  <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
-                    Sign In
-                  </Link>
-                </Button>
-                <Button asChild variant="primary" size="sm" className="w-full">
-                  <Link href="/auth/signup" onClick={() => setIsMobileMenuOpen(false)}>
-                    Get Started
-                  </Link>
-                </Button>
+                {loading ? (
+                  <div className="w-full h-8 bg-neutral-800 rounded animate-pulse" />
+                ) : user ? (
+                  <>
+                    <div className="text-neutral-300 text-sm text-center py-2">
+                      {user.email}
+                    </div>
+                    <Button onClick={handleLogout} variant="ghost" size="sm" className="w-full">
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button asChild variant="ghost" size="sm" className="w-full">
+                      <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
+                        Sign In
+                      </Link>
+                    </Button>
+                    <Button asChild variant="primary" size="sm" className="w-full">
+                      <Link href="/auth/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                        Get Started
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>

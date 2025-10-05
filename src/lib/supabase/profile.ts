@@ -38,6 +38,8 @@ export interface UserProfile {
   savings_retirement?: string | null
   assets_equity?: string | null
   consumer_debt?: string | null
+  version_notes?: string | null
+  progress_photos?: string[] | null
   created_at?: string
   updated_at?: string
 }
