@@ -42,6 +42,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
   const [versions, setVersions] = useState<any[]>([])
   const [showVersions, setShowVersions] = useState(false)
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
+  const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
+  const [isViewingVersion, setIsViewingVersion] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -64,7 +66,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     const urlParams = new URLSearchParams(window.location.search)
     const versionId = urlParams.get('versionId')
     if (versionId) {
+      setCurrentVersionId(versionId)
+      setIsViewingVersion(true)
       fetchProfileVersion(versionId)
+    } else {
+      setCurrentVersionId(null)
+      setIsViewingVersion(false)
     }
   }, [])
 
@@ -133,6 +140,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
       const data = await response.json()
       setProfile(data.profile || {})
       setCompletionPercentage(data.completionPercentage || 0)
+      setCurrentVersionId(versionId)
+      setIsViewingVersion(true)
     } catch (error) {
       console.error('Error fetching profile version:', error)
       setError('Failed to load profile version')
@@ -174,6 +183,11 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     if (percentage >= 60) return 'bg-yellow-500'
     if (percentage >= 40) return 'bg-orange-500'
     return 'bg-red-500'
+  }
+
+  const getCurrentVersionInfo = () => {
+    if (!isViewingVersion || !currentVersionId) return null
+    return versions.find(v => v.id === currentVersionId)
   }
 
   if (loading) {
@@ -227,17 +241,57 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               Back
             </Button>
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-white mb-2">My Profile</h1>
-              <p className="text-neutral-400">Complete overview of your personal information</p>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-white">My Profile</h1>
+                {isViewingVersion && getCurrentVersionInfo() && (
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium">
+                      Version {getCurrentVersionInfo()?.version_number}
+                    </span>
+                    {getCurrentVersionInfo()?.is_draft && (
+                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
+                        Draft
+                      </span>
+                    )}
+                  </div>
+                )}
+                {!isViewingVersion && (
+                  <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+                    Current Version
+                  </span>
+                )}
+              </div>
+              <p className="text-neutral-400">
+                {isViewingVersion 
+                  ? `Viewing saved version from ${getCurrentVersionInfo() ? new Date(getCurrentVersionInfo().created_at).toLocaleDateString() : ''}`
+                  : 'Complete overview of your current personal information'
+                }
+              </p>
             </div>
-            <Button
-              onClick={() => router.push('/profile/edit')}
-              variant="primary"
-              className="flex items-center gap-2"
-            >
-              <Edit3 className="w-4 h-4" />
-              Edit Profile
-            </Button>
+            {isViewingVersion ? (
+              <Button
+                onClick={() => {
+                  setCurrentVersionId(null)
+                  setIsViewingVersion(false)
+                  window.history.pushState({}, '', '/profile')
+                  fetchProfile()
+                }}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Current
+              </Button>
+            ) : (
+              <Button
+                onClick={() => router.push('/profile/edit')}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                Edit Profile
+              </Button>
+            )}
             <Button
               onClick={() => router.push('/profile/new')}
               variant="secondary"
@@ -267,7 +321,14 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           {/* Completion Progress */}
           <Card className="p-6 mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">Profile Completion</h2>
+              <div>
+                <h2 className="text-xl font-semibold text-white">Profile Completion</h2>
+                {isViewingVersion && getCurrentVersionInfo() && (
+                  <p className="text-sm text-neutral-400 mt-1">
+                    Version {getCurrentVersionInfo()?.version_number} • Saved on {new Date(getCurrentVersionInfo()?.created_at).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
               <span className={`text-2xl font-bold ${getCompletionColor(completionPercentage)}`}>
                 {completionPercentage}%
               </span>
