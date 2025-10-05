@@ -75,6 +75,18 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     }
   }, [])
 
+  // Update version viewing state when profile data changes
+  useEffect(() => {
+    // If there's no versionId in URL, we're viewing current version
+    const urlParams = new URLSearchParams(window.location.search)
+    const versionId = urlParams.get('versionId')
+    
+    if (!versionId) {
+      setIsViewingVersion(false)
+      setCurrentVersionId(null)
+    }
+  }, [])
+
   const fetchProfile = async () => {
     try {
       // Add cache-busting parameter to force fresh data
@@ -268,7 +280,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 }
               </p>
             </div>
-            {isViewingVersion ? (
+            {isViewingVersion && currentVersionId ? (
               <Button
                 onClick={() => {
                   setCurrentVersionId(null)
