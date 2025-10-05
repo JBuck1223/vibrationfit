@@ -196,18 +196,21 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         return
       }
 
-      // Clean up
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
-      setPreviewUrl(null)
-      setShowCropper(false)
-      setImageRotation(0)
-      setCompletedCrop(null)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-
-      // Update parent component
+      // Update parent component first
+      console.log('ProfilePictureUpload: Notifying parent of new image URL:', uploadResult.url)
       onImageChange(uploadResult.url)
+      
+      // Clean up after parent has been notified
+      setTimeout(() => {
+        if (previewUrl) URL.revokeObjectURL(previewUrl)
+        setPreviewUrl(null)
+        setShowCropper(false)
+        setImageRotation(0)
+        setCompletedCrop(null)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      }, 100)
     } catch (error) {
       console.error('Upload error:', error)
       onError(error instanceof Error ? error.message : 'Upload failed')

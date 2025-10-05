@@ -32,6 +32,7 @@ const ethnicityOptions = [
 
 export function PersonalInfoSection({ profile, onProfileChange, onError }: PersonalInfoSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
+    console.log('PersonalInfoSection: Updating field', field, 'with value', value)
     onProfileChange({ [field]: value })
   }
 
