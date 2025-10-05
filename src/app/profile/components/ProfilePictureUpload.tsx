@@ -2,8 +2,8 @@
 
 import React, { useState, useRef, useCallback } from 'react'
 import { Button, Card } from '@/lib/design-system/components'
-import { Camera, Upload, X, Check, Move, RotateCw } from 'lucide-react'
-import Image from 'next/image'
+import { Camera, Upload, X, Check, RotateCw } from 'lucide-react'
+import NextImage from 'next/image'
 
 interface ProfilePictureUploadProps {
   currentImageUrl?: string | null
@@ -11,25 +11,17 @@ interface ProfilePictureUploadProps {
   onError: (error: string) => void
 }
 
-interface CropArea {
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
 export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }: ProfilePictureUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [showCropper, setShowCropper] = useState(false)
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null)
-  const [cropArea, setCropArea] = useState<CropArea>({ x: 0, y: 0, width: 200, height: 200 })
+  const [imageRotation, setImageRotation] = useState(0)
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
-  const [imageRotation, setImageRotation] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -49,61 +41,61 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       return
     }
 
-    // Load image and set up cropping
-    const img = new Image()
+    // Load image for cropping
+    const img = new window.Image()
     img.onload = () => {
       setOriginalImage(img)
-      // Initialize crop area to center of image
-      const size = Math.min(img.width, img.height)
-      setCropArea({
-        x: (img.width - size) / 2,
-        y: (img.height - size) / 2,
-        width: size,
-        height: size
-      })
     }
     img.src = URL.createObjectURL(file)
     setPreviewUrl(URL.createObjectURL(file))
     setShowCropper(true)
   }
 
-  // Handle mouse events for cropping
+  // Handle mouse events for positioning the image
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!containerRef.current) return
-    
-    const rect = containerRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
     setIsDragging(true)
-    setDragStart({ x: x - cropArea.x, y: y - cropArea.y })
+    setDragStart({ x: e.clientX - imagePosition.x, y: e.clientY - imagePosition.y })
   }
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !originalImage || !containerRef.current) return
+    if (!isDragging) return
     
-    const rect = containerRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left - dragStart.x
-    const y = e.clientY - rect.top - dragStart.y
+    const newX = e.clientX - dragStart.x
+    const newY = e.clientY - dragStart.y
     
-    // Constrain crop area within image bounds
-    const maxX = originalImage.width - cropArea.width
-    const maxY = originalImage.height - cropArea.height
-    
-    setCropArea(prev => ({
-      ...prev,
-      x: Math.max(0, Math.min(x, maxX)),
-      y: Math.max(0, Math.min(y, maxY))
-    }))
+    // Constrain movement within reasonable bounds
+    const maxOffset = 100 // Maximum pixels to move in any direction
+    setImagePosition({
+      x: Math.max(-maxOffset, Math.min(maxOffset, newX)),
+      y: Math.max(-maxOffset, Math.min(maxOffset, newY))
+    })
   }
 
   const handleMouseUp = () => {
     setIsDragging(false)
   }
 
+  // Simple crop function - uses the positioned image
+  const getCropArea = () => {
+    if (!originalImage) return { x: 0, y: 0, width: 0, height: 0 }
+    
+    const size = Math.min(originalImage.width, originalImage.height)
+    return {
+      x: (originalImage.width - size) / 2,
+      y: (originalImage.height - size) / 2,
+      width: size,
+      height: size
+    }
+  }
+
   // Rotate image
   const rotateImage = () => {
     setImageRotation(prev => (prev + 90) % 360)
+  }
+
+  // Reset position
+  const resetPosition = () => {
+    setImagePosition({ x: 0, y: 0 })
   }
 
   // Crop and convert to blob
@@ -121,10 +113,13 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         return
       }
 
-      // Set canvas size to crop area
+      // Set canvas size for output
       canvas.width = 300
       canvas.height = 300
 
+      // Get crop area (centered square)
+      const cropArea = getCropArea()
+      
       // Calculate rotation
       const radians = (imageRotation * Math.PI) / 180
       
@@ -137,13 +132,21 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       // Rotate
       ctx.rotate(radians)
       
+      // Apply image position offset to crop area
+      const adjustedCropArea = {
+        x: cropArea.x + imagePosition.x,
+        y: cropArea.y + imagePosition.y,
+        width: cropArea.width,
+        height: cropArea.height
+      }
+      
       // Draw cropped and rotated image
       ctx.drawImage(
         originalImage,
-        cropArea.x,
-        cropArea.y,
-        cropArea.width,
-        cropArea.height,
+        adjustedCropArea.x,
+        adjustedCropArea.y,
+        adjustedCropArea.width,
+        adjustedCropArea.height,
         -canvas.width / 2,
         -canvas.height / 2,
         canvas.width,
@@ -158,7 +161,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         resolve(blob || new Blob())
       }, 'image/jpeg', 0.9)
     })
-  }, [originalImage, cropArea, imageRotation])
+  }, [originalImage, imageRotation, imagePosition])
 
   const handleUpload = async () => {
     if (!originalImage) return
@@ -227,7 +230,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         <div className="relative inline-block mb-4">
           <div className="w-32 h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center">
             {currentImageUrl || previewUrl ? (
-              <Image
+              <NextImage
                 src={previewUrl || currentImageUrl || ''}
                 alt="Profile picture"
                 width={128}
@@ -269,65 +272,39 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         ) : (
           <div className="space-y-4">
             <div className="text-sm text-neutral-300 text-center">
-              Crop your image to a square for the best results
+              Your image will be automatically cropped to a square and rotated as needed
             </div>
             
-            {/* Cropping Interface */}
+            {/* Simple Preview */}
             {originalImage && (
-              <div className="space-y-3">
-                {/* Image with crop overlay */}
-                <div 
-                  ref={containerRef}
-                  className="relative mx-auto bg-neutral-800 rounded-lg overflow-hidden"
-                  style={{ 
-                    width: Math.min(300, originalImage.width), 
-                    height: Math.min(300, originalImage.height),
-                    maxWidth: '100%'
-                  }}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                >
-                  <img
-                    src={originalImage.src}
-                    alt="Crop preview"
-                    className="w-full h-full object-contain"
-                    style={{
-                      transform: `rotate(${imageRotation}deg)`,
-                      transformOrigin: 'center'
-                    }}
-                    draggable={false}
-                  />
-                  
-                  {/* Crop overlay */}
-                  <div
-                    className="absolute border-2 border-primary-500 bg-primary-500/20 cursor-move"
-                    style={{
-                      left: (cropArea.x / originalImage.width) * 100 + '%',
-                      top: (cropArea.y / originalImage.height) * 100 + '%',
-                      width: (cropArea.width / originalImage.width) * 100 + '%',
-                      height: (cropArea.height / originalImage.height) * 100 + '%',
-                    }}
+              <div className="space-y-4">
+                {/* Square Crop Preview */}
+                <div className="relative mx-auto bg-neutral-800 rounded-lg overflow-hidden w-48 h-48">
+                  <div 
+                    className="relative w-full h-full cursor-move select-none"
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
                   >
-                    <div className="absolute inset-0 border border-white/50"></div>
-                    <div className="absolute top-1 left-1 w-2 h-2 bg-primary-500 border border-white"></div>
-                    <div className="absolute top-1 right-1 w-2 h-2 bg-primary-500 border border-white"></div>
-                    <div className="absolute bottom-1 left-1 w-2 h-2 bg-primary-500 border border-white"></div>
-                    <div className="absolute bottom-1 right-1 w-2 h-2 bg-primary-500 border border-white"></div>
-                  </div>
-                  
-                  {/* Dark overlay outside crop area */}
-                  <div className="absolute inset-0 bg-black/50 pointer-events-none">
-                    <div
-                      className="absolute bg-transparent"
+                    <img
+                      src={originalImage.src}
+                      alt="Preview"
+                      className="absolute inset-0 w-full h-full object-cover"
                       style={{
-                        left: (cropArea.x / originalImage.width) * 100 + '%',
-                        top: (cropArea.y / originalImage.height) * 100 + '%',
-                        width: (cropArea.width / originalImage.width) * 100 + '%',
-                        height: (cropArea.height / originalImage.height) * 100 + '%',
+                        transform: `rotate(${imageRotation}deg) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                        transformOrigin: 'center',
+                        cursor: isDragging ? 'grabbing' : 'grab'
                       }}
-                    ></div>
+                      draggable={false}
+                    />
+                    
+                    {/* Show the actual crop area */}
+                    <div className="absolute inset-0 border-2 border-primary-500 bg-primary-500/10">
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-primary-500 text-xs bg-black/70 px-2 py-1 rounded">
+                        {isDragging ? 'Dragging...' : 'Drag to position'}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
@@ -340,7 +317,15 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                     disabled={isUploading}
                   >
                     <RotateCw className="w-4 h-4 mr-2" />
-                    Rotate
+                    Rotate ({imageRotation}°)
+                  </Button>
+                  <Button
+                    onClick={resetPosition}
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading}
+                  >
+                    Reset Position
                   </Button>
                 </div>
                 
