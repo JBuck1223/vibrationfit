@@ -491,16 +491,22 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <div className="lg:col-span-2 space-y-4">
             {/* Version Information */}
             {(() => {
-              console.log('Version card debug:', {
+              const urlVersionId = new URLSearchParams(window.location.search).get('versionId')
+              console.log('🔍 Version card debug:', {
                 isViewingVersion,
                 currentVersionId,
+                urlVersionId,
                 getCurrentVersionInfo: getCurrentVersionInfo(),
                 versions: versions.length,
-                urlVersionId: new URLSearchParams(window.location.search).get('versionId')
+                shouldShowCard: urlVersionId && getCurrentVersionInfo()
               })
               return null
             })()}
-            {currentVersionId && getCurrentVersionInfo() && (
+            {(() => {
+              const urlVersionId = new URLSearchParams(window.location.search).get('versionId')
+              const versionInfo = getCurrentVersionInfo()
+              return urlVersionId && (versionInfo || urlVersionId)
+            })() && (
               <Card className="p-6">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                   <History className="w-5 h-5 text-blue-500" />
@@ -510,13 +516,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-neutral-400">Version ID:</span>
                     <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
-                      {getCurrentVersionInfo()?.id}
+                      {getCurrentVersionInfo()?.id || new URLSearchParams(window.location.search).get('versionId')}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-neutral-400">Submitted:</span>
                     <span className="text-sm text-white">
-                      {new Date(getCurrentVersionInfo()?.created_at).toLocaleDateString()} at {new Date(getCurrentVersionInfo()?.created_at).toLocaleTimeString()}
+                      {getCurrentVersionInfo()?.created_at 
+                        ? `${new Date(getCurrentVersionInfo().created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo().created_at).toLocaleTimeString()}`
+                        : 'Date not available'
+                      }
                     </span>
                   </div>
                 </div>
