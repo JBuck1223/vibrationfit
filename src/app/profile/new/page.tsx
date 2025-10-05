@@ -25,8 +25,7 @@ export default function NewProfileVersionPage() {
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
-  // Auto-save functionality
-  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
+  // Manual save only - no auto-save timeout needed
 
   // Manual completion calculation fallback
   const calculateCompletionManually = (profileData: Partial<UserProfile>): number => {
@@ -72,22 +71,11 @@ export default function NewProfileVersionPage() {
     fetchProfile()
   }, [])
 
-  // Handle profile changes
+  // Manual save only - no auto-save for new versions
   const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
     setProfile(prev => ({ ...prev, ...updates }))
-    
-    // Clear existing timeout
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout)
-    }
-    
-    // Set new timeout for auto-save
-    const timeout = setTimeout(() => {
-      saveProfile({ ...profile, ...updates })
-    }, 1000)
-    
-    setAutoSaveTimeout(timeout)
-  }, [profile, autoSaveTimeout])
+    // No auto-save for new versions - user must click "Create Version" button
+  }, [])
 
   // Save as new version function
   const saveAsNewVersion = async (isDraft = false) => {
