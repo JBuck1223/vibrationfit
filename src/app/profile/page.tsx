@@ -24,7 +24,9 @@ import {
   GraduationCap,
   Star,
   Plus,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  Eye
 } from 'lucide-react'
 import NextImage from 'next/image'
 
@@ -37,6 +39,9 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [versions, setVersions] = useState<any[]>([])
+  const [showVersions, setShowVersions] = useState(false)
+  const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProfile()
@@ -67,7 +72,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     try {
       // Add cache-busting parameter to force fresh data
       const timestamp = Date.now()
-      const response = await fetch(`/api/profile?t=${timestamp}`)
+      const response = await fetch(`/api/profile?t=${timestamp}&includeVersions=true`)
       if (!response.ok) {
         throw new Error('Failed to fetch profile')
       }
@@ -75,6 +80,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
       console.log('Profile view: Fetched data:', data)
       setProfile(data.profile || {})
       setCompletionPercentage(data.completionPercentage || 0)
+      setVersions(data.versions || [])
       
       // Get user ID from Supabase
       const { createClient } = await import('@/lib/supabase/client')
@@ -88,6 +94,31 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
       setError('Failed to load profile data')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const deleteVersion = async (versionId: string) => {
+    if (!confirm('Are you sure you want to delete this version? This action cannot be undone.')) {
+      return
+    }
+
+    setDeletingVersion(versionId)
+    try {
+      const response = await fetch(`/api/profile?versionId=${versionId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete version')
+      }
+
+      // Refresh the profile to get updated versions list
+      await fetchProfile()
+    } catch (error) {
+      console.error('Error deleting version:', error)
+      alert('Failed to delete version. Please try again.')
+    } finally {
+      setDeletingVersion(null)
     }
   }
 
@@ -215,6 +246,14 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               New Version
             </Button>
             <Button
+              onClick={() => setShowVersions(!showVersions)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Star className="w-4 h-4" />
+              {showVersions ? 'Hide' : 'Show'} Versions
+            </Button>
+            <Button
               onClick={fetchProfile}
               variant="outline"
               className="flex items-center gap-2"
@@ -247,6 +286,66 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               }
             </p>
           </Card>
+
+          {/* Versions List */}
+          {showVersions && (
+            <Card className="p-6 mb-8">
+              <h2 className="text-xl font-semibold text-white mb-4">Profile Versions</h2>
+              {versions.length === 0 ? (
+                <p className="text-neutral-400">No saved versions yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {versions.map((version) => (
+                    <div key={version.id} className="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-sm font-medium text-white">
+                            Version {version.version_number}
+                          </span>
+                          {version.is_draft && (
+                            <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
+                              Draft
+                            </span>
+                          )}
+                          <span className="text-sm text-neutral-400">
+                            {version.completion_percentage}% complete
+                          </span>
+                        </div>
+                        <p className="text-xs text-neutral-500">
+                          Created: {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => window.location.href = `/profile?versionId=${version.id}`}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <Eye className="w-3 h-3" />
+                          View
+                        </Button>
+                        <Button
+                          onClick={() => deleteVersion(version.id)}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
+                          disabled={deletingVersion === version.id}
+                        >
+                          {deletingVersion === version.id ? (
+                            <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3 h-3" />
+                          )}
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
         </div>
 
         {/* Profile Picture and Basic Info */}

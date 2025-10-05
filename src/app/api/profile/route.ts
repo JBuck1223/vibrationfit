@@ -159,6 +159,45 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  console.log('🗑️ PROFILE API DELETE REQUEST STARTED')
+  try {
+    const supabase = await createClient()
+    
+    // Get the current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const versionId = searchParams.get('versionId')
+
+    if (!versionId) {
+      return NextResponse.json({ error: 'Version ID is required' }, { status: 400 })
+    }
+
+    // Delete the version
+    const { error: deleteError } = await supabase
+      .from('profile_versions')
+      .delete()
+      .eq('id', versionId)
+      .eq('user_id', user.id)
+
+    if (deleteError) {
+      console.error('Version delete error:', deleteError)
+      return NextResponse.json({ error: 'Failed to delete version' }, { status: 500 })
+    }
+
+    console.log('✅ PROFILE API: Version deleted successfully')
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Profile API delete error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
