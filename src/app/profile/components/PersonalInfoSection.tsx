@@ -59,6 +59,62 @@ export function PersonalInfoSection({ profile, onProfileChange, onError }: Perso
         <h3 className="text-xl font-bold text-white mb-6">Personal Information</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* First Name */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-200 mb-2">
+              First Name *
+            </label>
+            <Input
+              type="text"
+              value={profile.first_name || ''}
+              onChange={(e) => handleInputChange('first_name', e.target.value)}
+              placeholder="Enter your first name"
+              className="w-full"
+            />
+          </div>
+
+          {/* Last Name */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-200 mb-2">
+              Last Name *
+            </label>
+            <Input
+              type="text"
+              value={profile.last_name || ''}
+              onChange={(e) => handleInputChange('last_name', e.target.value)}
+              placeholder="Enter your last name"
+              className="w-full"
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-200 mb-2">
+              Email Address *
+            </label>
+            <Input
+              type="email"
+              value={profile.email || ''}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              placeholder="Enter your email"
+              className="w-full"
+            />
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-200 mb-2">
+              Phone Number *
+            </label>
+            <Input
+              type="tel"
+              value={profile.phone || ''}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+              placeholder="Enter your phone number"
+              className="w-full"
+            />
+          </div>
+
           {/* Date of Birth */}
           <div>
             <label className="block text-sm font-medium text-neutral-200 mb-2">

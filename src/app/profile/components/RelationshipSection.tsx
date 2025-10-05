@@ -58,6 +58,22 @@ export function RelationshipSection({ profile, onProfileChange }: RelationshipSe
           </select>
         </div>
 
+        {/* Partner Name - Conditional */}
+        {showRelationshipLength && (
+          <div>
+            <label className="block text-sm font-medium text-neutral-200 mb-2">
+              Partner's Name
+            </label>
+            <input
+              type="text"
+              value={profile.partner_name || ''}
+              onChange={(e) => handleInputChange('partner_name', e.target.value)}
+              placeholder="Enter your partner's name"
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            />
+          </div>
+        )}
+
         {/* Relationship Length - Conditional */}
         {showRelationshipLength && (
           <div>
