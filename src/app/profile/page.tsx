@@ -525,9 +525,6 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 : 'Your Name'
               }
             </h3>
-            <p className="text-neutral-400 mb-2">
-              {profile.email || 'your.email@example.com'}
-            </p>
             {userId && (
               <p className="text-xs text-neutral-500 mb-4 font-mono">
                 ID: {userId}
