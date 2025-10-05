@@ -94,7 +94,7 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
     
     console.log('FamilySection: Setting new childrenAges:', newAges)
     setChildrenAges(newAges)
-    handleInputChange('children_ages', newAges.filter(age => age !== ''))
+    handleInputChange('children_ages', newAges)
     
     // Reset the flag after a short delay
     setTimeout(() => {
@@ -106,12 +106,13 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
     const newAges = [...childrenAges]
     newAges[index] = age
     setChildrenAges(newAges)
-    handleInputChange('children_ages', newAges.filter(age => age !== ''))
+    // Store the full array including empty strings to maintain structure
+    handleInputChange('children_ages', newAges)
   }
 
   const hasChildren = profile.has_children === true
-  // Use local state for display if we have it, otherwise fall back to profile
-  const numberOfChildren = childrenAges.length > 0 ? childrenAges.length : (profile.number_of_children || 0)
+  // Use profile number_of_children for display, with childrenAges.length as fallback
+  const numberOfChildren = profile.number_of_children || childrenAges.length || 0
   
   console.log('FamilySection: Render - hasChildren:', hasChildren, 'numberOfChildren:', numberOfChildren, 'childrenAges.length:', childrenAges.length, 'profile.number_of_children:', profile.number_of_children)
 
