@@ -6,6 +6,8 @@ import { Camera, Upload, X, Check, RotateCw } from 'lucide-react'
 import NextImage from 'next/image'
 import ReactCrop, { Crop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
+import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
+import { createClient } from '@/lib/supabase/client'
 
 interface ProfilePictureUploadProps {
   currentImageUrl?: string | null
@@ -156,6 +158,15 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
 
     setIsUploading(true)
     try {
+      // Get current user
+      const supabase = createClient()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !user) {
+        onError('Please log in to upload a profile picture')
+        return
+      }
+
       // Crop the image (like the reference)
       const croppedFile = await cropImage(
         imgRef.current,
@@ -163,33 +174,26 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         'profile-picture.jpg'
       )
 
-      // Upload to server
-      const formData = new FormData()
-      formData.append('file', croppedFile)
+      console.log('Starting upload for user:', user.id, 'file size:', croppedFile.size, 'file type:', croppedFile.type)
 
-      const uploadResponse = await fetch('/api/upload/profile-picture', {
-        method: 'POST',
-        body: formData,
-      })
+      // Upload directly using the same method as other features
+      const uploadResult = await uploadUserFile('avatar', croppedFile, user.id)
+      console.log('Upload result:', uploadResult)
 
-      console.log('Upload response status:', uploadResponse.status)
-      console.log('Upload response headers:', Object.fromEntries(uploadResponse.headers.entries()))
-      
-      let result
-      try {
-        result = await uploadResponse.json()
-        console.log('Upload response body:', result)
-      } catch (e) {
-        console.error('Failed to parse JSON response:', e)
-        const textResponse = await uploadResponse.text()
-        console.log('Raw response text:', textResponse)
-        throw new Error(`Server returned invalid JSON. Status: ${uploadResponse.status}, Response: ${textResponse}`)
-      }
+      // Update user profile with new picture URL
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .upsert({ 
+          user_id: user.id,
+          profile_picture_url: uploadResult.url 
+        }, { 
+          onConflict: 'user_id' 
+        })
 
-      if (!uploadResponse.ok) {
-        console.error('Upload failed - Status:', uploadResponse.status)
-        console.error('Upload failed - Response:', result)
-        throw new Error(result?.error || result?.message || `Upload failed with status ${uploadResponse.status}`)
+      if (updateError) {
+        console.error('Error updating profile with new picture:', updateError)
+        onError('Failed to update profile')
+        return
       }
 
       // Clean up
@@ -203,7 +207,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       }
 
       // Update parent component
-      onImageChange(result.url)
+      onImageChange(uploadResult.url)
     } catch (error) {
       console.error('Upload error:', error)
       onError(error instanceof Error ? error.message : 'Upload failed')
