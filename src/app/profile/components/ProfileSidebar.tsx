@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Card } from '@/lib/design-system/components'
-import { User, Heart, Users, Activity, MapPin, Briefcase, DollarSign, CheckCircle } from 'lucide-react'
+import { User, Heart, Users, Activity, MapPin, Briefcase, DollarSign, CheckCircle, Camera } from 'lucide-react'
 
 interface ProfileSidebarProps {
   activeSection: string
@@ -52,6 +52,12 @@ const sections = [
     title: 'Financial',
     icon: DollarSign,
     description: 'Income and financial overview'
+  },
+  {
+    id: 'photos-notes',
+    title: 'Photos & Notes',
+    icon: Camera,
+    description: 'Progress photos and version notes'
   }
 ]
 

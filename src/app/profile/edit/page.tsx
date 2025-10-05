@@ -11,7 +11,7 @@ import { HealthSection } from '../components/HealthSection'
 import { LocationSection } from '../components/LocationSection'
 import { CareerSection } from '../components/CareerSection'
 import { FinancialSection } from '../components/FinancialSection'
-import { ProgressPhotosUpload } from '../components/ProgressPhotosUpload'
+import { PhotosAndNotesSection } from '../components/PhotosAndNotesSection'
 import { UserProfile } from '@/lib/supabase/profile'
 import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus } from 'lucide-react'
 
@@ -282,6 +282,8 @@ export default function ProfilePage() {
         return <CareerSection {...commonProps} />
       case 'financial':
         return <FinancialSection {...commonProps} />
+      case 'photos-notes':
+        return <PhotosAndNotesSection {...commonProps} />
       default:
         return <PersonalInfoSection {...commonProps} />
     }
@@ -489,29 +491,6 @@ export default function ProfilePage() {
           {/* Content */}
           <div className="lg:col-span-3">
             {renderSection()}
-            
-            {/* Version Notes */}
-            <div className="mt-8 p-6 bg-neutral-800/50 border border-neutral-700 rounded-xl">
-              <h3 className="text-lg font-semibold text-white mb-4">Version Notes</h3>
-              <p className="text-sm text-neutral-400 mb-4">
-                Add notes about this version of your profile (optional)
-              </p>
-              <textarea
-                value={profile.version_notes || ''}
-                onChange={(e) => handleProfileChange({ version_notes: e.target.value })}
-                placeholder="What's new in this version? Any significant changes or milestones?"
-                className="w-full h-24 px-4 py-3 bg-neutral-900 border border-neutral-600 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-              />
-            </div>
-
-            {/* Progress Photos */}
-            <div className="mt-8 p-6 bg-neutral-800/50 border border-neutral-700 rounded-xl">
-              <ProgressPhotosUpload
-                photos={profile.progress_photos || []}
-                onPhotosChange={(photos) => handleProfileChange({ progress_photos: photos })}
-                disabled={isSaving}
-              />
-            </div>
           </div>
         </div>
 
