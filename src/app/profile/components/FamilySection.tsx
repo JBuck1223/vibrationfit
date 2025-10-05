@@ -31,8 +31,9 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
     // Only update local state if:
     // 1. Profile has data and we don't have any local data, OR
     // 2. The number of children in profile is different from our local array length
+    // BUT don't sync if the profile data looks like it was reset (empty or default values)
     if ((profileAges.length > 0 && childrenAges.length === 0) ||
-        (numberOfChildren > 0 && childrenAges.length !== numberOfChildren)) {
+        (numberOfChildren > 0 && childrenAges.length !== numberOfChildren && numberOfChildren > 1)) {
       
       // Ensure the ages array matches the number of children
       const adjustedAges = [...profileAges]
@@ -43,10 +44,20 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
         adjustedAges.splice(numberOfChildren)
       }
       
-      
       setChildrenAges(adjustedAges)
     }
   }, [profile.children_ages, profile.number_of_children])
+
+  // Sync children ages with parent component when they change
+  useEffect(() => {
+    // Only update parent if we have actual data and it's different from what's stored
+    if (childrenAges.length > 0) {
+      const hasNonEmptyAges = childrenAges.some(age => age !== '')
+      if (hasNonEmptyAges) {
+        handleInputChange('children_ages', childrenAges)
+      }
+    }
+  }, [childrenAges])
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
@@ -98,8 +109,8 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
     const newAges = [...childrenAges]
     newAges[index] = age
     setChildrenAges(newAges)
-    // Store the full array including empty strings to maintain structure
-    handleInputChange('children_ages', newAges)
+    // Don't immediately trigger auto-save for age changes to prevent profile reset
+    // The parent component will handle saving when appropriate
   }
 
   const hasChildren = profile.has_children === true
