@@ -4,9 +4,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { PageLayout, Container, Card, Button } from '@/lib/design-system'
 import Link from 'next/link'
-import { ArrowLeft, Save, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { FileUpload } from '@/components/FileUpload'
+import { ArrowLeft, Save, X } from 'lucide-react'
 
 interface JournalEntry {
   id: string
@@ -61,7 +60,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
   const [content, setContent] = useState('')
   const [entryType, setEntryType] = useState('Evidence')
   const [categories, setCategories] = useState<string[]>([])
-  const [files, setFiles] = useState<File[]>([])
   const [existingFiles, setExistingFiles] = useState<string[]>([])
 
   useEffect(() => {

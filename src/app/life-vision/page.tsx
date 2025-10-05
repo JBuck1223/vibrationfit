@@ -10,10 +10,10 @@ const VISION_SECTIONS = [
   'giving', 'spirituality', 'conclusion'
 ]
 
-function calculateCompletionPercentage(vision: any) {
+function calculateCompletionPercentage(vision: Record<string, unknown>) {
   const sections = VISION_SECTIONS.map(section => vision[section] as string)
-  const filledSections = sections.filter(section => section?.trim().length > 0).length
-  const titleFilled = vision.title?.trim().length > 0 ? 1 : 0
+  const filledSections = sections.filter(section => String(section || '').trim().length > 0).length
+  const titleFilled = String(vision.title || '').trim().length > 0 ? 1 : 0
   const totalSections = VISION_SECTIONS.length + 1 // +1 for title
   return Math.round(((filledSections + titleFilled) / totalSections) * 100)
 }

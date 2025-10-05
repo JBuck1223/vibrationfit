@@ -60,7 +60,7 @@ export function Footer({ className = '' }: FooterProps) {
 
   const LinkGroup = ({ title, links, className: groupClassName = '' }: { 
     title: string
-    links: Array<{ href: string; label: string; icon: any }>
+    links: Array<{ href: string; label: string; icon: React.ComponentType<{ className?: string }> }>
     className?: string 
   }) => (
     <div className={groupClassName}>

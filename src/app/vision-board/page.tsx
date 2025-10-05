@@ -50,7 +50,7 @@ export default async function VisionBoardPage() {
 
     return (
       <Badge 
-        variant={statusConfig.color as any}
+        variant={statusConfig.color as "success" | "warning" | "info" | "error" | "premium" | "neutral"}
         className="flex items-center gap-1"
       >
         {status === 'actualized' && <CheckCircle className="w-3 h-3" />}

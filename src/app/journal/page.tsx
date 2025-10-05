@@ -24,7 +24,7 @@ export default function JournalPage() {
   const router = useRouter()
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -54,6 +54,11 @@ export default function JournalPage() {
 
   const handleDelete = async (entryId: string) => {
     if (!confirm('Are you sure you want to delete this journal entry? This action cannot be undone.')) {
+      return
+    }
+
+    if (!user) {
+      alert('User not authenticated')
       return
     }
 

@@ -34,7 +34,7 @@ interface VisionData {
   giving: string
   spirituality: string
   conclusion: string
-  status: 'draft' | 'complete'
+  status: 'draft' | 'complete' | string
   completion_percentage: number
   created_at: string
   updated_at: string
@@ -62,7 +62,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<{ id: string; email?: string; user_metadata?: { full_name?: string } } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeSection, setActiveSection] = useState(0)
@@ -221,8 +221,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   }
 
   const completedSections = VISION_SECTIONS.filter(section => 
-    visionData[section.key as keyof VisionData]?.trim().length > 0
-  ).length + (visionData.title.trim().length > 0 ? 1 : 0)
+    String(visionData[section.key as keyof VisionData] || '').trim().length > 0
+  ).length + (String(visionData.title || '').trim().length > 0 ? 1 : 0)
 
   return (
     <PageLayout>
@@ -292,7 +292,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               </h3>
               <div className="space-y-1">
                 {VISION_SECTIONS.map((section, index) => {
-                  const isCompleted = (visionData[section.key as keyof VisionData]?.trim().length || 0) > 0
+                  const isCompleted = (String(visionData[section.key as keyof VisionData] || '').trim().length || 0) > 0
                   const isActive = index === activeSection
                   
                   return (

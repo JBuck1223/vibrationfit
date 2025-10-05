@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { PageLayout, Container, Card, Button } from '@/lib/design-system'
+import Link from 'next/link'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -48,14 +49,14 @@ export default async function DashboardPage() {
           <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Button asChild className="w-full">
-              <a href="/life-vision/new">
+              <Link href="/life-vision/new">
                 ✨ Create New Life Vision
-              </a>
+              </Link>
             </Button>
             <Button variant="secondary" asChild className="w-full">
-              <a href="/life-vision">
+              <Link href="/life-vision">
                 📋 View All Life Visions
-              </a>
+              </Link>
             </Button>
           </div>
         </Card>

@@ -7,6 +7,7 @@ import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2 } from 'lucide-react'
+import Link from 'next/link'
 
 const LIFE_CATEGORIES = [
   'Fun / Recreation',
@@ -123,11 +124,11 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
           await deleteUserFile(oldPath)
         }
 
-        const uploadResult = await uploadUserFile('visionBoard', file, user.id)
-        if (uploadResult.url) {
+        try {
+          const uploadResult = await uploadUserFile('visionBoard', file, user.id)
           imageUrl = uploadResult.url
-        } else if (uploadResult.error) {
-          alert(`Upload failed: ${uploadResult.error}`)
+        } catch (error) {
+          alert(`Upload failed: ${error}`)
           return
         }
       }
@@ -257,7 +258,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             <h2 className="text-2xl font-bold text-white mb-4">Item not found</h2>
             <p className="text-neutral-400 mb-6">This vision board item doesn't exist or you don't have permission to view it.</p>
             <Button asChild>
-              <a href="/vision-board">Back to Vision Board</a>
+              <Link href="/vision-board">Back to Vision Board</Link>
             </Button>
           </Card>
         </Container>

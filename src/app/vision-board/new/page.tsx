@@ -65,11 +65,11 @@ export default function NewVisionBoardItemPage() {
       // Upload image if provided
       let imageUrl = ''
       if (file) {
-        const uploadResult = await uploadUserFile('visionBoard', file, user.id)
-        if (uploadResult.url) {
+        try {
+          const uploadResult = await uploadUserFile('visionBoard', file, user.id)
           imageUrl = uploadResult.url
-        } else if (uploadResult.error) {
-          alert(`Upload failed: ${uploadResult.error}`)
+        } catch (error) {
+          alert(`Upload failed: ${error}`)
           return
         }
       }
