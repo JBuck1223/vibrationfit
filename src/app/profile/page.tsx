@@ -23,7 +23,8 @@ import {
   Building,
   GraduationCap,
   Star,
-  Plus
+  Plus,
+  RefreshCw
 } from 'lucide-react'
 import NextImage from 'next/image'
 
@@ -39,6 +40,18 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
   useEffect(() => {
     fetchProfile()
+  }, [])
+
+  // Refresh profile when page becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchProfile()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   // Check for version parameter in URL
@@ -197,6 +210,14 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             >
               <Plus className="w-4 h-4" />
               New Version
+            </Button>
+            <Button
+              onClick={fetchProfile}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
             </Button>
           </div>
 
