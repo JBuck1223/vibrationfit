@@ -86,13 +86,18 @@ export async function GET(request: NextRequest) {
           completionPercentage = calculateCompletionManually(userProfile)
           console.log('Profile API: Using userProfile, completion:', completionPercentage)
           console.log('Profile API: Manual calculation details:', {
-            totalFields: 25,
-            completedFields: Object.keys(userProfile).filter(key => 
-              userProfile[key] !== null && 
-              userProfile[key] !== undefined && 
-              userProfile[key] !== ''
-            ).length,
-            profileKeys: Object.keys(userProfile)
+            totalFormFields: 25,
+            completedFormFields: ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
+              'relationship_status', 'partner_name', 'number_of_children', 'children_ages',
+              'health_conditions', 'medications', 'exercise_frequency', 'living_situation',
+              'time_at_location', 'city', 'state', 'postal_code', 'country',
+              'employment_type', 'occupation', 'company', 'time_in_role', 'household_income',
+              'profile_picture_url'].filter(field =>
+                userProfile[field] !== null && 
+                userProfile[field] !== undefined && 
+                userProfile[field] !== ''
+              ).length,
+            allProfileKeys: Object.keys(userProfile)
           })
         } else {
           // Version is more recent
@@ -272,7 +277,8 @@ export async function POST(request: NextRequest) {
 function calculateCompletionManually(profileData: any): number {
   if (!profileData) return 0
 
-  const fields = [
+  // Only count actual form fields, not database metadata
+  const formFields = [
     'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
     'relationship_status', 'partner_name', 'number_of_children', 'children_ages',
     'health_conditions', 'medications', 'exercise_frequency', 'living_situation',
@@ -281,11 +287,17 @@ function calculateCompletionManually(profileData: any): number {
     'profile_picture_url'
   ]
 
-  const completedFields = fields.filter(field =>
+  const completedFields = formFields.filter(field =>
     profileData[field] !== null &&
     profileData[field] !== undefined &&
     profileData[field] !== ''
   ).length
 
-  return Math.round((completedFields / fields.length) * 100)
+  console.log('🔢 Manual calculation:', {
+    totalFormFields: formFields.length,
+    completedFormFields: completedFields,
+    percentage: Math.round((completedFields / formFields.length) * 100)
+  })
+
+  return Math.round((completedFields / formFields.length) * 100)
 }
