@@ -88,7 +88,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
   // Handle mouse events for positioning the image
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true)
-    setDragStart({ x: e.clientX - imagePosition.x, y: e.clientY - imagePosition.y })
+    setDragStart({ x: e.clientX - imagePosition.x, y: e.clientY + imagePosition.y }) // Invert Y for dragStart
   }
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -101,7 +101,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
     const maxOffset = 100 // Maximum pixels to move in any direction
     setImagePosition({
       x: Math.max(-maxOffset, Math.min(maxOffset, newX)),
-      y: Math.max(-maxOffset, Math.min(maxOffset, newY))
+      y: Math.max(-maxOffset, Math.min(maxOffset, -newY)) // Invert Y to fix movement direction
     })
   }
 
