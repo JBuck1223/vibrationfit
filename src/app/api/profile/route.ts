@@ -131,6 +131,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Profile data is required' }, { status: 400 })
     }
 
+    // Debug: Log what data is being received
+    console.log('Profile API: Received profile data:', JSON.stringify(profileData, null, 2))
+
     try {
       if (saveAsVersion) {
         // Create a new profile version
