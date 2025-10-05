@@ -371,7 +371,7 @@ export default function ProfilePage() {
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Save Version
+              Save as Version
             </Button>
             <Button
               onClick={() => router.push('/profile/view')}
@@ -389,7 +389,7 @@ export default function ProfilePage() {
               className="flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Save Now'}
+              {isSaving ? 'Saving...' : 'Save Edits'}
             </Button>
           </div>
         </div>
