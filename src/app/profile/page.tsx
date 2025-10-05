@@ -67,7 +67,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     const versionId = urlParams.get('versionId')
     if (versionId) {
       setCurrentVersionId(versionId)
-      setIsViewingVersion(true)
+      // We'll determine if this is actually the current version after we fetch versions
       fetchProfileVersion(versionId)
     } else {
       setCurrentVersionId(null)
@@ -75,17 +75,31 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     }
   }, [])
 
-  // Update version viewing state when profile data changes
+  // Update version viewing state when versions data is available
   useEffect(() => {
-    // If there's no versionId in URL, we're viewing current version
     const urlParams = new URLSearchParams(window.location.search)
     const versionId = urlParams.get('versionId')
     
     if (!versionId) {
+      // No versionId in URL = viewing current version
       setIsViewingVersion(false)
       setCurrentVersionId(null)
+    } else if (versions.length > 0) {
+      // Check if the versionId matches the latest version (which is the current)
+      const latestVersion = versions[0] // versions are ordered by version_number desc
+      if (versionId === latestVersion?.id) {
+        // This is actually the current version, even though it has a versionId
+        setIsViewingVersion(false)
+        setCurrentVersionId(null)
+        // Clean up the URL to remove the versionId
+        window.history.replaceState({}, '', '/profile')
+      } else {
+        // This is a historical version
+        setIsViewingVersion(true)
+        setCurrentVersionId(versionId)
+      }
     }
-  }, [])
+  }, [versions])
 
   const fetchProfile = async () => {
     try {
