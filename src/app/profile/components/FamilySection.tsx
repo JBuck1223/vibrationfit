@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Card, Input, Button } from '@/lib/design-system/components'
 import { Plus, X, Minus } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -24,16 +24,24 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
   const [childrenAges, setChildrenAges] = useState<string[]>(
     profile.children_ages || []
   )
+  const isUserActionRef = useRef(false)
 
-  // Keep local state in sync with profile data, but only when profile changes externally
+  // Keep local state in sync with profile data, but preserve local changes
   useEffect(() => {
+    // Don't sync if user is actively making changes
+    if (isUserActionRef.current) {
+      return
+    }
+    
     const profileAges = profile.children_ages || []
     const numberOfChildren = profile.number_of_children || 0
     
-    // Only update if the profile data is different from our local state
-    // and if we're not in the middle of adjusting the number of children
-    if (profileAges.length !== childrenAges.length || 
-        (profileAges.length > 0 && childrenAges.length === 0)) {
+    // Only update local state if:
+    // 1. Profile has data and we don't have any local data, OR
+    // 2. The number of children in profile is different from our local array length
+    if ((profileAges.length > 0 && childrenAges.length === 0) ||
+        (numberOfChildren > 0 && childrenAges.length !== numberOfChildren)) {
+      
       // Ensure the ages array matches the number of children
       const adjustedAges = [...profileAges]
       while (adjustedAges.length < numberOfChildren) {
@@ -42,6 +50,14 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
       if (adjustedAges.length > numberOfChildren) {
         adjustedAges.splice(numberOfChildren)
       }
+      
+      console.log('FamilySection: Syncing local state with profile:', {
+        profileAges,
+        numberOfChildren,
+        currentLocal: childrenAges,
+        newLocal: adjustedAges
+      })
+      
       setChildrenAges(adjustedAges)
     }
   }, [profile.children_ages, profile.number_of_children])
@@ -70,6 +86,9 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
     console.log('FamilySection: Changing number of children to:', number)
     console.log('FamilySection: Current childrenAges:', childrenAges)
     
+    // Mark that user is making changes
+    isUserActionRef.current = true
+    
     handleInputChange('number_of_children', number)
     
     // Adjust children ages array to match the number
@@ -89,6 +108,11 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
     console.log('FamilySection: New ages array:', newAges)
     setChildrenAges(newAges)
     handleInputChange('children_ages', newAges.filter(age => age !== ''))
+    
+    // Reset the flag after a short delay
+    setTimeout(() => {
+      isUserActionRef.current = false
+    }, 1000)
   }
 
   const handleChildAgeChange = (index: number, age: string) => {
