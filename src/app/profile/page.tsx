@@ -1,505 +1,505 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Container, Button, Badge } from '@/lib/design-system/components'
-import { ProfileSidebar } from './components/ProfileSidebar'
-import { PersonalInfoSection } from './components/PersonalInfoSection'
-import { RelationshipSection } from './components/RelationshipSection'
-import { FamilySection } from './components/FamilySection'
-import { HealthSection } from './components/HealthSection'
-import { LocationSection } from './components/LocationSection'
-import { CareerSection } from './components/CareerSection'
-import { FinancialSection } from './components/FinancialSection'
+import { Card, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus } from 'lucide-react'
+import { 
+  User, 
+  Heart, 
+  Users, 
+  Activity, 
+  MapPin, 
+  Briefcase, 
+  DollarSign,
+  Edit3,
+  ArrowLeft,
+  Calendar,
+  Phone,
+  Mail,
+  Camera,
+  Clock,
+  Home,
+  Building,
+  GraduationCap,
+  Star
+} from 'lucide-react'
+import NextImage from 'next/image'
 
-export default function ProfilePage() {
+interface ProfileViewPageProps {}
+
+export default function ProfileViewPage({}: ProfileViewPageProps) {
   const router = useRouter()
   const [profile, setProfile] = useState<Partial<UserProfile>>({})
-  const [activeSection, setActiveSection] = useState('personal')
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [error, setError] = useState<string | null>(null)
   const [completionPercentage, setCompletionPercentage] = useState(0)
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const [versions, setVersions] = useState<any[]>([])
-  const [showVersions, setShowVersions] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Auto-save functionality
-  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
-
-  // Manual completion calculation fallback
-  const calculateCompletionManually = (profileData: Partial<UserProfile>): number => {
-    if (!profileData) return 0
-    
-    const fields = [
-      'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
-      'relationship_status', 'partner_name', 'children_count', 'children_names',
-      'health_conditions', 'medications', 'exercise_frequency', 'living_situation',
-      'time_at_location', 'city', 'state', 'postal_code', 'country',
-      'employment_type', 'occupation', 'company', 'time_in_role', 'household_income'
-    ]
-    
-    const completedFields = fields.filter(field => 
-      profileData[field as keyof UserProfile] !== null && 
-      profileData[field as keyof UserProfile] !== undefined && 
-      profileData[field as keyof UserProfile] !== ''
-    ).length
-    
-    return Math.round((completedFields / fields.length) * 100)
-  }
-
-  // Fetch profile data
   useEffect(() => {
-    async function fetchProfile() {
-      try {
-        console.log('Profile page: Starting fetch to /api/profile')
-        const response = await fetch('/api/profile')
-        console.log('Profile page: Response received', { 
-          status: response.status, 
-          ok: response.ok,
-          statusText: response.statusText 
-        })
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            console.log('Profile page: Unauthorized, redirecting to login')
-            router.push('/auth/login')
-            return
-          }
-          const errorText = await response.text()
-          console.error('Profile page: API error response', errorText)
-          throw new Error(`Failed to fetch profile: ${response.status} ${response.statusText}`)
-        }
-
-        const data = await response.json()
-        console.log('Profile page: Data received', data)
-        setProfile(data.profile || {})
-        setCompletionPercentage(data.completionPercentage || 0)
-      } catch (error) {
-        console.error('Error fetching profile:', error)
-        setError('Failed to load profile data')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     fetchProfile()
-  }, [router])
+  }, [])
 
-  // Fetch versions
-  const fetchVersions = async () => {
-    try {
-      const response = await fetch('/api/profile?includeVersions=true')
-      if (response.ok) {
-        const data = await response.json()
-        setVersions(data.versions || [])
-      }
-    } catch (error) {
-      console.error('Error fetching versions:', error)
-    }
-  }
-
-  // Save as version function
-  const saveAsVersion = async (isDraft = true) => {
-    setIsSaving(true)
-    setSaveStatus('saving')
-
-    try {
-      const response = await fetch('/api/profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          profileData: profile, 
-          saveAsVersion: true, 
-          isDraft 
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to save version')
-      }
-
-      const data = await response.json()
-      console.log('Version save response:', data)
-      
-      setSaveStatus('saved')
-      setLastSaved(new Date())
-      setError(null)
-      
-      // Refresh versions list
-      await fetchVersions()
-
-      // Clear save status after 2 seconds
-      setTimeout(() => {
-        setSaveStatus('idle')
-      }, 2000)
-    } catch (error) {
-      console.error('Error saving version:', error)
-      setError(error instanceof Error ? error.message : 'Failed to save version')
-      setSaveStatus('error')
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  // Auto-save function
-  const saveProfile = useCallback(async (profileData: Partial<UserProfile>) => {
-    setIsSaving(true)
-    setSaveStatus('saving')
-
-    try {
-      const response = await fetch('/api/profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ profileData }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to save profile')
-      }
-
-      const data = await response.json()
-      console.log('Profile save response:', data)
-      console.log('Setting profile to:', data.profile)
-      
-      // Only update profile if the save was successful and returned valid data
-      if (data.profile && Object.keys(data.profile).length > 0) {
-        // Preserve the current profile picture URL if the API doesn't return it
-        const currentProfilePicture = profile.profile_picture_url
-        const updatedProfile = {
-          ...data.profile,
-          profile_picture_url: data.profile.profile_picture_url || currentProfilePicture
-        }
-        
-        setProfile(updatedProfile)
-        setCompletionPercentage(data.completionPercentage)
-      } else {
-        console.log('Profile save failed or returned empty data, keeping current local state')
-        // Keep current local state if save failed
-        setCompletionPercentage(calculateCompletionManually(profile))
-      }
-      setSaveStatus('saved')
-      setLastSaved(new Date())
-      setError(null)
-
-      // Clear save status after 2 seconds
-      setTimeout(() => {
-        setSaveStatus('idle')
-      }, 2000)
-    } catch (error) {
-      console.error('Error saving profile:', error)
-      setSaveStatus('error')
-      setError('Failed to save profile changes')
-    } finally {
-      setIsSaving(false)
+  // Check for version parameter in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const versionId = urlParams.get('versionId')
+    if (versionId) {
+      fetchProfileVersion(versionId)
     }
   }, [])
 
-  // Debounced auto-save
-  const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
-    const newProfile = { ...profile, ...updates }
-    setProfile(newProfile)
-
-    // Clear existing timeout
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout)
-    }
-
-    // Set new timeout for auto-save
-    const timeout = setTimeout(() => {
-      saveProfile(newProfile)
-    }, 1000) // 1 second delay
-
-    setAutoSaveTimeout(timeout)
-  }, [profile, autoSaveTimeout, saveProfile])
-
-  // Manual save function
-  const handleManualSave = async () => {
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout)
-    }
-    await saveProfile(profile)
-  }
-
-  // Calculate completed sections
-  const getCompletedSections = useCallback(() => {
-    const sections = [
-      'personal',
-      'relationship', 
-      'family',
-      'health',
-      'location',
-      'career',
-      'financial'
-    ]
-
-    return sections.filter(section => {
-      switch (section) {
-        case 'personal':
-          return profile.profile_picture_url && profile.date_of_birth && profile.gender && profile.ethnicity
-        case 'relationship':
-          return profile.relationship_status && 
-                 (profile.relationship_status === 'Single' || profile.relationship_length)
-        case 'family':
-          return profile.has_children !== undefined && 
-                 (profile.has_children === false || 
-                  (profile.number_of_children && profile.children_ages?.length))
-        case 'health':
-          return profile.units && profile.height && profile.weight && profile.exercise_frequency
-        case 'location':
-          return profile.living_situation && profile.time_at_location && 
-                 profile.city && profile.state && profile.postal_code && profile.country
-        case 'career':
-          return profile.employment_type && profile.occupation && profile.company && profile.time_in_role
-        case 'financial':
-          return profile.currency && profile.household_income && profile.savings_retirement && 
-                 profile.assets_equity && profile.consumer_debt
-        default:
-          return false
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch('/api/profile')
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile')
       }
-    })
-  }, [profile])
-
-  const completedSections = getCompletedSections()
-
-  // Render section content
-  const renderSection = () => {
-    const commonProps = {
-      profile,
-      onProfileChange: handleProfileChange,
-      onError: setError
-    }
-
-    switch (activeSection) {
-      case 'personal':
-        return <PersonalInfoSection {...commonProps} />
-      case 'relationship':
-        return <RelationshipSection {...commonProps} />
-      case 'family':
-        return <FamilySection {...commonProps} />
-      case 'health':
-        return <HealthSection {...commonProps} />
-      case 'location':
-        return <LocationSection {...commonProps} />
-      case 'career':
-        return <CareerSection {...commonProps} />
-      case 'financial':
-        return <FinancialSection {...commonProps} />
-      default:
-        return <PersonalInfoSection {...commonProps} />
+      const data = await response.json()
+      setProfile(data.profile || {})
+      setCompletionPercentage(data.completionPercentage || 0)
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+      setError('Failed to load profile data')
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Loading state
-  if (isLoading) {
+  const fetchProfileVersion = async (versionId: string) => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/profile?versionId=${versionId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile version')
+      }
+      const data = await response.json()
+      setProfile(data.profile || {})
+      setCompletionPercentage(data.completionPercentage || 0)
+    } catch (error) {
+      console.error('Error fetching profile version:', error)
+      setError('Failed to load profile version')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Not specified'
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  const formatAge = (dateOfBirth: string) => {
+    if (!dateOfBirth) return 'Not specified'
+    const today = new Date()
+    const birthDate = new Date(dateOfBirth)
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return `${age} years old`
+  }
+
+  const getCompletionColor = (percentage: number) => {
+    if (percentage >= 80) return 'text-green-400'
+    if (percentage >= 60) return 'text-yellow-400'
+    if (percentage >= 40) return 'text-orange-400'
+    return 'text-red-400'
+  }
+
+  const getCompletionBg = (percentage: number) => {
+    if (percentage >= 80) return 'bg-green-500'
+    if (percentage >= 60) return 'bg-yellow-500'
+    if (percentage >= 40) return 'bg-orange-500'
+    return 'bg-red-500'
+  }
+
+  if (loading) {
     return (
-      <PageLayout>
-        <Container size="xl" className="py-8">
-          <div className="text-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
-            <div className="text-neutral-400">Loading your profile...</div>
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+              <p className="text-neutral-400">Loading your profile...</p>
+            </div>
           </div>
-        </Container>
-      </PageLayout>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="text-red-500 mb-4">
+                <User className="w-16 h-16 mx-auto" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Profile Error</h2>
+              <p className="text-neutral-400 mb-6">{error}</p>
+              <Button onClick={fetchProfile} variant="primary">
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     )
   }
 
   return (
-    <PageLayout>
-      <Container size="xl" className="py-8">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Complete Your Profile</h1>
-          <p className="text-neutral-400">
-            Help your AI Vibrational Assistant understand you better. The more complete your profile, the more personalized your guidance becomes.
-          </p>
-        </div>
-
-        {/* Save Status Bar */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {saveStatus === 'saving' && (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                <span className="text-sm text-primary-500">Saving...</span>
-              </>
-            )}
-            {saveStatus === 'saved' && (
-              <>
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-green-500">Saved</span>
-              </>
-            )}
-            {saveStatus === 'error' && (
-              <>
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <span className="text-sm text-red-500">Save failed</span>
-              </>
-            )}
-            {lastSaved && saveStatus === 'idle' && (
-              <span className="text-sm text-neutral-500">
-                Last saved: {lastSaved.toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Badge variant="primary" className="flex items-center gap-2">
-              {completionPercentage}% Complete
-            </Badge>
+          <div className="flex items-center gap-4 mb-6">
             <Button
-              onClick={() => setShowVersions(!showVersions)}
-              variant="outline"
-              size="sm"
+              onClick={() => router.back()}
+              variant="ghost"
+              className="text-neutral-400 hover:text-white"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Back
+            </Button>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-white mb-2">My Profile</h1>
+              <p className="text-neutral-400">Complete overview of your personal information</p>
+            </div>
+            <Button
+              onClick={() => router.push('/profile/edit')}
+              variant="primary"
               className="flex items-center gap-2"
             >
-              <History className="w-4 h-4" />
-              Versions
+              <Edit3 className="w-4 h-4" />
+              Edit Profile
             </Button>
             <Button
-              onClick={() => saveAsVersion(false)}
-              disabled={isSaving}
+              onClick={() => router.push('/profile/new')}
               variant="secondary"
-              size="sm"
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Save as Version
+              New Version
             </Button>
+          </div>
+
+          {/* Completion Progress */}
+          <Card className="p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">Profile Completion</h2>
+              <span className={`text-2xl font-bold ${getCompletionColor(completionPercentage)}`}>
+                {completionPercentage}%
+              </span>
+            </div>
+            <div className="w-full bg-neutral-700 rounded-full h-3">
+              <div
+                className={`h-3 rounded-full transition-all duration-500 ${getCompletionBg(completionPercentage)}`}
+                style={{ width: `${completionPercentage}%` }}
+              ></div>
+            </div>
+            <p className="text-sm text-neutral-400 mt-2">
+              {completionPercentage >= 80 
+                ? "Excellent! Your profile is well-completed." 
+                : completionPercentage >= 60 
+                ? "Good progress! A few more details would be helpful."
+                : "Keep going! Complete more sections to unlock your full potential."
+              }
+            </p>
+          </Card>
+        </div>
+
+        {/* Profile Picture and Basic Info */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Profile Picture */}
+          <Card className="p-6 text-center">
+            <div className="relative inline-block mb-4">
+              {profile.profile_picture_url ? (
+                <div className="w-32 h-32 rounded-full overflow-hidden bg-neutral-800 border-4 border-primary-500/20">
+                  <NextImage
+                    src={profile.profile_picture_url}
+                    alt="Profile picture"
+                    width={128}
+                    height={128}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 border-4 border-primary-500/20 flex items-center justify-center">
+                  <Camera className="w-12 h-12 text-white" />
+                </div>
+              )}
+            </div>
+            <h3 className="text-xl font-bold text-white mb-1">
+              {profile.first_name && profile.last_name 
+                ? `${profile.first_name} ${profile.last_name}`
+                : 'Your Name'
+              }
+            </h3>
+            <p className="text-neutral-400 mb-4">
+              {profile.email || 'your.email@example.com'}
+            </p>
             <Button
-              onClick={() => router.push('/profile/view')}
+              onClick={() => router.push('/profile/edit')}
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              className="w-full"
             >
-              <Eye className="w-4 h-4" />
-              View Profile
+              <Camera className="w-4 h-4 mr-2" />
+              Update Photo
             </Button>
-            <Button
-              onClick={handleManualSave}
-              disabled={isSaving}
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Save Edits'}
-            </Button>
+          </Card>
+
+          {/* Quick Stats */}
+          <div className="lg:col-span-2 space-y-4">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <User className="w-5 h-5 text-primary-500" />
+                Personal Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-4 h-4 text-neutral-400" />
+                  <div>
+                    <p className="text-sm text-neutral-400">Date of Birth</p>
+                    <p className="text-white font-medium">
+                      {profile.date_of_birth ? formatDate(profile.date_of_birth) : 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-neutral-400" />
+                  <div>
+                    <p className="text-sm text-neutral-400">Age</p>
+                    <p className="text-white font-medium">
+                      {profile.date_of_birth ? formatAge(profile.date_of_birth) : 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-neutral-400" />
+                  <div>
+                    <p className="text-sm text-neutral-400">Gender</p>
+                    <p className="text-white font-medium">
+                      {profile.gender || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="w-4 h-4 text-neutral-400" />
+                  <div>
+                    <p className="text-sm text-neutral-400">Phone</p>
+                    <p className="text-white font-medium">
+                      {profile.phone || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
           </div>
         </div>
 
-        {/* Error Display */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500" />
-              <span className="text-red-400">{error}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Versions List */}
-        {showVersions && (
-          <div className="mb-6 p-6 bg-neutral-800/50 border border-neutral-700 rounded-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Profile Versions</h3>
-              <Button
-                onClick={fetchVersions}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <History className="w-4 h-4" />
-                Refresh
-              </Button>
-            </div>
-            {versions.length > 0 ? (
-              <div className="space-y-3">
-                {versions.map((version) => (
-                  <div
-                    key={version.id}
-                    className="flex items-center justify-between p-4 bg-neutral-700/50 rounded-lg border border-neutral-600"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">
-                            Version {version.version_number}
-                          </span>
-                          {version.is_draft && (
-                            <Badge variant="secondary" size="sm">Draft</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-neutral-400">
-                          {new Date(version.created_at).toLocaleDateString()} at{' '}
-                          {new Date(version.created_at).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="primary" size="sm">
-                        {version.completion_percentage}% Complete
-                      </Badge>
-                      <Button
-                        onClick={() => router.push(`/profile/view?versionId=${version.id}`)}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <History className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
-                <p className="text-neutral-400 mb-4">No versions saved yet</p>
-                <p className="text-sm text-neutral-500">
-                  Save a version to track your profile changes over time
+        {/* Detailed Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Relationship */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Heart className="w-5 h-5 text-primary-500" />
+              Relationship
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-neutral-400">Status</p>
+                <p className="text-white font-medium">
+                  {profile.relationship_status || 'Not specified'}
                 </p>
               </div>
-            )}
-          </div>
-        )}
+              {profile.partner_name && (
+                <div>
+                  <p className="text-sm text-neutral-400">Partner</p>
+                  <p className="text-white font-medium">{profile.partner_name}</p>
+                </div>
+              )}
+            </div>
+          </Card>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <ProfileSidebar
-              activeSection={activeSection}
-              onSectionChange={setActiveSection}
-              completedSections={completedSections}
-            />
-          </div>
+          {/* Family */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary-500" />
+              Family
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-neutral-400">Has Children</p>
+                <p className="text-white font-medium">
+                  {profile.has_children === true ? 'Yes' : profile.has_children === false ? 'No' : 'Not specified'}
+                </p>
+              </div>
+              {profile.has_children && profile.number_of_children && (
+                <div>
+                  <p className="text-sm text-neutral-400">Number of Children</p>
+                  <p className="text-white font-medium">{profile.number_of_children}</p>
+                </div>
+              )}
+              {profile.children_ages && profile.children_ages.length > 0 && (
+                <div>
+                  <p className="text-sm text-neutral-400">Children's Ages</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {profile.children_ages.map((age, index) => (
+                      <span key={index} className="px-2 py-1 bg-primary-500/20 text-primary-300 rounded text-sm">
+                        Child {index + 1}: {age} {age === '1' ? 'year' : 'years'} old
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
 
-          {/* Content */}
-          <div className="lg:col-span-3">
-            {renderSection()}
-          </div>
+          {/* Health */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary-500" />
+              Health & Wellness
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-neutral-400">Exercise Frequency</p>
+                <p className="text-white font-medium">
+                  {profile.exercise_frequency || 'Not specified'}
+                </p>
+              </div>
+              {profile.health_conditions && (
+                <div>
+                  <p className="text-sm text-neutral-400">Health Conditions</p>
+                  <p className="text-white font-medium">{profile.health_conditions}</p>
+                </div>
+              )}
+              {profile.medications && (
+                <div>
+                  <p className="text-sm text-neutral-400">Medications</p>
+                  <p className="text-white font-medium">{profile.medications}</p>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Location */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-primary-500" />
+              Location
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-neutral-400">Living Situation</p>
+                <p className="text-white font-medium">
+                  {profile.living_situation || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">Time at Location</p>
+                <p className="text-white font-medium">
+                  {profile.time_at_location || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">Address</p>
+                <p className="text-white font-medium">
+                  {[profile.city, profile.state, profile.postal_code, profile.country]
+                    .filter(Boolean)
+                    .join(', ') || 'Not specified'}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Career */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-primary-500" />
+              Career
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-neutral-400">Employment Type</p>
+                <p className="text-white font-medium">
+                  {profile.employment_type || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">Occupation</p>
+                <p className="text-white font-medium">
+                  {profile.occupation || 'Not specified'}
+                </p>
+              </div>
+              {profile.company && (
+                <div>
+                  <p className="text-sm text-neutral-400">Company</p>
+                  <p className="text-white font-medium">{profile.company}</p>
+                </div>
+              )}
+              {profile.time_in_role && (
+                <div>
+                  <p className="text-sm text-neutral-400">Time in Role</p>
+                  <p className="text-white font-medium">{profile.time_in_role}</p>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Financial */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-primary-500" />
+              Financial
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-neutral-400">Household Income</p>
+                <p className="text-white font-medium">
+                  {profile.household_income || 'Not specified'}
+                </p>
+              </div>
+            </div>
+          </Card>
         </div>
 
-        {/* Completion Celebration */}
-        {completionPercentage === 100 && (
-          <div className="mt-8 p-6 bg-gradient-to-r from-primary-500/20 to-secondary-500/20 border border-primary-500/30 rounded-xl text-center">
-            <div className="text-4xl mb-4">🎉</div>
-            <h3 className="text-2xl font-bold text-white mb-2">Profile Complete!</h3>
-            <p className="text-neutral-300">
-              Your AI Vibrational Assistant now has a complete understanding of your life context. 
-              Expect more personalized and relevant guidance in all your interactions.
-            </p>
-          </div>
-        )}
-      </Container>
-    </PageLayout>
+        {/* Action Buttons */}
+        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+          <Button
+            onClick={() => router.push('/profile/edit')}
+            variant="primary"
+            className="flex items-center gap-2"
+          >
+            <Edit3 className="w-4 h-4" />
+            Edit Profile
+          </Button>
+          <Button
+            onClick={() => router.push('/profile/new')}
+            variant="secondary"
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Create New Version
+          </Button>
+          <Button
+            onClick={() => router.push('/dashboard')}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    </div>
   )
 }
