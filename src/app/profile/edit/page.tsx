@@ -27,8 +27,7 @@ export default function ProfilePage() {
   const [versions, setVersions] = useState<any[]>([])
   const [showVersions, setShowVersions] = useState(false)
 
-  // Auto-save functionality
-  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
+  // Manual save only - no auto-save timeout needed
 
   // Manual completion calculation fallback
   const calculateCompletionManually = (profileData: Partial<UserProfile>): number => {
@@ -206,29 +205,15 @@ export default function ProfilePage() {
     }
   }, [])
 
-  // Debounced auto-save
+  // Manual save only - no auto-save
   const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
     const newProfile = { ...profile, ...updates }
     setProfile(newProfile)
-
-    // Clear existing timeout
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout)
-    }
-
-    // Set new timeout for auto-save
-    const timeout = setTimeout(() => {
-      saveProfile(newProfile)
-    }, 1000) // 1 second delay
-
-    setAutoSaveTimeout(timeout)
-  }, [profile, autoSaveTimeout, saveProfile])
+    // No auto-save - user must click "Save Edits" button
+  }, [profile])
 
   // Manual save function
   const handleManualSave = async () => {
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout)
-    }
     await saveProfile(profile)
   }
 
@@ -350,6 +335,11 @@ export default function ProfilePage() {
             {lastSaved && saveStatus === 'idle' && (
               <span className="text-sm text-neutral-500">
                 Last saved: {lastSaved.toLocaleTimeString()}
+              </span>
+            )}
+            {saveStatus === 'idle' && !lastSaved && (
+              <span className="text-sm text-neutral-500">
+                Click "Save Edits" to save your changes
               </span>
             )}
           </div>
