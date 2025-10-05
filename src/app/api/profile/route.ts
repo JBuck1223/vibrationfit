@@ -84,6 +84,15 @@ export async function GET(request: NextRequest) {
           profile = userProfile
           completionPercentage = calculateCompletionManually(userProfile)
           console.log('Profile API: Using userProfile, completion:', completionPercentage)
+          console.log('Profile API: Manual calculation details:', {
+            totalFields: 25,
+            completedFields: Object.keys(userProfile).filter(key => 
+              userProfile[key] !== null && 
+              userProfile[key] !== undefined && 
+              userProfile[key] !== ''
+            ).length,
+            profileKeys: Object.keys(userProfile)
+          })
         } else {
           // Version is more recent
           profile = latestVersion.profile_data
@@ -119,6 +128,10 @@ export async function GET(request: NextRequest) {
           versions = allVersions || []
         }
       }
+
+      // Debug: Log the final response
+      console.log('Profile API: Final response - completionPercentage:', completionPercentage)
+      console.log('Profile API: Profile keys:', Object.keys(profile || {}))
 
       return NextResponse.json({
         profile,
