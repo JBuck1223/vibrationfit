@@ -25,10 +25,26 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
     profile.children_ages || []
   )
 
-  // Keep local state in sync with profile data
+  // Keep local state in sync with profile data, but only when profile changes externally
   useEffect(() => {
-    setChildrenAges(profile.children_ages || [])
-  }, [profile.children_ages])
+    const profileAges = profile.children_ages || []
+    const numberOfChildren = profile.number_of_children || 0
+    
+    // Only update if the profile data is different from our local state
+    // and if we're not in the middle of adjusting the number of children
+    if (profileAges.length !== childrenAges.length || 
+        (profileAges.length > 0 && childrenAges.length === 0)) {
+      // Ensure the ages array matches the number of children
+      const adjustedAges = [...profileAges]
+      while (adjustedAges.length < numberOfChildren) {
+        adjustedAges.push('')
+      }
+      if (adjustedAges.length > numberOfChildren) {
+        adjustedAges.splice(numberOfChildren)
+      }
+      setChildrenAges(adjustedAges)
+    }
+  }, [profile.children_ages, profile.number_of_children])
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
@@ -51,10 +67,13 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
   }
 
   const handleNumberOfChildrenChange = (number: number) => {
+    console.log('FamilySection: Changing number of children to:', number)
+    console.log('FamilySection: Current childrenAges:', childrenAges)
+    
     handleInputChange('number_of_children', number)
     
     // Adjust children ages array to match the number
-    const currentAges = profile.children_ages || []
+    const currentAges = childrenAges || []
     const newAges = [...currentAges]
     
     if (number > currentAges.length) {
@@ -67,6 +86,7 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
       newAges.splice(number)
     }
     
+    console.log('FamilySection: New ages array:', newAges)
     setChildrenAges(newAges)
     handleInputChange('children_ages', newAges.filter(age => age !== ''))
   }
