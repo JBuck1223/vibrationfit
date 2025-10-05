@@ -77,6 +77,10 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
   }
 
   const handleNumberOfChildrenChange = (number: number) => {
+    console.log('FamilySection: handleNumberOfChildrenChange called with:', number)
+    console.log('FamilySection: Current childrenAges length:', childrenAges.length)
+    console.log('FamilySection: Current numberOfChildren from profile:', profile.number_of_children)
+    
     // Mark that user is making changes
     isUserActionRef.current = true
     
@@ -96,6 +100,7 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
       newAges.splice(number)
     }
     
+    console.log('FamilySection: Setting new childrenAges:', newAges)
     setChildrenAges(newAges)
     handleInputChange('children_ages', newAges.filter(age => age !== ''))
     
@@ -113,7 +118,10 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
   }
 
   const hasChildren = profile.has_children === true
-  const numberOfChildren = profile.number_of_children || 0
+  // Use local state for display if we have it, otherwise fall back to profile
+  const numberOfChildren = childrenAges.length > 0 ? childrenAges.length : (profile.number_of_children || 0)
+  
+  console.log('FamilySection: Render - hasChildren:', hasChildren, 'numberOfChildren:', numberOfChildren, 'childrenAges.length:', childrenAges.length, 'profile.number_of_children:', profile.number_of_children)
 
   return (
     <Card className="p-6">
@@ -157,7 +165,12 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
             </label>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => numberOfChildren > 1 && handleNumberOfChildrenChange(numberOfChildren - 1)}
+                onClick={() => {
+                  console.log('FamilySection: Minus button clicked, current numberOfChildren:', numberOfChildren)
+                  if (numberOfChildren > 1) {
+                    handleNumberOfChildrenChange(numberOfChildren - 1)
+                  }
+                }}
                 disabled={numberOfChildren <= 1}
                 className="p-2 rounded-lg bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -179,7 +192,12 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
               />
               
               <button
-                onClick={() => numberOfChildren < 20 && handleNumberOfChildrenChange(numberOfChildren + 1)}
+                onClick={() => {
+                  console.log('FamilySection: Plus button clicked, current numberOfChildren:', numberOfChildren)
+                  if (numberOfChildren < 20) {
+                    handleNumberOfChildrenChange(numberOfChildren + 1)
+                  }
+                }}
                 disabled={numberOfChildren >= 20}
                 className="p-2 rounded-lg bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
