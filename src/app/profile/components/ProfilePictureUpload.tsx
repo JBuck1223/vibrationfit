@@ -57,15 +57,34 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
   // Set crop to center of image (like the reference)
   React.useEffect(() => {
     if (imgRef.current) {
-      const { width, height } = imgRef.current;
-      const size = Math.min(width, height);
-      setCrop({
-        unit: 'px',
-        width: size,
-        height: size,
-        x: (width - size) / 2,
-        y: (height - size) / 2,
-      });
+      // Wait for image to load completely
+      const img = imgRef.current;
+      if (img.complete) {
+        const { width, height } = img;
+        const size = Math.min(width, height);
+        setCrop({
+          unit: 'px',
+          width: size,
+          height: size,
+          x: (width - size) / 2,
+          y: (height - size) / 2,
+        });
+      } else {
+        // If image not loaded yet, wait for load event
+        const handleLoad = () => {
+          const { width, height } = img;
+          const size = Math.min(width, height);
+          setCrop({
+            unit: 'px',
+            width: size,
+            height: size,
+            x: (width - size) / 2,
+            y: (height - size) / 2,
+          });
+        };
+        img.addEventListener('load', handleLoad);
+        return () => img.removeEventListener('load', handleLoad);
+      }
     }
   }, [previewUrl]);
 
@@ -247,7 +266,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
             {previewUrl && (
               <div className="space-y-4">
                 {/* Crop Area */}
-                <div className="relative mx-auto bg-neutral-800 rounded-lg w-64 h-64 overflow-hidden">
+                <div className="relative mx-auto bg-neutral-800 rounded-lg overflow-hidden">
                   <ReactCrop
                     crop={crop}
                     onChange={(c) => setCrop(c)}
@@ -262,7 +281,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                       alt="Crop preview"
                       style={{
                         maxWidth: '100%',
-                        maxHeight: '100%',
+                        maxHeight: '400px',
                         transform: `rotate(${imageRotation}deg)`,
                         transformOrigin: 'center'
                       }}
