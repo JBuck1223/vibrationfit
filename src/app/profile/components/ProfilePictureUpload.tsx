@@ -172,17 +172,24 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         body: formData,
       })
 
+      console.log('Upload response status:', uploadResponse.status)
+      console.log('Upload response headers:', Object.fromEntries(uploadResponse.headers.entries()))
+      
       let result
       try {
         result = await uploadResponse.json()
+        console.log('Upload response body:', result)
       } catch (e) {
-        console.error('Failed to parse response:', e)
-        throw new Error(`Upload failed with status ${uploadResponse.status}`)
+        console.error('Failed to parse JSON response:', e)
+        const textResponse = await uploadResponse.text()
+        console.log('Raw response text:', textResponse)
+        throw new Error(`Server returned invalid JSON. Status: ${uploadResponse.status}, Response: ${textResponse}`)
       }
 
       if (!uploadResponse.ok) {
-        console.error('Upload failed:', result)
-        throw new Error(result.error || result.message || `Upload failed with status ${uploadResponse.status}`)
+        console.error('Upload failed - Status:', uploadResponse.status)
+        console.error('Upload failed - Response:', result)
+        throw new Error(result?.error || result?.message || `Upload failed with status ${uploadResponse.status}`)
       }
 
       // Clean up

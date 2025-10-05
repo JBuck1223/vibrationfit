@@ -35,10 +35,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload to S3
-    const uploadResult = await uploadUserFile('avatar', file, user.id)
+    console.log('Starting upload for user:', user.id, 'file size:', file.size, 'file type:', file.type)
+    const uploadResult = await uploadUserFile('avatar' as const, file, user.id)
+    console.log('Upload result:', uploadResult)
     
     if (!uploadResult) {
-      return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+      console.error('Upload result is null/undefined')
+      return NextResponse.json({ error: 'Upload failed - no result returned' }, { status: 500 })
     }
 
     // Update user profile with new picture URL
