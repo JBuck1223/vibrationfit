@@ -52,8 +52,10 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
   const [imageScale, setImageScale] = useState(1)
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [previewCanvas, setPreviewCanvas] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null)
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -135,6 +137,68 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
     setImageScale(1)
   }
 
+  // Generate circular preview
+  const generateCircularPreview = useCallback(() => {
+    if (!originalImage || !previewCanvasRef.current) return
+
+    const canvas = previewCanvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Set canvas size for circular preview
+    canvas.width = 120
+    canvas.height = 120
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    // Create circular clipping path
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, 0, Math.PI * 2)
+    ctx.clip()
+
+    // Get crop area (centered square)
+    const cropArea = getCropArea()
+    
+    // Calculate rotation
+    const radians = (imageRotation * Math.PI) / 180
+    
+    // Apply image position offset and scale to crop area
+    const adjustedCropArea = {
+      x: cropArea.x + imagePosition.x,
+      y: cropArea.y + imagePosition.y,
+      width: cropArea.width / imageScale,
+      height: cropArea.height / imageScale
+    }
+    
+    // Move to center of canvas
+    ctx.translate(canvas.width / 2, canvas.height / 2)
+    
+    // Rotate
+    ctx.rotate(radians)
+    
+    // Draw cropped and rotated image
+    ctx.drawImage(
+      originalImage,
+      adjustedCropArea.x,
+      adjustedCropArea.y,
+      adjustedCropArea.width,
+      adjustedCropArea.height,
+      -canvas.width / 2,
+      -canvas.height / 2,
+      canvas.width,
+      canvas.height
+    )
+    
+    // Restore context
+    ctx.restore()
+    
+    // Convert to data URL for preview
+    const dataURL = canvas.toDataURL('image/jpeg', 0.9)
+    setPreviewCanvas(dataURL)
+  }, [originalImage, imageRotation, imagePosition, imageScale])
+
   // Crop and convert to blob
   const cropImage = useCallback((): Promise<Blob> => {
     return new Promise((resolve) => {
@@ -199,6 +263,13 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       }, 'image/jpeg', 0.9)
     })
   }, [originalImage, imageRotation, imagePosition, imageScale])
+
+  // Update circular preview when transforms change
+  React.useEffect(() => {
+    if (originalImage) {
+      generateCircularPreview()
+    }
+  }, [originalImage, imageRotation, imagePosition, imageScale, generateCircularPreview])
 
   const handleUpload = async () => {
     if (!originalImage) return
@@ -315,8 +386,10 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
             {/* Simple Preview */}
             {originalImage && (
               <div className="space-y-4">
-                {/* Square Crop Preview */}
-                <div className="relative mx-auto bg-neutral-800 rounded-lg w-64 h-64 overflow-hidden">
+                {/* Preview Layout */}
+                <div className="flex gap-6 items-start justify-center">
+                  {/* Square Crop Preview */}
+                  <div className="relative bg-neutral-800 rounded-lg w-64 h-64 overflow-hidden">
                   {/* Larger container to show full image */}
                   <div 
                     className="relative w-full h-full cursor-move select-none"
@@ -348,6 +421,32 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-primary-500 text-xs bg-black/70 px-2 py-1 rounded">
                         {isDragging ? 'Dragging...' : 'Drag to position'}
                       </div>
+                    </div>
+                  </div>
+                  </div>
+
+                  {/* Circular Preview */}
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="text-sm text-neutral-300 font-medium">Preview</div>
+                    <div className="relative">
+                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary-500 bg-neutral-800">
+                        {previewCanvas ? (
+                          <img
+                            src={previewCanvas}
+                            alt="Profile preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-neutral-700 flex items-center justify-center">
+                            <div className="text-neutral-500 text-xs text-center">
+                              Preview
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-xs text-neutral-400 text-center">
+                      Your profile picture
                     </div>
                   </div>
                 </div>
@@ -439,6 +538,12 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         {/* Hidden canvas for cropping */}
         <canvas
           ref={canvasRef}
+          className="hidden"
+        />
+        
+        {/* Hidden canvas for circular preview */}
+        <canvas
+          ref={previewCanvasRef}
           className="hidden"
         />
       </div>
