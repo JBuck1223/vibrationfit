@@ -16,6 +16,7 @@ export function Header() {
     { name: 'Journal', href: '/journal' },
     { name: 'Vision Board', href: '/vision-board' },
     { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Profile', href: '/profile' },
   ]
 
   return (
