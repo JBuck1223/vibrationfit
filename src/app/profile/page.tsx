@@ -85,7 +85,17 @@ export default function ProfilePage() {
       }
 
       const data = await response.json()
-      setProfile(data.profile)
+      console.log('Profile save response:', data)
+      console.log('Setting profile to:', data.profile)
+      
+      // Preserve the current profile picture URL if the API doesn't return it
+      const currentProfilePicture = profile.profile_picture_url
+      const updatedProfile = {
+        ...data.profile,
+        profile_picture_url: data.profile.profile_picture_url || currentProfilePicture
+      }
+      
+      setProfile(updatedProfile)
       setCompletionPercentage(data.completionPercentage)
       setSaveStatus('saved')
       setLastSaved(new Date())
