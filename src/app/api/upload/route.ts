@@ -6,6 +6,11 @@ import { compressVideo, shouldCompressVideo, getCompressionOptions } from '@/lib
 export const runtime = 'nodejs'
 export const maxDuration = 300 // 5 minutes for large uploads
 
+// Check for required AWS credentials
+if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+  console.error('AWS credentials not configured. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env.local')
+}
+
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-east-2',
   credentials: {
@@ -20,6 +25,14 @@ const CHUNK_SIZE = 10 * 1024 * 1024 // 10MB chunks
 
 export async function POST(request: NextRequest) {
   try {
+    // Check AWS credentials first
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+      console.error('AWS credentials not configured')
+      return NextResponse.json({ 
+        error: 'AWS credentials not configured. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env.local' 
+      }, { status: 500 })
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
     const folder = formData.get('folder') as string

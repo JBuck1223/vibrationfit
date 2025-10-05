@@ -4,6 +4,14 @@ import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 
 export async function POST(request: NextRequest) {
   try {
+    // Check AWS credentials first
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+      console.error('AWS credentials not configured')
+      return NextResponse.json({ 
+        error: 'AWS credentials not configured. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env.local' 
+      }, { status: 500 })
+    }
+
     const supabase = createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
