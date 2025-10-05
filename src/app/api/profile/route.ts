@@ -75,27 +75,36 @@ export async function GET(request: NextRequest) {
         const userProfileDate = new Date(userProfile.updated_at)
         const versionDate = new Date(latestVersion.updated_at)
         
+        console.log('Profile API: userProfile updated_at:', userProfile.updated_at)
+        console.log('Profile API: latestVersion updated_at:', latestVersion.updated_at)
+        console.log('Profile API: userProfileDate > versionDate:', userProfileDate > versionDate)
+        
         if (userProfileDate > versionDate) {
           // User profile is more recent
           profile = userProfile
           completionPercentage = calculateCompletionManually(userProfile)
+          console.log('Profile API: Using userProfile, completion:', completionPercentage)
         } else {
           // Version is more recent
           profile = latestVersion.profile_data
           completionPercentage = latestVersion.completion_percentage
+          console.log('Profile API: Using latestVersion, completion:', completionPercentage)
         }
       } else if (userProfile) {
         // Only user profile exists
         profile = userProfile
         completionPercentage = calculateCompletionManually(userProfile)
+        console.log('Profile API: Only userProfile exists, completion:', completionPercentage)
       } else if (latestVersion) {
         // Only version exists
         profile = latestVersion.profile_data
         completionPercentage = latestVersion.completion_percentage
+        console.log('Profile API: Only latestVersion exists, completion:', completionPercentage)
       } else {
         // Neither exists
         profile = {}
         completionPercentage = 0
+        console.log('Profile API: No profile data exists')
       }
 
       // Get all versions if requested

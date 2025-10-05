@@ -65,11 +65,14 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch('/api/profile')
+      // Add cache-busting parameter to force fresh data
+      const timestamp = Date.now()
+      const response = await fetch(`/api/profile?t=${timestamp}`)
       if (!response.ok) {
         throw new Error('Failed to fetch profile')
       }
       const data = await response.json()
+      console.log('Profile view: Fetched data:', data)
       setProfile(data.profile || {})
       setCompletionPercentage(data.completionPercentage || 0)
       
