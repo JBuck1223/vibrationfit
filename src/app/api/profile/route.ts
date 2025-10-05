@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
             totalFormFields: 25,
             completedFormFields: ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
               'relationship_status', 'partner_name', 'number_of_children', 'children_ages',
-              'health_conditions', 'medications', 'exercise_frequency', 'living_situation',
+              'units', 'height', 'weight', 'exercise_frequency', 'living_situation',
               'time_at_location', 'city', 'state', 'postal_code', 'country',
               'employment_type', 'occupation', 'company', 'time_in_role', 'household_income',
               'profile_picture_url'].filter(field =>
@@ -277,11 +277,11 @@ export async function POST(request: NextRequest) {
 function calculateCompletionManually(profileData: any): number {
   if (!profileData) return 0
 
-  // Only count actual form fields, not database metadata
+  // Only count actual form fields that exist in the UI, not database metadata
   const formFields = [
     'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
     'relationship_status', 'partner_name', 'number_of_children', 'children_ages',
-    'health_conditions', 'medications', 'exercise_frequency', 'living_situation',
+    'units', 'height', 'weight', 'exercise_frequency', 'living_situation',
     'time_at_location', 'city', 'state', 'postal_code', 'country',
     'employment_type', 'occupation', 'company', 'time_in_role', 'household_income',
     'profile_picture_url'
