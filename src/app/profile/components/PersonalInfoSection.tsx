@@ -9,6 +9,7 @@ interface PersonalInfoSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onError: (error: string) => void
+  onUploadComplete?: () => void
 }
 
 const genderOptions = [

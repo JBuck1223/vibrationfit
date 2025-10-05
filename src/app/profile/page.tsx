@@ -28,6 +28,27 @@ export default function ProfilePage() {
   // Auto-save functionality
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
 
+  // Manual completion calculation fallback
+  const calculateCompletionManually = (profileData: Partial<UserProfile>): number => {
+    if (!profileData) return 0
+    
+    const fields = [
+      'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
+      'relationship_status', 'partner_name', 'children_count', 'children_names',
+      'health_conditions', 'medications', 'exercise_frequency', 'living_situation',
+      'time_at_location', 'city', 'state', 'postal_code', 'country',
+      'employment_type', 'occupation', 'company', 'time_in_role', 'household_income'
+    ]
+    
+    const completedFields = fields.filter(field => 
+      profileData[field as keyof UserProfile] !== null && 
+      profileData[field as keyof UserProfile] !== undefined && 
+      profileData[field as keyof UserProfile] !== ''
+    ).length
+    
+    return Math.round((completedFields / fields.length) * 100)
+  }
+
   // Fetch profile data
   useEffect(() => {
     async function fetchProfile() {
@@ -88,15 +109,22 @@ export default function ProfilePage() {
       console.log('Profile save response:', data)
       console.log('Setting profile to:', data.profile)
       
-      // Preserve the current profile picture URL if the API doesn't return it
-      const currentProfilePicture = profile.profile_picture_url
-      const updatedProfile = {
-        ...data.profile,
-        profile_picture_url: data.profile.profile_picture_url || currentProfilePicture
+      // Only update profile if the save was successful and returned valid data
+      if (data.profile && Object.keys(data.profile).length > 0) {
+        // Preserve the current profile picture URL if the API doesn't return it
+        const currentProfilePicture = profile.profile_picture_url
+        const updatedProfile = {
+          ...data.profile,
+          profile_picture_url: data.profile.profile_picture_url || currentProfilePicture
+        }
+        
+        setProfile(updatedProfile)
+        setCompletionPercentage(data.completionPercentage)
+      } else {
+        console.log('Profile save failed or returned empty data, keeping current local state')
+        // Keep current local state if save failed
+        setCompletionPercentage(calculateCompletionManually(profile))
       }
-      
-      setProfile(updatedProfile)
-      setCompletionPercentage(data.completionPercentage)
       setSaveStatus('saved')
       setLastSaved(new Date())
       setError(null)

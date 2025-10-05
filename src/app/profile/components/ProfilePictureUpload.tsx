@@ -13,9 +13,10 @@ interface ProfilePictureUploadProps {
   currentImageUrl?: string | null
   onImageChange: (url: string) => void
   onError: (error: string) => void
+  onUploadComplete?: () => void
 }
 
-export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }: ProfilePictureUploadProps) {
+export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, onUploadComplete }: ProfilePictureUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [showCropper, setShowCropper] = useState(false)
@@ -199,6 +200,11 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       // Update parent component first
       console.log('ProfilePictureUpload: Notifying parent of new image URL:', uploadResult.url)
       onImageChange(uploadResult.url)
+      
+      // Notify parent that upload is complete
+      if (onUploadComplete) {
+        onUploadComplete()
+      }
       
       // Clean up after parent has been notified
       setTimeout(() => {
