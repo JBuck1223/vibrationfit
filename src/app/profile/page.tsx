@@ -441,6 +441,33 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           )}
         </div>
 
+        {/* Current Version Information */}
+        {!currentVersionId && versions.length > 0 && (
+          <Card className="p-6 mb-8">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <History className="w-5 h-5 text-green-500" />
+              Current Version Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-neutral-400">Version ID:</span>
+                <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
+                  {versions[0]?.id}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-neutral-400">Last Updated:</span>
+                <span className="text-sm text-white">
+                  {versions[0]?.created_at 
+                    ? `${new Date(versions[0].created_at).toLocaleDateString()} at ${new Date(versions[0].created_at).toLocaleTimeString()}`
+                    : 'Date not available'
+                  }
+                </span>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Profile Picture and Basic Info */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Profile Picture */}
@@ -597,33 +624,6 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 <div className="flex items-center gap-3">
                   <User className="w-4 h-4 text-neutral-400" />
                   <div>
-                    <p className="text-sm text-neutral-400">Height</p>
-                    <p className="text-white font-medium">
-                      {profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : 'Not specified'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-neutral-400" />
-                  <div>
-                    <p className="text-sm text-neutral-400">Weight</p>
-                    <p className="text-white font-medium">
-                      {profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : 'Not specified'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-neutral-400" />
-                  <div>
-                    <p className="text-sm text-neutral-400">Units</p>
-                    <p className="text-white font-medium">
-                      {profile.units || 'Not specified'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-neutral-400" />
-                  <div>
                     <p className="text-sm text-neutral-400">Ethnicity</p>
                     <p className="text-white font-medium">
                       {profile.ethnicity || 'Not specified'}
@@ -706,6 +706,24 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               Health & Wellness
             </h3>
             <div className="space-y-3">
+              <div>
+                <p className="text-sm text-neutral-400">Height</p>
+                <p className="text-white font-medium">
+                  {profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">Weight</p>
+                <p className="text-white font-medium">
+                  {profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">Units</p>
+                <p className="text-white font-medium">
+                  {profile.units || 'Not specified'}
+                </p>
+              </div>
               <div>
                 <p className="text-sm text-neutral-400">Exercise Frequency</p>
                 <p className="text-white font-medium">
