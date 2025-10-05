@@ -521,6 +521,26 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-neutral-400" />
+                  <div>
+                    <p className="text-sm text-neutral-400">Name</p>
+                    <p className="text-white font-medium">
+                      {profile.first_name && profile.last_name 
+                        ? `${profile.first_name} ${profile.last_name}` 
+                        : profile.first_name || profile.last_name || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Mail className="w-4 h-4 text-neutral-400" />
+                  <div>
+                    <p className="text-sm text-neutral-400">Email</p>
+                    <p className="text-white font-medium">
+                      {profile.email || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-neutral-400" />
                   <div>
                     <p className="text-sm text-neutral-400">Date of Birth</p>
@@ -556,6 +576,42 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                     </p>
                   </div>
                 </div>
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-neutral-400" />
+                  <div>
+                    <p className="text-sm text-neutral-400">Height</p>
+                    <p className="text-white font-medium">
+                      {profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-neutral-400" />
+                  <div>
+                    <p className="text-sm text-neutral-400">Weight</p>
+                    <p className="text-white font-medium">
+                      {profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-neutral-400" />
+                  <div>
+                    <p className="text-sm text-neutral-400">Units</p>
+                    <p className="text-white font-medium">
+                      {profile.units || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-neutral-400" />
+                  <div>
+                    <p className="text-sm text-neutral-400">Ethnicity</p>
+                    <p className="text-white font-medium">
+                      {profile.ethnicity || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
@@ -580,6 +636,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 <div>
                   <p className="text-sm text-neutral-400">Partner</p>
                   <p className="text-white font-medium">{profile.partner_name}</p>
+                </div>
+              )}
+              {profile.relationship_length && (
+                <div>
+                  <p className="text-sm text-neutral-400">Relationship Length</p>
+                  <p className="text-white font-medium">{profile.relationship_length}</p>
                 </div>
               )}
             </div>
