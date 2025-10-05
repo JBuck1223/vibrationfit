@@ -4,6 +4,8 @@ import React, { useState, useRef, useCallback } from 'react'
 import { Button, Card } from '@/lib/design-system/components'
 import { Camera, Upload, X, Check, RotateCw } from 'lucide-react'
 import NextImage from 'next/image'
+import ReactCrop, { Crop, PixelCrop } from 'react-image-crop'
+import 'react-image-crop/dist/ReactCrop.css'
 
 interface ProfilePictureUploadProps {
   currentImageUrl?: string | null
@@ -12,129 +14,60 @@ interface ProfilePictureUploadProps {
 }
 
 export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }: ProfilePictureUploadProps) {
-  // Add custom styles for the slider
-  React.useEffect(() => {
-    const style = document.createElement('style')
-    style.textContent = `
-      .slider::-webkit-slider-thumb {
-        appearance: none;
-        height: 20px;
-        width: 20px;
-        border-radius: 50%;
-        background: #199D67;
-        cursor: pointer;
-        border: 2px solid #ffffff;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      }
-      .slider::-moz-range-thumb {
-        height: 20px;
-        width: 20px;
-        border-radius: 50%;
-        background: #199D67;
-        cursor: pointer;
-        border: 2px solid #ffffff;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      }
-    `
-    document.head.appendChild(style)
-    return () => {
-      if (document.head.contains(style)) {
-        document.head.removeChild(style)
-      }
-    }
-  }, [])
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [showCropper, setShowCropper] = useState(false)
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null)
   const [imageRotation, setImageRotation] = useState(0)
-  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 })
-  const [imageScale, setImageScale] = useState(1)
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
-  const [previewCanvas, setPreviewCanvas] = useState<string | null>(null)
+  const [crop, setCrop] = useState<Crop>({
+    unit: 'px',
+    width: 300,
+    height: 300,
+    x: 0,
+    y: 0,
+  })
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-    if (!allowedTypes.includes(file.type)) {
-      onError('Invalid file type. Please upload JPG, PNG, or WebP images only.')
+    if (!file.type.startsWith('image/')) {
+      onError('Please select a valid image file')
       return
     }
 
     // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024
-    if (file.size > maxSize) {
-      onError('File too large. Please upload images smaller than 5MB.')
+    if (file.size > 5 * 1024 * 1024) {
+      onError('Image must be smaller than 5MB')
       return
     }
 
-    // Load image for cropping
-    const img = new window.Image()
-    img.onload = () => {
-      setOriginalImage(img)
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        setOriginalImage(img)
+        setPreviewUrl(reader.result as string)
+        setShowCropper(true)
+        
+        // Set initial crop to center square
+        const size = Math.min(img.width, img.height)
+        setCrop({
+          unit: 'px',
+          width: size,
+          height: size,
+          x: (img.width - size) / 2,
+          y: (img.height - size) / 2,
+        })
+      }
+      img.src = reader.result as string
     }
-    img.src = URL.createObjectURL(file)
-    setPreviewUrl(URL.createObjectURL(file))
-    setShowCropper(true)
-  }
-
-  // Handle mouse events for positioning the image
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-    setDragStart({ 
-      x: e.clientX,
-      y: e.clientY
-    })
-  }
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return
-    
-    e.preventDefault()
-    
-    // Calculate the difference from the start position
-    const deltaX = e.clientX - dragStart.x
-    const deltaY = e.clientY - dragStart.y
-    
-    // Apply movement with reduced sensitivity
-    const sensitivity = 0.3
-    const newX = imagePosition.x + (deltaX * sensitivity)
-    const newY = imagePosition.y + (deltaY * sensitivity)
-    
-    // Constrain movement within reasonable bounds
-    const maxOffset = 80
-    setImagePosition({
-      x: Math.max(-maxOffset, Math.min(maxOffset, newX)),
-      y: Math.max(-maxOffset, Math.min(maxOffset, newY))
-    })
-    
-    // Update drag start to prevent accumulation
-    setDragStart({ x: e.clientX, y: e.clientY })
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  // Simple crop function - uses the positioned image
-  const getCropArea = () => {
-    if (!originalImage) return { x: 0, y: 0, width: 0, height: 0 }
-    
-    const size = Math.min(originalImage.width, originalImage.height)
-    return {
-      x: (originalImage.width - size) / 2,
-      y: (originalImage.height - size) / 2,
-      width: size,
-      height: size
-    }
+    reader.readAsDataURL(file)
   }
 
   // Rotate image
@@ -142,89 +75,10 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
     setImageRotation(prev => (prev + 90) % 360)
   }
 
-  // Reset position
-  const resetPosition = () => {
-    setImagePosition({ x: 0, y: 0 })
-  }
-
-  // Reset scale
-  const resetScale = () => {
-    setImageScale(1)
-  }
-
-  // Generate circular preview
-  const generateCircularPreview = useCallback(() => {
-    if (!originalImage || !previewCanvasRef.current) {
-      console.log('generateCircularPreview: missing originalImage or previewCanvasRef', { originalImage: !!originalImage, previewCanvasRef: !!previewCanvasRef.current })
-      return
-    }
-
-    const canvas = previewCanvasRef.current
-    const ctx = canvas.getContext('2d')
-    if (!ctx) {
-      console.log('generateCircularPreview: no canvas context')
-      return
-    }
-
-    // Set canvas size for circular preview
-    canvas.width = 120
-    canvas.height = 120
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    // Create circular clipping path
-    ctx.save()
-    ctx.beginPath()
-    ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, 0, Math.PI * 2)
-    ctx.clip()
-
-    // Get crop area (centered square)
-    const cropArea = getCropArea()
-    
-    // Calculate rotation
-    const radians = (imageRotation * Math.PI) / 180
-    
-    // Apply image position offset and scale to crop area
-    const adjustedCropArea = {
-      x: cropArea.x + imagePosition.x,
-      y: cropArea.y + imagePosition.y,
-      width: cropArea.width / imageScale,
-      height: cropArea.height / imageScale
-    }
-    
-    // Move to center of canvas
-    ctx.translate(canvas.width / 2, canvas.height / 2)
-    
-    // Rotate
-    ctx.rotate(radians)
-    
-    // Draw cropped and rotated image
-    ctx.drawImage(
-      originalImage,
-      adjustedCropArea.x,
-      adjustedCropArea.y,
-      adjustedCropArea.width,
-      adjustedCropArea.height,
-      -canvas.width / 2,
-      -canvas.height / 2,
-      canvas.width,
-      canvas.height
-    )
-    
-    // Restore context
-    ctx.restore()
-    
-    // Convert to data URL for preview
-    const dataURL = canvas.toDataURL('image/jpeg', 0.9)
-    console.log('generateCircularPreview: generated preview', { dataURL: dataURL.substring(0, 50) + '...' })
-    setPreviewCanvas(dataURL)
-  }, [originalImage, imageRotation, imagePosition, imageScale])
-
   // Crop and convert to blob
   const cropImage = useCallback((): Promise<Blob> => {
     return new Promise((resolve) => {
-      if (!originalImage || !canvasRef.current) {
+      if (!originalImage || !completedCrop || !canvasRef.current) {
         resolve(new Blob())
         return
       }
@@ -240,9 +94,10 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       canvas.width = 300
       canvas.height = 300
 
-      // Get crop area (centered square)
-      const cropArea = getCropArea()
-      
+      // Calculate scale factors
+      const scaleX = originalImage.naturalWidth / originalImage.width
+      const scaleY = originalImage.naturalHeight / originalImage.height
+
       // Calculate rotation
       const radians = (imageRotation * Math.PI) / 180
       
@@ -255,21 +110,13 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       // Rotate
       ctx.rotate(radians)
       
-      // Apply image position offset and scale to crop area
-      const adjustedCropArea = {
-        x: cropArea.x + imagePosition.x,
-        y: cropArea.y + imagePosition.y,
-        width: cropArea.width / imageScale,
-        height: cropArea.height / imageScale
-      }
-      
       // Draw cropped and rotated image
       ctx.drawImage(
         originalImage,
-        adjustedCropArea.x,
-        adjustedCropArea.y,
-        adjustedCropArea.width,
-        adjustedCropArea.height,
+        completedCrop.x * scaleX,
+        completedCrop.y * scaleY,
+        completedCrop.width * scaleX,
+        completedCrop.height * scaleY,
         -canvas.width / 2,
         -canvas.height / 2,
         canvas.width,
@@ -284,23 +131,10 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         resolve(blob || new Blob())
       }, 'image/jpeg', 0.9)
     })
-  }, [originalImage, imageRotation, imagePosition, imageScale])
-
-  // Update circular preview when transforms change
-  React.useEffect(() => {
-    if (originalImage) {
-      console.log('useEffect: triggering generateCircularPreview', { 
-        originalImage: !!originalImage, 
-        imageRotation, 
-        imagePosition, 
-        imageScale 
-      })
-      generateCircularPreview()
-    }
-  }, [originalImage, imageRotation, imagePosition, imageScale, generateCircularPreview])
+  }, [originalImage, completedCrop, imageRotation])
 
   const handleUpload = async () => {
-    if (!originalImage) return
+    if (!originalImage || !completedCrop) return
 
     setIsUploading(true)
     try {
@@ -336,6 +170,10 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       setShowCropper(false)
       setOriginalImage(null)
       setImageRotation(0)
+      setCompletedCrop(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
 
       // Update parent component
       onImageChange(result.url)
@@ -344,19 +182,6 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       onError(error instanceof Error ? error.message : 'Upload failed')
     } finally {
       setIsUploading(false)
-    }
-  }
-
-  const handleCancel = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-      setPreviewUrl(null)
-    }
-    setShowCropper(false)
-    setOriginalImage(null)
-    setImageRotation(0)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
     }
   }
 
@@ -372,19 +197,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         {/* Current/Preview Image */}
         <div className="relative inline-block mb-4">
           <div className="w-32 h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center">
-            {showCropper && previewCanvas ? (
-              <img
-                src={previewCanvas}
-                alt="Profile picture preview"
-                className="w-full h-full object-cover"
-              />
-            ) : showCropper && originalImage ? (
-              <div className="w-full h-full bg-neutral-700 flex items-center justify-center">
-                <div className="text-neutral-500 text-xs text-center">
-                  Generating preview...
-                </div>
-              </div>
-            ) : currentImageUrl || previewUrl ? (
+            {currentImageUrl || previewUrl ? (
               <NextImage
                 src={previewUrl || currentImageUrl || ''}
                 alt="Profile picture"
@@ -419,93 +232,44 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
               <Upload className="w-4 h-4 mr-2" />
               {currentImageUrl ? 'Change Picture' : 'Upload Picture'}
             </Button>
-            
-            <p className="text-sm text-neutral-400">
+            <p className="text-xs text-neutral-400">
               JPG, PNG, WebP up to 5MB
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="text-sm text-neutral-300 text-center">
-              Your image will be automatically cropped to a square and rotated as needed
+              Drag to position and resize the crop area
             </div>
             
-            {/* Simple Preview */}
+            {/* ReactCrop Component */}
             {originalImage && (
               <div className="space-y-4">
-                {/* Square Crop Preview */}
+                {/* Crop Area */}
                 <div className="relative mx-auto bg-neutral-800 rounded-lg w-64 h-64 overflow-hidden">
-                  {/* Larger container to show full image */}
-                  <div 
-                    className="relative w-full h-full cursor-move select-none"
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                    onTouchStart={(e) => {
-                      e.preventDefault()
-                      const touch = e.touches[0]
-                      handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => {} } as any)
-                    }}
-                    onTouchMove={(e) => {
-                      e.preventDefault()
-                      const touch = e.touches[0]
-                      handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => {} } as any)
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
-                      handleMouseUp()
-                    }}
+                  <ReactCrop
+                    crop={crop}
+                    onChange={(c) => setCrop(c)}
+                    onComplete={(c) => setCompletedCrop(c)}
+                    aspect={1}
+                    minWidth={100}
+                    minHeight={100}
                   >
-                    {/* Full image that can be moved around */}
                     <img
+                      ref={imgRef}
                       src={originalImage.src}
-                      alt="Preview"
-                      className="absolute"
+                      alt="Crop preview"
                       style={{
-                        width: '200%',
-                        height: '200%',
-                        left: '50%',
-                        top: '50%',
-                        transform: `translate(calc(-50% + ${imagePosition.x}px), calc(-50% + ${imagePosition.y}px)) rotate(${imageRotation}deg) scale(${imageScale})`,
-                        transformOrigin: 'center',
-                        cursor: isDragging ? 'grabbing' : 'grab',
-                        objectFit: 'contain'
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        transform: `rotate(${imageRotation}deg)`,
+                        transformOrigin: 'center'
                       }}
                       draggable={false}
                     />
-                    
-                    {/* Show the actual crop area in the center */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-primary-500 bg-primary-500/10 rounded">
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-primary-500 text-xs bg-black/70 px-2 py-1 rounded">
-                        {isDragging ? 'Dragging...' : 'Drag to position'}
-                      </div>
-                    </div>
-                  </div>
+                  </ReactCrop>
                 </div>
                 
-                {/* Scale Slider */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-300">Scale</span>
-                    <span className="text-primary-500 font-medium">{Math.round(imageScale * 100)}%</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-neutral-400">50%</span>
-                    <input
-                      type="range"
-                      min="0.5"
-                      max="2"
-                      step="0.1"
-                      value={imageScale}
-                      onChange={(e) => setImageScale(parseFloat(e.target.value))}
-                      className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer slider"
-                      disabled={isUploading}
-                    />
-                    <span className="text-xs text-neutral-400">200%</span>
-                  </div>
-                </div>
-
                 {/* Controls */}
                 <div className="flex justify-center gap-2">
                   <Button
@@ -517,41 +281,45 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                     <RotateCw className="w-4 h-4 mr-2" />
                     Rotate ({imageRotation}°)
                   </Button>
-                  <Button
-                    onClick={resetPosition}
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploading}
-                  >
-                    Reset Position
-                  </Button>
-                  <Button
-                    onClick={resetScale}
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploading}
-                  >
-                    Reset Scale
-                  </Button>
                 </div>
                 
                 {/* Action buttons */}
                 <div className="flex gap-2">
                   <Button
-                    onClick={handleUpload}
+                    onClick={() => {
+                      setShowCropper(false)
+                      setOriginalImage(null)
+                      setImageRotation(0)
+                      setCompletedCrop(null)
+                      if (previewUrl) URL.revokeObjectURL(previewUrl)
+                      setPreviewUrl(null)
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = ''
+                      }
+                    }}
+                    variant="outline"
+                    className="flex-1"
                     disabled={isUploading}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleUpload}
+                    disabled={isUploading || !completedCrop}
                     className="flex-1"
                   >
-                    <Check className="w-4 h-4 mr-2" />
-                    {isUploading ? 'Uploading...' : 'Save & Upload'}
-                  </Button>
-                  
-                  <Button
-                    onClick={handleCancel}
-                    variant="outline"
-                    disabled={isUploading}
-                  >
-                    <X className="w-4 h-4" />
+                    {isUploading ? (
+                      <>
+                        <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Use This Image
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -571,12 +339,6 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         {/* Hidden canvas for cropping */}
         <canvas
           ref={canvasRef}
-          className="hidden"
-        />
-        
-        {/* Hidden canvas for circular preview */}
-        <canvas
-          ref={previewCanvasRef}
           className="hidden"
         />
       </div>
