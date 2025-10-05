@@ -139,11 +139,17 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
 
   // Generate circular preview
   const generateCircularPreview = useCallback(() => {
-    if (!originalImage || !previewCanvasRef.current) return
+    if (!originalImage || !previewCanvasRef.current) {
+      console.log('generateCircularPreview: missing originalImage or previewCanvasRef', { originalImage: !!originalImage, previewCanvasRef: !!previewCanvasRef.current })
+      return
+    }
 
     const canvas = previewCanvasRef.current
     const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    if (!ctx) {
+      console.log('generateCircularPreview: no canvas context')
+      return
+    }
 
     // Set canvas size for circular preview
     canvas.width = 120
@@ -196,6 +202,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
     
     // Convert to data URL for preview
     const dataURL = canvas.toDataURL('image/jpeg', 0.9)
+    console.log('generateCircularPreview: generated preview', { dataURL: dataURL.substring(0, 50) + '...' })
     setPreviewCanvas(dataURL)
   }, [originalImage, imageRotation, imagePosition, imageScale])
 
@@ -267,6 +274,12 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
   // Update circular preview when transforms change
   React.useEffect(() => {
     if (originalImage) {
+      console.log('useEffect: triggering generateCircularPreview', { 
+        originalImage: !!originalImage, 
+        imageRotation, 
+        imagePosition, 
+        imageScale 
+      })
       generateCircularPreview()
     }
   }, [originalImage, imageRotation, imagePosition, imageScale, generateCircularPreview])
@@ -350,6 +363,12 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                 alt="Profile picture preview"
                 className="w-full h-full object-cover"
               />
+            ) : showCropper && originalImage ? (
+              <div className="w-full h-full bg-neutral-700 flex items-center justify-center">
+                <div className="text-neutral-500 text-xs text-center">
+                  Generating preview...
+                </div>
+              </div>
             ) : currentImageUrl || previewUrl ? (
               <NextImage
                 src={previewUrl || currentImageUrl || ''}
