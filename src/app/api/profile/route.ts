@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
+  console.log('🚀 PROFILE API GET REQUEST STARTED')
   try {
     const supabase = await createClient()
     
@@ -130,8 +131,9 @@ export async function GET(request: NextRequest) {
       }
 
       // Debug: Log the final response
-      console.log('Profile API: Final response - completionPercentage:', completionPercentage)
-      console.log('Profile API: Profile keys:', Object.keys(profile || {}))
+      console.log('🎯 PROFILE API: Final response - completionPercentage:', completionPercentage)
+      console.log('📊 PROFILE API: Profile keys:', Object.keys(profile || {}))
+      console.log('✅ PROFILE API: Returning data to client')
 
       return NextResponse.json({
         profile,
