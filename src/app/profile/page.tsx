@@ -32,16 +32,27 @@ export default function ProfilePage() {
   useEffect(() => {
     async function fetchProfile() {
       try {
+        console.log('Profile page: Starting fetch to /api/profile')
         const response = await fetch('/api/profile')
+        console.log('Profile page: Response received', { 
+          status: response.status, 
+          ok: response.ok,
+          statusText: response.statusText 
+        })
+        
         if (!response.ok) {
           if (response.status === 401) {
+            console.log('Profile page: Unauthorized, redirecting to login')
             router.push('/auth/login')
             return
           }
-          throw new Error('Failed to fetch profile')
+          const errorText = await response.text()
+          console.error('Profile page: API error response', errorText)
+          throw new Error(`Failed to fetch profile: ${response.status} ${response.statusText}`)
         }
 
         const data = await response.json()
+        console.log('Profile page: Data received', data)
         setProfile(data.profile || {})
         setCompletionPercentage(data.completionPercentage || 0)
       } catch (error) {
