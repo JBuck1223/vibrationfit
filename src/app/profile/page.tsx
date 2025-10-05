@@ -26,7 +26,8 @@ import {
   Plus,
   RefreshCw,
   Trash2,
-  Eye
+  Eye,
+  History
 } from 'lucide-react'
 import NextImage from 'next/image'
 
