@@ -22,7 +22,8 @@ import {
   Home,
   Building,
   GraduationCap,
-  Star
+  Star,
+  Plus
 } from 'lucide-react'
 import NextImage from 'next/image'
 
