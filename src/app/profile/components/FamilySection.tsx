@@ -51,12 +51,6 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
         adjustedAges.splice(numberOfChildren)
       }
       
-      console.log('FamilySection: Syncing local state with profile:', {
-        profileAges,
-        numberOfChildren,
-        currentLocal: childrenAges,
-        newLocal: adjustedAges
-      })
       
       setChildrenAges(adjustedAges)
     }
@@ -83,9 +77,6 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
   }
 
   const handleNumberOfChildrenChange = (number: number) => {
-    console.log('FamilySection: Changing number of children to:', number)
-    console.log('FamilySection: Current childrenAges:', childrenAges)
-    
     // Mark that user is making changes
     isUserActionRef.current = true
     
@@ -105,7 +96,6 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
       newAges.splice(number)
     }
     
-    console.log('FamilySection: New ages array:', newAges)
     setChildrenAges(newAges)
     handleInputChange('children_ages', newAges.filter(age => age !== ''))
     
