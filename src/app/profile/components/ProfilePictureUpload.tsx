@@ -87,25 +87,37 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
 
   // Handle mouse events for positioning the image
   const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
     setIsDragging(true)
     setDragStart({ 
-      x: e.clientX - (imagePosition.x / 0.5), // Account for reduced sensitivity
-      y: e.clientY + (imagePosition.y / 0.5)  // Account for reduced sensitivity and invert Y
+      x: e.clientX,
+      y: e.clientY
     })
   }
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return
     
-    const newX = (e.clientX - dragStart.x) * 0.5 // Reduce sensitivity by 50%
-    const newY = (e.clientY - dragStart.y) * 0.5 // Reduce sensitivity by 50%
+    e.preventDefault()
+    
+    // Calculate the difference from the start position
+    const deltaX = e.clientX - dragStart.x
+    const deltaY = e.clientY - dragStart.y
+    
+    // Apply movement with reduced sensitivity
+    const sensitivity = 0.3
+    const newX = imagePosition.x + (deltaX * sensitivity)
+    const newY = imagePosition.y + (deltaY * sensitivity)
     
     // Constrain movement within reasonable bounds
-    const maxOffset = 100 // Maximum pixels to move in any direction
+    const maxOffset = 80
     setImagePosition({
       x: Math.max(-maxOffset, Math.min(maxOffset, newX)),
-      y: Math.max(-maxOffset, Math.min(maxOffset, -newY)) // Invert Y to fix movement direction
+      y: Math.max(-maxOffset, Math.min(maxOffset, newY))
     })
+    
+    // Update drag start to prevent accumulation
+    setDragStart({ x: e.clientX, y: e.clientY })
   }
 
   const handleMouseUp = () => {
@@ -430,6 +442,20 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseUp}
+                    onTouchStart={(e) => {
+                      e.preventDefault()
+                      const touch = e.touches[0]
+                      handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => {} } as any)
+                    }}
+                    onTouchMove={(e) => {
+                      e.preventDefault()
+                      const touch = e.touches[0]
+                      handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => {} } as any)
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      handleMouseUp()
+                    }}
                   >
                     {/* Full image that can be moved around */}
                     <img
@@ -441,7 +467,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                         height: '200%',
                         left: '50%',
                         top: '50%',
-                        transform: `translate(-50%, -50%) rotate(${imageRotation}deg) translate(${imagePosition.x}px, ${imagePosition.y}px) scale(${imageScale})`,
+                        transform: `translate(calc(-50% + ${imagePosition.x}px), calc(-50% + ${imagePosition.y}px)) rotate(${imageRotation}deg) scale(${imageScale})`,
                         transformOrigin: 'center',
                         cursor: isDragging ? 'grabbing' : 'grab',
                         objectFit: 'contain'
