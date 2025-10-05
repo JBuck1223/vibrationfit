@@ -291,13 +291,21 @@ function calculateCompletionManually(profileData: any): number {
     profileData[field] !== null &&
     profileData[field] !== undefined &&
     profileData[field] !== ''
-  ).length
+  )
+
+  const missingFields = formFields.filter(field =>
+    profileData[field] === null ||
+    profileData[field] === undefined ||
+    profileData[field] === ''
+  )
 
   console.log('🔢 Manual calculation:', {
     totalFormFields: formFields.length,
-    completedFormFields: completedFields,
-    percentage: Math.round((completedFields / formFields.length) * 100)
+    completedFormFields: completedFields.length,
+    percentage: Math.round((completedFields.length / formFields.length) * 100),
+    completedFields: completedFields,
+    missingFields: missingFields
   })
 
-  return Math.round((completedFields / formFields.length) * 100)
+  return Math.round((completedFields.length / formFields.length) * 100)
 }
