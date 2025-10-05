@@ -59,12 +59,21 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         
         // Set initial crop to full width square
         const size = Math.min(img.width, img.height)
-        setCrop({
-          unit: 'px',
+        const initialCrop = {
+          unit: 'px' as const,
           width: size,
           height: size,
           x: (img.width - size) / 2,
           y: (img.height - size) / 2,
+        }
+        setCrop(initialCrop)
+        
+        // Set completed crop immediately so preview generates
+        setCompletedCrop({
+          x: initialCrop.x,
+          y: initialCrop.y,
+          width: initialCrop.width,
+          height: initialCrop.height,
         })
       }
       img.src = reader.result as string
@@ -79,11 +88,21 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
 
   // Generate circular preview
   const generateCircularPreview = useCallback(() => {
-    if (!originalImage || !completedCrop || !previewCanvasRef.current) return
+    if (!originalImage || !completedCrop || !previewCanvasRef.current) {
+      console.log('generateCircularPreview: missing requirements', { 
+        originalImage: !!originalImage, 
+        completedCrop: !!completedCrop, 
+        previewCanvasRef: !!previewCanvasRef.current 
+      })
+      return
+    }
 
     const canvas = previewCanvasRef.current
     const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    if (!ctx) {
+      console.log('generateCircularPreview: no canvas context')
+      return
+    }
 
     // Set canvas size for circular preview
     canvas.width = 128
@@ -129,12 +148,14 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
     
     // Convert to data URL for preview
     const dataURL = canvas.toDataURL('image/jpeg', 0.9)
+    console.log('generateCircularPreview: generated preview', { dataURL: dataURL.substring(0, 50) + '...' })
     setCircularPreview(dataURL)
   }, [originalImage, completedCrop, imageRotation])
 
   // Update circular preview when crop or rotation changes
   React.useEffect(() => {
     if (completedCrop) {
+      console.log('useEffect: triggering generateCircularPreview', { completedCrop, imageRotation })
       generateCircularPreview()
     }
   }, [completedCrop, imageRotation, generateCircularPreview])
@@ -266,6 +287,14 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
               <img
                 src={circularPreview}
                 alt="Profile picture preview"
+                className="w-full h-full object-cover"
+              />
+            ) : showCropper && previewUrl ? (
+              <NextImage
+                src={previewUrl}
+                alt="Profile picture"
+                width={128}
+                height={128}
                 className="w-full h-full object-cover"
               />
             ) : currentImageUrl || previewUrl ? (
