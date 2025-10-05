@@ -468,6 +468,36 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           </Card>
         )}
 
+        {/* Version Information */}
+        {(() => {
+          const urlVersionId = new URLSearchParams(window.location.search).get('versionId')
+          return urlVersionId && (getCurrentVersionInfo() || urlVersionId)
+        })() && (
+          <Card className="p-6 mb-8">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <History className="w-5 h-5 text-blue-500" />
+              Version Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-neutral-400">Version ID:</span>
+                <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
+                  {getCurrentVersionInfo()?.id || new URLSearchParams(window.location.search).get('versionId')}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-neutral-400">Submitted:</span>
+                <span className="text-sm text-white">
+                  {getCurrentVersionInfo()?.created_at 
+                    ? `${new Date(getCurrentVersionInfo().created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo().created_at).toLocaleTimeString()}`
+                    : 'Date not available'
+                  }
+                </span>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Profile Picture and Basic Info */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Profile Picture */}
@@ -516,48 +546,6 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
           {/* Quick Stats */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Version Information */}
-            {(() => {
-              const urlVersionId = new URLSearchParams(window.location.search).get('versionId')
-              console.log('🔍 Version card debug:', {
-                isViewingVersion,
-                currentVersionId,
-                urlVersionId,
-                getCurrentVersionInfo: getCurrentVersionInfo(),
-                versions: versions.length,
-                shouldShowCard: urlVersionId && getCurrentVersionInfo()
-              })
-              return null
-            })()}
-            {(() => {
-              const urlVersionId = new URLSearchParams(window.location.search).get('versionId')
-              const versionInfo = getCurrentVersionInfo()
-              return urlVersionId && (versionInfo || urlVersionId)
-            })() && (
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <History className="w-5 h-5 text-blue-500" />
-                  Version Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-neutral-400">Version ID:</span>
-                    <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
-                      {getCurrentVersionInfo()?.id || new URLSearchParams(window.location.search).get('versionId')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-neutral-400">Submitted:</span>
-                    <span className="text-sm text-white">
-                      {getCurrentVersionInfo()?.created_at 
-                        ? `${new Date(getCurrentVersionInfo().created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo().created_at).toLocaleTimeString()}`
-                        : 'Date not available'
-                      }
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            )}
             
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -565,17 +553,6 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 Personal Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-neutral-400" />
-                  <div>
-                    <p className="text-sm text-neutral-400">Name</p>
-                    <p className="text-white font-medium">
-                      {profile.first_name && profile.last_name 
-                        ? `${profile.first_name} ${profile.last_name}` 
-                        : profile.first_name || profile.last_name || 'Not specified'}
-                    </p>
-                  </div>
-                </div>
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-neutral-400" />
                   <div>
