@@ -78,19 +78,11 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
     
     handleInputChange('number_of_children', number)
     
-    // Adjust children ages array to match the number
-    const currentAges = childrenAges || []
-    const newAges = [...currentAges]
-    
-    if (number > currentAges.length) {
-      // Add empty ages for new children
-      for (let i = currentAges.length; i < number; i++) {
-        newAges.push('')
-      }
-    } else if (number < currentAges.length) {
-      // Remove excess ages
-      newAges.splice(number)
-    }
+    // Always create a new array with the exact number of children
+    const newAges = Array.from({ length: number }, (_, index) => {
+      // Preserve existing ages if they exist
+      return childrenAges[index] || ''
+    })
     
     console.log('FamilySection: Setting new childrenAges:', newAges)
     setChildrenAges(newAges)
@@ -111,8 +103,9 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
   }
 
   const hasChildren = profile.has_children === true
-  // Use profile number_of_children for display, with childrenAges.length as fallback
-  const numberOfChildren = profile.number_of_children || childrenAges.length || 0
+  // Use childrenAges.length when we have local data, otherwise use profile
+  // This ensures the UI reflects local changes even when profile save fails
+  const numberOfChildren = childrenAges.length > 0 ? childrenAges.length : (profile.number_of_children || 0)
   
   console.log('FamilySection: Render - hasChildren:', hasChildren, 'numberOfChildren:', numberOfChildren, 'childrenAges.length:', childrenAges.length, 'profile.number_of_children:', profile.number_of_children)
 
