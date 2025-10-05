@@ -91,9 +91,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
       if (versionId === latestVersion?.id) {
         // This is actually the current version, even though it has a versionId
         setIsViewingVersion(false)
-        setCurrentVersionId(null)
-        // Clean up the URL to remove the versionId
-        window.history.replaceState({}, '', '/profile')
+        setCurrentVersionId(versionId) // Keep the versionId so version info card shows
+        // Don't clean up the URL - let user see version info even for current version
       } else {
         // This is a historical version
         setIsViewingVersion(true)
@@ -491,7 +490,17 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           {/* Quick Stats */}
           <div className="lg:col-span-2 space-y-4">
             {/* Version Information */}
-            {isViewingVersion && getCurrentVersionInfo() && (
+            {(() => {
+              console.log('Version card debug:', {
+                isViewingVersion,
+                currentVersionId,
+                getCurrentVersionInfo: getCurrentVersionInfo(),
+                versions: versions.length,
+                urlVersionId: new URLSearchParams(window.location.search).get('versionId')
+              })
+              return null
+            })()}
+            {currentVersionId && getCurrentVersionInfo() && (
               <Card className="p-6">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                   <History className="w-5 h-5 text-blue-500" />
@@ -784,6 +793,30 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 <p className="text-sm text-neutral-400">Household Income</p>
                 <p className="text-white font-medium">
                   {profile.household_income || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">Savings & Retirement</p>
+                <p className="text-white font-medium">
+                  {profile.savings_retirement || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">Assets & Equity</p>
+                <p className="text-white font-medium">
+                  {profile.assets_equity || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">Consumer Debt</p>
+                <p className="text-white font-medium">
+                  {profile.consumer_debt || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">Currency</p>
+                <p className="text-white font-medium">
+                  {profile.currency || 'Not specified'}
                 </p>
               </div>
             </div>
