@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, Input, Button } from '@/lib/design-system/components'
 import { Plus, X, Minus } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -24,6 +24,11 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
   const [childrenAges, setChildrenAges] = useState<string[]>(
     profile.children_ages || []
   )
+
+  // Keep local state in sync with profile data
+  useEffect(() => {
+    setChildrenAges(profile.children_ages || [])
+  }, [profile.children_ages])
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
@@ -49,16 +54,19 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
     handleInputChange('number_of_children', number)
     
     // Adjust children ages array to match the number
-    const newAges = [...childrenAges]
-    if (number > childrenAges.length) {
+    const currentAges = profile.children_ages || []
+    const newAges = [...currentAges]
+    
+    if (number > currentAges.length) {
       // Add empty ages for new children
-      for (let i = childrenAges.length; i < number; i++) {
+      for (let i = currentAges.length; i < number; i++) {
         newAges.push('')
       }
-    } else if (number < childrenAges.length) {
+    } else if (number < currentAges.length) {
       // Remove excess ages
       newAges.splice(number)
     }
+    
     setChildrenAges(newAges)
     handleInputChange('children_ages', newAges.filter(age => age !== ''))
   }
