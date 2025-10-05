@@ -108,7 +108,9 @@ export default function NewProfileVersionPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to save new version')
+        const errorText = await response.text()
+        console.error('New version save error response:', errorText)
+        throw new Error(`Failed to save new version: ${response.status} ${response.statusText}`)
       }
 
       const data = await response.json()

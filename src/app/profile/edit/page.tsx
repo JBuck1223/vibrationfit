@@ -121,7 +121,9 @@ export default function ProfilePage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to save version')
+        const errorText = await response.text()
+        console.error('Version save error response:', errorText)
+        throw new Error(`Failed to save version: ${response.status} ${response.statusText}`)
       }
 
       const data = await response.json()
