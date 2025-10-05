@@ -22,19 +22,26 @@ function calculateCompletionManually(profile: any): number {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Profile API: Starting request')
     const supabase = createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
+    console.log('Profile API: User check', { user: user?.id, error: userError })
+
     if (userError || !user) {
+      console.log('Profile API: Unauthorized')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Fetch user profile
+    console.log('Profile API: Fetching profile for user', user.id)
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('user_id', user.id)
       .single()
+
+    console.log('Profile API: Profile fetch result', { profile, error: profileError })
 
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Error fetching profile:', profileError)
@@ -59,10 +66,13 @@ export async function GET(request: NextRequest) {
       completionPercentage = calculateCompletionManually(profile)
     }
 
-    return NextResponse.json({
+    const response = {
       profile: profile || {},
       completionPercentage: completionPercentage
-    })
+    }
+    
+    console.log('Profile API: Returning response', response)
+    return NextResponse.json(response)
   } catch (error) {
     console.error('Profile API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
