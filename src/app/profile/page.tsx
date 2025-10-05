@@ -12,7 +12,7 @@ import { LocationSection } from './components/LocationSection'
 import { CareerSection } from './components/CareerSection'
 import { FinancialSection } from './components/FinancialSection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus } from 'lucide-react'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -24,6 +24,8 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [versions, setVersions] = useState<any[]>([])
+  const [showVersions, setShowVersions] = useState(false)
 
   // Auto-save functionality
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
@@ -86,6 +88,64 @@ export default function ProfilePage() {
 
     fetchProfile()
   }, [router])
+
+  // Fetch versions
+  const fetchVersions = async () => {
+    try {
+      const response = await fetch('/api/profile?includeVersions=true')
+      if (response.ok) {
+        const data = await response.json()
+        setVersions(data.versions || [])
+      }
+    } catch (error) {
+      console.error('Error fetching versions:', error)
+    }
+  }
+
+  // Save as version function
+  const saveAsVersion = async (isDraft = true) => {
+    setIsSaving(true)
+    setSaveStatus('saving')
+
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          profileData: profile, 
+          saveAsVersion: true, 
+          isDraft 
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save version')
+      }
+
+      const data = await response.json()
+      console.log('Version save response:', data)
+      
+      setSaveStatus('saved')
+      setLastSaved(new Date())
+      setError(null)
+      
+      // Refresh versions list
+      await fetchVersions()
+
+      // Clear save status after 2 seconds
+      setTimeout(() => {
+        setSaveStatus('idle')
+      }, 2000)
+    } catch (error) {
+      console.error('Error saving version:', error)
+      setError(error instanceof Error ? error.message : 'Failed to save version')
+      setSaveStatus('error')
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   // Auto-save function
   const saveProfile = useCallback(async (profileData: Partial<UserProfile>) => {
@@ -295,6 +355,34 @@ export default function ProfilePage() {
               {completionPercentage}% Complete
             </Badge>
             <Button
+              onClick={() => setShowVersions(!showVersions)}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <History className="w-4 h-4" />
+              Versions
+            </Button>
+            <Button
+              onClick={() => saveAsVersion(false)}
+              disabled={isSaving}
+              variant="secondary"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Save Version
+            </Button>
+            <Button
+              onClick={() => router.push('/profile/view')}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              View Profile
+            </Button>
+            <Button
               onClick={handleManualSave}
               disabled={isSaving}
               size="sm"
@@ -313,6 +401,73 @@ export default function ProfilePage() {
               <AlertCircle className="w-5 h-5 text-red-500" />
               <span className="text-red-400">{error}</span>
             </div>
+          </div>
+        )}
+
+        {/* Versions List */}
+        {showVersions && (
+          <div className="mb-6 p-6 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Profile Versions</h3>
+              <Button
+                onClick={fetchVersions}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <History className="w-4 h-4" />
+                Refresh
+              </Button>
+            </div>
+            {versions.length > 0 ? (
+              <div className="space-y-3">
+                {versions.map((version) => (
+                  <div
+                    key={version.id}
+                    className="flex items-center justify-between p-4 bg-neutral-700/50 rounded-lg border border-neutral-600"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-medium">
+                            Version {version.version_number}
+                          </span>
+                          {version.is_draft && (
+                            <Badge variant="secondary" size="sm">Draft</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-neutral-400">
+                          {new Date(version.created_at).toLocaleDateString()} at{' '}
+                          {new Date(version.created_at).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="primary" size="sm">
+                        {version.completion_percentage}% Complete
+                      </Badge>
+                      <Button
+                        onClick={() => router.push(`/profile/view?versionId=${version.id}`)}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <History className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
+                <p className="text-neutral-400 mb-4">No versions saved yet</p>
+                <p className="text-sm text-neutral-500">
+                  Save a version to track your profile changes over time
+                </p>
+              </div>
+            )}
           </div>
         )}
 

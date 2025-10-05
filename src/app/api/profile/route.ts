@@ -1,161 +1,248 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-// Manual completion calculation fallback
-function calculateCompletionManually(profile: any): number {
-  if (!profile) return 0
-  
-  const fields = [
-    'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
-    'relationship_status', 'partner_name', 'children_count', 'children_names',
-    'health_conditions', 'medications', 'exercise_frequency', 'living_situation',
-    'time_at_location', 'city', 'state', 'postal_code', 'country',
-    'employment_type', 'occupation', 'company', 'time_in_role', 'household_income'
-  ]
-  
-  const completedFields = fields.filter(field => 
-    profile[field] !== null && profile[field] !== undefined && profile[field] !== ''
-  ).length
-  
-  return Math.round((completedFields / fields.length) * 100)
-}
-
 export async function GET(request: NextRequest) {
-  console.log('Profile API: Route called')
-  
   try {
-    // Try to create Supabase client
-    let supabase
-    try {
-      supabase = createClient()
-      console.log('Profile API: Supabase client created')
-    } catch (supabaseError) {
-      console.error('Profile API: Supabase client failed:', supabaseError)
-      // Return empty profile if Supabase is not configured
-      return NextResponse.json({
-        profile: {},
-        completionPercentage: 0,
-        message: 'Supabase not configured - returning empty profile'
-      })
-    }
+    const supabase = await createClient()
     
-    // Try to get user
+    // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (userError || !user) {
-      console.log('Profile API: No authenticated user')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
-    console.log('Profile API: User authenticated:', user.id)
-    
-    // Try to fetch profile (gracefully handle if table doesn't exist)
-    let profile = {}
-    let completionPercentage = 0
-    
+
+    const { searchParams } = new URL(request.url)
+    const versionId = searchParams.get('versionId')
+    const includeVersions = searchParams.get('includeVersions') === 'true'
+
+    // If requesting a specific version
+    if (versionId) {
+      try {
+        const { data: version, error: versionError } = await supabase
+          .from('profile_versions')
+          .select('*')
+          .eq('id', versionId)
+          .eq('user_id', user.id)
+          .single()
+
+        if (versionError) {
+          console.error('Version fetch error:', versionError)
+          return NextResponse.json({ error: 'Version not found' }, { status: 404 })
+        }
+
+        return NextResponse.json({
+          profile: version.profile_data,
+          completionPercentage: version.completion_percentage,
+          version: {
+            id: version.id,
+            version_number: version.version_number,
+            is_draft: version.is_draft,
+            created_at: version.created_at,
+            updated_at: version.updated_at
+          }
+        })
+      } catch (dbError) {
+        console.error('Database error:', dbError)
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+      }
+    }
+
+    // Get current profile (latest version or user_profiles table)
     try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
+      // First try to get the latest profile version
+      const { data: latestVersion, error: versionError } = await supabase
+        .from('profile_versions')
         .select('*')
         .eq('user_id', user.id)
+        .order('version_number', { ascending: false })
+        .limit(1)
         .single()
-      
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.log('Profile API: Table access error (table may not exist):', profileError.message)
-        // Continue with empty profile
+
+      let profile = null
+      let completionPercentage = 0
+      let versions = []
+
+      if (!versionError && latestVersion) {
+        profile = latestVersion.profile_data
+        completionPercentage = latestVersion.completion_percentage
       } else {
-        profile = profileData || {}
-        console.log('Profile API: Profile loaded successfully')
+        // Fallback to user_profiles table
+        const { data: userProfile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single()
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Profile fetch error:', profileError)
+        }
+
+        profile = userProfile || {}
+        completionPercentage = calculateCompletionManually(profile)
       }
-    } catch (tableError) {
-      console.log('Profile API: Table not accessible (may not exist):', tableError)
-      // Continue with empty profile
+
+      // Get all versions if requested
+      if (includeVersions) {
+        const { data: allVersions, error: versionsError } = await supabase
+          .from('profile_versions')
+          .select('id, version_number, completion_percentage, is_draft, created_at, updated_at')
+          .eq('user_id', user.id)
+          .order('version_number', { ascending: false })
+
+        if (!versionsError) {
+          versions = allVersions || []
+        }
+      }
+
+      return NextResponse.json({
+        profile,
+        completionPercentage,
+        versions
+      })
+    } catch (dbError) {
+      console.error('Database error:', dbError)
+      return NextResponse.json({
+        profile: {},
+        completionPercentage: 0,
+        versions: []
+      })
     }
-    
-    // Calculate completion percentage
-    completionPercentage = calculateCompletionManually(profile)
-    
-    return NextResponse.json({
-      profile,
-      completionPercentage,
-      message: 'Profile loaded successfully'
-    })
-    
   } catch (error) {
     console.error('Profile API error:', error)
-    // Return empty profile instead of error
-    return NextResponse.json({
-      profile: {},
-      completionPercentage: 0,
-      message: 'Error occurred - returning empty profile'
-    })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
-  console.log('Profile API POST: Route called')
-  
   try {
-    // Try to create Supabase client
-    let supabase
-    try {
-      supabase = createClient()
-    } catch (supabaseError) {
-      console.error('Profile API POST: Supabase client failed:', supabaseError)
-      return NextResponse.json({ 
-        message: 'Supabase not configured - cannot save profile',
-        profile: {}
-      })
-    }
+    const supabase = await createClient()
     
-    // Try to get user
+    // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
-    const profileData = await request.json()
-    
-    // Try to save profile (gracefully handle if table doesn't exist)
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .upsert({
-          user_id: user.id,
-          ...profileData,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        })
-        .select()
-        .single()
 
-      if (error) {
-        console.log('Profile API POST: Save error (table may not exist):', error.message)
-        return NextResponse.json({ 
-          message: 'Profile table not available - cannot save',
-          profile: profileData
+    const { profileData, saveAsVersion = false, isDraft = true } = await request.json()
+
+    if (!profileData) {
+      return NextResponse.json({ error: 'Profile data is required' }, { status: 400 })
+    }
+
+    try {
+      if (saveAsVersion) {
+        // Create a new profile version
+        const { data: versionId, error: versionError } = await supabase
+          .rpc('create_profile_version', {
+            user_uuid: user.id,
+            profile_data: profileData,
+            is_draft: isDraft
+          })
+
+        if (versionError) {
+          console.error('Version creation error:', versionError)
+          throw versionError
+        }
+
+        // Get the created version
+        const { data: version, error: fetchError } = await supabase
+          .from('profile_versions')
+          .select('*')
+          .eq('id', versionId)
+          .single()
+
+        if (fetchError) {
+          console.error('Version fetch error:', fetchError)
+          throw fetchError
+        }
+
+        // Update user stats if not a draft
+        if (!isDraft) {
+          await supabase.rpc('update_profile_stats', { user_uuid: user.id })
+        }
+
+        return NextResponse.json({
+          profile: version.profile_data,
+          completionPercentage: version.completion_percentage,
+          version: {
+            id: version.id,
+            version_number: version.version_number,
+            is_draft: version.is_draft,
+            created_at: version.created_at,
+            updated_at: version.updated_at
+          }
+        })
+      } else {
+        // Regular profile update (user_profiles table)
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .upsert({
+            user_id: user.id,
+            ...profileData,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id'
+          })
+          .select()
+          .single()
+
+        if (profileError) {
+          console.error('Profile save error:', profileError)
+          throw profileError
+        }
+
+        // Calculate completion percentage
+        let completionPercentage = 0
+        try {
+          const { data: completionData, error: completionError } = await supabase
+            .rpc('calculate_profile_completion', { profile_data: profile })
+          
+          if (!completionError && completionData) {
+            completionPercentage = completionData
+          }
+        } catch (rpcError) {
+          console.log('RPC not available, using manual calculation')
+          completionPercentage = calculateCompletionManually(profile)
+        }
+
+        return NextResponse.json({
+          profile,
+          completionPercentage
         })
       }
-
+    } catch (dbError) {
+      console.error('Database error:', dbError)
       return NextResponse.json({ 
-        message: 'Profile saved successfully',
-        profile: data 
-      })
-    } catch (tableError) {
-      console.log('Profile API POST: Table not accessible:', tableError)
-      return NextResponse.json({ 
-        message: 'Profile table not accessible - cannot save',
-        profile: profileData
-      })
+        message: 'Error occurred - cannot save profile',
+        profile: {}
+      }, { status: 500 })
     }
-    
   } catch (error) {
-    console.error('Profile API POST error:', error)
-    return NextResponse.json({ 
-      message: 'Error occurred - cannot save profile',
-      profile: {}
-    })
+    console.error('Profile API error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+}
+
+// Fallback completion calculation function
+function calculateCompletionManually(profileData: any): number {
+  if (!profileData) return 0
+
+  const fields = [
+    'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
+    'relationship_status', 'partner_name', 'number_of_children', 'children_ages',
+    'health_conditions', 'medications', 'exercise_frequency', 'living_situation',
+    'time_at_location', 'city', 'state', 'postal_code', 'country',
+    'employment_type', 'occupation', 'company', 'time_in_role', 'household_income',
+    'profile_picture_url'
+  ]
+
+  const completedFields = fields.filter(field =>
+    profileData[field] !== null &&
+    profileData[field] !== undefined &&
+    profileData[field] !== ''
+  ).length
+
+  return Math.round((completedFields / fields.length) * 100)
 }
