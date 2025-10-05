@@ -78,6 +78,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
       }
       const data = await response.json()
       console.log('Profile view: Fetched data:', data)
+      console.log('Profile view: Versions received:', data.versions?.length || 0)
       setProfile(data.profile || {})
       setCompletionPercentage(data.completionPercentage || 0)
       setVersions(data.versions || [])

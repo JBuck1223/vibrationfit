@@ -124,13 +124,17 @@ export async function GET(request: NextRequest) {
 
       // Get all versions if requested
       if (includeVersions) {
+        console.log('🔍 PROFILE API: Fetching versions for user:', user.id)
         const { data: allVersions, error: versionsError } = await supabase
           .from('profile_versions')
           .select('id, version_number, completion_percentage, is_draft, created_at, updated_at')
           .eq('user_id', user.id)
           .order('version_number', { ascending: false })
 
-        if (!versionsError) {
+        if (versionsError) {
+          console.error('❌ PROFILE API: Versions fetch error:', versionsError)
+        } else {
+          console.log('✅ PROFILE API: Found versions:', allVersions?.length || 0)
           versions = allVersions || []
         }
       }
@@ -138,6 +142,7 @@ export async function GET(request: NextRequest) {
       // Debug: Log the final response
       console.log('🎯 PROFILE API: Final response - completionPercentage:', completionPercentage)
       console.log('📊 PROFILE API: Profile keys:', Object.keys(profile || {}))
+      console.log('📋 PROFILE API: Versions being returned:', versions.length)
       console.log('✅ PROFILE API: Returning data to client')
 
       return NextResponse.json({
