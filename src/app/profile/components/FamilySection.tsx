@@ -10,15 +10,7 @@ interface FamilySectionProps {
   onProfileChange: (updates: Partial<UserProfile>) => void
 }
 
-const childrenAgeOptions = [
-  { value: '0-2 years', label: '0-2 years' },
-  { value: '3-5 years', label: '3-5 years' },
-  { value: '6-8 years', label: '6-8 years' },
-  { value: '9-11 years', label: '9-11 years' },
-  { value: '12-14 years', label: '12-14 years' },
-  { value: '15-17 years', label: '15-17 years' },
-  { value: '18+ years', label: '18+ years' }
-]
+// Removed age range options - now using direct age input
 
 export function FamilySection({ profile, onProfileChange }: FamilySectionProps) {
   const [childrenAges, setChildrenAges] = useState<string[]>(
@@ -219,18 +211,18 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
                   <span className="text-sm text-neutral-400 w-20">
                     Child {index + 1}:
                   </span>
-                  <select
+                  <Input
+                    type="number"
+                    min="0"
+                    max="25"
                     value={childrenAges[index] || ''}
                     onChange={(e) => handleChildAgeChange(index, e.target.value)}
-                    className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                  >
-                    <option value="">Select age range</option>
-                    {childrenAgeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Enter age"
+                    className="flex-1"
+                  />
+                  <span className="text-sm text-neutral-400 w-16">
+                    {childrenAges[index] === '1' ? 'year old' : 'years old'}
+                  </span>
                 </div>
               ))}
             </div>
