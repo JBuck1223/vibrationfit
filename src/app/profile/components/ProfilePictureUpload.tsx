@@ -289,10 +289,17 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         body: formData,
       })
 
-      const result = await uploadResponse.json()
+      let result
+      try {
+        result = await uploadResponse.json()
+      } catch (e) {
+        console.error('Failed to parse response:', e)
+        throw new Error(`Upload failed with status ${uploadResponse.status}`)
+      }
 
       if (!uploadResponse.ok) {
-        throw new Error(result.error || 'Upload failed')
+        console.error('Upload failed:', result)
+        throw new Error(result.error || result.message || `Upload failed with status ${uploadResponse.status}`)
       }
 
       // Clean up
@@ -337,7 +344,13 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         {/* Current/Preview Image */}
         <div className="relative inline-block mb-4">
           <div className="w-32 h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center">
-            {currentImageUrl || previewUrl ? (
+            {showCropper && previewCanvas ? (
+              <img
+                src={previewCanvas}
+                alt="Profile picture preview"
+                className="w-full h-full object-cover"
+              />
+            ) : currentImageUrl || previewUrl ? (
               <NextImage
                 src={previewUrl || currentImageUrl || ''}
                 alt="Profile picture"
@@ -386,10 +399,8 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
             {/* Simple Preview */}
             {originalImage && (
               <div className="space-y-4">
-                {/* Preview Layout */}
-                <div className="flex gap-6 items-start justify-center">
-                  {/* Square Crop Preview */}
-                  <div className="relative bg-neutral-800 rounded-lg w-64 h-64 overflow-hidden">
+                {/* Square Crop Preview */}
+                <div className="relative mx-auto bg-neutral-800 rounded-lg w-64 h-64 overflow-hidden">
                   {/* Larger container to show full image */}
                   <div 
                     className="relative w-full h-full cursor-move select-none"
@@ -421,32 +432,6 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-primary-500 text-xs bg-black/70 px-2 py-1 rounded">
                         {isDragging ? 'Dragging...' : 'Drag to position'}
                       </div>
-                    </div>
-                  </div>
-                  </div>
-
-                  {/* Circular Preview */}
-                  <div className="flex flex-col items-center space-y-3">
-                    <div className="text-sm text-neutral-300 font-medium">Preview</div>
-                    <div className="relative">
-                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary-500 bg-neutral-800">
-                        {previewCanvas ? (
-                          <img
-                            src={previewCanvas}
-                            alt="Profile preview"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-neutral-700 flex items-center justify-center">
-                            <div className="text-neutral-500 text-xs text-center">
-                              Preview
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-xs text-neutral-400 text-center">
-                      Your profile picture
                     </div>
                   </div>
                 </div>
