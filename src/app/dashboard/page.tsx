@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { PageLayout, Container, Card, Button } from '@/lib/design-system'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -19,50 +20,54 @@ export default async function DashboardPage() {
   const completedVisions = visions?.filter(v => v.status === 'complete').length || 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
-      <div className="max-w-7xl mx-auto p-6">
+    <PageLayout>
+      <Container size="xl" className="py-6">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Welcome back! ⚡</h1>
-          <p className="text-emerald-300">{user.email}</p>
+          <h1 className="text-4xl font-bold mb-2">Welcome back!</h1>
+          <p className="text-secondary-500">{user.email}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-800 border border-emerald-600 rounded-xl p-6">
-            <h3 className="text-gray-400 text-sm mb-2">Total Visions</h3>
-            <p className="text-4xl font-bold text-emerald-500">{visionCount}</p>
-          </div>
+          <Card>
+            <h3 className="text-neutral-400 text-sm mb-2">Total Visions</h3>
+            <p className="text-4xl font-bold text-primary-500">{visionCount}</p>
+          </Card>
           
-          <div className="bg-gray-800 border border-emerald-600 rounded-xl p-6">
-            <h3 className="text-gray-400 text-sm mb-2">Completed</h3>
-            <p className="text-4xl font-bold text-emerald-500">{completedVisions}</p>
-          </div>
+          <Card>
+            <h3 className="text-neutral-400 text-sm mb-2">Completed</h3>
+            <p className="text-4xl font-bold text-primary-500">{completedVisions}</p>
+          </Card>
           
-          <div className="bg-gray-800 border border-emerald-600 rounded-xl p-6">
-            <h3 className="text-gray-400 text-sm mb-2">Current Streak</h3>
-            <p className="text-4xl font-bold text-emerald-500">0 days</p>
-          </div>
+          <Card>
+            <h3 className="text-neutral-400 text-sm mb-2">Current Streak</h3>
+            <p className="text-4xl font-bold text-primary-500">0 days</p>
+          </Card>
         </div>
 
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+        <Card>
           <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a href="/vision/new" className="bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-lg font-semibold text-center transition">
-              ✨ Create New Vision
-            </a>
-            <a href="/vision" className="bg-gray-700 hover:bg-gray-600 text-white p-4 rounded-lg font-semibold text-center transition">
-              📋 View All Visions
-            </a>
+            <Button asChild className="w-full">
+              <a href="/life-vision/new">
+                ✨ Create New Life Vision
+              </a>
+            </Button>
+            <Button variant="secondary" asChild className="w-full">
+              <a href="/life-vision">
+                📋 View All Life Visions
+              </a>
+            </Button>
           </div>
-        </div>
+        </Card>
 
         <div className="mt-8">
           <form action="/auth/logout" method="post">
-            <button type="submit" className="text-gray-400 hover:text-white transition">
+            <Button variant="ghost" type="submit">
               Sign out
-            </button>
+            </Button>
           </form>
         </div>
-      </div>
-    </div>
+      </Container>
+    </PageLayout>
   )
 }

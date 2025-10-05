@@ -3,6 +3,9 @@
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { PageLayout, Container, Card, Input, Button } from '@/lib/design-system'
+import Image from 'next/image'
+import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -37,40 +40,66 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-900 to-black flex items-center justify-center p-6">
-      <div className="bg-gray-900 p-8 rounded-2xl border border-emerald-600 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-white mb-2">⚡ VibrationFit</h1>
-        <p className="text-emerald-200 mb-8">Start your journey</p>
-
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
-            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-emerald-500" required />
+    <PageLayout>
+      <Container size="sm" className="py-12">
+        <Card className="max-w-md mx-auto">
+          <div className="text-center mb-8">
+            <Image
+              src={ASSETS.brand.logoWhite}
+              alt="VibrationFit"
+              width={200}
+              height={40}
+              className="h-10 w-auto mx-auto mb-4"
+              priority
+            />
+            <p className="text-secondary-500">Start your conscious creation journey</p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-emerald-500" required />
-          </div>
+          <form onSubmit={handleSignup} className="space-y-6">
+            <Input
+              type="text"
+              label="Full Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter your full name"
+              required
+            />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-emerald-500" required minLength={6} />
-          </div>
+            <Input
+              type="email"
+              label="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              required
+            />
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">{error}</div>
-          )}
+            <Input
+              type="password"
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Create a password"
+              helperText="Must be at least 6 characters"
+              required
+            />
 
-          <button type="submit" disabled={loading} className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-500 disabled:opacity-50 transition">
-            {loading ? 'Creating account...' : 'Create Account'}
-          </button>
-        </form>
+            {error && (
+              <div className="bg-error-600/10 border border-error-600 text-error-600 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
 
-        <p className="text-gray-400 text-center mt-6">
-          Already have an account? <a href="/auth/login" className="text-emerald-500 hover:text-emerald-400">Sign in</a>
-        </p>
-      </div>
-    </div>
+            <Button type="submit" loading={loading} className="w-full">
+              {loading ? 'Creating account...' : 'Create Account'}
+            </Button>
+          </form>
+
+          <p className="text-neutral-400 text-center mt-6">
+            Already have an account? <a href="/auth/login" className="text-primary-500 hover:text-primary-400 transition-colors">Sign in</a>
+          </p>
+        </Card>
+      </Container>
+    </PageLayout>
   )
 }

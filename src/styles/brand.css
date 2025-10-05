@@ -1,0 +1,146 @@
+/* Import this in your root layout */
+
+/* Button System - Pill-shaped, modern */
+.btn {
+    padding: 0.875rem 1.75rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .btn-primary {
+    background: #199D67;
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background: #5EC49A;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(25, 157, 103, 0.4);
+  }
+  
+  .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(25, 157, 103, 0.3);
+  }
+  
+  .btn-secondary {
+    background: #14B8A6;
+    color: white;
+  }
+  
+  .btn-secondary:hover {
+    background: #2DD4BF;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(20, 184, 166, 0.4);
+  }
+  
+  .btn-accent {
+    background: #8B5CF6;
+    color: white;
+  }
+  
+  .btn-accent:hover {
+    background: #A78BFA;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+  }
+  
+  .btn-outline {
+    background: transparent;
+    color: #199D67;
+    border: 2px solid #199D67;
+    box-shadow: none;
+  }
+  
+  .btn-outline:hover {
+    background: #199D67;
+    color: white;
+  }
+  
+  .btn-ghost {
+    background: rgba(25, 157, 103, 0.1);
+    color: #199D67;
+    border: 1px solid rgba(25, 157, 103, 0.2);
+    box-shadow: none;
+  }
+  
+  .btn-gradient {
+    background: linear-gradient(135deg, #199D67, #14B8A6);
+    color: white;
+  }
+  
+  .btn-ai {
+    background: transparent;
+    color: #8B5CF6;
+    border: 2px solid #8B5CF6;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+  
+  .btn-ai:hover {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: #A78BFA;
+    color: #A78BFA;
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+  }
+  
+  .btn-sm {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+  }
+  
+  .btn-lg {
+    padding: 1.125rem 2.5rem;
+    font-size: 1.125rem;
+  }
+  
+  /* Card System */
+  .brand-card {
+    background: #1F1F1F;
+    border-radius: 16px;
+    padding: 2rem;
+    border: 2px solid #333;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  
+  .brand-card:hover {
+    transform: translateY(-4px);
+    border-color: #199D67;
+  }
+  
+  /* Status Indicators */
+  .status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 12px currentColor;
+  }
+  
+  /* Gradient Backgrounds */
+  .gradient-green {
+    background: linear-gradient(135deg, #199D67, #5EC49A);
+  }
+  
+  .gradient-teal {
+    background: linear-gradient(135deg, #14B8A6, #2DD4BF);
+  }
+  
+  .gradient-purple {
+    background: linear-gradient(135deg, #601B9F, #8B5CF6);
+  }
+  
+  .gradient-brand {
+    background: linear-gradient(135deg, #199D67, #14B8A6);
+  }
+  
+  .gradient-cosmic {
+    background: linear-gradient(135deg, #601B9F, #B629D4, #2DD4BF);
+  }
