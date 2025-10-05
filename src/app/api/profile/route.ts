@@ -23,7 +23,16 @@ function calculateCompletionManually(profile: any): number {
 export async function GET(request: NextRequest) {
   try {
     console.log('Profile API: Starting request')
-    const supabase = createClient()
+    
+    let supabase
+    try {
+      supabase = createClient()
+      console.log('Profile API: Supabase client created successfully')
+    } catch (supabaseError) {
+      console.error('Profile API: Failed to create Supabase client:', supabaseError)
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
+    }
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     console.log('Profile API: User check', { user: user?.id, error: userError })
@@ -35,13 +44,24 @@ export async function GET(request: NextRequest) {
 
     // Fetch user profile
     console.log('Profile API: Fetching profile for user', user.id)
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    console.log('Profile API: Profile fetch result', { profile, error: profileError })
+    
+    let profile, profileError
+    try {
+      const result = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+      
+      profile = result.data
+      profileError = result.error
+      console.log('Profile API: Profile fetch result', { profile, error: profileError })
+    } catch (tableError) {
+      console.error('Profile API: Table access error:', tableError)
+      return NextResponse.json({ 
+        error: 'Table access failed. Please ensure user_profiles table exists.' 
+      }, { status: 500 })
+    }
 
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Error fetching profile:', profileError)
