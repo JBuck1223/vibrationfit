@@ -164,7 +164,9 @@ export default function ProfilePage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to save profile')
+        const errorText = await response.text()
+        console.error('Profile save error response:', errorText)
+        throw new Error(`Failed to save profile: ${response.status} ${response.statusText}`)
       }
 
       const data = await response.json()
