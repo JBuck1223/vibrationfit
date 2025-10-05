@@ -12,12 +12,44 @@ interface ProfilePictureUploadProps {
 }
 
 export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }: ProfilePictureUploadProps) {
+  // Add custom styles for the slider
+  React.useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = `
+      .slider::-webkit-slider-thumb {
+        appearance: none;
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background: #199D67;
+        cursor: pointer;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+      .slider::-moz-range-thumb {
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background: #199D67;
+        cursor: pointer;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+    `
+    document.head.appendChild(style)
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style)
+      }
+    }
+  }, [])
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [showCropper, setShowCropper] = useState(false)
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null)
   const [imageRotation, setImageRotation] = useState(0)
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 })
+  const [imageScale, setImageScale] = useState(1)
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -98,6 +130,11 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
     setImagePosition({ x: 0, y: 0 })
   }
 
+  // Reset scale
+  const resetScale = () => {
+    setImageScale(1)
+  }
+
   // Crop and convert to blob
   const cropImage = useCallback((): Promise<Blob> => {
     return new Promise((resolve) => {
@@ -132,12 +169,12 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
       // Rotate
       ctx.rotate(radians)
       
-      // Apply image position offset to crop area
+      // Apply image position offset and scale to crop area
       const adjustedCropArea = {
         x: cropArea.x + imagePosition.x,
         y: cropArea.y + imagePosition.y,
-        width: cropArea.width,
-        height: cropArea.height
+        width: cropArea.width / imageScale,
+        height: cropArea.height / imageScale
       }
       
       // Draw cropped and rotated image
@@ -161,7 +198,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
         resolve(blob || new Blob())
       }, 'image/jpeg', 0.9)
     })
-  }, [originalImage, imageRotation, imagePosition])
+  }, [originalImage, imageRotation, imagePosition, imageScale])
 
   const handleUpload = async () => {
     if (!originalImage) return
@@ -279,7 +316,8 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
             {originalImage && (
               <div className="space-y-4">
                 {/* Square Crop Preview */}
-                <div className="relative mx-auto bg-neutral-800 rounded-lg overflow-hidden w-48 h-48">
+                <div className="relative mx-auto bg-neutral-800 rounded-lg w-64 h-64 overflow-hidden">
+                  {/* Larger container to show full image */}
                   <div 
                     className="relative w-full h-full cursor-move select-none"
                     onMouseDown={handleMouseDown}
@@ -287,20 +325,26 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseUp}
                   >
+                    {/* Full image that can be moved around */}
                     <img
                       src={originalImage.src}
                       alt="Preview"
-                      className="absolute inset-0 w-full h-full object-cover"
+                      className="absolute"
                       style={{
-                        transform: `rotate(${imageRotation}deg) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                        width: '200%',
+                        height: '200%',
+                        left: '50%',
+                        top: '50%',
+                        transform: `translate(-50%, -50%) rotate(${imageRotation}deg) translate(${imagePosition.x}px, ${imagePosition.y}px) scale(${imageScale})`,
                         transformOrigin: 'center',
-                        cursor: isDragging ? 'grabbing' : 'grab'
+                        cursor: isDragging ? 'grabbing' : 'grab',
+                        objectFit: 'contain'
                       }}
                       draggable={false}
                     />
                     
-                    {/* Show the actual crop area */}
-                    <div className="absolute inset-0 border-2 border-primary-500 bg-primary-500/10">
+                    {/* Show the actual crop area in the center */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-primary-500 bg-primary-500/10 rounded">
                       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-primary-500 text-xs bg-black/70 px-2 py-1 rounded">
                         {isDragging ? 'Dragging...' : 'Drag to position'}
                       </div>
@@ -308,6 +352,28 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                   </div>
                 </div>
                 
+                {/* Scale Slider */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-neutral-300">Scale</span>
+                    <span className="text-primary-500 font-medium">{Math.round(imageScale * 100)}%</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-neutral-400">50%</span>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2"
+                      step="0.1"
+                      value={imageScale}
+                      onChange={(e) => setImageScale(parseFloat(e.target.value))}
+                      className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer slider"
+                      disabled={isUploading}
+                    />
+                    <span className="text-xs text-neutral-400">200%</span>
+                  </div>
+                </div>
+
                 {/* Controls */}
                 <div className="flex justify-center gap-2">
                   <Button
@@ -326,6 +392,14 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError }
                     disabled={isUploading}
                   >
                     Reset Position
+                  </Button>
+                  <Button
+                    onClick={resetScale}
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading}
+                  >
+                    Reset Scale
                   </Button>
                 </div>
                 
