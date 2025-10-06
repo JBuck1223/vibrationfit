@@ -168,6 +168,16 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     }
   }, [activeVision])
 
+  // Auto-resize on initial load after vision data is loaded
+  useEffect(() => {
+    if (vision && activeVision && activeVisionRef.current) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        autoResizeTextarea(activeVisionRef.current!)
+      }, 100)
+    }
+  }, [vision, activeVision])
+
   useEffect(() => {
     if (currentRefinementRef.current) {
       autoResizeTextarea(currentRefinementRef.current)
