@@ -15,7 +15,7 @@ import {
   TONALITY_OPTIONS,
   EMOTIONAL_INTENSITY
 } from '@/lib/vibe-assistant/allowance'
-import { getVisionCategory } from '@/lib/design-system'
+import { getVisionCategoryServer } from '@/lib/design-system/vision-categories-server'
 
 // Initialize OpenAI client (only if API key is available)
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
@@ -99,7 +99,7 @@ function buildUserPrompt(request: RefineVisionRequest): string {
   }
 
   // Get category-specific context from centralized categories
-  const categoryInfo = getVisionCategory(category)
+  const categoryInfo = getVisionCategoryServer(category)
   const categoryContext = categoryInfo ? categoryInfo.description : 'This is a section of the user\'s life vision.'
 
   const prompt = `
