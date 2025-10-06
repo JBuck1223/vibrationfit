@@ -112,9 +112,10 @@ export default function JournalPage() {
               <h1 className="text-4xl font-bold mb-2">📔 Conscious Creation Journal</h1>
               <p className="text-neutral-400">Capture evidence of actualization in real time</p>
             </div>
-            <Button asChild responsive mobileText="New" className="w-full sm:w-auto">
+            <Button asChild className="w-full sm:w-auto">
               <Link href="/journal/new">
                 <Plus className="w-5 h-5 mr-2" />
+                <span className="sm:hidden">New</span>
                 <span className="hidden sm:inline">New Entry</span>
               </Link>
             </Button>

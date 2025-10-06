@@ -604,11 +604,10 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   onClick={() => router.push('/life-vision')}
                   variant="outline"
                   size="sm"
-                  responsive
-                  mobileText="All Visions"
                   className="flex items-center gap-2 w-full sm:w-auto"
                 >
                   <Eye className="w-4 h-4" />
+                  <span className="sm:hidden">All Visions</span>
                   <span className="hidden sm:inline">View All Visions</span>
                 </Button>
                 {!isViewingVersion && (
@@ -617,11 +616,10 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       onClick={() => setIsEditing(!isEditing)}
                       disabled={saving}
                       size="sm"
-                      responsive
-                      mobileText={isEditing ? 'View' : 'Edit'}
                       className="flex items-center gap-2 w-full sm:w-auto"
                     >
                       <Edit3 className="w-4 h-4" />
+                      <span className="sm:hidden">{isEditing ? 'View' : 'Edit'}</span>
                       <span className="hidden sm:inline">{isEditing ? 'View Mode' : 'Edit Mode'}</span>
                     </Button>
                     <Button
@@ -629,11 +627,10 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       disabled={saving}
                       variant="secondary"
                       size="sm"
-                      responsive
-                      mobileText="New Version"
                       className="flex items-center gap-2 w-full sm:w-auto"
                     >
                       <Plus className="w-4 h-4" />
+                      <span className="sm:hidden">New Version</span>
                       <span className="hidden sm:inline">Save As New Version</span>
                     </Button>
                   </>
@@ -642,11 +639,10 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   onClick={() => setShowVersions(!showVersions)}
                   variant="outline"
                   size="sm"
-                  responsive
-                  mobileText="Versions"
                   className="flex items-center gap-2 w-full sm:w-auto"
                 >
                   <History className="w-4 h-4" />
+                  <span className="sm:hidden">Versions</span>
                   <span className="hidden sm:inline">{showVersions ? 'Hide' : 'Show'} Versions</span>
                 </Button>
               </div>

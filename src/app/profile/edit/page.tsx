@@ -390,22 +390,20 @@ export default function ProfilePage() {
                 onClick={() => router.push('/profile')}
                 variant="outline"
                 size="sm"
-                responsive
-                mobileText="View"
                 className="flex items-center gap-2 w-full sm:w-auto"
               >
                 <Eye className="w-4 h-4" />
+                <span className="sm:hidden">View</span>
                 <span className="hidden sm:inline">View Current Profile</span>
               </Button>
               <Button
                 onClick={handleManualSave}
                 disabled={isSaving}
                 size="sm"
-                responsive
-                mobileText="Save"
                 className="flex items-center gap-2 w-full sm:w-auto"
               >
                 <Save className="w-4 h-4" />
+                <span className="sm:hidden">Save</span>
                 <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save Edits'}</span>
               </Button>
               <Button
@@ -413,11 +411,10 @@ export default function ProfilePage() {
                 disabled={isSaving}
                 variant="secondary"
                 size="sm"
-                responsive
-                mobileText="New Version"
                 className="flex items-center gap-2 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
+                <span className="sm:hidden">New Version</span>
                 <span className="hidden sm:inline">Save As New Version</span>
               </Button>
             </div>
