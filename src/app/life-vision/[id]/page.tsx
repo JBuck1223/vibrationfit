@@ -21,6 +21,7 @@ import { LifeVisionSidebar } from '../components/LifeVisionSidebar'
 
 interface VisionData {
   id: string
+  user_id: string
   title: string
   forward: string
   fun: string
