@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -175,6 +175,24 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setTimeout(() => {
         autoResizeTextarea(activeVisionRef.current!)
       }, 100)
+    }
+  }, [vision, activeVision])
+
+  // Force auto-resize when component mounts and vision data is available
+  useLayoutEffect(() => {
+    if (vision && activeVisionRef.current && activeVision) {
+      // Immediate resize attempt
+      autoResizeTextarea(activeVisionRef.current)
+      
+      // Additional attempts with small delays
+      const resizeAttempts = [50, 100, 200]
+      resizeAttempts.forEach(delay => {
+        setTimeout(() => {
+          if (activeVisionRef.current) {
+            autoResizeTextarea(activeVisionRef.current)
+          }
+        }, delay)
+      })
     }
   }, [vision, activeVision])
 
@@ -483,6 +501,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 </div>
               </div>
               <Textarea
+                key={`active-vision-${selectedCategory}-${activeVision.length}`}
                 ref={activeVisionRef}
                 value={activeVision}
                 onChange={() => {}} // Read-only
