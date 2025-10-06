@@ -378,12 +378,18 @@ export default function VisionListPage() {
               </Button>
             ) : (
               <Button
-                onClick={() => router.push('/life-vision/new')}
+                onClick={() => {
+                  if (activeVision?.id) {
+                    router.push(`/life-vision/${activeVision.id}/refine`)
+                  } else {
+                    router.push('/life-vision/new')
+                  }
+                }}
                 variant="primary"
                 className="flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                New Version
+                Refine My Vision
               </Button>
             )}
             <Button

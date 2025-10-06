@@ -33,8 +33,6 @@ import {
 } from '@/lib/design-system'
 import { 
   checkVibeAssistantAllowance,
-  getVibeAssistantUsageHistory,
-  getVibeAssistantMonthlyStats,
   formatCost,
   formatTokens,
   getMembershipTierColor,
@@ -42,7 +40,7 @@ import {
   MEMBERSHIP_TIERS,
   TONALITY_OPTIONS,
   EMOTIONAL_INTENSITY
-} from '@/lib/vibe-assistant/allowance'
+} from '@/lib/vibe-assistant/allowance-client'
 
 interface VibeAssistantAllowance {
   tokensRemaining: number
@@ -98,12 +96,34 @@ export default function VibeAssistantUsageDashboard() {
         const allowanceData = await checkVibeAssistantAllowance()
         setAllowance(allowanceData)
         
-        // Load usage history
-        const historyData = await getVibeAssistantUsageHistory(20)
+        // Load usage history (mock data for now - will implement API later)
+        const historyData: UsageLog[] = [
+          {
+            id: '1',
+            category: 'forward',
+            operation_type: 'refine_vision',
+            input_tokens: 150,
+            output_tokens: 200,
+            total_tokens: 350,
+            cost_usd: 0.005,
+            refinement_percentage: 75,
+            tonality: 'balanced',
+            emotional_intensity: 'moderate',
+            processing_time_ms: 1250,
+            success: true,
+            created_at: new Date(Date.now() - 3600000).toISOString()
+          }
+        ]
         setUsageHistory(historyData)
         
-        // Load monthly stats
-        const statsData = await getVibeAssistantMonthlyStats()
+        // Load monthly stats (mock data for now)
+        const statsData: MonthlyStats = {
+          tokensUsed: 1250,
+          costUsd: 0.018,
+          operationsCount: 4,
+          mostUsedCategory: 'forward',
+          averageProcessingTime: 1150
+        }
         setMonthlyStats(statsData)
         
       } catch (err) {

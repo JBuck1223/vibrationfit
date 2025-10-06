@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -39,24 +39,25 @@ import {
   TONALITY_OPTIONS,
   EMOTIONAL_INTENSITY,
   VIBE_ASSISTANT_OPERATIONS
-} from '@/lib/vibe-assistant/allowance'
+} from '@/lib/vibe-assistant/allowance-client'
+import { createClient } from '@/lib/supabase/client'
 
-// Vision categories for refinement
+// Vision categories for refinement - matching the edit screen styling
 const VISION_CATEGORIES = [
   { key: 'forward', label: 'Forward', icon: '✨', description: 'Opening intention and energy' },
-  { key: 'fun', label: 'Fun / Recreation', icon: '🎉', description: 'Joyful activities and hobbies' },
-  { key: 'travel', label: 'Variety / Travel', icon: '✈️', description: 'Exploration and adventures' },
-  { key: 'home', label: 'Home / Environment', icon: '🏡', description: 'Living space and atmosphere' },
-  { key: 'family', label: 'Family / Parenting', icon: '👨‍👩‍👧‍👦', description: 'Family relationships' },
-  { key: 'romance', label: 'Love / Romance', icon: '💕', description: 'Romantic relationships' },
-  { key: 'health', label: 'Health / Vitality', icon: '💪', description: 'Physical and mental wellness' },
-  { key: 'money', label: 'Money / Wealth', icon: '💰', description: 'Financial goals and strategies' },
-  { key: 'business', label: 'Business / Career', icon: '💼', description: 'Professional aspirations' },
-  { key: 'social', label: 'Social / Friends', icon: '👥', description: 'Social connections' },
-  { key: 'possessions', label: 'Things / Belongings', icon: '📦', description: 'Material possessions' },
-  { key: 'giving', label: 'Giving / Contribution', icon: '🎁', description: 'Contribution and legacy' },
-  { key: 'spirituality', label: 'Spirituality / Expansion', icon: '🌟', description: 'Growth and development' },
-  { key: 'conclusion', label: 'Conclusion', icon: '✅', description: 'Closing commitments' }
+  { key: 'fun', label: 'Fun / Recreation', icon: '🎉', description: 'The hobbies, play, and joyful activities that make life light, exciting, and fun.' },
+  { key: 'travel', label: 'Variety / Travel / Adventure', icon: '✈️', description: 'The places you want to explore, cultures to experience, and adventures to embark on.' },
+  { key: 'home', label: 'Home / Environment', icon: '🏡', description: 'Your ideal living space, environment, and the feeling you want to create at home.' },
+  { key: 'family', label: 'Family / Parenting', icon: '👨‍👩‍👧‍👦', description: 'Your relationships with family members and the family life you want to cultivate.' },
+  { key: 'romance', label: 'Love / Romance / Partner', icon: '💕', description: 'Your ideal romantic relationship and the love life you want to experience.' },
+  { key: 'health', label: 'Health / Body / Vitality', icon: '💪', description: 'Your physical, mental, and emotional well-being goals and lifestyle.' },
+  { key: 'money', label: 'Money / Wealth / Investments', icon: '💰', description: 'Your financial goals, wealth building, and investment strategies.' },
+  { key: 'business', label: 'Business / Career / Work', icon: '💼', description: 'Your professional aspirations, career goals, and work environment.' },
+  { key: 'social', label: 'Social / Friends', icon: '👥', description: 'Your social connections, friendships, and community involvement.' },
+  { key: 'possessions', label: 'Things / Belongings / Stuff', icon: '📦', description: 'The material possessions and belongings that support your vision.' },
+  { key: 'giving', label: 'Giving / Contribution / Legacy', icon: '🤝', description: 'How you want to give back, contribute to others, and create lasting impact.' },
+  { key: 'spirituality', label: 'Spirituality / Connection', icon: '🕊️', description: 'Your spiritual growth, connection to something greater, and inner peace.' },
+  { key: 'conclusion', label: 'Conclusion / Integration', icon: '🎯', description: 'Bringing it all together and closing thoughts on your complete vision.' }
 ]
 
 interface VisionData {
@@ -111,9 +112,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   
   // Refinement settings
   const [refinementPercentage, setRefinementPercentage] = useState(50)
-  const [tonality, setTonality] = useState(TONALITY_OPTIONS.BALANCED)
+  const [tonality, setTonality] = useState<string>(TONALITY_OPTIONS.BALANCED)
   const [wordCount, setWordCount] = useState<number | undefined>(undefined)
-  const [emotionalIntensity, setEmotionalIntensity] = useState(EMOTIONAL_INTENSITY.MODERATE)
+  const [emotionalIntensity, setEmotionalIntensity] = useState<string>(EMOTIONAL_INTENSITY.MODERATE)
   
   // UI state
   const [isRefining, setIsRefining] = useState(false)
@@ -125,44 +126,34 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     const loadData = async () => {
       try {
         const resolvedParams = await params
-        const response = await fetch(`/api/profile`)
-        if (!response.ok) throw new Error('Failed to fetch profile')
         
-        const profileData = await response.json()
+        // Fetch the actual vision data from the database
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
         
-        // For now, we'll simulate loading a vision
-        // In a real implementation, you'd fetch the specific vision by ID
-        setVision({
-          id: resolvedParams.id,
-          user_id: 'current-user',
-          title: 'My Life Vision',
-          forward: 'I am creating a life filled with purpose, joy, and meaningful connections.',
-          fun: 'I enjoy hiking, reading, and spending time with friends.',
-          travel: 'I want to explore Europe and Southeast Asia.',
-          home: 'I live in a cozy apartment with lots of plants.',
-          family: 'I have a close relationship with my parents and siblings.',
-          romance: 'I am in a loving, supportive relationship.',
-          health: 'I maintain my physical and mental well-being through exercise and meditation.',
-          money: 'I have financial security and invest wisely.',
-          business: 'I work in a fulfilling career that aligns with my values.',
-          social: 'I have a strong network of supportive friends.',
-          possessions: 'I own things that bring me joy and serve a purpose.',
-          giving: 'I contribute to causes I care about.',
-          spirituality: 'I continue to grow and develop spiritually.',
-          conclusion: 'I am grateful for this beautiful life I am creating.',
-          status: 'draft',
-          completion_percent: 75,
-          version_number: 1,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        if (!user) {
+          setError('Please log in to access this page')
+          return
+        }
+
+        // Get the vision data
+        const { data: visionData, error: visionError } = await supabase
+          .from('vision_versions')
+          .select('*')
+          .eq('id', resolvedParams.id)
+          .eq('user_id', user.id)
+          .single()
+
+        if (visionError || !visionData) {
+          setError('Vision not found or access denied')
+          return
+        }
+
+        setVision(visionData)
         
         // Load allowance info
         const allowanceData = await checkVibeAssistantAllowance()
         setAllowance(allowanceData)
-        
-        // Set initial active vision text
-        setActiveVision('I am creating a life filled with purpose, joy, and meaningful connections.')
         
       } catch (err) {
         console.error('Error loading data:', err)
@@ -184,6 +175,31 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setRefinedText('')
     }
   }, [selectedCategory, vision])
+
+  // Auto-resize textareas when content changes
+  useEffect(() => {
+    if (activeVisionRef.current) {
+      autoResizeTextarea(activeVisionRef.current)
+    }
+  }, [activeVision])
+
+  useEffect(() => {
+    if (currentRefinementRef.current) {
+      autoResizeTextarea(currentRefinementRef.current)
+    }
+  }, [currentRefinement])
+
+  useEffect(() => {
+    if (instructionsRef.current) {
+      autoResizeTextarea(instructionsRef.current)
+    }
+  }, [instructions])
+
+  useEffect(() => {
+    if (refinedTextRef.current) {
+      autoResizeTextarea(refinedTextRef.current)
+    }
+  }, [refinedText])
 
   // Calculate token estimate
   const tokenEstimate = React.useMemo(() => {
@@ -252,6 +268,18 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     navigator.clipboard.writeText(text)
     // You could add a toast notification here
   }
+
+  // Auto-resize textarea function
+  const autoResizeTextarea = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height = 'auto'
+    textarea.style.height = textarea.scrollHeight + 'px'
+  }
+
+  // Refs for textareas
+  const activeVisionRef = useRef<HTMLTextAreaElement>(null)
+  const currentRefinementRef = useRef<HTMLTextAreaElement>(null)
+  const instructionsRef = useRef<HTMLTextAreaElement>(null)
+  const refinedTextRef = useRef<HTMLTextAreaElement>(null)
 
   // Push text between fields
   const pushVibeToCurrent = () => {
@@ -374,7 +402,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Category Selector */}
+          {/* Category Selector - Sidebar */}
           <div className="lg:col-span-1">
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -396,7 +424,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                       <span className="text-lg">{category.icon}</span>
                       <div>
                         <div className="font-medium">{category.label}</div>
-                        <div className="text-xs text-neutral-400">{category.description}</div>
+                        <div className="text-xs text-neutral-400 line-clamp-2">{category.description}</div>
                       </div>
                     </div>
                   </button>
@@ -406,38 +434,68 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           </div>
 
           {/* Main Refinement Interface */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3">
+            {/* Section Header - matching edit screen */}
+            <div className="mb-8">
+              <div className="flex items-center gap-4 mb-4">
+                <span className="text-5xl">{selectedCategoryInfo?.icon}</span>
+                <div>
+                  <h2 className="text-3xl font-bold mb-1">
+                    {selectedCategoryInfo?.label}
+                  </h2>
+                  <p className="text-[#9CA3AF] text-sm">
+                    Refining your vision for {selectedCategoryInfo?.label.toLowerCase()}
+                  </p>
+                </div>
+              </div>
+              <p className="text-[#cbd5e1] text-lg leading-relaxed">
+                {selectedCategoryInfo?.description}
+              </p>
+            </div>
+
+            <div className="space-y-6">
             {/* Active Vision (Read-only) */}
-            <Card className="p-6">
+            <Card className="p-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <span className="text-green-400">📖</span>
                   Active Vision
                 </h3>
-                <Button
-                  onClick={() => copyToClipboard(activeVision)}
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-1"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => copyToClipboard(activeVision)}
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1 hover:bg-blue-500/20 hover:border-blue-500/30 hover:text-blue-300 transition-all duration-300"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copy
+                  </Button>
+                  <Button
+                    onClick={() => setCurrentRefinement(activeVision)}
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 hover:border-blue-500/30 transition-all duration-300"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                    Copy to My Current Refinement
+                  </Button>
+                </div>
               </div>
               <Textarea
+                ref={activeVisionRef}
                 value={activeVision}
                 onChange={() => {}} // Read-only
                 placeholder="Select a category to view the active vision..."
-                rows={4}
-                className="bg-neutral-800/50 border-neutral-600"
+                className="bg-neutral-800/50 border-neutral-600 min-h-[100px]"
                 readOnly
               />
             </Card>
 
             {/* Current Refinement (Editable) */}
-            <Card className="p-6">
+            <Card className="p-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <span className="text-blue-400">✏️</span>
                   My Current Refinement
                 </h3>
@@ -463,17 +521,18 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 </div>
               </div>
               <Textarea
+                ref={currentRefinementRef}
                 value={currentRefinement}
                 onChange={(e) => setCurrentRefinement(e.target.value)}
                 placeholder="Write your current refinement of this vision section..."
-                rows={6}
+                className="min-h-[150px]"
               />
             </Card>
 
             {/* Vibe Assistant Instructions */}
-            <Card className="p-6">
+            <Card className="p-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <span className="text-purple-400">🤖</span>
                   Vibe Assistant Instructions
                 </h3>
@@ -497,17 +556,18 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 </Button>
               </div>
               <Textarea
+                ref={instructionsRef}
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
                 placeholder="Tell the Vibe Assistant how you'd like to refine this section. Be specific about the tone, focus areas, or particular aspects you want enhanced..."
-                rows={4}
+                className="min-h-[100px]"
               />
             </Card>
 
             {/* Vibe Assistant Refinement (AI Output) */}
-            <Card className="p-6">
+            <Card className="p-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <span className="text-purple-400">✨</span>
                   Vibe Assistant Refinement
                 </h3>
@@ -536,10 +596,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               </div>
               {refinedText ? (
                 <Textarea
+                  ref={refinedTextRef}
                   value={refinedText}
                   onChange={() => {}} // Read-only
-                  rows={6}
-                  className="bg-purple-900/20 border-purple-500/50"
+                  className="bg-purple-900/20 border-purple-500/50 min-h-[150px]"
                   readOnly
                 />
               ) : (
@@ -576,6 +636,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 </div>
               </Card>
             )}
+            </div>
           </div>
         </div>
 

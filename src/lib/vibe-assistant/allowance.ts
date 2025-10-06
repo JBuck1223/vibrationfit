@@ -3,7 +3,7 @@
 // with transparent cost tracking and membership-based limits
 
 import { createClient } from '@/lib/supabase/client'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
 // Types for Vibe Assistant allowance management
 export interface VibeAssistantAllowance {

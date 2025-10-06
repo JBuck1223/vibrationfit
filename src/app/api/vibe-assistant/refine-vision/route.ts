@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { 
   checkVibeAssistantAllowanceServer,
   decrementVibeAssistantAllowance,
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get user authentication
-    const supabase = await createServerClient()
+    const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -338,7 +338,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     // Log error if we have user context
     try {
-      const supabase = await createServerClient()
+      const supabase = await createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
