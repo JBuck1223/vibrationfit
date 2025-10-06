@@ -303,7 +303,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       if (connectionError) {
         console.error('Supabase connection failed:', connectionError)
         console.error('Connection error type:', typeof connectionError)
-        console.error('Connection error keys:', Object.keys(connectionError))
+        console.error('Connection error keys:', connectionError && typeof connectionError === 'object' ? Object.keys(connectionError) : 'Not an object')
         console.error('Connection error stringified:', JSON.stringify(connectionError))
         throw new Error(`Database connection failed: ${connectionError.message || JSON.stringify(connectionError) || 'Unknown error'}`)
       }
@@ -360,7 +360,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       if (testError) {
         console.error('Simple update failed:', testError)
         console.error('Error type:', typeof testError)
-        console.error('Error keys:', Object.keys(testError))
+        console.error('Error keys:', testError && typeof testError === 'object' ? Object.keys(testError) : 'Not an object')
         console.error('Error stringified:', JSON.stringify(testError))
         throw new Error(`Update failed: ${testError.message || JSON.stringify(testError) || 'Unknown error'}`)
       }
@@ -392,7 +392,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     } catch (error) {
       console.error('Error saving vision:', error)
       console.error('Error type:', typeof error)
-      console.error('Error keys:', Object.keys(error))
+      console.error('Error keys:', error && typeof error === 'object' ? Object.keys(error) : 'Not an object')
       console.error('Error stringified:', JSON.stringify(error))
       alert(`Failed to save vision: ${error instanceof Error ? error.message : JSON.stringify(error)}`)
     } finally {
