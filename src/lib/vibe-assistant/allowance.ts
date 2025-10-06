@@ -121,10 +121,10 @@ export async function checkVibeAssistantAllowanceServer(userId: string): Promise
       console.error('Error fetching profile data:', profileError)
       // Return default allowance if profile doesn't exist
       return {
-        tokensRemaining: 100,
+        tokensRemaining: 1000,
         tokensUsed: 0,
-        monthlyLimit: 100,
-        costLimit: 1.00,
+        monthlyLimit: 1000,
+        costLimit: 10.00,
         resetDate: new Date().toISOString(),
         tierName: 'Free'
       }
@@ -132,8 +132,8 @@ export async function checkVibeAssistantAllowanceServer(userId: string): Promise
 
     // Get membership tier info
     let tierName = 'Free'
-    let monthlyLimit = 100
-    let costLimit = 1.00
+    let monthlyLimit = 1000
+    let costLimit = 10.00
 
     if (profileData.membership_tier_id) {
       const { data: tierData } = await supabase

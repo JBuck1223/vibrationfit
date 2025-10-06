@@ -252,6 +252,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       const data = await response.json()
 
       if (!data.success) {
+        if (data.error === 'Insufficient tokens remaining') {
+          throw new Error(`Insufficient tokens remaining. You have ${data.allowanceInfo?.tokensRemaining || 0} tokens left, but need ${tokenEstimate?.estimatedTokens || 0} tokens for this refinement. Please upgrade your plan or wait for your monthly allowance to reset.`)
+        }
         throw new Error(data.error || 'Refinement failed')
       }
 
