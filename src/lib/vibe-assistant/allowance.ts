@@ -110,28 +110,52 @@ export async function checkVibeAssistantAllowanceServer(userId: string): Promise
   try {
     const supabase = await createServerClient()
     
-    // Call the database function to get allowance info
-    const { data, error } = await supabase
-      .rpc('get_vibe_assistant_allowance', { p_user_id: userId })
+    // Get user profile data directly
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('vibe_assistant_tokens_used, vibe_assistant_tokens_remaining, vibe_assistant_total_cost, membership_tier_id')
+      .eq('id', userId)
+      .single()
 
-    if (error) {
-      console.error('Error fetching allowance:', error)
-      return null
+    if (profileError) {
+      console.error('Error fetching profile data:', profileError)
+      // Return default allowance if profile doesn't exist
+      return {
+        tokensRemaining: 100,
+        tokensUsed: 0,
+        monthlyLimit: 100,
+        costLimit: 1.00,
+        resetDate: new Date().toISOString(),
+        tierName: 'Free'
+      }
     }
 
-    if (!data || data.length === 0) {
-      console.error('No allowance data found for user')
-      return null
+    // Get membership tier info
+    let tierName = 'Free'
+    let monthlyLimit = 100
+    let costLimit = 1.00
+
+    if (profileData.membership_tier_id) {
+      const { data: tierData } = await supabase
+        .from('membership_tiers')
+        .select('name, monthly_vibe_assistant_tokens, monthly_vibe_assistant_cost_limit')
+        .eq('id', profileData.membership_tier_id)
+        .single()
+
+      if (tierData) {
+        tierName = tierData.name
+        monthlyLimit = tierData.monthly_vibe_assistant_tokens || 100
+        costLimit = tierData.monthly_vibe_assistant_cost_limit || 1.00
+      }
     }
 
-    const allowance = data[0]
     return {
-      tokensRemaining: allowance.tokens_remaining || 0,
-      tokensUsed: allowance.tokens_used || 0,
-      monthlyLimit: allowance.monthly_limit || 0,
-      costLimit: parseFloat(allowance.cost_limit || '0'),
-      resetDate: allowance.reset_date,
-      tierName: allowance.tier_name || 'Free'
+      tokensRemaining: profileData.vibe_assistant_tokens_remaining || monthlyLimit,
+      tokensUsed: profileData.vibe_assistant_tokens_used || 0,
+      monthlyLimit,
+      costLimit,
+      resetDate: new Date().toISOString(), // TODO: Get actual reset date
+      tierName
     }
   } catch (error) {
     console.error('Error checking Vibe Assistant allowance:', error)
