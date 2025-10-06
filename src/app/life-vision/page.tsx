@@ -79,7 +79,8 @@ export default function VisionListPage() {
   const [isViewingVersion, setIsViewingVersion] = useState(false)
 
   // Utility: add timeout to any async operation to avoid infinite loading
-  const withTimeout = async <T,>(promise: Promise<T>, ms = 10000, label = 'operation'): Promise<T> => {
+  const withTimeout = async <T,>(operation: Promise<T> | (() => Promise<T>), ms = 10000, label = 'operation'): Promise<T> => {
+    const promise = typeof operation === 'function' ? operation() : operation
     return await Promise.race([
       promise,
       new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms))
@@ -179,7 +180,7 @@ export default function VisionListPage() {
 
       // Get the latest (active) vision version
       const activeVisionResult = await withTimeout(
-        supabase
+        () => supabase
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
@@ -193,7 +194,7 @@ export default function VisionListPage() {
 
       // Get all versions for the versions list
       const versionsResult = await withTimeout(
-        supabase
+        () => supabase
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
