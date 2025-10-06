@@ -16,10 +16,10 @@ import {
   EMOTIONAL_INTENSITY
 } from '@/lib/vibe-assistant/allowance'
 
-// Initialize OpenAI client
-const openai = new OpenAI({
+// Initialize OpenAI client (only if API key is available)
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-})
+}) : null
 
 // Use the most current and capable GPT model available
 const GPT_MODEL = 'gpt-5' // Latest GPT-5 model with advanced reasoning and creativity
@@ -169,6 +169,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const startTime = Date.now()
   
   try {
+    // Check if OpenAI client is available
+    if (!openai) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'OpenAI API key not configured. Please contact support.' 
+      }, { status: 500 })
+    }
+
     // Parse request body
     const body: RefineVisionRequest = await request.json()
     const { visionId, category, activeVision, currentRefinement, instructions, refinementPercentage, tonality, wordCount, emotionalIntensity } = body
