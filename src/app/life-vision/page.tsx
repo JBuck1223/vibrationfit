@@ -354,7 +354,10 @@ export default function VisionListPage() {
               </div>
               <p className="text-neutral-400">
                 {isViewingVersion 
-                  ? `Viewing saved version from ${getCurrentVersionInfo() ? new Date(getCurrentVersionInfo().created_at).toLocaleDateString() : ''}`
+                  ? (() => {
+                      const versionInfo = getCurrentVersionInfo()
+                      return versionInfo ? `Viewing saved version from ${new Date(versionInfo.created_at).toLocaleDateString()}` : 'Viewing saved version'
+                    })()
                   : 'Complete overview of your current life vision'
                 }
               </p>
@@ -411,7 +414,10 @@ export default function VisionListPage() {
                   <h2 className="text-xl font-semibold text-white">Vision Completion</h2>
                   {isViewingVersion && getCurrentVersionInfo() && (
                     <p className="text-sm text-neutral-400 mt-1">
-                      Version {getCurrentVersionInfo()?.version_number} • Saved on {new Date(getCurrentVersionInfo()?.created_at).toLocaleDateString()}
+                      {(() => {
+                        const versionInfo = getCurrentVersionInfo()
+                        return versionInfo ? `Version ${versionInfo.version_number} • Saved on ${new Date(versionInfo.created_at).toLocaleDateString()}` : ''
+                      })()}
                     </p>
                   )}
                 </div>
@@ -556,10 +562,12 @@ export default function VisionListPage() {
               <div className="flex items-center gap-3">
                 <span className="text-sm text-neutral-400">Created:</span>
                 <span className="text-sm text-white">
-                  {getCurrentVersionInfo()?.created_at 
-                    ? `${new Date(getCurrentVersionInfo().created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo().created_at).toLocaleTimeString()}`
-                    : 'Date not available'
-                  }
+                  {(() => {
+                    const versionInfo = getCurrentVersionInfo()
+                    return versionInfo?.created_at 
+                      ? `${new Date(versionInfo.created_at).toLocaleDateString()} at ${new Date(versionInfo.created_at).toLocaleTimeString()}`
+                      : 'Date not available'
+                  })()}
                 </span>
               </div>
             </div>
