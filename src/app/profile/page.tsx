@@ -28,7 +28,12 @@ import {
   RefreshCw,
   Trash2,
   Eye,
-  History
+  History,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Pause
 } from 'lucide-react'
 import NextImage from 'next/image'
 
@@ -46,6 +51,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [isViewingVersion, setIsViewingVersion] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
 
   useEffect(() => {
     fetchProfile()
@@ -217,6 +224,53 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     return versions.find(v => v.id === currentVersionId)
   }
 
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index)
+    setLightboxOpen(true)
+  }
+
+  const closeLightbox = () => {
+    setLightboxOpen(false)
+  }
+
+  const nextMedia = () => {
+    if (profile.progress_photos) {
+      setLightboxIndex((prev) => (prev + 1) % profile.progress_photos!.length)
+    }
+  }
+
+  const prevMedia = () => {
+    if (profile.progress_photos) {
+      setLightboxIndex((prev) => (prev - 1 + profile.progress_photos!.length) % profile.progress_photos!.length)
+    }
+  }
+
+  const isVideo = (url: string) => {
+    return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
+  }
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!lightboxOpen) return
+      
+      switch (e.key) {
+        case 'Escape':
+          closeLightbox()
+          break
+        case 'ArrowLeft':
+          prevMedia()
+          break
+        case 'ArrowRight':
+          nextMedia()
+          break
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [lightboxOpen])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
@@ -320,14 +374,6 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               </Button>
             )}
             <Button
-              onClick={() => router.push('/profile/new')}
-              variant="secondary"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              New Version
-            </Button>
-            <Button
               onClick={() => setShowVersions(!showVersions)}
               variant="outline"
               className="flex items-center gap-2"
@@ -336,12 +382,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               {showVersions ? 'Hide' : 'Show'} Versions
             </Button>
             <Button
-              onClick={fetchProfile}
-              variant="outline"
+              onClick={() => router.push('/profile/new')}
+              variant="secondary"
               className="flex items-center gap-2"
             >
-              <RefreshCw className="w-4 h-4" />
-              Refresh
+              <Plus className="w-4 h-4" />
+              New Version
             </Button>
           </div>
 
@@ -837,27 +883,40 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             </Card>
           )}
 
-          {/* Progress Photos */}
+          {/* Media */}
           {profile.progress_photos && profile.progress_photos.length > 0 && (
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <Camera className="w-5 h-5 text-primary-500" />
-                Progress Photos
+                Media
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {profile.progress_photos.map((photo, index) => (
+                {profile.progress_photos.map((media, index) => (
                   <div key={index} className="relative group">
-                    <img
-                      src={photo}
-                      alt={`Progress photo ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                      onClick={() => window.open(photo, '_blank')}
-                    />
+                    {isVideo(media) ? (
+                      <div className="relative">
+                        <video
+                          src={media}
+                          className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                          onClick={() => openLightbox(index)}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+                          <Play className="w-8 h-8 text-white" />
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={media}
+                        alt={`Media ${index + 1}`}
+                        className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                        onClick={() => openLightbox(index)}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
               <p className="text-sm text-neutral-400 mt-3">
-                {profile.progress_photos.length} photo{profile.progress_photos.length !== 1 ? 's' : ''} • Click to view full size
+                {profile.progress_photos.length} media file{profile.progress_photos.length !== 1 ? 's' : ''} • Click to view in lightbox
               </p>
             </Card>
           )}
@@ -891,6 +950,103 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           </Button>
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightboxOpen && profile.progress_photos && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
+          onClick={closeLightbox}
+        >
+          <div 
+            className="relative w-full h-full flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Navigation Buttons */}
+            {profile.progress_photos.length > 1 && (
+              <>
+                <button
+                  onClick={prevMedia}
+                  className="absolute left-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={nextMedia}
+                  className="absolute right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+
+            {/* Media Content */}
+            <div className="max-w-4xl max-h-full w-full h-full flex items-center justify-center">
+              {isVideo(profile.progress_photos[lightboxIndex]) ? (
+                <video
+                  src={profile.progress_photos[lightboxIndex]}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : (
+                <img
+                  src={profile.progress_photos[lightboxIndex]}
+                  alt={`Media ${lightboxIndex + 1}`}
+                  className="max-w-full max-h-full object-contain"
+                />
+              )}
+            </div>
+
+            {/* Media Counter */}
+            {profile.progress_photos.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                {lightboxIndex + 1} of {profile.progress_photos.length}
+              </div>
+            )}
+
+            {/* Thumbnail Strip */}
+            {profile.progress_photos.length > 1 && (
+              <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4">
+                {profile.progress_photos.map((media, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setLightboxIndex(index)}
+                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                      index === lightboxIndex ? 'border-primary-500' : 'border-neutral-600'
+                    }`}
+                  >
+                    {isVideo(media) ? (
+                      <div className="relative w-full h-full">
+                        <video
+                          src={media}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <Play className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={media}
+                        alt={`Thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

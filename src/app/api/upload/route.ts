@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { compressVideo, shouldCompressVideo, getCompressionOptions } from '@/lib/video-compression'
 
 // Configure runtime for large file uploads
@@ -17,6 +17,11 @@ const s3Client = new S3Client({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
+  maxAttempts: 3,
+  requestHandler: {
+    requestTimeout: 30000, // 30 seconds
+    connectionTimeout: 10000, // 10 seconds
+  },
 })
 
 const BUCKET_NAME = 'vibration-fit-client-storage'
@@ -31,6 +36,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: 'AWS credentials not configured. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env.local' 
       }, { status: 500 })
+    }
+
+    console.log('AWS credentials found, proceeding with upload...')
+
+    // Test S3 connectivity first
+    try {
+      const testCommand = new ListBucketsCommand({})
+      await s3Client.send(testCommand)
+      console.log('S3 connectivity test passed')
+    } catch (connectivityError) {
+      console.error('S3 connectivity test failed:', connectivityError)
+      return NextResponse.json({ 
+        error: `S3 connectivity issue: ${connectivityError instanceof Error ? connectivityError.message : 'Unknown error'}` 
+      }, { status: 503 })
     }
 
     const formData = await request.formData()
@@ -84,6 +103,7 @@ export async function POST(request: NextRequest) {
     const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
 
     // Upload to S3
+    console.log(`Attempting to upload to S3: ${BUCKET_NAME}/${finalS3Key}`)
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: finalS3Key,
@@ -92,8 +112,13 @@ export async function POST(request: NextRequest) {
       CacheControl: 'max-age=31536000',
     })
 
-    await s3Client.send(command)
-    console.log(`Upload completed for ${file.name}`)
+    try {
+      await s3Client.send(command)
+      console.log(`Upload completed for ${file.name}`)
+    } catch (s3Error) {
+      console.error('S3 upload command failed:', s3Error)
+      throw new Error(`S3 upload failed: ${s3Error instanceof Error ? s3Error.message : 'Unknown error'}`)
+    }
 
     // Return CDN URL
     const url = `https://media.vibrationfit.com/${finalS3Key}`

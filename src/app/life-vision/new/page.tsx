@@ -318,7 +318,7 @@ export default function NewLifeVisionPage() {
         title: data.title || 'Untitled Vision',
         version_number: 1,
         status: isComplete ? 'complete' : 'draft',
-        completion_percentage: isComplete ? 100 : progressPercent,
+        completion_percent: isComplete ? 100 : progressPercent,
         updated_at: new Date().toISOString()
       }
 

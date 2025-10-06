@@ -36,3 +36,9 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 # vibrationfit
 # vibrationfit
+
+## 📚 Documentation
+
+- [Product Brief](./docs/PRODUCT_BRIEF.md) - Complete SaaS product overview
+- [Design System Guide](./docs/DESIGN_SYSTEM_GUIDE.md) - How to change colors, styles, components
+- [Brand Guidelines](./docs/BRAND_GUIDELINES.md) - Colors, typography, design psychology

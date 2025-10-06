@@ -2,9 +2,24 @@
 
 import React from 'react'
 import { Card } from '@/lib/design-system/components'
-import { User, Heart, Users, Activity, MapPin, Briefcase, DollarSign, CheckCircle, Camera } from 'lucide-react'
+import { 
+  Sparkles, 
+  PartyPopper, 
+  Plane, 
+  Home, 
+  Users, 
+  Heart, 
+  Activity, 
+  DollarSign, 
+  Briefcase, 
+  UserPlus, 
+  Package, 
+  Gift, 
+  Zap, 
+  CheckCircle 
+} from 'lucide-react'
 
-interface ProfileSidebarProps {
+interface LifeVisionSidebarProps {
   activeSection: string
   onSectionChange: (section: string) => void
   completedSections: string[]
@@ -12,62 +27,98 @@ interface ProfileSidebarProps {
 
 const sections = [
   {
-    id: 'personal',
-    title: 'Personal Info',
-    icon: User,
-    description: 'Basic information about you'
+    id: 'forward',
+    title: 'Forward',
+    icon: Sparkles,
+    description: 'Opening statement and intention'
   },
   {
-    id: 'relationship',
-    title: 'Relationship',
-    icon: Heart,
-    description: 'Relationship status and details'
+    id: 'fun',
+    title: 'Fun / Recreation',
+    icon: PartyPopper,
+    description: 'Hobbies and joyful activities'
+  },
+  {
+    id: 'travel',
+    title: 'Travel / Adventure',
+    icon: Plane,
+    description: 'Places to explore and adventures'
+  },
+  {
+    id: 'home',
+    title: 'Home / Environment',
+    icon: Home,
+    description: 'Living space and environment'
   },
   {
     id: 'family',
-    title: 'Family',
+    title: 'Family / Parenting',
     icon: Users,
-    description: 'Children and family information'
+    description: 'Family relationships and life'
+  },
+  {
+    id: 'romance',
+    title: 'Love / Romance',
+    icon: Heart,
+    description: 'Romantic relationships'
   },
   {
     id: 'health',
-    title: 'Health & Fitness',
+    title: 'Health / Vitality',
     icon: Activity,
-    description: 'Physical health and exercise'
+    description: 'Physical and mental well-being'
   },
   {
-    id: 'location',
-    title: 'Living Situation',
-    icon: MapPin,
-    description: 'Where and how you live'
-  },
-  {
-    id: 'career',
-    title: 'Career',
-    icon: Briefcase,
-    description: 'Work and employment details'
-  },
-  {
-    id: 'financial',
-    title: 'Financial',
+    id: 'money',
+    title: 'Money / Wealth',
     icon: DollarSign,
-    description: 'Income and financial overview'
+    description: 'Financial goals and wealth'
   },
   {
-    id: 'photos-notes',
-    title: 'Media & Notes',
-    icon: Camera,
-    description: 'Media files and version notes'
+    id: 'business',
+    title: 'Business / Career',
+    icon: Briefcase,
+    description: 'Work and career aspirations'
+  },
+  {
+    id: 'social',
+    title: 'Social / Friends',
+    icon: UserPlus,
+    description: 'Social connections and friendships'
+  },
+  {
+    id: 'possessions',
+    title: 'Possessions / Stuff',
+    icon: Package,
+    description: 'Material belongings and things'
+  },
+  {
+    id: 'giving',
+    title: 'Giving / Legacy',
+    icon: Gift,
+    description: 'Contribution and legacy'
+  },
+  {
+    id: 'spirituality',
+    title: 'Spirituality',
+    icon: Zap,
+    description: 'Spiritual growth and expansion'
+  },
+  {
+    id: 'conclusion',
+    title: 'Conclusion',
+    icon: CheckCircle,
+    description: 'Closing thoughts and commitment'
   }
 ]
 
-export function ProfileSidebar({ activeSection, onSectionChange, completedSections }: ProfileSidebarProps) {
+export function LifeVisionSidebar({ activeSection, onSectionChange, completedSections }: LifeVisionSidebarProps) {
   return (
     <Card className="p-6 lg:sticky lg:top-6">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-white mb-2">Complete Your Profile</h2>
+        <h2 className="text-xl font-bold text-white mb-2">Complete Your Life Vision</h2>
         <p className="text-sm text-neutral-400">
-          Help your AI Vibrational Assistant understand you better
+          Define what you want to create across all areas of your life
         </p>
       </div>
 
@@ -119,7 +170,7 @@ export function ProfileSidebar({ activeSection, onSectionChange, completedSectio
           <div className="text-2xl font-bold text-primary-500 mb-1">
             {Math.round((completedSections.length / sections.length) * 100)}%
           </div>
-          <div className="text-sm text-neutral-400">Profile Complete</div>
+          <div className="text-sm text-neutral-400">Vision Complete</div>
         </div>
       </div>
     </Card>

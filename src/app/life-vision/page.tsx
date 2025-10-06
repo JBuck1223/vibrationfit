@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, Edit3 } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star } from 'lucide-react'
 import { PageLayout, Container, Card, Button, Badge, ProgressBar } from '@/lib/design-system'
 
 const VISION_SECTIONS = [
@@ -35,7 +35,7 @@ export default async function VisionListPage() {
   // Calculate correct completion percentage for each vision
   const visionsWithCorrectCompletion = visions?.map(vision => ({
     ...vision,
-    completion_percentage: calculateCompletionPercentage(vision)
+    completion_percent: calculateCompletionPercentage(vision)
   })) || []
 
   const visionCount = visionsWithCorrectCompletion.length
@@ -112,11 +112,17 @@ export default async function VisionListPage() {
                           Updated {new Date(vision.updated_at).toLocaleDateString()}
                         </span>
                       )}
+                      {vision.version_number && (
+                        <span className="ml-4 flex items-center gap-1">
+                          <History className="w-3 h-3" />
+                          Version {vision.version_number}
+                        </span>
+                      )}
                     </div>
 
                     {/* Progress Bar */}
                     <ProgressBar 
-                      value={vision.completion_percentage || 0}
+                      value={vision.completion_percent || 0}
                       variant="primary"
                       showLabel={false}
                     />
@@ -133,7 +139,7 @@ export default async function VisionListPage() {
                     <Button asChild>
                       <Link href={`/life-vision/${vision.id}`}>
                         <Edit3 className="w-4 h-4 mr-2" />
-                        {vision.status === 'complete' ? 'View' : 'Continue'}
+                        {vision.status === 'complete' ? 'View Details' : 'Continue Editing'}
                       </Link>
                     </Button>
                   </div>

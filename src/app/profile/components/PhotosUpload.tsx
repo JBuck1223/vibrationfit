@@ -6,13 +6,13 @@ import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { X, Upload, Image as ImageIcon, Loader2 } from 'lucide-react'
 
-interface ProgressPhotosUploadProps {
+interface MediaUploadProps {
   photos: string[]
   onPhotosChange: (photos: string[]) => void
   disabled?: boolean
 }
 
-export const ProgressPhotosUpload: React.FC<ProgressPhotosUploadProps> = ({
+export const MediaUpload: React.FC<MediaUploadProps> = ({
   photos,
   onPhotosChange,
   disabled = false
@@ -28,7 +28,7 @@ export const ProgressPhotosUpload: React.FC<ProgressPhotosUploadProps> = ({
 
     try {
       const uploadPromises = files.map(async (file) => {
-        const result = await uploadUserFile('lifeVision', file)
+        const result = await uploadUserFile('evidence', file)
         return result.url
       })
 
@@ -50,12 +50,12 @@ export const ProgressPhotosUpload: React.FC<ProgressPhotosUploadProps> = ({
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <ImageIcon className="w-5 h-5 text-primary-500" />
-        <h4 className="text-lg font-semibold text-white">Progress Photos</h4>
+        <h4 className="text-lg font-semibold text-white">Media</h4>
         <span className="text-sm text-neutral-400">(Optional)</span>
       </div>
       
       <p className="text-sm text-neutral-400">
-        Upload photos to document your progress, achievements, or milestones. These won't affect your completion percentage.
+        Upload photos or videos to document your achievements or milestones. These won't affect your completion percentage.
       </p>
 
       {/* Upload Area */}
@@ -67,7 +67,7 @@ export const ProgressPhotosUpload: React.FC<ProgressPhotosUploadProps> = ({
           maxSize={10} // 10MB per image
           onUpload={handleUpload}
           disabled={disabled || uploading}
-          label="Upload Progress Photos"
+          label="Upload Media"
         />
       </div>
 
@@ -82,7 +82,7 @@ export const ProgressPhotosUpload: React.FC<ProgressPhotosUploadProps> = ({
       {uploading && (
         <div className="flex items-center gap-2 text-primary-500">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-sm">Uploading photos...</span>
+          <span className="text-sm">Uploading media...</span>
         </div>
       )}
 

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { UserProfile } from '@/lib/supabase/profile'
-import { ProgressPhotosUpload } from './ProgressPhotosUpload'
+import { MediaUpload } from './MediaUpload'
 
 interface PhotosAndNotesSectionProps {
   profile: Partial<UserProfile>
@@ -23,7 +23,7 @@ export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
           <span className="text-primary-500 font-bold text-sm">📸</span>
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-white">Photos & Notes</h2>
+          <h2 className="text-xl font-semibold text-white">Media & Notes</h2>
           <p className="text-sm text-neutral-400">
             Document your progress and add personal notes
           </p>
@@ -49,9 +49,9 @@ export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
         </div>
       </div>
 
-      {/* Progress Photos */}
+      {/* Media */}
       <div className="space-y-4">
-        <ProgressPhotosUpload
+        <MediaUpload
           photos={profile.progress_photos || []}
           onPhotosChange={(photos) => onProfileChange({ progress_photos: photos })}
           disabled={disabled}
@@ -61,7 +61,7 @@ export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
       {/* Help Text */}
       <div className="bg-neutral-800/30 border border-neutral-700 rounded-lg p-4">
         <p className="text-sm text-neutral-400">
-          <strong className="text-white">Note:</strong> Photos and notes are optional and don't affect your profile completion percentage. 
+          <strong className="text-white">Note:</strong> Media and notes are optional and don't affect your profile completion percentage. 
           Use them to document your journey, achievements, or any personal context you'd like to remember.
         </p>
       </div>

@@ -138,7 +138,8 @@ export default function NewProfileVersionPage() {
       health: true,
       location: true,
       career: true,
-      financial: true
+      financial: true,
+      'photos-notes': true
     }).filter(section => {
       switch (section) {
         case 'personal':
@@ -158,6 +159,9 @@ export default function NewProfileVersionPage() {
           return profile.employment_type && profile.occupation
         case 'financial':
           return profile.household_income
+        case 'photos-notes':
+          return (profile.version_notes && profile.version_notes.trim().length > 0) || 
+                 (profile.progress_photos && profile.progress_photos.length > 0)
         default:
           return false
       }
@@ -282,7 +286,7 @@ export default function NewProfileVersionPage() {
               className="flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Create Version'}
+              {isSaving ? 'Saving...' : 'Save As New Version'}
             </Button>
           </div>
         </div>
@@ -319,18 +323,9 @@ export default function NewProfileVersionPage() {
           <div className="mt-8 p-6 bg-gradient-to-r from-primary-500/20 to-secondary-500/20 border border-primary-500/30 rounded-xl text-center">
             <div className="text-4xl mb-4">🎉</div>
             <h3 className="text-2xl font-bold text-white mb-2">Profile Complete!</h3>
-            <p className="text-neutral-300 mb-4">
+            <p className="text-neutral-300">
               Your profile is 100% complete! Your AI assistant now has all the information needed to provide personalized guidance.
             </p>
-            <Button
-              onClick={handleManualSave}
-              variant="primary"
-              size="lg"
-              className="flex items-center gap-2"
-            >
-              <Save className="w-5 h-5" />
-              Create Final Version
-            </Button>
           </div>
         )}
       </Container>

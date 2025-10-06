@@ -227,7 +227,8 @@ export default function ProfilePage() {
       'health',
       'location',
       'career',
-      'financial'
+      'financial',
+      'photos-notes'
     ]
 
     return sections.filter(section => {
@@ -251,6 +252,9 @@ export default function ProfilePage() {
         case 'financial':
           return profile.currency && profile.household_income && profile.savings_retirement && 
                  profile.assets_equity && profile.consumer_debt
+        case 'photos-notes':
+          return (profile.version_notes && profile.version_notes.trim().length > 0) || 
+                 (profile.progress_photos && profile.progress_photos.length > 0)
         default:
           return false
       }
@@ -267,26 +271,56 @@ export default function ProfilePage() {
       onError: setError
     }
 
+    let sectionContent
     switch (activeSection) {
       case 'personal':
-        return <PersonalInfoSection {...commonProps} />
+        sectionContent = <PersonalInfoSection {...commonProps} />
+        break
       case 'relationship':
-        return <RelationshipSection {...commonProps} />
+        sectionContent = <RelationshipSection {...commonProps} />
+        break
       case 'family':
-        return <FamilySection {...commonProps} />
+        sectionContent = <FamilySection {...commonProps} />
+        break
       case 'health':
-        return <HealthSection {...commonProps} />
+        sectionContent = <HealthSection {...commonProps} />
+        break
       case 'location':
-        return <LocationSection {...commonProps} />
+        sectionContent = <LocationSection {...commonProps} />
+        break
       case 'career':
-        return <CareerSection {...commonProps} />
+        sectionContent = <CareerSection {...commonProps} />
+        break
       case 'financial':
-        return <FinancialSection {...commonProps} />
+        sectionContent = <FinancialSection {...commonProps} />
+        break
       case 'photos-notes':
-        return <PhotosAndNotesSection {...commonProps} />
+        sectionContent = <PhotosAndNotesSection {...commonProps} />
+        break
       default:
-        return <PersonalInfoSection {...commonProps} />
+        sectionContent = <PersonalInfoSection {...commonProps} />
     }
+
+    return (
+      <div className="space-y-6">
+        {sectionContent}
+        
+        {/* Section Save Button Container */}
+        <div className="bg-neutral-800/30 border border-neutral-700 rounded-lg p-6">
+          <div className="flex justify-center">
+            <Button
+              onClick={handleManualSave}
+              variant="primary"
+              disabled={isSaving}
+              className="flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Loading state
@@ -352,41 +386,13 @@ export default function ProfilePage() {
               {completionPercentage}% Complete
             </Badge>
             <Button
-              onClick={() => setShowVersions(!showVersions)}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <History className="w-4 h-4" />
-              Versions
-            </Button>
-            <Button
-              onClick={() => saveAsVersion(false)}
-              disabled={isSaving}
-              variant="secondary"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Save as Version
-            </Button>
-            <Button
               onClick={() => router.push('/profile')}
               variant="outline"
               size="sm"
               className="flex items-center gap-2"
             >
               <Eye className="w-4 h-4" />
-              View Profile
-            </Button>
-            <Button
-              onClick={() => router.push('/profile/new')}
-              variant="secondary"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              New Version
+              View Current Profile
             </Button>
             <Button
               onClick={handleManualSave}
@@ -396,6 +402,16 @@ export default function ProfilePage() {
             >
               <Save className="w-4 h-4" />
               {isSaving ? 'Saving...' : 'Save Edits'}
+            </Button>
+            <Button
+              onClick={() => saveAsVersion(false)}
+              disabled={isSaving}
+              variant="secondary"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Save As New Version
             </Button>
           </div>
         </div>

@@ -225,17 +225,35 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'actualized':
-        return <CheckCircle className="w-4 h-4 text-warning-500" />
-      case 'active':
-        return <Circle className="w-4 h-4 text-primary-500" />
-      case 'inactive':
-        return <XCircle className="w-4 h-4 text-neutral-500" />
-      default:
-        return null
+  const getStatusBadge = (status: string) => {
+    if (status === 'active') {
+      return (
+        <div className="bg-green-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          <span className="text-white text-sm font-semibold">Active</span>
+        </div>
+      )
     }
+
+    if (status === 'actualized') {
+      return (
+        <div className="bg-purple-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
+          <CheckCircle className="w-4 h-4 text-white" />
+          <span className="text-white text-sm font-semibold">Actualized</span>
+        </div>
+      )
+    }
+
+    if (status === 'inactive') {
+      return (
+        <div className="bg-gray-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
+          <XCircle className="w-4 h-4 text-white" />
+          <span className="text-white text-sm font-semibold">Inactive</span>
+        </div>
+      )
+    }
+
+    return null
   }
 
   if (loading) {
@@ -277,8 +295,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
               Back
             </Button>
             <div className="flex items-center gap-2">
-              {getStatusIcon(item.status)}
-              <span className="text-sm text-neutral-400 capitalize">{item.status}</span>
+              {getStatusBadge(item.status)}
             </div>
           </div>
           
@@ -421,7 +438,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   <img
                     src={item.image_url}
                     alt={item.name}
-                    className="w-full h-64 object-cover rounded-lg"
+                    className="w-full h-auto object-cover rounded-lg"
                     onError={(e) => {
                       console.error('Image failed to load:', item.image_url)
                       console.error('Error details:', e)
