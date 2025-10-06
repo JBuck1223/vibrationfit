@@ -93,7 +93,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     if (data.title?.trim()) completed.push('title')
     
     VISION_SECTIONS.forEach(section => {
-      if (data[section.key as keyof VisionData]?.trim()) {
+      const value = data[section.key as keyof VisionData]
+      if (typeof value === 'string' && value.trim()) {
         completed.push(section.key)
       }
     })
