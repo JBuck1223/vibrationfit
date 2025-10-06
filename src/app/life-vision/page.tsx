@@ -178,7 +178,7 @@ export default function VisionListPage() {
       console.log('User authenticated:', user.id)
 
       // Get the latest (active) vision version
-      const { data: activeVisionData } = await withTimeout(
+      const activeVisionResult = await withTimeout(
         supabase
           .from('vision_versions')
           .select('*')
@@ -189,9 +189,10 @@ export default function VisionListPage() {
         8000,
         'fetch active vision'
       )
+      const { data: activeVisionData } = activeVisionResult
 
       // Get all versions for the versions list
-      const { data: versionsData } = await withTimeout(
+      const versionsResult = await withTimeout(
         supabase
           .from('vision_versions')
           .select('*')
@@ -200,6 +201,7 @@ export default function VisionListPage() {
         8000,
         'fetch versions list'
       )
+      const { data: versionsData } = versionsResult
 
       if (activeVisionData) {
         const actualCompletion = calculateCompletionPercentage(activeVisionData)
