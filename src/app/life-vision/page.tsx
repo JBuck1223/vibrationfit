@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X } from 'lucide-react'
-import { PageLayout, Container, Card, Button, Badge, ProgressBar, Spinner, getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel } from '@/lib/design-system'
+import { PageLayout, Container, Card, Button, Badge, ProgressBar, Spinner, getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 
 // Use centralized vision categories
@@ -584,19 +584,18 @@ export default function VisionListPage() {
               {/* Vision Content */}
               <div className="space-y-8">
                 {VISION_SECTIONS.map((sectionKey) => {
-                  const section = {
-                    key: sectionKey,
-                    label: getVisionCategoryLabel(sectionKey),
-                    icon: getSectionIcon(sectionKey)
-                  }
-                  const value = activeVision[section.key as keyof VisionData] as string
+                  const category = VISION_CATEGORIES.find(cat => cat.key === sectionKey)
+                  if (!category) return null
+                  
+                  const IconComponent = category.icon
+                  const value = activeVision[sectionKey as keyof VisionData] as string
                   if (!value?.trim()) return null
 
                   return (
-                    <div key={section.key}>
+                    <div key={sectionKey}>
                       <h3 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">
-                        <span>{section.icon}</span>
-                        {section.label}
+                        <IconComponent className="w-6 h-6 text-primary-500" />
+                        {category.label}
                       </h3>
                       <div className="prose prose-invert max-w-none">
                         <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap">

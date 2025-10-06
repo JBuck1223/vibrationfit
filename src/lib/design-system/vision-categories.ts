@@ -2,11 +2,29 @@
 // Centralized source of truth for all vision categories across the application
 // This ensures consistency in titles, icons, and descriptions everywhere
 
+import { 
+  Sparkles, 
+  PartyPopper, 
+  Plane, 
+  Home, 
+  Users, 
+  Heart, 
+  Activity, 
+  DollarSign, 
+  Briefcase, 
+  UserPlus, 
+  Package, 
+  Gift, 
+  Zap, 
+  CheckCircle,
+  LucideIcon
+} from 'lucide-react'
+
 export interface VisionCategory {
   key: string
   label: string
   description: string
-  icon: string
+  icon: LucideIcon
   order: number
 }
 
@@ -15,98 +33,98 @@ export const VISION_CATEGORIES: VisionCategory[] = [
     key: 'forward',
     label: 'Forward',
     description: 'Opening statement and intention',
-    icon: '✨',
+    icon: Sparkles,
     order: 1
   },
   {
     key: 'fun',
     label: 'Fun / Recreation',
     description: 'Hobbies and joyful activities',
-    icon: '🎉',
+    icon: PartyPopper,
     order: 2
   },
   {
     key: 'travel',
     label: 'Travel / Adventure',
     description: 'Places to explore and adventures',
-    icon: '✈️',
+    icon: Plane,
     order: 3
   },
   {
     key: 'home',
     label: 'Home / Environment',
     description: 'Living space and environment',
-    icon: '🏡',
+    icon: Home,
     order: 4
   },
   {
     key: 'family',
     label: 'Family / Parenting',
     description: 'Family relationships and life',
-    icon: '👨‍👩‍👧‍👦',
+    icon: Users,
     order: 5
   },
   {
     key: 'romance',
     label: 'Love / Romance',
     description: 'Romantic relationships',
-    icon: '💕',
+    icon: Heart,
     order: 6
   },
   {
     key: 'health',
     label: 'Health / Vitality',
     description: 'Physical and mental well-being',
-    icon: '💪',
+    icon: Activity,
     order: 7
   },
   {
     key: 'money',
     label: 'Money / Wealth',
     description: 'Financial goals and wealth',
-    icon: '💰',
+    icon: DollarSign,
     order: 8
   },
   {
     key: 'business',
     label: 'Business / Career',
     description: 'Work and career aspirations',
-    icon: '💼',
+    icon: Briefcase,
     order: 9
   },
   {
     key: 'social',
     label: 'Social / Friends',
     description: 'Social connections and friendships',
-    icon: '👥',
+    icon: UserPlus,
     order: 10
   },
   {
     key: 'possessions',
-    label: 'Things / Possessions',
-    description: 'Material belongings and possessions',
-    icon: '📦',
+    label: 'Possessions / Stuff',
+    description: 'Material belongings and things',
+    icon: Package,
     order: 11
   },
   {
     key: 'giving',
-    label: 'Giving / Contribution',
-    description: 'Giving back and making a difference',
-    icon: '🎁',
+    label: 'Giving / Legacy',
+    description: 'Contribution and legacy',
+    icon: Gift,
     order: 12
   },
   {
     key: 'spirituality',
-    label: 'Spirituality / Growth',
-    description: 'Spiritual growth and personal development',
-    icon: '🌟',
+    label: 'Spirituality',
+    description: 'Spiritual growth and expansion',
+    icon: Zap,
     order: 13
   },
   {
     key: 'conclusion',
     label: 'Conclusion',
-    description: 'Closing thoughts and integration',
-    icon: '✅',
+    description: 'Closing thoughts and commitment',
+    icon: CheckCircle,
     order: 14
   }
 ]
@@ -121,9 +139,9 @@ export function getVisionCategoryLabel(key: string): string {
   return category ? category.label : key
 }
 
-export function getVisionCategoryIcon(key: string): string {
+export function getVisionCategoryIcon(key: string): LucideIcon {
   const category = getVisionCategory(key)
-  return category ? category.icon : '❓'
+  return category ? category.icon : Sparkles // Default fallback
 }
 
 export function getVisionCategoryDescription(key: string): string {

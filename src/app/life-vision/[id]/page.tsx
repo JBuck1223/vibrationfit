@@ -784,15 +784,16 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
                   {/* Vision Content */}
                   <div className="space-y-8">
-                    {VISION_SECTIONS.map((section) => {
-                      const value = vision[section.key as keyof VisionData] as string
+                    {VISION_SECTIONS.map((category) => {
+                      const IconComponent = category.icon
+                      const value = vision[category.key as keyof VisionData] as string
                       if (!value?.trim()) return null
 
                       return (
-                        <div key={section.key}>
+                        <div key={category.key}>
                           <h3 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">
-                            <span>{section.icon}</span>
-                            {section.label}
+                            <IconComponent className="w-6 h-6 text-primary-500" />
+                            {category.label}
                           </h3>
                           <div className="prose prose-invert max-w-none">
                             <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap">

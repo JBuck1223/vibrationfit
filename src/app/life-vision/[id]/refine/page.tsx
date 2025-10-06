@@ -395,25 +395,28 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 Vision Categories
               </h3>
               <div className="space-y-2">
-                {VISION_CATEGORIES.map((category) => (
-                  <button
-                    key={category.key}
-                    onClick={() => setSelectedCategory(category.key)}
-                    className={`w-full text-left p-3 rounded-lg border transition-all ${
-                      selectedCategory === category.key
-                        ? 'border-primary-500 bg-primary-500/10 text-primary-300'
-                        : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600 text-neutral-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">{category.icon}</span>
-                      <div>
-                        <div className="font-medium">{category.label}</div>
-                        <div className="text-xs text-neutral-400 line-clamp-2">{category.description}</div>
+                {VISION_CATEGORIES.map((category) => {
+                  const IconComponent = category.icon
+                  return (
+                    <button
+                      key={category.key}
+                      onClick={() => setSelectedCategory(category.key)}
+                      className={`w-full text-left p-3 rounded-lg border transition-all ${
+                        selectedCategory === category.key
+                          ? 'border-primary-500 bg-primary-500/10 text-primary-300'
+                          : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600 text-neutral-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <IconComponent className="w-5 h-5" />
+                        <div>
+                          <div className="font-medium">{category.label}</div>
+                          <div className="text-xs text-neutral-400 line-clamp-2">{category.description}</div>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  )
+                })}
               </div>
             </Card>
           </div>
@@ -423,7 +426,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             {/* Section Header - matching edit screen */}
             <div className="mb-8">
               <div className="flex items-center gap-4 mb-4">
-                <span className="text-5xl">{selectedCategoryInfo?.icon}</span>
+                {selectedCategoryInfo && (
+                  <selectedCategoryInfo.icon className="w-12 h-12 text-primary-500" />
+                )}
                 <div>
                   <h2 className="text-3xl font-bold mb-1">
                     {selectedCategoryInfo?.label}
