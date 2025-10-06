@@ -927,26 +927,32 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Button
             onClick={() => router.push('/profile/edit')}
             variant="primary"
-            className="flex items-center gap-2"
+            responsive
+            mobileText="Edit"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <Edit3 className="w-4 h-4" />
-            Edit Profile
+            <span className="hidden sm:inline">Edit Profile</span>
           </Button>
           <Button
             onClick={() => router.push('/profile/new')}
             variant="secondary"
-            className="flex items-center gap-2"
+            responsive
+            mobileText="New Version"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
-            Create New Version
+            <span className="hidden sm:inline">Create New Version</span>
           </Button>
           <Button
             onClick={() => router.push('/dashboard')}
             variant="outline"
-            className="flex items-center gap-2"
+            responsive
+            mobileText="Dashboard"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            <span className="hidden sm:inline">Back to Dashboard</span>
           </Button>
         </div>
       </div>

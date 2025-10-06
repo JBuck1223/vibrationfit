@@ -7,11 +7,13 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg' | 'xl'
   loading?: boolean
   asChild?: boolean
+  responsive?: boolean // New prop for mobile responsiveness
+  mobileText?: string // Alternative text for mobile screens
   children: React.ReactNode
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', loading = false, disabled, asChild = false, children, ...props }, ref) => {
+  ({ className, variant = 'primary', size = 'md', loading = false, disabled, asChild = false, responsive = false, mobileText, children, ...props }, ref) => {
     const baseClasses = 'inline-flex items-center justify-center font-semibold transition-all duration-300 transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed rounded-full'
     
     const variants = {
@@ -24,10 +26,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
     
     const sizes = {
-      sm: 'h-auto py-2 px-5 text-sm',
-      md: 'h-auto py-3.5 px-7 text-base',
-      lg: 'h-auto py-4.5 px-10 text-lg',
-      xl: 'h-auto py-5 px-12 text-xl',
+      sm: 'h-auto py-2 px-3 sm:px-5 text-xs sm:text-sm',
+      md: 'h-auto py-2.5 px-4 sm:py-3.5 sm:px-7 text-sm sm:text-base',
+      lg: 'h-auto py-3 px-6 sm:py-4.5 sm:px-10 text-base sm:text-lg',
+      xl: 'h-auto py-3.5 px-8 sm:py-5 sm:px-12 text-lg sm:text-xl',
     }
     
     const classes = cn(
@@ -45,6 +47,38 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       } as React.HTMLAttributes<HTMLElement>)
     }
     
+    const renderContent = () => {
+      if (loading) {
+        return (
+          <>
+            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            {responsive && mobileText ? (
+              <>
+                <span className="sm:hidden">{mobileText}</span>
+                <span className="hidden sm:inline">{children}</span>
+              </>
+            ) : (
+              children
+            )}
+          </>
+        )
+      }
+
+      if (responsive && mobileText) {
+        return (
+          <>
+            <span className="sm:hidden">{mobileText}</span>
+            <span className="hidden sm:inline">{children}</span>
+          </>
+        )
+      }
+
+      return children
+    }
+
     return (
       <button
         className={classes}
@@ -52,13 +86,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         {...props}
       >
-        {loading && (
-          <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-        )}
-        {children}
+        {renderContent()}
       </button>
     )
   }
@@ -81,10 +109,10 @@ export const GradientButton = React.forwardRef<HTMLButtonElement, GradientButton
     }
     
     const sizes = {
-      sm: 'h-auto py-2 px-5 text-sm',
-      md: 'h-auto py-3.5 px-7 text-base',
-      lg: 'h-auto py-4.5 px-10 text-lg',
-      xl: 'h-auto py-5 px-12 text-xl',
+      sm: 'h-auto py-2 px-3 sm:px-5 text-xs sm:text-sm',
+      md: 'h-auto py-2.5 px-4 sm:py-3.5 sm:px-7 text-sm sm:text-base',
+      lg: 'h-auto py-3 px-6 sm:py-4.5 sm:px-10 text-base sm:text-lg',
+      xl: 'h-auto py-3.5 px-8 sm:py-5 sm:px-12 text-lg sm:text-xl',
     }
     
     return (

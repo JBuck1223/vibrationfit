@@ -107,15 +107,15 @@ export default function JournalPage() {
       <Container size="xl" className="py-6">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
             <div>
               <h1 className="text-4xl font-bold mb-2">📔 Conscious Creation Journal</h1>
               <p className="text-neutral-400">Capture evidence of actualization in real time</p>
             </div>
-            <Button asChild>
+            <Button asChild responsive mobileText="New" className="w-full sm:w-auto">
               <Link href="/journal/new">
                 <Plus className="w-5 h-5 mr-2" />
-                New Entry
+                <span className="hidden sm:inline">New Entry</span>
               </Link>
             </Button>
           </div>

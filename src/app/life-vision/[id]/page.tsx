@@ -595,51 +595,61 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               </p>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-3">
               <Badge variant="info" className="flex items-center gap-2">
                 {completionPercentage}% Complete
               </Badge>
-              <Button
-                onClick={() => router.push('/life-vision')}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Eye className="w-4 h-4" />
-                View All Visions
-              </Button>
-              {!isViewingVersion && (
-                <>
-                  <Button
-                    onClick={() => setIsEditing(!isEditing)}
-                    disabled={saving}
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    {isEditing ? 'View Mode' : 'Edit Mode'}
-                  </Button>
-                  <Button
-                    onClick={() => saveAsVersion(false)}
-                    disabled={saving}
-                    variant="secondary"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Save As New Version
-                  </Button>
-                </>
-              )}
-              <Button
-                onClick={() => setShowVersions(!showVersions)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <History className="w-4 h-4" />
-                {showVersions ? 'Hide' : 'Show'} Versions
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                <Button
+                  onClick={() => router.push('/life-vision')}
+                  variant="outline"
+                  size="sm"
+                  responsive
+                  mobileText="All Visions"
+                  className="flex items-center gap-2 w-full sm:w-auto"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span className="hidden sm:inline">View All Visions</span>
+                </Button>
+                {!isViewingVersion && (
+                  <>
+                    <Button
+                      onClick={() => setIsEditing(!isEditing)}
+                      disabled={saving}
+                      size="sm"
+                      responsive
+                      mobileText={isEditing ? 'View' : 'Edit'}
+                      className="flex items-center gap-2 w-full sm:w-auto"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      <span className="hidden sm:inline">{isEditing ? 'View Mode' : 'Edit Mode'}</span>
+                    </Button>
+                    <Button
+                      onClick={() => saveAsVersion(false)}
+                      disabled={saving}
+                      variant="secondary"
+                      size="sm"
+                      responsive
+                      mobileText="New Version"
+                      className="flex items-center gap-2 w-full sm:w-auto"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="hidden sm:inline">Save As New Version</span>
+                    </Button>
+                  </>
+                )}
+                <Button
+                  onClick={() => setShowVersions(!showVersions)}
+                  variant="outline"
+                  size="sm"
+                  responsive
+                  mobileText="Versions"
+                  className="flex items-center gap-2 w-full sm:w-auto"
+                >
+                  <History className="w-4 h-4" />
+                  <span className="hidden sm:inline">{showVersions ? 'Hide' : 'Show'} Versions</span>
+                </Button>
+              </div>
             </div>
           </div>
 

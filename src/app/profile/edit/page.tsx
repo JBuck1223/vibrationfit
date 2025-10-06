@@ -381,38 +381,46 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-3">
             <Badge variant="info" className="flex items-center gap-2">
               {completionPercentage}% Complete
             </Badge>
-            <Button
-              onClick={() => router.push('/profile')}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              View Current Profile
-            </Button>
-            <Button
-              onClick={handleManualSave}
-              disabled={isSaving}
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Save Edits'}
-            </Button>
-            <Button
-              onClick={() => saveAsVersion(false)}
-              disabled={isSaving}
-              variant="secondary"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Save As New Version
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+              <Button
+                onClick={() => router.push('/profile')}
+                variant="outline"
+                size="sm"
+                responsive
+                mobileText="View"
+                className="flex items-center gap-2 w-full sm:w-auto"
+              >
+                <Eye className="w-4 h-4" />
+                <span className="hidden sm:inline">View Current Profile</span>
+              </Button>
+              <Button
+                onClick={handleManualSave}
+                disabled={isSaving}
+                size="sm"
+                responsive
+                mobileText="Save"
+                className="flex items-center gap-2 w-full sm:w-auto"
+              >
+                <Save className="w-4 h-4" />
+                <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save Edits'}</span>
+              </Button>
+              <Button
+                onClick={() => saveAsVersion(false)}
+                disabled={isSaving}
+                variant="secondary"
+                size="sm"
+                responsive
+                mobileText="New Version"
+                className="flex items-center gap-2 w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Save As New Version</span>
+              </Button>
+            </div>
           </div>
         </div>
 
