@@ -180,7 +180,7 @@ export default function VisionListPage() {
 
       // Get the latest (active) vision version
       const activeVisionResult = await withTimeout(
-        () => supabase
+        async () => await supabase
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
@@ -194,7 +194,7 @@ export default function VisionListPage() {
 
       // Get all versions for the versions list
       const versionsResult = await withTimeout(
-        () => supabase
+        async () => await supabase
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
