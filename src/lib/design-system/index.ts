@@ -3,6 +3,7 @@
 
 export * from './tokens'
 export * from './components'
+export * from './vision-categories'
 
 // Re-export commonly used components with shorter names
 export {
@@ -31,6 +32,19 @@ export {
   breakpoints,
   components,
 } from './tokens'
+
+// Vision categories
+export {
+  VISION_CATEGORIES,
+  getVisionCategory,
+  getVisionCategoryLabel,
+  getVisionCategoryIcon,
+  getVisionCategoryDescription,
+  getOrderedVisionCategories,
+  getVisionCategoryKeys,
+  isValidVisionCategory,
+  type VisionCategory
+} from './vision-categories'
 
 // Utility function
 export { cn } from '../utils'

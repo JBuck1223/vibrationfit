@@ -41,24 +41,9 @@ import {
   VIBE_ASSISTANT_OPERATIONS
 } from '@/lib/vibe-assistant/allowance-client'
 import { createClient } from '@/lib/supabase/client'
+import { VISION_CATEGORIES } from '@/lib/design-system'
 
-// Vision categories for refinement - matching the edit screen styling
-const VISION_CATEGORIES = [
-  { key: 'forward', label: 'Forward', icon: '✨', description: 'Opening intention and energy' },
-  { key: 'fun', label: 'Fun / Recreation', icon: '🎉', description: 'The hobbies, play, and joyful activities that make life light, exciting, and fun.' },
-  { key: 'travel', label: 'Variety / Travel / Adventure', icon: '✈️', description: 'The places you want to explore, cultures to experience, and adventures to embark on.' },
-  { key: 'home', label: 'Home / Environment', icon: '🏡', description: 'Your ideal living space, environment, and the feeling you want to create at home.' },
-  { key: 'family', label: 'Family / Parenting', icon: '👨‍👩‍👧‍👦', description: 'Your relationships with family members and the family life you want to cultivate.' },
-  { key: 'romance', label: 'Love / Romance / Partner', icon: '💕', description: 'Your ideal romantic relationship and the love life you want to experience.' },
-  { key: 'health', label: 'Health / Body / Vitality', icon: '💪', description: 'Your physical, mental, and emotional well-being goals and lifestyle.' },
-  { key: 'money', label: 'Money / Wealth / Investments', icon: '💰', description: 'Your financial goals, wealth building, and investment strategies.' },
-  { key: 'business', label: 'Business / Career / Work', icon: '💼', description: 'Your professional aspirations, career goals, and work environment.' },
-  { key: 'social', label: 'Social / Friends', icon: '👥', description: 'Your social connections, friendships, and community involvement.' },
-  { key: 'possessions', label: 'Things / Belongings / Stuff', icon: '📦', description: 'The material possessions and belongings that support your vision.' },
-  { key: 'giving', label: 'Giving / Contribution / Legacy', icon: '🤝', description: 'How you want to give back, contribute to others, and create lasting impact.' },
-  { key: 'spirituality', label: 'Spirituality / Connection', icon: '🕊️', description: 'Your spiritual growth, connection to something greater, and inner peace.' },
-  { key: 'conclusion', label: 'Conclusion / Integration', icon: '🎯', description: 'Bringing it all together and closing thoughts on your complete vision.' }
-]
+// Use centralized vision categories for consistency
 
 interface VisionData {
   id: string

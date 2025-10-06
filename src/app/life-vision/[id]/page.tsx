@@ -18,6 +18,7 @@ import {
   Textarea
 } from '@/lib/design-system/components'
 import { LifeVisionSidebar } from '../components/LifeVisionSidebar'
+import { VISION_CATEGORIES } from '@/lib/design-system'
 
 interface VisionData {
   id: string
@@ -43,22 +44,8 @@ interface VisionData {
   updated_at: string
 }
 
-const VISION_SECTIONS = [
-  { key: 'forward', label: 'Forward', description: 'A short opening statement that sets your intention, energy, and focus before describing your vision.', icon: '✨' },
-  { key: 'fun', label: 'Fun / Recreation', description: 'The hobbies, play, and joyful activities that make life light, exciting, and fun.', icon: '🎉' },
-  { key: 'travel', label: 'Variety / Travel / Adventure', description: 'The places you want to explore, cultures to experience, and adventures to embark on.', icon: '✈️' },
-  { key: 'home', label: 'Home / Environment', description: 'Your ideal living space, environment, and the feeling you want to create at home.', icon: '🏡' },
-  { key: 'family', label: 'Family / Parenting', description: 'Your relationships with family members and the family life you want to cultivate.', icon: '👨‍👩‍👧‍👦' },
-  { key: 'romance', label: 'Love / Romance / Partner', description: 'Your ideal romantic relationship and the love life you want to experience.', icon: '💕' },
-  { key: 'health', label: 'Health / Body / Vitality', description: 'Your physical, mental, and emotional well-being goals and lifestyle.', icon: '💪' },
-  { key: 'money', label: 'Money / Wealth / Investments', description: 'Your financial goals, wealth building, and investment strategies.', icon: '💰' },
-  { key: 'business', label: 'Business / Career / Work', description: 'Your professional aspirations, career goals, and work environment.', icon: '💼' },
-  { key: 'social', label: 'Social / Friends', description: 'Your social connections, friendships, and community involvement.', icon: '👥' },
-  { key: 'possessions', label: 'Things / Belongings / Stuff', description: 'The material possessions and belongings that support your vision.', icon: '📦' },
-  { key: 'giving', label: 'Giving / Contribution / Legacy', description: 'How you want to give back, contribute, and leave your mark.', icon: '🎁' },
-  { key: 'spirituality', label: 'Expansion / Spirituality', description: 'Your spiritual growth, personal development, and expansion goals.', icon: '🌟' },
-  { key: 'conclusion', label: 'Conclusion', description: 'Your closing thoughts, commitments, and final vision statement.', icon: '✅' }
-]
+// Use centralized vision categories
+const VISION_SECTIONS = VISION_CATEGORIES
 
 export default function VisionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()

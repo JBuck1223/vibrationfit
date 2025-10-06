@@ -15,6 +15,7 @@ import {
   TONALITY_OPTIONS,
   EMOTIONAL_INTENSITY
 } from '@/lib/vibe-assistant/allowance'
+import { getVisionCategory } from '@/lib/design-system'
 
 // Initialize OpenAI client (only if API key is available)
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
@@ -24,23 +25,7 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 // Use the most current and capable GPT model available
 const GPT_MODEL = 'gpt-5' // Latest GPT-5 model with advanced reasoning and creativity
 
-// Vision categories for refinement
-const VISION_CATEGORIES = {
-  FORWARD: 'forward',
-  FUN: 'fun',
-  TRAVEL: 'travel',
-  HOME: 'home',
-  FAMILY: 'family',
-  ROMANCE: 'romance',
-  HEALTH: 'health',
-  MONEY: 'money',
-  BUSINESS: 'business',
-  SOCIAL: 'social',
-  POSSESSIONS: 'possessions',
-  GIVING: 'giving',
-  SPIRITUALITY: 'spirituality',
-  CONCLUSION: 'conclusion'
-} as const
+// Use centralized vision categories as const
 
 // Request body interface
 interface RefineVisionRequest {
@@ -113,29 +98,15 @@ function buildUserPrompt(request: RefineVisionRequest): string {
     [EMOTIONAL_INTENSITY.INTENSE]: "Use intense, powerful language that creates strong emotional resonance."
   }
 
-  // Category-specific context
-  const categoryContext = {
-    [VISION_CATEGORIES.FORWARD]: "This is the opening statement that sets intention, energy, and focus for the entire vision.",
-    [VISION_CATEGORIES.FUN]: "This covers hobbies, play, and joyful activities that make life light and exciting.",
-    [VISION_CATEGORIES.TRAVEL]: "This covers places to explore, cultures to experience, and adventures to embark on.",
-    [VISION_CATEGORIES.HOME]: "This covers ideal living space, environment, and the feeling created at home.",
-    [VISION_CATEGORIES.FAMILY]: "This covers relationships with family members and family life to cultivate.",
-    [VISION_CATEGORIES.ROMANCE]: "This covers ideal romantic relationship and love life to experience.",
-    [VISION_CATEGORIES.HEALTH]: "This covers physical, mental, and emotional well-being goals and lifestyle.",
-    [VISION_CATEGORIES.MONEY]: "This covers financial goals, wealth building, and investment strategies.",
-    [VISION_CATEGORIES.BUSINESS]: "This covers professional aspirations, career goals, and work environment.",
-    [VISION_CATEGORIES.SOCIAL]: "This covers social connections, friendships, and community involvement.",
-    [VISION_CATEGORIES.POSSESSIONS]: "This covers material possessions and belongings that support the vision.",
-    [VISION_CATEGORIES.GIVING]: "This covers how to give back, contribute, and leave a mark.",
-    [VISION_CATEGORIES.SPIRITUALITY]: "This covers spiritual growth, personal development, and expansion goals.",
-    [VISION_CATEGORIES.CONCLUSION]: "This is the closing thoughts, commitments, and final vision statement."
-  }
+  // Get category-specific context from centralized categories
+  const categoryInfo = getVisionCategory(category)
+  const categoryContext = categoryInfo ? categoryInfo.description : 'This is a section of the user\'s life vision.'
 
   const prompt = `
-Please refine this ${category} vision section for conscious creation and "Above the Green Line" living.
+Please refine this ${categoryInfo?.label || category} vision section for conscious creation and "Above the Green Line" living.
 
 CONTEXT:
-${categoryContext[category as keyof typeof categoryContext] || 'This is a section of the user\'s life vision.'}
+${categoryContext}
 
 CURRENT ACTIVE VISION:
 ${activeVision}

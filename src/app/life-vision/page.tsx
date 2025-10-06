@@ -4,14 +4,11 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X } from 'lucide-react'
-import { PageLayout, Container, Card, Button, Badge, ProgressBar, Spinner } from '@/lib/design-system'
+import { PageLayout, Container, Card, Button, Badge, ProgressBar, Spinner, getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 
-const VISION_SECTIONS = [
-  'forward', 'fun', 'travel', 'home', 'family', 'romance', 
-  'health', 'money', 'business', 'social', 'possessions', 
-  'giving', 'spirituality', 'conclusion'
-]
+// Use centralized vision categories
+const VISION_SECTIONS = getVisionCategoryKeys()
 
 function calculateCompletionPercentage(vision: Record<string, unknown>) {
   const sections = VISION_SECTIONS.map(section => vision[section] as string)
@@ -21,25 +18,8 @@ function calculateCompletionPercentage(vision: Record<string, unknown>) {
   return Math.round(((filledSections + titleFilled) / totalSections) * 100)
 }
 
-function getSectionIcon(sectionKey: string): string {
-  const icons: Record<string, string> = {
-    forward: '✨',
-    fun: '🎉',
-    travel: '✈️',
-    home: '🏡',
-    family: '👨‍👩‍👧‍👦',
-    romance: '💕',
-    health: '💪',
-    money: '💰',
-    business: '💼',
-    social: '👥',
-    possessions: '📦',
-    giving: '🎁',
-    spirituality: '🌟',
-    conclusion: '✅'
-  }
-  return icons[sectionKey] || '📝'
-}
+// Use centralized vision category icon function
+const getSectionIcon = getVisionCategoryIcon
 
 interface VisionData {
   id: string
@@ -606,7 +586,7 @@ export default function VisionListPage() {
                 {VISION_SECTIONS.map((sectionKey) => {
                   const section = {
                     key: sectionKey,
-                    label: sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1).replace('_', ' / '),
+                    label: getVisionCategoryLabel(sectionKey),
                     icon: getSectionIcon(sectionKey)
                   }
                   const value = activeVision[section.key as keyof VisionData] as string
