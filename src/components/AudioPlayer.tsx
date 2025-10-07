@@ -131,10 +131,13 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
 
         <div className="grid grid-cols-1 gap-3">
           {tracks.map((t, idx) => (
-            <button
+            <div
               key={t.sectionKey}
               onClick={() => setCurrentIndex(idx)}
-              className={`text-left p-3 rounded-xl border-2 ${idx === currentIndex ? 'border-[#5EC49A] bg-[#1F1F1F]' : 'border-[#333] hover:border-[#199D67] bg-[#1F1F1F]'} transition`}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setCurrentIndex(idx) }}
+              className={`text-left p-3 rounded-xl border-2 ${idx === currentIndex ? 'border-[#5EC49A] bg-[#1F1F1F]' : 'border-[#333] hover:border-[#199D67] bg-[#1F1F1F]'} transition cursor-pointer`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-white font-medium">{t.title}</span>
@@ -160,7 +163,7 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
                   }}>Retry</Button>
                 </div>
               )}
-            </button>
+            </div>
           ))}
         </div>
       </div>
