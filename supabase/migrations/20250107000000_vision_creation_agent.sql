@@ -14,14 +14,12 @@ create table if not exists public.vision_conversations (
   category text not null,
   path_chosen text check (path_chosen in ('clarity', 'contrast', 'discovery')),
   
-  -- Conversation data
+  -- Conversation data (structure: [{role, content, emotion_score, timestamp}])
   messages jsonb not null default '[]'::jsonb,
-  -- messages structure: [{role: 'user'|'assistant', content: string, emotion_score: number, timestamp: string}]
   
-  -- Emotional state tracking
+  -- Emotional state tracking (1-7: Above Green Line, 8-22: Below Green Line)
   vibrational_state text check (vibrational_state in ('above_green_line', 'below_green_line', 'neutral')),
   final_emotion_score integer check (final_emotion_score between 1 and 22),
-  -- Emotion scale: 1-7 Above Green Line, 8-22 Below Green Line
   
   -- Vision content generated from this conversation
   generated_vision text,
