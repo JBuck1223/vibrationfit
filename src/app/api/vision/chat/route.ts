@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { DISCOVERY_TEMPLATES, getDrillDownQuestions, RHYTHM_QUESTION, type DiscoveryOption } from './discovery-templates'
 
 export const runtime = 'nodejs'
 
