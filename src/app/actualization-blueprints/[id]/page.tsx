@@ -56,7 +56,13 @@ interface Blueprint {
   potential_challenges: string
   recommended_timeline: string
   phases: any[]
-  resources_needed: any[]
+  resources_needed: {
+    people?: string[]
+    places?: string[]
+    tools?: string[]
+    skills?: string[]
+    financial?: string[]
+  }
   milestones: any[]
   created_at: string
   updated_at: string
