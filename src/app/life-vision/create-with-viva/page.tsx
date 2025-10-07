@@ -9,8 +9,8 @@ import { ChatInterface } from '@/components/vision/ChatInterface'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-// Use centralized vision categories (excluding spirituality and conclusion for now - those are meta-sections)
-const LIFE_CATEGORY_KEYS = getVisionCategoryKeys().filter(key => key !== 'spirituality' && key !== 'conclusion')
+// Use all 14 centralized vision categories (Forward → Conclusion)
+const LIFE_CATEGORY_KEYS = getVisionCategoryKeys() // All 14 categories in order
 const LIFE_CATEGORIES = LIFE_CATEGORY_KEYS.map(key => getVisionCategoryLabel(key))
 
 interface Message {

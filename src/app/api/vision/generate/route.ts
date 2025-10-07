@@ -9,7 +9,7 @@ const openai = new OpenAI({
 })
 
 // Map conversation category labels to vision_versions column names
-// Using the official VibrationFit vision category labels
+// Using the official VibrationFit vision category labels (all 14 sections)
 const CATEGORY_TO_COLUMN_MAP: { [key: string]: string } = {
   'Forward': 'forward',
   'Fun / Recreation': 'fun',
@@ -23,7 +23,8 @@ const CATEGORY_TO_COLUMN_MAP: { [key: string]: string } = {
   'Social / Friends': 'social',
   'Possessions / Stuff': 'possessions',
   'Giving / Legacy': 'giving',
-  'Spirituality': 'spirituality'
+  'Spirituality': 'spirituality',
+  'Conclusion': 'conclusion'
 }
 
 /**
