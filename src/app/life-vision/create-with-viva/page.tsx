@@ -60,6 +60,26 @@ export default function VisionCreateWithVivaPage() {
         return
       }
 
+      // SAFEGUARD: Check if user already has a Viva draft vision
+      const { data: existingDraft } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('title', 'My Vision (Created with Viva)')
+        .eq('status', 'draft')
+        .single()
+
+      if (existingDraft) {
+        // Reuse existing Viva draft instead of creating a new one
+        console.log('Reusing existing Viva draft:', existingDraft.id)
+        setVisionId(existingDraft.id)
+        setCurrentCategory(LIFE_CATEGORIES[0])
+        setCurrentCategoryIndex(0)
+        setInitializing(false)
+        return
+      }
+
+      // No existing draft - create a new one
       // Get the next version number for this user
       const { data: existingVisions } = await supabase
         .from('vision_versions')
@@ -72,13 +92,14 @@ export default function VisionCreateWithVivaPage() {
         ? (existingVisions[0].version_number || 0) + 1 
         : 1
 
-      // Create a new blank vision for Viva conversation
+      // Create ONE Viva draft vision
       const { data: newVision, error } = await supabase
         .from('vision_versions')
         .insert({
           user_id: user.id,
           version_number: nextVersionNumber,
           title: 'My Vision (Created with Viva)',
+          status: 'draft', // Explicitly set as draft
           // Initialize with empty sections for all categories
           forward: '',
           fun: '',
@@ -103,6 +124,7 @@ export default function VisionCreateWithVivaPage() {
         throw error
       }
 
+      console.log('Created new Viva draft:', newVision.id)
       setVisionId(newVision.id)
       setCurrentCategory(LIFE_CATEGORIES[0])
       setCurrentCategoryIndex(0)
@@ -462,7 +484,7 @@ export default function VisionCreateWithVivaPage() {
                       ) : (
                         <>
                           <CheckCircle className="w-4 h-4 mr-2" />
-                          Yes! That's Me! ✓
+                          Save & Continue ✓
                         </>
                       )}
                     </Button>
@@ -472,9 +494,13 @@ export default function VisionCreateWithVivaPage() {
                       onClick={() => startDiscovery()}
                       disabled={isLoading}
                     >
-                      Start Over 🔄
+                      Regenerate 🔄
                     </Button>
                   </div>
+                  
+                  <p className="text-xs text-neutral-500 text-center mt-4">
+                    This saves to your Viva draft. All changes update the same draft until you're ready to finalize.
+                  </p>
                 </div>
               )}
             </div>
