@@ -2,29 +2,16 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, PageLayout, Button } from '@/lib/design-system/components'
+import { Container, PageLayout, Button, getVisionCategoryLabel, getVisionCategoryKeys } from '@/lib/design-system/components'
 import { CategoryProgress } from '@/components/vision/CategoryProgress'
 import { PathSelector } from '@/components/vision/PathSelector'
 import { ChatInterface } from '@/components/vision/ChatInterface'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-// Life categories in the correct order (matching vision_versions schema)
-const LIFE_CATEGORIES = [
-  'Personal Growth',      // forward
-  'Recreation & Fun',     // fun
-  'Creativity & Expression', // travel
-  'Physical Environment', // home
-  'Family',              // family
-  'Relationships',       // romance
-  'Health & Vitality',   // health
-  'Financial Freedom',   // money
-  'Career & Purpose',    // business
-  'Social Life',         // social
-  'Possessions',         // possessions
-  'Contribution'         // giving
-  // Note: spirituality and conclusion are meta-sections, handled separately
-]
+// Use centralized vision categories (excluding spirituality and conclusion for now - those are meta-sections)
+const LIFE_CATEGORY_KEYS = getVisionCategoryKeys().filter(key => key !== 'spirituality' && key !== 'conclusion')
+const LIFE_CATEGORIES = LIFE_CATEGORY_KEYS.map(key => getVisionCategoryLabel(key))
 
 interface Message {
   role: 'user' | 'assistant'

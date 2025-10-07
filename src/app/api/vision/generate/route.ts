@@ -8,20 +8,21 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-// Map conversation category names to vision_versions column names
+// Map conversation category labels to vision_versions column names
+// Using the official VibrationFit vision category labels
 const CATEGORY_TO_COLUMN_MAP: { [key: string]: string } = {
-  'Personal Growth': 'forward',
-  'Recreation & Fun': 'fun',
-  'Creativity & Expression': 'travel',
-  'Physical Environment': 'home',
-  'Family': 'family',
-  'Relationships': 'romance',
-  'Health & Vitality': 'health',
-  'Financial Freedom': 'money',
-  'Career & Purpose': 'business',
-  'Social Life': 'social',
-  'Possessions': 'possessions',
-  'Contribution': 'giving',
+  'Forward': 'forward',
+  'Fun / Recreation': 'fun',
+  'Travel / Adventure': 'travel',
+  'Home / Environment': 'home',
+  'Family / Parenting': 'family',
+  'Love / Romance': 'romance',
+  'Health / Vitality': 'health',
+  'Money / Wealth': 'money',
+  'Business / Career': 'business',
+  'Social / Friends': 'social',
+  'Possessions / Stuff': 'possessions',
+  'Giving / Legacy': 'giving',
   'Spirituality': 'spirituality'
 }
 
