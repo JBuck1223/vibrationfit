@@ -41,11 +41,22 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     })()
   }, [visionId])
 
+  // Poll status while there are processing tracks or while generating
+  useEffect(() => {
+    if (!visionId) return
+    const hasProcessing = tracks.some(t => t.status === 'processing' || t.status === 'pending')
+    if (!generating && !hasProcessing) return
+    const id = setInterval(() => {
+      refreshStatus().catch(() => {})
+    }, 5000)
+    return () => clearInterval(id)
+  }, [visionId, generating, tracks])
+
   async function refreshStatus() {
     if (!visionId) return
     const resp = await fetch(`/api/audio/generate?visionId=${visionId}`, { cache: 'no-store' })
     const data = await resp.json()
-    const mapped = (data.tracks || []).map((t: any) => ({
+  const mapped = (data.tracks || []).map((t: any) => ({
       sectionKey: t.section_key,
       title: formatTitle(t.section_key),
       url: t.audio_url || '',
@@ -54,6 +65,9 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       voiceId: t.voice_id,
       contentHash: t.content_hash,
     }))
+    // Order by canonical life vision order
+    const order = canonicalOrder()
+    mapped.sort((a: any, b: any) => order.indexOf(a.sectionKey) - order.indexOf(b.sectionKey))
     setTracks(mapped)
   }
 
@@ -101,7 +115,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
               className="px-4 py-2 rounded-full bg-black/30 text-white border-2 border-white/30"
             >
               {voices.map(v => (
-                <option key={v.id} value={v.id}>{v.name}</option>
+                <option key={v.id} value={v.id}>{v.id === 'meta_intro' ? 'Meta Intro' : v.id === 'meta_outro' ? 'Meta Outro' : v.name}</option>
               ))}
             </select>
             <GradientButton gradient="brand" onClick={handleGenerate} disabled={generating}>
@@ -125,22 +139,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
 function buildFourteenSectionsFromVision(v: any): { sectionKey: string; text: string }[] {
   if (!v) return []
   const sections: { sectionKey: string; text: string }[] = []
-  const map: { key: string; field?: string }[] = [
-    { key: 'meta_intro', field: 'forward' },
-    { key: 'health', field: 'health' },
-    { key: 'family', field: 'family' },
-    { key: 'romance', field: 'romance' },
-    { key: 'social', field: 'social' },
-    { key: 'fun', field: 'fun' },
-    { key: 'travel', field: 'travel' },
-    { key: 'home', field: 'home' },
-    { key: 'money', field: 'money' },
-    { key: 'business', field: 'business' },
-    { key: 'possessions', field: 'possessions' },
-    { key: 'giving', field: 'giving' },
-    { key: 'spirituality', field: 'spirituality' },
-    { key: 'meta_outro', field: 'conclusion' },
-  ]
+  const map = canonicalOrder().map((key) => ({ key, field: mapFieldForKey(key) }))
   for (const m of map) {
     const raw = m.field ? (v[m.field] as string) : ''
     const text = (raw || '').trim()
@@ -148,6 +147,45 @@ function buildFourteenSectionsFromVision(v: any): { sectionKey: string; text: st
     sections.push({ sectionKey: m.key, text })
   }
   return sections
+}
+
+function canonicalOrder(): string[] {
+  return [
+    'meta_intro',
+    'health',
+    'family',
+    'romance',
+    'social',
+    'fun',
+    'travel',
+    'home',
+    'money',
+    'business',
+    'possessions',
+    'giving',
+    'spirituality',
+    'meta_outro',
+  ]
+}
+
+function mapFieldForKey(key: string): string | undefined {
+  const mapping: Record<string, string> = {
+    meta_intro: 'forward',
+    meta_outro: 'conclusion',
+    health: 'health',
+    family: 'family',
+    romance: 'romance',
+    social: 'social',
+    fun: 'fun',
+    travel: 'travel',
+    home: 'home',
+    money: 'money',
+    business: 'business',
+    possessions: 'possessions',
+    giving: 'giving',
+    spirituality: 'spirituality',
+  }
+  return mapping[key]
 }
 
 function formatTitle(sectionKey: string): string {
