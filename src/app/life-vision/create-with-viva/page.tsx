@@ -78,15 +78,32 @@ export default function VisionCreateWithAIPage() {
         .insert({
           user_id: user.id,
           version_number: 1,
-          category: 'ai-generated',
+          category: 'viva-created',
           is_active: false,
           ai_generated: true,
-          sections: {}
+          // Initialize with empty sections for all 12 categories
+          forward: '',
+          fun: '',
+          travel: '',
+          home: '',
+          family: '',
+          romance: '',
+          health: '',
+          money: '',
+          business: '',
+          social: '',
+          possessions: '',
+          giving: '',
+          spirituality: '',
+          conclusion: ''
         })
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Vision creation error:', error)
+        throw error
+      }
 
       setVisionId(newVision.id)
     } catch (error) {
