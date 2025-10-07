@@ -579,7 +579,7 @@ export default function ActualizationBlueprintsPage() {
                           </Badge>
                           <Badge 
                             variant={blueprint.status === 'completed' ? 'success' : 
-                                   blueprint.status === 'active' ? 'primary' : 'secondary'}
+                                    blueprint.status === 'active' ? 'info' : 'neutral'}
                             className="text-xs"
                           >
                             {blueprint.status}
