@@ -21,7 +21,7 @@ export async function GET(_request: NextRequest) {
         'shimmer': 'https://media.vibrationfit.com/site-assets/voice-previews/shimmer-v1759856756423.mp3'
       }
       
-      const url = voiceSamples[previewVoice] || voiceSamples['alloy'] // fallback to alloy
+      const url = voiceSamples[previewVoice as keyof typeof voiceSamples] || voiceSamples['alloy'] // fallback to alloy
       return NextResponse.json({ url })
     }
 

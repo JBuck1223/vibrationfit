@@ -198,7 +198,7 @@ export async function generateAudioTracks(params: {
           const message = (lastError.message || '').toLowerCase()
           if (message.includes('429') || message.includes('5') || message.includes('timeout')) {
             // fallback voice on next attempt
-            useVoice = useVoice === 'alloy' ? 'verse' : 'alloy'
+            useVoice = useVoice === 'alloy' ? 'ash' : 'alloy'
           }
           if (attempt < maxAttempts) {
             const delay = 1000 * Math.pow(2, attempt - 1)

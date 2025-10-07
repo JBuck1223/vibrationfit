@@ -13,7 +13,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [visionId, setVisionId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [tracks, setTracks] = useState<{ sectionKey: string; title: string; url: string; status?: string; createdAt?: string; voiceId?: string; contentHash?: string }[]>([])
+  const [tracks, setTracks] = useState<{ sectionKey: string; title: string; url: string; status?: 'pending' | 'processing' | 'completed' | 'failed'; createdAt?: string; voiceId?: string; contentHash?: string }[]>([])
   const [voices, setVoices] = useState<Voice[]>([])
   const [voice, setVoice] = useState<string>('alloy')
   const [workingOn, setWorkingOn] = useState<string | null>(null)
