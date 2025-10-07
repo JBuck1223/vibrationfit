@@ -73,8 +73,21 @@ export default function VisionCreateWithVivaPage() {
         // Reuse existing Viva draft instead of creating a new one
         console.log('Reusing existing Viva draft:', existingDraft.id)
         setVisionId(existingDraft.id)
-        setCurrentCategory(LIFE_CATEGORIES[0])
-        setCurrentCategoryIndex(0)
+        
+        // Check which categories already have content and start from the first empty one
+        const firstEmptyIndex = LIFE_CATEGORY_KEYS.findIndex(key => !existingDraft[key] || existingDraft[key].trim() === '')
+        const startIndex = firstEmptyIndex >= 0 ? firstEmptyIndex : 0
+        
+        console.log(`Starting at category ${startIndex}: ${LIFE_CATEGORIES[startIndex]}`)
+        setCurrentCategory(LIFE_CATEGORIES[startIndex])
+        setCurrentCategoryIndex(startIndex)
+        
+        // Track already completed categories
+        const completed = LIFE_CATEGORY_KEYS.filter((key, index) => 
+          index < startIndex && existingDraft[key] && existingDraft[key].trim() !== ''
+        ).map(key => LIFE_CATEGORIES[LIFE_CATEGORY_KEYS.indexOf(key)])
+        setCompletedCategories(completed)
+        
         setInitializing(false)
         return
       }
@@ -126,8 +139,13 @@ export default function VisionCreateWithVivaPage() {
 
       console.log('Created new Viva draft:', newVision.id)
       setVisionId(newVision.id)
-      setCurrentCategory(LIFE_CATEGORIES[0])
-      setCurrentCategoryIndex(0)
+      
+      // Check which categories already have content and start from the first empty one
+      const firstEmptyIndex = LIFE_CATEGORY_KEYS.findIndex(key => !newVision[key] || newVision[key].trim() === '')
+      const startIndex = firstEmptyIndex >= 0 ? firstEmptyIndex : 0
+      
+      setCurrentCategory(LIFE_CATEGORIES[startIndex])
+      setCurrentCategoryIndex(startIndex)
     } catch (error) {
       console.error('Error initializing vision:', error)
       router.push('/life-vision')
@@ -276,16 +294,28 @@ export default function VisionCreateWithVivaPage() {
     setIsLoading(true)
     
     try {
-      // Save vision to vision_versions table
-      await fetch('/api/vision/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vision_id: visionId,
-          category: currentCategory,
-          vision_content: discoveryState.vision
+      // Get category key from label
+      const categoryKey = LIFE_CATEGORY_KEYS[LIFE_CATEGORIES.indexOf(currentCategory)]
+      
+      if (!categoryKey) {
+        console.error('Could not find category key for:', currentCategory)
+        return
+      }
+
+      // Save vision content directly to vision_versions table
+      const { error } = await supabase
+        .from('vision_versions')
+        .update({
+          [categoryKey]: discoveryState.vision
         })
-      })
+        .eq('id', visionId)
+
+      if (error) {
+        console.error('Error saving vision:', error)
+        throw error
+      }
+
+      console.log(`Saved ${currentCategory} (${categoryKey}) to vision ${visionId}`)
 
       // Mark category as completed
       setCompletedCategories(prev => [...prev, currentCategory])
@@ -303,6 +333,7 @@ export default function VisionCreateWithVivaPage() {
       }
     } catch (error) {
       console.error('Error approving vision:', error)
+      alert('Failed to save vision. Please try again.')
     } finally {
       setIsLoading(false)
     }
