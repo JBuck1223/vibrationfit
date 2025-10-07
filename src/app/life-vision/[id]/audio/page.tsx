@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Container, PageLayout, GradientButton, Spinner, Badge } from '@/lib/design-system/components'
+import { getVisionCategoryKeys, getVisionCategoryLabel } from '@/lib/design-system'
 import { AudioPlayer } from '@/components/AudioPlayer'
 import { createClient } from '@/lib/supabase/client'
 
@@ -150,22 +151,10 @@ function buildFourteenSectionsFromVision(v: any): { sectionKey: string; text: st
 }
 
 function canonicalOrder(): string[] {
-  return [
-    'meta_intro',
-    'health',
-    'family',
-    'romance',
-    'social',
-    'fun',
-    'travel',
-    'home',
-    'money',
-    'business',
-    'possessions',
-    'giving',
-    'spirituality',
-    'meta_outro',
-  ]
+  // Use global category order and map to our 14 sequence with intro/outro
+  const middle = getVisionCategoryKeys() // forward..conclusion in correct order per DS
+  // Ensure forward and conclusion positions wrap intro/outro mapping
+  return ['meta_intro', ...middle.filter(k => k !== 'forward' && k !== 'conclusion'), 'meta_outro']
 }
 
 function mapFieldForKey(key: string): string | undefined {
@@ -191,7 +180,24 @@ function mapFieldForKey(key: string): string | undefined {
 function prettySectionTitle(sectionKey: string): string {
   if (sectionKey === 'meta_intro') return 'Forward'
   if (sectionKey === 'meta_outro') return 'Conclusion'
-  return sectionKey.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())
+  // Map to global labels when possible
+  const map: Record<string, string> = {
+    forward: 'Forward',
+    fun: 'Fun / Recreation',
+    travel: 'Travel / Adventure',
+    home: 'Home / Environment',
+    family: 'Family / Parenting',
+    romance: 'Love / Romance',
+    health: 'Health / Vitality',
+    money: 'Money / Wealth',
+    business: 'Business / Career',
+    social: 'Social / Friends',
+    possessions: 'Possessions / Stuff',
+    giving: 'Giving / Legacy',
+    spirituality: 'Spirituality',
+    conclusion: 'Conclusion',
+  }
+  return map[sectionKey] || sectionKey.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())
 }
 
 
