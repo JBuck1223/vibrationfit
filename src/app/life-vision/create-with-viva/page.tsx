@@ -2,56 +2,56 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, PageLayout, Button, getVisionCategoryLabel, getVisionCategoryKeys } from '@/lib/design-system'
+import { Container, PageLayout, Button, getVisionCategoryLabel } from '@/lib/design-system'
 import { CategoryProgress } from '@/components/vision/CategoryProgress'
-import { PathSelector } from '@/components/vision/PathSelector'
-import { ChatInterface } from '@/components/vision/ChatInterface'
-import { ArrowLeft, Sparkles } from 'lucide-react'
+import { DiscoveryQuestion } from '@/components/vision/DiscoveryQuestion'
+import { ArrowLeft, Sparkles, Loader2, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 // Starting with first 4 categories for testing Discovery Path
 const LIFE_CATEGORY_KEYS = ['forward', 'fun', 'travel', 'home']
 const LIFE_CATEGORIES = LIFE_CATEGORY_KEYS.map(key => getVisionCategoryLabel(key))
 
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: string
-  emotion_score?: number
+interface DiscoveryState {
+  step: number
+  aiMessage: string
+  question?: {
+    text: string
+    options: any[]
+    multiSelect?: boolean
+  }
+  questions?: any[] // For step 2 drill-downs
+  vision?: string
+  patternDetected?: string
 }
 
-export default function VisionCreateWithAIPage() {
+export default function VisionCreateWithVivaPage() {
   const router = useRouter()
   const supabase = createClient()
   
   const [visionId, setVisionId] = useState<string | null>(null)
-  const [initializing, setInitializing] = useState(true)
-
-  const [loading, setLoading] = useState(true)
-  const [progress, setProgress] = useState<{
-    categories_completed: string[]
-    current_category: string | null
-    total_categories: number
-  } | null>(null)
-  
   const [currentCategory, setCurrentCategory] = useState<string | null>(null)
-  const [pathChosen, setPathChosen] = useState<'clarity' | 'contrast' | 'discovery' | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isLoadingMessage, setIsLoadingMessage] = useState(false)
-  const [vibrationalState, setVibrationalState] = useState<'above_green_line' | 'below_green_line' | 'neutral'>('neutral')
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0)
+  const [completedCategories, setCompletedCategories] = useState<string[]>([])
+  
+  const [discoveryState, setDiscoveryState] = useState<DiscoveryState | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [initializing, setInitializing] = useState(true)
+  
+  const [step2Responses, setStep2Responses] = useState<Record<string, string[]>>({})
 
-  // Initialize: Create new vision on mount
+  // Initialize vision on mount
   useEffect(() => {
     initializeVision()
   }, [])
 
-  // Load progress and determine current category
+  // Start discovery when category is set
   useEffect(() => {
-    if (visionId) {
-      loadProgress()
+    if (currentCategory && visionId) {
+      startDiscovery()
     }
-  }, [visionId])
-  
+  }, [currentCategory, visionId])
+
   const initializeVision = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -72,10 +72,7 @@ export default function VisionCreateWithAIPage() {
         ? (existingVisions[0].version_number || 0) + 1 
         : 1
 
-      console.log('Creating vision with version number:', nextVersionNumber)
-
       // Create a new blank vision for Viva conversation
-      // Using only fields that exist in vision_versions table
       const { data: newVision, error } = await supabase
         .from('vision_versions')
         .insert({
@@ -102,285 +99,194 @@ export default function VisionCreateWithAIPage() {
         .single()
 
       if (error) {
-        console.error('Vision creation FAILED')
-        console.error('Error message:', error.message || 'No message')
-        console.error('Error code:', error.code || 'No code')
-        console.error('Error details:', error.details || 'No details')
-        console.error('Error hint:', error.hint || 'No hint')
-        console.error('Full error object:', JSON.stringify(error, null, 2))
+        console.error('Vision creation FAILED:', error)
         throw error
       }
 
-      if (!newVision) {
-        console.error('No vision returned from insert')
-        throw new Error('Failed to create vision - no data returned')
-      }
-
-      console.log('Vision created successfully:', newVision.id)
       setVisionId(newVision.id)
+      setCurrentCategory(LIFE_CATEGORIES[0])
+      setCurrentCategoryIndex(0)
     } catch (error) {
       console.error('Error initializing vision:', error)
-      console.error('Error type:', typeof error)
-      console.error('Error keys:', error ? Object.keys(error) : 'null')
-      
-      // Show user-friendly error
-      alert('Unable to create vision. Please try again or contact support if the issue persists.')
       router.push('/life-vision')
     } finally {
       setInitializing(false)
     }
   }
 
-  // Load conversation when category is selected
-  useEffect(() => {
-    if (currentCategory) {
-      loadConversation()
-    }
-  }, [currentCategory])
-
-  const loadProgress = async () => {
-    try {
-      const response = await fetch(`/api/vision/progress?vision_id=${visionId}`)
-      const data = await response.json()
-      
-      if (data.progress) {
-        setProgress(data.progress)
-        
-        // Determine next category to work on
-        const completedCategories = data.progress.categories_completed || []
-        const nextCategory = LIFE_CATEGORIES.find(cat => !completedCategories.includes(cat))
-        
-        if (nextCategory) {
-          setCurrentCategory(nextCategory)
-        } else if (completedCategories.length === LIFE_CATEGORIES.length) {
-          // All categories complete
-          router.push(`/vision/review/${visionId}`)
-        }
-      }
-    } catch (error) {
-      console.error('Error loading progress:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadConversation = async () => {
-    if (!currentCategory) return
-
-    try {
-      const response = await fetch(`/api/vision/conversation?vision_id=${visionId}&category=${encodeURIComponent(currentCategory)}`)
-      const data = await response.json()
-      
-      if (data.conversation) {
-        setMessages(data.conversation.messages || [])
-        setPathChosen(data.conversation.path_chosen)
-        setVibrationalState(data.conversation.vibrational_state || 'neutral')
-      } else {
-        // No existing conversation, start fresh
-        setMessages([])
-        setPathChosen(null)
-      }
-    } catch (error) {
-      console.error('Error loading conversation:', error)
-    }
-  }
-
-  const handlePathSelection = async (path: 'clarity' | 'contrast' | 'discovery') => {
-    setPathChosen(path)
-    
-    // Save path choice to database
-    await fetch('/api/vision/conversation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        vision_id: visionId,
-        category: currentCategory,
-        path_chosen: path,
-        messages: []
-      })
-    })
-
-    // Update progress with current category
-    await fetch('/api/vision/progress', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        vision_id: visionId,
-        current_category: currentCategory
-      })
-    })
-
-    // Start conversation with AI based on path
-    await startConversation(path)
-  }
-
-  const startConversation = async (path: 'clarity' | 'contrast' | 'discovery') => {
-    setIsLoadingMessage(true)
+  const startDiscovery = async () => {
+    setIsLoading(true)
+    setDiscoveryState(null)
     
     try {
-      // Call OpenAI to start the conversation
       const response = await fetch('/api/vision/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vision_id: visionId,
           category: currentCategory,
-          path: path,
-          messages: [],
           action: 'start'
         })
       })
 
       const data = await response.json()
       
-      if (data.message) {
-        const newMessage: Message = {
-          role: 'assistant',
-          content: data.message,
-          timestamp: new Date().toISOString(),
-          emotion_score: data.emotion_score
-        }
-        
-        setMessages([newMessage])
-        
-        // Save to database
-        await saveConversation([newMessage])
+      if (data.type === 'discovery_question') {
+        setDiscoveryState({
+          step: data.step,
+          aiMessage: data.aiMessage,
+          question: data.question
+        })
       }
     } catch (error) {
-      console.error('Error starting conversation:', error)
+      console.error('Error starting discovery:', error)
     } finally {
-      setIsLoadingMessage(false)
+      setIsLoading(false)
     }
   }
 
-  const handleSendMessage = async (content: string) => {
-    const userMessage: Message = {
-      role: 'user',
-      content,
-      timestamp: new Date().toISOString()
-    }
-
-    const updatedMessages = [...messages, userMessage]
-    setMessages(updatedMessages)
-    setIsLoadingMessage(true)
-
+  const handleStep1Submit = async (selections: string[], customInput?: string) => {
+    setIsLoading(true)
+    
     try {
-      // Call AI to get response
       const response = await fetch('/api/vision/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vision_id: visionId,
           category: currentCategory,
-          path: pathChosen,
-          messages: updatedMessages,
-          action: 'continue'
+          action: 'submit_step_1',
+          selections,
+          customInput
         })
       })
 
       const data = await response.json()
       
-      if (data.message) {
-        const aiMessage: Message = {
-          role: 'assistant',
-          content: data.message,
-          timestamp: new Date().toISOString(),
-          emotion_score: data.emotion_score
-        }
-        
-        const finalMessages = [...updatedMessages, aiMessage]
-        setMessages(finalMessages)
-        
-        // Update vibrational state
-        if (data.vibrational_state) {
-          setVibrationalState(data.vibrational_state)
-        }
-
-        // Save conversation
-        await saveConversation(finalMessages, data.vibrational_state, data.emotion_score)
-
-        // Check if vision should be generated
-        if (data.generate_vision && data.vibrational_state === 'above_green_line') {
-          await generateVision(finalMessages)
-        }
+      if (data.type === 'drill_down_questions') {
+        setDiscoveryState({
+          step: data.step,
+          aiMessage: data.aiMessage,
+          questions: data.questions
+        })
+        setStep2Responses({}) // Reset step 2 responses
       }
     } catch (error) {
-      console.error('Error sending message:', error)
+      console.error('Error submitting step 1:', error)
     } finally {
-      setIsLoadingMessage(false)
+      setIsLoading(false)
     }
   }
 
-  const saveConversation = async (
-    msgs: Message[], 
-    vibState?: string, 
-    emotionScore?: number
-  ) => {
-    await fetch('/api/vision/conversation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        vision_id: visionId,
-        category: currentCategory,
-        path_chosen: pathChosen,
-        messages: msgs,
-        vibrational_state: vibState,
-        final_emotion_score: emotionScore
-      })
-    })
+  const handleStep2QuestionSubmit = (questionKey: string, selections: string[]) => {
+    setStep2Responses(prev => ({
+      ...prev,
+      [questionKey]: selections
+    }))
   }
 
-  const generateVision = async (conversationMessages: Message[]) => {
+  const handleStep2Complete = async () => {
+    setIsLoading(true)
+    
     try {
-      const response = await fetch('/api/vision/generate', {
+      const response = await fetch('/api/vision/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vision_id: visionId,
           category: currentCategory,
-          conversation_messages: conversationMessages,
-          vibrational_state: vibrationalState
+          action: 'submit_step_2',
+          selections: step2Responses
         })
       })
 
       const data = await response.json()
       
-      if (data.vision) {
-        // Mark conversation as completed
-        await saveConversation(conversationMessages, vibrationalState, undefined)
-        await fetch('/api/vision/conversation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            vision_id: visionId,
-            category: currentCategory,
-            completed: true
-          })
+      if (data.type === 'rhythm_question') {
+        setDiscoveryState({
+          step: data.step,
+          aiMessage: data.aiMessage,
+          question: data.question,
+          patternDetected: data.patternDetected
         })
-
-        // Reload progress and move to next category
-        await loadProgress()
       }
     } catch (error) {
-      console.error('Error generating vision:', error)
+      console.error('Error submitting step 2:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleSkipCategory = () => {
-    // Move to next category
-    const completedCategories = progress?.categories_completed || []
-    const nextCategory = LIFE_CATEGORIES.find(cat => 
-      cat !== currentCategory && !completedCategories.includes(cat)
-    )
+  const handleStep3Submit = async (selections: string[]) => {
+    setIsLoading(true)
     
-    if (nextCategory) {
-      setCurrentCategory(nextCategory)
-      setPathChosen(null)
-      setMessages([])
+    try {
+      const response = await fetch('/api/vision/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vision_id: visionId,
+          category: currentCategory,
+          action: 'submit_step_3',
+          selections
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.type === 'vision_generated') {
+        setDiscoveryState({
+          step: 4,
+          aiMessage: data.aiMessage,
+          vision: data.vision
+        })
+      }
+    } catch (error) {
+      console.error('Error submitting step 3:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  if (initializing || loading) {
+  const handleVisionApprove = async () => {
+    if (!discoveryState?.vision || !currentCategory) return
+    
+    setIsLoading(true)
+    
+    try {
+      // Save vision to vision_versions table
+      await fetch('/api/vision/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vision_id: visionId,
+          category: currentCategory,
+          vision_content: discoveryState.vision
+        })
+      })
+
+      // Mark category as completed
+      setCompletedCategories(prev => [...prev, currentCategory])
+
+      // Move to next category or complete
+      const nextIndex = currentCategoryIndex + 1
+      if (nextIndex < LIFE_CATEGORIES.length) {
+        setCurrentCategoryIndex(nextIndex)
+        setCurrentCategory(LIFE_CATEGORIES[nextIndex])
+        setDiscoveryState(null)
+        setStep2Responses({})
+      } else {
+        // All categories complete!
+        router.push(`/life-vision/${visionId}`)
+      }
+    } catch (error) {
+      console.error('Error approving vision:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (initializing) {
     return (
       <PageLayout>
         <Container className="py-12">
@@ -400,61 +306,181 @@ export default function VisionCreateWithAIPage() {
 
   return (
     <PageLayout>
-      <Container size="xl" className="py-8">
+      <Container className="py-12">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <Button
-              variant="ghost"
-              onClick={() => router.push('/life-vision')}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Visions
-            </Button>
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/life-vision')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Visions
+          </Button>
+          
+          <div className="text-center">
             <h1 className="text-3xl font-bold text-white mt-4">Create with Viva</h1>
             <p className="text-neutral-400 mt-2">Your personal Vibe Assistant will guide you through creating your complete life vision</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleSkipCategory}
-            disabled={!currentCategory}
-          >
-            Skip Category
-          </Button>
+
+          <div className="w-32" /> {/* Spacer for centering */}
         </div>
 
-        {/* Progress tracker */}
-        {progress && (
-          <CategoryProgress
-            totalCategories={LIFE_CATEGORIES.length}
-            completedCategories={progress.categories_completed || []}
-            currentCategory={currentCategory || ''}
-            allCategories={LIFE_CATEGORIES}
-          />
-        )}
+        {/* Progress Indicator */}
+        <CategoryProgress
+          totalCategories={LIFE_CATEGORIES.length}
+          completedCategories={completedCategories}
+          currentCategory={currentCategory || ''}
+          allCategories={LIFE_CATEGORIES}
+        />
 
-        {/* Main content */}
-        <div className="max-w-4xl mx-auto">
-          {currentCategory && !pathChosen ? (
-            <PathSelector
-              category={currentCategory}
-              onSelectPath={handlePathSelection}
-            />
-          ) : currentCategory && pathChosen ? (
-            <div className="min-h-[600px]">
-              <ChatInterface
-                messages={messages}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoadingMessage}
-                category={currentCategory}
-                vibrationalState={vibrationalState}
-              />
+        {/* Main Discovery Interface */}
+        <div className="max-w-4xl mx-auto mt-12">
+          {isLoading && !discoveryState ? (
+            <div className="text-center py-12">
+              <Loader2 className="w-12 h-12 text-[#14B8A6] animate-spin mx-auto mb-4" />
+              <p className="text-neutral-400">Viva is preparing your questions...</p>
+            </div>
+          ) : discoveryState ? (
+            <div className="space-y-8">
+              {/* AI Message */}
+              <div className="flex items-start gap-3 mb-8">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#14B8A6] to-[#8B5CF6] flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="mb-1">
+                    <span className="text-sm font-medium text-[#14B8A6]">Viva</span>
+                  </div>
+                  <div className="text-neutral-100 text-base leading-relaxed whitespace-pre-wrap">
+                    {discoveryState.aiMessage}
+                  </div>
+                  {discoveryState.patternDetected && (
+                    <div className="mt-3 inline-flex items-center gap-2 bg-[#8B5CF6]/10 border border-[#8B5CF6] rounded-full px-4 py-2">
+                      <Sparkles className="w-4 h-4 text-[#8B5CF6]" />
+                      <span className="text-sm text-[#8B5CF6] font-medium">Pattern: {discoveryState.patternDetected}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 1: Initial Question */}
+              {discoveryState.step === 1 && discoveryState.question && (
+                <DiscoveryQuestion
+                  questionText={discoveryState.question.text}
+                  options={discoveryState.question.options}
+                  onSubmit={handleStep1Submit}
+                  multiSelect={discoveryState.question.multiSelect !== false}
+                />
+              )}
+
+              {/* Step 2: Drill-Down Questions */}
+              {discoveryState.step === 2 && discoveryState.questions && (
+                <div className="space-y-8">
+                  {discoveryState.questions.map((q: any, index: number) => (
+                    <div key={q.questionKey} className="animate-fadeIn">
+                      <DiscoveryQuestion
+                        questionText={q.text}
+                        options={q.options}
+                        onSubmit={(selections) => handleStep2QuestionSubmit(q.questionKey, selections)}
+                        multiSelect={q.multiSelect !== false}
+                      />
+                      {step2Responses[q.questionKey] && (
+                        <div className="mt-3 flex items-center gap-2 text-sm text-[#199D67]">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Selected {step2Responses[q.questionKey].length} option(s)</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {/* Continue button after all drill-downs answered */}
+                  {Object.keys(step2Responses).length === discoveryState.questions.length && (
+                    <div className="flex justify-center mt-8 animate-fadeIn">
+                      <Button
+                        variant="primary"
+                        onClick={handleStep2Complete}
+                        disabled={isLoading}
+                        className="px-8"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          'Continue →'
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 3: Rhythm Question */}
+              {discoveryState.step === 3 && discoveryState.question && (
+                <DiscoveryQuestion
+                  questionText={discoveryState.question.text}
+                  options={discoveryState.question.options}
+                  onSubmit={handleStep3Submit}
+                  multiSelect={discoveryState.question.multiSelect !== false}
+                />
+              )}
+
+              {/* Step 4: Vision Display */}
+              {discoveryState.step === 4 && discoveryState.vision && (
+                <div className="space-y-6 animate-fadeIn">
+                  {/* Vision Display */}
+                  <div className="bg-gradient-to-br from-[#199D67]/10 to-[#14B8A6]/10 border-2 border-[#199D67] rounded-2xl p-8">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#199D67] to-[#14B8A6] flex items-center justify-center">
+                        <Sparkles className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">{currentCategory}</h3>
+                        <p className="text-sm text-[#199D67]">Your Vision</p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-neutral-100 text-base leading-relaxed whitespace-pre-wrap">
+                      {discoveryState.vision}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-4 justify-center">
+                    <Button
+                      variant="primary"
+                      onClick={handleVisionApprove}
+                      disabled={isLoading}
+                      className="px-8"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Yes! That's Me! ✓
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => startDiscovery()}
+                      disabled={isLoading}
+                    >
+                      Start Over 🔄
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-neutral-400">
-                All categories completed! Redirecting to review...
-              </p>
+              <p className="text-neutral-400">Ready to begin your discovery journey!</p>
             </div>
           )}
         </div>
