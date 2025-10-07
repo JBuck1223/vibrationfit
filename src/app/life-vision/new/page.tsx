@@ -376,6 +376,28 @@ export default function NewLifeVisionPage() {
   return (
     <PageLayout>
       <div className="min-h-screen bg-black text-white">
+        {/* AI Option Banner */}
+        <div className="bg-gradient-to-r from-[#8B5CF6] to-[#14B8A6] py-4 px-6 text-center">
+          <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-left">
+              <p className="text-white font-semibold text-lg flex items-center gap-2">
+                <span className="text-2xl">✨</span>
+                New: AI-Guided Vision Creation
+              </p>
+              <p className="text-white/90 text-sm">
+                Let our AI guide you through a soul-level conversation to create your vision
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() => router.push('/life-vision/create-with-ai')}
+              className="bg-white text-[#8B5CF6] hover:bg-white/90 font-semibold whitespace-nowrap"
+            >
+              Start with AI →
+            </Button>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="bg-[#199D67] py-8 px-6 text-center mb-8 hover:opacity-90 transition-all duration-300">
           <div className="max-w-4xl mx-auto">

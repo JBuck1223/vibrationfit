@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState, useEffect, use } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Container, PageLayout, Button } from '@/lib/design-system/components'
 import { CategoryProgress } from '@/components/vision/CategoryProgress'
 import { PathSelector } from '@/components/vision/PathSelector'
 import { ChatInterface } from '@/components/vision/ChatInterface'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 // 12 life categories
@@ -32,10 +32,12 @@ interface Message {
   emotion_score?: number
 }
 
-export default function VisionCreatePage({ params }: { params: Promise<{ visionId: string }> }) {
+export default function VisionCreateWithAIPage() {
   const router = useRouter()
-  const { visionId } = use(params)
   const supabase = createClient()
+  
+  const [visionId, setVisionId] = useState<string | null>(null)
+  const [initializing, setInitializing] = useState(true)
 
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<{
@@ -50,10 +52,50 @@ export default function VisionCreatePage({ params }: { params: Promise<{ visionI
   const [isLoadingMessage, setIsLoadingMessage] = useState(false)
   const [vibrationalState, setVibrationalState] = useState<'above_green_line' | 'below_green_line' | 'neutral'>('neutral')
 
+  // Initialize: Create new vision on mount
+  useEffect(() => {
+    initializeVision()
+  }, [])
+
   // Load progress and determine current category
   useEffect(() => {
-    loadProgress()
+    if (visionId) {
+      loadProgress()
+    }
   }, [visionId])
+  
+  const initializeVision = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+
+      // Create a new blank vision for AI conversation
+      const { data: newVision, error } = await supabase
+        .from('vision_versions')
+        .insert({
+          user_id: user.id,
+          version_number: 1,
+          category: 'ai-generated',
+          is_active: false,
+          ai_generated: true,
+          sections: {}
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setVisionId(newVision.id)
+    } catch (error) {
+      console.error('Error initializing vision:', error)
+      router.push('/life-vision')
+    } finally {
+      setInitializing(false)
+    }
+  }
 
   // Load conversation when category is selected
   useEffect(() => {
@@ -304,14 +346,17 @@ export default function VisionCreatePage({ params }: { params: Promise<{ visionI
     }
   }
 
-  if (loading) {
+  if (initializing || loading) {
     return (
       <PageLayout>
         <Container className="py-12">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-[#14B8A6] border-t-transparent animate-spin" />
-              <p className="text-neutral-400">Loading your vision...</p>
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#14B8A6] to-[#8B5CF6] flex items-center justify-center animate-pulse">
+                <Sparkles className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Creating Your Vision Space</h2>
+              <p className="text-neutral-400">Preparing your AI-guided journey...</p>
             </div>
           </div>
         </Container>
@@ -324,13 +369,17 @@ export default function VisionCreatePage({ params }: { params: Promise<{ visionI
       <Container size="xl" className="py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => router.push(`/life-vision/${visionId}`)}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Vision
-          </Button>
+          <div>
+            <Button
+              variant="ghost"
+              onClick={() => router.push('/life-vision')}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Visions
+            </Button>
+            <h1 className="text-3xl font-bold text-white mt-4">AI-Guided Vision Creation</h1>
+            <p className="text-neutral-400 mt-2">Let&apos;s create your complete life vision together</p>
+          </div>
           <Button
             variant="outline"
             onClick={handleSkipCategory}
