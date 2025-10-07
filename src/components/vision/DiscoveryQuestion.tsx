@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/lib/design-system/components'
 import { Check } from 'lucide-react'
 
@@ -30,6 +30,33 @@ export function DiscoveryQuestion({
   const [selections, setSelections] = useState<Set<string>>(new Set())
   const [customInput, setCustomInput] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Debounced auto-submit - only fires 500ms after last selection change
+  useEffect(() => {
+    if (!showSubmitButton && selections.size > 0) {
+      setIsSaving(true) // Show saving indicator
+      
+      // Clear existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+
+      // Set new timer - wait 500ms before submitting
+      debounceTimerRef.current = setTimeout(() => {
+        const selectedArray = Array.from(selections)
+        onSubmit(selectedArray, customInput || undefined)
+        setIsSaving(false) // Hide saving indicator
+      }, 500)
+    }
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [selections, customInput, showSubmitButton, onSubmit])
 
   const handleToggle = (optionId: string) => {
     const newSelections = new Set(selections)
@@ -54,12 +81,6 @@ export function DiscoveryQuestion({
     }
 
     setSelections(newSelections)
-    
-    // Auto-submit if button is hidden (for Step 2 questions)
-    if (!showSubmitButton && newSelections.size > 0) {
-      const selectedArray = Array.from(newSelections)
-      onSubmit(selectedArray, customInput || undefined)
-    }
   }
 
   const handleSubmit = () => {
@@ -167,8 +188,14 @@ export function DiscoveryQuestion({
       
       {/* Helper Text when button is hidden */}
       {!showSubmitButton && (
-        <p className="text-xs text-neutral-500 text-center">
-          Select all that resonate • Your choices will be saved automatically
+        <p className="text-xs text-center">
+          {isSaving ? (
+            <span className="text-[#14B8A6]">Saving selections...</span>
+          ) : selections.size > 0 ? (
+            <span className="text-[#199D67]">✓ Saved</span>
+          ) : (
+            <span className="text-neutral-500">Select all that resonate</span>
+          )}
         </p>
       )}
     </div>
