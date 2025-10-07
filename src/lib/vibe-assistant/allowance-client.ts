@@ -253,7 +253,7 @@ export async function checkVibeAssistantAllowance(): Promise<VibeAssistantAllowa
 /**
  * Check if user has sufficient allowance for an operation
  */
-export async function hasSufficientAllowance(estimatedTokens: number): Promise<{
+export async function hasSufficientAllowance(tokenEstimate: TokenEstimate): Promise<{
   hasAllowance: boolean
   allowance?: VibeAssistantAllowance
   shortfall?: number
@@ -264,8 +264,8 @@ export async function hasSufficientAllowance(estimatedTokens: number): Promise<{
     return { hasAllowance: false }
   }
 
-  const hasAllowance = allowance.tokensRemaining >= estimatedTokens
-  const shortfall = hasAllowance ? 0 : estimatedTokens - allowance.tokensRemaining
+  const hasAllowance = allowance.tokensRemaining >= tokenEstimate.estimatedTokens
+  const shortfall = hasAllowance ? 0 : tokenEstimate.estimatedTokens - allowance.tokensRemaining
 
   return {
     hasAllowance,

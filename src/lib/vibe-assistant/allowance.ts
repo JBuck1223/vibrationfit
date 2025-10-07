@@ -252,13 +252,13 @@ export function calculateCostLegacy(tokens: number): number {
 /**
  * Check if user has sufficient allowance for an operation
  */
-export async function hasSufficientAllowance(estimatedTokens: number): Promise<{
+export async function hasSufficientAllowance(tokenEstimate: TokenEstimate): Promise<{
   hasAllowance: boolean
   currentAllowance: VibeAssistantAllowance | null
   estimatedCost: number
 }> {
   const allowance = await checkVibeAssistantAllowance()
-  const estimatedCost = calculateCost(estimatedTokens)
+  const estimatedCost = tokenEstimate.estimatedCost
   
   if (!allowance) {
     return {
@@ -268,7 +268,7 @@ export async function hasSufficientAllowance(estimatedTokens: number): Promise<{
     }
   }
 
-  const hasTokens = allowance.tokensRemaining >= estimatedTokens
+  const hasTokens = allowance.tokensRemaining >= tokenEstimate.estimatedTokens
   const hasCostLimit = (allowance.costLimit - allowance.tokensUsed * 0.045 / 1000) >= estimatedCost
   
   return {
