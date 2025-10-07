@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Button, Card } from '@/lib/design-system/components'
 import { MessageBubble } from './MessageBubble'
-import { Send, Loader2 } from 'lucide-react'
+import { Send, Loader2, Sparkles } from 'lucide-react'
 
 interface Message {
   role: 'user' | 'assistant'
