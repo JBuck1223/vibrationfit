@@ -66,7 +66,6 @@ interface Blueprint {
 interface VisionData {
   id: string
   title: string
-  category: string
 }
 
 export default function BlueprintDetailPage({ params }: { params: Promise<{ id: string }> }) {
