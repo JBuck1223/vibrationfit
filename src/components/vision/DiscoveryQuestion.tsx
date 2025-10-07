@@ -17,13 +17,15 @@ interface DiscoveryQuestionProps {
   options: DiscoveryOption[]
   onSubmit: (selections: string[], customInput?: string) => void
   multiSelect?: boolean
+  showSubmitButton?: boolean // New prop to control button visibility
 }
 
 export function DiscoveryQuestion({
   questionText,
   options,
   onSubmit,
-  multiSelect = true
+  multiSelect = true,
+  showSubmitButton = true // Default to true for backwards compatibility
 }: DiscoveryQuestionProps) {
   const [selections, setSelections] = useState<Set<string>>(new Set())
   const [customInput, setCustomInput] = useState('')
@@ -57,6 +59,15 @@ export function DiscoveryQuestion({
   const handleSubmit = () => {
     const selectedArray = Array.from(selections)
     onSubmit(selectedArray, customInput || undefined)
+  }
+
+  // Auto-submit when selection changes if button is hidden (for Step 2 questions)
+  const handleSelectionChange = (newSelections: Set<string>, newCustomInput?: string) => {
+    if (!showSubmitButton) {
+      // Auto-submit for Step 2 questions
+      const selectedArray = Array.from(newSelections)
+      onSubmit(selectedArray, newCustomInput || undefined)
+    }
   }
 
   const isValid = selections.size > 0 && (!showCustomInput || customInput.trim().length > 0)
@@ -136,22 +147,33 @@ export function DiscoveryQuestion({
         </div>
       )}
 
-      {/* Submit Button */}
-      <div className="flex justify-center">
-        <Button
-          variant="primary"
-          onClick={handleSubmit}
-          disabled={!isValid}
-          className="px-8"
-        >
-          {multiSelect ? 'Continue' : 'Next'} →
-        </Button>
-      </div>
+      {/* Submit Button - only show if showSubmitButton is true */}
+      {showSubmitButton && (
+        <>
+          <div className="flex justify-center">
+            <Button
+              variant="primary"
+              onClick={handleSubmit}
+              disabled={!isValid}
+              className="px-8"
+            >
+              {multiSelect ? 'Continue' : 'Next'} →
+            </Button>
+          </div>
 
-      {/* Helper Text */}
-      <p className="text-xs text-neutral-500 text-center">
-        {multiSelect ? 'Select all that resonate • No right or wrong answers' : 'Choose the one that resonates most'}
-      </p>
+          {/* Helper Text */}
+          <p className="text-xs text-neutral-500 text-center">
+            {multiSelect ? 'Select all that resonate • No right or wrong answers' : 'Choose the one that resonates most'}
+          </p>
+        </>
+      )}
+      
+      {/* Helper Text when button is hidden */}
+      {!showSubmitButton && (
+        <p className="text-xs text-neutral-500 text-center">
+          Select all that resonate • Your choices will be saved automatically
+        </p>
+      )}
     </div>
   )
 }

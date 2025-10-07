@@ -431,11 +431,13 @@ export default function VisionCreateWithVivaPage() {
                 <div className="space-y-8">
                   {discoveryState.questions.map((q: any, index: number) => (
                     <div key={q.questionKey} className="animate-fadeIn">
+                      <h3 className="text-base font-medium text-white mb-4">{q.text}</h3>
                       <DiscoveryQuestion
-                        questionText={q.text}
+                        questionText="" // Question shown separately above
                         options={q.options}
                         onSubmit={(selections) => handleStep2QuestionSubmit(q.questionKey, selections)}
                         multiSelect={q.multiSelect !== false}
+                        showSubmitButton={false} // Hide individual submit buttons
                       />
                       {step2Responses[q.questionKey] && (
                         <div className="mt-3 flex items-center gap-2 text-sm text-[#199D67]">
