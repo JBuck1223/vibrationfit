@@ -470,15 +470,41 @@ export default function VisionListPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => window.location.href = `/life-vision?versionId=${version.id}`}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <Eye className="w-3 h-3" />
-                          View
-                        </Button>
+                        {version.title === 'My Vision (Created with Viva)' && version.status === 'draft' ? (
+                          // Special handling for Viva drafts - go to Viva editor
+                          <Button
+                            onClick={() => router.push('/life-vision/create-with-viva')}
+                            variant="primary"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            Continue with Viva
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              onClick={() => window.location.href = `/life-vision?versionId=${version.id}`}
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1"
+                            >
+                              <Eye className="w-3 h-3" />
+                              View
+                            </Button>
+                            {version.status === 'draft' && (
+                              <Button
+                                onClick={() => router.push(`/life-vision/${version.id}`)}
+                                variant="secondary"
+                                size="sm"
+                                className="flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                Edit
+                              </Button>
+                            )}
+                          </>
+                        )}
                         <Button
                           onClick={() => deleteVersion(version.id)}
                           variant="outline"
