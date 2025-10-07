@@ -18,6 +18,10 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [voice, setVoice] = useState<string>('alloy')
   const [workingOn, setWorkingOn] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isPreviewing, setIsPreviewing] = useState<boolean>(false)
+  const [previewProgress, setPreviewProgress] = useState<number>(0)
+  const previewAudioRef = React.useRef<HTMLAudioElement | null>(null)
+  const PREVIEW_TEXT = "This vision serves as my magnet, attracting the people, ideas, resources, strategies, events, and circumstances that orchestrate its beautiful unfolding. I hereby give the Universe full permission to open all doors leading to the joyful experience of this or something even better. Thank you in advance for this fun and satisfying journey of unlimited creation. I am truly grateful for the opportunity to be here and experience ourselves as the conscious creators of the The Life I Choose."
 
   useEffect(() => {
     ;(async () => {
@@ -189,8 +193,23 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
               try {
                 const res = await fetch(`/api/audio/voices?preview=${voice}`, { cache: 'no-store' })
                 const data = await res.json()
+                if (previewAudioRef.current) {
+                  previewAudioRef.current.pause()
+                  previewAudioRef.current = null
+                }
                 const audio = new Audio(data.url)
-                audio.play()
+                previewAudioRef.current = audio
+                setIsPreviewing(true)
+                setPreviewProgress(0)
+                audio.addEventListener('timeupdate', () => {
+                  if (!audio.duration) return
+                  setPreviewProgress((audio.currentTime / audio.duration) * 100)
+                })
+                audio.addEventListener('ended', () => {
+                  setIsPreviewing(false)
+                  setPreviewProgress(100)
+                })
+                audio.play().catch(() => setIsPreviewing(false))
               } catch (e) {
                 console.error('Preview failed', e)
               }
@@ -208,6 +227,18 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
             <>
               {workingOn && (
                 <div className="mb-4 text-center text-neutral-400 text-sm">Working on: {workingOn}</div>
+              )}
+              {isPreviewing && (
+                <Card className="mb-4 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-white font-medium">Voice Preview</span>
+                    <span className="text-neutral-400 text-sm">{Math.round(previewProgress)}%</span>
+                  </div>
+                  <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#199D67]" style={{ width: `${previewProgress}%` }} />
+                  </div>
+                  <p className="text-neutral-300 text-sm mt-3 whitespace-pre-wrap">{PREVIEW_TEXT}</p>
+                </Card>
               )}
               <div className="mb-4 flex gap-2">
                 <Button variant="secondary" onClick={() => retryFailed()} disabled={generating}>Retry Failed Only</Button>
