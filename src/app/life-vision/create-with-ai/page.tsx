@@ -355,8 +355,8 @@ export default function VisionCreateWithAIPage() {
               <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#14B8A6] to-[#8B5CF6] flex items-center justify-center animate-pulse">
                 <Sparkles className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Creating Your Vision Space</h2>
-              <p className="text-neutral-400">Preparing your AI-guided journey...</p>
+              <h2 className="text-2xl font-bold text-white mb-2">Viva is Getting Ready</h2>
+              <p className="text-neutral-400">Preparing your vision creation journey...</p>
             </div>
           </div>
         </Container>
@@ -377,8 +377,8 @@ export default function VisionCreateWithAIPage() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Visions
             </Button>
-            <h1 className="text-3xl font-bold text-white mt-4">AI-Guided Vision Creation</h1>
-            <p className="text-neutral-400 mt-2">Let&apos;s create your complete life vision together</p>
+            <h1 className="text-3xl font-bold text-white mt-4">Create with Viva</h1>
+            <p className="text-neutral-400 mt-2">Your personal Vibe Assistant will guide you through creating your complete life vision</p>
           </div>
           <Button
             variant="outline"

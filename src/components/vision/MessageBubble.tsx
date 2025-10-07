@@ -35,13 +35,13 @@ export function MessageBubble({ role, content, timestamp, emotionScore }: Messag
             transition-all duration-300
           `}
         >
-          {/* AI icon for assistant messages */}
+          {/* Viva icon for assistant messages */}
           {!isUser && (
             <div className="flex items-center gap-2 mb-2">
               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#14B8A6] to-[#8B5CF6] flex items-center justify-center">
                 <Sparkles className="w-3 h-3 text-white" />
               </div>
-              <span className="text-xs font-medium text-[#14B8A6]">Vision Guide</span>
+              <span className="text-xs font-medium text-[#14B8A6]">Viva</span>
             </div>
           )}
           

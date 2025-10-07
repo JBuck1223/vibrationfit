@@ -122,7 +122,7 @@ export function ChatInterface({
                   <div className="bg-[#1F1F1F] border-2 border-[#333] rounded-2xl rounded-bl-sm px-6 py-4">
                     <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 text-[#14B8A6] animate-spin" />
-                      <span className="text-neutral-400 text-sm">Vision Guide is thinking...</span>
+                      <span className="text-neutral-400 text-sm">Viva is thinking...</span>
                     </div>
                   </div>
                 </div>

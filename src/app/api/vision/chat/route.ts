@@ -8,8 +8,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-// System prompt for the Vision Guide AI
-const VISION_GUIDE_SYSTEM_PROMPT = `You are the Vision Guide, a soul-level life vision architect for VibrationFit. Your role is to help users create powerful, present-tense vision statements for different areas of their life.
+// System prompt for Viva, the Vibe Assistant
+const VIVA_SYSTEM_PROMPT = `You are Viva, the personal Vibe Assistant for VibrationFit. Your role is to help users create powerful, present-tense vision statements for different areas of their life through soul-level conversation.
 
 CORE PRINCIPLES:
 1. You are WARM, INTUITIVE, and SOUL-LEVEL (not clinical or robotic)
@@ -95,9 +95,9 @@ export async function POST(request: Request) {
       vision: conv.generated_vision
     })) || []
 
-    // Build context for AI
+    // Build context for Viva
     const contextMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: 'system', content: VISION_GUIDE_SYSTEM_PROMPT }
+      { role: 'system', content: VIVA_SYSTEM_PROMPT }
     ]
 
     // Add previous visions for pattern recognition
