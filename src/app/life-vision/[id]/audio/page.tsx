@@ -17,6 +17,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [voices, setVoices] = useState<Voice[]>([])
   const [voice, setVoice] = useState<string>('alloy')
   const [workingOn, setWorkingOn] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -31,7 +32,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       try {
         const resp = await fetch('/api/audio/voices', { cache: 'no-store' })
         const data = await resp.json()
-        setVoices((data.voices || []).map((v: any) => ({ id: v.id, name: v.name })))
+        setVoices((data.voices || []).map((v: any) => ({ id: v.id, name: v.brandName || v.name })))
       } catch {}
     })()
   }, [])
@@ -178,12 +179,24 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
             <select
               value={voice}
               onChange={(e) => setVoice(e.target.value)}
-              className="px-4 py-2 rounded-full bg-black/30 text-white border-2 border-white/30"
+              className="px-6 py-3 rounded-full bg-black/30 text-white border-2 border-white/30 h-[46px]"
             >
               {voices.map(v => (
                 <option key={v.id} value={v.id}>{v.name}</option>
               ))}
             </select>
+            <Button variant="outline" onClick={async () => {
+              try {
+                const res = await fetch(`/api/audio/voices?preview=${voice}`)
+                const blob = await res.blob()
+                const url = URL.createObjectURL(blob)
+                setPreviewUrl(url)
+                const audio = new Audio(url)
+                audio.play()
+              } catch (e) {
+                console.error('Preview failed', e)
+              }
+            }}>Preview</Button>
             <GradientButton gradient="brand" onClick={handleGenerate} disabled={generating}>
               {generating ? 'Generating…' : 'Generate Audio'}
             </GradientButton>

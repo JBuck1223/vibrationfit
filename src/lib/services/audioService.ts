@@ -250,15 +250,20 @@ export async function generateAudioTracks(params: {
   return results
 }
 
-export function getOpenAIVoices(): { id: OpenAIVoice; name: string; preview?: string }[] {
+export function getOpenAIVoices(): { id: OpenAIVoice; name: string; brandName: string }[] {
   return [
-    { id: 'alloy', name: 'Alloy' },
-    { id: 'verse', name: 'Verse' },
-    { id: 'coral', name: 'Coral' },
-    { id: 'sage', name: 'Sage' },
-    { id: 'flow', name: 'Flow' },
-    { id: 'aria', name: 'Aria' },
+    { id: 'alloy', name: 'Alloy', brandName: 'Clarity Mentor' },
+    { id: 'verse', name: 'Verse', brandName: 'Warm Guide' },
+    { id: 'coral', name: 'Coral', brandName: 'Cosmic Storyteller' },
+    { id: 'sage', name: 'Sage', brandName: 'Deep Presence' },
+    { id: 'flow', name: 'Flow', brandName: 'Meditation Flow' },
+    { id: 'aria', name: 'Aria', brandName: 'Energetic Coach' },
   ]
+}
+
+export async function synthesizePreview(voice: OpenAIVoice, format: 'mp3' | 'wav' = 'mp3'): Promise<Buffer> {
+  const sample = 'Welcome to VibrationFit. Breathe in clarity, align with your vision, and rise above the green line.'
+  return synthesizeWithOpenAI(sample, voice, format)
 }
 
 
