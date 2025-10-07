@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import crypto from 'crypto'
 
 export type OpenAIVoice = 'alloy' | 'verse' | 'coral' | 'sage' | 'flow' | 'aria'
@@ -273,25 +273,30 @@ export async function getOrCreateVoiceReference(voice: OpenAIVoice, format: 'mp3
   const ext = format === 'wav' ? 'wav' : 'mp3'
   const key = `site-assets/voice-previews/${voice}.${ext}`
 
-  // Always (re)generate for now; S3 will overwrite. Can be optimized later with a HEAD check.
-  const chunks = chunkTextForTTS(REFERENCE_TEXT)
-  const buffers: Buffer[] = []
-  for (const part of chunks) {
-    const b = await synthesizeWithOpenAI(part, voice, format)
-    buffers.push(b)
+  // Check if it already exists
+  try {
+    await s3.send(new HeadObjectCommand({ Bucket: BUCKET_NAME, Key: key }))
+    return { url: `${CDN_PREFIX}/${key}`, key }
+  } catch {
+    // Not found, generate and upload
+    const chunks = chunkTextForTTS(REFERENCE_TEXT)
+    const buffers: Buffer[] = []
+    for (const part of chunks) {
+      const b = await synthesizeWithOpenAI(part, voice, format)
+      buffers.push(b)
+    }
+    const audioBuffer = Buffer.concat(buffers)
+
+    const put = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: audioBuffer,
+      ContentType: format === 'wav' ? 'audio/wav' : 'audio/mpeg',
+      CacheControl: 'public, max-age=31536000',
+    })
+    await s3.send(put)
+    return { url: `${CDN_PREFIX}/${key}`, key }
   }
-  const audioBuffer = Buffer.concat(buffers)
-
-  const put = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    Body: audioBuffer,
-    ContentType: format === 'wav' ? 'audio/wav' : 'audio/mpeg',
-    CacheControl: 'public, max-age=31536000',
-  })
-  await s3.send(put)
-
-  return { url: `${CDN_PREFIX}/${key}`, key }
 }
 
 
