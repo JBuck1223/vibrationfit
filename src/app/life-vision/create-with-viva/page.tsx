@@ -72,12 +72,26 @@ export default function VisionCreateWithAIPage() {
         return
       }
 
+      // Get the next version number for this user
+      const { data: existingVisions } = await supabase
+        .from('vision_versions')
+        .select('version_number')
+        .eq('user_id', user.id)
+        .order('version_number', { ascending: false })
+        .limit(1)
+
+      const nextVersionNumber = existingVisions && existingVisions.length > 0 
+        ? (existingVisions[0].version_number || 0) + 1 
+        : 1
+
+      console.log('Creating vision with version number:', nextVersionNumber)
+
       // Create a new blank vision for AI conversation
       const { data: newVision, error } = await supabase
         .from('vision_versions')
         .insert({
           user_id: user.id,
-          version_number: 1,
+          version_number: nextVersionNumber,
           category: 'viva-created',
           is_active: false,
           ai_generated: true,
@@ -101,13 +115,30 @@ export default function VisionCreateWithAIPage() {
         .single()
 
       if (error) {
-        console.error('Vision creation error:', error)
+        console.error('Vision creation error details:', {
+          error,
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        })
         throw error
       }
 
+      if (!newVision) {
+        console.error('No vision returned from insert')
+        throw new Error('Failed to create vision - no data returned')
+      }
+
+      console.log('Vision created successfully:', newVision.id)
       setVisionId(newVision.id)
     } catch (error) {
       console.error('Error initializing vision:', error)
+      console.error('Error type:', typeof error)
+      console.error('Error keys:', error ? Object.keys(error) : 'null')
+      
+      // Show user-friendly error
+      alert('Unable to create vision. Please try again or contact support if the issue persists.')
       router.push('/life-vision')
     } finally {
       setInitializing(false)
