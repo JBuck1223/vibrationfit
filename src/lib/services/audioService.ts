@@ -59,6 +59,33 @@ async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', 
   return Buffer.from(arrayBuffer)
 }
 
+// Split long text to safer chunks for TTS (~3k chars per chunk)
+function chunkTextForTTS(text: string, maxLen = 3000): string[] {
+  const t = normalizeText(text)
+  if (t.length <= maxLen) return [t]
+  const sentences = t.split(/(?<=[\.!?])\s+/)
+  const chunks: string[] = []
+  let current = ''
+  for (const s of sentences) {
+    if ((current + ' ' + s).trim().length > maxLen) {
+      if (current) chunks.push(current.trim())
+      if (s.length > maxLen) {
+        // hard-split very long sentence
+        for (let i = 0; i < s.length; i += maxLen) {
+          chunks.push(s.slice(i, i + maxLen))
+        }
+        current = ''
+      } else {
+        current = s
+      }
+    } else {
+      current = (current ? current + ' ' : '') + s
+    }
+  }
+  if (current) chunks.push(current.trim())
+  return chunks
+}
+
 function getS3Client() {
   if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
     throw new Error('AWS credentials not configured')
@@ -156,7 +183,13 @@ export async function generateAudioTracks(params: {
       let useVoice: OpenAIVoice = voice
       while (attempt < maxAttempts && !audioBuffer) {
         try {
-          audioBuffer = await synthesizeWithOpenAI(section.text, useVoice, format)
+          const chunks = chunkTextForTTS(section.text)
+          const buffers: Buffer[] = []
+          for (const part of chunks) {
+            const b = await synthesizeWithOpenAI(part, useVoice, format)
+            buffers.push(b)
+          }
+          audioBuffer = Buffer.concat(buffers)
           break
         } catch (e: any) {
           lastError = e instanceof Error ? e : new Error(String(e))
