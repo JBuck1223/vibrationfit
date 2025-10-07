@@ -266,4 +266,32 @@ export async function synthesizePreview(voice: OpenAIVoice, format: 'mp3' | 'wav
   return synthesizeWithOpenAI(sample, voice, format)
 }
 
+const REFERENCE_TEXT = "This vision serves as my magnet, attracting the people, ideas, resources, strategies, events, and circumstances that orchestrate its beautiful unfolding. I hereby give the Universe full permission to open all doors leading to the joyful experience of this or something even better. Thank you in advance for this fun and satisfying journey of unlimited creation. I am truly grateful for the opportunity to be here and experience ourselves as the conscious creators of the The Life I Choose."
+
+export async function getOrCreateVoiceReference(voice: OpenAIVoice, format: 'mp3' | 'wav' = 'mp3'): Promise<{ url: string; key: string }> {
+  const s3 = getS3Client()
+  const ext = format === 'wav' ? 'wav' : 'mp3'
+  const key = `site-assets/voice-previews/${voice}.${ext}`
+
+  // Always (re)generate for now; S3 will overwrite. Can be optimized later with a HEAD check.
+  const chunks = chunkTextForTTS(REFERENCE_TEXT)
+  const buffers: Buffer[] = []
+  for (const part of chunks) {
+    const b = await synthesizeWithOpenAI(part, voice, format)
+    buffers.push(b)
+  }
+  const audioBuffer = Buffer.concat(buffers)
+
+  const put = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Body: audioBuffer,
+    ContentType: format === 'wav' ? 'audio/wav' : 'audio/mpeg',
+    CacheControl: 'public, max-age=31536000',
+  })
+  await s3.send(put)
+
+  return { url: `${CDN_PREFIX}/${key}`, key }
+}
+
 

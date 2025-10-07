@@ -188,11 +188,8 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
             <Button variant="outline" onClick={async () => {
               try {
                 const res = await fetch(`/api/audio/voices?preview=${voice}`, { cache: 'no-store' })
-                const array = await res.arrayBuffer()
-                const blob = new Blob([array], { type: 'audio/mpeg' })
-                const url = URL.createObjectURL(blob)
-                setPreviewUrl(url)
-                const audio = new Audio(url)
+                const data = await res.json()
+                const audio = new Audio(data.url)
                 audio.play()
               } catch (e) {
                 console.error('Preview failed', e)
