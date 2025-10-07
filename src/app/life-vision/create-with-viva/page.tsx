@@ -9,8 +9,8 @@ import { ChatInterface } from '@/components/vision/ChatInterface'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-// Use all 14 centralized vision categories (Forward → Conclusion)
-const LIFE_CATEGORY_KEYS = getVisionCategoryKeys() // All 14 categories in order
+// Starting with first 4 categories for testing Discovery Path
+const LIFE_CATEGORY_KEYS = ['forward', 'fun', 'travel', 'home']
 const LIFE_CATEGORIES = LIFE_CATEGORY_KEYS.map(key => getVisionCategoryLabel(key))
 
 interface Message {

@@ -82,55 +82,154 @@ export const DISCOVERY_TEMPLATES: Record<string, DiscoveryQuestion[]> = {
     }
   ],
 
-  // Continue with other categories...
-  // (I'll add more in the next iteration based on user feedback)
+  // HOME / ENVIRONMENT
+  home: [
+    {
+      step: 1,
+      questionText: "What matters most to you in your living environment?",
+      aiMessage: "Let's discover what makes a space feel like HOME to you! 🏡\n\nChoose what resonates - pick as many as you want:",
+      options: [
+        { id: "peaceful", label: "Peaceful & Calm", sublabel: "sanctuary, quiet, restful", icon: "🕊️", internalNote: "Values tranquility and rest" },
+        { id: "beautiful", label: "Beautiful & Aesthetic", sublabel: "design, colors, visual harmony", icon: "✨", internalNote: "Values beauty and aesthetics" },
+        { id: "functional", label: "Functional & Organized", sublabel: "efficient, clean, systems", icon: "📐", internalNote: "Values order and efficiency" },
+        { id: "cozy", label: "Cozy & Comfortable", sublabel: "warm, soft, inviting", icon: "🛋️", internalNote: "Values comfort and warmth" },
+        { id: "natural", label: "Natural & Green", sublabel: "plants, light, outdoor connection", icon: "🌿", internalNote: "Values nature integration" },
+        { id: "creative", label: "Creative & Expressive", sublabel: "art, personality, unique touches", icon: "🎨", internalNote: "Values self-expression" },
+        { id: "social", label: "Social & Welcoming", sublabel: "gathering space, hospitality", icon: "👥", internalNote: "Values community and hosting" },
+        { id: "other", label: "Something else", sublabel: "tell me more", icon: "💭", inputField: true }
+      ],
+      purpose: "Understand their home environment values",
+      strategy: "See what qualities resonate - reveals what makes them feel at home"
+    }
+  ]
 }
 
-// Helper to get drill-down questions based on initial selections
-export function getDrillDownQuestions(category: string, selections: string[]): Record<string, DiscoveryOption[]> {
-  // Example for Fun / Recreation
-  if (category === 'fun' || category === 'Fun / Recreation') {
-    const drillDowns: Record<string, DiscoveryOption[]> = {}
+// Helper to get drill-down questions based on category and initial selections
+export function getDrillDownQuestionsForCategory(category: string, selections: string[]): { questionKey: string; questionText: string; options: DiscoveryOption[] }[] {
+  const drillDowns: { questionKey: string; questionText: string; options: DiscoveryOption[] }[] = []
 
+  // FUN / RECREATION drill-downs
+  if (category === 'Fun / Recreation') {
     if (selections.includes('creative')) {
-      drillDowns['creative_types'] = [
-        { id: "visual", label: "Visual arts", sublabel: "painting, drawing, photography", icon: "🎨" },
-        { id: "music", label: "Music", sublabel: "playing, singing, listening live", icon: "🎵" },
-        { id: "writing", label: "Writing", sublabel: "journaling, stories, poetry", icon: "✍️" },
-        { id: "crafts", label: "Crafts/Making", sublabel: "pottery, woodwork, DIY", icon: "🛠️" },
-        { id: "performance", label: "Performance", sublabel: "dance, theater, improv", icon: "🎭" },
-        { id: "digital", label: "Digital creation", sublabel: "design, video, coding", icon: "💻" },
-        { id: "other_creative", label: "Other", sublabel: "", icon: "✨", inputField: true }
-      ]
+      drillDowns.push({
+        questionKey: 'creative_types',
+        questionText: 'What kind of creative activities sound fun to you?',
+        options: [
+          { id: "visual", label: "Visual arts", sublabel: "painting, drawing, photography", icon: "🎨" },
+          { id: "music", label: "Music", sublabel: "playing, singing, listening live", icon: "🎵" },
+          { id: "writing", label: "Writing", sublabel: "journaling, stories, poetry", icon: "✍️" },
+          { id: "crafts", label: "Crafts/Making", sublabel: "pottery, woodwork, DIY", icon: "🛠️" },
+          { id: "performance", label: "Performance", sublabel: "dance, theater, improv", icon: "🎭" },
+          { id: "digital", label: "Digital creation", sublabel: "design, video, coding", icon: "💻" }
+        ]
+      })
     }
 
     if (selections.includes('adventurous')) {
-      drillDowns['adventure_types'] = [
-        { id: "nature", label: "Nature adventures", sublabel: "hiking, camping, exploring outdoors", icon: "🏕️" },
-        { id: "travel", label: "Travel", sublabel: "new cities, new countries", icon: "✈️" },
-        { id: "urban", label: "Urban exploration", sublabel: "new neighborhoods, hidden spots", icon: "🏙️" },
-        { id: "spontaneous", label: "Spontaneous day trips", sublabel: "just go somewhere new", icon: "🚗" },
-        { id: "cultural", label: "Cultural experiences", sublabel: "festivals, museums, events", icon: "🎭" },
-        { id: "food", label: "Food adventures", sublabel: "new restaurants, cooking new cuisines", icon: "🍜" },
-        { id: "other_adventure", label: "Other", sublabel: "", icon: "✨", inputField: true }
-      ]
+      drillDowns.push({
+        questionKey: 'adventure_types',
+        questionText: 'What kind of adventures excite you?',
+        options: [
+          { id: "nature", label: "Nature adventures", sublabel: "hiking, camping, exploring outdoors", icon: "🏕️" },
+          { id: "travel", label: "Travel", sublabel: "new cities, new countries", icon: "✈️" },
+          { id: "urban", label: "Urban exploration", sublabel: "new neighborhoods, hidden spots", icon: "🏙️" },
+          { id: "spontaneous", label: "Spontaneous day trips", sublabel: "just go somewhere new", icon: "🚗" },
+          { id: "cultural", label: "Cultural experiences", sublabel: "festivals, museums, events", icon: "🎭" },
+          { id: "food", label: "Food adventures", sublabel: "new restaurants, cooking new cuisines", icon: "🍜" }
+        ]
+      })
     }
 
     if (selections.includes('playful')) {
-      drillDowns['playful_expression'] = [
-        { id: "games", label: "Games", sublabel: "board games, video games, party games", icon: "🎮" },
-        { id: "silly", label: "Being silly", sublabel: "not taking things seriously, laughing", icon: "😄" },
-        { id: "spontaneous_play", label: "Spontaneous", sublabel: "unplanned, following impulses", icon: "🎈" },
-        { id: "childlike", label: "Childlike activities", sublabel: "playgrounds, building forts, etc.", icon: "🧸" },
-        { id: "experimental", label: "Experimenting", sublabel: "trying new things without judgment", icon: "🔬" },
-        { id: "other_playful", label: "Other", sublabel: "", icon: "✨", inputField: true }
-      ]
+      drillDowns.push({
+        questionKey: 'playful_expression',
+        questionText: 'How does playfulness show up for you?',
+        options: [
+          { id: "games", label: "Games", sublabel: "board games, video games, party games", icon: "🎮" },
+          { id: "silly", label: "Being silly", sublabel: "not taking things seriously, laughing", icon: "😄" },
+          { id: "spontaneous_play", label: "Spontaneous", sublabel: "unplanned, following impulses", icon: "🎈" },
+          { id: "childlike", label: "Childlike activities", sublabel: "playgrounds, building forts, etc.", icon: "🧸" },
+          { id: "experimental", label: "Experimenting", sublabel: "trying new things without judgment", icon: "🔬" }
+        ]
+      })
     }
-
-    return drillDowns
   }
 
-  return {}
+  // TRAVEL / ADVENTURE drill-downs
+  if (category === 'Travel / Adventure') {
+    if (selections.includes('nature')) {
+      drillDowns.push({
+        questionKey: 'nature_adventures',
+        questionText: 'What kind of nature experiences call to you?',
+        options: [
+          { id: "mountains", label: "Mountains", sublabel: "hiking, climbing, alpine views", icon: "⛰️" },
+          { id: "beaches", label: "Beaches & Oceans", sublabel: "coastlines, islands, water", icon: "🏖️" },
+          { id: "forests", label: "Forests & Trails", sublabel: "woods, hiking, camping", icon: "🌲" },
+          { id: "desert", label: "Deserts & Canyons", sublabel: "vast landscapes, red rocks", icon: "🏜️" },
+          { id: "wilderness", label: "Remote Wilderness", sublabel: "off-grid, untouched places", icon: "🏕️" }
+        ]
+      })
+    }
+
+    if (selections.includes('cultural')) {
+      drillDowns.push({
+        questionKey: 'cultural_interests',
+        questionText: 'What cultural experiences excite you?',
+        options: [
+          { id: "history", label: "Historical Sites", sublabel: "ancient places, museums", icon: "🏛️" },
+          { id: "local_life", label: "Local Life", sublabel: "markets, neighborhoods, daily life", icon: "🏘️" },
+          { id: "art_culture", label: "Art & Culture", sublabel: "galleries, performances, festivals", icon: "🎭" },
+          { id: "food_culture", label: "Food Culture", sublabel: "cuisine, cooking, food tours", icon: "🍜" },
+          { id: "traditions", label: "Traditions & Rituals", sublabel: "ceremonies, celebrations", icon: "🎊" }
+        ]
+      })
+    }
+  }
+
+  // HOME / ENVIRONMENT drill-downs
+  if (category === 'Home / Environment') {
+    if (selections.includes('beautiful')) {
+      drillDowns.push({
+        questionKey: 'aesthetic_preferences',
+        questionText: 'What aesthetic speaks to you?',
+        options: [
+          { id: "minimalist", label: "Minimalist", sublabel: "clean lines, simple, uncluttered", icon: "⬜" },
+          { id: "bohemian", label: "Bohemian", sublabel: "eclectic, colorful, layered", icon: "🌈" },
+          { id: "modern", label: "Modern", sublabel: "contemporary, sleek, refined", icon: "🏢" },
+          { id: "rustic", label: "Rustic/Natural", sublabel: "wood, textures, earthy", icon: "🪵" },
+          { id: "elegant", label: "Elegant/Classic", sublabel: "timeless, sophisticated", icon: "✨" },
+          { id: "eclectic", label: "Eclectic Mix", sublabel: "unique, personal, curated", icon: "🎨" }
+        ]
+      })
+    }
+
+    if (selections.includes('natural')) {
+      drillDowns.push({
+        questionKey: 'nature_integration',
+        questionText: 'How do you want nature in your space?',
+        options: [
+          { id: "plants", label: "Lots of Plants", sublabel: "indoor jungle, greenery everywhere", icon: "🌿" },
+          { id: "natural_light", label: "Natural Light", sublabel: "windows, brightness, sun", icon: "☀️" },
+          { id: "outdoor_access", label: "Outdoor Access", sublabel: "patio, balcony, garden", icon: "🌳" },
+          { id: "natural_materials", label: "Natural Materials", sublabel: "wood, stone, organic textures", icon: "🪨" },
+          { id: "views", label: "Nature Views", sublabel: "looking out at trees, water, sky", icon: "🏞️" }
+        ]
+      })
+    }
+  }
+
+  return drillDowns
+}
+
+// Get the category key from label (handles both key and label input)
+export function getCategoryKey(categoryLabel: string): string {
+  const mappings: Record<string, string> = {
+    'Forward': 'forward',
+    'Fun / Recreation': 'fun',
+    'Travel / Adventure': 'travel',
+    'Home / Environment': 'home'
+  }
+  return mappings[categoryLabel] || categoryLabel.toLowerCase()
 }
 
 // Rhythm/Integration question (Step 3 for most categories)
