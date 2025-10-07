@@ -87,14 +87,13 @@ export default function VisionCreateWithAIPage() {
       console.log('Creating vision with version number:', nextVersionNumber)
 
       // Create a new blank vision for Viva conversation
+      // Using only fields that exist in vision_versions table
       const { data: newVision, error } = await supabase
         .from('vision_versions')
         .insert({
           user_id: user.id,
           version_number: nextVersionNumber,
           title: 'My Vision (Created with Viva)',
-          is_active: false,
-          ai_generated: true,
           // Initialize with empty sections for all categories
           forward: '',
           fun: '',
