@@ -115,13 +115,12 @@ export default function VisionCreateWithAIPage() {
         .single()
 
       if (error) {
-        console.error('Vision creation error details:', {
-          error,
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        })
+        console.error('Vision creation FAILED')
+        console.error('Error message:', error.message || 'No message')
+        console.error('Error code:', error.code || 'No code')
+        console.error('Error details:', error.details || 'No details')
+        console.error('Error hint:', error.hint || 'No hint')
+        console.error('Full error object:', JSON.stringify(error, null, 2))
         throw error
       }
 
