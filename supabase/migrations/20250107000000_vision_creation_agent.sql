@@ -21,8 +21,7 @@ create table if not exists public.vision_conversations (
   -- Emotional state tracking
   vibrational_state text check (vibrational_state in ('above_green_line', 'below_green_line', 'neutral')),
   final_emotion_score integer check (final_emotion_score between 1 and 22),
-  -- 1-7: Above Green Line (Joy, Appreciation, Passion, Enthusiasm, Positive Expectation, Optimism, Hopefulness)
-  -- 8-22: Below Green Line (Contentment -> Depression)
+  -- Emotion scale: 1-7 Above Green Line, 8-22 Below Green Line
   
   -- Vision content generated from this conversation
   generated_vision text,
