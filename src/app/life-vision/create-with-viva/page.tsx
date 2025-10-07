@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, PageLayout, Button, getVisionCategoryLabel, getVisionCategoryKeys } from '@/lib/design-system/components'
+import { Container, PageLayout, Button, getVisionCategoryLabel, getVisionCategoryKeys } from '@/lib/design-system'
 import { CategoryProgress } from '@/components/vision/CategoryProgress'
 import { PathSelector } from '@/components/vision/PathSelector'
 import { ChatInterface } from '@/components/vision/ChatInterface'
