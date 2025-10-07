@@ -54,20 +54,17 @@ export function DiscoveryQuestion({
     }
 
     setSelections(newSelections)
+    
+    // Auto-submit if button is hidden (for Step 2 questions)
+    if (!showSubmitButton && newSelections.size > 0) {
+      const selectedArray = Array.from(newSelections)
+      onSubmit(selectedArray, customInput || undefined)
+    }
   }
 
   const handleSubmit = () => {
     const selectedArray = Array.from(selections)
     onSubmit(selectedArray, customInput || undefined)
-  }
-
-  // Auto-submit when selection changes if button is hidden (for Step 2 questions)
-  const handleSelectionChange = (newSelections: Set<string>, newCustomInput?: string) => {
-    if (!showSubmitButton) {
-      // Auto-submit for Step 2 questions
-      const selectedArray = Array.from(newSelections)
-      onSubmit(selectedArray, newCustomInput || undefined)
-    }
   }
 
   const isValid = selections.size > 0 && (!showCustomInput || customInput.trim().length > 0)
