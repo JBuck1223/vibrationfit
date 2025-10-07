@@ -9,20 +9,21 @@ import { ChatInterface } from '@/components/vision/ChatInterface'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-// 12 life categories
+// Life categories in the correct order (matching vision_versions schema)
 const LIFE_CATEGORIES = [
-  'Health & Vitality',
-  'Relationships',
-  'Career & Purpose',
-  'Financial Freedom',
-  'Personal Growth',
-  'Family',
-  'Social Life',
-  'Recreation & Fun',
-  'Physical Environment',
-  'Spirituality',
-  'Contribution',
-  'Creativity & Expression'
+  'Personal Growth',      // forward
+  'Recreation & Fun',     // fun
+  'Creativity & Expression', // travel
+  'Physical Environment', // home
+  'Family',              // family
+  'Relationships',       // romance
+  'Health & Vitality',   // health
+  'Financial Freedom',   // money
+  'Career & Purpose',    // business
+  'Social Life',         // social
+  'Possessions',         // possessions
+  'Contribution'         // giving
+  // Note: spirituality and conclusion are meta-sections, handled separately
 ]
 
 interface Message {

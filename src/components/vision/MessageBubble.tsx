@@ -12,58 +12,56 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ role, content, timestamp, emotionScore }: MessageBubbleProps) {
   const isUser = role === 'user'
-  
-  // Determine emotion color based on score (1-7 above green line, 8-22 below)
-  const getEmotionColor = () => {
-    if (!emotionScore) return null
-    if (emotionScore <= 7) return 'bg-[#199D67]/10 border-[#199D67]' // Above Green Line
-    return 'bg-[#D03739]/10 border-[#D03739]' // Below Green Line
-  }
 
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-6 animate-fadeIn`}>
-      <div className={`max-w-[80%] ${isUser ? 'order-2' : 'order-1'}`}>
-        {/* Message bubble */}
-        <div
-          className={`
-            px-6 py-4 rounded-2xl
-            ${isUser 
-              ? 'bg-[#199D67] text-white rounded-br-sm' 
-              : 'bg-[#1F1F1F] border-2 border-[#333] text-neutral-100 rounded-bl-sm'
-            }
-            ${!isUser && emotionScore ? getEmotionColor() : ''}
-            transition-all duration-300
-          `}
-        >
-          {/* Viva icon for assistant messages */}
-          {!isUser && (
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#14B8A6] to-[#8B5CF6] flex items-center justify-center">
-                <Sparkles className="w-3 h-3 text-white" />
-              </div>
-              <span className="text-xs font-medium text-[#14B8A6]">Viva</span>
-            </div>
-          )}
-          
-          {/* Message content */}
-          <p className="text-base leading-relaxed whitespace-pre-wrap">{content}</p>
-          
-          {/* Timestamp */}
+  if (isUser) {
+    // User message - right-aligned with bubble
+    return (
+      <div className="flex justify-end mb-6 animate-fadeIn">
+        <div className="max-w-[85%]">
+          <div className="bg-[#14B8A6] text-white px-5 py-3 rounded-2xl rounded-br-md">
+            <p className="text-base leading-relaxed whitespace-pre-wrap">{content}</p>
+          </div>
           {timestamp && (
-            <p className={`text-xs mt-2 ${isUser ? 'text-white/70' : 'text-neutral-500'}`}>
+            <p className="text-xs text-neutral-500 mt-1 text-right">
               {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
           )}
         </div>
-        
-        {/* Emotion indicator for assistant messages */}
-        {!isUser && emotionScore && (
-          <div className="mt-2 flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${emotionScore <= 7 ? 'bg-[#199D67]' : 'bg-[#D03739]'}`} />
-            <span className="text-xs text-neutral-500">
-              {emotionScore <= 7 ? 'Above Green Line' : 'Below Green Line'}
+      </div>
+    )
+  }
+
+  // Assistant message - Claude-style with avatar on left
+  return (
+    <div className="flex items-start gap-3 mb-8 animate-fadeIn group">
+      {/* Viva avatar */}
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-[#8B5CF6] flex items-center justify-center flex-shrink-0 mt-1">
+        <Sparkles className="w-4 h-4 text-white" />
+      </div>
+
+      {/* Message content */}
+      <div className="flex-1 max-w-[85%]">
+        <div className="mb-1">
+          <span className="text-sm font-medium text-[#14B8A6]">Viva</span>
+          {emotionScore && (
+            <span className="ml-2 inline-flex items-center gap-1.5">
+              <div className={`w-1.5 h-1.5 rounded-full ${emotionScore <= 7 ? 'bg-[#199D67]' : 'bg-[#D03739]'}`} />
+              <span className={`text-xs ${emotionScore <= 7 ? 'text-[#199D67]' : 'text-[#D03739]'}`}>
+                {emotionScore <= 7 ? 'Above Green Line' : 'Below Green Line'}
+              </span>
             </span>
-          </div>
+          )}
+        </div>
+        
+        {/* Message text - clean, no background like Claude */}
+        <div className="text-neutral-100 text-base leading-relaxed whitespace-pre-wrap">
+          {content}
+        </div>
+
+        {timestamp && (
+          <p className="text-xs text-neutral-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
         )}
       </div>
     </div>

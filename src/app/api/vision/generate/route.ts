@@ -10,18 +10,19 @@ const openai = new OpenAI({
 
 // Map conversation category names to vision_versions column names
 const CATEGORY_TO_COLUMN_MAP: { [key: string]: string } = {
-  'Health & Vitality': 'health',
-  'Relationships': 'romance',
-  'Career & Purpose': 'business',
-  'Financial Freedom': 'money',
   'Personal Growth': 'forward',
-  'Family': 'family',
-  'Social Life': 'social',
   'Recreation & Fun': 'fun',
+  'Creativity & Expression': 'travel',
   'Physical Environment': 'home',
-  'Spirituality': 'spirituality',
+  'Family': 'family',
+  'Relationships': 'romance',
+  'Health & Vitality': 'health',
+  'Financial Freedom': 'money',
+  'Career & Purpose': 'business',
+  'Social Life': 'social',
+  'Possessions': 'possessions',
   'Contribution': 'giving',
-  'Creativity & Expression': 'travel' // Using 'travel' for creativity (closest match)
+  'Spirituality': 'spirituality'
 }
 
 /**
