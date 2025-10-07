@@ -60,6 +60,35 @@ export default function VisionCreateWithVivaPage() {
         return
       }
 
+      // CHECK: Profile completion requirement
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (profileError || !profile) {
+        console.error('Profile not found:', profileError)
+        alert('Please complete your profile before using Viva. Redirecting to profile creation...')
+        router.push('/profile/new')
+        return
+      }
+
+      // Check profile completion percentage
+      const requiredFields = [
+        'first_name', 'last_name', 'birth_date', 'gender',
+        'current_city', 'current_state', 'current_country',
+        'relationship_status', 'career_title', 'career_industry'
+      ]
+      const filledFields = requiredFields.filter(field => profile[field] && String(profile[field]).trim() !== '')
+      const completionPercent = Math.round((filledFields.length / requiredFields.length) * 100)
+
+      if (completionPercent < 70) {
+        alert(`Viva needs more information to create a personalized vision for you.\n\nYour profile is ${completionPercent}% complete. Please complete at least 70% before using Viva.\n\nRedirecting to your profile...`)
+        router.push('/profile/edit')
+        return
+      }
+
       // SAFEGUARD: Check if user already has a Viva draft vision
       const { data: existingDraft } = await supabase
         .from('vision_versions')
