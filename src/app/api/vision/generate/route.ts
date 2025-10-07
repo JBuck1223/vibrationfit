@@ -8,6 +8,22 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+// Map conversation category names to vision_versions column names
+const CATEGORY_TO_COLUMN_MAP: { [key: string]: string } = {
+  'Health & Vitality': 'health',
+  'Relationships': 'romance',
+  'Career & Purpose': 'business',
+  'Financial Freedom': 'money',
+  'Personal Growth': 'forward',
+  'Family': 'family',
+  'Social Life': 'social',
+  'Recreation & Fun': 'fun',
+  'Physical Environment': 'home',
+  'Spirituality': 'spirituality',
+  'Contribution': 'giving',
+  'Creativity & Expression': 'travel' // Using 'travel' for creativity (closest match)
+}
+
 /**
  * POST /api/vision/generate
  * Generate vision text from conversation using OpenAI
@@ -132,27 +148,22 @@ Generate the vision now based on the conversation below.`
 
     if (updateError) throw updateError
 
-    // Update vision_versions sections with generated vision
-    const { data: visionVersion } = await supabase
-      .from('vision_versions')
-      .select('sections')
-      .eq('id', vision_id)
-      .single()
-
-    const updatedSections = {
-      ...(visionVersion?.sections || {}),
-      [category]: generatedVision
+    // Update vision_versions with generated vision
+    // Map category name to database column
+    const columnName = CATEGORY_TO_COLUMN_MAP[category]
+    
+    if (!columnName) {
+      throw new Error(`Unknown category: ${category}`)
     }
 
-    const { error: versionUpdateError } = await supabase
+    const { error: visionUpdateError } = await supabase
       .from('vision_versions')
       .update({
-        sections: updatedSections,
-        ai_generated: true
+        [columnName]: generatedVision
       })
       .eq('id', vision_id)
 
-    if (versionUpdateError) throw versionUpdateError
+    if (visionUpdateError) throw visionUpdateError
 
     // Detect cross-category themes if multiple categories completed
     let detectedThemes: string[] = []
