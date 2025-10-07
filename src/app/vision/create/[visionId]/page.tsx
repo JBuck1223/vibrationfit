@@ -1,0 +1,381 @@
+"use client"
+
+import React, { useState, useEffect, use } from 'react'
+import { useRouter } from 'next/navigation'
+import { Container, PageLayout, Button } from '@/lib/design-system/components'
+import { CategoryProgress } from '@/components/vision/CategoryProgress'
+import { PathSelector } from '@/components/vision/PathSelector'
+import { ChatInterface } from '@/components/vision/ChatInterface'
+import { ArrowLeft } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+
+// 12 life categories
+const LIFE_CATEGORIES = [
+  'Health & Vitality',
+  'Relationships',
+  'Career & Purpose',
+  'Financial Freedom',
+  'Personal Growth',
+  'Family',
+  'Social Life',
+  'Recreation & Fun',
+  'Physical Environment',
+  'Spirituality',
+  'Contribution',
+  'Creativity & Expression'
+]
+
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+  emotion_score?: number
+}
+
+export default function VisionCreatePage({ params }: { params: Promise<{ visionId: string }> }) {
+  const router = useRouter()
+  const { visionId } = use(params)
+  const supabase = createClient()
+
+  const [loading, setLoading] = useState(true)
+  const [progress, setProgress] = useState<{
+    categories_completed: string[]
+    current_category: string | null
+    total_categories: number
+  } | null>(null)
+  
+  const [currentCategory, setCurrentCategory] = useState<string | null>(null)
+  const [pathChosen, setPathChosen] = useState<'clarity' | 'contrast' | 'discovery' | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [isLoadingMessage, setIsLoadingMessage] = useState(false)
+  const [vibrationalState, setVibrationalState] = useState<'above_green_line' | 'below_green_line' | 'neutral'>('neutral')
+
+  // Load progress and determine current category
+  useEffect(() => {
+    loadProgress()
+  }, [visionId])
+
+  // Load conversation when category is selected
+  useEffect(() => {
+    if (currentCategory) {
+      loadConversation()
+    }
+  }, [currentCategory])
+
+  const loadProgress = async () => {
+    try {
+      const response = await fetch(`/api/vision/progress?vision_id=${visionId}`)
+      const data = await response.json()
+      
+      if (data.progress) {
+        setProgress(data.progress)
+        
+        // Determine next category to work on
+        const completedCategories = data.progress.categories_completed || []
+        const nextCategory = LIFE_CATEGORIES.find(cat => !completedCategories.includes(cat))
+        
+        if (nextCategory) {
+          setCurrentCategory(nextCategory)
+        } else if (completedCategories.length === LIFE_CATEGORIES.length) {
+          // All categories complete
+          router.push(`/vision/review/${visionId}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading progress:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadConversation = async () => {
+    if (!currentCategory) return
+
+    try {
+      const response = await fetch(`/api/vision/conversation?vision_id=${visionId}&category=${encodeURIComponent(currentCategory)}`)
+      const data = await response.json()
+      
+      if (data.conversation) {
+        setMessages(data.conversation.messages || [])
+        setPathChosen(data.conversation.path_chosen)
+        setVibrationalState(data.conversation.vibrational_state || 'neutral')
+      } else {
+        // No existing conversation, start fresh
+        setMessages([])
+        setPathChosen(null)
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error)
+    }
+  }
+
+  const handlePathSelection = async (path: 'clarity' | 'contrast' | 'discovery') => {
+    setPathChosen(path)
+    
+    // Save path choice to database
+    await fetch('/api/vision/conversation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vision_id: visionId,
+        category: currentCategory,
+        path_chosen: path,
+        messages: []
+      })
+    })
+
+    // Update progress with current category
+    await fetch('/api/vision/progress', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vision_id: visionId,
+        current_category: currentCategory
+      })
+    })
+
+    // Start conversation with AI based on path
+    await startConversation(path)
+  }
+
+  const startConversation = async (path: 'clarity' | 'contrast' | 'discovery') => {
+    setIsLoadingMessage(true)
+    
+    try {
+      // Call OpenAI to start the conversation
+      const response = await fetch('/api/vision/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vision_id: visionId,
+          category: currentCategory,
+          path: path,
+          messages: [],
+          action: 'start'
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.message) {
+        const newMessage: Message = {
+          role: 'assistant',
+          content: data.message,
+          timestamp: new Date().toISOString(),
+          emotion_score: data.emotion_score
+        }
+        
+        setMessages([newMessage])
+        
+        // Save to database
+        await saveConversation([newMessage])
+      }
+    } catch (error) {
+      console.error('Error starting conversation:', error)
+    } finally {
+      setIsLoadingMessage(false)
+    }
+  }
+
+  const handleSendMessage = async (content: string) => {
+    const userMessage: Message = {
+      role: 'user',
+      content,
+      timestamp: new Date().toISOString()
+    }
+
+    const updatedMessages = [...messages, userMessage]
+    setMessages(updatedMessages)
+    setIsLoadingMessage(true)
+
+    try {
+      // Call AI to get response
+      const response = await fetch('/api/vision/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vision_id: visionId,
+          category: currentCategory,
+          path: pathChosen,
+          messages: updatedMessages,
+          action: 'continue'
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.message) {
+        const aiMessage: Message = {
+          role: 'assistant',
+          content: data.message,
+          timestamp: new Date().toISOString(),
+          emotion_score: data.emotion_score
+        }
+        
+        const finalMessages = [...updatedMessages, aiMessage]
+        setMessages(finalMessages)
+        
+        // Update vibrational state
+        if (data.vibrational_state) {
+          setVibrationalState(data.vibrational_state)
+        }
+
+        // Save conversation
+        await saveConversation(finalMessages, data.vibrational_state, data.emotion_score)
+
+        // Check if vision should be generated
+        if (data.generate_vision && data.vibrational_state === 'above_green_line') {
+          await generateVision(finalMessages)
+        }
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+    } finally {
+      setIsLoadingMessage(false)
+    }
+  }
+
+  const saveConversation = async (
+    msgs: Message[], 
+    vibState?: string, 
+    emotionScore?: number
+  ) => {
+    await fetch('/api/vision/conversation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vision_id: visionId,
+        category: currentCategory,
+        path_chosen: pathChosen,
+        messages: msgs,
+        vibrational_state: vibState,
+        final_emotion_score: emotionScore
+      })
+    })
+  }
+
+  const generateVision = async (conversationMessages: Message[]) => {
+    try {
+      const response = await fetch('/api/vision/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vision_id: visionId,
+          category: currentCategory,
+          conversation_messages: conversationMessages,
+          vibrational_state: vibrationalState
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.vision) {
+        // Mark conversation as completed
+        await saveConversation(conversationMessages, vibrationalState, undefined)
+        await fetch('/api/vision/conversation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vision_id: visionId,
+            category: currentCategory,
+            completed: true
+          })
+        })
+
+        // Reload progress and move to next category
+        await loadProgress()
+      }
+    } catch (error) {
+      console.error('Error generating vision:', error)
+    }
+  }
+
+  const handleSkipCategory = () => {
+    // Move to next category
+    const completedCategories = progress?.categories_completed || []
+    const nextCategory = LIFE_CATEGORIES.find(cat => 
+      cat !== currentCategory && !completedCategories.includes(cat)
+    )
+    
+    if (nextCategory) {
+      setCurrentCategory(nextCategory)
+      setPathChosen(null)
+      setMessages([])
+    }
+  }
+
+  if (loading) {
+    return (
+      <PageLayout>
+        <Container className="py-12">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-[#14B8A6] border-t-transparent animate-spin" />
+              <p className="text-neutral-400">Loading your vision...</p>
+            </div>
+          </div>
+        </Container>
+      </PageLayout>
+    )
+  }
+
+  return (
+    <PageLayout>
+      <Container size="xl" className="py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => router.push(`/life-vision/${visionId}`)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Vision
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleSkipCategory}
+            disabled={!currentCategory}
+          >
+            Skip Category
+          </Button>
+        </div>
+
+        {/* Progress tracker */}
+        {progress && (
+          <CategoryProgress
+            totalCategories={LIFE_CATEGORIES.length}
+            completedCategories={progress.categories_completed || []}
+            currentCategory={currentCategory || ''}
+            allCategories={LIFE_CATEGORIES}
+          />
+        )}
+
+        {/* Main content */}
+        <div className="max-w-4xl mx-auto">
+          {currentCategory && !pathChosen ? (
+            <PathSelector
+              category={currentCategory}
+              onSelectPath={handlePathSelection}
+            />
+          ) : currentCategory && pathChosen ? (
+            <div className="min-h-[600px]">
+              <ChatInterface
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                isLoading={isLoadingMessage}
+                category={currentCategory}
+                vibrationalState={vibrationalState}
+              />
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-neutral-400">
+                All categories completed! Redirecting to review...
+              </p>
+            </div>
+          )}
+        </div>
+      </Container>
+    </PageLayout>
+  )
+}
