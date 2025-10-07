@@ -79,8 +79,9 @@ export async function generateAudioTracks(params: {
   sections: SectionInput[]
   voice?: OpenAIVoice
   format?: 'mp3' | 'wav'
+  force?: boolean
 }): Promise<GeneratedTrackResult[]> {
-  const { userId, visionId, sections, voice = 'alloy', format = 'mp3' } = params
+  const { userId, visionId, sections, voice = 'alloy', format = 'mp3', force = false } = params
   const supabase = await createClient()
   const s3 = getS3Client()
 
@@ -104,32 +105,46 @@ export async function generateAudioTracks(params: {
       continue
     }
 
+    // If existing record found
+    let recordId: string | null = null
     if (existing) {
-      results.push({ sectionKey: section.sectionKey, status: 'skipped', audioUrl: existing.audio_url, s3Key: existing.s3_key })
-      continue
-    }
-
-    // Mark as processing
-    const { data: inserted, error: insertError } = await supabase
-      .from('audio_tracks')
-      .insert({
-        user_id: userId,
-        vision_id: visionId,
-        section_key: section.sectionKey,
-        content_hash: contentHash,
-        text_content: section.text,
-        voice_id: voice,
-        s3_bucket: BUCKET_NAME,
-        s3_key: '',
-        audio_url: '',
-        status: 'processing',
-      })
-      .select()
-      .single()
-
-    if (insertError) {
-      results.push({ sectionKey: section.sectionKey, status: 'failed', error: insertError.message })
-      continue
+      if (!force && existing.status === 'completed') {
+        results.push({ sectionKey: section.sectionKey, status: 'skipped', audioUrl: existing.audio_url, s3Key: existing.s3_key })
+        continue
+      }
+      // Reuse existing row and set to processing
+      const { error: updErr } = await supabase
+        .from('audio_tracks')
+        .update({ status: 'processing', error_message: null, voice_id: voice })
+        .eq('id', existing.id)
+      if (updErr) {
+        results.push({ sectionKey: section.sectionKey, status: 'failed', error: updErr.message })
+        continue
+      }
+      recordId = existing.id
+    } else {
+      // Insert new row
+      const { data: inserted, error: insertError } = await supabase
+        .from('audio_tracks')
+        .insert({
+          user_id: userId,
+          vision_id: visionId,
+          section_key: section.sectionKey,
+          content_hash: contentHash,
+          text_content: section.text,
+          voice_id: voice,
+          s3_bucket: BUCKET_NAME,
+          s3_key: '',
+          audio_url: '',
+          status: 'processing',
+        })
+        .select()
+        .single()
+      if (insertError || !inserted) {
+        results.push({ sectionKey: section.sectionKey, status: 'failed', error: insertError?.message || 'insert failed' })
+        continue
+      }
+      recordId = inserted.id
     }
 
     try {
@@ -181,7 +196,7 @@ export async function generateAudioTracks(params: {
           audio_url: audioUrl,
           status: 'completed',
         })
-        .eq('id', inserted.id)
+        .eq('id', recordId)
 
       results.push({ sectionKey: section.sectionKey, status: 'generated', audioUrl, s3Key })
     } catch (err) {
@@ -189,7 +204,7 @@ export async function generateAudioTracks(params: {
       await supabase
         .from('audio_tracks')
         .update({ status: 'failed', error_message: errorMessage })
-        .eq('id', inserted.id)
+        .eq('id', recordId as string)
       results.push({ sectionKey: section.sectionKey, status: 'failed', error: errorMessage })
     }
   }

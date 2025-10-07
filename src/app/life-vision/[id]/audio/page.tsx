@@ -57,7 +57,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         await fetch('/api/audio/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ visionId, sections: [section], voice }),
+          body: JSON.stringify({ visionId, sections: [section], voice, force: true }),
         })
         await refreshStatus()
       } finally {
@@ -156,7 +156,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       const resp = await fetch('/api/audio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visionId, sections, voice }),
+        body: JSON.stringify({ visionId, sections, voice, force: false }),
       })
       const data = await resp.json()
       await refreshStatus()
