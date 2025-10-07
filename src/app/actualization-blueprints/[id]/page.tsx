@@ -403,7 +403,7 @@ export default function BlueprintDetailPage({ params }: { params: Promise<{ id: 
                         <div className="space-y-2">
                           <h5 className="font-medium text-white">Key Actions:</h5>
                           <ul className="list-disc list-inside text-neutral-300 space-y-1">
-                            {phase.tasks.map((task, taskIndex) => (
+                            {phase.tasks.map((task: string, taskIndex: number) => (
                               <li key={taskIndex}>{task}</li>
                             ))}
                           </ul>
@@ -431,7 +431,7 @@ export default function BlueprintDetailPage({ params }: { params: Promise<{ id: 
                 </h3>
                 <div className="space-y-2">
                   {blueprint.resources_needed?.people ? (
-                    blueprint.resources_needed.people.map((person, index) => (
+                    blueprint.resources_needed.people.map((person: string, index: number) => (
                       <div key={index} className="bg-blue-900/20 border border-blue-500/50 rounded-lg p-3">
                         <p className="text-neutral-300">{person}</p>
                       </div>
@@ -449,7 +449,7 @@ export default function BlueprintDetailPage({ params }: { params: Promise<{ id: 
                 </h3>
                 <div className="space-y-2">
                   {blueprint.resources_needed?.places ? (
-                    blueprint.resources_needed.places.map((place, index) => (
+                    blueprint.resources_needed.places.map((place: string, index: number) => (
                       <div key={index} className="bg-green-900/20 border border-green-500/50 rounded-lg p-3">
                         <p className="text-neutral-300">{place}</p>
                       </div>
@@ -467,7 +467,7 @@ export default function BlueprintDetailPage({ params }: { params: Promise<{ id: 
                 </h3>
                 <div className="space-y-2">
                   {blueprint.resources_needed?.tools ? (
-                    blueprint.resources_needed.tools.map((tool, index) => (
+                    blueprint.resources_needed.tools.map((tool: string, index: number) => (
                       <div key={index} className="bg-purple-900/20 border border-purple-500/50 rounded-lg p-3">
                         <p className="text-neutral-300">{tool}</p>
                       </div>
@@ -485,7 +485,7 @@ export default function BlueprintDetailPage({ params }: { params: Promise<{ id: 
                 </h3>
                 <div className="space-y-2">
                   {blueprint.resources_needed?.skills ? (
-                    blueprint.resources_needed.skills.map((skill, index) => (
+                    blueprint.resources_needed.skills.map((skill: string, index: number) => (
                       <div key={index} className="bg-yellow-900/20 border border-yellow-500/50 rounded-lg p-3">
                         <p className="text-neutral-300">{skill}</p>
                       </div>
@@ -529,7 +529,7 @@ export default function BlueprintDetailPage({ params }: { params: Promise<{ id: 
                 </h3>
                 <div className="space-y-3">
                   {blueprint.milestones && blueprint.milestones.length > 0 ? (
-                    blueprint.milestones.map((milestone, index) => (
+                    blueprint.milestones.map((milestone: any, index: number) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-yellow-900/20 border border-yellow-500/50 rounded-lg">
                         <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-black font-bold text-sm">
                           {index + 1}
