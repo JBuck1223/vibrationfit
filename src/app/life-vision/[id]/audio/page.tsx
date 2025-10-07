@@ -58,7 +58,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     const data = await resp.json()
   const mapped = (data.tracks || []).map((t: any) => ({
       sectionKey: t.section_key,
-      title: formatTitle(t.section_key),
+      title: prettySectionTitle(t.section_key),
       url: t.audio_url || '',
       status: t.status,
       createdAt: t.created_at,
@@ -115,7 +115,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
               className="px-4 py-2 rounded-full bg-black/30 text-white border-2 border-white/30"
             >
               {voices.map(v => (
-                <option key={v.id} value={v.id}>{v.id === 'meta_intro' ? 'Meta Intro' : v.id === 'meta_outro' ? 'Meta Outro' : v.name}</option>
+                <option key={v.id} value={v.id}>{v.name}</option>
               ))}
             </select>
             <GradientButton gradient="brand" onClick={handleGenerate} disabled={generating}>
@@ -188,7 +188,9 @@ function mapFieldForKey(key: string): string | undefined {
   return mapping[key]
 }
 
-function formatTitle(sectionKey: string): string {
+function prettySectionTitle(sectionKey: string): string {
+  if (sectionKey === 'meta_intro') return 'Forward'
+  if (sectionKey === 'meta_outro') return 'Conclusion'
   return sectionKey.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())
 }
 
