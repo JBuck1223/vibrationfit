@@ -390,10 +390,10 @@ export default function NewLifeVisionPage() {
             </div>
             <Button
               variant="secondary"
-              onClick={() => router.push('/life-vision/create-with-ai')}
+              onClick={() => router.push('/life-vision/create-with-viva')}
               className="bg-white text-[#8B5CF6] hover:bg-white/90 font-semibold whitespace-nowrap"
             >
-              Start with AI →
+              Start with Viva →
             </Button>
           </div>
         </div>
