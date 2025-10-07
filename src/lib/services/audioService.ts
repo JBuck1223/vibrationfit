@@ -250,19 +250,19 @@ export async function generateAudioTracks(params: {
   return results
 }
 
-export function getOpenAIVoices(): { id: OpenAIVoice; name: string; brandName: string }[] {
+export function getOpenAIVoices(): { id: OpenAIVoice; name: string; brandName: string; gender: 'male' | 'female' }[] {
   return [
-    { id: 'alloy', name: 'Alloy', brandName: 'Clarity Mentor' },
-    { id: 'verse', name: 'Verse', brandName: 'Warm Guide' },
-    { id: 'coral', name: 'Coral', brandName: 'Cosmic Storyteller' },
-    { id: 'sage', name: 'Sage', brandName: 'Deep Presence' },
-    { id: 'flow', name: 'Flow', brandName: 'Meditation Flow' },
-    { id: 'aria', name: 'Aria', brandName: 'Energetic Coach' },
+    { id: 'alloy', name: 'Alloy', brandName: 'Clarity Mentor', gender: 'male' },
+    { id: 'verse', name: 'Verse', brandName: 'Warm Guide', gender: 'male' },
+    { id: 'coral', name: 'Coral', brandName: 'Cosmic Storyteller', gender: 'female' },
+    { id: 'sage', name: 'Sage', brandName: 'Deep Presence', gender: 'male' },
+    { id: 'flow', name: 'Flow', brandName: 'Meditation Flow', gender: 'female' },
+    { id: 'aria', name: 'Aria', brandName: 'Energetic Coach', gender: 'female' },
   ]
 }
 
 export async function synthesizePreview(voice: OpenAIVoice, format: 'mp3' | 'wav' = 'mp3'): Promise<Buffer> {
-  const sample = 'Welcome to VibrationFit. Breathe in clarity, align with your vision, and rise above the green line.'
+  const sample = "We are doing this! We’re taking the initiative to have a vibration transformation in our life! The infinite part of our consciousness is always there, always excited, and elated when we acknowledge it and decide to be all that we’ve become. This is a process of discovery. We know the vibrational signature of our most satisfying life already exists. Our intention now is to tap into it and allow ourselves an unabridged look into what we’ve already become."
   return synthesizeWithOpenAI(sample, voice, format)
 }
 

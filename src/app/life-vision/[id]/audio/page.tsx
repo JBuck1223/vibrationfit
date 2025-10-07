@@ -32,7 +32,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       try {
         const resp = await fetch('/api/audio/voices', { cache: 'no-store' })
         const data = await resp.json()
-        setVoices((data.voices || []).map((v: any) => ({ id: v.id, name: v.brandName || v.name })))
+        setVoices((data.voices || []).map((v: any) => ({ id: v.id, name: `${v.brandName || v.name} (${v.gender})` })))
       } catch {}
     })()
   }, [])
