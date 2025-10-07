@@ -158,12 +158,13 @@ export default function VisionListPage() {
 
       console.log('User authenticated:', user.id)
 
-      // Get the latest (active) vision version
+      // Get the latest (active) vision version - EXCLUDE drafts
       const activeVisionResult = await withTimeout(
         async () => await supabase
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
+          .neq('status', 'draft') // Exclude drafts from active vision
           .order('version_number', { ascending: false })
           .limit(1)
           .single(),
