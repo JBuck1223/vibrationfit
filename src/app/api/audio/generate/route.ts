@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('audio_tracks')
-      .select('id, section_key, status, audio_url, error_message, updated_at')
+      .select('id, section_key, status, audio_url, error_message, created_at, updated_at, content_hash, voice_id')
       .eq('user_id', user.id)
       .eq('vision_id', visionId)
       .order('updated_at', { ascending: false })

@@ -7,6 +7,9 @@ type Track = {
   title: string
   url: string
   status?: 'pending' | 'processing' | 'completed' | 'failed'
+  createdAt?: string
+  voiceId?: string
+  contentHash?: string
 }
 
 export function AudioPlayer({ tracks }: { tracks: Track[] }) {
@@ -88,7 +91,12 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
                   </Badge>
                 )}
               </div>
-              <p className="text-neutral-400 text-sm truncate">{t.url || 'Not generated yet'}</p>
+              <div className="text-neutral-400 text-xs mt-1 flex items-center gap-3">
+                <span className="truncate max-w-[50%]">{t.url ? t.url : 'Not generated yet'}</span>
+                {t.createdAt && <span>• {new Date(t.createdAt).toLocaleDateString()}</span>}
+                {t.voiceId && <span>• Voice: {t.voiceId}</span>}
+                {t.contentHash && <span className="hidden md:inline">• {t.contentHash.slice(0,8)}</span>}
+              </div>
             </button>
           ))}
         </div>

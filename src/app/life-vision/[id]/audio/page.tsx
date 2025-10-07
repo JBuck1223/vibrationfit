@@ -12,7 +12,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [visionId, setVisionId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [tracks, setTracks] = useState<{ sectionKey: string; title: string; url: string; status?: string }[]>([])
+  const [tracks, setTracks] = useState<{ sectionKey: string; title: string; url: string; status?: string; createdAt?: string; voiceId?: string; contentHash?: string }[]>([])
   const [voices, setVoices] = useState<Voice[]>([])
   const [voice, setVoice] = useState<string>('alloy')
 
@@ -50,6 +50,9 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       title: formatTitle(t.section_key),
       url: t.audio_url || '',
       status: t.status,
+      createdAt: t.created_at,
+      voiceId: t.voice_id,
+      contentHash: t.content_hash,
     }))
     setTracks(mapped)
   }
@@ -62,15 +65,14 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Replace with actual section extraction; placeholder single block for now
+      // Load structure for 14 sections from existing vision record
       const { data: vv } = await supabase
         .from('vision_versions')
         .select('*')
         .eq('id', visionId)
         .single()
 
-      const fullText: string = vv?.content || ''
-      const sections = splitIntoSections(fullText)
+      const sections = buildFourteenSectionsFromVision(vv)
 
       const resp = await fetch('/api/audio/generate', {
         method: 'POST',
@@ -120,12 +122,32 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   )
 }
 
-function splitIntoSections(text: string): { sectionKey: string; text: string }[] {
-  // Placeholder split: returns one section if no structure is available.
-  // Replace with real 14-section parsing when we wire to structured vision data.
-  const normalized = (text || '').trim()
-  if (!normalized) return []
-  return [{ sectionKey: 'full', text: normalized }]
+function buildFourteenSectionsFromVision(v: any): { sectionKey: string; text: string }[] {
+  if (!v) return []
+  const sections: { sectionKey: string; text: string }[] = []
+  const map: { key: string; field?: string }[] = [
+    { key: 'meta_intro', field: 'forward' },
+    { key: 'health', field: 'health' },
+    { key: 'family', field: 'family' },
+    { key: 'romance', field: 'romance' },
+    { key: 'social', field: 'social' },
+    { key: 'fun', field: 'fun' },
+    { key: 'travel', field: 'travel' },
+    { key: 'home', field: 'home' },
+    { key: 'money', field: 'money' },
+    { key: 'business', field: 'business' },
+    { key: 'possessions', field: 'possessions' },
+    { key: 'giving', field: 'giving' },
+    { key: 'spirituality', field: 'spirituality' },
+    { key: 'meta_outro', field: 'conclusion' },
+  ]
+  for (const m of map) {
+    const raw = m.field ? (v[m.field] as string) : ''
+    const text = (raw || '').trim()
+    if (!text) continue
+    sections.push({ sectionKey: m.key, text })
+  }
+  return sections
 }
 
 function formatTitle(sectionKey: string): string {
