@@ -9,28 +9,16 @@ create table if not exists public.vision_conversations (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   vision_id uuid not null references public.vision_versions(id) on delete cascade,
-  
-  -- Category and path information
   category text not null,
   path_chosen text check (path_chosen in ('clarity', 'contrast', 'discovery')),
-  
-  -- Conversation data (structure: [{role, content, emotion_score, timestamp}])
   messages jsonb not null default '[]'::jsonb,
-  
-  -- Emotional state tracking (1-7: Above Green Line, 8-22: Below Green Line)
   vibrational_state text check (vibrational_state in ('above_green_line', 'below_green_line', 'neutral')),
   final_emotion_score integer check (final_emotion_score between 1 and 22),
-  
-  -- Vision content generated from this conversation
   generated_vision text,
   vision_generated_at timestamp with time zone,
-  
-  -- Metadata
   completed_at timestamp with time zone,
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now(),
-  
-  -- Ensure one conversation per category per vision
   unique(vision_id, category)
 );
 
@@ -42,23 +30,16 @@ create index if not exists idx_vision_conversations_category on public.vision_co
 -- =====================================================================
 -- 2. VISION PROGRESS TABLE
 -- =====================================================================
--- Tracks overall progress through the 12 life categories
 create table if not exists public.vision_progress (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   vision_id uuid not null references public.vision_versions(id) on delete cascade,
-  
-  -- Progress tracking
   categories_completed text[] not null default '{}'::text[],
   current_category text,
   total_categories integer not null default 12,
-  
-  -- Timestamps
   last_activity timestamp with time zone default now(),
   created_at timestamp with time zone default now(),
-  completed_at timestamp with time zone, -- when all 12 categories are done
-  
-  -- Ensure one progress record per vision
+  completed_at timestamp with time zone,
   unique(vision_id)
 );
 
