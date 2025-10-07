@@ -471,16 +471,27 @@ export default function VisionListPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {version.title === 'My Vision (Created with Viva)' && version.status === 'draft' ? (
-                          // Special handling for Viva drafts - go to Viva editor
-                          <Button
-                            onClick={() => router.push('/life-vision/create-with-viva')}
-                            variant="primary"
-                            size="sm"
-                            className="flex items-center gap-1"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                            Continue with Viva
-                          </Button>
+                          // Special handling for Viva drafts - offer both Viva and manual editing
+                          <>
+                            <Button
+                              onClick={() => router.push('/life-vision/create-with-viva')}
+                              variant="primary"
+                              size="sm"
+                              className="flex items-center gap-1"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              Continue with Viva
+                            </Button>
+                            <Button
+                              onClick={() => router.push(`/life-vision/${version.id}`)}
+                              variant="secondary"
+                              size="sm"
+                              className="flex items-center gap-1"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              Edit On My Own
+                            </Button>
+                          </>
                         ) : (
                           <>
                             <Button
