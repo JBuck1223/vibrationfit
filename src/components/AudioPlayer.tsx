@@ -153,6 +153,7 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
               {!t.url && t.status === 'failed' && (
                 <div className="mt-2">
                   <Button variant="ghost" size="sm" onClick={(e) => {
+                    e.preventDefault()
                     e.stopPropagation()
                     const retryEvent = new CustomEvent('audio:retry-track', { detail: { sectionKey: t.sectionKey }})
                     window.dispatchEvent(retryEvent)

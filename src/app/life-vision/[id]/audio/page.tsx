@@ -25,6 +25,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     })()
   }, [params])
 
+  // Load voices once
   useEffect(() => {
     ;(async () => {
       try {
@@ -32,37 +33,41 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         const data = await resp.json()
         setVoices((data.voices || []).map((v: any) => ({ id: v.id, name: v.name })))
       } catch {}
-      // Hook retry events from player
-      const onRetry = async (e: any) => {
-        const key = e?.detail?.sectionKey
-        if (!key) return
-        const supabase = createClient()
-        const { data: vv } = await supabase
-          .from('vision_versions')
-          .select('*')
-          .eq('id', visionId)
-          .single()
-        const allSections = buildFourteenSectionsFromVision(vv)
-        const section = allSections.find(s => s.sectionKey === key)
-        if (!section) return
-        setGenerating(true)
-        setWorkingOn(`retrying ${key}`)
-        try {
-          await fetch('/api/audio/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ visionId, sections: [section], voice }),
-          })
-          await refreshStatus()
-        } finally {
-          setGenerating(false)
-          setWorkingOn(null)
-        }
-      }
-      window.addEventListener('audio:retry-track', onRetry)
-      return () => window.removeEventListener('audio:retry-track', onRetry)
     })()
   }, [])
+
+  // Listen for per-track retry events (depends on visionId and voice)
+  useEffect(() => {
+    if (!visionId) return
+    const onRetry = async (e: any) => {
+      const key = e?.detail?.sectionKey
+      if (!key) return
+      const supabase = createClient()
+      const { data: vv } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('id', visionId)
+        .single()
+      const allSections = buildFourteenSectionsFromVision(vv)
+      const section = allSections.find(s => s.sectionKey === key)
+      if (!section) return
+      setGenerating(true)
+      setWorkingOn(`retrying ${key}`)
+      try {
+        await fetch('/api/audio/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visionId, sections: [section], voice }),
+        })
+        await refreshStatus()
+      } finally {
+        setGenerating(false)
+        setWorkingOn(null)
+      }
+    }
+    window.addEventListener('audio:retry-track', onRetry)
+    return () => window.removeEventListener('audio:retry-track', onRetry)
+  }, [visionId, voice])
 
   useEffect(() => {
     if (!visionId) return
