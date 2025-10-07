@@ -42,6 +42,7 @@ export function Header() {
   const navigationItems = [
     { name: 'Home', href: '/' },
     { name: 'Life Vision', href: '/life-vision' },
+    { name: 'Blueprints', href: '/actualization-blueprints' },
     { name: 'Journal', href: '/journal' },
     { name: 'Vision Board', href: '/vision-board' },
     { name: 'Dashboard', href: '/dashboard' },

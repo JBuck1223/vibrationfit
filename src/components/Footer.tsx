@@ -16,7 +16,8 @@ import {
   BarChart3,
   FileText,
   Users,
-  HelpCircle
+  HelpCircle,
+  Rocket
 } from 'lucide-react'
 
 interface FooterProps {
@@ -32,6 +33,7 @@ export function Footer({ className = '' }: FooterProps) {
     { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
     { href: '/life-vision', label: 'Life Visions', icon: Eye },
     { href: '/life-vision/new', label: 'New Life Vision', icon: Plus },
+    { href: '/actualization-blueprints', label: 'Blueprints', icon: Rocket },
     { href: '/vision-board', label: 'Vision Board', icon: Star },
     { href: '/vision-board/new', label: 'Add Creation', icon: Plus },
     { href: '/journal', label: 'Journal', icon: FileText },

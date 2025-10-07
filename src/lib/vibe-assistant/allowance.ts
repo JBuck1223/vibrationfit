@@ -112,7 +112,7 @@ export async function checkVibeAssistantAllowanceServer(userId: string): Promise
     
     // Get user profile data directly
     const { data: profileData, error: profileError } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('vibe_assistant_tokens_used, vibe_assistant_tokens_remaining, vibe_assistant_total_cost, membership_tier_id')
       .eq('id', userId)
       .single()
@@ -208,29 +208,45 @@ export async function getRemainingVibeAssistantAllowance(): Promise<number> {
 export function estimateTokens(text: string): TokenEstimate {
   // Rough estimation: ~4 characters per token for English text
   // Add buffer for system prompts and formatting
-  const baseTokens = Math.max(100, Math.ceil(text.length / 4) + 200)
+  const inputTokens = Math.max(100, Math.ceil(text.length / 4) + 200)
+  
+  // Estimate output tokens (typically 20-50% of input for refinements)
+  const outputTokens = Math.ceil(inputTokens * 0.3) // Conservative 30% estimate
   
   // Confidence based on text length
   let confidence: 'low' | 'medium' | 'high' = 'low'
   if (text.length > 1000) confidence = 'high'
   else if (text.length > 500) confidence = 'medium'
   
-  const estimatedCost = calculateCost(baseTokens)
+  const estimatedCost = calculateCost(inputTokens, outputTokens)
   
   return {
-    estimatedTokens: baseTokens,
+    estimatedTokens: inputTokens + outputTokens, // Total for allowance checking
     estimatedCost,
     confidence
   }
 }
 
 /**
- * Calculate cost in USD for given token count
+ * Calculate cost in USD for input and output tokens separately
  */
-export function calculateCost(tokens: number): number {
-  // GPT-5 pricing: Estimated based on OpenAI's pricing patterns
-  // Using conservative estimate for the latest model with advanced capabilities
-  return (tokens * 0.015) / 1000.0
+export function calculateCost(inputTokens: number, outputTokens: number): number {
+  // GPT-5 mini pricing (as of 2025) - Much cheaper!
+  const INPUT_COST_PER_1K = 0.00025  // $0.25 per million tokens
+  const OUTPUT_COST_PER_1K = 0.002   // $2.00 per million tokens
+  
+  const inputCost = (inputTokens * INPUT_COST_PER_1K) / 1000.0
+  const outputCost = (outputTokens * OUTPUT_COST_PER_1K) / 1000.0
+  
+  return inputCost + outputCost
+}
+
+/**
+ * Legacy function for backward compatibility (treats all tokens as input)
+ */
+export function calculateCostLegacy(tokens: number): number {
+  // Conservative estimate treating all tokens as input tokens
+  return (tokens * 0.00125) / 1000.0
 }
 
 /**
@@ -281,6 +297,7 @@ export async function logVibeAssistantUsage(usage: {
   instructions?: string
   inputText?: string
   outputText?: string
+  vivaNotes?: string
   processingTimeMs?: number
   success: boolean
   errorMessage?: string
@@ -306,6 +323,7 @@ export async function logVibeAssistantUsage(usage: {
         instructions: usage.instructions,
         input_text: usage.inputText,
         output_text: usage.outputText,
+        viva_notes: usage.vivaNotes,
         processing_time_ms: usage.processingTimeMs,
         success: usage.success,
         error_message: usage.errorMessage

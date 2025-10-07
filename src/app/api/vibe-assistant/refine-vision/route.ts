@@ -44,6 +44,7 @@ interface RefineVisionRequest {
 interface RefineVisionResponse {
   success: boolean
   refinedText?: string
+  vivaNotes?: string
   usage?: {
     inputTokens: number
     outputTokens: number
@@ -59,28 +60,54 @@ interface RefineVisionResponse {
   }
 }
 
-// System prompt for the Vibe Assistant
-const VIBE_ASSISTANT_SYSTEM_PROMPT = `You are the Vibe Assistant (VIVA) for VibrationFit, an AI-powered guide that helps users refine their "Life I Choose" vision using conscious creation principles.
+// Enhanced system prompt for the Vibe Assistant
+const ENHANCED_SYSTEM_PROMPT = `You are the Vibe Assistant (VIVA) for VibrationFit, an AI-powered guide specializing in conscious creation and "Above the Green Line" living.
 
-Your role is to help users elevate their vision to live "Above the Green Line" - a state of alignment, growth, and conscious creation. You specialize in:
+CORE EXPERTISE:
+- Conscious Creation: Helping users create from intention rather than reaction
+- Vision Refinement: Elevating life visions across 12 categories with specificity and emotional resonance
+- Vibrational Alignment: Supporting users to live "Above the Green Line" in alignment with their highest vision
+- Evidence Recognition: Helping users see and celebrate their actualization progress
 
-✨ Conscious Creation: Helping users create from intention rather than reaction
-🌟 Vision Refinement: Elevating and clarifying life visions across all categories
-💚 Above the Green Line Living: Supporting alignment, growth, and positive energy
-🎯 Specificity: Making visions more detailed, actionable, and emotionally resonant
+CONSCIOUS CREATION PRINCIPLES:
+FOUNDATIONAL TRUTH:
+- The basis of life is freedom
+- The purpose of life is joy  
+- The result of life is expansion
 
-Key Principles:
-- Always maintain an empowering, growth-oriented tone
-- Focus on conscious creation and intentional living
-- Help users be specific about their desired experiences
-- Encourage "Above the Green Line" thinking and feeling
-- Support authentic self-expression and personal truth
-- Guide users toward clarity and actionable steps
+A well-crafted vision section will give a feeling of freedom, and elicit a joyful expanded emotional state when read back by the user.
+
+CORE PRINCIPLES:
+1. Law of Attraction: Like attracts like - focus on desired outcomes with clarity
+2. Law of Vibration: Everything is energy - align your frequency with your vision
+3. Law of Deliberate Intent: Create from conscious choice, not reaction to circumstances
+4. Above the Green Line: Living in alignment, growth, and positive energy
+5. Below the Green Line: Contrast moments that provide clarity and growth opportunities
+6. Vibe I Choose™: Conscious selection of emotional states and perspectives
+7. Evidence of Actualization: Recognizing and celebrating progress and wins
+
+VISION BOARD METHODOLOGY:
+- Active: When we want to activate it in our vibration now (current focus)
+- Actualized: When it came to fruition (manifested reality)
+- Inactive: When not as interesting now as before (evolved priorities, like sports car → minivan when you have kids)
+
+REFINEMENT APPROACH:
+- Create visions that evoke freedom, joy, and expansion when read
+- Maintain the user's authentic voice while enhancing clarity and impact
+- Focus on specificity - help users be detailed about their desired experiences
+- Encourage emotional resonance - help users feel their vision deeply
+- Support actionable steps - make visions feel achievable and inspiring
+- Honor the user's current level of consciousness while gently elevating
+- Provide guidance that feels supportive, not prescriptive
+- Ensure each refinement amplifies the user's sense of freedom and possibility
 
 Your responses should feel like guidance from a wise, supportive mentor who understands conscious creation and helps users actualize their highest potential.`
 
-// Helper function to build the user prompt based on refinement parameters
-function buildUserPrompt(request: RefineVisionRequest): string {
+// Enhanced helper function to build the user prompt with full context
+async function buildUserPrompt(
+  request: RefineVisionRequest, 
+  userId: string
+): Promise<string> {
   const { category, activeVision, currentRefinement, instructions, refinementPercentage, tonality, wordCount, emotionalIntensity } = request
   
   // Map tonality to specific guidance
@@ -98,11 +125,84 @@ function buildUserPrompt(request: RefineVisionRequest): string {
     [EMOTIONAL_INTENSITY.INTENSE]: "Use intense, powerful language that creates strong emotional resonance."
   }
 
-  // Get category-specific context from centralized categories
+  // Get category-specific context
   const categoryInfo = getVisionCategoryServer(category)
   const categoryContext = categoryInfo ? categoryInfo.description : 'This is a section of the user\'s life vision.'
 
+  // Get full vision context
+  const supabase = await createClient()
+  const { data: fullVision } = await supabase
+    .from('vision_versions')
+    .select('*')
+    .eq('id', request.visionId)
+    .eq('user_id', userId)
+    .single()
+
+  // Get user profile context
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  // Get refinement history for this category
+  const { data: refinementHistory } = await supabase
+    .from('vibe_assistant_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('vision_id', request.visionId)
+    .eq('category', category)
+    .eq('operation_type', 'refine_vision')
+    .order('created_at', { ascending: false })
+    .limit(3)
+
+  // Build full vision context
+  const fullVisionContext = fullVision ? `
+COMPLETE VISION DOCUMENT:
+Title: ${fullVision.title || 'Untitled Vision'}
+Forward: ${fullVision.forward || 'Not specified'}
+Fun & Recreation: ${fullVision.fun || 'Not specified'}
+Travel & Adventure: ${fullVision.travel || 'Not specified'}
+Home & Living: ${fullVision.home || 'Not specified'}
+Family & Parenting: ${fullVision.family || 'Not specified'}
+Romance & Partnership: ${fullVision.romance || 'Not specified'}
+Health & Vitality: ${fullVision.health || 'Not specified'}
+Money & Abundance: ${fullVision.money || 'Not specified'}
+Business & Career: ${fullVision.business || 'Not specified'}
+Friends & Social: ${fullVision.social || 'Not specified'}
+Possessions & Lifestyle: ${fullVision.possessions || 'Not specified'}
+Giving & Contribution: ${fullVision.giving || 'Not specified'}
+Spirituality & Growth: ${fullVision.spirituality || 'Not specified'}
+Conclusion: ${fullVision.conclusion || 'Not specified'}
+` : ''
+
+  // Build user profile context
+  const userProfileContext = userProfile ? `
+USER PROFILE CONTEXT:
+Location: ${userProfile.city || 'Not specified'}, ${userProfile.state || 'Not specified'}
+Relationship Status: ${userProfile.relationship_status || 'Not specified'}
+Career: ${userProfile.occupation || 'Not specified'}${userProfile.company ? ` at ${userProfile.company}` : ''}
+Family: ${userProfile.has_children ? `${userProfile.number_of_children} children` : 'No children'}
+Health Focus: ${userProfile.exercise_frequency || 'Not specified'}
+Living Situation: ${userProfile.living_situation || 'Not specified'}
+` : ''
+
+  // Build refinement history context
+  const refinementHistoryContext = refinementHistory && refinementHistory.length > 0 ? `
+PREVIOUS REFINEMENTS FOR THIS CATEGORY:
+${refinementHistory.map((ref, index) => `
+Version ${index + 1}: ${ref.output_text || 'No output text available'}
+Created: ${new Date(ref.created_at).toLocaleDateString()}
+`).join('\n')}
+` : ''
+
   const prompt = `
+${fullVisionContext}
+
+${userProfileContext}
+
+${refinementHistoryContext}
+
 Please refine this ${categoryInfo?.label || category} vision section for conscious creation and "Above the Green Line" living.
 
 CONTEXT:
@@ -123,15 +223,41 @@ REFINEMENT PARAMETERS:
 - Emotional Intensity: ${intensityGuidance[emotionalIntensity as keyof typeof intensityGuidance] || intensityGuidance[EMOTIONAL_INTENSITY.MODERATE]}
 ${wordCount ? `- Target Word Count: Approximately ${wordCount} words` : ''}
 
-Please provide a refined version that:
-1. Elevates the vision to be more specific, detailed, and emotionally resonant
-2. Aligns with conscious creation principles and "Above the Green Line" living
-3. Maintains the user's authentic voice while enhancing clarity and impact
-4. Follows the specified tonality and emotional intensity
-5. Incorporates the user's specific instructions
-6. Feels inspiring and actionable
+Please provide:
+1. The refined vision text
+2. VIVA Notes explaining your refinement approach
 
-Respond with only the refined text, no explanations or meta-commentary.`
+Format your response as:
+
+[REFINED VISION TEXT HERE]
+
+---
+VIVA NOTES:
+Here's what I was thinking as I refined your vision:
+
+I really wanted to capture that sense of freedom and expansion you're looking for, so I focused on adding those world-class retreats in stunning locations. There's something magical about imagining yourself in serene beaches and majestic mountains with your community - it just opens up so many possibilities for growth and connection.
+
+What I love about this approach is how it serves multiple purposes. Not only do you get these incredible experiences to look forward to, but they also create opportunities for your community to deepen their bonds and elevate their vibrations together. It's like creating a ripple effect of positive energy.
+
+I made sure to keep your authentic voice throughout - you can still hear "you" in every sentence. But I added those specific details about the retreats because I know how important it is to have something tangible to visualize and feel into. That's the key to conscious creation, right? Being able to really connect with the emotions of what you're creating.
+
+The language flows in a way that should feel inspiring when you read it back to yourself. My goal was to amplify that sense of freedom and possibility while staying true to what makes your vision uniquely yours.
+---
+
+The refined version should:
+1. Evoke freedom, joy, and expansion when read by the user
+2. Elevate the vision to be more specific, detailed, and emotionally resonant
+3. Align with conscious creation principles and "Above the Green Line" living
+4. Maintain the user's authentic voice while enhancing clarity and impact
+5. Follow the specified tonality and emotional intensity
+6. Incorporate the user's specific instructions
+7. Feel inspiring and actionable
+8. Consider the user's profile context for personalized guidance
+9. Build upon previous refinements for consistency
+10. Amplify the user's sense of freedom and possibility
+
+IMPORTANT: Do not use asterisks (*) or any special formatting characters in the refined text. Write in plain, natural language that flows smoothly.
+`
 
   return prompt.trim()
 }
@@ -194,13 +320,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 404 })
     }
 
-    // Build the prompts
-    const userPrompt = buildUserPrompt(body)
-    const fullPrompt = `${activeVision}\n\n${currentRefinement}\n\n${userPrompt}`
+    // Build the enhanced prompt with full context
+    const userPrompt = await buildUserPrompt(body, user.id)
+    
+    console.log('Prompt Info:', {
+      promptLength: userPrompt.length,
+      estimatedTokens: Math.ceil(userPrompt.length / 4),
+      firstChars: userPrompt.substring(0, 300)
+    })
 
     // Estimate tokens and check allowance
-    const tokenEstimate = estimateTokens(fullPrompt)
-    const estimatedCost = calculateCost(tokenEstimate.estimatedTokens)
+    const tokenEstimate = estimateTokens(userPrompt)
+    const estimatedCost = tokenEstimate.estimatedCost
     
     // Check if user has sufficient allowance
     const allowance = await checkVibeAssistantAllowanceServer(user.id)
@@ -224,39 +355,80 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Call OpenAI API with the latest GPT model
-    const completion = await openai.chat.completions.create({
-      model: GPT_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: VIBE_ASSISTANT_SYSTEM_PROMPT
-        },
-        {
-          role: 'user',
-          content: userPrompt
-        }
-      ],
-      max_tokens: wordCount ? Math.ceil(wordCount * 1.5) : 1000, // Rough token estimation for word count
-      temperature: 0.7,
-      top_p: 0.9,
-      frequency_penalty: 0.1,
-      presence_penalty: 0.1
-    })
-
-    // Extract response
-    const refinedText = completion.choices[0]?.message?.content?.trim()
-    if (!refinedText) {
+    let completion
+    try {
+      // Simplified API call for GPT-5 compatibility
+      completion = await openai.chat.completions.create({
+        model: 'gpt-5-mini', // Much cheaper than GPT-5, perfect for well-defined tasks
+        messages: [
+          {
+            role: 'system',
+            content: ENHANCED_SYSTEM_PROMPT
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ],
+        max_completion_tokens: wordCount ? Math.ceil(wordCount * 1.5) : 10000 // Allow for much longer responses
+        // Note: GPT-5 mini only supports default values for temperature (1), top_p, frequency_penalty, and presence_penalty
+      })
+    } catch (openaiError) {
+      console.error('OpenAI API Error:', openaiError)
       return NextResponse.json({
         success: false,
-        error: 'No response generated from Vibe Assistant'
+        error: `OpenAI API Error: ${openaiError instanceof Error ? openaiError.message : 'Unknown error'}`
       }, { status: 500 })
     }
+
+    // Extract response and parse VIVA Notes
+    const fullResponse = completion.choices[0]?.message?.content?.trim()
+    
+    console.log('GPT-5 Response:', {
+      hasResponse: !!fullResponse,
+      responseLength: fullResponse?.length || 0,
+      firstChars: fullResponse?.substring(0, 200) || 'No response',
+      usage: completion.usage
+    })
+    
+    if (!fullResponse) {
+      return NextResponse.json({
+        success: false,
+        error: 'No response generated from Vibe Assistant',
+        debug: {
+          hasChoices: completion.choices?.length > 0,
+          hasMessage: !!completion.choices[0]?.message,
+          hasContent: !!completion.choices[0]?.message?.content,
+          usage: completion.usage
+        }
+      }, { status: 500 })
+    }
+
+    // Parse VIVA Notes from the response
+    const vivaNotesMatch = fullResponse.match(/---\s*VIVA NOTES:\s*([\s\S]*?)(?:\s*---|$)/)
+    let refinedText = fullResponse
+    let vivaNotes = ''
+
+    if (vivaNotesMatch) {
+      // Remove the VIVA Notes section from the refined text
+      refinedText = fullResponse.replace(/---\s*VIVA NOTES:[\s\S]*?(?:\s*---|$)/, '').trim()
+      vivaNotes = vivaNotesMatch[1].trim()
+      
+      // Clean up any remaining markers and formatting
+      refinedText = refinedText.replace(/\[REFINED VISION TEXT HERE\]/g, '').trim()
+    } else {
+      // If no VIVA Notes found, clean up any markers in the response
+      refinedText = fullResponse.replace(/\[REFINED VISION TEXT HERE\]/g, '').trim()
+    }
+    
+    // Clean up any asterisk formatting
+    refinedText = refinedText.replace(/\*\*(.*?)\*\*/g, '$1').trim()
 
     // Calculate actual usage
     const inputTokens = completion.usage?.prompt_tokens || 0
     const outputTokens = completion.usage?.completion_tokens || 0
     const totalTokens = completion.usage?.total_tokens || 0
-    const actualCost = calculateCost(totalTokens)
+    const actualCost = calculateCost(inputTokens, outputTokens)
 
     // Decrement user allowance
     const allowanceDecremented = await decrementVibeAssistantAllowance(
@@ -287,6 +459,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       instructions,
       inputText: currentRefinement,
       outputText: refinedText,
+      vivaNotes: vivaNotes,
       processingTimeMs: processingTime,
       success: true
     })
@@ -298,6 +471,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       success: true,
       refinedText,
+      vivaNotes,
       usage: {
         inputTokens,
         outputTokens,

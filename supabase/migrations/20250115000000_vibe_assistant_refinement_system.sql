@@ -240,16 +240,36 @@ BEGIN
 END;
 $$;
 
--- Function to calculate Vibe Assistant cost based on tokens
-CREATE OR REPLACE FUNCTION calculate_vibe_assistant_cost(p_tokens INTEGER)
+-- Function to calculate Vibe Assistant cost based on input and output tokens
+CREATE OR REPLACE FUNCTION calculate_vibe_assistant_cost(p_input_tokens INTEGER, p_output_tokens INTEGER)
 RETURNS DECIMAL(10,6)
 LANGUAGE plpgsql
 IMMUTABLE
 AS $$
 BEGIN
-    -- GPT-5 pricing: Estimated based on OpenAI's pricing patterns for latest model
-    -- Using conservative estimate for the most advanced model with enhanced capabilities
-    RETURN (p_tokens * 0.015) / 1000.0;
+    -- GPT-5 pricing (as of 2025)
+    -- Input tokens: $1.25 per million tokens ($0.00125 per 1K)
+    -- Output tokens: $10.00 per million tokens ($0.01 per 1K)
+    DECLARE
+        input_cost DECIMAL(10,6);
+        output_cost DECIMAL(10,6);
+    BEGIN
+        input_cost := (p_input_tokens * 0.00125) / 1000.0;
+        output_cost := (p_output_tokens * 0.01) / 1000.0;
+        RETURN input_cost + output_cost;
+    END;
+END;
+$$;
+
+-- Legacy function for backward compatibility
+CREATE OR REPLACE FUNCTION calculate_vibe_assistant_cost_legacy(p_tokens INTEGER)
+RETURNS DECIMAL(10,6)
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+BEGIN
+    -- Conservative estimate treating all tokens as input tokens
+    RETURN (p_tokens * 0.00125) / 1000.0;
 END;
 $$;
 

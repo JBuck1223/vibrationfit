@@ -66,7 +66,7 @@ export default async function DashboardPage() {
     
     // Vibe Assistant usage (if available)
     supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('vibe_assistant_tokens_used, vibe_assistant_tokens_remaining, vibe_assistant_total_cost, membership_tier_id')
       .eq('id', user.id)
       .single()

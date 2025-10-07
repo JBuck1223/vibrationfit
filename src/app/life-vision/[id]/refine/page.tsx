@@ -94,6 +94,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [currentRefinement, setCurrentRefinement] = useState('')
   const [instructions, setInstructions] = useState('')
   const [refinedText, setRefinedText] = useState('')
+  const [vivaNotes, setVivaNotes] = useState('')
   
   // Refinement settings
   const [refinementPercentage, setRefinementPercentage] = useState(50)
@@ -104,7 +105,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   // UI state
   const [isRefining, setIsRefining] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showVivaNotes, setShowVivaNotes] = useState(false)
   const [lastUsage, setLastUsage] = useState<any>(null)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   // Load vision data
   useEffect(() => {
@@ -114,7 +117,15 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         
         // Fetch the actual vision data from the database
         const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        
+        console.log('Auth check:', { user: user?.id, authError })
+        
+        if (authError) {
+          console.error('Auth error:', authError)
+          setError(`Authentication error: ${authError.message}`)
+          return
+        }
         
         if (!user) {
           setError('Please log in to access this page')
@@ -156,10 +167,37 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     if (vision && selectedCategory) {
       const categoryText = vision[selectedCategory as keyof VisionData] as string
       setActiveVision(categoryText || '')
-      setCurrentRefinement('')
+      
+      // Load saved refinement for this category
+      const savedRefinement = localStorage.getItem(`refinement-${vision.id}-${selectedCategory}`)
+      setCurrentRefinement(savedRefinement || '')
+      
+      // Load saved instructions for this category
+      const savedInstructions = localStorage.getItem(`instructions-${vision.id}-${selectedCategory}`)
+      setInstructions(savedInstructions || '')
+      
       setRefinedText('')
+      setVivaNotes('')
     }
   }, [selectedCategory, vision])
+
+  // Auto-save current refinement
+  useEffect(() => {
+    if (vision && selectedCategory && currentRefinement) {
+      const saveKey = `refinement-${vision.id}-${selectedCategory}`
+      localStorage.setItem(saveKey, currentRefinement)
+      setLastSaved(new Date())
+    }
+  }, [currentRefinement, vision, selectedCategory])
+
+  // Auto-save instructions
+  useEffect(() => {
+    if (vision && selectedCategory && instructions) {
+      const saveKey = `instructions-${vision.id}-${selectedCategory}`
+      localStorage.setItem(saveKey, instructions)
+      setLastSaved(new Date())
+    }
+  }, [instructions, vision, selectedCategory])
 
   // Auto-resize textareas when content changes
   useEffect(() => {
@@ -259,7 +297,13 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       }
 
       setRefinedText(data.refinedText)
+      setVivaNotes(data.vivaNotes || '')
       setLastUsage(data.usage)
+      
+      // Auto-show VIVA Notes when they first appear
+      if (data.vivaNotes) {
+        setShowVivaNotes(true)
+      }
       
       // Update allowance
       if (data.allowanceInfo) {
@@ -309,6 +353,45 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   // Save new version (placeholder)
   const saveNewVersion = () => {
     alert('Save new version functionality would be implemented here')
+  }
+
+  // Handle blueprint generation
+  const handleGenerateBlueprint = async () => {
+    if (!vision || !activeVision) {
+      alert('Please select a category with vision content to generate a blueprint')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/vibe-assistant/generate-blueprint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          visionId: vision.id,
+          category: selectedCategory,
+          visionContent: activeVision,
+          focusArea: instructions || undefined,
+          priority: 'medium'
+        })
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Blueprint generation failed')
+      }
+
+      // For now, show the blueprint in an alert
+      // Later this will open a dedicated blueprint page
+      alert(`Blueprint Generated!\n\nTitle: ${data.blueprint?.title}\n\nCheck the console for full details.`)
+      console.log('Generated Blueprint:', data.blueprint)
+
+    } catch (err) {
+      console.error('Blueprint generation error:', err)
+      alert(err instanceof Error ? err.message : 'Blueprint generation failed')
+    }
   }
 
   if (loading) {
@@ -520,6 +603,11 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <span className="text-blue-400">✏️</span>
                   My Current Refinement
+                  {lastSaved && (
+                    <span className="text-xs text-green-400 bg-green-500/20 px-2 py-1 rounded-full">
+                      Auto-saved {lastSaved.toLocaleTimeString()}
+                    </span>
+                  )}
                 </h3>
                 <div className="flex items-center gap-2">
                   <Button
@@ -633,6 +721,52 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 </div>
               )}
             </Card>
+
+            {/* VIVA Notes Section */}
+            {vivaNotes && (
+              <Card className="p-6 border-purple-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <span className="text-purple-400">🧠</span>
+                    VIVA Notes
+                    <Badge variant="premium" className="text-xs">
+                      AI Reasoning
+                    </Badge>
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={handleGenerateBlueprint}
+                      variant="secondary"
+                      size="sm"
+                      className="flex items-center gap-1 hover:bg-green-500/20 hover:border-green-500/30"
+                    >
+                      <span className="text-green-400">🏗️</span>
+                      Generate Blueprint
+                    </Button>
+                    <Button
+                      onClick={() => setShowVivaNotes(!showVivaNotes)}
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-1 hover:bg-purple-500/20 hover:border-purple-500/30"
+                    >
+                      {showVivaNotes ? 'Hide' : 'Show'} Reasoning
+                    </Button>
+                  </div>
+                </div>
+                {showVivaNotes && (
+                  <div className="bg-purple-900/20 border border-purple-500/50 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-purple-400 text-sm">✨</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-neutral-300 whitespace-pre-wrap leading-relaxed">{vivaNotes}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
 
             {/* Usage Stats */}
             {lastUsage && (
