@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+export const maxDuration = 60
 import { NextRequest, NextResponse } from 'next/server'
 import { getOpenAIVoices, synthesizePreview } from '@/lib/services/audioService'
 
@@ -7,7 +9,7 @@ export async function GET(_request: NextRequest) {
     const previewVoice = searchParams.get('preview') as any
     if (previewVoice) {
       const buffer = await synthesizePreview(previewVoice)
-      return new NextResponse(buffer, {
+      return new NextResponse(Buffer.from(buffer), {
         status: 200,
         headers: {
           'Content-Type': 'audio/mpeg',
