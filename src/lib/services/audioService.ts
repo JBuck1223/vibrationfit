@@ -133,7 +133,32 @@ export async function generateAudioTracks(params: {
     }
 
     try {
-      const audioBuffer = await synthesizeWithOpenAI(section.text, voice, format)
+      // Retry with exponential backoff and optional fallback voice on 429/5xx
+      const maxAttempts = 3
+      let attempt = 0
+      let lastError: Error | null = null
+      let audioBuffer: Buffer | null = null
+      let useVoice: OpenAIVoice = voice
+      while (attempt < maxAttempts && !audioBuffer) {
+        try {
+          audioBuffer = await synthesizeWithOpenAI(section.text, useVoice, format)
+          break
+        } catch (e: any) {
+          lastError = e instanceof Error ? e : new Error(String(e))
+          attempt += 1
+          // crude detection of rate-limit/server errors
+          const message = (lastError.message || '').toLowerCase()
+          if (message.includes('429') || message.includes('5') || message.includes('timeout')) {
+            // fallback voice on next attempt
+            useVoice = useVoice === 'alloy' ? 'verse' : 'alloy'
+          }
+          if (attempt < maxAttempts) {
+            const delay = 1000 * Math.pow(2, attempt - 1)
+            await new Promise(r => setTimeout(r, delay))
+          }
+        }
+      }
+      if (!audioBuffer) throw lastError || new Error('OpenAI TTS failed')
       const ext = format === 'wav' ? 'wav' : 'mp3'
       const fileName = `${section.sectionKey}-${contentHash.slice(0, 12)}.${ext}`
       const s3Key = `user-uploads/${userId}/life-vision/audio/${visionId}/${fileName}`

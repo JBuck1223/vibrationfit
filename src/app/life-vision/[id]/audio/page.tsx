@@ -16,6 +16,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [tracks, setTracks] = useState<{ sectionKey: string; title: string; url: string; status?: string; createdAt?: string; voiceId?: string; contentHash?: string }[]>([])
   const [voices, setVoices] = useState<Voice[]>([])
   const [voice, setVoice] = useState<string>('alloy')
+  const [workingOn, setWorkingOn] = useState<string | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -31,6 +32,35 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         const data = await resp.json()
         setVoices((data.voices || []).map((v: any) => ({ id: v.id, name: v.name })))
       } catch {}
+      // Hook retry events from player
+      const onRetry = async (e: any) => {
+        const key = e?.detail?.sectionKey
+        if (!key) return
+        const supabase = createClient()
+        const { data: vv } = await supabase
+          .from('vision_versions')
+          .select('*')
+          .eq('id', visionId)
+          .single()
+        const allSections = buildFourteenSectionsFromVision(vv)
+        const section = allSections.find(s => s.sectionKey === key)
+        if (!section) return
+        setGenerating(true)
+        setWorkingOn(`retrying ${key}`)
+        try {
+          await fetch('/api/audio/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ visionId, sections: [section], voice }),
+          })
+          await refreshStatus()
+        } finally {
+          setGenerating(false)
+          setWorkingOn(null)
+        }
+      }
+      window.addEventListener('audio:retry-track', onRetry)
+      return () => window.removeEventListener('audio:retry-track', onRetry)
     })()
   }, [])
 
@@ -72,8 +102,37 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     setTracks(mapped)
   }
 
+  async function retryFailed() {
+    if (!visionId) return
+    // Pull latest content and rebuild sections, but only include those with failed status
+    const supabase = createClient()
+    const { data: vv } = await supabase
+      .from('vision_versions')
+      .select('*')
+      .eq('id', visionId)
+      .single()
+    const allSections = buildFourteenSectionsFromVision(vv)
+    const failedKeys = tracks.filter(t => t.status === 'failed').map(t => t.sectionKey)
+    const sections = allSections.filter(s => failedKeys.includes(s.sectionKey))
+    if (sections.length === 0) return
+    setGenerating(true)
+    setWorkingOn('retrying failed')
+    try {
+      await fetch('/api/audio/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visionId, sections, voice }),
+      })
+      await refreshStatus()
+    } finally {
+      setGenerating(false)
+      setWorkingOn(null)
+    }
+  }
+
   async function handleGenerate() {
     setGenerating(true)
+    setWorkingOn('queueing')
     try {
       // Fetch vision text sections (simplified: get latest version content)
       const supabase = createClient()
@@ -96,6 +155,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       })
       const data = await resp.json()
       await refreshStatus()
+      setWorkingOn(null)
     } catch (e) {
       console.error(e)
     } finally {
@@ -129,7 +189,16 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
           {loading ? (
             <div className="flex items-center justify-center py-20"><Spinner variant="primary" /></div>
           ) : (
-            <AudioPlayer tracks={tracks} />
+            <>
+              {workingOn && (
+                <div className="mb-4 text-center text-neutral-400 text-sm">Working on: {workingOn}</div>
+              )}
+              <div className="mb-4 flex gap-2">
+                <Button variant="secondary" onClick={() => retryFailed()} disabled={generating}>Retry Failed Only</Button>
+                <Button variant="outline" onClick={() => refreshStatus()} disabled={generating}>Refresh</Button>
+              </div>
+              <AudioPlayer tracks={tracks} />
+            </>
           )}
         </div>
       </Container>

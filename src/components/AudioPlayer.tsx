@@ -150,6 +150,15 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
                 {t.voiceId && <span>• Voice: {t.voiceId}</span>}
                 {t.contentHash && <span className="hidden md:inline">• {t.contentHash.slice(0,8)}</span>}
               </div>
+              {!t.url && t.status === 'failed' && (
+                <div className="mt-2">
+                  <Button variant="ghost" size="sm" onClick={(e) => {
+                    e.stopPropagation()
+                    const retryEvent = new CustomEvent('audio:retry-track', { detail: { sectionKey: t.sectionKey }})
+                    window.dispatchEvent(retryEvent)
+                  }}>Retry</Button>
+                </div>
+              )}
             </button>
           ))}
         </div>
