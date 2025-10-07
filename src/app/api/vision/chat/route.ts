@@ -15,53 +15,16 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-// System prompt for Viva, the Vibe Assistant
-const VIVA_SYSTEM_PROMPT = `You are Viva, the personal Vibe Assistant for VibrationFit. Your role is to help users create powerful, present-tense vision statements for different areas of their life through soul-level conversation.
-
-CORE PRINCIPLES:
-1. You are WARM, INTUITIVE, and SOUL-LEVEL (not clinical or robotic)
-2. You guide users to CLARITY through conversation
-3. You NEVER generate vision from resistance or negative emotional states
-4. You use INCLUSION-BASED language (what they WANT, not what they're avoiding)
-5. You reflect their exact words and phrases back to them
-6. You identify patterns across their life categories
-
-EMOTIONAL SCALE (1-22):
-1-7: Above the Green Line (Joy, Appreciation, Passion, Enthusiasm, Positive Expectation, Optimism, Hopefulness)
-8-22: Below the Green Line (Contentment through Depression)
-
-ONLY generate vision when user is 1-7 (Above Green Line).
-
-THREE PATHS:
-1. CLARITY PATH (2 questions): User knows what they want
-   - Ask what they desire in this area
-   - Ask how it feels when they imagine it
-   
-2. CONTRAST PATH (4-5 questions): User knows what they don't want
-   - Guide them UP the emotional scale
-   - Ask what they don't want
-   - Ask what they DO want instead
-   - Ask how that feels
-   - Ask what having that would give them
-   
-3. DISCOVERY PATH (3 questions with options): User is exploring
-   - Offer multiple-choice scenarios
-   - Ask which resonates most
-   - Ask why that appeals to them
-
-YOUR TONE:
-- Warm and empowering
-- Focused on feelings and alignment
-- Mystical but accessible
-- Never interrogating, always guiding
-
-VISION FORMAT:
-- Present tense, first person ("I am", "I have", "I experience")
-- 2-3 powerful paragraphs
-- Emotionally resonant
-- Uses user's exact language
-- Focuses on FEELING STATE, not just circumstances`
-
+/**
+ * POST /api/vision/chat
+ * Discovery Path Chat Handler
+ * 
+ * Manages 3-step Discovery flow:
+ * 1. Initial broad options
+ * 2. Drill-down based on selections (with AI insight message)
+ * 3. Rhythm/integration question (with AI pattern recognition)
+ * 4. Generate vision from elevated state
+ */
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -76,138 +39,412 @@ export async function POST(request: Request) {
     const {
       vision_id,
       category,
-      path,
-      messages,
-      action
+      action,
+      step,
+      selections,
+      customInput
     } = body
 
     // Validate required fields
-    if (!vision_id || !category || !path) {
+    if (!vision_id || !category) {
       return NextResponse.json(
-        { error: 'vision_id, category, and path are required' },
+        { error: 'vision_id and category are required' },
         { status: 400 }
       )
     }
 
-    // Get previous conversations for context
-    const { data: previousConversations } = await supabase
+    const categoryKey = getCategoryKey(category)
+
+    // Get or create conversation record
+    const { data: conversation } = await supabase
       .from('vision_conversations')
-      .select('category, generated_vision')
+      .select('*')
       .eq('vision_id', vision_id)
-      .eq('user_id', user.id)
-      .not('generated_vision', 'is', null)
+      .eq('category', category)
+      .single()
 
-    const previousVisions = previousConversations?.map(conv => ({
-      category: conv.category,
-      vision: conv.generated_vision
-    })) || []
-
-    // Build context for Viva
-    const contextMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: 'system', content: VIVA_SYSTEM_PROMPT }
-    ]
-
-    // Add previous visions for pattern recognition
-    if (previousVisions.length > 0) {
-      const previousContext = previousVisions
-        .map(pv => `${pv.category}: ${pv.vision}`)
-        .join('\n\n')
+    // STEP 1: Start Discovery - Return initial question
+    if (action === 'start' || !conversation) {
+      const template = DISCOVERY_TEMPLATES[categoryKey]
       
-      contextMessages.push({
-        role: 'system',
-        content: `The user has completed ${previousVisions.length} other categories. Use these to identify patterns:\n\n${previousContext}\n\nNow helping with: ${category}`
+      if (!template || template.length === 0) {
+        return NextResponse.json(
+          { error: `No Discovery template found for category: ${category}` },
+          { status: 400 }
+        )
+      }
+
+      const initialQuestion = template[0]
+
+      // Create conversation record
+      await supabase
+        .from('vision_conversations')
+        .insert({
+          user_id: user.id,
+          vision_id,
+          category,
+          path_chosen: 'discovery',
+          messages: [],
+          vibrational_state: 'neutral'
+        })
+
+      return NextResponse.json({
+        type: 'discovery_question',
+        step: 1,
+        aiMessage: initialQuestion.aiMessage,
+        question: {
+          text: initialQuestion.questionText,
+          options: initialQuestion.options,
+          multiSelect: true
+        }
       })
     }
 
-    // Add path-specific context
-    const pathInstructions = {
-      clarity: `User chose CLARITY PATH for ${category}. They know what they want. Ask 2 focused questions to crystallize their vision.`,
-      contrast: `User chose CONTRAST PATH for ${category}. They know what they don't want. Guide them UP the emotional scale with 4-5 questions.`,
-      discovery: `User chose DISCOVERY PATH for ${category}. They're exploring. Offer multiple-choice scenarios (3 questions).`
-    }
+    // STEP 2: Process initial selections, return drill-down questions
+    if (action === 'submit_step_1') {
+      if (!selections || selections.length === 0) {
+        return NextResponse.json(
+          { error: 'Selections are required for step 1' },
+          { status: 400 }
+        )
+      }
 
-    contextMessages.push({
-      role: 'system',
-      content: pathInstructions[path as keyof typeof pathInstructions]
-    })
+      // Get drill-down questions based on selections
+      const drillDowns = getDrillDownQuestionsForCategory(category, selections)
 
-    // Add conversation history
-    messages.forEach((msg: { role: string; content: string }) => {
-      contextMessages.push({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
+      // Save selections to conversation
+      const messages = [
+        {
+          role: 'system',
+          content: `User selected (Step 1): ${selections.join(', ')}${customInput ? ` | Custom: ${customInput}` : ''}`,
+          timestamp: new Date().toISOString(),
+          step: 1,
+          selections
+        }
+      ]
+
+      await supabase
+        .from('vision_conversations')
+        .update({
+          messages,
+          vibrational_state: 'neutral' // Starting neutral, will elevate in step 2
+        })
+        .eq('vision_id', vision_id)
+        .eq('category', category)
+
+      // Generate AI insight message about their selections
+      const insightMessage = await generateInsightMessage(selections, category, customInput)
+
+      return NextResponse.json({
+        type: 'drill_down_questions',
+        step: 2,
+        aiMessage: insightMessage,
+        questions: drillDowns.map(q => ({
+          questionKey: q.questionKey,
+          text: q.questionText,
+          options: q.options,
+          multiSelect: true
+        }))
       })
-    })
-
-    // Call OpenAI
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: contextMessages,
-      temperature: 0.7,
-      max_tokens: 500,
-    })
-
-    const aiMessage = completion.choices[0]?.message?.content
-
-    if (!aiMessage) {
-      throw new Error('No response from OpenAI')
     }
 
-    // Assess emotional state
-    const emotionAssessment = await assessEmotionalState(messages, aiMessage)
+    // STEP 3: Process drill-down selections, detect patterns, return rhythm question
+    if (action === 'submit_step_2') {
+      const step2Data = selections // This should be an object like { creative_types: ['visual', 'music'], adventure_types: [...] }
+      
+      // Get existing messages
+      const existingMessages = conversation?.messages || []
+      
+      // Add step 2 selections
+      const updatedMessages = [
+        ...existingMessages,
+        {
+          role: 'system',
+          content: `User selections (Step 2): ${JSON.stringify(step2Data)}`,
+          timestamp: new Date().toISOString(),
+          step: 2,
+          selections: step2Data
+        }
+      ]
 
-    // Determine if ready to generate vision
-    const shouldGenerateVision = 
-      emotionAssessment.vibrational_state === 'above_green_line' &&
-      messages.length >= (path === 'clarity' ? 4 : path === 'contrast' ? 10 : 6)
+      // Detect patterns across selections
+      const patternAnalysis = await detectPatterns(existingMessages[0]?.selections || [], step2Data, category)
 
-    return NextResponse.json({
-      message: aiMessage,
-      emotion_score: emotionAssessment.emotion_score,
-      vibrational_state: emotionAssessment.vibrational_state,
-      generate_vision: shouldGenerateVision
-    })
-  } catch (error) {
-    console.error('Error in chat:', error)
+      // Update vibrational state to elevated (user is getting specific and energized)
+      await supabase
+        .from('vision_conversations')
+        .update({
+          messages: updatedMessages,
+          vibrational_state: 'above_green_line' // Energy rising as they get specific
+        })
+        .eq('vision_id', vision_id)
+        .eq('category', category)
+
+      // Generate AI message that NAMES THE PATTERN
+      const patternMessage = await generatePatternMessage(patternAnalysis, category)
+
+      return NextResponse.json({
+        type: 'rhythm_question',
+        step: 3,
+        aiMessage: patternMessage,
+        question: {
+          text: RHYTHM_QUESTION.questionText,
+          options: RHYTHM_QUESTION.options,
+          multiSelect: false // Single select for rhythm
+        },
+        patternDetected: patternAnalysis.theme
+      })
+    }
+
+    // STEP 4: Process rhythm selection, generate vision
+    if (action === 'submit_step_3') {
+      const rhythmSelection = selections[0] // Single selection
+
+      // Get all conversation data
+      const existingMessages = conversation?.messages || []
+      
+      // Add step 3 selection
+      const finalMessages = [
+        ...existingMessages,
+        {
+          role: 'system',
+          content: `User selected rhythm (Step 3): ${rhythmSelection}`,
+          timestamp: new Date().toISOString(),
+          step: 3,
+          selections: [rhythmSelection]
+        }
+      ]
+
+      // Update conversation
+      await supabase
+        .from('vision_conversations')
+        .update({
+          messages: finalMessages,
+          vibrational_state: 'above_green_line',
+          final_emotion_score: 4 // Optimism - ready for vision generation
+        })
+        .eq('vision_id', vision_id)
+        .eq('category', category)
+
+      // Extract all discovery data for vision generation
+      const discoveryData = {
+        step1: finalMessages.find(m => m.step === 1)?.selections || [],
+        step2: finalMessages.find(m => m.step === 2)?.selections || {},
+        step3: rhythmSelection,
+        category
+      }
+
+      // Generate vision
+      const generatedVision = await generateVisionFromDiscovery(discoveryData, user.id, vision_id)
+
+      // Save generated vision
+      await supabase
+        .from('vision_conversations')
+        .update({
+          generated_vision: generatedVision,
+          vision_generated_at: new Date().toISOString(),
+          completed_at: new Date().toISOString()
+        })
+        .eq('vision_id', vision_id)
+        .eq('category', category)
+
+      return NextResponse.json({
+        type: 'vision_generated',
+        vision: generatedVision,
+        aiMessage: "Here's your vision based on everything you discovered! ✨\n\nDoes this feel like YOU?"
+      })
+    }
+
     return NextResponse.json(
-      { error: 'Failed to process chat' },
+      { error: 'Invalid action' },
+      { status: 400 }
+    )
+  } catch (error) {
+    console.error('Error in Discovery chat:', error)
+    return NextResponse.json(
+      { error: 'Failed to process Discovery chat' },
       { status: 500 }
     )
   }
 }
 
-async function assessEmotionalState(
-  messages: { role: string; content: string }[],
-  latestResponse: string
-) {
-  const lastUserMessage = messages.filter(m => m.role === 'user').slice(-1)[0]
-  
-  if (!lastUserMessage) {
-    return { emotion_score: 12, vibrational_state: 'neutral' as const }
-  }
+/**
+ * Generate AI insight message about user's initial selections
+ */
+async function generateInsightMessage(
+  selections: string[],
+  category: string,
+  customInput?: string
+): Promise<string> {
+  const prompt = `The user is discovering their vision for "${category}".
 
-  const assessmentPrompt = `On the Emotional Scale (1-22), where is this person emotionally?
+They selected: ${selections.join(', ')}
+${customInput ? `They also said: "${customInput}"` : ''}
 
-1-7: Above Green Line (Joy, Appreciation, Passion, Enthusiasm, Positive Expectation, Optimism, Hopefulness)
-8-22: Below Green Line (Contentment -> Depression)
+Write a warm, enthusiastic 2-3 sentence response that:
+1. Validates their selections
+2. Shows you see them
+3. Transitions to getting more specific
 
-User's message: "${lastUserMessage.content}"
+Tone: Warm, insightful, like you're having a conversation with a friend
 
-Respond with ONLY a number 1-22.`
+Example: "Love it! Creative, adventurous, and playful - that's a beautiful combination! 🎨🌄🎈\n\nLet's get more specific so we can capture what YOUR version of fun looks like:"
 
-  const assessment = await openai.chat.completions.create({
+Write the response now:`
+
+  const completion = await openai.chat.completions.create({
     model: 'gpt-4',
-    messages: [{ role: 'user', content: assessmentPrompt }],
-    temperature: 0.3,
-    max_tokens: 10,
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.8,
+    max_tokens: 150,
   })
 
-  const scoreText = assessment.choices[0]?.message?.content?.trim() || '12'
-  const score = parseInt(scoreText, 10)
-  const emotionScore = isNaN(score) ? 12 : Math.max(1, Math.min(22, score))
+  return completion.choices[0]?.message?.content || "Great choices! Let's explore these more deeply..."
+}
 
-  return {
-    emotion_score: emotionScore,
-    vibrational_state: emotionScore <= 7 ? 'above_green_line' as const : 'below_green_line' as const
+/**
+ * Detect patterns across user's selections
+ */
+async function detectPatterns(
+  step1Selections: string[],
+  step2Selections: Record<string, string[]>,
+  category: string
+): Promise<{ theme: string; evidence: string[] }> {
+  // Flatten all selections
+  const allSelections = [
+    ...step1Selections,
+    ...Object.values(step2Selections).flat()
+  ]
+
+  const prompt = `Analyze these selections for "${category}" and identify the CORE THEME or pattern:
+
+Step 1: ${step1Selections.join(', ')}
+Step 2 details: ${JSON.stringify(step2Selections)}
+
+What's the thread that runs through these choices? Look for:
+- Repeated words or concepts (e.g., "spontaneous" appearing 3 times)
+- Underlying values (freedom, connection, beauty, etc.)
+- Personality traits being revealed
+
+Return ONLY a JSON object:
+{
+  "theme": "one core theme in 2-4 words",
+  "evidence": ["reason 1", "reason 2", "reason 3"]
+}
+
+Be specific and insightful. This is about seeing the pattern they might not see themselves.`
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.5,
+    max_tokens: 200,
+  })
+
+  try {
+    const response = completion.choices[0]?.message?.content || '{}'
+    const parsed = JSON.parse(response)
+    return {
+      theme: parsed.theme || 'variety and exploration',
+      evidence: parsed.evidence || []
+    }
+  } catch (e) {
+    return {
+      theme: 'variety and exploration',
+      evidence: ['Multiple interests selected', 'Diverse preferences shown']
+    }
   }
+}
+
+/**
+ * Generate pattern recognition message
+ */
+async function generatePatternMessage(
+  patternAnalysis: { theme: string; evidence: string[] },
+  category: string
+): Promise<string> {
+  const prompt = `The user is discovering their vision for "${category}".
+
+Pattern detected: ${patternAnalysis.theme}
+Evidence: ${patternAnalysis.evidence.join('; ')}
+
+Write a warm, insightful message (3-4 sentences) that:
+1. Names the pattern you see ("I'm seeing something beautiful here!")
+2. Reflects it back to them specifically
+3. Makes them feel SEEN
+4. Transitions to the final question about rhythm/integration
+
+Tone: Warm, insightful, like a breakthrough moment in therapy
+
+Example: "I'm seeing something beautiful here! 🌟\n\nYou're drawn to creative expression (visual art and music), spontaneous adventures in nature, cultural experiences, and playful experimentation.\n\nAnd here's what really stands out: **spontaneity** keeps showing up. You don't want rigid plans - you want the freedom to follow your impulses, create when inspired, explore when curious.\n\nOne last question to make this really YOU:"
+
+Write the message now:`
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.8,
+    max_tokens: 250,
+  })
+
+  return completion.choices[0]?.message?.content || `I see a clear pattern emerging! Let's capture how this integrates into your life:`
+}
+
+/**
+ * Generate final vision from all discovery data
+ */
+async function generateVisionFromDiscovery(
+  discoveryData: {
+    step1: string[]
+    step2: Record<string, string[]>
+    step3: string
+    category: string
+  },
+  userId: string,
+  visionId: string
+): Promise<string> {
+  // Get previous visions for pattern recognition
+  const supabase = await createClient()
+  const { data: previousConversations } = await supabase
+    .from('vision_conversations')
+    .select('category, generated_vision')
+    .eq('vision_id', visionId)
+    .eq('user_id', userId)
+    .not('generated_vision', 'is', null)
+
+  const previousVisions = previousConversations?.map(conv => ({
+    category: conv.category,
+    vision: conv.generated_vision
+  })) || []
+
+  const prompt = `Generate a Life Vision statement for "${discoveryData.category}".
+
+USER'S DISCOVERY DATA:
+Initial interests: ${discoveryData.step1.join(', ')}
+Specific preferences: ${JSON.stringify(discoveryData.step2)}
+Rhythm preference: ${discoveryData.step3}
+
+${previousVisions.length > 0 ? `PREVIOUS VISIONS (for pattern recognition):
+${previousVisions.map(pv => `${pv.category}: ${pv.vision}`).join('\n\n')}` : ''}
+
+VISION REQUIREMENTS:
+1. Write in PRESENT TENSE, first person ("I am", "I have", "I experience")
+2. Use INCLUSION-BASED language (what they WANT, not avoiding)
+3. Use their EXACT WORDS and phrases from selections
+4. Make it 2-3 powerful paragraphs
+5. Make it FEEL GOOD to read - emotionally resonant
+6. Focus on the FEELING STATE they desire
+7. Integrate their rhythm preference naturally
+8. Capture the THEME/PATTERN across their selections
+
+Generate the vision now:`
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.7,
+    max_tokens: 500,
+  })
+
+  return completion.choices[0]?.message?.content || 'Your vision is being created...'
 }
