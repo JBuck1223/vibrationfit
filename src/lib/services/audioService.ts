@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import crypto from 'crypto'
 
-export type OpenAIVoice = 'alloy' | 'verse' | 'coral' | 'sage' | 'flow' | 'aria'
+export type OpenAIVoice = 'alloy' | 'ash' | 'coral' | 'echo' | 'fable' | 'onyx' | 'nova' | 'sage' | 'shimmer'
 
 export interface SectionInput {
   sectionKey: string
@@ -250,14 +250,17 @@ export async function generateAudioTracks(params: {
   return results
 }
 
-export function getOpenAIVoices(): { id: OpenAIVoice; name: string; brandName: string; gender: 'male' | 'female' }[] {
+export function getOpenAIVoices(): { id: OpenAIVoice; name: string; brandName: string; gender: 'male' | 'female' | 'neutral' }[] {
   return [
-    { id: 'alloy', name: 'Alloy', brandName: 'Clarity Mentor', gender: 'male' },
-    { id: 'verse', name: 'Verse', brandName: 'Warm Guide', gender: 'male' },
-    { id: 'coral', name: 'Coral', brandName: 'Cosmic Storyteller', gender: 'female' },
-    { id: 'sage', name: 'Sage', brandName: 'Deep Presence', gender: 'male' },
-    { id: 'flow', name: 'Flow', brandName: 'Meditation Flow', gender: 'female' },
-    { id: 'aria', name: 'Aria', brandName: 'Energetic Coach', gender: 'female' },
+    { id: 'alloy', name: 'Alloy', brandName: 'Clear & Professional', gender: 'neutral' },
+    { id: 'shimmer', name: 'Shimmer', brandName: 'Gentle & Soothing', gender: 'female' },
+    { id: 'ash', name: 'Ash', brandName: 'Warm & Friendly', gender: 'male' },
+    { id: 'coral', name: 'Coral', brandName: 'Bright & Energetic', gender: 'female' },
+    { id: 'echo', name: 'Echo', brandName: 'Deep & Authoritative', gender: 'male' },
+    { id: 'fable', name: 'Fable', brandName: 'Storytelling & Expressive', gender: 'male' },
+    { id: 'onyx', name: 'Onyx', brandName: 'Strong & Confident', gender: 'male' },
+    { id: 'nova', name: 'Nova', brandName: 'Fresh & Modern', gender: 'female' },
+    { id: 'sage', name: 'Sage', brandName: 'Excited & Firm', gender: 'female' },
   ]
 }
 

@@ -21,7 +21,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [isPreviewing, setIsPreviewing] = useState<boolean>(false)
   const [previewProgress, setPreviewProgress] = useState<number>(0)
   const previewAudioRef = React.useRef<HTMLAudioElement | null>(null)
-  const PREVIEW_TEXT = "This vision serves as my magnet, attracting the people, ideas, resources, strategies, events, and circumstances that orchestrate its beautiful unfolding. I hereby give the Universe full permission to open all doors leading to the joyful experience of this or something even better. Thank you in advance for this fun and satisfying journey of unlimited creation. I am truly grateful for the opportunity to be here and experience ourselves as the conscious creators of the The Life I Choose."
+  const PREVIEW_TEXT = "This is a sample of the voice you will hear for your life vision audio. This voice will read your vision and create audio tracks for you to listen to for multi-layered vision activation!"
 
   useEffect(() => {
     ;(async () => {
@@ -182,48 +182,62 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
           <div className="flex items-center justify-center gap-3">
             <select
               value={voice}
-              onChange={(e) => setVoice(e.target.value)}
+              onChange={(e) => {
+                // Stop current playback when switching voices
+                if (previewAudioRef.current) {
+                  previewAudioRef.current.pause()
+                  setIsPreviewing(false)
+                  setPreviewProgress(0)
+                }
+                setVoice(e.target.value)
+              }}
               className="px-6 py-3 rounded-full bg-black/30 text-white border-2 border-white/30 h-[46px]"
             >
               {voices.map(v => (
                 <option key={v.id} value={v.id}>{v.name}</option>
               ))}
             </select>
-            <details className="bg-black/30 border-2 border-white/20 rounded-2xl overflow-hidden">
-              <summary className="list-none">
-                <Button variant="outline">Preview</Button>
-              </summary>
-              <div className="p-4 space-y-3">
-                <Button variant="secondary" onClick={async () => {
-                  try {
-                    const res = await fetch(`/api/audio/voices?preview=${voice}`, { cache: 'no-store' })
-                    const data = await res.json()
-                    if (previewAudioRef.current) {
-                      previewAudioRef.current.pause()
-                      previewAudioRef.current = null
-                    }
-                    const audio = new Audio(data.url)
-                    previewAudioRef.current = audio
-                    setIsPreviewing(true)
-                    setPreviewProgress(0)
-                    audio.addEventListener('timeupdate', () => {
-                      if (!audio.duration) return
-                      setPreviewProgress((audio.currentTime / audio.duration) * 100)
-                    })
-                    audio.addEventListener('ended', () => {
-                      setIsPreviewing(false)
-                      setPreviewProgress(100)
-                    })
-                    audio.play().catch(() => setIsPreviewing(false))
-                  } catch (e) {
-                    console.error('Preview failed', e)
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/audio/voices?preview=${voice}`, { cache: 'no-store' })
+                  const data = await res.json()
+                  if (previewAudioRef.current) {
+                    previewAudioRef.current.pause()
+                    previewAudioRef.current = null
                   }
-                }}>Play</Button>
-                <audio controls className="w-full">
-                  {/* The controls will be used after Play sets the src on preview audio; this is a placeholder UI */}
-                </audio>
-              </div>
-            </details>
+                  const audio = new Audio(data.url)
+                  previewAudioRef.current = audio
+                  setIsPreviewing(true)
+                  setPreviewProgress(0)
+                  setPreviewUrl(data.url)
+                  
+                  audio.addEventListener('timeupdate', () => {
+                    if (!audio.duration) return
+                    setPreviewProgress((audio.currentTime / audio.duration) * 100)
+                  })
+                  audio.addEventListener('ended', () => {
+                    setIsPreviewing(false)
+                    setPreviewProgress(100)
+                  })
+                  audio.addEventListener('error', (e) => {
+                    console.error('Audio playback error:', e)
+                    setIsPreviewing(false)
+                  })
+                  audio.play().catch((error) => {
+                    console.error('Audio play failed:', error)
+                    setIsPreviewing(false)
+                  })
+                } catch (e) {
+                  console.error('Preview failed', e)
+                  setIsPreviewing(false)
+                }
+              }}
+              disabled={isPreviewing}
+            >
+              {isPreviewing ? 'Playing...' : 'Preview Voice'}
+            </Button>
             <GradientButton gradient="brand" onClick={handleGenerate} disabled={generating}>
               {generating ? 'Generating…' : 'Generate Audio'}
             </GradientButton>
