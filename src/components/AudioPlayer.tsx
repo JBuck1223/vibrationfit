@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Button, Card, ProgressBar, Badge } from '@/lib/design-system/components'
 
 type Track = {
@@ -17,6 +17,7 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [repeatMode, setRepeatMode] = useState<'off' | 'track' | 'playlist'>('off')
 
   const current = tracks[currentIndex]
 
@@ -27,8 +28,33 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
       if (!el.duration) return
       setProgress((el.currentTime / el.duration) * 100)
     }
+    const onEnded = () => {
+      if (repeatMode === 'track') {
+        el.currentTime = 0
+        el.play().catch(() => setIsPlaying(false))
+        return
+      }
+      const nextPlayable = findNextPlayableIndex(currentIndex)
+      if (nextPlayable !== null) {
+        setCurrentIndex(nextPlayable)
+        // autoplay will be handled by effect on currentIndex
+      } else if (repeatMode === 'playlist') {
+        const firstPlayable = findNextPlayableIndex(-1)
+        if (firstPlayable !== null) {
+          setCurrentIndex(firstPlayable)
+        } else {
+          setIsPlaying(false)
+        }
+      } else {
+        setIsPlaying(false)
+      }
+    }
     el.addEventListener('timeupdate', onTime)
-    return () => el.removeEventListener('timeupdate', onTime)
+    el.addEventListener('ended', onEnded)
+    return () => {
+      el.removeEventListener('timeupdate', onTime)
+      el.removeEventListener('ended', onEnded)
+    }
   }, [])
 
   useEffect(() => {
@@ -57,6 +83,29 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
 
   const next = () => setCurrentIndex((i) => Math.min(i + 1, tracks.length - 1))
   const prev = () => setCurrentIndex((i) => Math.max(i - 1, 0))
+  const playAllFromStart = () => {
+    const firstPlayable = findNextPlayableIndex(-1)
+    if (firstPlayable !== null) {
+      setCurrentIndex(firstPlayable)
+      if (!isPlaying) setIsPlaying(true)
+      setTimeout(() => {
+        if (audioRef.current && tracks[firstPlayable]?.url) {
+          audioRef.current.play().catch(() => setIsPlaying(false))
+        }
+      }, 0)
+    }
+  }
+
+  function findNextPlayableIndex(fromIndex: number): number | null {
+    for (let i = fromIndex + 1; i < tracks.length; i++) {
+      if (tracks[i]?.url) return i
+    }
+    return null
+  }
+
+  function cycleRepeat() {
+    setRepeatMode((m) => (m === 'off' ? 'track' : m === 'track' ? 'playlist' : 'off'))
+  }
 
   return (
     <Card variant="elevated">
@@ -70,6 +119,10 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
             <Button variant="secondary" onClick={prev}>Prev</Button>
             <Button variant="primary" onClick={playPause}>{isPlaying ? 'Pause' : 'Play'}</Button>
             <Button variant="secondary" onClick={next}>Next</Button>
+            <Button variant="outline" onClick={playAllFromStart}>Play All</Button>
+            <Button variant="ghost" onClick={cycleRepeat}>
+              {repeatMode === 'off' ? 'Repeat: Off' : repeatMode === 'track' ? 'Repeat: Track' : 'Repeat: Playlist'}
+            </Button>
           </div>
         </div>
 
