@@ -167,7 +167,14 @@ end;
 $$ language plpgsql security definer;
 
 -- Create trigger for automatic progress updates
-drop trigger if exists on_conversation_completed on public.vision_conversations;
+-- Note: Using IF EXISTS to safely handle re-runs of this migration
+do $$
+begin
+  if exists (select 1 from pg_trigger where tgname = 'on_conversation_completed') then
+    drop trigger on_conversation_completed on public.vision_conversations;
+  end if;
+end $$;
+
 create trigger on_conversation_completed
   after update on public.vision_conversations
   for each row
@@ -186,7 +193,14 @@ end;
 $$ language plpgsql security definer;
 
 -- Create trigger to auto-initialize progress
-drop trigger if exists on_vision_created on public.vision_versions;
+-- Note: Using IF EXISTS to safely handle re-runs of this migration
+do $$
+begin
+  if exists (select 1 from pg_trigger where tgname = 'on_vision_created') then
+    drop trigger on_vision_created on public.vision_versions;
+  end if;
+end $$;
+
 create trigger on_vision_created
   after insert on public.vision_versions
   for each row
