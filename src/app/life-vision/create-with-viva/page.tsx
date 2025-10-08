@@ -37,7 +37,7 @@ export default function VisionCreateWithVivaPage() {
   const [discoveryState, setDiscoveryState] = useState<DiscoveryState | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [initializing, setInitializing] = useState(true)
-  
+
   const [step2Responses, setStep2Responses] = useState<Record<string, string[]>>({})
 
   // Initialize vision on mount
@@ -51,7 +51,7 @@ export default function VisionCreateWithVivaPage() {
       startDiscovery()
     }
   }, [currentCategory, visionId])
-
+  
   const initializeVision = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -61,27 +61,41 @@ export default function VisionCreateWithVivaPage() {
       }
 
       // CHECK: Profile completion requirement
-      const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
+      // 1) Prefer latest profile version from profile_versions
+      let completionPercent = 0
+
+      const { data: latestVersion } = await supabase
+        .rpc('get_latest_profile_version', { user_uuid: user.id as any })
         .single()
 
-      if (profileError || !profile) {
-        console.error('Profile not found:', profileError)
-        alert('Please complete your profile before using Viva. Redirecting to profile creation...')
-        router.push('/profile/new')
-        return
-      }
+      if (latestVersion && typeof latestVersion.completion_percentage === 'number') {
+        completionPercent = latestVersion.completion_percentage
+      } else {
+        // 2) Fallback to base user_profiles table if no versions exist
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
 
-      // Check profile completion percentage
-      const requiredFields = [
-        'first_name', 'last_name', 'birth_date', 'gender',
-        'current_city', 'current_state', 'current_country',
-        'relationship_status', 'career_title', 'career_industry'
-      ]
-      const filledFields = requiredFields.filter(field => profile[field] && String(profile[field]).trim() !== '')
-      const completionPercent = Math.round((filledFields.length / requiredFields.length) * 100)
+        if (!profile || profileError) {
+          console.error('Profile not found:', profileError)
+          alert('Please complete your profile before using Viva. Redirecting to profile creation...')
+          router.push('/profile/new')
+          return
+        }
+
+        // Minimal heuristic for completion if versions are not in use
+        const requiredFields = [
+          'first_name', 'last_name', 'date_of_birth', 'gender',
+          'city', 'state', 'country',
+          'relationship_status', 'occupation', 'company'
+        ]
+        const filledFields = requiredFields.filter(field => profile[field] && String(profile[field]).trim() !== '')
+        completionPercent = Math.round((filledFields.length / requiredFields.length) * 100)
+      }
 
       if (completionPercent < 70) {
         alert(`Viva needs more information to create a personalized vision for you.\n\nYour profile is ${completionPercent}% complete. Please complete at least 70% before using Viva.\n\nRedirecting to your profile...`)
@@ -391,13 +405,13 @@ export default function VisionCreateWithVivaPage() {
       <Container className="py-12">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/life-vision')}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Visions
-          </Button>
+            <Button
+              variant="ghost"
+              onClick={() => router.push('/life-vision')}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Visions
+            </Button>
           
           <div className="text-center">
             <h1 className="text-3xl font-bold text-white mt-4">Create with Viva</h1>
@@ -408,11 +422,11 @@ export default function VisionCreateWithVivaPage() {
         </div>
 
         {/* Progress Indicator */}
-        <CategoryProgress
-          totalCategories={LIFE_CATEGORIES.length}
+          <CategoryProgress
+            totalCategories={LIFE_CATEGORIES.length}
           completedCategories={completedCategories}
-          currentCategory={currentCategory || ''}
-          allCategories={LIFE_CATEGORIES}
+            currentCategory={currentCategory || ''}
+            allCategories={LIFE_CATEGORIES}
         />
 
         {/* Main Discovery Interface */}
