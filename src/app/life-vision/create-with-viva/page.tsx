@@ -108,7 +108,6 @@ export default function VisionCreateWithVivaPage() {
         .from('vision_versions')
         .select('*')
         .eq('user_id', user.id)
-        .eq('title', 'My Vision (Created with Viva)')
         .eq('status', 'draft')
         .single()
 
@@ -154,7 +153,7 @@ export default function VisionCreateWithVivaPage() {
         .insert({
           user_id: user.id,
           version_number: nextVersionNumber,
-          title: 'My Vision (Created with Viva)',
+          // No title field needed
           status: 'draft', // Explicitly set as draft
           // Initialize with empty sections for all categories
           forward: '',

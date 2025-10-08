@@ -172,7 +172,7 @@ export default function NewLifeVisionPage() {
         if (lastVision) {
           setVisionData({
             id: lastVision.id,
-            title: lastVision.title || '',
+            // No title field needed
             forward: lastVision.forward || '',
             fun: lastVision.fun || '',
             travel: lastVision.travel || '',
@@ -234,7 +234,7 @@ export default function NewLifeVisionPage() {
         ...(existingVisionId && { id: existingVisionId }),
         user_id: user.id,
         ...visionData,
-        title: visionData.title || 'Untitled Vision',
+        // No title field needed
         version_number: 1,
         updated_at: new Date().toISOString()
       }
@@ -315,7 +315,7 @@ export default function NewLifeVisionPage() {
         ...(existingVisionId && { id: existingVisionId }),
         user_id: user.id,
         ...data,
-        title: data.title || 'Untitled Vision',
+        // No title field needed
         version_number: 1,
         status: isComplete ? 'complete' : 'draft',
         completion_percent: isComplete ? 100 : progressPercent,

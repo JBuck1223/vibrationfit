@@ -13,9 +13,8 @@ const VISION_SECTIONS = getVisionCategoryKeys()
 function calculateCompletionPercentage(vision: Record<string, unknown>) {
   const sections = VISION_SECTIONS.map(section => vision[section] as string)
   const filledSections = sections.filter(section => String(section || '').trim().length > 0).length
-  const titleFilled = String(vision.title || '').trim().length > 0 ? 1 : 0
-  const totalSections = VISION_SECTIONS.length + 1 // +1 for title
-  return Math.round(((filledSections + titleFilled) / totalSections) * 100)
+  const totalSections = VISION_SECTIONS.length // No longer including title
+  return Math.round((filledSections / totalSections) * 100)
 }
 
 // Use centralized vision category icon function
@@ -24,7 +23,6 @@ const getSectionIcon = getVisionCategoryIcon
 interface VisionData {
   id: string
   user_id: string
-  title: string
   forward: string
   fun: string
   travel: string
@@ -462,7 +460,7 @@ export default function VisionListPage() {
                             <span className="font-mono">ID:</span> {version.id}
                           </p>
                           <p className="text-xs text-neutral-500">
-                            <span className="font-medium">Title:</span> {version.title || 'Untitled Vision'}
+                            <span className="font-medium">Version:</span> v{version.version_number}
                           </p>
                           <p className="text-xs text-neutral-500">
                             <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
@@ -470,7 +468,7 @@ export default function VisionListPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {version.title === 'My Vision (Created with Viva)' && version.status === 'draft' ? (
+                        {version.status === 'draft' ? (
                           // Special handling for Viva drafts - offer both Viva and manual editing
                           <>
                             <Button
@@ -604,7 +602,7 @@ export default function VisionListPage() {
             <div className="space-y-6">
               {/* Title */}
               <div>
-                <h2 className="text-3xl font-bold text-white mb-4">{activeVision.title || 'Untitled Vision'}</h2>
+                <h2 className="text-3xl font-bold text-white mb-4">Life Vision v{activeVision.version_number}</h2>
                 <div className="flex items-center text-neutral-400 text-sm mb-6">
                   <span>Created {new Date(activeVision.created_at).toLocaleDateString()}</span>
                   {activeVision.updated_at !== activeVision.created_at && (

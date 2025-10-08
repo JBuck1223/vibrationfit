@@ -23,7 +23,6 @@ import { VISION_CATEGORIES } from '@/lib/design-system'
 interface VisionData {
   id: string
   user_id: string
-  title: string
   forward: string
   fun: string
   travel: string
@@ -69,9 +68,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const calculateCompletion = useCallback((data: VisionData) => {
     const sections = VISION_SECTIONS.map(section => data[section.key as keyof VisionData] as string)
     const filledSections = sections.filter(section => section?.trim().length > 0).length
-    const titleFilled = data.title?.trim().length > 0 ? 1 : 0
-    const totalSections = VISION_SECTIONS.length + 1 // +1 for title
-    return Math.round(((filledSections + titleFilled) / totalSections) * 100)
+    const totalSections = VISION_SECTIONS.length // No longer including title
+    return Math.round((filledSections / totalSections) * 100)
   }, [])
 
   // Get completed sections
@@ -575,7 +573,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">
-                {isEditing ? 'Edit Life Vision' : vision.title || 'Untitled Vision'}
+                {isEditing ? 'Edit Life Vision' : `Life Vision v${vision.version_number}`}
               </h1>
               <p className="text-neutral-400">
                 {isEditing ? 'Update your life vision' : 'View and manage your life vision'}
@@ -753,17 +751,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             <Card className="p-8">
               {isEditing ? (
                 <div className="space-y-6">
-                  {/* Title Section */}
-                  <div>
-                    <h3 className="text-2xl font-bold text-white mb-2">Vision Title</h3>
-                    <p className="text-neutral-400 mb-4">Give your life vision a meaningful title</p>
-                    <Input
-                      value={vision.title || ''}
-                      onChange={(e) => updateVision({ title: e.target.value })}
-                      placeholder="Enter your vision title..."
-                    />
-                  </div>
-
                   {/* Section Content */}
                   {renderSection()}
                 </div>
@@ -771,7 +758,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 <div className="space-y-6">
                   {/* Title */}
                   <div>
-                    <h2 className="text-3xl font-bold text-white mb-4">{vision.title || 'Untitled Vision'}</h2>
+                    <h2 className="text-3xl font-bold text-white mb-4">Life Vision v{vision.version_number}</h2>
                     <div className="flex items-center text-neutral-400 text-sm mb-6">
                       <span>Created {new Date(vision.created_at).toLocaleDateString()}</span>
                       {vision.updated_at !== vision.created_at && (
