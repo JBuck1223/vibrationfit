@@ -576,7 +576,6 @@ export default function VisionCreateWithVivaPage() {
                   </p>
                 </div>
               )}
-            </div>
               </div>
             </div>
           ) : (
