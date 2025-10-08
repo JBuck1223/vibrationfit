@@ -429,7 +429,7 @@ export default function VisionCreateWithVivaPage() {
             allCategories={LIFE_CATEGORIES}
         />
 
-        {/* Main Discovery Interface */}
+        {/* Main Discovery Interface - Claude/OpenAI Style Chat Container */}
         <div className="max-w-4xl mx-auto mt-12">
           {isLoading && !discoveryState ? (
             <div className="text-center py-12">
@@ -437,7 +437,8 @@ export default function VisionCreateWithVivaPage() {
               <p className="text-neutral-400">Viva is preparing your questions...</p>
             </div>
           ) : discoveryState ? (
-            <div className="space-y-8">
+            <div className="bg-neutral-900/50 border border-neutral-700 rounded-2xl p-8 shadow-lg">
+              <div className="space-y-8">
               {/* AI Message */}
               <div className="flex items-start gap-3 mb-8">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#14B8A6] to-[#8B5CF6] flex items-center justify-center flex-shrink-0">
@@ -576,9 +577,13 @@ export default function VisionCreateWithVivaPage() {
                 </div>
               )}
             </div>
+              </div>
+            </div>
           ) : (
-            <div className="text-center py-12">
-              <p className="text-neutral-400">Ready to begin your discovery journey!</p>
+            <div className="bg-neutral-900/50 border border-neutral-700 rounded-2xl p-8 shadow-lg">
+              <div className="text-center py-12">
+                <p className="text-neutral-400">Ready to begin your discovery journey!</p>
+              </div>
             </div>
           )}
         </div>
