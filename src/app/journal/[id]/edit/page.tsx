@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { PageLayout, Container, Card, Button } from '@/lib/design-system'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Save, X } from 'lucide-react'
@@ -252,18 +253,15 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
           </div>
 
           {/* Content */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-200 mb-2">
-              Content
-            </label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={8}
-              className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none resize-none"
-              placeholder="Write your journal entry here..."
-            />
-          </div>
+          <RecordingTextarea
+            label="Content"
+            value={content}
+            onChange={(value) => setContent(value)}
+            rows={8}
+            placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
+            allowVideo={true}
+            storageFolder="journal"
+          />
 
           {/* Existing Files */}
           {existingFiles.length > 0 && (

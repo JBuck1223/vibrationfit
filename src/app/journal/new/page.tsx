@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Container, Card, Input, Button, Textarea } from '@/lib/design-system'
+import { PageLayout, Container, Card, Input, Button } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 
@@ -203,13 +204,14 @@ export default function NewJournalEntryPage() {
               </div>
 
               {/* Journal Content */}
-              <Textarea
+              <RecordingTextarea
                 label="Journal Entry"
                 value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                required
+                onChange={(value) => setFormData({ ...formData, content: value })}
                 rows={10}
-                placeholder="Write your journal entry here..."
+                placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
+                allowVideo={true}
+                storageFolder="journal"
               />
 
               {/* Submit */}
