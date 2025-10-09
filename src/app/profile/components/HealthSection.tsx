@@ -23,8 +23,13 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
     onProfileChange({ [field]: value })
   }
 
-  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video') => {
-    console.log('🎯 HealthSection: handleRecordingSaved called', { url, type, transcript: transcript.substring(0, 50) + '...' })
+  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
+    console.log('🎯 HealthSection: handleRecordingSaved called', { 
+      url, 
+      type, 
+      transcript: transcript.substring(0, 50) + '...',
+      updatedTextLength: updatedText.length
+    })
     
     // Add the recording to the story_recordings array
     const newRecording = {
@@ -46,7 +51,7 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
 
     // Auto-save to database immediately (save both recordings and story text)
     try {
-      console.log('💾 Auto-saving recording to database...')
+      console.log('💾 Auto-saving recording AND text to database...')
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
@@ -54,7 +59,7 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
         },
         body: JSON.stringify({
           story_recordings: updatedRecordings,
-          health_vitality_story: profile.health_vitality_story // Save the story text too
+          health_vitality_story: updatedText // Save the updated story text with transcript
         }),
       })
 
@@ -64,13 +69,19 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
 
       const data = await response.json()
       console.log('✅ Recording auto-saved to database', {
-        savedRecordings: data.profile?.story_recordings?.length || 0
+        savedRecordings: data.profile?.story_recordings?.length || 0,
+        storyTextLength: data.profile?.health_vitality_story?.length || 0
       })
 
-      // Update only the story_recordings field from server response
-      if (data.profile && data.profile.story_recordings) {
-        console.log('🔄 Updating story_recordings from server response')
-        handleInputChange('story_recordings', data.profile.story_recordings)
+      // Update both fields from server response
+      if (data.profile) {
+        console.log('🔄 Updating story_recordings AND text from server response')
+        if (data.profile.story_recordings) {
+          handleInputChange('story_recordings', data.profile.story_recordings)
+        }
+        if (data.profile.health_vitality_story) {
+          handleInputChange('health_vitality_story', data.profile.health_vitality_story)
+        }
       }
     } catch (error) {
       console.error('❌ Failed to auto-save recording:', error)

@@ -15,7 +15,7 @@ interface RecordingTextareaProps {
   allowVideo?: boolean
   className?: string
   disabled?: boolean
-  onRecordingSaved?: (url: string, transcript: string, type: 'audio' | 'video') => void
+  onRecordingSaved?: (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => Promise<void>
   storageFolder?: 'evidence' | 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'avatar' | 'customTracks'
 }
 
@@ -56,25 +56,7 @@ export function RecordingTextarea({
     try {
       let recordingUrl: string | undefined
 
-      // Upload the recording file to S3 if requested
-      if (shouldSaveFile) {
-        console.log('📤 Uploading recording to S3...')
-        const result = await uploadAndTranscribeRecording(blob, storageFolder)
-        recordingUrl = result.url
-        console.log('✅ Recording uploaded:', recordingUrl)
-        
-        // Notify parent component about the saved recording
-        if (onRecordingSaved) {
-          console.log('📢 Notifying parent about saved recording')
-          onRecordingSaved(recordingUrl, transcript, recordingMode)
-        } else {
-          console.warn('⚠️ No onRecordingSaved callback provided!')
-        }
-      } else {
-        console.log('⏭️ Skipping file upload (checkbox unchecked)')
-      }
-      
-      // Append transcript to existing text
+      // Prepare the updated text value with transcript
       const recordingNote = shouldSaveFile 
         ? `\n\n--- Recorded on ${new Date().toLocaleDateString()} (${recordingMode === 'video' ? 'Video' : 'Audio'} saved) ---\n`
         : `\n\n--- Recorded on ${new Date().toLocaleDateString()} ---\n`
@@ -83,6 +65,25 @@ export function RecordingTextarea({
         ? `${value}${recordingNote}${transcript}`
         : transcript
 
+      // Upload the recording file to S3 if requested
+      if (shouldSaveFile) {
+        console.log('📤 Uploading recording to S3...')
+        const result = await uploadAndTranscribeRecording(blob, storageFolder)
+        recordingUrl = result.url
+        console.log('✅ Recording uploaded:', recordingUrl)
+        
+        // Notify parent component about the saved recording (pass the updated text too)
+        if (onRecordingSaved) {
+          console.log('📢 Notifying parent about saved recording with updated text')
+          await onRecordingSaved(recordingUrl, transcript, recordingMode, newValue)
+          console.log('✅ Parent save completed, now updating local text field')
+        } else {
+          console.warn('⚠️ No onRecordingSaved callback provided!')
+        }
+      } else {
+        console.log('⏭️ Skipping file upload (checkbox unchecked)')
+      }
+      
       console.log('📝 Updating text field with transcript')
       onChange(newValue)
       setShowRecorder(false)
