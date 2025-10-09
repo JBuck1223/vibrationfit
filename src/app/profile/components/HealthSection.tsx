@@ -44,7 +44,7 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
       newRecording
     })
 
-    // Auto-save to database immediately (don't update local state until confirmed)
+    // Auto-save to database immediately (save both recordings and story text)
     try {
       console.log('💾 Auto-saving recording to database...')
       const response = await fetch('/api/profile', {
@@ -53,7 +53,8 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          story_recordings: updatedRecordings
+          story_recordings: updatedRecordings,
+          health_vitality_story: profile.health_vitality_story // Save the story text too
         }),
       })
 
@@ -63,19 +64,13 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
 
       const data = await response.json()
       console.log('✅ Recording auto-saved to database', {
-        savedRecordings: data.profile?.story_recordings?.length || 0,
-        fullProfile: data.profile
+        savedRecordings: data.profile?.story_recordings?.length || 0
       })
 
-      // Update local state with the server response (single source of truth)
-      if (data.profile) {
-        console.log('🔄 Updating entire profile from server response')
-        // Update all profile fields to ensure consistency
-        Object.keys(data.profile).forEach(key => {
-          if (profile[key as keyof UserProfile] !== data.profile[key]) {
-            handleInputChange(key as keyof UserProfile, data.profile[key])
-          }
-        })
+      // Update only the story_recordings field from server response
+      if (data.profile && data.profile.story_recordings) {
+        console.log('🔄 Updating story_recordings from server response')
+        handleInputChange('story_recordings', data.profile.story_recordings)
       }
     } catch (error) {
       console.error('❌ Failed to auto-save recording:', error)
