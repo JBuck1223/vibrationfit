@@ -1,4 +1,4 @@
-import { uploadFile, USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
+import { uploadUserFile, USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
 
 export interface RecordingUploadResult {
   url: string
@@ -29,7 +29,8 @@ export async function uploadRecording(
     const file = new File([blob], name, { type: blob.type })
 
     // Upload to S3
-    const url = await uploadFile(file, folder)
+    const result = await uploadUserFile(folder, file)
+    const url = result.url
 
     return {
       url,
