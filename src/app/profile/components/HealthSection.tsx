@@ -300,6 +300,7 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
 
         {/* Display Saved Recordings */}
         <SavedRecordings
+          key={`health-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter="health_vitality"
           onDelete={handleDeleteRecording}
