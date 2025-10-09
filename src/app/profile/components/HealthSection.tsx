@@ -70,12 +70,16 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
       const data = await response.json()
       console.log('✅ Recording auto-saved to database', {
         savedRecordings: data.profile?.story_recordings?.length || 0,
-        storyTextLength: data.profile?.health_vitality_story?.length || 0
+        storyTextLength: data.profile?.health_vitality_story?.length || 0,
+        actualRecordings: data.profile?.story_recordings
       })
 
       // Update both fields from server response
       if (data.profile) {
-        console.log('🔄 Updating story_recordings AND text from server response')
+        console.log('🔄 Updating story_recordings AND text from server response', {
+          recordingsFromServer: data.profile.story_recordings?.length || 0,
+          textFromServer: data.profile.health_vitality_story?.substring(0, 100) || 'empty'
+        })
         if (data.profile.story_recordings) {
           handleInputChange('story_recordings', data.profile.story_recordings)
         }
