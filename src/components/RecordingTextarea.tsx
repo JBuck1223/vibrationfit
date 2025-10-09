@@ -37,7 +37,18 @@ export function RecordingTextarea({
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   const handleRecordingComplete = async (blob: Blob, transcript?: string, shouldSaveFile?: boolean) => {
-    if (!transcript) return
+    console.log('📹 RecordingTextarea: handleRecordingComplete called', {
+      hasBlob: !!blob,
+      hasTranscript: !!transcript,
+      shouldSaveFile,
+      recordingMode,
+      storageFolder
+    })
+
+    if (!transcript) {
+      console.warn('No transcript provided, skipping save')
+      return
+    }
 
     setIsUploading(true)
     setUploadError(null)
@@ -47,13 +58,20 @@ export function RecordingTextarea({
 
       // Upload the recording file to S3 if requested
       if (shouldSaveFile) {
+        console.log('📤 Uploading recording to S3...')
         const result = await uploadAndTranscribeRecording(blob, storageFolder)
         recordingUrl = result.url
+        console.log('✅ Recording uploaded:', recordingUrl)
         
         // Notify parent component about the saved recording
         if (onRecordingSaved) {
+          console.log('📢 Notifying parent about saved recording')
           onRecordingSaved(recordingUrl, transcript, recordingMode)
+        } else {
+          console.warn('⚠️ No onRecordingSaved callback provided!')
         }
+      } else {
+        console.log('⏭️ Skipping file upload (checkbox unchecked)')
       }
       
       // Append transcript to existing text
@@ -65,10 +83,11 @@ export function RecordingTextarea({
         ? `${value}${recordingNote}${transcript}`
         : transcript
 
+      console.log('📝 Updating text field with transcript')
       onChange(newValue)
       setShowRecorder(false)
     } catch (error) {
-      console.error('Failed to process recording:', error)
+      console.error('❌ Failed to process recording:', error)
       setUploadError('Failed to save recording. Please try again.')
     } finally {
       setIsUploading(false)
@@ -160,8 +179,9 @@ export function RecordingTextarea({
             mode={recordingMode}
             onRecordingComplete={handleRecordingComplete}
             onTranscriptComplete={handleTranscriptComplete}
-            autoTranscribe={recordingMode === 'audio'}
+            autoTranscribe={true} // Transcribe both audio and video
             maxDuration={600} // 10 minutes
+            showSaveOption={true} // Show the save recording checkbox
           />
         </div>
       )}

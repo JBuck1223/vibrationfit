@@ -24,6 +24,8 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
   }
 
   const handleRecordingSaved = (url: string, transcript: string, type: 'audio' | 'video') => {
+    console.log('🎯 HealthSection: handleRecordingSaved called', { url, type, transcript: transcript.substring(0, 50) + '...' })
+    
     // Add the recording to the story_recordings array
     const newRecording = {
       url,
@@ -35,6 +37,12 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
 
     const currentRecordings = profile.story_recordings || []
     const updatedRecordings = [...currentRecordings, newRecording]
+    
+    console.log('💾 Updating story_recordings:', {
+      previousCount: currentRecordings.length,
+      newCount: updatedRecordings.length,
+      newRecording
+    })
     
     handleInputChange('story_recordings', updatedRecordings)
   }
