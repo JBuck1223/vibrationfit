@@ -82,10 +82,13 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
         })
         
         // Update both fields at once to ensure React re-renders
+        // Create new array reference to force re-render
         onProfileChange({
-          story_recordings: data.profile.story_recordings,
+          story_recordings: [...(data.profile.story_recordings || [])],
           health_vitality_story: data.profile.health_vitality_story
         })
+        
+        console.log('✅ State updated, component should re-render now')
       }
     } catch (error) {
       console.error('❌ Failed to auto-save recording:', error)
