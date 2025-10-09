@@ -76,12 +76,24 @@ export function MediaRecorderComponent({
       console.log('Media access granted:', stream.getTracks().map(t => ({ kind: t.kind, label: t.label })))
       streamRef.current = stream
 
-      // Show live preview for video
-      if (mode === 'video' && videoRef.current) {
-        console.log('Setting up video preview')
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-        console.log('Video preview started')
+      // Set recording state early so video preview shows
+      setIsRecording(true)
+      setDuration(0)
+
+      // Show live preview for video - wait a tick for state to update
+      if (mode === 'video') {
+        // Use setTimeout to ensure the video element is rendered
+        setTimeout(() => {
+          if (videoRef.current && streamRef.current) {
+            console.log('Setting up video preview')
+            videoRef.current.srcObject = streamRef.current
+            videoRef.current.play().then(() => {
+              console.log('Video preview started')
+            }).catch(err => {
+              console.error('Video preview error:', err)
+            })
+          }
+        }, 100)
       }
 
       const mimeType = mode === 'video' 
@@ -128,8 +140,6 @@ export function MediaRecorderComponent({
       }
 
       mediaRecorder.start(1000) // Collect data every second
-      setIsRecording(true)
-      setDuration(0)
 
       // Start timer
       timerRef.current = setInterval(() => {
@@ -274,6 +284,7 @@ export function MediaRecorderComponent({
               <video
                 ref={videoRef}
                 className="w-full aspect-video object-cover"
+                autoPlay
                 muted
                 playsInline
               />
