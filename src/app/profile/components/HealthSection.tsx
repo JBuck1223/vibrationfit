@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Card, Input, Button } from '@/lib/design-system/components'
+import { Card, Input, Button, Textarea } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 
 interface HealthSectionProps {
@@ -169,6 +169,23 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
             </p>
           </div>
         )}
+
+        {/* Health & Vitality Story */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-200 mb-2">
+            My Current Story Around Health & Vitality
+          </label>
+          <Textarea
+            value={profile.health_vitality_story || ''}
+            onChange={(e) => handleInputChange('health_vitality_story', e.target.value)}
+            placeholder="Share your health journey, fitness goals, wellness practices, or any health-related aspirations..."
+            rows={4}
+            className="w-full"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            This personal story helps Viva understand your health context and provide more personalized guidance.
+          </p>
+        </div>
       </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">

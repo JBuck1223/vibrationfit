@@ -68,8 +68,8 @@ export default function VisionCreateWithVivaPage() {
         .rpc('get_latest_profile_version', { user_uuid: user.id as any })
         .single()
 
-      if (latestVersion && typeof latestVersion.completion_percentage === 'number') {
-        completionPercent = latestVersion.completion_percentage
+      if (latestVersion && typeof (latestVersion as any).completion_percentage === 'number') {
+        completionPercent = (latestVersion as any).completion_percentage
       } else {
         // 2) Fallback to base user_profiles table if no versions exist
         const { data: profile, error: profileError } = await supabase

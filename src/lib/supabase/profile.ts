@@ -40,6 +40,42 @@ export interface UserProfile {
   consumer_debt?: string | null
   version_notes?: string | null
   progress_photos?: string[] | null
+  // Life Vision Story Fields (12 categories)
+  health_vitality_story?: string | null
+  romance_partnership_story?: string | null
+  family_parenting_story?: string | null
+  social_friends_story?: string | null
+  career_work_story?: string | null
+  money_wealth_story?: string | null
+  fun_recreation_story?: string | null
+  travel_adventure_story?: string | null
+  home_environment_story?: string | null
+  possessions_lifestyle_story?: string | null
+  spirituality_growth_story?: string | null
+  giving_legacy_story?: string | null
+  // Structured Data Fields (12 categories)
+  // Fun & Recreation
+  hobbies?: string[] | null
+  leisure_time_weekly?: string | null
+  // Travel & Adventure
+  travel_frequency?: 'never' | 'yearly' | 'quarterly' | 'monthly' | null
+  passport?: boolean | null
+  countries_visited?: number | null
+  // Social & Friends
+  close_friends_count?: string | null
+  social_preference?: 'introvert' | 'ambivert' | 'extrovert' | null
+  // Possessions & Lifestyle
+  lifestyle_category?: 'minimalist' | 'moderate' | 'comfortable' | 'luxury' | null
+  primary_vehicle?: string | null
+  // Spirituality & Growth
+  spiritual_practice?: string | null
+  meditation_frequency?: string | null
+  personal_growth_focus?: boolean | null
+  // Giving & Legacy
+  volunteer_status?: string | null
+  charitable_giving?: string | null
+  legacy_mindset?: boolean | null
+  ai_tags?: any | null
   created_at?: string
   updated_at?: string
 }

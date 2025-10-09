@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Card } from '@/lib/design-system/components'
+import { Card, Textarea } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 
 interface FinancialSectionProps {
@@ -170,6 +170,23 @@ export function FinancialSection({ profile, onProfileChange }: FinancialSectionP
           <h4 className="text-sm font-medium text-green-400 mb-2">Financial Wellness</h4>
           <p className="text-sm text-neutral-300">
             Understanding your financial situation helps your AI assistant provide relevant money management and investment guidance for your goals.
+          </p>
+        </div>
+
+        {/* Money & Wealth Story */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-200 mb-2">
+            My Current Story Around Money & Wealth
+          </label>
+          <Textarea
+            value={profile.money_wealth_story || ''}
+            onChange={(e) => handleInputChange('money_wealth_story', e.target.value)}
+            placeholder="Share your financial journey, wealth goals, money mindset, or financial aspirations..."
+            rows={4}
+            className="w-full"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            This personal story helps Viva understand your financial context and provide more personalized guidance.
           </p>
         </div>
       </div>

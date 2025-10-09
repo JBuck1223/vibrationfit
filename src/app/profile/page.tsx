@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
+import { ProfileField } from './components/ProfileField'
 import { 
   User, 
   Heart, 
@@ -184,9 +185,49 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     }
   }
 
+  const handleFieldSave = async (fieldKey: string, newValue: any) => {
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          [fieldKey]: newValue,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile')
+      }
+
+      const data = await response.json()
+      
+      // Update local state
+      setProfile(prev => ({
+        ...prev,
+        [fieldKey]: newValue,
+      }))
+      
+      // Update completion percentage if returned
+      if (data.completionPercentage !== undefined) {
+        setCompletionPercentage(data.completionPercentage)
+      }
+
+      // Optionally refresh the full profile to ensure consistency
+      await fetchProfile()
+    } catch (error) {
+      console.error('Error saving field:', error)
+      throw error // Re-throw so the ProfileField component can handle it
+    }
+  }
+
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Not specified'
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Parse as local date to avoid timezone issues
+    const [year, month, day] = dateString.split('T')[0].split('-')
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -195,8 +236,10 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
   const formatAge = (dateOfBirth: string) => {
     if (!dateOfBirth) return 'Not specified'
+    // Parse as local date to avoid timezone issues
+    const [year, month, day] = dateOfBirth.split('T')[0].split('-')
+    const birthDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
     const today = new Date()
-    const birthDate = new Date(dateOfBirth)
     let age = today.getFullYear() - birthDate.getFullYear()
     const monthDiff = today.getMonth() - birthDate.getMonth()
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
@@ -662,27 +705,57 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Heart className="w-5 h-5 text-primary-500" />
-              Relationship
+              Romance & Partnership
             </h3>
             <div className="space-y-3">
-              <div>
-                <p className="text-sm text-neutral-400">Status</p>
-                <p className="text-white font-medium">
-                  {profile.relationship_status || 'Not specified'}
-                </p>
-              </div>
-              {profile.partner_name && (
-                <div>
-                  <p className="text-sm text-neutral-400">Partner</p>
-                  <p className="text-white font-medium">{profile.partner_name}</p>
-                </div>
-              )}
-              {profile.relationship_length && (
-                <div>
-                  <p className="text-sm text-neutral-400">Relationship Length</p>
-                  <p className="text-white font-medium">{profile.relationship_length}</p>
-                </div>
-              )}
+              <ProfileField 
+                label="Status" 
+                value={profile.relationship_status}
+                editable={!isViewingVersion}
+                fieldKey="relationship_status"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'Single', label: 'Single' },
+                  { value: 'Dating', label: 'Dating' },
+                  { value: 'In a Relationship', label: 'In a Relationship' },
+                  { value: 'Engaged', label: 'Engaged' },
+                  { value: 'Married', label: 'Married' },
+                  { value: 'Separated', label: 'Separated' },
+                  { value: 'Divorced', label: 'Divorced' },
+                  { value: 'Widowed', label: 'Widowed' },
+                ]}
+              />
+              <ProfileField 
+                label="Partner" 
+                value={profile.partner_name}
+                editable={!isViewingVersion}
+                fieldKey="partner_name"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="Relationship Length" 
+                value={profile.relationship_length}
+                editable={!isViewingVersion}
+                fieldKey="relationship_length"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'Less than 1 year', label: 'Less than 1 year' },
+                  { value: '1-2 years', label: '1-2 years' },
+                  { value: '3-5 years', label: '3-5 years' },
+                  { value: '6-10 years', label: '6-10 years' },
+                  { value: '10+ years', label: '10+ years' },
+                ]}
+              />
+              <ProfileField 
+                label="My Current Story Around Romance & Partnership" 
+                value={profile.romance_partnership_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="romance_partnership_story"
+                onSave={handleFieldSave}
+              />
             </div>
           </Card>
 
@@ -690,33 +763,42 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 text-primary-500" />
-              Family
+              Family & Parenting
             </h3>
             <div className="space-y-3">
-              <div>
-                <p className="text-sm text-neutral-400">Has Children</p>
-                <p className="text-white font-medium">
-                  {profile.has_children === true ? 'Yes' : profile.has_children === false ? 'No' : 'Not specified'}
-                </p>
-              </div>
-              {profile.has_children && profile.number_of_children && (
-                <div>
-                  <p className="text-sm text-neutral-400">Number of Children</p>
-                  <p className="text-white font-medium">{profile.number_of_children}</p>
-                </div>
-              )}
-              {profile.children_ages && profile.children_ages.length > 0 && (
-                <div>
-                  <p className="text-sm text-neutral-400">Children's Ages</p>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {profile.children_ages.map((age, index) => (
-                      <span key={index} className="px-2 py-1 bg-primary-500/20 text-primary-300 rounded text-sm">
-                        Child {index + 1}: {age} {age === '1' ? 'year' : 'years'} old
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <ProfileField 
+                label="Has Children" 
+                value={profile.has_children} 
+                type="boolean"
+                editable={!isViewingVersion}
+                fieldKey="has_children"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="Number of Children" 
+                value={profile.number_of_children}
+                type="number"
+                editable={!isViewingVersion}
+                fieldKey="number_of_children"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="Children's Ages" 
+                value={profile.children_ages} 
+                type="array"
+                editable={!isViewingVersion}
+                fieldKey="children_ages"
+                onSave={handleFieldSave}
+                placeholder="Add child's age (e.g., 5, 12, 16)"
+              />
+              <ProfileField 
+                label="My Current Story Around Family & Parenting" 
+                value={profile.family_parenting_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="family_parenting_story"
+                onSave={handleFieldSave}
+              />
             </div>
           </Card>
 
@@ -724,75 +806,135 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Activity className="w-5 h-5 text-primary-500" />
-              Health & Wellness
+              Health & Vitality
             </h3>
             <div className="space-y-3">
-              <div>
-                <p className="text-sm text-neutral-400">Height</p>
-                <p className="text-white font-medium">
-                  {profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">Weight</p>
-                <p className="text-white font-medium">
-                  {profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">Units</p>
-                <p className="text-white font-medium">
-                  {profile.units || 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">Exercise Frequency</p>
-                <p className="text-white font-medium">
-                  {profile.exercise_frequency || 'Not specified'}
-                </p>
-              </div>
-              {profile.health_conditions && (
-                <div>
-                  <p className="text-sm text-neutral-400">Health Conditions</p>
-                  <p className="text-white font-medium">{profile.health_conditions}</p>
-                </div>
-              )}
-              {profile.medications && (
-                <div>
-                  <p className="text-sm text-neutral-400">Medications</p>
-                  <p className="text-white font-medium">{profile.medications}</p>
-                </div>
-              )}
+              <ProfileField 
+                label="Height" 
+                value={profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : null}
+                editable={!isViewingVersion}
+                fieldKey="height"
+                onSave={handleFieldSave}
+                type="number"
+              />
+              <ProfileField 
+                label="Weight" 
+                value={profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : null}
+                editable={!isViewingVersion}
+                fieldKey="weight"
+                onSave={handleFieldSave}
+                type="number"
+              />
+              <ProfileField 
+                label="Units" 
+                value={profile.units}
+                editable={!isViewingVersion}
+                fieldKey="units"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'US', label: 'US (inches, lbs)' },
+                  { value: 'Metric', label: 'Metric (cm, kg)' },
+                ]}
+              />
+              <ProfileField 
+                label="Exercise Frequency" 
+                value={profile.exercise_frequency}
+                editable={!isViewingVersion}
+                fieldKey="exercise_frequency"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'Never', label: 'Never' },
+                  { value: '1-2 times per week', label: '1-2 times per week' },
+                  { value: '3-4 times per week', label: '3-4 times per week' },
+                  { value: '5+ times per week', label: '5+ times per week' },
+                  { value: 'Daily', label: 'Daily' },
+                ]}
+              />
+              <ProfileField 
+                label="My Current Story Around Health & Vitality" 
+                value={profile.health_vitality_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="health_vitality_story"
+                onSave={handleFieldSave}
+              />
             </div>
           </Card>
 
           {/* Location */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-primary-500" />
-              Location
+              <Home className="w-5 h-5 text-primary-500" />
+              Home & Environment
             </h3>
             <div className="space-y-3">
-              <div>
-                <p className="text-sm text-neutral-400">Living Situation</p>
-                <p className="text-white font-medium">
-                  {profile.living_situation || 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">Time at Location</p>
-                <p className="text-white font-medium">
-                  {profile.time_at_location || 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">Address</p>
-                <p className="text-white font-medium">
-                  {[profile.city, profile.state, profile.postal_code, profile.country]
-                    .filter(Boolean)
-                    .join(', ') || 'Not specified'}
-                </p>
-              </div>
+              <ProfileField 
+                label="Living Situation" 
+                value={profile.living_situation}
+                editable={!isViewingVersion}
+                fieldKey="living_situation"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'Own', label: 'Own' },
+                  { value: 'Rent', label: 'Rent' },
+                  { value: 'Living with family', label: 'Living with family' },
+                  { value: 'Other', label: 'Other' },
+                ]}
+              />
+              <ProfileField 
+                label="Time at Location" 
+                value={profile.time_at_location}
+                editable={!isViewingVersion}
+                fieldKey="time_at_location"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'Less than 1 year', label: 'Less than 1 year' },
+                  { value: '1-2 years', label: '1-2 years' },
+                  { value: '3-5 years', label: '3-5 years' },
+                  { value: '6-10 years', label: '6-10 years' },
+                  { value: '10+ years', label: '10+ years' },
+                ]}
+              />
+              <ProfileField 
+                label="City" 
+                value={profile.city}
+                editable={!isViewingVersion}
+                fieldKey="city"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="State" 
+                value={profile.state}
+                editable={!isViewingVersion}
+                fieldKey="state"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="Postal Code" 
+                value={profile.postal_code}
+                editable={!isViewingVersion}
+                fieldKey="postal_code"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="Country" 
+                value={profile.country}
+                editable={!isViewingVersion}
+                fieldKey="country"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="My Current Story Around Home & Environment" 
+                value={profile.home_environment_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="home_environment_story"
+                onSave={handleFieldSave}
+              />
             </div>
           </Card>
 
@@ -800,33 +942,64 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-primary-500" />
-              Career
+              Career & Work
             </h3>
             <div className="space-y-3">
-              <div>
-                <p className="text-sm text-neutral-400">Employment Type</p>
-                <p className="text-white font-medium">
-                  {profile.employment_type || 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">Occupation</p>
-                <p className="text-white font-medium">
-                  {profile.occupation || 'Not specified'}
-                </p>
-              </div>
-              {profile.company && (
-                <div>
-                  <p className="text-sm text-neutral-400">Company</p>
-                  <p className="text-white font-medium">{profile.company}</p>
-                </div>
-              )}
-              {profile.time_in_role && (
-                <div>
-                  <p className="text-sm text-neutral-400">Time in Role</p>
-                  <p className="text-white font-medium">{profile.time_in_role}</p>
-                </div>
-              )}
+              <ProfileField 
+                label="Employment Type" 
+                value={profile.employment_type}
+                editable={!isViewingVersion}
+                fieldKey="employment_type"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'Full-time', label: 'Full-time' },
+                  { value: 'Part-time', label: 'Part-time' },
+                  { value: 'Self-employed', label: 'Self-employed' },
+                  { value: 'Business Owner', label: 'Business Owner' },
+                  { value: 'Freelance', label: 'Freelance' },
+                  { value: 'Unemployed', label: 'Unemployed' },
+                  { value: 'Retired', label: 'Retired' },
+                  { value: 'Student', label: 'Student' },
+                ]}
+              />
+              <ProfileField 
+                label="Occupation" 
+                value={profile.occupation}
+                editable={!isViewingVersion}
+                fieldKey="occupation"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="Company" 
+                value={profile.company}
+                editable={!isViewingVersion}
+                fieldKey="company"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="Time in Role" 
+                value={profile.time_in_role}
+                editable={!isViewingVersion}
+                fieldKey="time_in_role"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'Less than 1 year', label: 'Less than 1 year' },
+                  { value: '1-2 years', label: '1-2 years' },
+                  { value: '3-5 years', label: '3-5 years' },
+                  { value: '5-10 years', label: '5-10 years' },
+                  { value: '10+ years', label: '10+ years' },
+                ]}
+              />
+              <ProfileField 
+                label="My Current Story Around Career & Work" 
+                value={profile.career_work_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="career_work_story"
+                onSave={handleFieldSave}
+              />
             </div>
           </Card>
 
@@ -834,45 +1007,385 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-primary-500" />
-              Financial
+              Money & Wealth
             </h3>
             <div className="space-y-3">
-              <div>
-                <p className="text-sm text-neutral-400">Household Income</p>
-                <p className="text-white font-medium">
-                  {profile.household_income || 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">Savings & Retirement</p>
-                <p className="text-white font-medium">
-                  {profile.savings_retirement || 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">Assets & Equity</p>
-                <p className="text-white font-medium">
-                  {profile.assets_equity || 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">Consumer Debt</p>
-                <p className="text-white font-medium">
-                  {profile.consumer_debt || 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">Currency</p>
-                <p className="text-white font-medium">
-                  {profile.currency || 'Not specified'}
-                </p>
-              </div>
+              <ProfileField 
+                label="Currency" 
+                value={profile.currency}
+                editable={!isViewingVersion}
+                fieldKey="currency"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'USD', label: 'USD ($)' },
+                  { value: 'EUR', label: 'EUR (€)' },
+                  { value: 'GBP', label: 'GBP (£)' },
+                  { value: 'CAD', label: 'CAD ($)' },
+                  { value: 'AUD', label: 'AUD ($)' },
+                ]}
+              />
+              <ProfileField 
+                label="Household Income" 
+                value={profile.household_income}
+                editable={!isViewingVersion}
+                fieldKey="household_income"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'Under 25,000', label: 'Under $25,000' },
+                  { value: '25,000-49,999', label: '$25,000-$49,999' },
+                  { value: '50,000-74,999', label: '$50,000-$74,999' },
+                  { value: '75,000-99,999', label: '$75,000-$99,999' },
+                  { value: '100,000-249,999', label: '$100,000-$249,999' },
+                  { value: '250,000-499,999', label: '$250,000-$499,999' },
+                  { value: '500,000+', label: '$500,000+' },
+                ]}
+              />
+              <ProfileField 
+                label="Savings & Retirement" 
+                value={profile.savings_retirement}
+                editable={!isViewingVersion}
+                fieldKey="savings_retirement"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'Under 10,000', label: 'Under $10,000' },
+                  { value: '10,000-24,999', label: '$10,000-$24,999' },
+                  { value: '25,000-49,999', label: '$25,000-$49,999' },
+                  { value: '50,000-99,999', label: '$50,000-$99,999' },
+                  { value: '100,000-249,999', label: '$100,000-$249,999' },
+                  { value: '250,000-499,999', label: '$250,000-$499,999' },
+                  { value: '500,000+', label: '$500,000+' },
+                ]}
+              />
+              <ProfileField 
+                label="Assets & Equity" 
+                value={profile.assets_equity}
+                editable={!isViewingVersion}
+                fieldKey="assets_equity"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'Under 10,000', label: 'Under $10,000' },
+                  { value: '10,000-24,999', label: '$10,000-$24,999' },
+                  { value: '25,000-49,999', label: '$25,000-$49,999' },
+                  { value: '50,000-99,999', label: '$50,000-$99,999' },
+                  { value: '100,000-249,999', label: '$100,000-$249,999' },
+                  { value: '250,000-499,999', label: '$250,000-$499,999' },
+                  { value: '500,000+', label: '$500,000+' },
+                ]}
+              />
+              <ProfileField 
+                label="Consumer Debt" 
+                value={profile.consumer_debt}
+                editable={!isViewingVersion}
+                fieldKey="consumer_debt"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'None', label: 'None' },
+                  { value: 'Under 10,000', label: 'Under $10,000' },
+                  { value: '10,000-24,999', label: '$10,000-$24,999' },
+                  { value: '25,000-49,999', label: '$25,000-$49,999' },
+                  { value: '50,000+', label: '$50,000+' },
+                ]}
+              />
+              <ProfileField 
+                label="My Current Story Around Money & Wealth" 
+                value={profile.money_wealth_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="money_wealth_story"
+                onSave={handleFieldSave}
+              />
+            </div>
+          </Card>
+
+          {/* Fun & Recreation */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 text-accent-500" />
+              Fun & Recreation
+            </h3>
+            <div className="space-y-3">
+              <ProfileField 
+                label="Current Hobbies" 
+                value={profile.hobbies} 
+                type="array"
+                editable={!isViewingVersion}
+                fieldKey="hobbies"
+                onSave={handleFieldSave}
+                placeholder="Add a hobby"
+              />
+              <ProfileField 
+                label="Leisure Time Per Week" 
+                value={profile.leisure_time_weekly}
+                editable={!isViewingVersion}
+                fieldKey="leisure_time_weekly"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: '0-5 hours', label: '0-5 hours' },
+                  { value: '6-15 hours', label: '6-15 hours' },
+                  { value: '16-25 hours', label: '16-25 hours' },
+                  { value: '25+ hours', label: '25+ hours' },
+                ]}
+              />
+              <ProfileField 
+                label="My Current Story Around Fun & Recreation" 
+                value={profile.fun_recreation_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="fun_recreation_story"
+                onSave={handleFieldSave}
+              />
+            </div>
+          </Card>
+
+          {/* Travel & Adventure */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-secondary-500" />
+              Travel & Adventure
+            </h3>
+            <div className="space-y-3">
+              <ProfileField 
+                label="Travel Frequency" 
+                value={profile.travel_frequency}
+                editable={!isViewingVersion}
+                fieldKey="travel_frequency"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'never', label: 'Never' },
+                  { value: 'yearly', label: 'Yearly' },
+                  { value: 'quarterly', label: 'Quarterly' },
+                  { value: 'monthly', label: 'Monthly' },
+                ]}
+              />
+              <ProfileField 
+                label="Has Valid Passport" 
+                value={profile.passport} 
+                type="boolean"
+                editable={!isViewingVersion}
+                fieldKey="passport"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="Countries Visited" 
+                value={profile.countries_visited}
+                type="number"
+                editable={!isViewingVersion}
+                fieldKey="countries_visited"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="My Current Story Around Travel & Adventure" 
+                value={profile.travel_adventure_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="travel_adventure_story"
+                onSave={handleFieldSave}
+              />
+            </div>
+          </Card>
+
+          {/* Social & Friends */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-secondary-500" />
+              Social & Friends
+            </h3>
+            <div className="space-y-3">
+              <ProfileField 
+                label="Close Friends Count" 
+                value={profile.close_friends_count}
+                editable={!isViewingVersion}
+                fieldKey="close_friends_count"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: '0', label: '0' },
+                  { value: '1-3', label: '1-3' },
+                  { value: '4-8', label: '4-8' },
+                  { value: '9+', label: '9+' },
+                ]}
+              />
+              <ProfileField 
+                label="Social Preference" 
+                value={profile.social_preference}
+                editable={!isViewingVersion}
+                fieldKey="social_preference"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'introvert', label: 'Introvert' },
+                  { value: 'ambivert', label: 'Ambivert' },
+                  { value: 'extrovert', label: 'Extrovert' },
+                ]}
+              />
+              <ProfileField 
+                label="My Current Story Around Social & Friends" 
+                value={profile.social_friends_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="social_friends_story"
+                onSave={handleFieldSave}
+              />
+            </div>
+          </Card>
+
+          {/* Possessions & Lifestyle */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Building className="w-5 h-5 text-primary-500" />
+              Possessions & Lifestyle
+            </h3>
+            <div className="space-y-3">
+              <ProfileField 
+                label="Lifestyle Category" 
+                value={profile.lifestyle_category}
+                editable={!isViewingVersion}
+                fieldKey="lifestyle_category"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'minimalist', label: 'Minimalist' },
+                  { value: 'moderate', label: 'Moderate' },
+                  { value: 'comfortable', label: 'Comfortable' },
+                  { value: 'luxury', label: 'Luxury' },
+                ]}
+              />
+              <ProfileField 
+                label="Primary Vehicle" 
+                value={profile.primary_vehicle}
+                editable={!isViewingVersion}
+                fieldKey="primary_vehicle"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="My Current Story Around Possessions & Lifestyle" 
+                value={profile.possessions_lifestyle_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="possessions_lifestyle_story"
+                onSave={handleFieldSave}
+              />
+            </div>
+          </Card>
+
+          {/* Spirituality & Growth */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-accent-500" />
+              Spirituality & Growth
+            </h3>
+            <div className="space-y-3">
+              <ProfileField 
+                label="Spiritual Practice" 
+                value={profile.spiritual_practice}
+                editable={!isViewingVersion}
+                fieldKey="spiritual_practice"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'none', label: 'None' },
+                  { value: 'religious', label: 'Religious' },
+                  { value: 'spiritual', label: 'Spiritual' },
+                  { value: 'secular', label: 'Secular' },
+                ]}
+              />
+              <ProfileField 
+                label="Meditation Frequency" 
+                value={profile.meditation_frequency}
+                editable={!isViewingVersion}
+                fieldKey="meditation_frequency"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'never', label: 'Never' },
+                  { value: 'rarely', label: 'Rarely' },
+                  { value: 'weekly', label: 'Weekly' },
+                  { value: 'daily', label: 'Daily' },
+                ]}
+              />
+              <ProfileField 
+                label="Personal Growth Focus" 
+                value={profile.personal_growth_focus} 
+                type="boolean"
+                editable={!isViewingVersion}
+                fieldKey="personal_growth_focus"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="My Current Story Around Spirituality & Growth" 
+                value={profile.spirituality_growth_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="spirituality_growth_story"
+                onSave={handleFieldSave}
+              />
+            </div>
+          </Card>
+
+          {/* Giving & Legacy */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Heart className="w-5 h-5 text-secondary-500" />
+              Giving & Legacy
+            </h3>
+            <div className="space-y-3">
+              <ProfileField 
+                label="Volunteer Status" 
+                value={profile.volunteer_status}
+                editable={!isViewingVersion}
+                fieldKey="volunteer_status"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'none', label: 'None' },
+                  { value: 'occasional', label: 'Occasional' },
+                  { value: 'regular', label: 'Regular' },
+                  { value: 'frequent', label: 'Frequent' },
+                ]}
+              />
+              <ProfileField 
+                label="Annual Charitable Giving" 
+                value={profile.charitable_giving}
+                editable={!isViewingVersion}
+                fieldKey="charitable_giving"
+                onSave={handleFieldSave}
+                type="select"
+                selectOptions={[
+                  { value: 'none', label: 'None' },
+                  { value: '<500', label: 'Under $500' },
+                  { value: '500-2000', label: '$500-$2,000' },
+                  { value: '2000+', label: '$2,000+' },
+                ]}
+              />
+              <ProfileField 
+                label="Legacy Mindset" 
+                value={profile.legacy_mindset} 
+                type="boolean"
+                editable={!isViewingVersion}
+                fieldKey="legacy_mindset"
+                onSave={handleFieldSave}
+              />
+              <ProfileField 
+                label="My Current Story Around Giving & Legacy" 
+                value={profile.giving_legacy_story}
+                type="story"
+                editable={!isViewingVersion}
+                fieldKey="giving_legacy_story"
+                onSave={handleFieldSave}
+              />
             </div>
           </Card>
 
           {/* Version Notes */}
           {profile.version_notes && (
-            <Card className="p-6">
+            <Card className="p-6 lg:col-span-2">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-primary-500" />
                 Version Notes
@@ -882,8 +1395,10 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               </div>
             </Card>
           )}
+        </div>
 
-          {/* Media */}
+        {/* Media */}
+        <div className="mt-8">
           {profile.progress_photos && profile.progress_photos.length > 0 && (
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">

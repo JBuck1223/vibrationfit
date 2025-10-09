@@ -19,7 +19,6 @@ import {
 
 interface VisionData {
   id?: string
-  title: string
   forward: string
   fun: string
   travel: string
@@ -131,7 +130,6 @@ export default function NewLifeVisionPage() {
   const [saveStatus, setSaveStatus] = useState('idle') // idle, saving, saved, error
   const [loading, setLoading] = useState(false)
   const [visionData, setVisionData] = useState<VisionData>({
-    title: '',
     forward: '',
     fun: '',
     travel: '',

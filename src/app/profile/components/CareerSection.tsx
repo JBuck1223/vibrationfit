@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Card, Input } from '@/lib/design-system/components'
+import { Card, Input, Textarea } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 
 interface CareerSectionProps {
@@ -108,6 +108,23 @@ export function CareerSection({ profile, onProfileChange }: CareerSectionProps) 
           <h4 className="text-sm font-medium text-primary-400 mb-2">Career Insights</h4>
           <p className="text-sm text-neutral-300">
             Understanding your career context helps your AI assistant provide relevant professional development and goal-setting guidance.
+          </p>
+        </div>
+
+        {/* Career & Work Story */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-200 mb-2">
+            My Current Story Around Career & Work
+          </label>
+          <Textarea
+            value={profile.career_work_story || ''}
+            onChange={(e) => handleInputChange('career_work_story', e.target.value)}
+            placeholder="Share your career journey, professional goals, work experiences, or business aspirations..."
+            rows={4}
+            className="w-full"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            This personal story helps Viva understand your career context and provide more personalized guidance.
           </p>
         </div>
       </div>

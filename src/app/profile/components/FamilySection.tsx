@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Input, Button } from '@/lib/design-system/components'
+import { Card, Input, Button, Textarea } from '@/lib/design-system/components'
 import { Plus, X, Minus } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase/profile'
 
@@ -233,6 +233,23 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
             </div>
           </div>
         )}
+
+        {/* Family & Parenting Story */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-200 mb-2">
+            My Current Story Around Family & Parenting
+          </label>
+          <Textarea
+            value={profile.family_parenting_story || ''}
+            onChange={(e) => handleInputChange('family_parenting_story', e.target.value)}
+            placeholder="Share your family journey, parenting experiences, family goals, or aspirations for your children..."
+            rows={4}
+            className="w-full"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            This personal story helps Viva understand your family context and provide more personalized guidance.
+          </p>
+        </div>
       </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Card } from '@/lib/design-system/components'
+import { Card, Textarea } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 
 interface RelationshipSectionProps {
@@ -103,6 +103,23 @@ export function RelationshipSection({ profile, onProfileChange }: RelationshipSe
             </p>
           </div>
         )}
+
+        {/* Romance & Partnership Story */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-200 mb-2">
+            My Current Story Around Romance & Partnership
+          </label>
+          <Textarea
+            value={profile.romance_partnership_story || ''}
+            onChange={(e) => handleInputChange('romance_partnership_story', e.target.value)}
+            placeholder="Share your relationship journey, love story, partnership goals, or romantic aspirations..."
+            rows={4}
+            className="w-full"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            This personal story helps Viva understand your relationship context and provide more personalized guidance.
+          </p>
+        </div>
       </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">

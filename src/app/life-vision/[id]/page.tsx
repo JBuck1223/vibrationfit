@@ -23,6 +23,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system'
 interface VisionData {
   id: string
   user_id: string
+  version_number: number
   forward: string
   fun: string
   travel: string
@@ -75,8 +76,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   // Get completed sections
   const getCompletedSections = useCallback((data: VisionData) => {
     const completed: string[] = []
-    
-    if (data.title?.trim()) completed.push('title')
     
     VISION_SECTIONS.forEach(section => {
       const value = data[section.key as keyof VisionData]
@@ -135,7 +134,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
         console.log('Loaded vision data:', {
           id: vision.id,
-          title: vision.title,
           status: vision.status,
           completion_percent: vision.completion_percent,
           actualCompletion,
@@ -250,7 +248,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       // Only update the fields that should be updated
       // Ensure all fields are strings and not null/undefined
       const updateData = {
-        title: vision.title || '',
         forward: vision.forward || '',
         fun: vision.fun || '',
         travel: vision.travel || '',
@@ -410,7 +407,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       // Create new version with only the necessary fields
       const insertData = {
         user_id: user.id,
-        title: vision.title || '',
         version_number: newVersionNumber,
         forward: vision.forward || '',
         fun: vision.fun || '',

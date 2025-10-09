@@ -12,6 +12,12 @@ import { LocationSection } from '../components/LocationSection'
 import { CareerSection } from '../components/CareerSection'
 import { FinancialSection } from '../components/FinancialSection'
 import { PhotosAndNotesSection } from '../components/PhotosAndNotesSection'
+import { FunRecreationSection } from '../components/FunRecreationSection'
+import { TravelAdventureSection } from '../components/TravelAdventureSection'
+import { SocialFriendsSection } from '../components/SocialFriendsSection'
+import { PossessionsLifestyleSection } from '../components/PossessionsLifestyleSection'
+import { SpiritualityGrowthSection } from '../components/SpiritualityGrowthSection'
+import { GivingLegacySection } from '../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
 import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft } from 'lucide-react'
 
@@ -28,26 +34,88 @@ export default function NewProfileVersionPage() {
 
   // Manual save only - no auto-save timeout needed
 
-  // Manual completion calculation fallback
+  // Manual completion calculation with intelligent conditionals (matches API logic)
   const calculateCompletionManually = (profileData: Partial<UserProfile>): number => {
     if (!profileData) return 0
-    
-    const fields = [
-      'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
-      'relationship_status', 'partner_name', 'number_of_children', 'children_ages',
-      'health_conditions', 'medications', 'exercise_frequency', 'living_situation',
-      'time_at_location', 'city', 'state', 'postal_code', 'country',
-      'employment_type', 'occupation', 'company', 'time_in_role', 'household_income',
-      'profile_picture_url'
+
+    let totalFields = 0
+    let completedFields = 0
+
+    // Helper to check if a field has value
+    const hasValue = (field: keyof UserProfile) => {
+      const value = profileData[field]
+      if (Array.isArray(value)) return value.length > 0
+      if (typeof value === 'boolean') return true
+      return value !== null && value !== undefined && value !== ''
+    }
+
+    // Core Fields (always required)
+    const coreFields: (keyof UserProfile)[] = ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'profile_picture_url']
+    coreFields.forEach(field => {
+      totalFields++
+      if (hasValue(field)) completedFields++
+    })
+
+    // Relationship Fields (conditional)
+    totalFields++
+    if (hasValue('relationship_status')) {
+      completedFields++
+      if (profileData.relationship_status !== 'Single') {
+        totalFields += 2
+        if (hasValue('partner_name')) completedFields++
+        if (hasValue('relationship_length')) completedFields++
+      }
+    }
+
+    // Family Fields (conditional)
+    totalFields++
+    if (profileData.has_children !== undefined && profileData.has_children !== null) {
+      completedFields++
+      if (profileData.has_children === true) {
+        totalFields += 2
+        if (hasValue('number_of_children')) completedFields++
+        if (hasValue('children_ages')) completedFields++
+      }
+    }
+
+    // Health, Location, Career, Financial Fields
+    const healthFields: (keyof UserProfile)[] = ['units', 'height', 'weight', 'exercise_frequency']
+    const locationFields: (keyof UserProfile)[] = ['living_situation', 'time_at_location', 'city', 'state', 'postal_code', 'country']
+    const careerFields: (keyof UserProfile)[] = ['employment_type', 'occupation', 'company', 'time_in_role']
+    const financialFields: (keyof UserProfile)[] = ['currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt']
+
+    ;[...healthFields, ...locationFields, ...careerFields, ...financialFields].forEach(field => {
+      totalFields++
+      if (hasValue(field)) completedFields++
+    })
+
+    // Life Category Story Fields (12 categories)
+    const storyFields: (keyof UserProfile)[] = [
+      'health_vitality_story', 'romance_partnership_story', 'family_parenting_story',
+      'career_work_story', 'money_wealth_story', 'home_environment_story',
+      'fun_recreation_story', 'travel_adventure_story', 'social_friends_story',
+      'possessions_lifestyle_story', 'spirituality_growth_story', 'giving_legacy_story'
     ]
-    
-    const completedFields = fields.filter(field => 
-      profileData[field as keyof UserProfile] !== null && 
-      profileData[field as keyof UserProfile] !== undefined && 
-      profileData[field as keyof UserProfile] !== ''
-    ).length
-    
-    return Math.round((completedFields / fields.length) * 100)
+    storyFields.forEach(field => {
+      totalFields++
+      if (hasValue(field)) completedFields++
+    })
+
+    // Structured Life Category Fields
+    const structuredFields: (keyof UserProfile)[] = [
+      'hobbies', 'leisure_time_weekly',
+      'travel_frequency', 'passport', 'countries_visited',
+      'close_friends_count', 'social_preference',
+      'lifestyle_category', 'primary_vehicle',
+      'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
+      'volunteer_status', 'charitable_giving', 'legacy_mindset'
+    ]
+    structuredFields.forEach(field => {
+      totalFields++
+      if (hasValue(field)) completedFields++
+    })
+
+    return totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0
   }
 
   // Fetch current profile to use as starting point
@@ -71,6 +139,14 @@ export default function NewProfileVersionPage() {
 
     fetchProfile()
   }, [])
+
+  // Recalculate completion percentage whenever profile changes
+  useEffect(() => {
+    if (Object.keys(profile).length > 0) {
+      const newPercentage = calculateCompletionManually(profile)
+      setCompletionPercentage(newPercentage)
+    }
+  }, [profile])
 
   // Manual save only - no auto-save for new versions
   const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
@@ -139,6 +215,12 @@ export default function NewProfileVersionPage() {
       location: true,
       career: true,
       financial: true,
+      'fun-recreation': true,
+      'travel-adventure': true,
+      'social-friends': true,
+      'possessions-lifestyle': true,
+      'spirituality-growth': true,
+      'giving-legacy': true,
       'photos-notes': true
     }).filter(section => {
       switch (section) {
@@ -159,6 +241,33 @@ export default function NewProfileVersionPage() {
           return profile.employment_type && profile.occupation
         case 'financial':
           return profile.household_income
+        case 'fun-recreation':
+          return (profile.hobbies && profile.hobbies.length > 0) || 
+                 profile.leisure_time_weekly ||
+                 (profile.fun_recreation_story && profile.fun_recreation_story.trim().length > 0)
+        case 'travel-adventure':
+          return profile.travel_frequency || 
+                 profile.passport !== undefined || 
+                 profile.countries_visited !== undefined ||
+                 (profile.travel_adventure_story && profile.travel_adventure_story.trim().length > 0)
+        case 'social-friends':
+          return profile.close_friends_count || 
+                 profile.social_preference ||
+                 (profile.social_friends_story && profile.social_friends_story.trim().length > 0)
+        case 'possessions-lifestyle':
+          return profile.lifestyle_category || 
+                 profile.primary_vehicle ||
+                 (profile.possessions_lifestyle_story && profile.possessions_lifestyle_story.trim().length > 0)
+        case 'spirituality-growth':
+          return profile.spiritual_practice || 
+                 profile.meditation_frequency || 
+                 profile.personal_growth_focus !== undefined ||
+                 (profile.spirituality_growth_story && profile.spirituality_growth_story.trim().length > 0)
+        case 'giving-legacy':
+          return profile.volunteer_status || 
+                 profile.charitable_giving || 
+                 profile.legacy_mindset !== undefined ||
+                 (profile.giving_legacy_story && profile.giving_legacy_story.trim().length > 0)
         case 'photos-notes':
           return (profile.version_notes && profile.version_notes.trim().length > 0) || 
                  (profile.progress_photos && profile.progress_photos.length > 0)
@@ -195,6 +304,18 @@ export default function NewProfileVersionPage() {
         return <FinancialSection {...commonProps} />
       case 'photos-notes':
         return <PhotosAndNotesSection {...commonProps} />
+      case 'fun-recreation':
+        return <FunRecreationSection {...commonProps} />
+      case 'travel-adventure':
+        return <TravelAdventureSection {...commonProps} />
+      case 'social-friends':
+        return <SocialFriendsSection {...commonProps} />
+      case 'possessions-lifestyle':
+        return <PossessionsLifestyleSection {...commonProps} />
+      case 'spirituality-growth':
+        return <SpiritualityGrowthSection {...commonProps} />
+      case 'giving-legacy':
+        return <GivingLegacySection {...commonProps} />
       default:
         return <PersonalInfoSection {...commonProps} />
     }

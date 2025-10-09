@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Card, Input } from '@/lib/design-system/components'
+import { Card, Input, Textarea } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 
 interface LocationSectionProps {
@@ -147,6 +147,23 @@ export function LocationSection({ profile, onProfileChange }: LocationSectionPro
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Home & Environment Story */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-200 mb-2">
+            My Current Story Around Home & Environment
+          </label>
+          <Textarea
+            value={profile.home_environment_story || ''}
+            onChange={(e) => handleInputChange('home_environment_story', e.target.value)}
+            placeholder="Share your home story, living environment, space goals, or aspirations for your living situation..."
+            rows={4}
+            className="w-full"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            This personal story helps Viva understand your home context and provide more personalized guidance.
+          </p>
         </div>
       </div>
 
