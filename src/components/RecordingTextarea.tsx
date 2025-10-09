@@ -76,16 +76,20 @@ export function RecordingTextarea({
         if (onRecordingSaved) {
           console.log('📢 Notifying parent about saved recording with updated text')
           await onRecordingSaved(recordingUrl, transcript, recordingMode, newValue)
-          console.log('✅ Parent save completed, now updating local text field')
+          console.log('✅ Parent save completed')
+          // Don't update text field here - parent reload will handle it
         } else {
           console.warn('⚠️ No onRecordingSaved callback provided!')
+          // Only update text if no callback (fallback)
+          console.log('📝 Updating text field with transcript (no callback)')
+          onChange(newValue)
         }
       } else {
         console.log('⏭️ Skipping file upload (checkbox unchecked)')
+        console.log('📝 Updating text field with transcript')
+        onChange(newValue)
       }
       
-      console.log('📝 Updating text field with transcript')
-      onChange(newValue)
       setShowRecorder(false)
     } catch (error) {
       console.error('❌ Failed to process recording:', error)
