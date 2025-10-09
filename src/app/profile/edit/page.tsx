@@ -290,6 +290,26 @@ export default function ProfilePage() {
     // No auto-save - user must click "Save Edits" button
   }, [profile])
 
+  // Reload profile from database
+  const reloadProfile = useCallback(async () => {
+    try {
+      console.log('🔄 Reloading profile from database...')
+      const response = await fetch(`/api/profile?t=${Date.now()}`)
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ Profile reloaded', {
+          recordingsCount: data.profile?.story_recordings?.length || 0
+        })
+        setProfile(data.profile || {})
+        if (data.completionPercentage !== undefined) {
+          setCompletionPercentage(data.completionPercentage)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to reload profile:', error)
+    }
+  }, [])
+
   // Manual save function
   const handleManualSave = async () => {
     await saveProfile(profile)
@@ -378,6 +398,7 @@ export default function ProfilePage() {
     const commonProps = {
       profile,
       onProfileChange: handleProfileChange,
+      onProfileReload: reloadProfile,
       onError: setError
     }
 

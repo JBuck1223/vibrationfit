@@ -9,6 +9,7 @@ import { SavedRecordings } from '@/components/SavedRecordings'
 interface HealthSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
+  onProfileReload?: () => Promise<void>
 }
 
 const exerciseFrequencyOptions = [
@@ -18,7 +19,7 @@ const exerciseFrequencyOptions = [
   { value: '5+', label: '5+ times per week' }
 ]
 
-export function HealthSection({ profile, onProfileChange }: HealthSectionProps) {
+export function HealthSection({ profile, onProfileChange, onProfileReload }: HealthSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -74,32 +75,13 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
         actualRecordings: data.profile?.story_recordings
       })
 
-      // Refetch the entire profile to ensure we have the latest data
-      console.log('🔄 Refetching profile to get latest data...')
-      const refetchResponse = await fetch(`/api/profile?t=${Date.now()}`)
-      if (refetchResponse.ok) {
-        const refetchData = await refetchResponse.json()
-        console.log('✅ Profile refetched', {
-          recordingsCount: refetchData.profile?.story_recordings?.length || 0
-        })
-        
-        // Update with refetched data
-        if (refetchData.profile) {
-          onProfileChange({
-            story_recordings: [...(refetchData.profile.story_recordings || [])],
-            health_vitality_story: refetchData.profile.health_vitality_story
-          })
-          console.log('✅ State updated with refetched data')
-        }
+      // Trigger a full profile reload to get fresh data
+      if (onProfileReload) {
+        console.log('🔄 Triggering full profile reload...')
+        await onProfileReload()
+        console.log('✅ Profile reloaded, component should show new recording')
       } else {
-        console.warn('⚠️ Refetch failed, using PUT response data')
-        // Fallback to PUT response data
-        if (data.profile) {
-          onProfileChange({
-            story_recordings: [...(data.profile.story_recordings || [])],
-            health_vitality_story: data.profile.health_vitality_story
-          })
-        }
+        console.warn('⚠️ No onProfileReload callback provided')
       }
     } catch (error) {
       console.error('❌ Failed to auto-save recording:', error)
