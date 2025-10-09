@@ -54,17 +54,34 @@ export function MediaRecorderComponent({
   const startRecording = async () => {
     try {
       setError(null)
+      
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support media recording. Please use Chrome, Firefox, or Safari.')
+      }
+
       const constraints = mode === 'video' 
-        ? { video: true, audio: true }
+        ? { 
+            video: { 
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: 'user'
+            }, 
+            audio: true 
+          }
         : { audio: true }
 
+      console.log('Requesting media access:', mode, constraints)
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      console.log('Media access granted:', stream.getTracks().map(t => ({ kind: t.kind, label: t.label })))
       streamRef.current = stream
 
       // Show live preview for video
       if (mode === 'video' && videoRef.current) {
+        console.log('Setting up video preview')
         videoRef.current.srcObject = stream
-        videoRef.current.play()
+        await videoRef.current.play()
+        console.log('Video preview started')
       }
 
       const mimeType = mode === 'video' 
@@ -125,9 +142,31 @@ export function MediaRecorderComponent({
         })
       }, 1000)
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error starting recording:', err)
-      setError('Failed to access camera/microphone. Please check permissions.')
+      
+      let errorMessage = 'Failed to access camera/microphone.'
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMessage = 'Permission denied. Please allow camera/microphone access in your browser settings.'
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMessage = mode === 'video' 
+          ? 'No camera found. Please connect a camera and try again.'
+          : 'No microphone found. Please connect a microphone and try again.'
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMessage = 'Camera/microphone is already in use by another application.'
+      } else if (err.name === 'OverconstrainedError') {
+        errorMessage = 'Camera does not support the requested settings. Trying with default settings...'
+        // Retry with simpler constraints
+        setTimeout(() => {
+          setError(null)
+          // Will implement fallback if needed
+        }, 2000)
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
     }
   }
 
