@@ -30,6 +30,7 @@ export function MediaRecorderComponent({
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState<number | null>(null)
+  const [isPreparing, setIsPreparing] = useState(false) // For showing preview before countdown
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -78,6 +79,7 @@ export function MediaRecorderComponent({
       streamRef.current = stream
 
       // Show preview for video (but don't start recording yet)
+      setIsPreparing(true)
       if (mode === 'video' && videoRef.current) {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
@@ -100,6 +102,7 @@ export function MediaRecorderComponent({
       })
 
       // Now start actual recording
+      setIsPreparing(false)
       setIsRecording(true)
       setDuration(0)
 
@@ -286,7 +289,7 @@ export function MediaRecorderComponent({
       {!recordedBlob && (
         <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6">
           {/* Video Preview */}
-          {mode === 'video' && (isRecording || countdown !== null) && (
+          {mode === 'video' && (isRecording || isPreparing) && (
             <div className="mb-4 rounded-xl overflow-hidden bg-black relative">
               <video
                 ref={videoRef}
@@ -297,12 +300,12 @@ export function MediaRecorderComponent({
               />
               {/* Countdown Overlay */}
               {countdown !== null && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
                   <div className="text-center">
-                    <div className="text-9xl font-bold text-white mb-4 animate-pulse">
+                    <div className="text-9xl font-bold text-white mb-4 animate-pulse drop-shadow-2xl">
                       {countdown}
                     </div>
-                    <p className="text-2xl text-white">Get ready...</p>
+                    <p className="text-2xl text-white drop-shadow-lg">Get ready...</p>
                   </div>
                 </div>
               )}
