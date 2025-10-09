@@ -186,8 +186,8 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       types: ['image/jpeg', 'image/png', 'audio/mpeg', 'audio/wav', 'application/pdf'],
     },
     evidence: {
-      maxSize: 1024 * 1024 * 1024, // 1GB for evidence videos
-      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm'],
+      maxSize: 1024 * 1024 * 1024, // 1GB for evidence videos/audio
+      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'audio/webm', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/ogg'],
     },
     avatar: {
       maxSize: 20 * 1024 * 1024, // 20MB for avatars
