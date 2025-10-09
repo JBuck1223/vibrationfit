@@ -55,7 +55,7 @@ export default function TestRecordingPage() {
                 if (transcript) setAudioTranscript(transcript)
               }}
               autoTranscribe={true}
-              maxDuration={300} // 5 minutes for testing
+              maxDuration={600} // 10 minutes
             />
 
             {audioTranscript && (
@@ -87,7 +87,7 @@ export default function TestRecordingPage() {
                 }
               }}
               autoTranscribe={true} // Now transcribes video audio too!
-              maxDuration={300} // 5 minutes for testing
+              maxDuration={600} // 10 minutes
             />
           </Card>
         </div>
