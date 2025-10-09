@@ -80,9 +80,22 @@ export function MediaRecorderComponent({
 
       // Show preview for video (but don't start recording yet)
       setIsPreparing(true)
-      if (mode === 'video' && videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
+      if (mode === 'video') {
+        // Wait for React to render the video element
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        if (videoRef.current) {
+          console.log('Setting video srcObject')
+          videoRef.current.srcObject = stream
+          try {
+            await videoRef.current.play()
+            console.log('Video playing successfully')
+          } catch (playError) {
+            console.error('Video play error:', playError)
+          }
+        } else {
+          console.error('Video ref is null!')
+        }
       }
 
       // Start countdown
