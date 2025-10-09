@@ -74,21 +74,32 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
         actualRecordings: data.profile?.story_recordings
       })
 
-      // Update both fields from server response (update together to trigger re-render)
-      if (data.profile) {
-        console.log('🔄 Updating story_recordings AND text from server response', {
-          recordingsFromServer: data.profile.story_recordings?.length || 0,
-          textFromServer: data.profile.health_vitality_story?.substring(0, 100) || 'empty'
+      // Refetch the entire profile to ensure we have the latest data
+      console.log('🔄 Refetching profile to get latest data...')
+      const refetchResponse = await fetch(`/api/profile?t=${Date.now()}`)
+      if (refetchResponse.ok) {
+        const refetchData = await refetchResponse.json()
+        console.log('✅ Profile refetched', {
+          recordingsCount: refetchData.profile?.story_recordings?.length || 0
         })
         
-        // Update both fields at once to ensure React re-renders
-        // Create new array reference to force re-render
-        onProfileChange({
-          story_recordings: [...(data.profile.story_recordings || [])],
-          health_vitality_story: data.profile.health_vitality_story
-        })
-        
-        console.log('✅ State updated, component should re-render now')
+        // Update with refetched data
+        if (refetchData.profile) {
+          onProfileChange({
+            story_recordings: [...(refetchData.profile.story_recordings || [])],
+            health_vitality_story: refetchData.profile.health_vitality_story
+          })
+          console.log('✅ State updated with refetched data')
+        }
+      } else {
+        console.warn('⚠️ Refetch failed, using PUT response data')
+        // Fallback to PUT response data
+        if (data.profile) {
+          onProfileChange({
+            story_recordings: [...(data.profile.story_recordings || [])],
+            health_vitality_story: data.profile.health_vitality_story
+          })
+        }
       }
     } catch (error) {
       console.error('❌ Failed to auto-save recording:', error)
