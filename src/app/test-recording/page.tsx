@@ -80,10 +80,13 @@ export default function TestRecordingPage() {
 
             <MediaRecorderComponent
               mode="video"
-              onRecordingComplete={(blob) => {
+              onRecordingComplete={(blob, transcript) => {
                 setVideoRecording(blob)
+                if (transcript) {
+                  console.log('Video transcript:', transcript)
+                }
               }}
-              autoTranscribe={false} // Video doesn't auto-transcribe
+              autoTranscribe={true} // Now transcribes video audio too!
               maxDuration={300} // 5 minutes for testing
             />
           </Card>

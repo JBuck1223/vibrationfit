@@ -152,8 +152,8 @@ export function MediaRecorderComponent({
           streamRef.current.getTracks().forEach(track => track.stop())
         }
 
-        // Auto-transcribe if enabled
-        if (autoTranscribe && mode === 'audio') {
+        // Auto-transcribe if enabled (works for both audio and video)
+        if (autoTranscribe) {
           await transcribeAudio(blob)
         }
 
@@ -442,31 +442,29 @@ export function MediaRecorderComponent({
           )}
 
           {/* Transcription */}
-          {mode === 'audio' && (
-            <div className="space-y-2">
-              {isTranscribing ? (
-                <div className="flex items-center gap-2 text-primary-500">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Transcribing audio...</span>
-                </div>
-              ) : transcript ? (
-                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4">
-                  <p className="text-sm text-neutral-400 mb-2">Transcript:</p>
-                  <p className="text-white whitespace-pre-wrap">{transcript}</p>
-                </div>
-              ) : autoTranscribe ? null : (
-                <Button
-                  onClick={() => transcribeAudio(recordedBlob)}
-                  variant="secondary"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Mic className="w-4 h-4" />
-                  Transcribe Audio
-                </Button>
-              )}
-            </div>
-          )}
+          <div className="space-y-2">
+            {isTranscribing ? (
+              <div className="flex items-center gap-2 text-primary-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Transcribing {mode === 'video' ? 'video' : 'audio'}...</span>
+              </div>
+            ) : transcript ? (
+              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4">
+                <p className="text-sm text-neutral-400 mb-2">Transcript:</p>
+                <p className="text-white whitespace-pre-wrap">{transcript}</p>
+              </div>
+            ) : !autoTranscribe ? (
+              <Button
+                onClick={() => transcribeAudio(recordedBlob)}
+                variant="secondary"
+                size="sm"
+                className="gap-2"
+              >
+                <Mic className="w-4 h-4" />
+                Transcribe {mode === 'video' ? 'Video' : 'Audio'}
+              </Button>
+            ) : null}
+          </div>
 
           {/* Action Buttons */}
           <div className="flex gap-3">
