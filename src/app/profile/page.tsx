@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Card, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { ProfileField } from './components/ProfileField'
+import { SavedRecordings } from '@/components/SavedRecordings'
 import { 
   User, 
   Heart, 
@@ -756,6 +757,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 fieldKey="romance_partnership_story"
                 onSave={handleFieldSave}
               />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="romance_partnership"
+              />
             </div>
           </Card>
 
@@ -798,6 +805,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 editable={!isViewingVersion}
                 fieldKey="family_parenting_story"
                 onSave={handleFieldSave}
+              />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="family_parenting"
               />
             </div>
           </Card>
@@ -859,6 +872,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 editable={!isViewingVersion}
                 fieldKey="health_vitality_story"
                 onSave={handleFieldSave}
+              />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="health_vitality"
               />
             </div>
           </Card>
@@ -935,6 +954,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 fieldKey="home_environment_story"
                 onSave={handleFieldSave}
               />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="home_environment"
+              />
             </div>
           </Card>
 
@@ -999,6 +1024,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 editable={!isViewingVersion}
                 fieldKey="career_work_story"
                 onSave={handleFieldSave}
+              />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="career_work"
               />
             </div>
           </Card>
@@ -1099,6 +1130,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 fieldKey="money_wealth_story"
                 onSave={handleFieldSave}
               />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="money_wealth"
+              />
             </div>
           </Card>
 
@@ -1139,6 +1176,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 editable={!isViewingVersion}
                 fieldKey="fun_recreation_story"
                 onSave={handleFieldSave}
+              />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="fun_recreation"
               />
             </div>
           </Card>
@@ -1188,6 +1231,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 fieldKey="travel_adventure_story"
                 onSave={handleFieldSave}
               />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="travel_adventure"
+              />
             </div>
           </Card>
 
@@ -1233,6 +1282,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 fieldKey="social_friends_story"
                 onSave={handleFieldSave}
               />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="social_friends"
+              />
             </div>
           </Card>
 
@@ -1271,6 +1326,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 editable={!isViewingVersion}
                 fieldKey="possessions_lifestyle_story"
                 onSave={handleFieldSave}
+              />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="possessions_lifestyle"
               />
             </div>
           </Card>
@@ -1326,6 +1387,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 fieldKey="spirituality_growth_story"
                 onSave={handleFieldSave}
               />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="spirituality_growth"
+              />
             </div>
           </Card>
 
@@ -1379,6 +1446,12 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 editable={!isViewingVersion}
                 fieldKey="giving_legacy_story"
                 onSave={handleFieldSave}
+              />
+              
+              {/* Saved Recordings */}
+              <SavedRecordings
+                recordings={profile.story_recordings || []}
+                categoryFilter="giving_legacy"
               />
             </div>
           </Card>
