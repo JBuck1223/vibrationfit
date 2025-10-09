@@ -64,7 +64,10 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
         throw new Error('Failed to save recording to database')
       }
 
-      console.log('✅ Recording auto-saved to database')
+      const data = await response.json()
+      console.log('✅ Recording auto-saved to database', {
+        savedRecordings: data.profile?.story_recordings?.length || 0
+      })
     } catch (error) {
       console.error('❌ Failed to auto-save recording:', error)
       alert('Recording uploaded but failed to save to profile. Please click "Save Changes" to persist.')

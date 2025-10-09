@@ -33,7 +33,15 @@ export function SavedRecordings({
     ? recordings.filter(r => r.category === categoryFilter)
     : recordings
 
+  console.log('🎬 SavedRecordings render:', {
+    totalRecordings: recordings?.length || 0,
+    categoryFilter,
+    filteredCount: filteredRecordings?.length || 0,
+    recordings: recordings
+  })
+
   if (!filteredRecordings || filteredRecordings.length === 0) {
+    console.log('⚠️ No recordings to display')
     return null
   }
 
