@@ -23,7 +23,7 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
     onProfileChange({ [field]: value })
   }
 
-  const handleRecordingSaved = (url: string, transcript: string, type: 'audio' | 'video') => {
+  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video') => {
     console.log('🎯 HealthSection: handleRecordingSaved called', { url, type, transcript: transcript.substring(0, 50) + '...' })
     
     // Add the recording to the story_recordings array
@@ -44,10 +44,34 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
       newRecording
     })
     
+    // Update local state
     handleInputChange('story_recordings', updatedRecordings)
+
+    // Auto-save to database immediately
+    try {
+      console.log('💾 Auto-saving recording to database...')
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          story_recordings: updatedRecordings
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save recording to database')
+      }
+
+      console.log('✅ Recording auto-saved to database')
+    } catch (error) {
+      console.error('❌ Failed to auto-save recording:', error)
+      alert('Recording uploaded but failed to save to profile. Please click "Save Changes" to persist.')
+    }
   }
 
-  const handleDeleteRecording = (index: number) => {
+  const handleDeleteRecording = async (index: number) => {
     const healthRecordings = (profile.story_recordings || []).filter(r => r.category === 'health_vitality')
     const allRecordings = profile.story_recordings || []
     
@@ -59,7 +83,32 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
     
     if (actualIndex !== -1) {
       const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
+      
+      // Update local state
       handleInputChange('story_recordings', updatedRecordings)
+
+      // Auto-save to database immediately
+      try {
+        console.log('🗑️ Auto-saving after delete...')
+        const response = await fetch('/api/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            story_recordings: updatedRecordings
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to delete recording from database')
+        }
+
+        console.log('✅ Recording deleted from database')
+      } catch (error) {
+        console.error('❌ Failed to delete recording:', error)
+        alert('Failed to delete recording. Please try again.')
+      }
     }
   }
 
