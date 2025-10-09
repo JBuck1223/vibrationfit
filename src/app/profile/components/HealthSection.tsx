@@ -4,6 +4,7 @@ import React from 'react'
 import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 
 interface HealthSectionProps {
   profile: Partial<UserProfile>
@@ -20,6 +21,38 @@ const exerciseFrequencyOptions = [
 export function HealthSection({ profile, onProfileChange }: HealthSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
+  }
+
+  const handleRecordingSaved = (url: string, transcript: string, type: 'audio' | 'video') => {
+    // Add the recording to the story_recordings array
+    const newRecording = {
+      url,
+      transcript,
+      type,
+      category: 'health_vitality',
+      created_at: new Date().toISOString()
+    }
+
+    const currentRecordings = profile.story_recordings || []
+    const updatedRecordings = [...currentRecordings, newRecording]
+    
+    handleInputChange('story_recordings', updatedRecordings)
+  }
+
+  const handleDeleteRecording = (index: number) => {
+    const healthRecordings = (profile.story_recordings || []).filter(r => r.category === 'health_vitality')
+    const allRecordings = profile.story_recordings || []
+    
+    // Find the actual index in the full array
+    const recordingToDelete = healthRecordings[index]
+    const actualIndex = allRecordings.findIndex(r => 
+      r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at
+    )
+    
+    if (actualIndex !== -1) {
+      const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
+      handleInputChange('story_recordings', updatedRecordings)
+    }
   }
 
   const isMetric = profile.units === 'Metric'
@@ -178,7 +211,16 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
           onChange={(value) => handleInputChange('health_vitality_story', value)}
           placeholder="Share your health journey, fitness goals, wellness practices, or any health-related aspirations... Or click the microphone to record your story!"
           rows={6}
-          allowVideo={false}
+          allowVideo={true}
+          onRecordingSaved={handleRecordingSaved}
+          storageFolder="evidence"
+        />
+
+        {/* Display Saved Recordings */}
+        <SavedRecordings
+          recordings={profile.story_recordings || []}
+          categoryFilter="health_vitality"
+          onDelete={handleDeleteRecording}
         />
       </div>
 

@@ -40,6 +40,14 @@ export interface UserProfile {
   consumer_debt?: string | null
   version_notes?: string | null
   progress_photos?: string[] | null
+  story_recordings?: Array<{
+    url: string
+    transcript: string
+    type: 'audio' | 'video'
+    category: string
+    duration?: number
+    created_at: string
+  }> | null
   // Life Vision Story Fields (12 categories)
   health_vitality_story?: string | null
   romance_partnership_story?: string | null

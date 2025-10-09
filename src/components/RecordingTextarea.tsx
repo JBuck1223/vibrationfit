@@ -15,6 +15,8 @@ interface RecordingTextareaProps {
   allowVideo?: boolean
   className?: string
   disabled?: boolean
+  onRecordingSaved?: (url: string, transcript: string, type: 'audio' | 'video') => void
+  storageFolder?: 'evidence' | 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'avatar' | 'customTracks'
 }
 
 export function RecordingTextarea({
@@ -25,27 +27,43 @@ export function RecordingTextarea({
   label,
   allowVideo = false,
   className = '',
-  disabled = false
+  disabled = false,
+  onRecordingSaved,
+  storageFolder = 'evidence'
 }: RecordingTextareaProps) {
   const [showRecorder, setShowRecorder] = useState(false)
   const [recordingMode, setRecordingMode] = useState<'audio' | 'video'>('audio')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
-  const handleRecordingComplete = async (blob: Blob, transcript?: string) => {
+  const handleRecordingComplete = async (blob: Blob, transcript?: string, shouldSaveFile?: boolean) => {
     if (!transcript) return
 
     setIsUploading(true)
     setUploadError(null)
 
     try {
-      // Upload the recording to S3 and get transcript
-      const result = await uploadAndTranscribeRecording(blob, 'evidence')
+      let recordingUrl: string | undefined
+
+      // Upload the recording file to S3 if requested
+      if (shouldSaveFile) {
+        const result = await uploadAndTranscribeRecording(blob, storageFolder)
+        recordingUrl = result.url
+        
+        // Notify parent component about the saved recording
+        if (onRecordingSaved) {
+          onRecordingSaved(recordingUrl, transcript, recordingMode)
+        }
+      }
       
       // Append transcript to existing text
+      const recordingNote = shouldSaveFile 
+        ? `\n\n--- Recorded on ${new Date().toLocaleDateString()} (${recordingMode === 'video' ? 'Video' : 'Audio'} saved) ---\n`
+        : `\n\n--- Recorded on ${new Date().toLocaleDateString()} ---\n`
+      
       const newValue = value 
-        ? `${value}\n\n--- Recorded on ${new Date().toLocaleDateString()} ---\n${result.transcript}`
-        : result.transcript
+        ? `${value}${recordingNote}${transcript}`
+        : transcript
 
       onChange(newValue)
       setShowRecorder(false)

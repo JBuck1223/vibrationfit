@@ -6,11 +6,12 @@ import { Button } from '@/lib/design-system/components'
 
 interface MediaRecorderProps {
   mode?: 'audio' | 'video'
-  onRecordingComplete?: (blob: Blob, transcript?: string) => void
+  onRecordingComplete?: (blob: Blob, transcript?: string, shouldSaveFile?: boolean) => void
   onTranscriptComplete?: (transcript: string) => void
   autoTranscribe?: boolean
   maxDuration?: number // in seconds
   className?: string
+  showSaveOption?: boolean // Show "Save Recording" checkbox
 }
 
 export function MediaRecorderComponent({
@@ -19,7 +20,8 @@ export function MediaRecorderComponent({
   onTranscriptComplete,
   autoTranscribe = true,
   maxDuration = 600, // 10 minutes default
-  className = ''
+  className = '',
+  showSaveOption = true
 }: MediaRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -31,6 +33,7 @@ export function MediaRecorderComponent({
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [isPreparing, setIsPreparing] = useState(false) // For showing preview before countdown
+  const [saveRecording, setSaveRecording] = useState(true) // Whether to save the actual file
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -466,6 +469,25 @@ export function MediaRecorderComponent({
             ) : null}
           </div>
 
+          {/* Save Recording Option */}
+          {showSaveOption && (
+            <div className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg">
+              <input
+                type="checkbox"
+                id="saveRecording"
+                checked={saveRecording}
+                onChange={(e) => setSaveRecording(e.target.checked)}
+                className="w-4 h-4 text-primary-500 bg-neutral-700 border-neutral-600 rounded focus:ring-primary-500"
+              />
+              <label htmlFor="saveRecording" className="text-sm text-neutral-300 cursor-pointer">
+                Save {mode === 'video' ? 'video' : 'audio'} file to cloud storage
+                <span className="text-neutral-500 ml-1">
+                  ({saveRecording ? 'File will be saved' : 'Only transcript will be saved'})
+                </span>
+              </label>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3">
             <Button
@@ -480,7 +502,7 @@ export function MediaRecorderComponent({
             <Button
               onClick={() => {
                 if (onRecordingComplete) {
-                  onRecordingComplete(recordedBlob, transcript)
+                  onRecordingComplete(recordedBlob, transcript, saveRecording)
                 }
               }}
               variant="primary"
@@ -488,7 +510,7 @@ export function MediaRecorderComponent({
               className="gap-2 flex-1"
             >
               <Upload className="w-4 h-4" />
-              Use Recording
+              {saveRecording ? 'Save Recording & Transcript' : 'Use Transcript Only'}
             </Button>
           </div>
         </div>
