@@ -74,18 +74,18 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
         actualRecordings: data.profile?.story_recordings
       })
 
-      // Update both fields from server response
+      // Update both fields from server response (update together to trigger re-render)
       if (data.profile) {
         console.log('🔄 Updating story_recordings AND text from server response', {
           recordingsFromServer: data.profile.story_recordings?.length || 0,
           textFromServer: data.profile.health_vitality_story?.substring(0, 100) || 'empty'
         })
-        if (data.profile.story_recordings) {
-          handleInputChange('story_recordings', data.profile.story_recordings)
-        }
-        if (data.profile.health_vitality_story) {
-          handleInputChange('health_vitality_story', data.profile.health_vitality_story)
-        }
+        
+        // Update both fields at once to ensure React re-renders
+        onProfileChange({
+          story_recordings: data.profile.story_recordings,
+          health_vitality_story: data.profile.health_vitality_story
+        })
       }
     } catch (error) {
       console.error('❌ Failed to auto-save recording:', error)
