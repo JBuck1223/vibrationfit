@@ -106,3 +106,29 @@ export function estimateTranscriptionCost(durationSeconds: number): number {
   return minutes * 0.006
 }
 
+/**
+ * Extract S3 key from CDN URL
+ * Example: https://media.vibrationfit.com/user-uploads/123/evidence/file.webm
+ * Returns: user-uploads/123/evidence/file.webm
+ */
+export function extractS3KeyFromUrl(url: string): string {
+  try {
+    const urlObj = new URL(url)
+    // Remove leading slash if present
+    const path = urlObj.pathname.startsWith('/') ? urlObj.pathname.slice(1) : urlObj.pathname
+    return path
+  } catch (error) {
+    console.error('Failed to extract S3 key from URL:', url, error)
+    throw new Error('Invalid recording URL')
+  }
+}
+
+/**
+ * Delete a recording file from S3
+ */
+export async function deleteRecording(url: string): Promise<void> {
+  const { deleteUserFile } = await import('@/lib/storage/s3-storage-presigned')
+  const s3Key = extractS3KeyFromUrl(url)
+  await deleteUserFile(s3Key)
+}
+

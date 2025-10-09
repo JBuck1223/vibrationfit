@@ -100,14 +100,19 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
     )
     
     if (actualIndex !== -1) {
+      const recordingUrl = recordingToDelete.url
       const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
       
-      // Update local state
-      handleInputChange('story_recordings', updatedRecordings)
-
-      // Auto-save to database immediately
       try {
-        console.log('🗑️ Auto-saving after delete...')
+        console.log('🗑️ Deleting recording...', { url: recordingUrl })
+        
+        // Delete the file from S3
+        const { deleteRecording } = await import('@/lib/services/recordingService')
+        await deleteRecording(recordingUrl)
+        console.log('✅ File deleted from S3')
+
+        // Update database
+        console.log('💾 Updating database after delete...')
         const response = await fetch('/api/profile', {
           method: 'PUT',
           headers: {
@@ -123,6 +128,11 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
         }
 
         console.log('✅ Recording deleted from database')
+        
+        // Reload profile to refresh UI
+        if (onProfileReload) {
+          await onProfileReload()
+        }
       } catch (error) {
         console.error('❌ Failed to delete recording:', error)
         alert('Failed to delete recording. Please try again.')
