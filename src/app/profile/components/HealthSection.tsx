@@ -38,16 +38,13 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
     const currentRecordings = profile.story_recordings || []
     const updatedRecordings = [...currentRecordings, newRecording]
     
-    console.log('💾 Updating story_recordings:', {
+    console.log('💾 Preparing to save story_recordings:', {
       previousCount: currentRecordings.length,
       newCount: updatedRecordings.length,
       newRecording
     })
-    
-    // Update local state
-    handleInputChange('story_recordings', updatedRecordings)
 
-    // Auto-save to database immediately
+    // Auto-save to database immediately (don't update local state until confirmed)
     try {
       console.log('💾 Auto-saving recording to database...')
       const response = await fetch('/api/profile', {
@@ -66,11 +63,23 @@ export function HealthSection({ profile, onProfileChange }: HealthSectionProps) 
 
       const data = await response.json()
       console.log('✅ Recording auto-saved to database', {
-        savedRecordings: data.profile?.story_recordings?.length || 0
+        savedRecordings: data.profile?.story_recordings?.length || 0,
+        fullProfile: data.profile
       })
+
+      // Update local state with the server response (single source of truth)
+      if (data.profile) {
+        console.log('🔄 Updating entire profile from server response')
+        // Update all profile fields to ensure consistency
+        Object.keys(data.profile).forEach(key => {
+          if (profile[key as keyof UserProfile] !== data.profile[key]) {
+            handleInputChange(key as keyof UserProfile, data.profile[key])
+          }
+        })
+      }
     } catch (error) {
       console.error('❌ Failed to auto-save recording:', error)
-      alert('Recording uploaded but failed to save to profile. Please click "Save Changes" to persist.')
+      alert('Recording uploaded but failed to save to profile. Please try again or click "Save Changes".')
     }
   }
 
