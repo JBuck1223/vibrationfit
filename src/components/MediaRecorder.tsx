@@ -29,6 +29,7 @@ export function MediaRecorderComponent({
   const [transcript, setTranscript] = useState<string>('')
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState<number | null>(null)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -76,25 +77,31 @@ export function MediaRecorderComponent({
       console.log('Media access granted:', stream.getTracks().map(t => ({ kind: t.kind, label: t.label })))
       streamRef.current = stream
 
-      // Set recording state early so video preview shows
+      // Show preview for video (but don't start recording yet)
+      if (mode === 'video' && videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+
+      // Start countdown
+      setCountdown(3)
+      await new Promise<void>((resolve) => {
+        let count = 3
+        const countdownInterval = setInterval(() => {
+          count--
+          if (count > 0) {
+            setCountdown(count)
+          } else {
+            setCountdown(null)
+            clearInterval(countdownInterval)
+            resolve()
+          }
+        }, 1000)
+      })
+
+      // Now start actual recording
       setIsRecording(true)
       setDuration(0)
-
-      // Show live preview for video - wait a tick for state to update
-      if (mode === 'video') {
-        // Use setTimeout to ensure the video element is rendered
-        setTimeout(() => {
-          if (videoRef.current && streamRef.current) {
-            console.log('Setting up video preview')
-            videoRef.current.srcObject = streamRef.current
-            videoRef.current.play().then(() => {
-              console.log('Video preview started')
-            }).catch(err => {
-              console.error('Video preview error:', err)
-            })
-          }
-        }, 100)
-      }
 
       const mimeType = mode === 'video' 
         ? 'video/webm;codecs=vp9,opus'
@@ -279,8 +286,8 @@ export function MediaRecorderComponent({
       {!recordedBlob && (
         <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6">
           {/* Video Preview */}
-          {mode === 'video' && isRecording && (
-            <div className="mb-4 rounded-xl overflow-hidden bg-black">
+          {mode === 'video' && (isRecording || countdown !== null) && (
+            <div className="mb-4 rounded-xl overflow-hidden bg-black relative">
               <video
                 ref={videoRef}
                 className="w-full aspect-video object-cover"
@@ -288,11 +295,32 @@ export function MediaRecorderComponent({
                 muted
                 playsInline
               />
+              {/* Countdown Overlay */}
+              {countdown !== null && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                  <div className="text-center">
+                    <div className="text-9xl font-bold text-white mb-4 animate-pulse">
+                      {countdown}
+                    </div>
+                    <p className="text-2xl text-white">Get ready...</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Countdown (for audio mode without video preview) */}
+          {countdown !== null && mode === 'audio' && (
+            <div className="text-center mb-4">
+              <div className="text-8xl font-bold text-primary-500 mb-4 animate-pulse">
+                {countdown}
+              </div>
+              <p className="text-xl text-white">Get ready to speak...</p>
             </div>
           )}
 
           {/* Timer */}
-          {isRecording && (
+          {isRecording && countdown === null && (
             <div className="text-center mb-4">
               <div className="inline-flex items-center gap-2 bg-red-500/20 px-4 py-2 rounded-full">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
@@ -311,7 +339,7 @@ export function MediaRecorderComponent({
 
           {/* Control Buttons */}
           <div className="flex justify-center gap-3">
-            {!isRecording ? (
+            {!isRecording && countdown === null ? (
               <Button
                 onClick={startRecording}
                 variant="primary"
@@ -320,6 +348,15 @@ export function MediaRecorderComponent({
               >
                 {mode === 'video' ? <Video className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                 Start Recording
+              </Button>
+            ) : countdown !== null ? (
+              <Button
+                variant="secondary"
+                size="lg"
+                disabled
+                className="gap-2"
+              >
+                Starting in {countdown}...
               </Button>
             ) : (
               <>
