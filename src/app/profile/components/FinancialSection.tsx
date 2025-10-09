@@ -1,12 +1,15 @@
 'use client'
 
 import React from 'react'
-import { Card, Textarea } from '@/lib/design-system/components'
+import { Card } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 
 interface FinancialSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
+  onProfileReload?: () => Promise<void>
 }
 
 const currencyOptions = [
@@ -41,9 +44,34 @@ const debtOptions = [
   { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
-export function FinancialSection({ profile, onProfileChange }: FinancialSectionProps) {
+export function FinancialSection({ profile, onProfileChange, onProfileReload }: FinancialSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
+  }
+
+  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
+    const newRecording = { url, transcript, type, category: 'money_wealth', created_at: new Date().toISOString() }
+    const updatedRecordings = [...(profile.story_recordings || []), newRecording]
+    try {
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, money_wealth_story: updatedText }) })
+      if (onProfileReload) await onProfileReload()
+    } catch (error) { alert('Failed to save recording.') }
+  }
+
+  const handleDeleteRecording = async (index: number) => {
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'money_wealth')
+    const recordingToDelete = categoryRecordings[index]
+    const allRecordings = profile.story_recordings || []
+    const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
+    if (actualIndex !== -1) {
+      try {
+        const { deleteRecording } = await import('@/lib/services/recordingService')
+        await deleteRecording(recordingToDelete.url)
+        const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
+        await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings }) })
+        if (onProfileReload) await onProfileReload()
+      } catch (error) { alert('Failed to delete recording.') }
+    }
   }
 
   const getCurrencySymbol = () => {
@@ -174,21 +202,23 @@ export function FinancialSection({ profile, onProfileChange }: FinancialSectionP
         </div>
 
         {/* Money & Wealth Story */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-200 mb-2">
-            My Current Story Around Money & Wealth
-          </label>
-          <Textarea
-            value={profile.money_wealth_story || ''}
-            onChange={(e) => handleInputChange('money_wealth_story', e.target.value)}
-            placeholder="Share your financial journey, wealth goals, money mindset, or financial aspirations..."
-            rows={4}
-            className="w-full"
-          />
-          <p className="text-xs text-neutral-400 mt-1">
-            This personal story helps Viva understand your financial context and provide more personalized guidance.
-          </p>
-        </div>
+        <RecordingTextarea
+          label="My Current Story Around Money & Wealth"
+          value={profile.money_wealth_story || ''}
+          onChange={(value) => handleInputChange('money_wealth_story', value)}
+          placeholder="Share your financial journey, wealth goals, money mindset... Or record your story!"
+          rows={6}
+          allowVideo={true}
+          onRecordingSaved={handleRecordingSaved}
+          storageFolder="evidence"
+        />
+
+        <SavedRecordings
+          key={`money-recordings-${profile.story_recordings?.length || 0}`}
+          recordings={profile.story_recordings || []}
+          categoryFilter="money_wealth"
+          onDelete={handleDeleteRecording}
+        />
       </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">

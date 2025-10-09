@@ -1,20 +1,48 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Card, Textarea, Input } from '@/lib/design-system/components'
+import { Card, Input } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { Star, Plus, X } from 'lucide-react'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 
 interface FunRecreationSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
+  onProfileReload?: () => Promise<void>
 }
 
-export function FunRecreationSection({ profile, onProfileChange }: FunRecreationSectionProps) {
+export function FunRecreationSection({ profile, onProfileChange, onProfileReload }: FunRecreationSectionProps) {
   const [newHobby, setNewHobby] = useState('')
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
+  }
+
+  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
+    const newRecording = { url, transcript, type, category: 'fun_recreation', created_at: new Date().toISOString() }
+    const updatedRecordings = [...(profile.story_recordings || []), newRecording]
+    try {
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, fun_recreation_story: updatedText }) })
+      if (onProfileReload) await onProfileReload()
+    } catch (error) { alert('Failed to save recording.') }
+  }
+
+  const handleDeleteRecording = async (index: number) => {
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'fun_recreation')
+    const recordingToDelete = categoryRecordings[index]
+    const allRecordings = profile.story_recordings || []
+    const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
+    if (actualIndex !== -1) {
+      try {
+        const { deleteRecording } = await import('@/lib/services/recordingService')
+        await deleteRecording(recordingToDelete.url)
+        const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
+        await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings }) })
+        if (onProfileReload) await onProfileReload()
+      } catch (error) { alert('Failed to delete recording.') }
+    }
   }
 
   const handleAddHobby = () => {
@@ -100,21 +128,23 @@ export function FunRecreationSection({ profile, onProfileChange }: FunRecreation
         </div>
 
         {/* Story Field */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-200 mb-2">
-            My Current Story Around Fun & Recreation
-          </label>
-          <Textarea
-            value={profile.fun_recreation_story || ''}
-            onChange={(e) => handleInputChange('fun_recreation_story', e.target.value)}
-            placeholder="Share your current recreational activities, how you spend your leisure time, what brings you joy..."
-            rows={6}
-            className="w-full"
-          />
-          <p className="text-xs text-neutral-400 mt-1">
-            This personal story helps Viva understand your interests and provide more personalized guidance.
-          </p>
-        </div>
+        <RecordingTextarea
+          label="My Current Story Around Fun & Recreation"
+          value={profile.fun_recreation_story || ''}
+          onChange={(value) => handleInputChange('fun_recreation_story', value)}
+          placeholder="Share your recreational activities, leisure time, what brings you joy... Or record your story!"
+          rows={6}
+          allowVideo={true}
+          onRecordingSaved={handleRecordingSaved}
+          storageFolder="evidence"
+        />
+
+        <SavedRecordings
+          key={`fun-recordings-${profile.story_recordings?.length || 0}`}
+          recordings={profile.story_recordings || []}
+          categoryFilter="fun_recreation"
+          onDelete={handleDeleteRecording}
+        />
       </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">

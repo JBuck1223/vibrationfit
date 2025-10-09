@@ -1,18 +1,46 @@
 'use client'
 
 import React from 'react'
-import { Card, Textarea } from '@/lib/design-system/components'
+import { Card } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { GraduationCap } from 'lucide-react'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 
 interface SpiritualityGrowthSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
+  onProfileReload?: () => Promise<void>
 }
 
-export function SpiritualityGrowthSection({ profile, onProfileChange }: SpiritualityGrowthSectionProps) {
+export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileReload }: SpiritualityGrowthSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
+  }
+
+  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
+    const newRecording = { url, transcript, type, category: 'spirituality_growth', created_at: new Date().toISOString() }
+    const updatedRecordings = [...(profile.story_recordings || []), newRecording]
+    try {
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, spirituality_growth_story: updatedText }) })
+      if (onProfileReload) await onProfileReload()
+    } catch (error) { alert('Failed to save recording.') }
+  }
+
+  const handleDeleteRecording = async (index: number) => {
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'spirituality_growth')
+    const recordingToDelete = categoryRecordings[index]
+    const allRecordings = profile.story_recordings || []
+    const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
+    if (actualIndex !== -1) {
+      try {
+        const { deleteRecording } = await import('@/lib/services/recordingService')
+        await deleteRecording(recordingToDelete.url)
+        const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
+        await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings }) })
+        if (onProfileReload) await onProfileReload()
+      } catch (error) { alert('Failed to delete recording.') }
+    }
   }
 
   return (
@@ -73,21 +101,23 @@ export function SpiritualityGrowthSection({ profile, onProfileChange }: Spiritua
         </div>
 
         {/* Story Field */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-200 mb-2">
-            My Current Story Around Spirituality & Growth
-          </label>
-          <Textarea
-            value={profile.spirituality_growth_story || ''}
-            onChange={(e) => handleInputChange('spirituality_growth_story', e.target.value)}
-            placeholder="Share your current spiritual journey, personal growth practices, what you're learning..."
-            rows={6}
-            className="w-full"
-          />
-          <p className="text-xs text-neutral-400 mt-1">
-            This personal story helps Viva understand your spiritual context and provide more personalized guidance.
-          </p>
-        </div>
+        <RecordingTextarea
+          label="My Current Story Around Spirituality & Growth"
+          value={profile.spirituality_growth_story || ''}
+          onChange={(value) => handleInputChange('spirituality_growth_story', value)}
+          placeholder="Share your spiritual journey, personal growth practices, what you're learning... Or record your story!"
+          rows={6}
+          allowVideo={true}
+          onRecordingSaved={handleRecordingSaved}
+          storageFolder="evidence"
+        />
+
+        <SavedRecordings
+          key={`spirituality-recordings-${profile.story_recordings?.length || 0}`}
+          recordings={profile.story_recordings || []}
+          categoryFilter="spirituality_growth"
+          onDelete={handleDeleteRecording}
+        />
       </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">

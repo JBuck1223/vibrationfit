@@ -1,12 +1,15 @@
 'use client'
 
 import React from 'react'
-import { Card, Input, Textarea } from '@/lib/design-system/components'
+import { Card, Input } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 
 interface CareerSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
+  onProfileReload?: () => Promise<void>
 }
 
 const employmentTypeOptions = [
@@ -27,9 +30,38 @@ const timeInRoleOptions = [
   { value: '10+ years', label: '10+ years' }
 ]
 
-export function CareerSection({ profile, onProfileChange }: CareerSectionProps) {
+export function CareerSection({ profile, onProfileChange, onProfileReload }: CareerSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
+  }
+
+  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
+    const newRecording = { url, transcript, type, category: 'career_work', created_at: new Date().toISOString() }
+    const updatedRecordings = [...(profile.story_recordings || []), newRecording]
+    try {
+      await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ story_recordings: updatedRecordings, career_work_story: updatedText }),
+      })
+      if (onProfileReload) await onProfileReload()
+    } catch (error) { alert('Failed to save recording.') }
+  }
+
+  const handleDeleteRecording = async (index: number) => {
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'career_work')
+    const recordingToDelete = categoryRecordings[index]
+    const allRecordings = profile.story_recordings || []
+    const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
+    if (actualIndex !== -1) {
+      try {
+        const { deleteRecording } = await import('@/lib/services/recordingService')
+        await deleteRecording(recordingToDelete.url)
+        const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
+        await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings }) })
+        if (onProfileReload) await onProfileReload()
+      } catch (error) { alert('Failed to delete recording.') }
+    }
   }
 
   return (
@@ -112,21 +144,23 @@ export function CareerSection({ profile, onProfileChange }: CareerSectionProps) 
         </div>
 
         {/* Career & Work Story */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-200 mb-2">
-            My Current Story Around Career & Work
-          </label>
-          <Textarea
-            value={profile.career_work_story || ''}
-            onChange={(e) => handleInputChange('career_work_story', e.target.value)}
-            placeholder="Share your career journey, professional goals, work experiences, or business aspirations..."
-            rows={4}
-            className="w-full"
-          />
-          <p className="text-xs text-neutral-400 mt-1">
-            This personal story helps Viva understand your career context and provide more personalized guidance.
-          </p>
-        </div>
+        <RecordingTextarea
+          label="My Current Story Around Career & Work"
+          value={profile.career_work_story || ''}
+          onChange={(value) => handleInputChange('career_work_story', value)}
+          placeholder="Share your career journey, professional goals, work experiences... Or record your story!"
+          rows={6}
+          allowVideo={true}
+          onRecordingSaved={handleRecordingSaved}
+          storageFolder="evidence"
+        />
+
+        <SavedRecordings
+          key={`career-recordings-${profile.story_recordings?.length || 0}`}
+          recordings={profile.story_recordings || []}
+          categoryFilter="career_work"
+          onDelete={handleDeleteRecording}
+        />
       </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">

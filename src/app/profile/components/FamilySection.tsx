@@ -1,18 +1,21 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Input, Button, Textarea } from '@/lib/design-system/components'
+import { Card, Input, Button } from '@/lib/design-system/components'
 import { Plus, X, Minus } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase/profile'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 
 interface FamilySectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
+  onProfileReload?: () => Promise<void>
 }
 
 // Removed age range options - now using direct age input
 
-export function FamilySection({ profile, onProfileChange }: FamilySectionProps) {
+export function FamilySection({ profile, onProfileChange, onProfileReload }: FamilySectionProps) {
   const [childrenAges, setChildrenAges] = useState<string[]>(
     profile.children_ages || []
   )
@@ -61,6 +64,57 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
+  }
+
+  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
+    const newRecording = {
+      url,
+      transcript,
+      type,
+      category: 'family_parenting',
+      created_at: new Date().toISOString()
+    }
+
+    const updatedRecordings = [...(profile.story_recordings || []), newRecording]
+
+    try {
+      await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          story_recordings: updatedRecordings,
+          family_parenting_story: updatedText
+        }),
+      })
+      if (onProfileReload) await onProfileReload()
+    } catch (error) {
+      alert('Failed to save recording.')
+    }
+  }
+
+  const handleDeleteRecording = async (index: number) => {
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'family_parenting')
+    const recordingToDelete = categoryRecordings[index]
+    const allRecordings = profile.story_recordings || []
+    const actualIndex = allRecordings.findIndex(r => 
+      r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at
+    )
+
+    if (actualIndex !== -1) {
+      try {
+        const { deleteRecording } = await import('@/lib/services/recordingService')
+        await deleteRecording(recordingToDelete.url)
+        const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
+        await fetch('/api/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ story_recordings: updatedRecordings }),
+        })
+        if (onProfileReload) await onProfileReload()
+      } catch (error) {
+        alert('Failed to delete recording.')
+      }
+    }
   }
 
   const handleHasChildrenChange = (hasChildren: boolean) => {
@@ -235,21 +289,24 @@ export function FamilySection({ profile, onProfileChange }: FamilySectionProps) 
         )}
 
         {/* Family & Parenting Story */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-200 mb-2">
-            My Current Story Around Family & Parenting
-          </label>
-          <Textarea
-            value={profile.family_parenting_story || ''}
-            onChange={(e) => handleInputChange('family_parenting_story', e.target.value)}
-            placeholder="Share your family journey, parenting experiences, family goals, or aspirations for your children..."
-            rows={4}
-            className="w-full"
-          />
-          <p className="text-xs text-neutral-400 mt-1">
-            This personal story helps Viva understand your family context and provide more personalized guidance.
-          </p>
-        </div>
+        <RecordingTextarea
+          label="My Current Story Around Family & Parenting"
+          value={profile.family_parenting_story || ''}
+          onChange={(value) => handleInputChange('family_parenting_story', value)}
+          placeholder="Share your family journey, parenting experiences, family goals, or aspirations... Or record your story!"
+          rows={6}
+          allowVideo={true}
+          onRecordingSaved={handleRecordingSaved}
+          storageFolder="evidence"
+        />
+
+        {/* Display Saved Recordings */}
+        <SavedRecordings
+          key={`family-recordings-${profile.story_recordings?.length || 0}`}
+          recordings={profile.story_recordings || []}
+          categoryFilter="family_parenting"
+          onDelete={handleDeleteRecording}
+        />
       </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">

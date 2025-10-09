@@ -1,12 +1,15 @@
 'use client'
 
 import React from 'react'
-import { Card, Textarea } from '@/lib/design-system/components'
+import { Card } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 
 interface RelationshipSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
+  onProfileReload?: () => Promise<void>
 }
 
 const relationshipStatusOptions = [
@@ -26,9 +29,67 @@ const relationshipLengthOptions = [
   { value: '10+ years', label: '10+ years' }
 ]
 
-export function RelationshipSection({ profile, onProfileChange }: RelationshipSectionProps) {
+export function RelationshipSection({ profile, onProfileChange, onProfileReload }: RelationshipSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
+  }
+
+  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
+    const newRecording = {
+      url,
+      transcript,
+      type,
+      category: 'romance_partnership',
+      created_at: new Date().toISOString()
+    }
+
+    const updatedRecordings = [...(profile.story_recordings || []), newRecording]
+
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          story_recordings: updatedRecordings,
+          romance_partnership_story: updatedText
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to save recording')
+
+      if (onProfileReload) await onProfileReload()
+    } catch (error) {
+      console.error('Failed to save recording:', error)
+      alert('Failed to save recording. Please try again.')
+    }
+  }
+
+  const handleDeleteRecording = async (index: number) => {
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'romance_partnership')
+    const recordingToDelete = categoryRecordings[index]
+    const allRecordings = profile.story_recordings || []
+    const actualIndex = allRecordings.findIndex(r => 
+      r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at
+    )
+
+    if (actualIndex !== -1) {
+      try {
+        const { deleteRecording } = await import('@/lib/services/recordingService')
+        await deleteRecording(recordingToDelete.url)
+
+        const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
+        await fetch('/api/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ story_recordings: updatedRecordings }),
+        })
+
+        if (onProfileReload) await onProfileReload()
+      } catch (error) {
+        console.error('Failed to delete recording:', error)
+        alert('Failed to delete recording.')
+      }
+    }
   }
 
   const isSingle = profile.relationship_status === 'Single'
@@ -105,21 +166,24 @@ export function RelationshipSection({ profile, onProfileChange }: RelationshipSe
         )}
 
         {/* Romance & Partnership Story */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-200 mb-2">
-            My Current Story Around Romance & Partnership
-          </label>
-          <Textarea
-            value={profile.romance_partnership_story || ''}
-            onChange={(e) => handleInputChange('romance_partnership_story', e.target.value)}
-            placeholder="Share your relationship journey, love story, partnership goals, or romantic aspirations..."
-            rows={4}
-            className="w-full"
-          />
-          <p className="text-xs text-neutral-400 mt-1">
-            This personal story helps Viva understand your relationship context and provide more personalized guidance.
-          </p>
-        </div>
+        <RecordingTextarea
+          label="My Current Story Around Romance & Partnership"
+          value={profile.romance_partnership_story || ''}
+          onChange={(value) => handleInputChange('romance_partnership_story', value)}
+          placeholder="Share your relationship journey, love story, partnership goals, or romantic aspirations... Or click the microphone to record!"
+          rows={6}
+          allowVideo={true}
+          onRecordingSaved={handleRecordingSaved}
+          storageFolder="evidence"
+        />
+
+        {/* Display Saved Recordings */}
+        <SavedRecordings
+          key={`romance-recordings-${profile.story_recordings?.length || 0}`}
+          recordings={profile.story_recordings || []}
+          categoryFilter="romance_partnership"
+          onDelete={handleDeleteRecording}
+        />
       </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
