@@ -300,12 +300,18 @@ export function MediaRecorderComponent({
               />
               {/* Countdown Overlay */}
               {countdown !== null && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="text-center">
-                    <div className="text-9xl font-bold text-white mb-4 animate-pulse drop-shadow-2xl">
+                    <div className="text-9xl font-bold text-white mb-4 animate-pulse" style={{
+                      textShadow: '0 0 40px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.7)'
+                    }}>
                       {countdown}
                     </div>
-                    <p className="text-2xl text-white drop-shadow-lg">Get ready...</p>
+                    <p className="text-2xl text-white font-semibold" style={{
+                      textShadow: '0 0 20px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.8)'
+                    }}>
+                      Get ready...
+                    </p>
                   </div>
                 </div>
               )}
