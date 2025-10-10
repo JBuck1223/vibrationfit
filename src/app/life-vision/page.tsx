@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles } from 'lucide-react'
 import { PageLayout, Container, Card, Button, Badge, ProgressBar, Spinner, getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
+import { LifeVisionSidebar } from './components/LifeVisionSidebar'
 
 // Use centralized vision categories
 const VISION_SECTIONS = getVisionCategoryKeys()
@@ -55,6 +56,8 @@ export default function VisionListPage() {
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [isViewingVersion, setIsViewingVersion] = useState(false)
+  const [activeSection, setActiveSection] = useState('forward')
+  const [completedSections, setCompletedSections] = useState<string[]>([])
 
   // Utility: add timeout to any async operation to avoid infinite loading
   const withTimeout = async <T,>(operation: Promise<T> | (() => Promise<T>), ms = 10000, label = 'operation'): Promise<T> => {
@@ -187,6 +190,16 @@ export default function VisionListPage() {
         const actualCompletion = calculateCompletionPercentage(activeVisionData)
         setActiveVision(activeVisionData)
         setCompletionPercentage(actualCompletion)
+        
+        // Calculate completed sections
+        const completed: string[] = []
+        VISION_SECTIONS.forEach(sectionKey => {
+          const value = activeVisionData[sectionKey as keyof VisionData]
+          if (typeof value === 'string' && value.trim()) {
+            completed.push(sectionKey)
+          }
+        })
+        setCompletedSections(completed)
       }
       
       setVersions(versionsData || [])
@@ -223,6 +236,16 @@ export default function VisionListPage() {
         setActiveVision(version)
         setCompletionPercentage(actualCompletion)
         setIsViewingVersion(true)
+        
+        // Calculate completed sections
+        const completed: string[] = []
+        VISION_SECTIONS.forEach(sectionKey => {
+          const value = version[sectionKey as keyof VisionData]
+          if (typeof value === 'string' && value.trim()) {
+            completed.push(sectionKey)
+          }
+        })
+        setCompletedSections(completed)
       }
     } catch (error) {
       console.error('Error fetching version:', error)
@@ -367,7 +390,7 @@ export default function VisionListPage() {
                 variant="primary"
                 className="flex items-center gap-2"
               >
-                <Plus className="w-4 h-4" />
+                <Sparkles className="w-4 h-4" />
                 Refine My Vision
               </Button>
             )}
@@ -376,7 +399,7 @@ export default function VisionListPage() {
               variant="outline"
               className="flex items-center gap-2"
             >
-              <Star className="w-4 h-4" />
+              <History className="w-4 h-4" />
               {showVersions ? 'Hide' : 'Show'} Versions
             </Button>
             {activeVision && (
@@ -596,54 +619,116 @@ export default function VisionListPage() {
           </Card>
         )}
 
-        {/* Active Vision Display */}
+        {/* Active Vision Display with Sidebar */}
         {activeVision ? (
-          <Card className="p-8">
-            <div className="space-y-6">
-              {/* Title */}
-              <div>
-                <h2 className="text-3xl font-bold text-white mb-4">Life Vision v{activeVision.version_number}</h2>
-                <div className="flex items-center text-neutral-400 text-sm mb-6">
-                  <span>Created {new Date(activeVision.created_at).toLocaleDateString()}</span>
-                  {activeVision.updated_at !== activeVision.created_at && (
-                    <span className="ml-4">
-                      Updated {new Date(activeVision.updated_at).toLocaleDateString()}
-                    </span>
-                  )}
-                  <span className="ml-4 flex items-center gap-1">
-                    <History className="w-3 h-3" />
-                    Version {activeVision.version_number}
-                  </span>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Sidebar */}
+            <div className="lg:col-span-1">
+              <LifeVisionSidebar
+                activeSection={activeSection}
+                onSectionChange={(section) => {
+                  setActiveSection(section)
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }}
+                completedSections={completedSections}
+              />
+            </div>
 
-              {/* Vision Content */}
-              <div className="space-y-8">
-                {VISION_SECTIONS.map((sectionKey) => {
-                  const category = VISION_CATEGORIES.find(cat => cat.key === sectionKey)
-                  if (!category) return null
-                  
-                  const IconComponent = category.icon
-                  const value = activeVision[sectionKey as keyof VisionData] as string
-                  if (!value?.trim()) return null
+            {/* Main Content Area */}
+            <div className="lg:col-span-3">
+              <Card className="p-8">
+                {(() => {
+                  const currentSection = VISION_CATEGORIES.find(s => s.key === activeSection)
+                  if (!currentSection) return null
+
+                  const IconComponent = currentSection.icon
+                  const value = activeVision[currentSection.key as keyof VisionData] as string
 
                   return (
-                    <div key={sectionKey}>
-                      <h3 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">
-                        <IconComponent className="w-6 h-6 text-primary-500" />
-                        {category.label}
-                      </h3>
-                      <div className="prose prose-invert max-w-none">
-                        <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap">
-                          {value}
+                    <div>
+                      {/* Section Header */}
+                      <div className="mb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                          <IconComponent className="w-8 h-8 text-primary-500" />
+                          <h2 className="text-3xl font-bold text-white">{currentSection.label}</h2>
+                        </div>
+                        <p className="text-neutral-400 text-sm">
+                          {currentSection.description}
                         </p>
+                      </div>
+
+                      {/* Section Content */}
+                      {value?.trim() ? (
+                        <div className="prose prose-invert max-w-none">
+                          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
+                            <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-base">
+                              {value}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg p-12 text-center">
+                          <p className="text-neutral-500 mb-4">
+                            No content for this section yet
+                          </p>
+                          <Button
+                            onClick={() => router.push(`/life-vision/${activeVision.id}`)}
+                            variant="primary"
+                            size="sm"
+                            className="flex items-center gap-2 mx-auto"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            Add Content
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Section Navigation */}
+                      <div className="mt-8 flex items-center justify-between pt-6 border-t border-neutral-700">
+                        <Button
+                          onClick={() => {
+                            const currentIndex = VISION_SECTIONS.indexOf(activeSection)
+                            if (currentIndex > 0) {
+                              setActiveSection(VISION_SECTIONS[currentIndex - 1])
+                              window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          disabled={VISION_SECTIONS.indexOf(activeSection) === 0}
+                          className="flex items-center gap-2"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          Previous
+                        </Button>
+                        
+                        <div className="text-sm text-neutral-400">
+                          {VISION_SECTIONS.indexOf(activeSection) + 1} of {VISION_SECTIONS.length}
+                        </div>
+
+                        <Button
+                          onClick={() => {
+                            const currentIndex = VISION_SECTIONS.indexOf(activeSection)
+                            if (currentIndex < VISION_SECTIONS.length - 1) {
+                              setActiveSection(VISION_SECTIONS[currentIndex + 1])
+                              window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          disabled={VISION_SECTIONS.indexOf(activeSection) === VISION_SECTIONS.length - 1}
+                          className="flex items-center gap-2"
+                        >
+                          Next
+                          <ArrowLeft className="w-4 h-4 rotate-180" />
+                        </Button>
                       </div>
                     </div>
                   )
-                })}
-              </div>
+                })()}
+              </Card>
             </div>
-          </Card>
+          </div>
         ) : (
           <div className="text-center py-16">
             <Card className="max-w-md mx-auto">
