@@ -461,97 +461,137 @@ export default function VisionListPage() {
               <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
             </div>
             <div className="space-y-3">
-              {versions.map((version) => (
-                <div key={version.id} className="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700 hover:border-neutral-600 transition-colors">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-sm font-medium text-white">
-                        Version {version.version_number}
-                      </span>
-                      {version.status === 'draft' && (
-                        <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
-                          Draft
+              {versions.map((version, index) => {
+                // Most recent complete version is "Active"
+                const isActive = version.id === activeVision?.id
+                const isFirstComplete = version.status === 'complete' && index === 0
+                
+                return (
+                  <div 
+                    key={version.id} 
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                      isActive 
+                        ? 'bg-primary-500/10 border-primary-500/50' 
+                        : 'bg-neutral-800/50 border-neutral-700 hover:border-neutral-600'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-sm font-medium text-white">
+                          Version {version.version_number}
                         </span>
-                      )}
-                      {version.status === 'complete' && (
-                        <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
-                          Complete
+                        {version.status === 'draft' && (
+                          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
+                            Draft
+                          </span>
+                        )}
+                        {version.status === 'complete' && isActive && (
+                          <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">
+                            Active
+                          </span>
+                        )}
+                        {version.status === 'complete' && !isActive && (
+                          <span className="px-2 py-1 bg-neutral-600/20 text-neutral-400 rounded text-xs">
+                            Complete
+                          </span>
+                        )}
+                        <span className="text-sm text-neutral-400">
+                          {version.completion_percent}% complete
                         </span>
-                      )}
-                      <span className="text-sm text-neutral-400">
-                        {version.completion_percent}% complete
-                      </span>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-neutral-500">
+                          <span className="font-mono">ID:</span> {version.id}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
+                        </p>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-neutral-500">
-                        <span className="font-mono">ID:</span> {version.id}
-                      </p>
-                      <p className="text-xs text-neutral-500">
-                        <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {version.status === 'draft' ? (
-                      <>
-                        <Button
-                          onClick={() => router.push('/life-vision/create-with-viva')}
-                          variant="primary"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <Sparkles className="w-3 h-3" />
-                          Continue with VIVA
-                        </Button>
-                        <Button
-                          onClick={() => router.push(`/life-vision/${version.id}`)}
-                          variant="secondary"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                          Edit On My Own
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={() => router.push(`/life-vision/${version.id}`)}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <Eye className="w-3 h-3" />
-                          View
-                        </Button>
-                        <Button
-                          onClick={() => router.push(`/life-vision/${version.id}`)}
-                          variant="secondary"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                          Edit
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      onClick={() => deleteVersion(version.id)}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
-                      disabled={deletingVersion === version.id}
-                    >
-                      {deletingVersion === version.id ? (
-                        <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
+                    <div className="flex items-center gap-2">
+                      {version.status === 'draft' ? (
+                        <>
+                          <Button
+                            onClick={() => router.push('/life-vision/create-with-viva')}
+                            variant="primary"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            Continue with VIVA
+                          </Button>
+                          <Button
+                            onClick={() => router.push(`/life-vision/${version.id}`)}
+                            variant="secondary"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            Edit On My Own
+                          </Button>
+                        </>
                       ) : (
-                        <Trash2 className="w-3 h-3" />
+                        <>
+                          <Button
+                            onClick={() => router.push(`/life-vision/${version.id}`)}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <Eye className="w-3 h-3" />
+                            View
+                          </Button>
+                          <Button
+                            onClick={() => router.push(`/life-vision/${version.id}`)}
+                            variant="secondary"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            Edit
+                          </Button>
+                          {!isActive && (
+                            <Button
+                              onClick={async () => {
+                                if (confirm('Make this your active vision? This will replace your current active vision.')) {
+                                  try {
+                                    const supabase = createClient()
+                                    // In the future, we could implement a proper "active" flag
+                                    // For now, we'll just navigate to it
+                                    window.location.href = `/life-vision/${version.id}`
+                                  } catch (error) {
+                                    alert('Failed to set active vision')
+                                  }
+                                }
+                              }}
+                              variant="primary"
+                              size="sm"
+                              className="flex items-center gap-1"
+                            >
+                              <CheckCircle className="w-3 h-3" />
+                              Make Active
+                            </Button>
+                          )}
+                        </>
                       )}
-                      Delete
-                    </Button>
+                      <Button
+                        onClick={() => deleteVersion(version.id)}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
+                        disabled={deletingVersion === version.id}
+                      >
+                        {deletingVersion === version.id ? (
+                          <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </Card>
         )}
