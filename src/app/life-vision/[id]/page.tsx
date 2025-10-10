@@ -806,6 +806,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                               const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
                               if (currentIndex > 0) {
                                 setActiveSection(VISION_SECTIONS[currentIndex - 1].key)
+                                // Scroll to top of page
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
                               }
                             }}
                             variant="ghost"
@@ -826,6 +828,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                               const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
                               if (currentIndex < VISION_SECTIONS.length - 1) {
                                 setActiveSection(VISION_SECTIONS[currentIndex + 1].key)
+                                // Scroll to top of page
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
                               }
                             }}
                             variant="ghost"

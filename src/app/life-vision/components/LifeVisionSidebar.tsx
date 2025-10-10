@@ -131,7 +131,11 @@ export function LifeVisionSidebar({ activeSection, onSectionChange, completedSec
           return (
             <button
               key={section.id}
-              onClick={() => onSectionChange(section.id)}
+              onClick={() => {
+                onSectionChange(section.id)
+                // Scroll to top of page
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
               className={`w-full text-left p-3 rounded-lg transition-all duration-200 group ${
                 isActive
                   ? 'bg-primary-500/20 border border-primary-500/50 text-primary-400'
