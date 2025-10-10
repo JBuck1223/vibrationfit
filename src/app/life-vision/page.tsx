@@ -358,14 +358,14 @@ export default function VisionListPage() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
-                  <h2 className="text-2xl font-bold text-white">Current Life Vision</h2>
+                  <h2 className="text-2xl font-bold text-white">The Life I Choose</h2>
                   <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
                     v{activeVision.version_number}
                   </span>
                   {activeVision.status === 'complete' && (
                     <Badge variant="success">
                       <CheckCircle className="w-4 h-4 mr-1" />
-                      Complete
+                      Active
                     </Badge>
                   )}
                   {activeVision.status === 'draft' && (
@@ -387,7 +387,7 @@ export default function VisionListPage() {
                   <div>
                     <p className="text-xs text-neutral-500 mb-1">Created</p>
                     <p className="text-sm text-white">
-                      {new Date(activeVision.created_at).toLocaleDateString()} at {new Date(activeVision.created_at).toLocaleTimeString()}
+                      {new Date(activeVision.created_at).toLocaleDateString()} at {new Date(activeVision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                     </p>
                   </div>
                   <div>
@@ -469,7 +469,7 @@ export default function VisionListPage() {
                 return (
                   <div 
                     key={version.id} 
-                    className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                    className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg border transition-colors gap-4 ${
                       isActive 
                         ? 'bg-primary-500/10 border-primary-500/50' 
                         : 'bg-neutral-800/50 border-neutral-700 hover:border-neutral-600'
@@ -504,30 +504,30 @@ export default function VisionListPage() {
                           <span className="font-mono">ID:</span> {version.id}
                         </p>
                         <p className="text-xs text-neutral-500">
-                          <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
+                          <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 min-w-[200px]">
                       {version.status === 'draft' ? (
                         <>
                           <Button
                             onClick={() => router.push('/life-vision/create-with-viva')}
                             variant="primary"
                             size="sm"
-                            className="flex items-center gap-1"
+                            className="flex items-center justify-center gap-1 w-full sm:w-auto"
                           >
                             <Sparkles className="w-3 h-3" />
-                            Continue with VIVA
+                            <span className="whitespace-nowrap">Continue with VIVA</span>
                           </Button>
                           <Button
                             onClick={() => router.push(`/life-vision/${version.id}`)}
                             variant="secondary"
                             size="sm"
-                            className="flex items-center gap-1"
+                            className="flex items-center justify-center gap-1 w-full sm:w-auto"
                           >
                             <Edit3 className="w-3 h-3" />
-                            Edit On My Own
+                            <span className="whitespace-nowrap">Edit On My Own</span>
                           </Button>
                         </>
                       ) : (
@@ -536,7 +536,7 @@ export default function VisionListPage() {
                             onClick={() => router.push(`/life-vision/${version.id}`)}
                             variant="outline"
                             size="sm"
-                            className="flex items-center gap-1"
+                            className="flex items-center justify-center gap-1 w-full sm:w-auto"
                           >
                             <Eye className="w-3 h-3" />
                             View
@@ -545,7 +545,7 @@ export default function VisionListPage() {
                             onClick={() => router.push(`/life-vision/${version.id}`)}
                             variant="secondary"
                             size="sm"
-                            className="flex items-center gap-1"
+                            className="flex items-center justify-center gap-1 w-full sm:w-auto"
                           >
                             <Edit3 className="w-3 h-3" />
                             Edit
@@ -566,7 +566,7 @@ export default function VisionListPage() {
                               }}
                               variant="primary"
                               size="sm"
-                              className="flex items-center gap-1"
+                              className="flex items-center justify-center gap-1 w-full sm:w-auto whitespace-nowrap"
                             >
                               <CheckCircle className="w-3 h-3" />
                               Make Active
@@ -578,7 +578,7 @@ export default function VisionListPage() {
                         onClick={() => deleteVersion(version.id)}
                         variant="outline"
                         size="sm"
-                        className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
+                        className="flex items-center justify-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400 w-full sm:w-auto"
                         disabled={deletingVersion === version.id}
                       >
                         {deletingVersion === version.id ? (
