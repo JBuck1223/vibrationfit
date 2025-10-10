@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles } from 'lucide-react'
+import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles, Trash2 } from 'lucide-react'
 import { 
   Button, 
   GradientButton,
