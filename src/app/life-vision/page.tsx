@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap } from 'lucide-react'
 import { PageLayout, Container, Card, Button, Badge, ProgressBar, Spinner, getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { LifeVisionSidebar } from './components/LifeVisionSidebar'
@@ -324,7 +324,7 @@ export default function VisionListPage() {
       <Container size="xl" className="py-6">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center justify-between mb-6">
             <Button
               onClick={() => router.push('/dashboard')}
               variant="ghost"
@@ -333,12 +333,6 @@ export default function VisionListPage() {
               <ArrowLeft className="w-5 h-5 mr-2" />
               Back to Dashboard
             </Button>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-white">My Life Vision</h1>
-              <p className="text-neutral-400">
-                Your conscious creation blueprint across all life categories
-              </p>
-            </div>
             {!activeVision && (
               <Button
                 onClick={() => router.push('/life-vision/new')}
@@ -350,6 +344,43 @@ export default function VisionListPage() {
               </Button>
             )}
           </div>
+          
+          {/* Centered Title */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-white mb-2">My Life Vision</h1>
+            <p className="text-neutral-400 text-lg">
+              Your conscious creation blueprint across all life categories
+            </p>
+          </div>
+
+          {/* Stats Cards */}
+          {activeVision && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-neutral-400 mb-1">Life Visions Created</p>
+                    <p className="text-3xl font-bold text-primary-500">{versions.length}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-primary-500" />
+                  </div>
+                </div>
+              </Card>
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-neutral-400 mb-1">Refinements Used</p>
+                    <p className="text-3xl font-bold text-secondary-500">0</p>
+                  </div>
+                  <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center">
+                    <Zap className="w-6 h-6 text-secondary-500" />
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-500 mt-2">Coming soon: Track your VIVA refinements</p>
+              </Card>
+            </div>
+          )}
         </div>
 
         {/* Current Version Information Card */}
