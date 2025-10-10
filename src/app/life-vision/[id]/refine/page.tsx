@@ -223,7 +223,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       autoResizeTextarea(activeVisionRef.current)
       
       // Additional attempts with small delays
-      const resizeAttempts = [50, 100, 200]
+      const resizeAttempts = [50, 100, 200, 500]
       resizeAttempts.forEach(delay => {
         setTimeout(() => {
           if (activeVisionRef.current) {
@@ -233,6 +233,21 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       })
     }
   }, [vision, activeVision])
+
+  // Additional resize trigger when selectedCategory changes (for initial load)
+  useLayoutEffect(() => {
+    if (vision && activeVisionRef.current) {
+      // Multiple resize attempts to catch the initial render
+      const resizeAttempts = [0, 50, 100, 200, 500]
+      resizeAttempts.forEach(delay => {
+        setTimeout(() => {
+          if (activeVisionRef.current) {
+            autoResizeTextarea(activeVisionRef.current)
+          }
+        }, delay)
+      })
+    }
+  }, [selectedCategory, vision])
 
   useEffect(() => {
     if (currentRefinementRef.current) {
