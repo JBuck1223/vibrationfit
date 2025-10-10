@@ -109,6 +109,21 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [lastUsage, setLastUsage] = useState<any>(null)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
+  // Refs for textareas
+  const activeVisionRef = useRef<HTMLTextAreaElement>(null)
+  const currentRefinementRef = useRef<HTMLTextAreaElement>(null)
+  const instructionsRef = useRef<HTMLTextAreaElement>(null)
+  const refinedTextRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-resize textarea function
+  const autoResizeTextarea = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return
+    console.log('🔧 Auto-resizing textarea:', { scrollHeight: textarea.scrollHeight, currentHeight: textarea.style.height })
+    textarea.style.height = 'auto'
+    textarea.style.height = textarea.scrollHeight + 'px'
+    console.log('✅ Resized to:', textarea.style.height)
+  }
+
   // Load vision data
   useEffect(() => {
     const loadData = async () => {
@@ -357,18 +372,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     navigator.clipboard.writeText(text)
     // You could add a toast notification here
   }
-
-  // Auto-resize textarea function
-  const autoResizeTextarea = (textarea: HTMLTextAreaElement) => {
-    textarea.style.height = 'auto'
-    textarea.style.height = textarea.scrollHeight + 'px'
-  }
-
-  // Refs for textareas
-  const activeVisionRef = useRef<HTMLTextAreaElement>(null)
-  const currentRefinementRef = useRef<HTMLTextAreaElement>(null)
-  const instructionsRef = useRef<HTMLTextAreaElement>(null)
-  const refinedTextRef = useRef<HTMLTextAreaElement>(null)
 
   // Push text between fields
   const pushVibeToCurrent = () => {
