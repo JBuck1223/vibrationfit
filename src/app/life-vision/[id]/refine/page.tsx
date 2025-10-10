@@ -108,6 +108,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [showVivaNotes, setShowVivaNotes] = useState(false)
   const [lastUsage, setLastUsage] = useState<any>(null)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  
+  // Heights for textareas (to persist through re-renders)
+  const [activeVisionHeight, setActiveVisionHeight] = useState('auto')
+  const [currentRefinementHeight, setCurrentRefinementHeight] = useState('auto')
+  const [instructionsHeight, setInstructionsHeight] = useState('auto')
+  const [refinedTextHeight, setRefinedTextHeight] = useState('auto')
 
   // Refs for textareas
   const activeVisionRef = useRef<HTMLTextAreaElement>(null)
@@ -116,12 +122,16 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const refinedTextRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-resize textarea function
-  const autoResizeTextarea = (textarea: HTMLTextAreaElement | null) => {
+  const autoResizeTextarea = (textarea: HTMLTextAreaElement | null, setHeight?: (height: string) => void) => {
     if (!textarea) return
     console.log('🔧 Auto-resizing textarea:', { scrollHeight: textarea.scrollHeight, currentHeight: textarea.style.height })
     textarea.style.height = 'auto'
-    textarea.style.height = textarea.scrollHeight + 'px'
-    console.log('✅ Resized to:', textarea.style.height)
+    const newHeight = textarea.scrollHeight + 'px'
+    textarea.style.height = newHeight
+    if (setHeight) {
+      setHeight(newHeight)
+    }
+    console.log('✅ Resized to:', newHeight)
   }
 
   // Load vision data
@@ -231,7 +241,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   // Auto-resize textareas when content changes
   useEffect(() => {
     if (activeVisionRef.current) {
-      autoResizeTextarea(activeVisionRef.current)
+      autoResizeTextarea(activeVisionRef.current, setActiveVisionHeight)
     }
   }, [activeVision])
 
@@ -240,7 +250,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     if (vision && activeVision && activeVisionRef.current) {
       // Small delay to ensure DOM is updated
       setTimeout(() => {
-        autoResizeTextarea(activeVisionRef.current!)
+        autoResizeTextarea(activeVisionRef.current!, setActiveVisionHeight)
       }, 100)
     }
   }, [vision, activeVision])
@@ -249,14 +259,14 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   useLayoutEffect(() => {
     if (vision && activeVisionRef.current && activeVision) {
       // Immediate resize attempt
-      autoResizeTextarea(activeVisionRef.current)
+      autoResizeTextarea(activeVisionRef.current, setActiveVisionHeight)
       
       // Additional attempts with small delays
       const resizeAttempts = [50, 100, 200, 500]
       resizeAttempts.forEach(delay => {
         setTimeout(() => {
           if (activeVisionRef.current) {
-            autoResizeTextarea(activeVisionRef.current)
+            autoResizeTextarea(activeVisionRef.current, setActiveVisionHeight)
           }
         }, delay)
       })
@@ -271,28 +281,44 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       resizeAttempts.forEach(delay => {
         setTimeout(() => {
           if (activeVisionRef.current) {
-            autoResizeTextarea(activeVisionRef.current)
+            autoResizeTextarea(activeVisionRef.current, setActiveVisionHeight)
           }
         }, delay)
       })
     }
   }, [selectedCategory, vision])
 
+  // Resize all textareas on initial load
+  useLayoutEffect(() => {
+    const resizeAll = () => {
+      if (activeVisionRef.current) autoResizeTextarea(activeVisionRef.current, setActiveVisionHeight)
+      if (currentRefinementRef.current) autoResizeTextarea(currentRefinementRef.current, setCurrentRefinementHeight)
+      if (instructionsRef.current) autoResizeTextarea(instructionsRef.current, setInstructionsHeight)
+      if (refinedTextRef.current) autoResizeTextarea(refinedTextRef.current, setRefinedTextHeight)
+    }
+
+    // Multiple attempts to catch all textareas
+    const resizeAttempts = [0, 100, 200, 500, 1000]
+    resizeAttempts.forEach(delay => {
+      setTimeout(resizeAll, delay)
+    })
+  }, [vision, selectedCategory, currentRefinement, instructions, refinedText])
+
   useEffect(() => {
     if (currentRefinementRef.current) {
-      autoResizeTextarea(currentRefinementRef.current)
+      autoResizeTextarea(currentRefinementRef.current, setCurrentRefinementHeight)
     }
   }, [currentRefinement])
 
   useEffect(() => {
     if (instructionsRef.current) {
-      autoResizeTextarea(instructionsRef.current)
+      autoResizeTextarea(instructionsRef.current, setInstructionsHeight)
     }
   }, [instructions])
 
   useEffect(() => {
     if (refinedTextRef.current) {
-      autoResizeTextarea(refinedTextRef.current)
+      autoResizeTextarea(refinedTextRef.current, setRefinedTextHeight)
     }
   }, [refinedText])
 
@@ -619,12 +645,13 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 </div>
               </div>
               <Textarea
-                key={`active-vision-${selectedCategory}-${activeVision.length}`}
+                key={`active-vision-${selectedCategory}`}
                 ref={activeVisionRef}
                 value={activeVision}
                 onChange={() => {}} // Read-only
                 placeholder="Select a category to view the active vision..."
                 className="bg-neutral-800/50 border-neutral-600 min-h-[100px]"
+                style={{ height: activeVisionHeight }}
                 readOnly
               />
             </Card>
@@ -668,6 +695,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 onChange={(e) => setCurrentRefinement(e.target.value)}
                 placeholder="Write your current refinement of this vision section..."
                 className="min-h-[150px]"
+                style={{ height: currentRefinementHeight }}
               />
             </Card>
 
@@ -703,6 +731,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 onChange={(e) => setInstructions(e.target.value)}
                 placeholder="Tell the Vibe Assistant how you'd like to refine this section. Be specific about the tone, focus areas, or particular aspects you want enhanced..."
                 className="min-h-[100px]"
+                style={{ height: instructionsHeight }}
               />
             </Card>
 
@@ -742,6 +771,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   value={refinedText}
                   onChange={() => {}} // Read-only
                   className="bg-purple-900/20 border-purple-500/50 min-h-[150px]"
+                  style={{ height: refinedTextHeight }}
                   readOnly
                 />
               ) : (
