@@ -449,11 +449,11 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 <h1 className="text-3xl font-bold text-white">Vibe Assistant Refinement</h1>
                 <Badge variant="premium" className="flex items-center gap-1">
                   <Zap className="w-4 h-4" />
-                  GPT-5 Powered
+                  VIVA Powered
                 </Badge>
               </div>
               <p className="text-neutral-400">
-                Refine your vision with AI-powered conscious creation guidance
+                Refine your vision with VIVA's conscious creation guidance
               </p>
             </div>
             <Button
@@ -674,7 +674,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               />
             </Card>
 
-            {/* Vibe Assistant Refinement (AI Output) */}
+            {/* Vibe Assistant Refinement (VIVA Output) */}
             <Card className="p-8">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-white flex items-center gap-2">
@@ -716,7 +716,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6 text-center">
                   <Sparkles className="w-12 h-12 text-purple-400 mx-auto mb-4" />
                   <p className="text-neutral-400">
-                    Generate a Vibe Assistant refinement to see AI-powered enhancements here
+                    Generate a Vibe Assistant refinement to see VIVA's enhancements here
                   </p>
                 </div>
               )}
@@ -730,7 +730,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     <span className="text-purple-400">🧠</span>
                     VIVA Notes
                     <Badge variant="premium" className="text-xs">
-                      AI Reasoning
+                      VIVA's Reasoning
                     </Badge>
                   </h3>
                   <div className="flex items-center gap-2">
