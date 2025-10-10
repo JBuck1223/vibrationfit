@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History } from 'lucide-react'
+import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles } from 'lucide-react'
 import { 
   Button, 
   GradientButton,
@@ -481,8 +481,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             value={value}
             onChange={(e) => updateVision({ [currentSection.key]: e.target.value })}
             placeholder={`Describe your vision for ${currentSection.label.toLowerCase()}...`}
-            rows={8}
-            className="min-h-[200px]"
+            rows={20}
+            className="min-h-[500px]"
           />
         </div>
         
@@ -581,38 +581,29 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 {completionPercentage}% Complete
               </Badge>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-                <Button
-                  onClick={() => router.push('/life-vision')}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 w-full sm:w-auto"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span className="sm:hidden">All Visions</span>
-                  <span className="hidden sm:inline">View All Visions</span>
-                </Button>
                 {!isViewingVersion && (
                   <>
                     <Button
+                      asChild
+                      variant="primary"
+                      size="sm"
+                      className="flex items-center gap-2 w-full sm:w-auto"
+                    >
+                      <Link href={`/life-vision/${vision.id}/refine`}>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Refine with AI</span>
+                      </Link>
+                    </Button>
+                    <Button
                       onClick={() => setIsEditing(!isEditing)}
                       disabled={saving}
+                      variant="secondary"
                       size="sm"
                       className="flex items-center gap-2 w-full sm:w-auto"
                     >
                       <Edit3 className="w-4 h-4" />
                       <span className="sm:hidden">{isEditing ? 'View' : 'Edit'}</span>
                       <span className="hidden sm:inline">{isEditing ? 'View Mode' : 'Edit Mode'}</span>
-                    </Button>
-                    <Button
-                      onClick={() => saveAsVersion(false)}
-                      disabled={saving}
-                      variant="secondary"
-                      size="sm"
-                      className="flex items-center gap-2 w-full sm:w-auto"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span className="sm:hidden">New Version</span>
-                      <span className="hidden sm:inline">Save As New Version</span>
                     </Button>
                   </>
                 )}
