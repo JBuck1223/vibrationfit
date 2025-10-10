@@ -151,6 +151,13 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         const allowanceData = await checkVibeAssistantAllowance()
         setAllowance(allowanceData)
         
+        // Trigger initial resize after vision loads
+        setTimeout(() => {
+          if (activeVisionRef.current) {
+            autoResizeTextarea(activeVisionRef.current)
+          }
+        }, 200)
+        
       } catch (err) {
         console.error('Error loading data:', err)
         setError('Failed to load vision data')
@@ -178,6 +185,13 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       
       setRefinedText('')
       setVivaNotes('')
+      
+      // Trigger resize after state updates
+      setTimeout(() => {
+        if (activeVisionRef.current) {
+          autoResizeTextarea(activeVisionRef.current)
+        }
+      }, 100)
     }
   }, [selectedCategory, vision])
 
