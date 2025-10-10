@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles } from 'lucide-react'
@@ -64,6 +64,15 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [isViewingVersion, setIsViewingVersion] = useState(false)
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
+
+  // Ref for textarea auto-resize
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-resize textarea function
+  const autoResizeTextarea = useCallback((textarea: HTMLTextAreaElement) => {
+    textarea.style.height = 'auto'
+    textarea.style.height = textarea.scrollHeight + 'px'
+  }, [])
 
   // Calculate completion percentage
   const calculateCompletion = useCallback((data: VisionData) => {
@@ -462,6 +471,18 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     setVision({ ...vision, ...updates })
   }, [vision])
 
+  // Auto-resize textarea when content or section changes
+  useEffect(() => {
+    if (textareaRef.current && isEditing) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        if (textareaRef.current) {
+          autoResizeTextarea(textareaRef.current)
+        }
+      }, 50)
+    }
+  }, [vision, activeSection, isEditing, autoResizeTextarea])
+
   // Render section content
   const renderSection = () => {
     if (!vision) return null
@@ -477,12 +498,18 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           <h3 className="text-2xl font-bold text-white mb-2">{currentSection.label}</h3>
           <p className="text-neutral-400 mb-6">{currentSection.description}</p>
           
-          <Textarea
+          <textarea
+            ref={textareaRef}
             value={value}
-            onChange={(e) => updateVision({ [currentSection.key]: e.target.value })}
+            onChange={(e) => {
+              updateVision({ [currentSection.key]: e.target.value })
+              if (textareaRef.current) {
+                autoResizeTextarea(textareaRef.current)
+              }
+            }}
             placeholder={`Describe your vision for ${currentSection.label.toLowerCase()}...`}
-            rows={20}
-            className="min-h-[500px]"
+            className="w-full min-h-[200px] p-4 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none resize-none"
+            style={{ overflow: 'hidden' }}
           />
         </div>
         
