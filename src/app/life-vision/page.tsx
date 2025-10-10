@@ -379,15 +379,15 @@ export default function VisionListPage() {
                 {/* Metadata Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div>
-                    <p className="text-xs text-neutral-500 mb-1">Version ID</p>
-                    <p className="font-mono text-sm text-white bg-neutral-800 px-3 py-1 rounded inline-block">
-                      {activeVision.id}
-                    </p>
-                  </div>
-                  <div>
                     <p className="text-xs text-neutral-500 mb-1">Created</p>
                     <p className="text-sm text-white">
                       {new Date(activeVision.created_at).toLocaleDateString()} at {new Date(activeVision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-neutral-500 mb-1">Version ID</p>
+                    <p className="font-mono text-sm text-white bg-neutral-800 px-3 py-1 rounded inline-block">
+                      {activeVision.id}
                     </p>
                   </div>
                   <div>
@@ -457,7 +457,7 @@ export default function VisionListPage() {
         {activeVision && versions.length > 0 && (
           <Card className="p-8 mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">All Vision Versions</h2>
+              <h2 className="text-2xl font-bold text-white">All Life Visions</h2>
               <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
             </div>
             <div className="space-y-3">
@@ -501,10 +501,10 @@ export default function VisionListPage() {
                       </div>
                       <div className="space-y-1">
                         <p className="text-xs text-neutral-500">
-                          <span className="font-mono">ID:</span> {version.id}
+                          <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                         </p>
                         <p className="text-xs text-neutral-500">
-                          <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                          <span className="font-mono">ID:</span> {version.id}
                         </p>
                       </div>
                     </div>
