@@ -663,44 +663,62 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 <h3 className="text-lg font-semibold text-white mb-4">Version History</h3>
                 <div className="space-y-3">
                   {versions.map((version) => (
-                    <div
-                      key={version.id}
-                      className={`p-4 rounded-lg border transition-all ${
-                        currentVersionId === version.id
-                          ? 'border-primary-500 bg-primary-500/10'
-                          : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2">
-                            {version.status === 'complete' ? (
-                              <Badge variant="success">
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Complete
-                              </Badge>
-                            ) : version.status === 'draft' ? (
-                              <Badge variant="warning">
-                                <Circle className="w-4 h-4 mr-1" />
-                                Draft
-                              </Badge>
-                            ) : (
-                              <Badge variant="info">
-                                <History className="w-4 h-4 mr-1" />
-                                Version {version.version_number}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-neutral-400">
-                            Created {new Date(version.created_at).toLocaleDateString()}
-                          </div>
+                    <div key={version.id} className="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-sm font-medium text-white">
+                            Version {version.version_number}
+                          </span>
+                          {version.status === 'draft' && (
+                            <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
+                              Draft
+                            </span>
+                          )}
+                          {version.status === 'complete' && (
+                            <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                              Complete
+                            </span>
+                          )}
+                          <span className="text-sm text-neutral-400">
+                            {version.completion_percent}% complete
+                          </span>
                         </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm text-neutral-400">
-                            {version.completion_percent}% Complete
-                          </div>
-                          {currentVersionId !== version.id && (
+                        <div className="space-y-1">
+                          <p className="text-xs text-neutral-500">
+                            <span className="font-mono">ID:</span> {version.id}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            <span className="font-medium">Version:</span> v{version.version_number}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {version.status === 'draft' ? (
+                          <>
+                            <Button
+                              onClick={() => router.push('/life-vision/create-with-viva')}
+                              variant="primary"
+                              size="sm"
+                              className="flex items-center gap-1"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              Continue with VIVA
+                            </Button>
+                            <Button
+                              onClick={() => router.push(`/life-vision/${version.id}`)}
+                              variant="secondary"
+                              size="sm"
+                              className="flex items-center gap-1"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              Edit On My Own
+                            </Button>
+                          </>
+                        ) : (
+                          <>
                             <Button
                               onClick={() => {
                                 const url = new URL(window.location.href)
@@ -708,38 +726,40 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                                 window.history.pushState({}, '', url.toString())
                                 fetchVisionVersion(version.id)
                               }}
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
+                              className="flex items-center gap-1"
                             >
+                              <Eye className="w-3 h-3" />
                               View
                             </Button>
+                            {version.status === 'draft' && (
+                              <Button
+                                onClick={() => router.push(`/life-vision/${version.id}`)}
+                                variant="secondary"
+                                size="sm"
+                                className="flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                Edit
+                              </Button>
+                            )}
+                          </>
+                        )}
+                        <Button
+                          onClick={() => deleteVersion(version.id)}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
+                          disabled={deletingVersion === version.id}
+                        >
+                          {deletingVersion === version.id ? (
+                            <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3 h-3" />
                           )}
-                          {currentVersionId === version.id && (
-                            <Button
-                              onClick={() => {
-                                const url = new URL(window.location.href)
-                                url.searchParams.delete('versionId')
-                                window.history.pushState({}, '', url.toString())
-                                setCurrentVersionId(null)
-                                setIsViewingVersion(false)
-                                window.location.reload()
-                              }}
-                              variant="ghost"
-                              size="sm"
-                            >
-                              Current
-                            </Button>
-                          )}
-                          <Button
-                            onClick={() => deleteVersion(version.id)}
-                            variant="ghost"
-                            size="sm"
-                            disabled={deletingVersion === version.id}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          >
-                            {deletingVersion === version.id ? 'Deleting...' : 'Delete'}
-                          </Button>
-                        </div>
+                          Delete
+                        </Button>
                       </div>
                     </div>
                   ))}
