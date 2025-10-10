@@ -752,41 +752,94 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Title */}
-                  <div>
-                    <h2 className="text-3xl font-bold text-white mb-4">Life Vision v{vision.version_number}</h2>
-                    <div className="flex items-center text-neutral-400 text-sm mb-6">
-                      <span>Created {new Date(vision.created_at).toLocaleDateString()}</span>
-                      {vision.updated_at !== vision.created_at && (
-                        <span className="ml-4">
-                          Updated {new Date(vision.updated_at).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  {/* Current Section View */}
+                  {(() => {
+                    const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
+                    if (!currentSection) return null
 
-                  {/* Vision Content */}
-                  <div className="space-y-8">
-                    {VISION_SECTIONS.map((category) => {
-                      const IconComponent = category.icon
-                      const value = vision[category.key as keyof VisionData] as string
-                      if (!value?.trim()) return null
+                    const IconComponent = currentSection.icon
+                    const value = vision[currentSection.key as keyof VisionData] as string
 
-                      return (
-                        <div key={category.key}>
-                          <h3 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">
-                            <IconComponent className="w-6 h-6 text-primary-500" />
-                            {category.label}
-                          </h3>
-                          <div className="prose prose-invert max-w-none">
-                            <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap">
-                              {value}
-                            </p>
+                    return (
+                      <div>
+                        {/* Section Header */}
+                        <div className="mb-6">
+                          <div className="flex items-center gap-3 mb-2">
+                            <IconComponent className="w-8 h-8 text-primary-500" />
+                            <h2 className="text-3xl font-bold text-white">{currentSection.label}</h2>
                           </div>
+                          <p className="text-neutral-400 text-sm">
+                            {currentSection.description}
+                          </p>
                         </div>
-                      )
-                    })}
-                  </div>
+
+                        {/* Section Content */}
+                        {value?.trim() ? (
+                          <div className="prose prose-invert max-w-none">
+                            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
+                              <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-base">
+                                {value}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg p-12 text-center">
+                            <p className="text-neutral-500 mb-4">
+                              No content for this section yet
+                            </p>
+                            <Button
+                              onClick={() => setIsEditing(true)}
+                              variant="primary"
+                              size="sm"
+                              className="flex items-center gap-2 mx-auto"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                              Add Content
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Section Navigation */}
+                        <div className="mt-8 flex items-center justify-between pt-6 border-t border-neutral-700">
+                          <Button
+                            onClick={() => {
+                              const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
+                              if (currentIndex > 0) {
+                                setActiveSection(VISION_SECTIONS[currentIndex - 1].key)
+                              }
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            disabled={VISION_SECTIONS.findIndex(s => s.key === activeSection) === 0}
+                            className="flex items-center gap-2"
+                          >
+                            <ArrowLeft className="w-4 h-4" />
+                            Previous
+                          </Button>
+                          
+                          <div className="text-sm text-neutral-400">
+                            {VISION_SECTIONS.findIndex(s => s.key === activeSection) + 1} of {VISION_SECTIONS.length}
+                          </div>
+
+                          <Button
+                            onClick={() => {
+                              const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
+                              if (currentIndex < VISION_SECTIONS.length - 1) {
+                                setActiveSection(VISION_SECTIONS[currentIndex + 1].key)
+                              }
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            disabled={VISION_SECTIONS.findIndex(s => s.key === activeSection) === VISION_SECTIONS.length - 1}
+                            className="flex items-center gap-2"
+                          >
+                            Next
+                            <ArrowLeft className="w-4 h-4 rotate-180" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               )}
             </Card>
