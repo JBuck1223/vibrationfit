@@ -73,7 +73,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Living Situation</h3>
+      <h3 className="text-xl font-bold text-white mb-6">Home / Environment</h3>
       
       <div className="space-y-6">
         {/* Living Situation */}

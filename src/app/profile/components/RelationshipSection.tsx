@@ -97,7 +97,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Relationship</h3>
+      <h3 className="text-xl font-bold text-white mb-6">Love / Romance</h3>
       
       <div className="space-y-6">
         {/* Relationship Status */}

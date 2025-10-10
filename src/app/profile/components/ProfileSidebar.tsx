@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Card } from '@/lib/design-system/components'
-import { User, Heart, Users, Activity, MapPin, Briefcase, DollarSign, CheckCircle, Camera, FileText, Star, Plane, UserPlus, Home, Building, GraduationCap, Gift } from 'lucide-react'
+import { User, CheckCircle, Camera, PartyPopper, Plane, Home, Users, Heart, Activity, DollarSign, Briefcase, UserPlus, Package, Gift, Zap } from 'lucide-react'
 
 interface ProfileSidebarProps {
   activeSection: string
@@ -10,6 +10,7 @@ interface ProfileSidebarProps {
   completedSections: string[]
 }
 
+// Match Life Vision categories exactly
 const sections = [
   {
     id: 'personal',
@@ -20,86 +21,86 @@ const sections = [
   },
   {
     id: 'health',
-    title: 'Health & Vitality',
+    title: 'Health / Vitality',
     icon: Activity,
-    description: 'Physical health and wellness',
+    description: 'Physical and mental well-being',
     category: 'life-vision'
   },
   {
     id: 'relationship',
-    title: 'Romance & Partnership',
+    title: 'Love / Romance',
     icon: Heart,
-    description: 'Relationship status and story',
+    description: 'Romantic relationships',
     category: 'life-vision'
   },
   {
     id: 'family',
-    title: 'Family & Parenting',
+    title: 'Family / Parenting',
     icon: Users,
-    description: 'Children and family story',
+    description: 'Family relationships and life',
     category: 'life-vision'
   },
   {
     id: 'career',
-    title: 'Career & Work',
+    title: 'Business / Career',
     icon: Briefcase,
-    description: 'Work and career story',
+    description: 'Work and career aspirations',
     category: 'life-vision'
   },
   {
     id: 'financial',
-    title: 'Money & Wealth',
+    title: 'Money / Wealth',
     icon: DollarSign,
-    description: 'Financial overview and story',
+    description: 'Financial goals and wealth',
     category: 'life-vision'
   },
   {
     id: 'location',
-    title: 'Home & Environment',
+    title: 'Home / Environment',
     icon: Home,
-    description: 'Living situation and story',
+    description: 'Living space and environment',
     category: 'life-vision'
   },
   {
     id: 'fun-recreation',
-    title: 'Fun & Recreation',
-    icon: Star,
-    description: 'Hobbies and leisure activities',
+    title: 'Fun / Recreation',
+    icon: PartyPopper,
+    description: 'Hobbies and joyful activities',
     category: 'life-vision'
   },
   {
     id: 'travel-adventure',
-    title: 'Travel & Adventure',
+    title: 'Travel / Adventure',
     icon: Plane,
-    description: 'Travel experiences and goals',
+    description: 'Places to explore and adventures',
     category: 'life-vision'
   },
   {
     id: 'social-friends',
-    title: 'Social & Friends',
+    title: 'Social / Friends',
     icon: UserPlus,
-    description: 'Social life and friendships',
+    description: 'Social connections and friendships',
     category: 'life-vision'
   },
   {
     id: 'possessions-lifestyle',
-    title: 'Possessions & Lifestyle',
-    icon: Building,
-    description: 'Lifestyle and material goals',
+    title: 'Possessions / Stuff',
+    icon: Package,
+    description: 'Material belongings and things',
     category: 'life-vision'
   },
   {
     id: 'spirituality-growth',
-    title: 'Spirituality & Growth',
-    icon: GraduationCap,
-    description: 'Personal growth and spirituality',
+    title: 'Spirituality',
+    icon: Zap,
+    description: 'Spiritual growth and expansion',
     category: 'life-vision'
   },
   {
     id: 'giving-legacy',
-    title: 'Giving & Legacy',
+    title: 'Giving / Legacy',
     icon: Gift,
-    description: 'Philanthropy and legacy goals',
+    description: 'Contribution and legacy',
     category: 'life-vision'
   },
   {

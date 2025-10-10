@@ -3,7 +3,7 @@
 import React from 'react'
 import { Card, Input } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Building } from 'lucide-react'
+import { Package } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 
@@ -46,8 +46,8 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
   return (
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <Building className="w-6 h-6 text-primary-500" />
-        <h3 className="text-xl font-bold text-white">Possessions & Lifestyle</h3>
+        <Package className="w-6 h-6 text-primary-500" />
+        <h3 className="text-xl font-bold text-white">Possessions / Stuff</h3>
       </div>
       
       <div className="space-y-6">

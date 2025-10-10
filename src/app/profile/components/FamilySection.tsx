@@ -176,7 +176,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Family</h3>
+      <h3 className="text-xl font-bold text-white mb-6">Family / Parenting</h3>
       
       <div className="space-y-6">
         {/* Has Children */}

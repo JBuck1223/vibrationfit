@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Card, Input } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Star, Plus, X } from 'lucide-react'
+import { PartyPopper, Plus, X } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 
@@ -61,8 +61,8 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
   return (
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <Star className="w-6 h-6 text-accent-500" />
-        <h3 className="text-xl font-bold text-white">Fun & Recreation</h3>
+        <PartyPopper className="w-6 h-6 text-accent-500" />
+        <h3 className="text-xl font-bold text-white">Fun / Recreation</h3>
       </div>
       
       <div className="space-y-6">

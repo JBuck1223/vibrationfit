@@ -3,7 +3,7 @@
 import React from 'react'
 import { Card } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { GraduationCap } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 
@@ -46,8 +46,8 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
   return (
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <GraduationCap className="w-6 h-6 text-accent-500" />
-        <h3 className="text-xl font-bold text-white">Spirituality & Growth</h3>
+        <Zap className="w-6 h-6 text-accent-500" />
+        <h3 className="text-xl font-bold text-white">Spirituality</h3>
       </div>
       
       <div className="space-y-6">

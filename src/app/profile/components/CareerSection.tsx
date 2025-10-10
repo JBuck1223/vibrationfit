@@ -66,7 +66,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Career</h3>
+      <h3 className="text-xl font-bold text-white mb-6">Business / Career</h3>
       
       <div className="space-y-6">
         {/* Employment Type */}

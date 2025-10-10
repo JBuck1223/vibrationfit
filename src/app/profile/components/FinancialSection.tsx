@@ -95,7 +95,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Financial Overview</h3>
+      <h3 className="text-xl font-bold text-white mb-6">Money / Wealth</h3>
       
       <div className="space-y-6">
         {/* Currency */}

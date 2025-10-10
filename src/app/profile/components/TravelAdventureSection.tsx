@@ -47,7 +47,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
         <Plane className="w-6 h-6 text-secondary-500" />
-        <h3 className="text-xl font-bold text-white">Travel & Adventure</h3>
+        <h3 className="text-xl font-bold text-white">Travel / Adventure</h3>
       </div>
       
       <div className="space-y-6">

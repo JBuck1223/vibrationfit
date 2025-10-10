@@ -47,7 +47,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
         <UserPlus className="w-6 h-6 text-secondary-500" />
-        <h3 className="text-xl font-bold text-white">Social & Friends</h3>
+        <h3 className="text-xl font-bold text-white">Social / Friends</h3>
       </div>
       
       <div className="space-y-6">

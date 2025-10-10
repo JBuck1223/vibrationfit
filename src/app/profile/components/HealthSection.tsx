@@ -172,7 +172,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Health & Fitness</h3>
+      <h3 className="text-xl font-bold text-white mb-6">Health / Vitality</h3>
       
       <div className="space-y-6">
         {/* Units Toggle */}
