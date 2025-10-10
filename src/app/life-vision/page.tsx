@@ -326,410 +326,238 @@ export default function VisionListPage() {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
             <Button
-              onClick={() => router.back()}
+              onClick={() => router.push('/dashboard')}
               variant="ghost"
               className="text-neutral-400 hover:text-white"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
-              Back
+              Back to Dashboard
             </Button>
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-white">My Life Vision</h1>
-                {isViewingVersion && getCurrentVersionInfo() && (
-                  <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium">
-                      Version {getCurrentVersionInfo()?.version_number}
-                    </span>
-                    {getCurrentVersionInfo()?.status === 'draft' && (
-                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
-                        Draft
-                      </span>
-                    )}
-                  </div>
-                )}
-                {!isViewingVersion && (
-                  <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
-                    Active Version
-                  </span>
-                )}
-              </div>
+              <h1 className="text-3xl font-bold text-white">My Life Vision</h1>
               <p className="text-neutral-400">
-                {isViewingVersion 
-                  ? (() => {
-                      const versionInfo = getCurrentVersionInfo()
-                      return versionInfo ? `Viewing saved version from ${new Date(versionInfo.created_at).toLocaleDateString()}` : 'Viewing saved version'
-                    })()
-                  : 'Complete overview of your current life vision'
-                }
+                Your conscious creation blueprint across all life categories
               </p>
             </div>
-            {isViewingVersion && currentVersionId ? (
+            {!activeVision && (
               <Button
-                onClick={() => {
-                  setCurrentVersionId(null)
-                  setIsViewingVersion(false)
-                  window.history.pushState({}, '', '/life-vision')
-                  fetchVision()
-                }}
+                onClick={() => router.push('/life-vision/new')}
                 variant="primary"
                 className="flex items-center gap-2"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Active
-              </Button>
-            ) : (
-              <Button
-                onClick={() => {
-                  if (activeVision?.id) {
-                    router.push(`/life-vision/${activeVision.id}/refine`)
-                  } else {
-                    router.push('/life-vision/new')
-                  }
-                }}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Sparkles className="w-4 h-4" />
-                Refine My Vision
+                <Plus className="w-4 h-4" />
+                Create Life Vision
               </Button>
             )}
-            <Button
-              onClick={() => setShowVersions(!showVersions)}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <History className="w-4 h-4" />
-              {showVersions ? 'Hide' : 'Show'} Versions
-            </Button>
-            {activeVision && (
+          </div>
+        </div>
+
+        {/* Current Version Information Card */}
+        {activeVision && (
+          <Card className="p-8 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <h2 className="text-2xl font-bold text-white">Current Life Vision</h2>
+                  <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+                    v{activeVision.version_number}
+                  </span>
+                  {activeVision.status === 'complete' && (
+                    <Badge variant="success">
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Complete
+                    </Badge>
+                  )}
+                  {activeVision.status === 'draft' && (
+                    <Badge variant="warning">
+                      <Circle className="w-4 h-4 mr-1" />
+                      Draft
+                    </Badge>
+                  )}
+                </div>
+                
+                {/* Metadata Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div>
+                    <p className="text-xs text-neutral-500 mb-1">Version ID</p>
+                    <p className="font-mono text-sm text-white bg-neutral-800 px-3 py-1 rounded inline-block">
+                      {activeVision.id}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-neutral-500 mb-1">Created</p>
+                    <p className="text-sm text-white">
+                      {new Date(activeVision.created_at).toLocaleDateString()} at {new Date(activeVision.created_at).toLocaleTimeString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-neutral-500 mb-1">Completion</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl font-bold text-primary-500">{completionPercentage}%</span>
+                      <div className="flex-1">
+                        <ProgressBar 
+                          value={completionPercentage}
+                          variant="primary"
+                          showLabel={false}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3">
               <Button
                 onClick={() => router.push(`/life-vision/${activeVision.id}`)}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                View Vision
+              </Button>
+              <Button
+                onClick={() => alert('PDF download coming soon!')}
                 variant="secondary"
                 className="flex items-center gap-2"
               >
-                <Edit3 className="w-4 h-4" />
-                Edit Vision
+                <Calendar className="w-4 h-4" />
+                Download PDF
               </Button>
-            )}
-          </div>
+              <Button
+                onClick={() => router.push(`/life-vision/${activeVision.id}/audio`)}
+                variant="secondary"
+                className="flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Audio Versions
+              </Button>
+              <Button
+                onClick={() => router.push(`/life-vision/${activeVision.id}`)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                Edit
+              </Button>
+              <Button
+                onClick={() => router.push(`/life-vision/${activeVision.id}/refine`)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Refine
+              </Button>
+            </div>
+          </Card>
+        )}
 
-          {/* Completion Progress */}
-          {activeVision && (
-            <Card className="p-6 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-white">Vision Completion</h2>
-                  {isViewingVersion && getCurrentVersionInfo() && (
-                    <p className="text-sm text-neutral-400 mt-1">
-                      {(() => {
-                        const versionInfo = getCurrentVersionInfo()
-                        return versionInfo ? `Version ${versionInfo.version_number} • Saved on ${new Date(versionInfo.created_at).toLocaleDateString()}` : ''
-                      })()}
-                    </p>
-                  )}
-                </div>
-                <span className="text-2xl font-bold text-primary-500">
-                  {completionPercentage}%
-                </span>
-              </div>
-              <ProgressBar 
-                value={completionPercentage}
-                variant="primary"
-                showLabel={false}
-              />
-              <p className="text-sm text-neutral-400 mt-2">
-                {completionPercentage >= 80 
-                  ? "Excellent! Your vision is well-defined." 
-                  : completionPercentage >= 60 
-                  ? "Good progress! A few more sections would be helpful."
-                  : "Keep going! Complete more sections to unlock your full potential."
-                }
-              </p>
-            </Card>
-          )}
-
-          {/* Versions List */}
-          {showVersions && (
-            <Card className="p-6 mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4">Vision Versions</h2>
-              {versions.length === 0 ? (
-                <p className="text-neutral-400">No saved versions yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {versions.map((version) => (
-                    <div key={version.id} className="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-sm font-medium text-white">
-                            Version {version.version_number}
-                          </span>
-                          {version.status === 'draft' && (
-                            <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
-                              Draft
-                            </span>
-                          )}
-                          {version.status === 'complete' && (
-                            <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
-                              Complete
-                            </span>
-                          )}
-                          <span className="text-sm text-neutral-400">
-                            {version.completion_percent}% complete
-                          </span>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-neutral-500">
-                            <span className="font-mono">ID:</span> {version.id}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            <span className="font-medium">Version:</span> v{version.version_number}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {version.status === 'draft' ? (
-                          // Special handling for Viva drafts - offer both Viva and manual editing
-                          <>
-                            <Button
-                              onClick={() => router.push('/life-vision/create-with-viva')}
-                              variant="primary"
-                              size="sm"
-                              className="flex items-center gap-1"
-                            >
-                              <Sparkles className="w-3 h-3" />
-                              Continue with Viva
-                            </Button>
-                            <Button
-                              onClick={() => router.push(`/life-vision/${version.id}`)}
-                              variant="secondary"
-                              size="sm"
-                              className="flex items-center gap-1"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                              Edit On My Own
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              onClick={() => window.location.href = `/life-vision?versionId=${version.id}`}
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-1"
-                            >
-                              <Eye className="w-3 h-3" />
-                              View
-                            </Button>
-                            {version.status === 'draft' && (
-                              <Button
-                                onClick={() => router.push(`/life-vision/${version.id}`)}
-                                variant="secondary"
-                                size="sm"
-                                className="flex items-center gap-1"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                                Edit
-                              </Button>
-                            )}
-                          </>
-                        )}
+        {/* All Versions List */}
+        {activeVision && versions.length > 0 && (
+          <Card className="p-8 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">All Vision Versions</h2>
+              <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
+            </div>
+            <div className="space-y-3">
+              {versions.map((version) => (
+                <div key={version.id} className="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700 hover:border-neutral-600 transition-colors">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-sm font-medium text-white">
+                        Version {version.version_number}
+                      </span>
+                      {version.status === 'draft' && (
+                        <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
+                          Draft
+                        </span>
+                      )}
+                      {version.status === 'complete' && (
+                        <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                          Complete
+                        </span>
+                      )}
+                      <span className="text-sm text-neutral-400">
+                        {version.completion_percent}% complete
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-neutral-500">
+                        <span className="font-mono">ID:</span> {version.id}
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {version.status === 'draft' ? (
+                      <>
                         <Button
-                          onClick={() => deleteVersion(version.id)}
+                          onClick={() => router.push('/life-vision/create-with-viva')}
+                          variant="primary"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          Continue with VIVA
+                        </Button>
+                        <Button
+                          onClick={() => router.push(`/life-vision/${version.id}`)}
+                          variant="secondary"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          Edit On My Own
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={() => router.push(`/life-vision/${version.id}`)}
                           variant="outline"
                           size="sm"
-                          className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
-                          disabled={deletingVersion === version.id}
+                          className="flex items-center gap-1"
                         >
-                          {deletingVersion === version.id ? (
-                            <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3 h-3" />
-                          )}
-                          Delete
+                          <Eye className="w-3 h-3" />
+                          View
                         </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          )}
-        </div>
-
-        {/* Current Version Information */}
-        {!currentVersionId && versions.length > 0 && (
-          <Card className="p-6 mb-8">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <History className="w-5 h-5 text-green-500" />
-              Current Version Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-neutral-400">Version ID:</span>
-                <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
-                  {versions[0]?.id}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-neutral-400">Last Updated:</span>
-                <span className="text-sm text-white">
-                  {versions[0]?.created_at 
-                    ? `${new Date(versions[0].created_at).toLocaleDateString()} at ${new Date(versions[0].created_at).toLocaleTimeString()}`
-                    : 'Date not available'
-                  }
-                </span>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* Version Information */}
-        {(() => {
-          const urlVersionId = new URLSearchParams(window.location.search).get('versionId')
-          return urlVersionId && (getCurrentVersionInfo() || urlVersionId)
-        })() && (
-          <Card className="p-6 mb-8">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <History className="w-5 h-5 text-blue-500" />
-              Version Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-neutral-400">Version ID:</span>
-                <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
-                  {getCurrentVersionInfo()?.id || new URLSearchParams(window.location.search).get('versionId')}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-neutral-400">Created:</span>
-                <span className="text-sm text-white">
-                  {(() => {
-                    const versionInfo = getCurrentVersionInfo()
-                    return versionInfo?.created_at 
-                      ? `${new Date(versionInfo.created_at).toLocaleDateString()} at ${new Date(versionInfo.created_at).toLocaleTimeString()}`
-                      : 'Date not available'
-                  })()}
-                </span>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* Active Vision Display with Sidebar */}
-        {activeVision ? (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              <LifeVisionSidebar
-                activeSection={activeSection}
-                onSectionChange={(section) => {
-                  setActiveSection(section)
-                  window.scrollTo({ top: 0, behavior: 'smooth' })
-                }}
-                completedSections={completedSections}
-              />
-            </div>
-
-            {/* Main Content Area */}
-            <div className="lg:col-span-3">
-              <Card className="p-8">
-                {(() => {
-                  const currentSection = VISION_CATEGORIES.find(s => s.key === activeSection)
-                  if (!currentSection) return null
-
-                  const IconComponent = currentSection.icon
-                  const value = activeVision[currentSection.key as keyof VisionData] as string
-
-                  return (
-                    <div>
-                      {/* Section Header */}
-                      <div className="mb-6">
-                        <div className="flex items-center gap-3 mb-2">
-                          <IconComponent className="w-8 h-8 text-primary-500" />
-                          <h2 className="text-3xl font-bold text-white">{currentSection.label}</h2>
-                        </div>
-                        <p className="text-neutral-400 text-sm">
-                          {currentSection.description}
-                        </p>
-                      </div>
-
-                      {/* Section Content */}
-                      {value?.trim() ? (
-                        <div className="prose prose-invert max-w-none">
-                          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
-                            <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-base">
-                              {value}
-                            </p>
-                          </div>
-                        </div>
+                        <Button
+                          onClick={() => router.push(`/life-vision/${version.id}`)}
+                          variant="secondary"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          Edit
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      onClick={() => deleteVersion(version.id)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
+                      disabled={deletingVersion === version.id}
+                    >
+                      {deletingVersion === version.id ? (
+                        <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg p-12 text-center">
-                          <p className="text-neutral-500 mb-4">
-                            No content for this section yet
-                          </p>
-                          <Button
-                            onClick={() => router.push(`/life-vision/${activeVision.id}`)}
-                            variant="primary"
-                            size="sm"
-                            className="flex items-center gap-2 mx-auto"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                            Add Content
-                          </Button>
-                        </div>
+                        <Trash2 className="w-3 h-3" />
                       )}
-
-                      {/* Section Navigation */}
-                      <div className="mt-8 flex items-center justify-between pt-6 border-t border-neutral-700">
-                        <Button
-                          onClick={() => {
-                            const currentIndex = VISION_SECTIONS.indexOf(activeSection)
-                            if (currentIndex > 0) {
-                              setActiveSection(VISION_SECTIONS[currentIndex - 1])
-                              window.scrollTo({ top: 0, behavior: 'smooth' })
-                            }
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          disabled={VISION_SECTIONS.indexOf(activeSection) === 0}
-                          className="flex items-center gap-2"
-                        >
-                          <ArrowLeft className="w-4 h-4" />
-                          Previous
-                        </Button>
-                        
-                        <div className="text-sm text-neutral-400">
-                          {VISION_SECTIONS.indexOf(activeSection) + 1} of {VISION_SECTIONS.length}
-                        </div>
-
-                        <Button
-                          onClick={() => {
-                            const currentIndex = VISION_SECTIONS.indexOf(activeSection)
-                            if (currentIndex < VISION_SECTIONS.length - 1) {
-                              setActiveSection(VISION_SECTIONS[currentIndex + 1])
-                              window.scrollTo({ top: 0, behavior: 'smooth' })
-                            }
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          disabled={VISION_SECTIONS.indexOf(activeSection) === VISION_SECTIONS.length - 1}
-                          className="flex items-center gap-2"
-                        >
-                          Next
-                          <ArrowLeft className="w-4 h-4 rotate-180" />
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </Card>
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ) : (
+          </Card>
+        )}
+
+        {/* No Vision State */}
+        {!activeVision && (
           <div className="text-center py-16">
             <Card className="max-w-md mx-auto">
               <div className="text-6xl mb-4">✨</div>
