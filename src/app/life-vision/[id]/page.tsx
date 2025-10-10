@@ -618,7 +618,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                     >
                       <Link href={`/life-vision/${vision.id}/refine`}>
                         <Sparkles className="w-4 h-4" />
-                        <span>Refine with AI</span>
+                        <span>Refine My Vision</span>
                       </Link>
                     </Button>
                     <Button
