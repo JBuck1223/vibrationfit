@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { PageLayout, Container, Card, Button, Badge, ProgressBar } from '@/lib/design-system/components'
-import { HardDrive, Image, Video, Music, FileText, Folder, Clock, Trash2 } from 'lucide-react'
+import { HardDrive, Image, Video, Music, FileText, Folder, Clock, Trash2, ExternalLink, X } from 'lucide-react'
 import Link from 'next/link'
 
 interface StorageData {
@@ -50,6 +50,7 @@ function formatBytes(bytes: number, decimals = 2): string {
 export default function StoragePage() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<StorageData | null>(null)
+  const [previewFile, setPreviewFile] = useState<{ url: string; name: string; type: string } | null>(null)
 
   useEffect(() => {
     fetchStorageData()
@@ -220,18 +221,36 @@ export default function StoragePage() {
                     const folderConfig = FOLDER_LABELS[folder] || FOLDER_LABELS.other
                     const IconComponent = folderConfig.icon
                     
+                    // Construct file URL
+                    const fileUrl = `https://media.vibrationfit.com/${file.path}`
+                    const fileType = file.name.split('.').pop()?.toLowerCase() || ''
+                    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileType)
+                    const isVideo = ['mp4', 'mov', 'webm'].includes(fileType)
+                    const isAudio = ['mp3', 'wav', 'ogg', 'webm'].includes(fileType)
+                    
                     return (
-                      <div
+                      <button
                         key={index}
-                        className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl border border-neutral-800 hover:border-neutral-700 transition-colors"
+                        onClick={() => {
+                          if (isImage || isVideo || isAudio) {
+                            setPreviewFile({
+                              url: fileUrl,
+                              name: file.name,
+                              type: isImage ? 'image' : isVideo ? 'video' : 'audio'
+                            })
+                          } else {
+                            window.open(fileUrl, '_blank')
+                          }
+                        }}
+                        className="w-full flex items-center justify-between p-4 bg-neutral-900 rounded-xl border border-neutral-800 hover:border-primary-500 transition-all group cursor-pointer"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="flex-shrink-0">
-                            <div className="p-2 bg-neutral-800 rounded-lg">
+                            <div className="p-2 bg-neutral-800 rounded-lg group-hover:bg-neutral-700 transition-colors">
                               <IconComponent className={`w-4 h-4 ${folderConfig.color}`} />
                             </div>
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 text-left">
                             <div className="flex items-center gap-2 mb-1">
                               <p className="text-sm font-medium text-white truncate">
                                 {file.name}
@@ -245,13 +264,14 @@ export default function StoragePage() {
                             </p>
                           </div>
                         </div>
-                        
-                        <div className="text-right flex-shrink-0 ml-4">
+
+                        <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                           <p className="text-sm font-bold text-white">
                             {formatBytes(file.size)}
                           </p>
+                          <ExternalLink className="w-4 h-4 text-neutral-500 group-hover:text-primary-500 transition-colors" />
                         </div>
-                      </div>
+                      </button>
                     )
                   })}
                 </div>
@@ -312,6 +332,82 @@ export default function StoragePage() {
               </div>
             </Card>
           </>
+        )}
+
+        {/* File Preview Modal */}
+        {previewFile && (
+          <div 
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setPreviewFile(null)}
+          >
+            <div 
+              className="relative max-w-4xl max-h-[90vh] w-full bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-neutral-800">
+                <h3 className="text-lg font-semibold text-white truncate pr-4">
+                  {previewFile.name}
+                </h3>
+                <button
+                  onClick={() => setPreviewFile(null)}
+                  className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-neutral-400" />
+                </button>
+              </div>
+
+              {/* Preview Content */}
+              <div className="p-6 flex items-center justify-center bg-black">
+                {previewFile.type === 'image' && (
+                  <img
+                    src={previewFile.url}
+                    alt={previewFile.name}
+                    className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                  />
+                )}
+                
+                {previewFile.type === 'video' && (
+                  <video
+                    src={previewFile.url}
+                    controls
+                    className="max-w-full max-h-[70vh] rounded-lg"
+                  />
+                )}
+                
+                {previewFile.type === 'audio' && (
+                  <div className="w-full max-w-2xl">
+                    <div className="p-8 bg-neutral-900 rounded-xl text-center mb-4">
+                      <Music className="w-16 h-16 text-primary-500 mx-auto mb-4" />
+                      <p className="text-neutral-400 text-sm">{previewFile.name}</p>
+                    </div>
+                    <audio
+                      src={previewFile.url}
+                      controls
+                      className="w-full"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-4 border-t border-neutral-800 flex justify-between">
+                <Button
+                  variant="ghost"
+                  onClick={() => setPreviewFile(null)}
+                >
+                  Close
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => window.open(previewFile.url, '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open in New Tab
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </Container>
     </PageLayout>

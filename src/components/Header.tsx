@@ -9,7 +9,7 @@ import { Container } from '@/lib/design-system/components'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
-import { ChevronDown, Target, Sparkles, BarChart3, BookOpen, Layout, User as UserIcon, Home as HomeIcon, Settings, CreditCard, Zap, LogOut, HardDrive } from 'lucide-react'
+import { ChevronDown, Target, Sparkles, BarChart3, BookOpen, Layout, User as UserIcon, Home as HomeIcon, Settings, CreditCard, Zap, LogOut, HardDrive, Activity } from 'lucide-react'
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -233,6 +233,15 @@ export function Header() {
                       >
                         <UserIcon className="w-4 h-4" />
                         <span className="font-medium">My Profile</span>
+                      </Link>
+                      
+                      <Link
+                        href="/dashboard/activity"
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
+                        onClick={() => setOpenDropdown(null)}
+                      >
+                        <Activity className="w-4 h-4" />
+                        <span className="font-medium">Activity Feed</span>
                       </Link>
                       
                       <Link
