@@ -25,12 +25,14 @@ interface StorageData {
 }
 
 const FOLDER_LABELS: Record<string, { label: string; icon: any; color: string }> = {
-  profilePictures: { label: 'Profile Pictures', icon: Image, color: 'text-primary-500' },
-  progressPhotos: { label: 'Progress Photos', icon: Image, color: 'text-secondary-500' },
-  visionBoard: { label: 'Vision Board', icon: Image, color: 'text-accent-500' },
-  journal: { label: 'Journal Evidence', icon: FileText, color: 'text-energy-500' },
-  evidence: { label: 'Recordings', icon: Music, color: 'text-neutral-400' },
-  other: { label: 'Other Files', icon: Folder, color: 'text-neutral-500' },
+  avatar: { label: 'Profile', icon: Image, color: 'text-primary-500' },
+  'vision-board': { label: 'Vision Board', icon: Image, color: 'text-accent-500' },
+  journal: { label: 'Journal', icon: FileText, color: 'text-energy-500' },
+  'life-vision': { label: 'Life Vision', icon: Music, color: 'text-secondary-500' },
+  evidence: { label: 'Profile Recordings', icon: Video, color: 'text-neutral-400' },
+  'alignment-plan': { label: 'Alignment Plans', icon: FileText, color: 'text-primary-400' },
+  'custom-tracks': { label: 'Custom Audio', icon: Music, color: 'text-accent-400' },
+  other: { label: 'Other', icon: Folder, color: 'text-neutral-500' },
 }
 
 function formatBytes(bytes: number, decimals = 2): string {
