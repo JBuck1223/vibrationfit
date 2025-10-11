@@ -144,26 +144,37 @@ $$;
 -- UPDATE MEMBERSHIP TIERS FOR TOKEN ALLOCATIONS
 -- ============================================================================
 
--- Update membership_tiers to include token allocations
-ALTER TABLE membership_tiers 
-ADD COLUMN IF NOT EXISTS annual_token_grant INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS monthly_token_grant INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS billing_interval TEXT DEFAULT 'month'; -- 'month', 'year', '28-day'
-
--- Update existing tiers with new token allocations
--- Infinite Annual: 5M tokens/year
-UPDATE membership_tiers 
-SET 
-  annual_token_grant = 5000000,
-  billing_interval = 'year'
-WHERE tier_type = 'infinite' AND name LIKE '%Annual%';
-
--- Infinite Monthly: 600K tokens/28 days
-UPDATE membership_tiers 
-SET 
-  monthly_token_grant = 600000,
-  billing_interval = '28-day'
-WHERE tier_type = 'infinite' AND name LIKE '%Monthly%';
+-- Check if membership_tiers table exists before modifying
+DO $$ 
+BEGIN
+  -- Update membership_tiers to include token allocations (if table exists)
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'membership_tiers') THEN
+    
+    ALTER TABLE membership_tiers 
+    ADD COLUMN IF NOT EXISTS annual_token_grant INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS monthly_token_grant INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS billing_interval TEXT DEFAULT 'month'; -- 'month', 'year', '28-day'
+    
+    -- Update existing tiers with new token allocations (if they exist)
+    -- Infinite Annual: 5M tokens/year
+    UPDATE membership_tiers 
+    SET 
+      annual_token_grant = 5000000,
+      billing_interval = 'year'
+    WHERE tier_type = 'infinite' AND name ILIKE '%Annual%';
+    
+    -- Infinite Monthly: 600K tokens/28 days
+    UPDATE membership_tiers 
+    SET 
+      monthly_token_grant = 600000,
+      billing_interval = '28-day'
+    WHERE tier_type = 'infinite' AND name ILIKE '%Monthly%';
+    
+    RAISE NOTICE 'Updated membership_tiers with token allocations';
+  ELSE
+    RAISE NOTICE 'membership_tiers table does not exist yet - skipping tier updates';
+  END IF;
+END $$;
 
 -- ============================================================================
 -- COMMENTS
