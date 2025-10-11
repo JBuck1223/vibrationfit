@@ -21,6 +21,10 @@ export async function createCoupon({
   durationInMonths?: number // Required if duration is 'repeating'
   maxRedemptions?: number
 }) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
   const coupon = await stripe.coupons.create({
     id: code,
     percent_off: percentOff,
@@ -38,6 +42,10 @@ export async function createCoupon({
  * Validate and retrieve a coupon
  */
 export async function validateCoupon(code: string) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
   try {
     const coupon = await stripe.coupons.retrieve(code)
     
@@ -83,6 +91,10 @@ export async function createCheckoutWithPromo({
   successUrl: string
   cancelUrl: string
 }) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
   const { getOrCreateStripeCustomer } = await import('./customer')
   const customerId = await getOrCreateStripeCustomer(userId, email)
 
@@ -150,6 +162,10 @@ export async function createPromotionCode({
   maxRedemptions?: number
   expiresAt?: Date
 }) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
   const promotionCode = await stripe.promotionCodes.create({
     coupon: couponId,
     code,
@@ -205,6 +221,10 @@ export const COMMON_PROMOTIONS = {
  * Helper to create all predefined promotions
  */
 export async function seedPromotions() {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
   const results = []
 
   for (const [code, config] of Object.entries(COMMON_PROMOTIONS)) {

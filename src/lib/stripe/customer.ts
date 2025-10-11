@@ -8,6 +8,10 @@ import { createClient } from '@/lib/supabase/server'
  * Get or create a Stripe customer for a user
  */
 export async function getOrCreateStripeCustomer(userId: string, email: string): Promise<string> {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
   const supabase = await createClient()
   
   // Check if user already has a subscription with a customer ID
@@ -56,6 +60,10 @@ export async function createCheckoutSession({
   successUrl: string
   cancelUrl: string
 }) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
   const customerId = await getOrCreateStripeCustomer(userId, email)
 
   const metadata: any = {
@@ -109,6 +117,10 @@ export async function createCheckoutSession({
  * Create a customer portal session
  */
 export async function createPortalSession(customerId: string, returnUrl: string) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
     return_url: returnUrl,
@@ -121,6 +133,10 @@ export async function createPortalSession(customerId: string, returnUrl: string)
  * Cancel a subscription at period end
  */
 export async function cancelSubscription(subscriptionId: string) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
   const subscription = await stripe.subscriptions.update(subscriptionId, {
     cancel_at_period_end: true,
   })
@@ -132,6 +148,10 @@ export async function cancelSubscription(subscriptionId: string) {
  * Resume a canceled subscription
  */
 export async function resumeSubscription(subscriptionId: string) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
   const subscription = await stripe.subscriptions.update(subscriptionId, {
     cancel_at_period_end: false,
   })
