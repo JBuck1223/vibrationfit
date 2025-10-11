@@ -267,17 +267,33 @@ export default async function DashboardPage() {
             <p className="text-xs text-neutral-500">Manifestation goals</p>
           </Card>
           
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-yellow-500/20 rounded-xl">
-                <Brain className="w-6 h-6 text-yellow-500" />
+          <Link href="/dashboard/tokens">
+            <Card className="p-6 hover:-translate-y-1 transition-transform cursor-pointer">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-energy-500/20 rounded-xl">
+                  <Zap className="w-6 h-6 text-energy-500" />
+                </div>
+                <Badge variant="warning">Creation Tokens</Badge>
               </div>
-              <Badge variant="warning">Vibe Assistant</Badge>
-            </div>
-            <h3 className="text-neutral-400 text-sm mb-2">AI Tokens Used</h3>
-            <p className="text-3xl font-bold text-white mb-1">{vibeAssistantTokensUsed.toLocaleString()}</p>
-            <p className="text-xs text-neutral-500">{vibeAssistantTokensRemaining} remaining</p>
-          </Card>
+              <h3 className="text-neutral-400 text-sm mb-2">Token Balance</h3>
+              <p className="text-3xl font-bold text-white mb-1">
+                {vibeAssistantTokensRemaining >= 1_000_000 
+                  ? `${(vibeAssistantTokensRemaining / 1_000_000).toFixed(1)}M`
+                  : vibeAssistantTokensRemaining >= 1_000
+                    ? `${(vibeAssistantTokensRemaining / 1_000).toFixed(1)}K`
+                    : vibeAssistantTokensRemaining
+                }
+              </p>
+              <p className="text-xs text-neutral-500">
+                {vibeAssistantTokensUsed >= 1_000_000
+                  ? `${(vibeAssistantTokensUsed / 1_000_000).toFixed(1)}M used`
+                  : vibeAssistantTokensUsed >= 1_000
+                    ? `${(vibeAssistantTokensUsed / 1_000).toFixed(1)}K used`
+                    : `${vibeAssistantTokensUsed} used`
+                }
+              </p>
+            </Card>
+          </Link>
         </div>
 
         {/* Main Content Grid */}
