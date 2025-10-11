@@ -145,31 +145,87 @@ CREATE TABLE IF NOT EXISTS payment_history (
 -- ADD MISSING COLUMNS TO EXISTING TABLES
 -- ============================================================================
 
--- Add tier_type column if it doesn't exist
+-- Add all missing columns to membership_tiers if they don't exist
 DO $$ 
 BEGIN
-  IF NOT EXISTS (
-    SELECT FROM information_schema.columns 
-    WHERE table_name = 'membership_tiers' 
-    AND column_name = 'tier_type'
-  ) THEN
-    -- Add the ENUM type first if needed
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'membership_tier_type') THEN
-      CREATE TYPE membership_tier_type AS ENUM ('free', 'starter', 'pro', 'elite');
+  -- Check if table exists
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'membership_tiers') THEN
+    
+    -- tier_type column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'tier_type') THEN
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'membership_tier_type') THEN
+        CREATE TYPE membership_tier_type AS ENUM ('free', 'starter', 'pro', 'elite');
+      END IF;
+      ALTER TABLE membership_tiers ADD COLUMN tier_type membership_tier_type;
+      RAISE NOTICE 'Added tier_type column';
     END IF;
     
-    -- Add the column
-    ALTER TABLE membership_tiers ADD COLUMN tier_type membership_tier_type;
-    RAISE NOTICE 'Added tier_type column to membership_tiers';
-  END IF;
-  
-  IF NOT EXISTS (
-    SELECT FROM information_schema.columns 
-    WHERE table_name = 'membership_tiers' 
-    AND column_name = 'is_active'
-  ) THEN
-    ALTER TABLE membership_tiers ADD COLUMN is_active BOOLEAN DEFAULT true;
-    RAISE NOTICE 'Added is_active column to membership_tiers';
+    -- price_monthly column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'price_monthly') THEN
+      ALTER TABLE membership_tiers ADD COLUMN price_monthly INTEGER NOT NULL DEFAULT 0;
+      RAISE NOTICE 'Added price_monthly column';
+    END IF;
+    
+    -- price_yearly column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'price_yearly') THEN
+      ALTER TABLE membership_tiers ADD COLUMN price_yearly INTEGER;
+      RAISE NOTICE 'Added price_yearly column';
+    END IF;
+    
+    -- features column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'features') THEN
+      ALTER TABLE membership_tiers ADD COLUMN features JSONB DEFAULT '[]';
+      RAISE NOTICE 'Added features column';
+    END IF;
+    
+    -- viva_tokens_monthly column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'viva_tokens_monthly') THEN
+      ALTER TABLE membership_tiers ADD COLUMN viva_tokens_monthly INTEGER NOT NULL DEFAULT 0;
+      RAISE NOTICE 'Added viva_tokens_monthly column';
+    END IF;
+    
+    -- max_visions column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'max_visions') THEN
+      ALTER TABLE membership_tiers ADD COLUMN max_visions INTEGER;
+      RAISE NOTICE 'Added max_visions column';
+    END IF;
+    
+    -- description column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'description') THEN
+      ALTER TABLE membership_tiers ADD COLUMN description TEXT;
+      RAISE NOTICE 'Added description column';
+    END IF;
+    
+    -- is_popular column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'is_popular') THEN
+      ALTER TABLE membership_tiers ADD COLUMN is_popular BOOLEAN DEFAULT false;
+      RAISE NOTICE 'Added is_popular column';
+    END IF;
+    
+    -- display_order column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'display_order') THEN
+      ALTER TABLE membership_tiers ADD COLUMN display_order INTEGER DEFAULT 0;
+      RAISE NOTICE 'Added display_order column';
+    END IF;
+    
+    -- is_active column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'is_active') THEN
+      ALTER TABLE membership_tiers ADD COLUMN is_active BOOLEAN DEFAULT true;
+      RAISE NOTICE 'Added is_active column';
+    END IF;
+    
+    -- stripe_product_id column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'stripe_product_id') THEN
+      ALTER TABLE membership_tiers ADD COLUMN stripe_product_id TEXT UNIQUE;
+      RAISE NOTICE 'Added stripe_product_id column';
+    END IF;
+    
+    -- stripe_price_id column
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'stripe_price_id') THEN
+      ALTER TABLE membership_tiers ADD COLUMN stripe_price_id TEXT UNIQUE;
+      RAISE NOTICE 'Added stripe_price_id column';
+    END IF;
+    
   END IF;
 END $$;
 
@@ -264,8 +320,19 @@ CREATE POLICY "System can create payment records"
 -- SEED DATA - Default Membership Tiers
 -- ============================================================================
 
-INSERT INTO membership_tiers (name, tier_type, price_monthly, price_yearly, features, viva_tokens_monthly, max_visions, description, is_popular, display_order)
-VALUES 
+-- Only insert if all required columns exist
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT FROM information_schema.columns 
+    WHERE table_name = 'membership_tiers' 
+    AND column_name IN ('tier_type', 'price_monthly', 'features')
+    GROUP BY table_name
+    HAVING COUNT(*) >= 3
+  ) THEN
+    
+    INSERT INTO membership_tiers (name, tier_type, price_monthly, price_yearly, features, viva_tokens_monthly, max_visions, description, is_popular, display_order)
+    VALUES 
   -- Free Tier
   (
     'Free',
@@ -320,7 +387,14 @@ VALUES
     'Ultimate transformation experience',
     false,
     4
-  );
+  )
+  ON CONFLICT (name) DO NOTHING; -- Skip if tiers already exist
+    
+    RAISE NOTICE 'Seeded membership tiers';
+  ELSE
+    RAISE NOTICE 'Skipping tier seed - required columns missing';
+  END IF;
+END $$;
 
 -- ============================================================================
 -- HELPER FUNCTIONS
