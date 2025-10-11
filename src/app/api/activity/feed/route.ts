@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
         timestamp: item.created_at,
         icon: 'ImageIcon',
         color: 'text-accent-500',
-        link: `/vision-board`,
+        link: `/vision-board/${item.id}`,
         metadata: item.image_url ? {
           fileUrl: item.image_url,
           fileName: `${item.name}.jpg`,
