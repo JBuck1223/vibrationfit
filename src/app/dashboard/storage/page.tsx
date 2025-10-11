@@ -213,30 +213,47 @@ export default function StoragePage() {
                 </div>
 
                 <div className="space-y-2">
-                  {data.recentFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl border border-neutral-800 hover:border-neutral-700 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Clock className="w-4 h-4 text-neutral-500 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">
-                            {file.name}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            {new Date(file.created_at).toLocaleString()}
+                  {data.recentFiles.map((file, index) => {
+                    // Extract folder from path to determine which tool was used
+                    const pathParts = file.path.split('/')
+                    const folder = pathParts[2] || 'other'
+                    const folderConfig = FOLDER_LABELS[folder] || FOLDER_LABELS.other
+                    const IconComponent = folderConfig.icon
+                    
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl border border-neutral-800 hover:border-neutral-700 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="flex-shrink-0">
+                            <div className="p-2 bg-neutral-800 rounded-lg">
+                              <IconComponent className={`w-4 h-4 ${folderConfig.color}`} />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm font-medium text-white truncate">
+                                {file.name}
+                              </p>
+                              <Badge variant="ghost" className="text-xs flex-shrink-0">
+                                {folderConfig.label}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-neutral-500">
+                              {new Date(file.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right flex-shrink-0 ml-4">
+                          <p className="text-sm font-bold text-white">
+                            {formatBytes(file.size)}
                           </p>
                         </div>
                       </div>
-                      
-                      <div className="text-right flex-shrink-0 ml-4">
-                        <p className="text-sm font-bold text-white">
-                          {formatBytes(file.size)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </Card>
             )}
