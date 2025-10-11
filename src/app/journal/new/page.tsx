@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageLayout, Container, Card, Input, Button } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
@@ -40,7 +40,7 @@ export default function NewJournalEntryPage() {
   const [loading, setLoading] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [aiGeneratedImageUrls, setAiGeneratedImageUrls] = useState<string[]>([])
-  const [imageSource, setImageSource] = useState<'upload' | 'ai'>('upload')
+  const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     title: '',
@@ -48,6 +48,8 @@ export default function NewJournalEntryPage() {
     entryType: '',
     categories: [] as string[]
   })
+  
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const handleCategoryToggle = (category: string) => {
     setFormData(prev => ({
@@ -218,8 +220,14 @@ export default function NewJournalEntryPage() {
                     variant={imageSource === 'upload' ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => {
-                      setImageSource('upload')
-                      setAiGeneratedImageUrls([])
+                      if (imageSource === 'upload') {
+                        // Already in upload mode, trigger file picker
+                        fileInputRef.current?.click()
+                      } else {
+                        // Switch to upload mode
+                        setImageSource('upload')
+                        setAiGeneratedImageUrls([])
+                      }
                     }}
                     className="flex-1"
                   >
@@ -241,16 +249,71 @@ export default function NewJournalEntryPage() {
                   </Button>
                 </div>
 
-                {/* Upload or AI Generator */}
-                {imageSource === 'upload' ? (
-                  <FileUpload
-                    accept="image/*,video/*,audio/*"
-                    multiple
-                    maxFiles={5}
-                    maxSize={500}
-                    onUpload={setFiles}
-                  />
-                ) : (
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*,audio/*"
+                  multiple
+                  onChange={(e) => {
+                    const selectedFiles = Array.from(e.target.files || [])
+                    if (selectedFiles.length > 0) {
+                      setFiles(selectedFiles)
+                      setImageSource('upload')
+                    }
+                  }}
+                  className="hidden"
+                />
+
+                {/* Show selected files or AI Generator */}
+                {imageSource === 'upload' && files.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {files.map((file, index) => (
+                      <div key={index} className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
+                        <div className="flex items-center gap-3">
+                          {file.type.startsWith('image/') && (
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt="Preview"
+                              className="w-20 h-20 object-cover rounded-lg"
+                            />
+                          )}
+                          {file.type.startsWith('video/') && (
+                            <video
+                              src={URL.createObjectURL(file)}
+                              className="w-20 h-20 object-cover rounded-lg"
+                              muted
+                            />
+                          )}
+                          {!file.type.startsWith('image/') && !file.type.startsWith('video/') && (
+                            <div className="w-20 h-20 bg-neutral-800 rounded-lg flex items-center justify-center">
+                              <span className="text-2xl">📄</span>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-white">{file.name}</p>
+                            <p className="text-xs text-neutral-400">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type.split('/')[0]}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newFiles = files.filter((_, i) => i !== index)
+                              setFiles(newFiles)
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {imageSource === 'ai' && (
                   <AIImageGenerator
                     type="journal"
                     onImageGenerated={(url) => setAiGeneratedImageUrls([url])}

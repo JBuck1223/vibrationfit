@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageLayout, Container, Card, Input, Button, Textarea, Badge } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
@@ -37,13 +37,15 @@ export default function NewVisionBoardItemPage() {
   const [loading, setLoading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
-  const [imageSource, setImageSource] = useState<'upload' | 'ai'>('upload')
+  const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     status: 'active',
     categories: [] as string[]
   })
+  
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const handleCategoryToggle = (category: string) => {
     setFormData(prev => ({
@@ -157,8 +159,14 @@ export default function NewVisionBoardItemPage() {
                     variant={imageSource === 'upload' ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => {
-                      setImageSource('upload')
-                      setAiGeneratedImageUrl(null)
+                      if (imageSource === 'upload') {
+                        // Already in upload mode, trigger file picker
+                        fileInputRef.current?.click()
+                      } else {
+                        // Switch to upload mode
+                        setImageSource('upload')
+                        setAiGeneratedImageUrl(null)
+                      }
                     }}
                     className="flex-1"
                   >
@@ -180,16 +188,49 @@ export default function NewVisionBoardItemPage() {
                   </Button>
                 </div>
 
-                {/* Upload or AI Generator */}
-                {imageSource === 'upload' ? (
-                  <FileUpload
-                    accept="image/*"
-                    multiple={false}
-                    maxFiles={1}
-                    maxSize={10}
-                    onUpload={(files) => setFile(files[0] || null)}
-                  />
-                ) : (
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const selectedFile = e.target.files?.[0]
+                    if (selectedFile) {
+                      setFile(selectedFile)
+                      setImageSource('upload')
+                    }
+                  }}
+                  className="hidden"
+                />
+
+                {/* Show selected file or AI Generator */}
+                {imageSource === 'upload' && file && (
+                  <div className="mt-4 p-4 bg-neutral-900 rounded-xl border border-neutral-800">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt="Preview"
+                        className="w-20 h-20 object-cover rounded-lg"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">{file.name}</p>
+                        <p className="text-xs text-neutral-400">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFile(null)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {imageSource === 'ai' && (
                   <AIImageGenerator
                     type="vision_board"
                     onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
