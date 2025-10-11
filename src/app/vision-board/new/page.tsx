@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Container, Card, Input, Button, Textarea } from '@/lib/design-system'
+import { PageLayout, Container, Card, Input, Button, Textarea, Badge } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
+import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
+import { Sparkles, Upload } from 'lucide-react'
 
 const LIFE_CATEGORIES = [
   'Fun / Recreation',
@@ -34,6 +36,8 @@ export default function NewVisionBoardItemPage() {
   
   const [loading, setLoading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
+  const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
+  const [imageSource, setImageSource] = useState<'upload' | 'ai'>('upload')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -62,9 +66,11 @@ export default function NewVisionBoardItemPage() {
         return
       }
 
-      // Upload image if provided
+      // Get image URL (either from upload or AI generation)
       let imageUrl = ''
-      if (file) {
+      if (imageSource === 'ai' && aiGeneratedImageUrl) {
+        imageUrl = aiGeneratedImageUrl
+      } else if (imageSource === 'upload' && file) {
         try {
           const uploadResult = await uploadUserFile('visionBoard', file, user.id)
           imageUrl = uploadResult.url
@@ -186,22 +192,64 @@ export default function NewVisionBoardItemPage() {
                 </div>
               </div>
 
-              {/* Image Upload */}
+              {/* Image Source Toggle */}
               <div>
                 <label className="block text-sm font-medium text-neutral-200 mb-3">
                   Vision Image (Optional)
                 </label>
-                <FileUpload
-                  accept="image/*"
-                  multiple={false}
-                  maxFiles={1}
-                  maxSize={10}
-                  onUpload={(files) => setFile(files[0] || null)}
-                  label="Choose Image"
-                />
-                <p className="text-xs text-neutral-400 mt-2">
-                  Upload a picture that represents this creation. This will be displayed on your vision board.
-                </p>
+                
+                {/* Toggle Buttons */}
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    type="button"
+                    variant={imageSource === 'upload' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setImageSource('upload')
+                      setAiGeneratedImageUrl(null)
+                    }}
+                    className="flex-1"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Image
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={imageSource === 'ai' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setImageSource('ai')
+                      setFile(null)
+                    }}
+                    className="flex-1"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate with AI
+                  </Button>
+                </div>
+
+                {/* Upload or AI Generator */}
+                {imageSource === 'upload' ? (
+                  <>
+                    <FileUpload
+                      accept="image/*"
+                      multiple={false}
+                      maxFiles={1}
+                      maxSize={10}
+                      onUpload={(files) => setFile(files[0] || null)}
+                      label="Choose Image"
+                    />
+                    <p className="text-xs text-neutral-400 mt-2">
+                      Upload a picture that represents this creation.
+                    </p>
+                  </>
+                ) : (
+                  <AIImageGenerator
+                    type="vision_board"
+                    onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
+                    initialPrompt={formData.description}
+                  />
+                )}
               </div>
 
               {/* Submit */}

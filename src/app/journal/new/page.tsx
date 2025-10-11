@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { PageLayout, Container, Card, Input, Button } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
+import { Sparkles, Upload } from 'lucide-react'
 
 const LIFE_CATEGORIES = [
   'Fun / Recreation',
@@ -37,6 +39,8 @@ export default function NewJournalEntryPage() {
   
   const [loading, setLoading] = useState(false)
   const [files, setFiles] = useState<File[]>([])
+  const [aiGeneratedImageUrls, setAiGeneratedImageUrls] = useState<string[]>([])
+  const [imageSource, setImageSource] = useState<'upload' | 'ai'>('upload')
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     title: '',
@@ -66,9 +70,11 @@ export default function NewJournalEntryPage() {
         return
       }
 
-      // Upload files if any
+      // Get image URLs (either from upload or AI generation)
       let imageUrls: string[] = []
-      if (files.length > 0) {
+      if (imageSource === 'ai' && aiGeneratedImageUrls.length > 0) {
+        imageUrls = aiGeneratedImageUrls
+      } else if (imageSource === 'upload' && files.length > 0) {
         const uploadResults = await uploadMultipleUserFiles('journal', files, user.id)
         imageUrls = uploadResults.map((result: { url: string; key: string; error?: string }) => result.url)
         
@@ -191,16 +197,61 @@ export default function NewJournalEntryPage() {
               {/* File Upload */}
               <div>
                 <label className="block text-sm font-medium text-neutral-200 mb-3">
-                  Upload Evidence (Photos, Videos, Audio)
+                  Evidence / Images (Optional)
                 </label>
-                <FileUpload
-                  accept="image/*,video/*,audio/*"
-                  multiple
-                  maxFiles={5}
-                  maxSize={500}
-                  onUpload={setFiles}
-                  label="Choose Files"
-                />
+                
+                {/* Toggle Buttons */}
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    type="button"
+                    variant={imageSource === 'upload' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setImageSource('upload')
+                      setAiGeneratedImageUrls([])
+                    }}
+                    className="flex-1"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Files
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={imageSource === 'ai' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setImageSource('ai')
+                      setFiles([])
+                    }}
+                    className="flex-1"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate with AI
+                  </Button>
+                </div>
+
+                {/* Upload or AI Generator */}
+                {imageSource === 'upload' ? (
+                  <>
+                    <FileUpload
+                      accept="image/*,video/*,audio/*"
+                      multiple
+                      maxFiles={5}
+                      maxSize={500}
+                      onUpload={setFiles}
+                      label="Choose Files"
+                    />
+                    <p className="text-xs text-neutral-400 mt-2">
+                      Upload photos, videos, or audio to document your journey.
+                    </p>
+                  </>
+                ) : (
+                  <AIImageGenerator
+                    type="journal"
+                    onImageGenerated={(url) => setAiGeneratedImageUrls([url])}
+                    initialPrompt={formData.content}
+                  />
+                )}
               </div>
 
               {/* Journal Content */}
