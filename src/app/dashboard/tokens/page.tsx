@@ -6,9 +6,7 @@
 import { useState, useEffect } from 'react'
 import { PageLayout, Container, Card, Button, Badge } from '@/lib/design-system/components'
 import { Zap, TrendingUp, Activity, Plus, ArrowRight } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { formatTokens } from '@/lib/tokens/token-tracker'
 
 interface TokenTransaction {
   id: string
@@ -19,6 +17,21 @@ interface TokenTransaction {
   openai_model: string | null
   created_at: string
   metadata: any
+}
+
+// Helper function to format tokens
+function formatTokens(tokens: number, abbreviated = false): string {
+  if (abbreviated) {
+    if (tokens >= 1_000_000) {
+      return `${(tokens / 1_000_000).toFixed(1)}M`
+    }
+    if (tokens >= 1_000) {
+      return `${(tokens / 1_000).toFixed(1)}K`
+    }
+    return tokens.toString()
+  }
+  
+  return tokens.toLocaleString()
 }
 
 const ACTION_TYPE_LABELS: Record<string, { label: string; color: string }> = {
@@ -38,7 +51,6 @@ export default function TokensPage() {
   const [balance, setBalance] = useState(0)
   const [transactions, setTransactions] = useState<TokenTransaction[]>([])
   const [stats, setStats] = useState<any>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     fetchTokenData()
@@ -46,51 +58,20 @@ export default function TokensPage() {
 
   const fetchTokenData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const response = await fetch('/api/tokens')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch token data')
+      }
 
-      // Get current balance
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('vibe_assistant_tokens_remaining, vibe_assistant_tokens_used')
-        .eq('user_id', user.id)
-        .single()
-
-      setBalance(profile?.vibe_assistant_tokens_remaining || 0)
-
-      // Get transaction history
-      const { data: txData } = await supabase
-        .from('token_transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      setTransactions(txData || [])
-
-      // Calculate stats
-      const totalUsed = profile?.vibe_assistant_tokens_used || 0
-      const totalGranted = (txData || [])
-        .filter((tx: TokenTransaction) => tx.tokens_used < 0)
-        .reduce((sum: number, tx: TokenTransaction) => sum + Math.abs(tx.tokens_used), 0)
-
-      const actionBreakdown = (txData || [])
-        .filter((tx: TokenTransaction) => tx.tokens_used > 0)
-        .reduce((acc: any, tx: TokenTransaction) => {
-          const action = tx.action_type
-          if (!acc[action]) {
-            acc[action] = { count: 0, tokens: 0, cost: 0 }
-          }
-          acc[action].count++
-          acc[action].tokens += tx.tokens_used
-          acc[action].cost += tx.estimated_cost_usd || 0
-          return acc
-        }, {})
-
+      const data = await response.json()
+      
+      setBalance(data.balance)
+      setTransactions(data.transactions)
       setStats({
-        totalUsed,
-        totalGranted,
-        actionBreakdown,
+        totalUsed: data.totalUsed,
+        totalGranted: data.totalGranted,
+        actionBreakdown: data.actionBreakdown,
       })
 
     } catch (error) {
