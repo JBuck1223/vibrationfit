@@ -96,12 +96,13 @@ CREATE TABLE customer_subscriptions (
   
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
-  -- Ensure one active subscription per user
-  CONSTRAINT unique_active_subscription UNIQUE (user_id, status) 
-    WHERE status = 'active' OR status = 'trialing'
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Partial unique index to ensure one active subscription per user
+CREATE UNIQUE INDEX unique_active_subscription 
+  ON customer_subscriptions (user_id) 
+  WHERE status = 'active' OR status = 'trialing';
 
 -- ============================================================================
 -- PAYMENT HISTORY TABLE
