@@ -165,36 +165,41 @@ export async function GET(request: NextRequest) {
       .limit(20)
 
     tokenTx?.forEach((tx: any) => {
-      const actionLabels: Record<string, { title: string; desc: string; icon: string; color: string }> = {
+      const actionLabels: Record<string, { title: string; desc: string; icon: string; color: string; link: string }> = {
         chat: { 
           title: 'VIVA Chat', 
           desc: 'Had a conversation with VIVA',
           icon: 'MessageSquare',
-          color: 'text-secondary-500'
+          color: 'text-secondary-500',
+          link: '/vision/build'
         },
         refinement: { 
           title: 'Refined Vision', 
           desc: `Enhanced ${tx.metadata?.category || 'vision'} with VIVA`,
           icon: 'Sparkles',
-          color: 'text-primary-500'
+          color: 'text-primary-500',
+          link: '/life-vision'
         },
         audio_generation: { 
           title: 'Generated Audio', 
           desc: 'Created vision audio track',
           icon: 'Music',
-          color: 'text-energy-500'
+          color: 'text-energy-500',
+          link: '/life-vision'
         },
         transcription: { 
           title: 'Transcribed Recording', 
           desc: 'Converted voice to text',
           icon: 'Zap',
-          color: 'text-neutral-400'
+          color: 'text-neutral-400',
+          link: '/journal/new'
         },
         image_generation: { 
           title: 'Generated Image', 
           desc: 'Created image with VIVA',
           icon: 'ImageIcon',
-          color: 'text-accent-400'
+          color: 'text-accent-400',
+          link: '/vision-board/new'
         },
       }
 
@@ -202,7 +207,8 @@ export async function GET(request: NextRequest) {
         title: tx.action_type,
         desc: 'Used VIVA',
         icon: 'Zap',
-        color: 'text-neutral-400'
+        color: 'text-neutral-400',
+        link: '/dashboard/tokens'
       }
 
       activities.push({
@@ -213,6 +219,7 @@ export async function GET(request: NextRequest) {
         timestamp: tx.created_at,
         icon: config.icon,
         color: config.color,
+        link: config.link,
         metadata: {
           tokensUsed: Math.abs(tx.tokens_used).toLocaleString(),
         },
