@@ -47,8 +47,8 @@ const infinitePlan = {
     'Priority support',
     'All future features',
   ],
-  cta: 'Start Your Journey',
-  trialDays: 7,
+  cta: 'Get Started',
+  trialDays: 0,  // No default trial - only via promo codes
 }
 
 export default function PricingPage() {
