@@ -28,10 +28,26 @@ interface ActivityItem {
   title: string
   description: string
   timestamp: string
-  icon: any
+  icon: string // Icon name as string
   color: string
   link?: string
   metadata?: any
+}
+
+// Map icon names to components
+const ICON_MAP: Record<string, any> = {
+  Target,
+  BookOpen,
+  ImageIcon,
+  User,
+  Zap,
+  Music,
+  Sparkles,
+  MessageSquare,
+  CheckCircle,
+  Edit,
+  Upload,
+  Activity,
 }
 
 export default function ActivityFeedPage() {
@@ -128,7 +144,7 @@ export default function ActivityFeedPage() {
             ) : (
               <div className="space-y-4">
                 {filteredActivities.map((activity) => {
-                  const IconComponent = activity.icon
+                  const IconComponent = ICON_MAP[activity.icon] || Activity
                   
                   const content = (
                     <Card className="p-5 hover:border-neutral-700 transition-all cursor-pointer group">
