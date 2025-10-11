@@ -9,11 +9,12 @@ import { Container } from '@/lib/design-system/components'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
-import { ChevronDown, Target, Sparkles, BarChart3, BookOpen, Layout, User as UserIcon, Home as HomeIcon } from 'lucide-react'
+import { ChevronDown, Target, Sparkles, BarChart3, BookOpen, Layout, User as UserIcon, Home as HomeIcon, Settings, CreditCard, Zap, LogOut } from 'lucide-react'
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -22,6 +23,18 @@ export function Header() {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
+      
+      // Fetch profile data if user is logged in
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('user_profiles')
+          .select('first_name, last_name, profile_picture_url, vibe_assistant_tokens_remaining')
+          .eq('user_id', user.id)
+          .single()
+        
+        setProfile(profileData)
+      }
+      
       setLoading(false)
     }
 
@@ -29,6 +42,9 @@ export function Header() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (!session?.user) {
+        setProfile(null)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -146,19 +162,125 @@ export function Header() {
             ))}
           </nav>
 
-          {/* Desktop Auth Buttons */}
+          {/* Desktop Auth / Account */}
           <div className="hidden md:flex items-center space-x-4">
             {loading ? (
               <div className="w-20 h-8 bg-neutral-800 rounded animate-pulse" />
             ) : user ? (
-              <>
-                <span className="text-neutral-300 text-sm">
-                  {user.email}
-                </span>
-                <Button onClick={handleLogout} variant="ghost" size="sm">
-                  Logout
-                </Button>
-              </>
+              <div className="relative">
+                <button
+                  onClick={() => setOpenDropdown(openDropdown === 'account' ? null : 'account')}
+                  onMouseEnter={() => handleMouseEnter('account')}
+                  onMouseLeave={handleMouseLeave}
+                  className="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-neutral-800 transition-colors"
+                >
+                  {/* Profile Picture */}
+                  {profile?.profile_picture_url ? (
+                    <img
+                      src={profile.profile_picture_url}
+                      alt={profile.first_name || 'Profile'}
+                      className="w-8 h-8 rounded-full object-cover border-2 border-primary-500"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-semibold text-sm">
+                      {profile?.first_name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  
+                  {/* Name */}
+                  <span className="text-white font-medium">
+                    {profile?.first_name || user.email?.split('@')[0]}
+                  </span>
+                  
+                  <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${openDropdown === 'account' ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Account Dropdown */}
+                {openDropdown === 'account' && (
+                  <div
+                    onMouseEnter={() => handleMouseEnter('account')}
+                    onMouseLeave={handleMouseLeave}
+                    className="absolute right-0 top-full mt-2 w-72 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl py-2 z-50"
+                  >
+                    {/* Token Balance */}
+                    <div className="px-4 py-3 border-b border-neutral-800">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                          Token Balance
+                        </span>
+                        <Zap className="w-4 h-4 text-energy-500" />
+                      </div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-white">
+                          {profile?.vibe_assistant_tokens_remaining 
+                            ? (profile.vibe_assistant_tokens_remaining / 1_000_000).toFixed(1) 
+                            : '0'}M
+                        </span>
+                        <span className="text-sm text-neutral-500">tokens</span>
+                      </div>
+                      <Link
+                        href="/dashboard/tokens"
+                        className="text-xs text-primary-500 hover:text-primary-400 transition-colors inline-flex items-center gap-1 mt-1"
+                      >
+                        View usage →
+                      </Link>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="py-1">
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
+                        onClick={() => setOpenDropdown(null)}
+                      >
+                        <UserIcon className="w-4 h-4" />
+                        <span className="font-medium">My Profile</span>
+                      </Link>
+                      
+                      <Link
+                        href="/dashboard/tokens"
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
+                        onClick={() => setOpenDropdown(null)}
+                      >
+                        <Zap className="w-4 h-4" />
+                        <span className="font-medium">Token Usage</span>
+                      </Link>
+                      
+                      <Link
+                        href="/billing"
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
+                        onClick={() => setOpenDropdown(null)}
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        <span className="font-medium">Billing</span>
+                      </Link>
+                      
+                      <Link
+                        href="/account/settings"
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
+                        onClick={() => setOpenDropdown(null)}
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span className="font-medium">Settings</span>
+                      </Link>
+                    </div>
+
+                    {/* Logout */}
+                    <div className="border-t border-neutral-800 py-1 mt-1">
+                      <button
+                        onClick={() => {
+                          setOpenDropdown(null)
+                          handleLogout()
+                        }}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-red-400 hover:text-red-300 w-full"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span className="font-medium">Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <Button asChild variant="ghost" size="sm">
