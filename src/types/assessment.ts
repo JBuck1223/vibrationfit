@@ -70,6 +70,8 @@ export interface AssessmentResult {
   status: 'in_progress' | 'completed'
   category_scores: Record<AssessmentCategory, number>
   total_score: number
+  max_possible_score: number
+  overall_percentage: number
   green_line_status: Record<AssessmentCategory, 'above' | 'transition' | 'below'>
   started_at: Date
   completed_at?: Date

@@ -174,16 +174,16 @@ export default function PricingPage() {
           <div className="text-center mb-8">
             <div className="flex items-baseline justify-center gap-2 mb-2">
               <span className="text-6xl font-bold text-white">
-                ${selectedPricing.monthlyEquivalent || selectedPricing.price}
+                ${(selectedPricing as any).monthlyEquivalent || selectedPricing.price}
               </span>
               <span className="text-2xl text-neutral-400">/month</span>
             </div>
-            {selectedPricing.monthlyEquivalent && (
+            {(selectedPricing as any).monthlyEquivalent && (
               <div className="text-neutral-400">
                 ${selectedPricing.price} billed annually
               </div>
             )}
-            {!selectedPricing.monthlyEquivalent && (
+            {!(selectedPricing as any).monthlyEquivalent && (
               <div className="text-neutral-400">
                 Billed monthly
               </div>

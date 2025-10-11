@@ -4,7 +4,7 @@
 // 12 Categories × 7 Questions = 84 Total Questions
 // Updated to match site-wide category structure
 
-import { CategoryQuestions, AssessmentQuestion } from '@/types/assessment'
+import { CategoryQuestions, AssessmentQuestion, AssessmentCategory } from '@/types/assessment'
 
 export const ASSESSMENT_QUESTIONS: CategoryQuestions[] = [
   // ============================================================================

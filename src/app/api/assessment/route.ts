@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
         profile_version_id,
         status: 'in_progress',
         assessment_version,
+        max_possible_score: 840, // 12 categories × 70 max points each
         started_at: new Date().toISOString()
       })
       .select()

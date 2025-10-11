@@ -155,7 +155,7 @@ export async function createPromotionCode({
     code,
     max_redemptions: maxRedemptions,
     expires_at: expiresAt ? Math.floor(expiresAt.getTime() / 1000) : undefined,
-  })
+  } as any)
 
   return promotionCode
 }
@@ -213,8 +213,8 @@ export async function seedPromotions() {
         code: code.toLowerCase(),
         percentOff: config.percentOff,
         duration: config.duration,
-        durationInMonths: config.durationInMonths,
-        maxRedemptions: config.maxRedemptions,
+        durationInMonths: (config as any).durationInMonths,
+        maxRedemptions: (config as any).maxRedemptions,
       })
       
       results.push({ code, success: true, coupon })

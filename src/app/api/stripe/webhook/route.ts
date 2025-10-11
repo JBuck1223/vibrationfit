@@ -79,10 +79,10 @@ export async function POST(request: NextRequest) {
             stripe_subscription_id: subscriptionId,
             stripe_price_id: subscription.items.data[0].price.id,
             status: subscription.status as any,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            trial_start: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
-            trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            trial_start: (subscription as any).trial_start ? new Date((subscription as any).trial_start * 1000).toISOString() : null,
+            trial_end: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000).toISOString() : null,
           })
 
           console.log('✅ Subscription created:', subscriptionId)
@@ -100,10 +100,10 @@ export async function POST(request: NextRequest) {
           .from('customer_subscriptions')
           .update({
             status: subscription.status as any,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            cancel_at_period_end: (subscription as any).cancel_at_period_end,
+            canceled_at: (subscription as any).canceled_at ? new Date((subscription as any).canceled_at * 1000).toISOString() : null,
           })
           .eq('stripe_subscription_id', subscription.id)
 
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice
 
-        if (invoice.subscription) {
+        if ((invoice as any).subscription) {
           const customerId = invoice.customer as string
 
           // Find user by customer ID
@@ -150,13 +150,13 @@ export async function POST(request: NextRequest) {
             await supabase.from('payment_history').insert({
               user_id: subscription.user_id,
               subscription_id: subscription.id,
-              stripe_payment_intent_id: invoice.payment_intent as string,
+              stripe_payment_intent_id: (invoice as any).payment_intent as string,
               stripe_invoice_id: invoice.id,
-              amount: invoice.amount_paid,
+              amount: (invoice as any).amount_paid,
               currency: invoice.currency,
               status: 'succeeded',
-              description: invoice.description || 'Subscription payment',
-              paid_at: new Date(invoice.status_transitions.paid_at! * 1000).toISOString(),
+              description: (invoice as any).description || 'Subscription payment',
+              paid_at: new Date((invoice as any).status_transitions.paid_at! * 1000).toISOString(),
             })
 
             console.log('✅ Payment recorded:', invoice.id)
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
             user_id: subscription.user_id,
             subscription_id: subscription.id,
             stripe_invoice_id: invoice.id,
-            amount: invoice.amount_due,
+            amount: (invoice as any).amount_due,
             currency: invoice.currency,
             status: 'failed',
             description: 'Payment failed',

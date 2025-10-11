@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { PageLayout, Container, Card, Button, Badge } from '@/lib/design-system/components'
-import { CreditCard, Calendar, TrendingUp, ExternalLink, AlertCircle } from 'lucide-react'
+import { CreditCard, Calendar, TrendingUp, ExternalLink, AlertCircle, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function BillingPage() {
