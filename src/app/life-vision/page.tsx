@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap, Target, Gem, Volume2, Download, VolumeX, Diamond } from 'lucide-react'
 import { PageLayout, Container, Card, Button, Badge, ProgressBar, Spinner, getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { LifeVisionSidebar } from './components/LifeVisionSidebar'
@@ -322,124 +322,54 @@ export default function VisionListPage() {
   return (
     <PageLayout>
       <Container size="xl" className="py-6">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+        {/* Create Button (only when no active vision) */}
+        {!activeVision && (
+          <div className="flex justify-end mb-8">
             <Button
-              onClick={() => router.push('/dashboard')}
-              variant="ghost"
-              className="text-neutral-400 hover:text-white"
+              onClick={() => router.push('/life-vision/new')}
+              variant="primary"
+              className="flex items-center gap-2"
             >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back to Dashboard
+              <Plus className="w-4 h-4" />
+              Create Life Vision
             </Button>
-            {!activeVision && (
-              <Button
-                onClick={() => router.push('/life-vision/new')}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Create Life Vision
-              </Button>
-            )}
           </div>
-          
-          {/* Centered Title */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">My Life Vision</h1>
-            <p className="text-neutral-400 text-lg">
-              Your conscious creation blueprint across all life categories
-            </p>
-          </div>
-
-          {/* Stats Cards */}
-          {activeVision && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-neutral-400 mb-1">Life Visions Created</p>
-                    <p className="text-3xl font-bold text-primary-500">{versions.length}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-primary-500" />
-                  </div>
-                </div>
-              </Card>
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-neutral-400 mb-1">Refinements Used</p>
-                    <p className="text-3xl font-bold text-secondary-500">0</p>
-                  </div>
-                  <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center">
-                    <Zap className="w-6 h-6 text-secondary-500" />
-                  </div>
-                </div>
-                <p className="text-xs text-neutral-500 mt-2">Coming soon: Track your VIVA refinements</p>
-              </Card>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Current Version Information Card */}
         {activeVision && (
           <Card className="p-8 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <h2 className="text-2xl font-bold text-white">The Life I Choose</h2>
-                  <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
-                    v{activeVision.version_number}
-                  </span>
-                  {activeVision.status === 'complete' && (
-                    <Badge variant="success">
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Active
-                    </Badge>
-                  )}
-                  {activeVision.status === 'draft' && (
-                    <Badge variant="warning">
-                      <Circle className="w-4 h-4 mr-1" />
-                      Draft
-                    </Badge>
-                  )}
-                </div>
-                
-                {/* Metadata Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div>
-                    <p className="text-xs text-neutral-500 mb-1">Created</p>
-                    <p className="text-sm text-white">
-                      {new Date(activeVision.created_at).toLocaleDateString()} at {new Date(activeVision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-neutral-500 mb-1">Version ID</p>
-                    <p className="font-mono text-sm text-white bg-neutral-800 px-3 py-1 rounded inline-block">
-                      {activeVision.id}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-neutral-500 mb-1">Completion</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl font-bold text-primary-500">{completionPercentage}%</span>
-                      <div className="flex-1">
-                        <ProgressBar 
-                          value={completionPercentage}
-                          variant="primary"
-                          showLabel={false}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <div className="text-center mb-6">
+              <h2 className="text-4xl font-bold text-white mb-3">The Life I Choose</h2>
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+                  V{activeVision.version_number}
+                </span>
+                {activeVision.status === 'complete' && (
+                  <Badge variant="success">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Active
+                  </Badge>
+                )}
+                {activeVision.status === 'draft' && (
+                  <Badge variant="warning">
+                    <Circle className="w-4 h-4 mr-1" />
+                    Draft
+                  </Badge>
+                )}
+              </div>
+              
+              {/* Metadata */}
+              <div className="text-center mb-6">
+                <p className="text-xs text-neutral-500 mb-1">Created</p>
+                <p className="text-sm text-white">
+                  {new Date(activeVision.created_at).toLocaleDateString()} at {new Date(activeVision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </p>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3">
+            {/* Action Buttons - Centered */}
+            <div className="flex flex-wrap gap-3 justify-center">
               <Button
                 onClick={() => router.push(`/life-vision/${activeVision.id}`)}
                 variant="primary"
@@ -453,7 +383,7 @@ export default function VisionListPage() {
                 variant="secondary"
                 className="flex items-center gap-2"
               >
-                <Calendar className="w-4 h-4" />
+                <Download className="w-4 h-4" />
                 Download PDF
               </Button>
               <Button
@@ -461,8 +391,8 @@ export default function VisionListPage() {
                 variant="secondary"
                 className="flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4" />
-                Audio Versions
+                <VolumeX className="w-4 h-4" />
+                Audio Tracks
               </Button>
               <Button
                 onClick={() => router.push(`/life-vision/${activeVision.id}`)}
@@ -477,11 +407,44 @@ export default function VisionListPage() {
                 variant="outline"
                 className="flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4" />
+                <Gem className="w-4 h-4" />
                 Refine
               </Button>
             </div>
           </Card>
+        )}
+
+        {/* Stats Cards */}
+        {activeVision && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card className="p-6 text-center">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center mb-3">
+                  <Target className="w-6 h-6 text-primary-500" />
+                </div>
+                <p className="text-3xl font-bold text-white mb-1">{versions.length}</p>
+                <p className="text-sm text-neutral-400 mb-2">Life Visions</p>
+              </div>
+            </Card>
+            <Card className="p-6 text-center">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center mb-3">
+                  <Gem className="w-6 h-6 text-secondary-500" />
+                </div>
+                <p className="text-3xl font-bold text-white mb-1">0</p>
+                <p className="text-sm text-neutral-400 mb-2">Refinements</p>
+              </div>
+            </Card>
+            <Card className="p-6 text-center">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center mb-3">
+                  <Volume2 className="w-6 h-6 text-accent-500" />
+                </div>
+                <p className="text-3xl font-bold text-white mb-1">0</p>
+                <p className="text-sm text-neutral-400 mb-2">Audios Generated</p>
+              </div>
+            </Card>
+          </div>
         )}
 
         {/* All Versions List */}
@@ -647,15 +610,6 @@ export default function VisionListPage() {
           </div>
         )}
 
-        {/* Navigation */}
-        <div className="mt-8 text-center">
-          <Link 
-            href="/dashboard" 
-            className="text-neutral-400 hover:text-white transition-colors"
-          >
-            ← Back to Dashboard
-          </Link>
-        </div>
       </Container>
     </PageLayout>
   )

@@ -2,22 +2,8 @@
 
 import React from 'react'
 import { Card } from '@/lib/design-system/components'
-import { 
-  Sparkles, 
-  PartyPopper, 
-  Plane, 
-  Home, 
-  Users, 
-  Heart, 
-  Activity, 
-  DollarSign, 
-  Briefcase, 
-  UserPlus, 
-  Package, 
-  Gift, 
-  Zap, 
-  CheckCircle 
-} from 'lucide-react'
+import { VISION_CATEGORIES } from '@/lib/design-system'
+import { CheckCircle } from 'lucide-react'
 
 interface LifeVisionSidebarProps {
   activeSection: string
@@ -25,114 +11,24 @@ interface LifeVisionSidebarProps {
   completedSections: string[]
 }
 
-const sections = [
-  {
-    id: 'forward',
-    title: 'Forward',
-    icon: Sparkles,
-    description: 'Opening statement and intention'
-  },
-  {
-    id: 'fun',
-    title: 'Fun / Recreation',
-    icon: PartyPopper,
-    description: 'Hobbies and joyful activities'
-  },
-  {
-    id: 'travel',
-    title: 'Travel / Adventure',
-    icon: Plane,
-    description: 'Places to explore and adventures'
-  },
-  {
-    id: 'home',
-    title: 'Home / Environment',
-    icon: Home,
-    description: 'Living space and environment'
-  },
-  {
-    id: 'family',
-    title: 'Family / Parenting',
-    icon: Users,
-    description: 'Family relationships and life'
-  },
-  {
-    id: 'romance',
-    title: 'Love / Romance',
-    icon: Heart,
-    description: 'Romantic relationships'
-  },
-  {
-    id: 'health',
-    title: 'Health / Vitality',
-    icon: Activity,
-    description: 'Physical and mental well-being'
-  },
-  {
-    id: 'money',
-    title: 'Money / Wealth',
-    icon: DollarSign,
-    description: 'Financial goals and wealth'
-  },
-  {
-    id: 'business',
-    title: 'Business / Career',
-    icon: Briefcase,
-    description: 'Work and career aspirations'
-  },
-  {
-    id: 'social',
-    title: 'Social / Friends',
-    icon: UserPlus,
-    description: 'Social connections and friendships'
-  },
-  {
-    id: 'possessions',
-    title: 'Possessions / Stuff',
-    icon: Package,
-    description: 'Material belongings and things'
-  },
-  {
-    id: 'giving',
-    title: 'Giving / Legacy',
-    icon: Gift,
-    description: 'Contribution and legacy'
-  },
-  {
-    id: 'spirituality',
-    title: 'Spirituality',
-    icon: Zap,
-    description: 'Spiritual growth and expansion'
-  },
-  {
-    id: 'conclusion',
-    title: 'Conclusion',
-    icon: CheckCircle,
-    description: 'Closing thoughts and commitment'
-  }
-]
+// Use centralized vision categories
+const sections = VISION_CATEGORIES
 
 export function LifeVisionSidebar({ activeSection, onSectionChange, completedSections }: LifeVisionSidebarProps) {
   return (
     <Card className="p-6 lg:sticky lg:top-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-white mb-2">Complete Your Life Vision</h2>
-        <p className="text-sm text-neutral-400">
-          Define what you want to create across all areas of your life
-        </p>
-      </div>
 
       <nav className="space-y-2">
         {sections.map((section) => {
           const Icon = section.icon
-          const isActive = activeSection === section.id
-          const isCompleted = completedSections.includes(section.id)
+          const isActive = activeSection === section.key
+          const isCompleted = completedSections.includes(section.key)
 
           return (
             <button
-              key={section.id}
+              key={section.key}
               onClick={() => {
-                onSectionChange(section.id)
+                onSectionChange(section.key)
                 // Scroll to top of page
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
@@ -153,7 +49,7 @@ export function LifeVisionSidebar({ activeSection, onSectionChange, completedSec
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm truncate">
-                      {section.title}
+                      {section.label}
                     </span>
                     {isCompleted && (
                       <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
@@ -174,7 +70,7 @@ export function LifeVisionSidebar({ activeSection, onSectionChange, completedSec
           <div className="text-2xl font-bold text-primary-500 mb-1">
             {Math.round((completedSections.length / sections.length) * 100)}%
           </div>
-          <div className="text-sm text-neutral-400">Vision Complete</div>
+          <div className="text-sm text-neutral-400">Life Vision Complete</div>
         </div>
       </div>
     </Card>

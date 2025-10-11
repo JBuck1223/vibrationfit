@@ -40,7 +40,7 @@ export default async function DashboardPage() {
   }
 
   // Fetch comprehensive user data
-  const [visionResult, profileResult, journalResult, visionBoardResult, vibeAssistantResult] = await Promise.all([
+  const [visionResult, profileResult, journalResult, visionBoardResult, vibeAssistantResult, assessmentResult] = await Promise.all([
     // Vision data
     supabase
       .from('vision_versions')
@@ -69,7 +69,15 @@ export default async function DashboardPage() {
       .from('profiles')
       .select('vibe_assistant_tokens_used, vibe_assistant_tokens_remaining, vibe_assistant_total_cost, membership_tier_id')
       .eq('id', user.id)
-      .single()
+      .single(),
+    
+    // Assessment data
+    supabase
+      .from('assessment_results')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
   ])
 
   const visions = visionResult.data || []
@@ -77,6 +85,7 @@ export default async function DashboardPage() {
   const journalCount = journalResult.count || 0
   const visionBoardCount = visionBoardResult.count || 0
   const vibeAssistantData = vibeAssistantResult.data
+  const latestAssessment = assessmentResult.data?.[0] || null
 
   // Calculate stats
   const visionCount = visions.length
@@ -185,6 +194,39 @@ export default async function DashboardPage() {
               </Button>
             </div>
           </div>
+        )}
+
+        {/* Assessment Call-to-Action */}
+        {!latestAssessment && profileCompletePercentage >= 50 && (
+          <Card className="mb-6 p-6 bg-gradient-to-r from-primary-500/10 to-secondary-500/10 border-2 border-primary-500/30">
+            <div className="flex items-center gap-6">
+              <div className="flex-shrink-0 w-16 h-16 bg-primary-500/20 rounded-2xl flex items-center justify-center">
+                <BarChart3 className="w-8 h-8 text-primary-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white mb-2">Take Your Vibrational Assessment</h3>
+                <p className="text-neutral-300 text-sm mb-3">
+                  Discover where you stand across all 12 life categories. Our 84-question assessment helps VIVA create your most aligned life vision.
+                </p>
+                <div className="flex items-center gap-2 text-xs text-neutral-400">
+                  <CheckCircle className="w-4 h-4 text-primary-500" />
+                  <span>Takes 10-15 minutes</span>
+                  <span className="text-neutral-600">•</span>
+                  <CheckCircle className="w-4 h-4 text-primary-500" />
+                  <span>Green Line scoring</span>
+                  <span className="text-neutral-600">•</span>
+                  <CheckCircle className="w-4 h-4 text-primary-500" />
+                  <span>Personalized insights</span>
+                </div>
+              </div>
+              <Button asChild size="lg">
+                <Link href="/assessment">
+                  <Target className="w-4 h-4 mr-2" />
+                  Start Assessment
+                </Link>
+              </Button>
+            </div>
+          </Card>
         )}
 
         {/* Main Stats Grid */}
@@ -336,7 +378,15 @@ export default async function DashboardPage() {
               Quick Actions
             </h2>
             <div className="space-y-3">
-              <Button asChild className="w-full justify-start">
+              {!latestAssessment && (
+                <Button asChild className="w-full justify-start">
+                  <Link href="/assessment">
+                    <BarChart3 className="w-4 h-4 mr-3" />
+                    Take Assessment
+                  </Link>
+                </Button>
+              )}
+              <Button asChild className={!latestAssessment ? "w-full justify-start" : "w-full justify-start"} variant={latestAssessment ? "primary" : "secondary"}>
                 <Link href="/life-vision/new">
                   <Sparkles className="w-4 h-4 mr-3" />
                   New Life Vision

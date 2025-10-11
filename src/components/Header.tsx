@@ -9,6 +9,7 @@ import { Container } from '@/lib/design-system/components'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
+import { ChevronDown, Target, Sparkles, BarChart3, BookOpen, Layout, User as UserIcon, Home as HomeIcon } from 'lucide-react'
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -39,15 +40,50 @@ export function Header() {
     router.refresh()
   }
 
-  const navigationItems = [
-    { name: 'Home', href: '/' },
-    { name: 'Life Vision', href: '/life-vision' },
-    { name: 'Blueprints', href: '/actualization-blueprints' },
-    { name: 'Journal', href: '/journal' },
-    { name: 'Vision Board', href: '/vision-board' },
-    { name: 'Dashboard', href: '/dashboard' },
-    { name: 'Profile', href: '/profile' },
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [closeTimeout, setCloseTimeout] = useState<NodeJS.Timeout | null>(null)
+
+  const handleMouseEnter = (key: string) => {
+    if (closeTimeout) {
+      clearTimeout(closeTimeout)
+      setCloseTimeout(null)
+    }
+    setOpenDropdown(key)
+  }
+
+  const handleMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setOpenDropdown(null)
+    }, 200) // 200ms delay before closing
+    setCloseTimeout(timeout)
+  }
+
+  const directLinks = [
+    { name: 'Dashboard', href: '/dashboard', icon: Layout },
+    { name: 'Pricing', href: '/pricing', icon: Target },
+    { name: 'Profile', href: '/profile', icon: UserIcon },
   ]
+
+  const navigationGroups = {
+    vision: {
+      label: 'Life Vision',
+      icon: Target,
+      items: [
+        { name: 'My Life Visions', href: '/life-vision' },
+        { name: 'Build with VIVA', href: '/vision/build' },
+        { name: 'Take Assessment', href: '/assessment' },
+      ]
+    },
+    tools: {
+      label: 'Tools',
+      icon: Sparkles,
+      items: [
+        { name: 'Journal', href: '/journal' },
+        { name: 'Vision Board', href: '/vision-board' },
+        { name: 'Blueprints', href: '/actualization-blueprints' },
+      ]
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-neutral-800">
@@ -66,8 +102,9 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation - Absolutely Centered */}
-          <nav className="hidden md:flex items-center space-x-8 absolute left-1/2 transform -translate-x-1/2">
-            {navigationItems.map((item) => (
+          <nav className="hidden md:flex items-center space-x-6 absolute left-1/2 transform -translate-x-1/2">
+            {/* Direct Links First */}
+            {directLinks.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -75,6 +112,37 @@ export function Header() {
               >
                 {item.name}
               </Link>
+            ))}
+
+            {/* Dropdown Groups */}
+            {Object.entries(navigationGroups).map(([key, group]) => (
+              <div
+                key={key}
+                className="relative"
+                onMouseEnter={() => handleMouseEnter(key)}
+                onMouseLeave={handleMouseLeave}
+              >
+                <button className="flex items-center gap-1 text-neutral-300 hover:text-white transition-colors duration-200 font-medium">
+                  {group.label}
+                  <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === key ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {/* Dropdown Menu */}
+                {openDropdown === key && (
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {group.items.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className="block px-4 py-2.5 text-sm text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors"
+                        onClick={() => setOpenDropdown(null)}
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </nav>
 
@@ -137,17 +205,53 @@ export function Header() {
         {/* Mobile Navigation Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-neutral-800 py-4">
-            <nav className="flex flex-col space-y-4">
-              {navigationItems.map((item) => (
+            <nav className="flex flex-col space-y-2">
+              {/* Life Vision Section */}
+              <div className="border-b border-neutral-800 pb-3 mb-3">
+                <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider px-4 mb-2">
+                  Life Vision
+                </div>
+                {navigationGroups.vision.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="block px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-900 transition-colors font-medium"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+
+              {/* Tools Section */}
+              <div className="border-b border-neutral-800 pb-3 mb-3">
+                <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider px-4 mb-2">
+                  Tools
+                </div>
+                {navigationGroups.tools.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="block px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-900 transition-colors font-medium"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+
+              {/* Direct Links */}
+              {directLinks.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="text-neutral-300 hover:text-white transition-colors duration-200 font-medium py-2"
+                  className="block px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-900 transition-colors font-medium"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {item.name}
                 </Link>
               ))}
+
               <div className="flex flex-col space-y-3 pt-4 border-t border-neutral-800">
                 {loading ? (
                   <div className="w-full h-8 bg-neutral-800 rounded animate-pulse" />

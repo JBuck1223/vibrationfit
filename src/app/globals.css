@@ -10,6 +10,31 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Brand Colors */
+  --color-primary-50: #A8E5CE;
+  --color-primary-100: #5EC49A;
+  --color-primary-500: #199D67;
+  --color-primary-600: #199D67;
+  --color-primary-700: #199D67;
+  
+  --color-secondary-50: #2DD4BF;
+  --color-secondary-100: #2DD4BF;
+  --color-secondary-500: #14B8A6;
+  --color-secondary-600: #0D9488;
+  --color-secondary-700: #0D9488;
+  
+  --color-energy-50: #FCD34D;
+  --color-energy-100: #FCD34D;
+  --color-energy-500: #FFB701;
+  --color-energy-600: #FFB701;
+  
+  --color-accent-50: #C4B5FD;
+  --color-accent-100: #A78BFA;
+  --color-accent-500: #8B5CF6;
+  --color-accent-600: #7C3AED;
+  --color-accent-700: #601B9F;
+  --color-accent-800: #B629D4;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -16,6 +16,7 @@ import {
   Package, 
   Gift, 
   Zap, 
+  Star,
   CheckCircle,
   LucideIcon
 } from 'lucide-react'
@@ -117,7 +118,7 @@ export const VISION_CATEGORIES: VisionCategory[] = [
     key: 'spirituality',
     label: 'Spirituality',
     description: 'Spiritual growth and expansion',
-    icon: Zap,
+    icon: Star,
     order: 13
   },
   {

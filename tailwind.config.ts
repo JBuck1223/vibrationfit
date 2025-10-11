@@ -46,6 +46,14 @@ const config: Config = {
           600: '#FFB701',  // Energy Yellow
         },
         
+        // Energy Colors (alias for warning)
+        energy: {
+          50: '#FCD34D',   // Yellow Light
+          100: '#FCD34D',  // Yellow Light
+          500: '#FFB701',  // Energy Yellow
+          600: '#FFB701',  // Energy Yellow
+        },
+        
         // Error/Alert Colors
         error: {
           50: '#EF4444',   // Red Light

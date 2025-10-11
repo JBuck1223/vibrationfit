@@ -1,0 +1,78 @@
+// /src/types/assessment.ts
+
+export type AssessmentCategory =
+  | 'money'      // Money / Wealth
+  | 'health'     // Health / Vitality
+  | 'family'     // Family / Parenting
+  | 'romance'    // Love / Romance
+  | 'social'     // Social / Friends
+  | 'business'   // Business / Career
+  | 'fun'        // Fun / Recreation
+  | 'travel'     // Travel / Adventure
+  | 'home'       // Home / Environment
+  | 'possessions' // Possessions / Stuff
+  | 'giving'     // Giving / Legacy
+  | 'spirituality' // Spirituality
+
+export type ResponseValue = 2 | 4 | 6 | 8 | 10
+
+export type GreenLineStatus = 'above' | 'neutral' | 'below'
+
+export interface AssessmentOption {
+  text: string
+  value: ResponseValue
+  emoji?: string
+  greenLine: GreenLineStatus
+}
+
+export interface ConditionalLogic {
+  field: string
+  condition: (value: any) => boolean
+}
+
+export interface AssessmentQuestion {
+  id: string
+  category: AssessmentCategory
+  text: string
+  options: AssessmentOption[]
+  conditionalLogic?: ConditionalLogic
+}
+
+export interface CategoryQuestions {
+  category: AssessmentCategory
+  title: string
+  description: string
+  icon: string
+  questions: AssessmentQuestion[]
+}
+
+export interface AssessmentResponse {
+  question_id: string
+  question_text: string
+  response_value: ResponseValue
+  response_text: string
+  category: AssessmentCategory
+  answered_at: Date
+}
+
+export interface CategoryScore {
+  category: AssessmentCategory
+  score: number
+  maxScore: number
+  percentage: number
+  status: 'above' | 'transition' | 'below'
+}
+
+export interface AssessmentResult {
+  id: string
+  user_id: string
+  profile_version_id?: string
+  status: 'in_progress' | 'completed'
+  category_scores: Record<AssessmentCategory, number>
+  total_score: number
+  green_line_status: Record<AssessmentCategory, 'above' | 'transition' | 'below'>
+  started_at: Date
+  completed_at?: Date
+  created_at: Date
+  updated_at: Date
+}

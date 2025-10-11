@@ -5,6 +5,7 @@ import '@/styles/brand.css'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
+import { Toaster } from 'sonner'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,17 @@ export default function RootLayout({
         <Header />
         {children}
         <Footer />
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: '#1F1F1F',
+              color: '#FFFFFF',
+              border: '1px solid #333',
+            },
+            className: 'toast',
+          }}
+        />
       </body>
     </html>
   );

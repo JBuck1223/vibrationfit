@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles, Trash2 } from 'lucide-react'
+import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles, Trash2, Download, VolumeX, Gem } from 'lucide-react'
 import { 
   Button, 
   GradientButton,
@@ -471,6 +471,240 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     setVision({ ...vision, ...updates })
   }, [vision])
 
+  // Download Vision as PDF
+  const downloadVisionPDF = useCallback(() => {
+    if (!vision) return
+
+    // Create a new window for PDF generation
+    const pdfWindow = window.open('', '_blank')
+    if (!pdfWindow) return
+
+    // Get the current section content or all sections
+    const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
+    const currentContent = currentSection ? vision[currentSection.key as keyof VisionData] as string : ''
+
+    // Create HTML content for PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>The Life I Choose - Version ${vision.version_number}</title>
+          <style>
+            @page {
+              margin: 0;
+              size: A4;
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              margin: 0;
+              padding: 0;
+              background: #000000;
+              color: white;
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+            }
+            
+            /* Cover Page Styles */
+            .cover-page {
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              text-align: center;
+              padding: 60px 40px;
+              page-break-after: always;
+            }
+            .cover-title {
+              font-size: 48px;
+              font-weight: bold;
+              color: white;
+              margin-bottom: 20px;
+              line-height: 1.2;
+            }
+            .cover-subtitle {
+              font-size: 24px;
+              color: white;
+              margin-bottom: 40px;
+              font-weight: 300;
+            }
+            .cover-divider {
+              width: 200px;
+              height: 3px;
+              background: #199D67;
+              margin: 0 auto 40px auto;
+            }
+            .cover-version {
+              font-size: 20px;
+              color: white;
+              margin-bottom: 80px;
+            }
+            .cover-footer {
+              position: absolute;
+              bottom: 60px;
+              left: 50%;
+              transform: translateX(-50%);
+              text-align: center;
+            }
+            .barbell-logo {
+              width: 40px;
+              height: 40px;
+              margin: 0 auto 15px auto;
+              background: #199D67;
+              border-radius: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: bold;
+              color: white;
+              font-size: 20px;
+            }
+            .barbell-logo::before {
+              content: "🏋";
+              font-size: 24px;
+            }
+            .cover-created {
+              font-size: 14px;
+              color: white;
+            }
+            
+            /* Content Pages Styles */
+            .content-page {
+              background: white;
+              color: #333;
+              padding: 40px;
+              min-height: calc(100vh - 80px);
+            }
+            .content-header {
+              text-align: center;
+              margin-bottom: 40px;
+              border-bottom: 3px solid #199D67;
+              padding-bottom: 20px;
+            }
+            .content-title {
+              font-size: 32px;
+              font-weight: bold;
+              color: #199D67;
+              margin-bottom: 10px;
+            }
+            .content-version {
+              font-size: 16px;
+              color: #666;
+              margin-bottom: 20px;
+            }
+            .content-created {
+              font-size: 14px;
+              color: #888;
+            }
+            .section {
+              margin-bottom: 30px;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-size: 24px;
+              font-weight: bold;
+              color: #199D67;
+              margin-bottom: 15px;
+              border-left: 4px solid #199D67;
+              padding-left: 15px;
+            }
+            .section-content {
+              font-size: 16px;
+              line-height: 1.8;
+              color: #444;
+              white-space: pre-wrap;
+              background: #f9f9f9;
+              padding: 20px;
+              border-radius: 8px;
+              border: 1px solid #e0e0e0;
+            }
+            .empty-section {
+              font-style: italic;
+              color: #888;
+              text-align: center;
+              padding: 40px;
+              background: #f5f5f5;
+              border-radius: 8px;
+              border: 2px dashed #ccc;
+            }
+            .completion {
+              text-align: center;
+              margin-top: 40px;
+              padding: 20px;
+              background: #199D67;
+              color: white;
+              border-radius: 8px;
+            }
+            .completion-text {
+              font-size: 18px;
+              font-weight: bold;
+            }
+            
+            @media print {
+              .cover-page { 
+                page-break-after: always;
+                min-height: 100vh;
+              }
+              .content-page { 
+                page-break-before: always;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <!-- Cover Page -->
+          <div class="cover-page">
+            <div class="cover-title">The Life I Choose</div>
+            <div class="cover-subtitle">My Conscious Creation Blueprint</div>
+            <div class="cover-divider"></div>
+            <div class="cover-version">Version ${vision.version_number}</div>
+            <div class="cover-footer">
+              <div class="barbell-logo">⚡</div>
+              <div class="cover-created">Created at VibrationFit.com</div>
+            </div>
+          </div>
+          
+          <!-- Content Pages -->
+          <div class="content-page">
+            <div class="content-header">
+              <div class="content-title">The Life I Choose</div>
+              <div class="content-version">Version ${vision.version_number} ${vision.status === 'complete' ? '(Active)' : '(Draft)'}</div>
+              <div class="content-created">Created: ${new Date(vision.created_at).toLocaleDateString()} at ${new Date(vision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
+            </div>
+
+            ${VISION_SECTIONS.map(section => {
+              const content = vision[section.key as keyof VisionData] as string
+              const hasContent = content && content.trim().length > 0
+              
+              return `
+                <div class="section">
+                  <div class="section-title">${section.label}</div>
+                  <div class="section-content">
+                    ${hasContent ? content.trim() : '<div class="empty-section">No content for this section yet</div>'}
+                  </div>
+                </div>
+              `
+            }).join('')}
+
+            <div class="completion">
+              <div class="completion-text">${completionPercentage}% Life Vision Complete</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+
+    // Write content to the new window
+    pdfWindow.document.write(htmlContent)
+    pdfWindow.document.close()
+
+    // Wait for content to load, then trigger print
+    setTimeout(() => {
+      pdfWindow.print()
+    }, 500)
+  }, [vision, activeSection, completionPercentage])
+
   // Auto-resize textarea when content or section changes
   useEffect(() => {
     if (textareaRef.current && isEditing) {
@@ -573,16 +807,26 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       <Container size="xl" className="py-6">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-4 mb-6">
             <Button variant="ghost" onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <div className="flex items-center gap-2">
+          </div>
+          
+          {/* Centered Title Section */}
+          <div className="text-center mb-6">
+            <h1 className="text-4xl font-bold text-white mb-3">
+              {isEditing ? 'Edit Life Vision' : 'The Life I Choose'}
+            </h1>
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+                V{vision.version_number}
+              </span>
               {vision.status === 'complete' ? (
                 <Badge variant="success">
                   <CheckCircle className="w-4 h-4 mr-1" />
-                  Complete
+                  Active
                 </Badge>
               ) : (
                 <Badge variant="warning">
@@ -591,61 +835,53 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 </Badge>
               )}
             </div>
-          </div>
-          
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                {isEditing ? 'Edit Life Vision' : `Life Vision v${vision.version_number}`}
-              </h1>
-              <p className="text-neutral-400">
-                {isEditing ? 'Update your life vision' : 'View and manage your life vision'}
+            
+            {/* Created Date */}
+            <div className="text-center mb-6">
+              <p className="text-xs text-neutral-500 mb-1">Created</p>
+              <p className="text-sm text-white">
+                {new Date(vision.created_at).toLocaleDateString()} at {new Date(vision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
               </p>
             </div>
-            
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-3">
-              <Badge variant="info" className="flex items-center gap-2">
-                {completionPercentage}% Complete
-              </Badge>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-                {!isViewingVersion && (
-                  <>
-                    <Button
-                      asChild
-                      variant="primary"
-                      size="sm"
-                      className="flex items-center gap-2 w-full sm:w-auto"
-                    >
-                      <Link href={`/life-vision/${vision.id}/refine`}>
-                        <Sparkles className="w-4 h-4" />
-                        <span>Refine My Vision</span>
-                      </Link>
-                    </Button>
-                    <Button
-                      onClick={() => setIsEditing(!isEditing)}
-                      disabled={saving}
-                      variant="secondary"
-                      size="sm"
-                      className="flex items-center gap-2 w-full sm:w-auto"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      <span className="sm:hidden">{isEditing ? 'View' : 'Edit'}</span>
-                      <span className="hidden sm:inline">{isEditing ? 'View Mode' : 'Edit Mode'}</span>
-                    </Button>
-                  </>
-                )}
-                <Button
-                  onClick={() => setShowVersions(!showVersions)}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 w-full sm:w-auto"
-                >
-                  <History className="w-4 h-4" />
-                  <span className="sm:hidden">Versions</span>
-                  <span className="hidden sm:inline">{showVersions ? 'Hide' : 'Show'} Versions</span>
-                </Button>
-              </div>
-            </div>
+          </div>
+
+          {/* Action Buttons - Centered */}
+          <div className="flex flex-wrap gap-3 justify-center mb-6">
+            <Button
+              onClick={() => downloadVisionPDF()}
+              variant="primary"
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Download PDF
+            </Button>
+            <Button
+              onClick={() => router.push(`/life-vision/${vision.id}/audio`)}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <VolumeX className="w-4 h-4" />
+              Audio Tracks
+            </Button>
+            <Button
+              onClick={() => setIsEditing(!isEditing)}
+              disabled={saving}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Edit3 className="w-4 h-4" />
+              Edit
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Link href={`/life-vision/${vision.id}/refine`}>
+                <Gem className="w-4 h-4" />
+                Refine
+              </Link>
+            </Button>
           </div>
 
           {/* Progress Bar */}
