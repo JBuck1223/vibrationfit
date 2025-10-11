@@ -182,19 +182,13 @@ export default function NewVisionBoardItemPage() {
 
                 {/* Upload or AI Generator */}
                 {imageSource === 'upload' ? (
-                  <>
-                    <FileUpload
-                      accept="image/*"
-                      multiple={false}
-                      maxFiles={1}
-                      maxSize={10}
-                      onUpload={(files) => setFile(files[0] || null)}
-                      label="Choose Image"
-                    />
-                    <p className="text-xs text-neutral-400 mt-2">
-                      Upload a picture that represents this creation.
-                    </p>
-                  </>
+                  <FileUpload
+                    accept="image/*"
+                    multiple={false}
+                    maxFiles={1}
+                    maxSize={10}
+                    onUpload={(files) => setFile(files[0] || null)}
+                  />
                 ) : (
                   <AIImageGenerator
                     type="vision_board"

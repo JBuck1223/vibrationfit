@@ -243,19 +243,13 @@ export default function NewJournalEntryPage() {
 
                 {/* Upload or AI Generator */}
                 {imageSource === 'upload' ? (
-                  <>
-                    <FileUpload
-                      accept="image/*,video/*,audio/*"
-                      multiple
-                      maxFiles={5}
-                      maxSize={500}
-                      onUpload={setFiles}
-                      label="Choose Files"
-                    />
-                    <p className="text-xs text-neutral-400 mt-2">
-                      Upload photos, videos, or audio to document your journey.
-                    </p>
-                  </>
+                  <FileUpload
+                    accept="image/*,video/*,audio/*"
+                    multiple
+                    maxFiles={5}
+                    maxSize={500}
+                    onUpload={setFiles}
+                  />
                 ) : (
                   <AIImageGenerator
                     type="journal"
