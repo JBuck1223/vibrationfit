@@ -212,9 +212,7 @@ export function Header() {
                       </div>
                       <div className="flex items-baseline gap-2">
                         <span className="text-2xl font-bold text-white">
-                          {profile?.vibe_assistant_tokens_remaining 
-                            ? (profile.vibe_assistant_tokens_remaining / 1_000_000).toFixed(1) 
-                            : '0'}M
+                          {profile?.vibe_assistant_tokens_remaining?.toLocaleString() || '0'}
                         </span>
                         <span className="text-sm text-neutral-500">tokens</span>
                       </div>
