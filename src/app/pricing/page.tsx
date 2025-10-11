@@ -56,10 +56,11 @@ export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly')
   const [isLoading, setIsLoading] = useState(false)
   
-  // Extract promo code and referral code from URL
+  // Extract promo code, referral code, and custom trial from URL
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
   const urlPromoCode = searchParams?.get('promo') || null
   const urlReferralCode = searchParams?.get('ref') || null
+  const urlTrialDays = searchParams?.get('trial') ? parseInt(searchParams.get('trial')!) : null
 
   const selectedPricing = infinitePlan.pricing[billingPeriod]
 
@@ -84,7 +85,7 @@ export default function PricingPage() {
           tierType: infinitePlan.tier_type,
           promoCode: urlPromoCode,
           referralCode: urlReferralCode,
-          trialDays: infinitePlan.trialDays,
+          trialDays: urlTrialDays || infinitePlan.trialDays,  // Use URL trial if present, otherwise default
         })
       })
 
@@ -188,13 +189,13 @@ export default function PricingPage() {
                 Billed monthly
               </div>
             )}
-            {infinitePlan.trialDays && (
+            {(urlTrialDays || infinitePlan.trialDays) ? (
               <div className="mt-3">
-                <Badge variant="info" className="px-4 py-1.5">
-                  {infinitePlan.trialDays}-day free trial
+                <Badge variant="success" className="px-4 py-1.5">
+                  {urlTrialDays || infinitePlan.trialDays}-day free trial
                 </Badge>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* CTA Button */}
