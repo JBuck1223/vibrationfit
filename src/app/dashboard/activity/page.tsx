@@ -142,7 +142,7 @@ export default function ActivityFeedPage() {
                 </p>
               </Card>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {filteredActivities.map((activity) => {
                   const IconComponent = ICON_MAP[activity.icon] || Activity
                   
@@ -257,11 +257,11 @@ export default function ActivityFeedPage() {
 
                   // Wrap in link if available
                   return activity.link ? (
-                    <Link key={activity.id} href={activity.link}>
+                    <Link key={activity.id} href={activity.link} className="block mb-6 last:mb-0">
                       {content}
                     </Link>
                   ) : (
-                    <div key={activity.id}>{content}</div>
+                    <div key={activity.id} className="mb-6 last:mb-0">{content}</div>
                   )
                 })}
               </div>
