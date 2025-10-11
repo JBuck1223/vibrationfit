@@ -204,7 +204,7 @@ export default function ActivityFeedPage() {
                             <h3 className="text-base font-semibold text-white">
                               {activity.title}
                             </h3>
-                            <Badge variant="ghost" className="text-xs">
+                            <Badge variant="neutral" className="text-xs">
                               {activity.type}
                             </Badge>
                           </div>
