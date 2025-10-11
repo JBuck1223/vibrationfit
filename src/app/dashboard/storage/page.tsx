@@ -254,7 +254,7 @@ export default function StoragePage() {
                               <p className="text-sm font-medium text-white truncate">
                                 {file.name}
                               </p>
-                              <Badge variant="ghost" className="text-xs flex-shrink-0">
+                              <Badge variant="neutral" className="text-xs flex-shrink-0">
                                 {folderConfig.label}
                               </Badge>
                             </div>

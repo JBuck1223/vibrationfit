@@ -245,7 +245,7 @@ export default function TokensPage() {
                             {ACTION_TYPE_LABELS[tx.action_type]?.label || tx.action_type}
                           </span>
                           {tx.openai_model && (
-                            <Badge variant="ghost" className="text-xs">
+                            <Badge variant="neutral" className="text-xs">
                               {tx.openai_model}
                             </Badge>
                           )}
