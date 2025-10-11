@@ -100,7 +100,7 @@ export function AIImageGenerator({
           <Sparkles className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-white">VIVA Image Generator</h3>
+          <h3 className="text-lg font-bold text-white">Generate Image with VIVA</h3>
           <p className="text-sm text-neutral-400">Powered by DALL-E 3</p>
         </div>
       </div>

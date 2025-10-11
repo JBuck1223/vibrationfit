@@ -144,6 +144,66 @@ export default function NewVisionBoardItemPage() {
                 placeholder="Describe this creation in detail. What does it look like? How does it feel? What will it bring to your life?"
               />
 
+              {/* Image Source Toggle */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-200 mb-3">
+                  Vision Image (Optional)
+                </label>
+                
+                {/* Toggle Buttons */}
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    type="button"
+                    variant={imageSource === 'upload' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setImageSource('upload')
+                      setAiGeneratedImageUrl(null)
+                    }}
+                    className="flex-1"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Image
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={imageSource === 'ai' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setImageSource('ai')
+                      setFile(null)
+                    }}
+                    className="flex-1"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate with VIVA
+                  </Button>
+                </div>
+
+                {/* Upload or AI Generator */}
+                {imageSource === 'upload' ? (
+                  <>
+                    <FileUpload
+                      accept="image/*"
+                      multiple={false}
+                      maxFiles={1}
+                      maxSize={10}
+                      onUpload={(files) => setFile(files[0] || null)}
+                      label="Choose Image"
+                    />
+                    <p className="text-xs text-neutral-400 mt-2">
+                      Upload a picture that represents this creation.
+                    </p>
+                  </>
+                ) : (
+                  <AIImageGenerator
+                    type="vision_board"
+                    onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
+                    initialPrompt={formData.description}
+                  />
+                )}
+              </div>
+
               {/* Status */}
               <div>
                 <label className="block text-sm font-medium text-neutral-200 mb-3">
@@ -190,66 +250,6 @@ export default function NewVisionBoardItemPage() {
                     </label>
                   ))}
                 </div>
-              </div>
-
-              {/* Image Source Toggle */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3">
-                  Vision Image (Optional)
-                </label>
-                
-                {/* Toggle Buttons */}
-                <div className="flex gap-2 mb-4">
-                  <Button
-                    type="button"
-                    variant={imageSource === 'upload' ? 'primary' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      setImageSource('upload')
-                      setAiGeneratedImageUrl(null)
-                    }}
-                    className="flex-1"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Image
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={imageSource === 'ai' ? 'primary' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      setImageSource('ai')
-                      setFile(null)
-                    }}
-                    className="flex-1"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate with AI
-                  </Button>
-                </div>
-
-                {/* Upload or AI Generator */}
-                {imageSource === 'upload' ? (
-                  <>
-                    <FileUpload
-                      accept="image/*"
-                      multiple={false}
-                      maxFiles={1}
-                      maxSize={10}
-                      onUpload={(files) => setFile(files[0] || null)}
-                      label="Choose Image"
-                    />
-                    <p className="text-xs text-neutral-400 mt-2">
-                      Upload a picture that represents this creation.
-                    </p>
-                  </>
-                ) : (
-                  <AIImageGenerator
-                    type="vision_board"
-                    onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
-                    initialPrompt={formData.description}
-                  />
-                )}
               </div>
 
               {/* Submit */}

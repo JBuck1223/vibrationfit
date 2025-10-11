@@ -194,7 +194,18 @@ export default function NewJournalEntryPage() {
                 </div>
               </div>
 
-              {/* File Upload */}
+              {/* Journal Content */}
+              <RecordingTextarea
+                label="Journal Entry"
+                value={formData.content}
+                onChange={(value) => setFormData({ ...formData, content: value })}
+                rows={10}
+                placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
+                allowVideo={true}
+                storageFolder="journal"
+              />
+
+              {/* Evidence / Images */}
               <div>
                 <label className="block text-sm font-medium text-neutral-200 mb-3">
                   Evidence / Images (Optional)
@@ -226,7 +237,7 @@ export default function NewJournalEntryPage() {
                     className="flex-1"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Generate with AI
+                    Generate with VIVA
                   </Button>
                 </div>
 
@@ -253,17 +264,6 @@ export default function NewJournalEntryPage() {
                   />
                 )}
               </div>
-
-              {/* Journal Content */}
-              <RecordingTextarea
-                label="Journal Entry"
-                value={formData.content}
-                onChange={(value) => setFormData({ ...formData, content: value })}
-                rows={10}
-                placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
-                allowVideo={true}
-                storageFolder="journal"
-              />
 
               {/* Submit */}
               <div className="flex gap-4">
