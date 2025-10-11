@@ -203,9 +203,39 @@ export default function NewVisionBoardItemPage() {
                   className="hidden"
                 />
 
-                {/* Show selected file or AI Generator */}
+                {/* Show drag-drop zone or selected file */}
+                {imageSource === 'upload' && !file && (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      e.currentTarget.classList.add('border-primary-500', 'bg-primary-500/5')
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
+                      const droppedFile = e.dataTransfer.files[0]
+                      if (droppedFile && droppedFile.type.startsWith('image/')) {
+                        setFile(droppedFile)
+                      }
+                    }}
+                    className="border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary-500 hover:bg-neutral-900/50 transition-all"
+                  >
+                    <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                    <p className="text-neutral-300 font-medium mb-1">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      PNG, JPG, or WEBP (max 10MB)
+                    </p>
+                  </div>
+                )}
+
                 {imageSource === 'upload' && file && (
-                  <div className="mt-4 p-4 bg-neutral-900 rounded-xl border border-neutral-800">
+                  <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
                     <div className="flex items-center gap-3">
                       <img
                         src={URL.createObjectURL(file)}
@@ -234,7 +264,11 @@ export default function NewVisionBoardItemPage() {
                   <AIImageGenerator
                     type="vision_board"
                     onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
-                    initialPrompt={formData.description}
+                    initialPrompt={
+                      formData.name && formData.description
+                        ? `${formData.name}. ${formData.description}`
+                        : formData.description || formData.name || ''
+                    }
                   />
                 )}
               </div>

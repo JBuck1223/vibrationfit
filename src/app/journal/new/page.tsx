@@ -265,7 +265,39 @@ export default function NewJournalEntryPage() {
                   className="hidden"
                 />
 
-                {/* Show selected files or AI Generator */}
+                {/* Show drag-drop zone or selected files */}
+                {imageSource === 'upload' && files.length === 0 && (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      e.currentTarget.classList.add('border-primary-500', 'bg-primary-500/5')
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
+                      const droppedFiles = Array.from(e.dataTransfer.files).filter(
+                        f => f.type.startsWith('image/') || f.type.startsWith('video/') || f.type.startsWith('audio/')
+                      )
+                      if (droppedFiles.length > 0) {
+                        setFiles(droppedFiles.slice(0, 5)) // Max 5 files
+                      }
+                    }}
+                    className="border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary-500 hover:bg-neutral-900/50 transition-all"
+                  >
+                    <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                    <p className="text-neutral-300 font-medium mb-1">
+                      Click to upload or drag files here
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      Images, videos, or audio (max 5 files, 500MB each)
+                    </p>
+                  </div>
+                )}
+
                 {imageSource === 'upload' && files.length > 0 && (
                   <div className="mt-4 space-y-2">
                     {files.map((file, index) => (
@@ -317,7 +349,11 @@ export default function NewJournalEntryPage() {
                   <AIImageGenerator
                     type="journal"
                     onImageGenerated={(url) => setAiGeneratedImageUrls([url])}
-                    initialPrompt={formData.content}
+                    initialPrompt={
+                      formData.title && formData.content
+                        ? `${formData.title}. ${formData.content}`
+                        : formData.content || formData.title || ''
+                    }
                   />
                 )}
               </div>
