@@ -137,7 +137,6 @@ export default function StoragePage() {
               <ProgressBar
                 value={usagePercentage}
                 variant={usagePercentage > 80 ? 'warning' : 'primary'}
-                size="lg"
                 showLabel={false}
               />
             </Card>
