@@ -156,19 +156,23 @@ BEGIN
     ADD COLUMN IF NOT EXISTS billing_interval TEXT DEFAULT 'month'; -- 'month', 'year', '28-day'
     
     -- Update existing tiers with new token allocations (if they exist)
-    -- Infinite Annual: 5M tokens/year
+    -- Look for tiers by name pattern, not tier_type (more flexible)
+    
+    -- Annual tiers: 5M tokens/year
     UPDATE membership_tiers 
     SET 
       annual_token_grant = 5000000,
       billing_interval = 'year'
-    WHERE tier_type = 'infinite' AND name ILIKE '%Annual%';
+    WHERE (name ILIKE '%Annual%' OR name ILIKE '%Yearly%' OR name = 'Elite')
+      AND annual_token_grant IS NULL;
     
-    -- Infinite Monthly: 600K tokens/28 days
+    -- Monthly tiers: 600K tokens/cycle
     UPDATE membership_tiers 
     SET 
       monthly_token_grant = 600000,
       billing_interval = '28-day'
-    WHERE tier_type = 'infinite' AND name ILIKE '%Monthly%';
+    WHERE (name ILIKE '%Monthly%' OR name IN ('Starter', 'Pro'))
+      AND monthly_token_grant IS NULL;
     
     RAISE NOTICE 'Updated membership_tiers with token allocations';
   ELSE
