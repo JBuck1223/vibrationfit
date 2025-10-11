@@ -14,11 +14,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all files from storage for this user
-    // Files are organized: userId/folder/filename
+    // Files are organized: user-uploads/userId/folder/filename
+    const userPath = `user-uploads/${user.id}`
+    
     const { data: files, error: listError } = await supabase
       .storage
       .from('user-files')
-      .list(user.id, {
+      .list(userPath, {
         limit: 1000,
         offset: 0,
       })
@@ -58,13 +60,13 @@ export async function GET(request: NextRequest) {
       return allFiles
     }
 
-    const allFiles = await getAllFiles(user.id)
+    const allFiles = await getAllFiles(userPath)
 
     // Calculate storage by folder type
     const storageByType = allFiles.reduce((acc: any, file: any) => {
-      // Extract folder from path (userId/folder/file.ext)
+      // Extract folder from path (user-uploads/userId/folder/file.ext)
       const pathParts = file.path.split('/')
-      const folder = pathParts[1] || 'other'
+      const folder = pathParts[2] || 'other' // Index 2 for folder after user-uploads/userId
       
       if (!acc[folder]) {
         acc[folder] = {
