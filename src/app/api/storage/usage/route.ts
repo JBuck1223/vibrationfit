@@ -3,6 +3,17 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-2',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+})
+
+const BUCKET_NAME = 'vibration-fit-client-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,59 +24,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get all files from storage for this user
+    // List all files in user's folder using AWS SDK
     // Files are organized: user-uploads/userId/folder/filename
-    const userPath = `user-uploads/${user.id}`
+    const prefix = `user-uploads/${user.id}/`
     
-    const { data: files, error: listError } = await supabase
-      .storage
-      .from('user-files')
-      .list(userPath, {
-        limit: 1000,
-        offset: 0,
-      })
+    const command = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+      Prefix: prefix,
+      MaxKeys: 1000,
+    })
 
-    if (listError) {
-      console.error('Error listing files:', listError)
-      return NextResponse.json({ error: 'Failed to fetch storage data' }, { status: 500 })
-    }
+    const response = await s3Client.send(command)
+    const allFiles = response.Contents || []
 
-    // Recursively get files from all subfolders
-    const getAllFiles = async (path: string): Promise<any[]> => {
-      const { data: items } = await supabase
-        .storage
-        .from('user-files')
-        .list(path, { limit: 1000 })
-      
-      if (!items) return []
-      
-      let allFiles: any[] = []
-      
-      for (const item of items) {
-        const fullPath = `${path}/${item.name}`
-        
-        if (item.id === null) {
-          // It's a folder, recurse into it
-          const subFiles = await getAllFiles(fullPath)
-          allFiles = [...allFiles, ...subFiles]
-        } else {
-          // It's a file
-          allFiles.push({
-            ...item,
-            path: fullPath,
-          })
-        }
-      }
-      
-      return allFiles
-    }
-
-    const allFiles = await getAllFiles(userPath)
+    console.log(`📁 S3 Storage: Found ${allFiles.length} files for user ${user.id}`)
 
     // Calculate storage by folder type
     const storageByType = allFiles.reduce((acc: any, file: any) => {
+      if (!file.Key) return acc
+      
       // Extract folder from path (user-uploads/userId/folder/file.ext)
-      const pathParts = file.path.split('/')
+      const pathParts = file.Key.split('/')
       const folder = pathParts[2] || 'other' // Index 2 for folder after user-uploads/userId
       
       if (!acc[folder]) {
@@ -76,13 +55,14 @@ export async function GET(request: NextRequest) {
         }
       }
       
+      const fileSize = file.Size || 0
       acc[folder].count++
-      acc[folder].totalSize += file.metadata?.size || 0
+      acc[folder].totalSize += fileSize
       acc[folder].files.push({
-        name: file.name,
-        size: file.metadata?.size || 0,
-        created_at: file.created_at,
-        updated_at: file.updated_at,
+        name: file.Key.split('/').pop() || file.Key,
+        size: fileSize,
+        created_at: file.LastModified?.toISOString() || new Date().toISOString(),
+        path: file.Key,
       })
       
       return acc
@@ -91,18 +71,24 @@ export async function GET(request: NextRequest) {
     // Calculate totals
     const totalFiles = allFiles.length
     const totalSize = allFiles.reduce((sum: number, file: any) => 
-      sum + (file.metadata?.size || 0), 0
+      sum + (file.Size || 0), 0
     )
+
+    console.log(`💾 Total storage: ${(totalSize / 1024 / 1024).toFixed(2)} MB across ${totalFiles} files`)
 
     // Get recent uploads (last 10)
     const recentFiles = [...allFiles]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort((a, b) => {
+        const dateA = a.LastModified?.getTime() || 0
+        const dateB = b.LastModified?.getTime() || 0
+        return dateB - dateA
+      })
       .slice(0, 10)
       .map(f => ({
-        name: f.name,
-        path: f.path,
-        size: f.metadata?.size || 0,
-        created_at: f.created_at,
+        name: f.Key?.split('/').pop() || f.Key || 'unknown',
+        path: f.Key || '',
+        size: f.Size || 0,
+        created_at: f.LastModified?.toISOString() || new Date().toISOString(),
       }))
 
     return NextResponse.json({

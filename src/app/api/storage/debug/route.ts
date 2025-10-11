@@ -2,7 +2,17 @@
 // Debug endpoint to test storage calculation for a specific user
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-2',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+})
+
+const BUCKET_NAME = 'vibration-fit-client-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,82 +24,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'userId query parameter required' }, { status: 400 })
     }
 
-    const supabase = await createClient()
-
     console.log('🔍 STORAGE DEBUG: Fetching files for user:', userId)
 
-    // Get all files from storage for this user
-    // Files are in: user-uploads/userId/folder/filename
-    const userPath = `user-uploads/${userId}`
+    // List all files in user's folder using AWS SDK
+    const prefix = `user-uploads/${userId}/`
     
-    const { data: rootFiles, error: listError } = await supabase
-      .storage
-      .from('user-files')
-      .list(userPath, {
-        limit: 1000,
-        offset: 0,
-      })
+    console.log(`📂 S3 Bucket: ${BUCKET_NAME}`)
+    console.log(`📂 Prefix: ${prefix}`)
+    
+    const command = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+      Prefix: prefix,
+      MaxKeys: 1000,
+    })
 
-    if (listError) {
-      console.error('❌ Error listing root files:', listError)
-      return NextResponse.json({ error: 'Failed to list files', details: listError }, { status: 500 })
-    }
+    const response = await s3Client.send(command)
+    const allFiles = response.Contents || []
 
-    console.log(`📁 Found ${rootFiles?.length || 0} items in user-uploads/${userId}`)
-
-    // Recursively get files from all subfolders
-    const getAllFiles = async (path: string, depth = 0): Promise<any[]> => {
-      console.log(`  ${'  '.repeat(depth)}📂 Scanning: ${path}`)
-      
-      const { data: items, error } = await supabase
-        .storage
-        .from('user-files')
-        .list(path, { limit: 1000 })
-      
-      if (error) {
-        console.error(`  ${'  '.repeat(depth)}❌ Error:`, error)
-        return []
-      }
-      
-      if (!items || items.length === 0) {
-        console.log(`  ${'  '.repeat(depth)}  (empty)`)
-        return []
-      }
-      
-      console.log(`  ${'  '.repeat(depth)}  Found ${items.length} items`)
-      
-      let allFiles: any[] = []
-      
-      for (const item of items) {
-        const fullPath = path ? `${path}/${item.name}` : item.name
-        
-        if (item.id === null) {
-          // It's a folder
-          console.log(`  ${'  '.repeat(depth)}  📁 Folder: ${item.name}`)
-          const subFiles = await getAllFiles(fullPath, depth + 1)
-          allFiles = [...allFiles, ...subFiles]
-        } else {
-          // It's a file
-          const size = item.metadata?.size || 0
-          console.log(`  ${'  '.repeat(depth)}  📄 File: ${item.name} (${(size / 1024 / 1024).toFixed(2)} MB)`)
-          allFiles.push({
-            ...item,
-            path: fullPath,
-          })
-        }
-      }
-      
-      return allFiles
-    }
-
-    const allFiles = await getAllFiles(userPath)
+    console.log(`📁 Found ${allFiles.length} files in S3`)
+    
+    // Log first few files
+    allFiles.slice(0, 5).forEach((file: any) => {
+      console.log(`  📄 ${file.Key} - ${(file.Size / 1024 / 1024).toFixed(2)} MB`)
+    })
 
     console.log(`\n✅ Total files found: ${allFiles.length}`)
 
     // Calculate storage by folder type
     const storageByType = allFiles.reduce((acc: any, file: any) => {
+      if (!file.Key) return acc
+      
       // Extract folder from path (user-uploads/userId/folder/file.ext)
-      const pathParts = file.path.split('/')
+      const pathParts = file.Key.split('/')
       const folder = pathParts[2] || 'root' // Index 2 for folder after user-uploads/userId
       
       if (!acc[folder]) {
@@ -100,13 +66,13 @@ export async function GET(request: NextRequest) {
         }
       }
       
-      const fileSize = file.metadata?.size || 0
+      const fileSize = file.Size || 0
       acc[folder].count++
       acc[folder].totalSize += fileSize
       acc[folder].files.push({
-        name: file.name,
+        name: file.Key.split('/').pop() || file.Key,
         size: fileSize,
-        created_at: file.created_at,
+        created_at: file.LastModified?.toISOString() || new Date().toISOString(),
       })
       
       return acc
@@ -115,7 +81,7 @@ export async function GET(request: NextRequest) {
     // Calculate totals
     const totalFiles = allFiles.length
     const totalSize = allFiles.reduce((sum: number, file: any) => 
-      sum + (file.metadata?.size || 0), 0
+      sum + (file.Size || 0), 0
     )
 
     console.log(`💾 Total storage: ${(totalSize / 1024 / 1024).toFixed(2)} MB`)
@@ -131,7 +97,7 @@ export async function GET(request: NextRequest) {
       totalSizeMB: (totalSize / 1024 / 1024).toFixed(2),
       totalSizeGB: (totalSize / 1024 / 1024 / 1024).toFixed(3),
       storageByType,
-      allFilePaths: allFiles.map(f => f.path),
+      allFilePaths: allFiles.map((f: any) => f.Key),
     })
 
   } catch (error: any) {
