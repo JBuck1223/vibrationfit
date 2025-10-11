@@ -156,7 +156,7 @@ export default function ActivityFeedPage() {
                   const hasMedia = (isImage || isVideo || isAudio) && fileUrl
                   
                   const content = (
-                    <Card className="p-5 hover:border-neutral-700 transition-all cursor-pointer group">
+                    <Card className="p-5 pt-6 hover:border-neutral-700 transition-all cursor-pointer group">
                       <div className="flex items-start gap-4">
                         {/* Thumbnail or Icon */}
                         {hasMedia ? (
@@ -217,21 +217,40 @@ export default function ActivityFeedPage() {
                           </div>
                         </div>
 
-                        {/* Metadata */}
-                        {activity.metadata && (
-                          <div className="flex-shrink-0 text-right">
-                            {activity.metadata.size && (
-                              <p className="text-xs text-neutral-500">
-                                {activity.metadata.size}
-                              </p>
-                            )}
-                            {activity.metadata.tokensUsed && (
-                              <p className="text-xs text-energy-500">
-                                {activity.metadata.tokensUsed} tokens
-                              </p>
-                            )}
-                          </div>
-                        )}
+                        {/* Actions & Metadata */}
+                        <div className="flex-shrink-0 text-right">
+                          {/* Visit Button for clickable items */}
+                          {activity.link && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 mb-2"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                window.open(activity.link, '_blank')
+                              }}
+                            >
+                              Visit
+                            </Button>
+                          )}
+                          
+                          {/* Metadata */}
+                          {activity.metadata && (
+                            <div>
+                              {activity.metadata.size && (
+                                <p className="text-xs text-neutral-500">
+                                  {activity.metadata.size}
+                                </p>
+                              )}
+                              {activity.metadata.tokensUsed && (
+                                <p className="text-xs text-energy-500">
+                                  {activity.metadata.tokensUsed} tokens
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   )
