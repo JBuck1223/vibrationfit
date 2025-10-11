@@ -8,29 +8,37 @@
 -- ============================================================================
 
 -- Subscription status (mirrors Stripe statuses)
-CREATE TYPE subscription_status AS ENUM (
-  'active',
-  'canceled',
-  'incomplete',
-  'incomplete_expired',
-  'past_due',
-  'trialing',
-  'unpaid'
-);
+DO $$ BEGIN
+  CREATE TYPE subscription_status AS ENUM (
+    'active',
+    'canceled',
+    'incomplete',
+    'incomplete_expired',
+    'past_due',
+    'trialing',
+    'unpaid'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Membership tier type
-CREATE TYPE membership_tier_type AS ENUM (
-  'free',
-  'starter',
-  'pro',
-  'elite'
-);
+DO $$ BEGIN
+  CREATE TYPE membership_tier_type AS ENUM (
+    'free',
+    'starter',
+    'pro',
+    'elite'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================================================
 -- MEMBERSHIP TIERS TABLE
 -- ============================================================================
 
-CREATE TABLE membership_tiers (
+CREATE TABLE IF NOT EXISTS membership_tiers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
   -- Tier identification
@@ -71,7 +79,7 @@ CREATE TABLE membership_tiers (
 -- CUSTOMER SUBSCRIPTIONS TABLE
 -- ============================================================================
 
-CREATE TABLE customer_subscriptions (
+CREATE TABLE IF NOT EXISTS customer_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
   -- User and tier
@@ -100,7 +108,7 @@ CREATE TABLE customer_subscriptions (
 );
 
 -- Partial unique index to ensure one active subscription per user
-CREATE UNIQUE INDEX unique_active_subscription 
+CREATE UNIQUE INDEX IF NOT EXISTS unique_active_subscription 
   ON customer_subscriptions (user_id) 
   WHERE status = 'active' OR status = 'trialing';
 
@@ -108,7 +116,7 @@ CREATE UNIQUE INDEX unique_active_subscription
 -- PAYMENT HISTORY TABLE
 -- ============================================================================
 
-CREATE TABLE payment_history (
+CREATE TABLE IF NOT EXISTS payment_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
   -- User and subscription
@@ -138,19 +146,19 @@ CREATE TABLE payment_history (
 -- ============================================================================
 
 -- Membership tiers indexes
-CREATE INDEX idx_membership_tiers_type ON membership_tiers(tier_type);
-CREATE INDEX idx_membership_tiers_active ON membership_tiers(is_active);
+CREATE INDEX IF NOT EXISTS idx_membership_tiers_type ON membership_tiers(tier_type);
+CREATE INDEX IF NOT EXISTS idx_membership_tiers_active ON membership_tiers(is_active);
 
 -- Customer subscriptions indexes
-CREATE INDEX idx_customer_subscriptions_user_id ON customer_subscriptions(user_id);
-CREATE INDEX idx_customer_subscriptions_status ON customer_subscriptions(status);
-CREATE INDEX idx_customer_subscriptions_stripe_customer ON customer_subscriptions(stripe_customer_id);
-CREATE INDEX idx_customer_subscriptions_stripe_subscription ON customer_subscriptions(stripe_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_customer_subscriptions_user_id ON customer_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_subscriptions_status ON customer_subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_customer_subscriptions_stripe_customer ON customer_subscriptions(stripe_customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_subscriptions_stripe_subscription ON customer_subscriptions(stripe_subscription_id);
 
 -- Payment history indexes
-CREATE INDEX idx_payment_history_user_id ON payment_history(user_id);
-CREATE INDEX idx_payment_history_subscription_id ON payment_history(subscription_id);
-CREATE INDEX idx_payment_history_created_at ON payment_history(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payment_history_user_id ON payment_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_payment_history_subscription_id ON payment_history(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_payment_history_created_at ON payment_history(created_at DESC);
 
 -- ============================================================================
 -- TRIGGERS
@@ -176,6 +184,14 @@ CREATE TRIGGER update_customer_subscriptions_updated_at
 ALTER TABLE membership_tiers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customer_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_history ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Anyone can view active membership tiers" ON membership_tiers;
+DROP POLICY IF EXISTS "Users can view their own subscriptions" ON customer_subscriptions;
+DROP POLICY IF EXISTS "System can create subscriptions" ON customer_subscriptions;
+DROP POLICY IF EXISTS "System can update subscriptions" ON customer_subscriptions;
+DROP POLICY IF EXISTS "Users can view their own payment history" ON payment_history;
+DROP POLICY IF EXISTS "System can create payment records" ON payment_history;
 
 -- Membership tiers policies (public read)
 CREATE POLICY "Anyone can view active membership tiers"
