@@ -63,12 +63,14 @@ export async function GET(request: NextRequest) {
     // Get Journal Entries
     const { data: journals } = await supabase
       .from('journal_entries')
-      .select('id, title, entry_type, created_at, categories')
+      .select('id, title, entry_type, created_at, categories, image_urls')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(20)
 
     journals?.forEach((entry: any) => {
+      const firstImage = entry.image_urls?.[0]
+      
       activities.push({
         id: `journal-${entry.id}`,
         type: 'journal',
@@ -78,6 +80,10 @@ export async function GET(request: NextRequest) {
         icon: 'BookOpen',
         color: 'text-energy-500',
         link: `/journal/${entry.id}`,
+        metadata: firstImage ? {
+          fileUrl: firstImage,
+          fileName: firstImage.split('/').pop() || 'journal-image.jpg',
+        } : undefined,
       })
     })
 
@@ -105,7 +111,7 @@ export async function GET(request: NextRequest) {
     // Get Vision Board Items
     const { data: visionBoardItems } = await supabase
       .from('vision_board_items')
-      .select('id, name, status, created_at')
+      .select('id, name, status, created_at, image_url')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(15)
@@ -120,6 +126,10 @@ export async function GET(request: NextRequest) {
         icon: 'ImageIcon',
         color: 'text-accent-500',
         link: `/vision-board`,
+        metadata: item.image_url ? {
+          fileUrl: item.image_url,
+          fileName: `${item.name}.jpg`,
+        } : undefined,
       })
     })
 
