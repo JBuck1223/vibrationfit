@@ -281,6 +281,8 @@ export async function GET(request: NextRequest) {
             color: config.color,
             metadata: {
               size: formatBytes(file.Size || 0),
+              fileUrl: `https://media.vibrationfit.com/${file.Key}`,
+              fileName: fileName,
             },
           })
         })

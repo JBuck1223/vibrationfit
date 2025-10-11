@@ -146,17 +146,61 @@ export default function ActivityFeedPage() {
                 {filteredActivities.map((activity) => {
                   const IconComponent = ICON_MAP[activity.icon] || Activity
                   
+                  // Check if this is a media file and get thumbnail
+                  const fileUrl = activity.metadata?.fileUrl
+                  const fileName = activity.metadata?.fileName || activity.description
+                  const fileType = fileName?.split('.').pop()?.toLowerCase() || ''
+                  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileType)
+                  const isVideo = ['mp4', 'mov', 'webm'].includes(fileType)
+                  const isAudio = ['mp3', 'wav', 'ogg'].includes(fileType)
+                  const hasMedia = (isImage || isVideo || isAudio) && fileUrl
+                  
                   const content = (
                     <Card className="p-5 hover:border-neutral-700 transition-all cursor-pointer group">
                       <div className="flex items-start gap-4">
-                        {/* Icon */}
-                        <div className={`p-3 rounded-xl bg-neutral-900 group-hover:scale-110 transition-transform ${activity.color}/20`}>
-                          <IconComponent className={`w-5 h-5 ${activity.color}`} />
-                        </div>
+                        {/* Thumbnail or Icon */}
+                        {hasMedia ? (
+                          <div className="flex-shrink-0">
+                            {isImage && (
+                              <div className="w-16 h-16 rounded-lg overflow-hidden border border-neutral-800">
+                                <img
+                                  src={fileUrl}
+                                  alt={fileName}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            {isVideo && (
+                              <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-neutral-800">
+                                <video
+                                  src={fileUrl}
+                                  className="w-full h-full object-cover"
+                                  muted
+                                />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                  <div className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center">
+                                    <div className="w-0 h-0 border-t-4 border-t-transparent border-l-6 border-l-black border-b-4 border-b-transparent ml-1" />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            {isAudio && (
+                              <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border border-neutral-800 flex items-center justify-center">
+                                <Music className="w-8 h-8 text-primary-500" />
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex-shrink-0">
+                            <div className={`p-3 rounded-xl bg-neutral-900 group-hover:scale-110 transition-transform`} style={{ backgroundColor: `${activity.color.replace('text-', 'rgb(var(--')}/20` }}>
+                              <IconComponent className={`w-5 h-5 ${activity.color}`} />
+                            </div>
+                          </div>
+                        )}
 
                         {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <h3 className="text-base font-semibold text-white">
                               {activity.title}
                             </h3>
