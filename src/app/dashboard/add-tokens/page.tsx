@@ -13,7 +13,7 @@ const TOKEN_PACKS = [
     id: 'power',
     name: 'Power Pack',
     tokens: 2_000_000,
-    price: 97,
+    price: 99,
     popular: false,
     description: 'Perfect for active creators',
     features: [
@@ -27,7 +27,7 @@ const TOKEN_PACKS = [
     id: 'mega',
     name: 'Mega Pack',
     tokens: 5_000_000,
-    price: 197,
+    price: 199,
     popular: true,
     description: 'Best value for power users',
     features: [
@@ -42,7 +42,7 @@ const TOKEN_PACKS = [
     id: 'ultra',
     name: 'Ultra Pack',
     tokens: 12_000_000,
-    price: 397,
+    price: 399,
     popular: false,
     description: 'Ultimate creative freedom',
     features: [
