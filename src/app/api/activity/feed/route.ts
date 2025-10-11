@@ -248,36 +248,41 @@ export async function GET(request: NextRequest) {
           const folder = pathParts[2]
           const fileName = file.Key.split('/').pop() || file.Key
 
-          const folderLabels: Record<string, { title: string; desc: string; icon: string; color: string }> = {
+          const folderLabels: Record<string, { title: string; desc: string; icon: string; color: string; link: string }> = {
             'avatar': { 
               title: 'Updated Profile Picture',
               desc: fileName,
               icon: 'User',
-              color: 'text-primary-500'
+              color: 'text-primary-500',
+              link: '/profile/edit'
             },
             'vision-board': { 
               title: 'Added to Vision Board',
               desc: fileName,
               icon: 'ImageIcon',
-              color: 'text-accent-500'
+              color: 'text-accent-500',
+              link: '/vision-board'
             },
             'journal': { 
               title: 'Uploaded Journal Evidence',
               desc: fileName,
               icon: 'Upload',
-              color: 'text-energy-500'
+              color: 'text-energy-500',
+              link: '/journal'
             },
             'life-vision': { 
               title: 'Generated Vision Audio',
               desc: fileName,
               icon: 'Music',
-              color: 'text-secondary-500'
+              color: 'text-secondary-500',
+              link: '/life-vision'
             },
             'evidence': { 
               title: 'Recorded Profile Story',
               desc: fileName,
               icon: 'Upload',
-              color: 'text-neutral-400'
+              color: 'text-neutral-400',
+              link: '/profile/edit'
             },
           }
 
@@ -285,7 +290,8 @@ export async function GET(request: NextRequest) {
             title: 'Uploaded File',
             desc: fileName,
             icon: 'Upload',
-            color: 'text-neutral-500'
+            color: 'text-neutral-500',
+            link: '/dashboard/storage'
           }
 
           activities.push({
@@ -296,6 +302,7 @@ export async function GET(request: NextRequest) {
             timestamp: file.LastModified?.toISOString() || new Date().toISOString(),
             icon: config.icon,
             color: config.color,
+            link: config.link,
             metadata: {
               size: formatBytes(file.Size || 0),
               fileUrl: `https://media.vibrationfit.com/${file.Key}`,
