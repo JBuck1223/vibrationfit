@@ -4,6 +4,7 @@
 import { streamText } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
+import { deductTokens } from '@/lib/tokens/token-tracker'
 
 export const runtime = 'edge' // Use Edge Runtime for faster cold starts
 
@@ -81,7 +82,7 @@ export async function POST(req: Request) {
         ? `Introduce yourself to ${userName} and acknowledge what you see in their profile and assessment. Keep it warm, brief (2-3 sentences), and then ask one powerful opening question related to ${context?.category || 'their vision'} and the ${visionBuildPhase} phase.`
         : undefined,
       temperature: 0.8,
-      async onFinish({ text }: { text: string }) {
+      async onFinish({ text, usage }: { text: string; usage?: any }) {
         // Store message in database after completion
         try {
           await supabase.from('ai_conversations').insert({
@@ -91,8 +92,31 @@ export async function POST(req: Request) {
             context: { visionBuildPhase, ...context },
             created_at: new Date().toISOString()
           })
+
+          // NEW: Track actual token usage
+          if (usage) {
+            const totalTokens = usage.totalTokens || usage.total_tokens || 0
+            const promptTokens = usage.promptTokens || usage.prompt_tokens || 0
+            const completionTokens = usage.completionTokens || usage.completion_tokens || 0
+
+            if (totalTokens > 0) {
+              await deductTokens({
+                userId: user.id,
+                actionType: 'chat',
+                tokensUsed: totalTokens,
+                model: 'gpt-4-turbo',
+                promptTokens,
+                completionTokens,
+                metadata: {
+                  phase: visionBuildPhase,
+                  category: context?.category,
+                  messageLength: text.length,
+                },
+              })
+            }
+          }
         } catch (error) {
-          console.error('Failed to store conversation:', error)
+          console.error('Failed to store conversation or track tokens:', error)
         }
       },
     })

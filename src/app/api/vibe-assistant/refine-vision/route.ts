@@ -15,6 +15,7 @@ import {
   TONALITY_OPTIONS,
   EMOTIONAL_INTENSITY
 } from '@/lib/vibe-assistant/allowance'
+import { deductTokens, checkTokenBalance } from '@/lib/tokens/token-tracker'
 import { getVisionCategoryServer } from '@/lib/design-system/vision-categories-server'
 
 // Initialize OpenAI client (only if API key is available)
@@ -430,16 +431,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const totalTokens = completion.usage?.total_tokens || 0
     const actualCost = calculateCost(inputTokens, outputTokens)
 
-    // Decrement user allowance
-    const allowanceDecremented = await decrementVibeAssistantAllowance(
-      user.id,
-      totalTokens,
-      actualCost
-    )
+    // NEW: Precise token tracking with real OpenAI costs
+    await deductTokens({
+      userId: user.id,
+      actionType: 'refinement',
+      tokensUsed: totalTokens,
+      model: GPT_MODEL,
+      promptTokens: inputTokens,
+      completionTokens: outputTokens,
+      metadata: {
+        vision_id: visionId,
+        category,
+        tonality,
+        emotional_intensity: emotionalIntensity,
+        instruction_length: instructions?.length || 0,
+        response_length: refinedText.length,
+      },
+    })
 
-    if (!allowanceDecremented) {
-      console.error('Failed to decrement allowance, but proceeding with response')
-    }
+    // LEGACY: Keep old allowance system for backward compatibility (will phase out)
+    await decrementVibeAssistantAllowance(user.id, totalTokens, calculateCost(inputTokens, outputTokens))
 
     // Log usage
     const processingTime = Date.now() - startTime
