@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PageLayout, Container, Card, Badge } from '@/lib/design-system/components'
+import { PageLayout, Container, Card, Badge, Button } from '@/lib/design-system/components'
 import { 
   Activity, 
   Target, 
