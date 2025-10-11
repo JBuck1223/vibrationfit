@@ -142,12 +142,52 @@ CREATE TABLE IF NOT EXISTS payment_history (
 );
 
 -- ============================================================================
+-- ADD MISSING COLUMNS TO EXISTING TABLES
+-- ============================================================================
+
+-- Add tier_type column if it doesn't exist
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT FROM information_schema.columns 
+    WHERE table_name = 'membership_tiers' 
+    AND column_name = 'tier_type'
+  ) THEN
+    -- Add the ENUM type first if needed
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'membership_tier_type') THEN
+      CREATE TYPE membership_tier_type AS ENUM ('free', 'starter', 'pro', 'elite');
+    END IF;
+    
+    -- Add the column
+    ALTER TABLE membership_tiers ADD COLUMN tier_type membership_tier_type;
+    RAISE NOTICE 'Added tier_type column to membership_tiers';
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT FROM information_schema.columns 
+    WHERE table_name = 'membership_tiers' 
+    AND column_name = 'is_active'
+  ) THEN
+    ALTER TABLE membership_tiers ADD COLUMN is_active BOOLEAN DEFAULT true;
+    RAISE NOTICE 'Added is_active column to membership_tiers';
+  END IF;
+END $$;
+
+-- ============================================================================
 -- INDEXES
 -- ============================================================================
 
--- Membership tiers indexes
-CREATE INDEX IF NOT EXISTS idx_membership_tiers_type ON membership_tiers(tier_type);
-CREATE INDEX IF NOT EXISTS idx_membership_tiers_active ON membership_tiers(is_active);
+-- Membership tiers indexes (only create if columns exist)
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'tier_type') THEN
+    CREATE INDEX IF NOT EXISTS idx_membership_tiers_type ON membership_tiers(tier_type);
+  END IF;
+  
+  IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'membership_tiers' AND column_name = 'is_active') THEN
+    CREATE INDEX IF NOT EXISTS idx_membership_tiers_active ON membership_tiers(is_active);
+  END IF;
+END $$;
 
 -- Customer subscriptions indexes
 CREATE INDEX IF NOT EXISTS idx_customer_subscriptions_user_id ON customer_subscriptions(user_id);
