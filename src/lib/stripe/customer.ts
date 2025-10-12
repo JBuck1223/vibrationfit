@@ -208,3 +208,52 @@ export async function createTokenPackCheckoutSession({
   return session
 }
 
+/**
+ * Create a checkout session for $499 Vision Activation Intensive
+ */
+export async function createIntensiveCheckoutSession({
+  userId,
+  email,
+  priceId,
+  paymentPlan,
+  continuityPlan,
+  successUrl,
+  cancelUrl,
+}: {
+  userId: string
+  email: string
+  priceId: string
+  paymentPlan: 'full' | '2pay' | '3pay'
+  continuityPlan?: 'annual' | '28day'
+  successUrl: string
+  cancelUrl: string
+}) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
+  const customerId = await getOrCreateStripeCustomer(userId, email)
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: 'payment', // One-time payment
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price: priceId,
+        quantity: 1,
+      },
+    ],
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    metadata: {
+      user_id: userId,
+      purchase_type: 'intensive',
+      payment_plan: paymentPlan,
+      continuity_preference: continuityPlan || 'annual',
+    },
+  })
+
+  return session
+}
+
