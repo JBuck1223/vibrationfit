@@ -95,6 +95,43 @@ export async function POST(request: NextRequest) {
           })
 
           console.log('✅ Subscription created:', subscriptionId)
+        } 
+        
+        // Handle one-time token pack purchases
+        else if (session.mode === 'payment' && session.metadata?.purchase_type === 'token_pack') {
+          const userId = session.metadata.user_id
+          const packId = session.metadata.pack_id
+          const tokensAmount = parseInt(session.metadata.tokens_amount)
+
+          if (!userId || !tokensAmount) {
+            console.error('Missing metadata in token pack checkout session')
+            break
+          }
+
+          // Grant tokens to the user
+          const { grantTokens } = await import('@/lib/tokens/token-tracker')
+          const result = await grantTokens({
+            userId,
+            tokensToGrant: tokensAmount,
+            actionType: 'token_pack_purchase',
+            metadata: {
+              pack_id: packId,
+              stripe_session_id: session.id,
+              stripe_payment_intent: session.payment_intent,
+              amount_paid: session.amount_total,
+            },
+          })
+
+          if (result.success) {
+            console.log('✅ Token pack granted:', {
+              userId,
+              packId,
+              tokens: tokensAmount,
+              newBalance: result.newBalance,
+            })
+          } else {
+            console.error('❌ Failed to grant token pack:', userId)
+          }
         }
         break
       }

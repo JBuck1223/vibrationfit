@@ -65,22 +65,25 @@ export default function AddTokensPage() {
     setSelectedPack(packId)
 
     try {
-      // TODO: Implement Stripe checkout for token packs
-      toast.info('Token pack checkout coming soon! For now, contact support to add tokens.')
+      const response = await fetch('/api/stripe/checkout-token-pack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packId }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to create checkout session')
+      }
+
+      const { url } = await response.json()
       
-      // Future implementation:
-      // const response = await fetch('/api/stripe/checkout-token-pack', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ packId }),
-      // })
-      // const { url } = await response.json()
-      // window.location.href = url
+      // Redirect to Stripe Checkout
+      window.location.href = url
 
     } catch (error) {
       console.error('Purchase error:', error)
-      toast.error('Failed to start checkout')
-    } finally {
+      toast.error(error instanceof Error ? error.message : 'Failed to start checkout')
       setLoading(false)
       setSelectedPack(null)
     }

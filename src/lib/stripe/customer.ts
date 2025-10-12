@@ -159,3 +159,52 @@ export async function resumeSubscription(subscriptionId: string) {
   return subscription
 }
 
+/**
+ * Create a checkout session for a one-time token pack purchase
+ */
+export async function createTokenPackCheckoutSession({
+  userId,
+  email,
+  priceId,
+  packId,
+  tokensAmount,
+  successUrl,
+  cancelUrl,
+}: {
+  userId: string
+  email: string
+  priceId: string
+  packId: string
+  tokensAmount: number
+  successUrl: string
+  cancelUrl: string
+}) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
+  const customerId = await getOrCreateStripeCustomer(userId, email)
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: 'payment', // One-time payment, not subscription
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price: priceId,
+        quantity: 1,
+      },
+    ],
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    metadata: {
+      user_id: userId,
+      pack_id: packId,
+      tokens_amount: tokensAmount.toString(),
+      purchase_type: 'token_pack',
+    },
+  })
+
+  return session
+}
+
