@@ -1,26 +1,9 @@
 -- ============================================================================
--- HORMOZI PRICING SYSTEM MIGRATION
+-- HORMOZI PRICING SYSTEM - PART 2: CREATE TABLES AND FUNCTIONS
+-- ============================================================================
+-- ⚠️ PREREQUISITE: Run 20250112000001_add_hormozi_enum_values.sql FIRST!
 -- Implements: $499 Intensive + Vision Pro Annual/28-Day + Token Dripping
 -- ============================================================================
-
--- ============================================================================
--- 1. ADD NEW ENUM VALUES TO membership_tier_type
--- ============================================================================
-
--- Add new enum values for Vision Pro plans
--- Must be done first and committed before using them
-DO $$ 
-BEGIN
-  -- Add 'vision_pro_annual'
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'vision_pro_annual' AND enumtypid = 'membership_tier_type'::regtype) THEN
-    ALTER TYPE membership_tier_type ADD VALUE 'vision_pro_annual';
-  END IF;
-  
-  -- Add 'vision_pro_28day'
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'vision_pro_28day' AND enumtypid = 'membership_tier_type'::regtype) THEN
-    ALTER TYPE membership_tier_type ADD VALUE 'vision_pro_28day';
-  END IF;
-END $$;
 
 -- ============================================================================
 -- 2. CREATE MEMBERSHIP TIERS (Fresh inserts, no migration)
