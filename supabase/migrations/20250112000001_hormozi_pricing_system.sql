@@ -26,25 +26,18 @@ END $$;
 -- 2. CREATE MEMBERSHIP TIERS (Fresh inserts, no migration)
 -- ============================================================================
 
--- Insert Vision Pro Annual tier (ignore if exists)
+-- Insert Vision Pro Annual tier (minimal approach)
 INSERT INTO membership_tiers (
   tier_type,
   name,
   price_monthly,
-  price_yearly,
   viva_tokens_monthly,
-  features,
-  audio_generation_enabled,
-  priority_support,
-  is_active,
-  description,
-  display_order
+  features
 ) VALUES (
   'vision_pro_annual',
   'Vision Pro Annual',
-  83, -- Display as $83/month
-  99900, -- Actual charge $999/year
-  5000000, -- 5M tokens granted at start
+  99900, -- $999/year stored in price_monthly
+  5000000, -- 5M tokens
   jsonb_build_array(
     '5M tokens granted immediately',
     '100GB storage',
@@ -57,33 +50,20 @@ INSERT INTO membership_tiers (
     'Actualization blueprints',
     'Priority support',
     'All future features'
-  ),
-  true,
-  true,
-  true,
-  'Full year, full power - 5M tokens upfront',
-  1
+  )
 ) ON CONFLICT (tier_type) DO UPDATE SET
   name = EXCLUDED.name,
   price_monthly = EXCLUDED.price_monthly,
-  price_yearly = EXCLUDED.price_yearly,
   viva_tokens_monthly = EXCLUDED.viva_tokens_monthly,
-  features = EXCLUDED.features,
-  audio_generation_enabled = EXCLUDED.audio_generation_enabled,
-  priority_support = EXCLUDED.priority_support;
+  features = EXCLUDED.features;
 
--- Insert Vision Pro 28-Day tier
+-- Insert Vision Pro 28-Day tier (minimal approach)
 INSERT INTO membership_tiers (
   tier_type,
   name,
   price_monthly,
   viva_tokens_monthly,
-  features,
-  audio_generation_enabled,
-  priority_support,
-  is_active,
-  description,
-  display_order
+  features
 ) VALUES (
   'vision_pro_28day',
   'Vision Pro 28-Day',
@@ -95,19 +75,12 @@ INSERT INTO membership_tiers (
     'Rollover up to 3 cycles max',
     'All Vision Pro features',
     'Standard support'
-  ),
-  true,
-  false,
-  true,
-  'Flexible billing cycle - $3.54/day',
-  2
+  )
 ) ON CONFLICT (tier_type) DO UPDATE SET
   name = EXCLUDED.name,
   price_monthly = EXCLUDED.price_monthly,
   viva_tokens_monthly = EXCLUDED.viva_tokens_monthly,
-  features = EXCLUDED.features,
-  audio_generation_enabled = EXCLUDED.audio_generation_enabled,
-  priority_support = EXCLUDED.priority_support;
+  features = EXCLUDED.features;
 
 -- ============================================================================
 -- 2. ADD TOKEN ROLLOVER COLUMNS TO USER_PROFILES
