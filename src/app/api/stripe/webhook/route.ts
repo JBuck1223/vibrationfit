@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
             // HORMOZI PRICING: Handle token dripping for 28-day renewals
             const tierType = (subscription as any).membership_tiers?.tier_type
             
-            if (tierType === 'vision_pro_28day' && !(invoice as any).billing_reason === 'subscription_create') {
+            if (tierType === 'vision_pro_28day' && (invoice as any).billing_reason !== 'subscription_create') {
               // This is a renewal payment (not the first one)
               // Drip 375k tokens for the new cycle
               
