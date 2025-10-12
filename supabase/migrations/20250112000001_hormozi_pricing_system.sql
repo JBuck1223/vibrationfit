@@ -4,36 +4,103 @@
 -- ============================================================================
 
 -- ============================================================================
--- 1. UPDATE MEMBERSHIP TIERS
+-- 1. ADD NEW ENUM VALUES TO membership_tier_type
 -- ============================================================================
 
--- Update existing "infinite" tier to "vision_pro_annual"
-UPDATE membership_tiers 
-SET 
-  tier_type = 'vision_pro_annual',
-  name = 'Vision Pro Annual',
-  price_monthly = 999,
-  billing_cycle = 'annual',
-  viva_tokens_per_cycle = 5000000,
-  features = jsonb_build_array(
-    '5M tokens granted immediately',
-    '100GB storage',
-    'Unlimited visions',
-    'VIVA assistant (unlimited conversations)',
-    'Vibrational assessment',
-    'Journal & vision board',
-    'Audio generation',
-    'PDF exports',
-    'Actualization blueprints',
-    'Priority support',
-    'All future features'
-  ),
-  metadata = jsonb_build_object(
-    'storage_gb', 100,
-    'token_strategy', 'grant_upfront',
-    'billing_day_cycle', 365
-  )
-WHERE tier_type = 'infinite';
+-- Add new enum values for Vision Pro plans
+DO $$ 
+BEGIN
+  -- Add 'infinite' if it doesn't exist (for migration from old system)
+  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'infinite' AND enumtypid = 'membership_tier_type'::regtype) THEN
+    ALTER TYPE membership_tier_type ADD VALUE 'infinite';
+  END IF;
+  
+  -- Add 'vision_pro_annual'
+  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'vision_pro_annual' AND enumtypid = 'membership_tier_type'::regtype) THEN
+    ALTER TYPE membership_tier_type ADD VALUE 'vision_pro_annual';
+  END IF;
+  
+  -- Add 'vision_pro_28day'
+  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'vision_pro_28day' AND enumtypid = 'membership_tier_type'::regtype) THEN
+    ALTER TYPE membership_tier_type ADD VALUE 'vision_pro_28day';
+  END IF;
+END $$;
+
+-- ============================================================================
+-- 2. UPDATE OR CREATE MEMBERSHIP TIERS
+-- ============================================================================
+
+-- Create or update Vision Pro Annual tier
+-- If 'infinite' exists, update it; otherwise insert fresh
+DO $$
+BEGIN
+  -- Try to update existing infinite tier
+  UPDATE membership_tiers 
+  SET 
+    tier_type = 'vision_pro_annual',
+    name = 'Vision Pro Annual',
+    price_monthly = 999,
+    billing_cycle = 'annual',
+    viva_tokens_per_cycle = 5000000,
+    features = jsonb_build_array(
+      '5M tokens granted immediately',
+      '100GB storage',
+      'Unlimited visions',
+      'VIVA assistant (unlimited conversations)',
+      'Vibrational assessment',
+      'Journal & vision board',
+      'Audio generation',
+      'PDF exports',
+      'Actualization blueprints',
+      'Priority support',
+      'All future features'
+    ),
+    metadata = jsonb_build_object(
+      'storage_gb', 100,
+      'token_strategy', 'grant_upfront',
+      'billing_day_cycle', 365
+    )
+  WHERE tier_type = 'infinite';
+  
+  -- If no rows updated, insert fresh
+  IF NOT FOUND THEN
+    INSERT INTO membership_tiers (
+      tier_type,
+      name,
+      price_monthly,
+      billing_cycle,
+      viva_tokens_per_cycle,
+      features,
+      is_active,
+      metadata
+    ) VALUES (
+      'vision_pro_annual',
+      'Vision Pro Annual',
+      999,
+      'annual',
+      5000000,
+      jsonb_build_array(
+        '5M tokens granted immediately',
+        '100GB storage',
+        'Unlimited visions',
+        'VIVA assistant (unlimited conversations)',
+        'Vibrational assessment',
+        'Journal & vision board',
+        'Audio generation',
+        'PDF exports',
+        'Actualization blueprints',
+        'Priority support',
+        'All future features'
+      ),
+      true,
+      jsonb_build_object(
+        'storage_gb', 100,
+        'token_strategy', 'grant_upfront',
+        'billing_day_cycle', 365
+      )
+    ) ON CONFLICT DO NOTHING;
+  END IF;
+END $$;
 
 -- Add new 28-day tier
 INSERT INTO membership_tiers (
@@ -500,20 +567,31 @@ CREATE POLICY "Users can update own intensive checklist"
 -- 11. MIGRATE EXISTING USERS TO VISION PRO ANNUAL
 -- ============================================================================
 
--- Update existing subscriptions from "infinite" to "vision_pro_annual"
-UPDATE customer_subscriptions cs
-SET membership_tier_id = (
-  SELECT id FROM membership_tiers WHERE tier_type = 'vision_pro_annual'
-)
-WHERE membership_tier_id = (
-  SELECT id FROM membership_tiers WHERE tier_type = 'infinite'
-);
+-- Update existing subscriptions from "infinite" to "vision_pro_annual" (if any exist)
+DO $$
+DECLARE
+  v_infinite_tier_id UUID;
+  v_annual_tier_id UUID;
+BEGIN
+  -- Get tier IDs
+  SELECT id INTO v_infinite_tier_id FROM membership_tiers WHERE tier_type = 'infinite';
+  SELECT id INTO v_annual_tier_id FROM membership_tiers WHERE tier_type = 'vision_pro_annual';
+  
+  -- Only update if infinite tier exists
+  IF v_infinite_tier_id IS NOT NULL AND v_annual_tier_id IS NOT NULL THEN
+    UPDATE customer_subscriptions
+    SET membership_tier_id = v_annual_tier_id
+    WHERE membership_tier_id = v_infinite_tier_id;
+    
+    RAISE NOTICE 'Migrated existing infinite subscriptions to vision_pro_annual';
+  END IF;
+END $$;
 
--- Grant 5M tokens to all existing annual users
+-- Grant 5M tokens to all existing Vision Pro Annual users
 -- (Only if they don't already have a large balance)
 UPDATE user_profiles up
 SET 
-  vibe_assistant_tokens_remaining = GREATEST(vibe_assistant_tokens_remaining, 5000000),
+  vibe_assistant_tokens_remaining = GREATEST(COALESCE(vibe_assistant_tokens_remaining, 0), 5000000),
   storage_quota_gb = 100
 WHERE EXISTS (
   SELECT 1 FROM customer_subscriptions cs
