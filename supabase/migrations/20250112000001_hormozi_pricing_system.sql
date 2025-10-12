@@ -9,101 +9,61 @@
 -- 2. CREATE MEMBERSHIP TIERS (Fresh inserts, no migration)
 -- ============================================================================
 
--- Insert or update Vision Pro Annual tier
-DO $$
-BEGIN
-  -- Check if tier exists
-  IF EXISTS (SELECT 1 FROM membership_tiers WHERE tier_type = 'vision_pro_annual') THEN
-    -- Update existing
-    UPDATE membership_tiers SET
-      name = 'Vision Pro Annual',
-      price_monthly = 99900,
-      viva_tokens_monthly = 5000000,
-      features = jsonb_build_array(
-        '5M tokens granted immediately',
-        '100GB storage',
-        'Unlimited visions',
-        'VIVA assistant (unlimited conversations)',
-        'Vibrational assessment',
-        'Journal & vision board',
-        'Audio generation',
-        'PDF exports',
-        'Actualization blueprints',
-        'Priority support',
-        'All future features'
-      )
-    WHERE tier_type = 'vision_pro_annual';
-  ELSE
-    -- Insert new
-    INSERT INTO membership_tiers (
-      tier_type,
-      name,
-      price_monthly,
-      viva_tokens_monthly,
-      features
-    ) VALUES (
-      'vision_pro_annual',
-      'Vision Pro Annual',
-      99900,
-      5000000,
-      jsonb_build_array(
-        '5M tokens granted immediately',
-        '100GB storage',
-        'Unlimited visions',
-        'VIVA assistant (unlimited conversations)',
-        'Vibrational assessment',
-        'Journal & vision board',
-        'Audio generation',
-        'PDF exports',
-        'Actualization blueprints',
-        'Priority support',
-        'All future features'
-      )
-    );
-  END IF;
-END $$;
+-- Insert Vision Pro Annual tier (minimal approach)
+INSERT INTO membership_tiers (
+  tier_type,
+  name,
+  price_monthly,
+  viva_tokens_monthly,
+  features
+) VALUES (
+  'vision_pro_annual',
+  'Vision Pro Annual',
+  99900, -- $999/year stored in price_monthly
+  5000000, -- 5M tokens
+  jsonb_build_array(
+    '5M tokens granted immediately',
+    '100GB storage',
+    'Unlimited visions',
+    'VIVA assistant (unlimited conversations)',
+    'Vibrational assessment',
+    'Journal & vision board',
+    'Audio generation',
+    'PDF exports',
+    'Actualization blueprints',
+    'Priority support',
+    'All future features'
+  )
+) ON CONFLICT (tier_type) DO UPDATE SET
+  name = EXCLUDED.name,
+  price_monthly = EXCLUDED.price_monthly,
+  viva_tokens_monthly = EXCLUDED.viva_tokens_monthly,
+  features = EXCLUDED.features;
 
--- Insert or update Vision Pro 28-Day tier
-DO $$
-BEGIN
-  -- Check if tier exists
-  IF EXISTS (SELECT 1 FROM membership_tiers WHERE tier_type = 'vision_pro_28day') THEN
-    -- Update existing
-    UPDATE membership_tiers SET
-      name = 'Vision Pro 28-Day',
-      price_monthly = 9900,
-      viva_tokens_monthly = 375000,
-      features = jsonb_build_array(
-        '375k tokens per 28-day cycle',
-        '25GB storage base',
-        'Rollover up to 3 cycles max',
-        'All Vision Pro features',
-        'Standard support'
-      )
-    WHERE tier_type = 'vision_pro_28day';
-  ELSE
-    -- Insert new
-    INSERT INTO membership_tiers (
-      tier_type,
-      name,
-      price_monthly,
-      viva_tokens_monthly,
-      features
-    ) VALUES (
-      'vision_pro_28day',
-      'Vision Pro 28-Day',
-      9900,
-      375000,
-      jsonb_build_array(
-        '375k tokens per 28-day cycle',
-        '25GB storage base',
-        'Rollover up to 3 cycles max',
-        'All Vision Pro features',
-        'Standard support'
-      )
-    );
-  END IF;
-END $$;
+-- Insert Vision Pro 28-Day tier (minimal approach)
+INSERT INTO membership_tiers (
+  tier_type,
+  name,
+  price_monthly,
+  viva_tokens_monthly,
+  features
+) VALUES (
+  'vision_pro_28day',
+  'Vision Pro 28-Day',
+  9900, -- $99 every 28 days
+  375000, -- 375k tokens per cycle
+  jsonb_build_array(
+    '375k tokens per 28-day cycle',
+    '25GB storage base',
+    'Rollover up to 3 cycles max',
+    'All Vision Pro features',
+    'Standard support'
+  )
+) ON CONFLICT (tier_type) DO UPDATE SET
+  name = EXCLUDED.name,
+  price_monthly = EXCLUDED.price_monthly,
+  viva_tokens_monthly = EXCLUDED.viva_tokens_monthly,
+  features = EXCLUDED.features;
 
 -- ============================================================================
 -- 2. ADD TOKEN ROLLOVER COLUMNS TO USER_PROFILES
