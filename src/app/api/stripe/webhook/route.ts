@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Create subscription record
-          await supabase.from('customer_subscriptions').insert({
+          const { data: newSubscription } = await supabase.from('customer_subscriptions').insert({
             user_id: userId,
             membership_tier_id: tier.id,
             stripe_customer_id: customerId,
@@ -93,8 +93,53 @@ export async function POST(request: NextRequest) {
             trial_start: (subscription as any).trial_start ? new Date((subscription as any).trial_start * 1000).toISOString() : null,
             trial_end: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000).toISOString() : null,
           })
+          .select()
+          .single()
 
           console.log('✅ Subscription created:', subscriptionId)
+          
+          // HORMOZI PRICING: Grant tokens based on plan type
+          if (tierType === 'vision_pro_annual') {
+            // Annual: Grant 5M tokens immediately
+            const { data: result, error: grantError } = await supabase
+              .rpc('grant_annual_tokens', {
+                p_user_id: userId,
+                p_subscription_id: newSubscription?.id || null,
+              })
+            
+            if (grantError) {
+              console.error('❌ Failed to grant annual tokens:', grantError)
+            } else {
+              console.log('✅ Annual tokens granted:', result)
+            }
+            
+            // Set storage quota to 100GB
+            await supabase
+              .from('user_profiles')
+              .update({ storage_quota_gb: 100 })
+              .eq('user_id', userId)
+          } 
+          else if (tierType === 'vision_pro_28day') {
+            // 28-Day: Drip 375k tokens on first cycle
+            const { data: result, error: dripError } = await supabase
+              .rpc('drip_tokens_28day', {
+                p_user_id: userId,
+                p_subscription_id: newSubscription?.id || null,
+                p_cycle_number: 1,
+              })
+            
+            if (dripError) {
+              console.error('❌ Failed to drip tokens:', dripError)
+            } else {
+              console.log('✅ First cycle tokens dripped:', result)
+            }
+            
+            // Set storage quota to 25GB
+            await supabase
+              .from('user_profiles')
+              .update({ storage_quota_gb: 25 })
+              .eq('user_id', userId)
+          }
         } 
         
         // Handle one-time token pack purchases
@@ -133,6 +178,59 @@ export async function POST(request: NextRequest) {
             console.error('❌ Failed to grant token pack:', userId)
           }
         }
+        
+        // Handle $499 Vision Activation Intensive purchases
+        else if (session.mode === 'payment' && session.metadata?.purchase_type === 'intensive') {
+          const userId = session.metadata.user_id
+          const paymentPlan = session.metadata.payment_plan || 'full'
+
+          if (!userId) {
+            console.error('Missing user_id in intensive checkout session')
+            break
+          }
+
+          // Create intensive purchase record
+          const activationDeadline = new Date()
+          activationDeadline.setHours(activationDeadline.getHours() + 48) // 48 hours from now
+
+          const { data: intensive, error: intensiveError } = await supabase
+            .from('intensive_purchases')
+            .insert({
+              user_id: userId,
+              stripe_payment_intent_id: session.payment_intent as string,
+              stripe_checkout_session_id: session.id,
+              amount: session.amount_total || 49900,
+              payment_plan: paymentPlan,
+              installments_total: paymentPlan === 'full' ? 1 : paymentPlan === '2pay' ? 2 : 3,
+              installments_paid: 1, // First payment complete
+              completion_status: 'pending',
+              activation_deadline: activationDeadline.toISOString(),
+            })
+            .select()
+            .single()
+
+          if (intensiveError) {
+            console.error('❌ Failed to create intensive purchase:', intensiveError)
+            break
+          }
+
+          // Create checklist for intensive
+          await supabase.from('intensive_checklist').insert({
+            intensive_id: intensive.id,
+            user_id: userId,
+          })
+
+          console.log('✅ Intensive purchase created:', {
+            userId,
+            intensiveId: intensive.id,
+            paymentPlan,
+            deadline: activationDeadline.toISOString(),
+          })
+
+          // TODO: Send welcome email with intensive onboarding instructions
+          // TODO: Schedule SMS reminders for 24h, 36h, 48h checkpoints
+        }
+        
         break
       }
 
@@ -183,12 +281,19 @@ export async function POST(request: NextRequest) {
 
         if ((invoice as any).subscription) {
           const customerId = invoice.customer as string
+          const subscriptionId = (invoice as any).subscription as string
 
-          // Find user by customer ID
+          // Find user and subscription details
           const { data: subscription } = await supabase
             .from('customer_subscriptions')
-            .select('user_id, id')
+            .select(`
+              user_id, 
+              id,
+              membership_tier_id,
+              membership_tiers (tier_type)
+            `)
             .eq('stripe_customer_id', customerId)
+            .eq('stripe_subscription_id', subscriptionId)
             .single()
 
           if (subscription) {
@@ -206,6 +311,36 @@ export async function POST(request: NextRequest) {
             })
 
             console.log('✅ Payment recorded:', invoice.id)
+            
+            // HORMOZI PRICING: Handle token dripping for 28-day renewals
+            const tierType = (subscription as any).membership_tiers?.tier_type
+            
+            if (tierType === 'vision_pro_28day' && !(invoice as any).billing_reason === 'subscription_create') {
+              // This is a renewal payment (not the first one)
+              // Drip 375k tokens for the new cycle
+              
+              // Get cycle number from token_drips history
+              const { count } = await supabase
+                .from('token_drips')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', subscription.user_id)
+                .eq('subscription_id', subscription.id)
+              
+              const cycleNumber = (count || 0) + 1
+              
+              const { data: result, error: dripError } = await supabase
+                .rpc('drip_tokens_28day', {
+                  p_user_id: subscription.user_id,
+                  p_subscription_id: subscription.id,
+                  p_cycle_number: cycleNumber,
+                })
+              
+              if (dripError) {
+                console.error('❌ Failed to drip tokens on renewal:', dripError)
+              } else {
+                console.log('✅ Cycle', cycleNumber, 'tokens dripped:', result)
+              }
+            }
           }
         }
         break

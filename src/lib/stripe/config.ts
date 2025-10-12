@@ -15,19 +15,29 @@ export const STRIPE_CONFIG = {
   publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
   
-  // Pricing (should match your Stripe dashboard)
+  // HORMOZI PRICING MODEL
   prices: {
-    starter_monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
-    starter_yearly: process.env.STRIPE_PRICE_STARTER_YEARLY,
-    pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
-    pro_yearly: process.env.STRIPE_PRICE_PRO_YEARLY,
-    elite_monthly: process.env.STRIPE_PRICE_ELITE_MONTHLY,
-    elite_yearly: process.env.STRIPE_PRICE_ELITE_YEARLY,
+    // $499 Vision Activation Intensive (mandatory entry)
+    intensive_full: process.env.STRIPE_PRICE_INTENSIVE_FULL, // $499 one-time
+    intensive_2pay: process.env.STRIPE_PRICE_INTENSIVE_2PAY, // $249.50 × 2
+    intensive_3pay: process.env.STRIPE_PRICE_INTENSIVE_3PAY, // $166.33 × 3
+    
+    // Vision Pro Annual (default continuity)
+    annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL, // $999/year (5M tokens upfront)
+    
+    // Vision Pro 28-Day (downsell continuity)
+    monthly_28day: process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY, // $99 every 28 days (375k tokens/cycle)
+    
+    // Token Packs (existing)
+    token_power: process.env.STRIPE_PRICE_TOKEN_POWER, // 2M - $99
+    token_mega: process.env.STRIPE_PRICE_TOKEN_MEGA, // 5M - $199
+    token_ultra: process.env.STRIPE_PRICE_TOKEN_ULTRA, // 12M - $399
   },
   
   // Success/Cancel URLs
   successUrl: process.env.NEXT_PUBLIC_APP_URL + '/billing/success',
   cancelUrl: process.env.NEXT_PUBLIC_APP_URL + '/pricing',
+  intensiveSuccessUrl: process.env.NEXT_PUBLIC_APP_URL + '/intensive/dashboard',
 }
 
 // Membership tier configuration
