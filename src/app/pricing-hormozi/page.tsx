@@ -46,20 +46,20 @@ export default function PricingHormoziPage() {
       <Container size="xl" className="py-16">
         
         {/* ================================================================ */}
-        {/* STEP 1: 48-HOUR INTENSIVE */}
+        {/* STEP 1: 72-HOUR INTENSIVE */}
         {/* ================================================================ */}
         
         <div className="mb-20">
           <div className="text-center mb-12">
             <Badge variant="premium" className="mb-4">
               <Clock className="w-4 h-4 inline mr-2" />
-              48-Hour Activation
+              72-Hour Activation
             </Badge>
             <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
               Vision Activation Intensive
             </h1>
             <p className="text-2xl text-neutral-300 max-w-3xl mx-auto">
-              Go from blank slate to fully activated in 48 hours. Vision drafted, board built, audios recorded, protocol live.
+              Go from blank slate to fully activated in 72 hours. Vision drafted, board built, audios recorded, protocol live.
             </p>
           </div>
 
@@ -70,7 +70,7 @@ export default function PricingHormoziPage() {
               
               {/* Left: What You Get */}
               <div>
-                <h3 className="text-2xl font-bold text-white mb-6">What You Get in 48 Hours:</h3>
+                <h3 className="text-2xl font-bold text-white mb-6">What You Get in 72 Hours:</h3>
                 <div className="space-y-4">
                   {[
                     { item: 'Life Vision Draft + Final', value: '$497' },
@@ -100,7 +100,7 @@ export default function PricingHormoziPage() {
 
               {/* Right: Timeline */}
               <div className="bg-neutral-900 rounded-2xl p-6">
-                <h3 className="text-xl font-bold text-white mb-6">Your 48-Hour Journey:</h3>
+                <h3 className="text-xl font-bold text-white mb-6">Your 72-Hour Journey:</h3>
                 <div className="space-y-6">
                   <div className="flex gap-4">
                     <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-500 font-bold">
@@ -134,7 +134,7 @@ export default function PricingHormoziPage() {
                       4
                     </div>
                     <div>
-                      <div className="font-semibold text-white mb-1">Hour 36-48: Activate</div>
+                      <div className="font-semibold text-white mb-1">Hour 36-72: Activate</div>
                       <div className="text-sm text-neutral-400">Protocol live, streak tracker installed</div>
                     </div>
                   </div>
@@ -202,9 +202,9 @@ export default function PricingHormoziPage() {
               <div className="flex items-start gap-4">
                 <Sparkles className="w-6 h-6 text-primary-500 flex-shrink-0 mt-1" />
                 <div>
-                  <div className="font-bold text-white mb-2">48-Hour Activation Guarantee</div>
+                  <div className="font-bold text-white mb-2">72-Hour Activation Guarantee</div>
                   <div className="text-sm text-neutral-300">
-                    Complete the checklist (intake, builder, calibration, activation protocol) and if your activation isn't live within 48 hours, get a full refund OR apply as credit to Vision Pro Annual.
+                    Complete the checklist (intake, builder, calibration, activation protocol) and if your activation isn't live within 72 hours, get a full refund OR apply as credit to Vision Pro Annual.
                   </div>
                 </div>
               </div>
@@ -218,7 +218,7 @@ export default function PricingHormoziPage() {
               onClick={handleIntensivePurchase}
               disabled={isLoading}
             >
-              {isLoading ? 'Processing...' : 'Start Your 48-Hour Activation →'}
+              {isLoading ? 'Processing...' : 'Start Your 72-Hour Activation →'}
             </Button>
 
             <div className="text-center text-neutral-500 text-sm mt-4">
@@ -407,9 +407,9 @@ export default function PricingHormoziPage() {
           
           <div className="space-y-6">
             <div>
-              <h3 className="font-semibold text-white mb-2">What happens in the 48-hour intensive?</h3>
+              <h3 className="font-semibold text-white mb-2">What happens in the 72-hour intensive?</h3>
               <p className="text-neutral-400 text-sm">
-                You'll move through 4 stages: (1) Instant Start with AI-generated draft, (2) 90-min builder to finalize your vision, (3) Calibration call + personalized audio generation, (4) Activation protocol goes live with reminders and streak tracking. Everything is operational in 48 hours.
+                You'll move through 4 stages: (1) Instant Start with AI-generated draft, (2) 90-min builder to finalize your vision, (3) Calibration call + personalized audio generation, (4) Activation protocol goes live with reminders and streak tracking. Everything is operational in 72 hours.
               </p>
             </div>
 
@@ -428,9 +428,9 @@ export default function PricingHormoziPage() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-white mb-2">What if I don't complete the intensive in 48 hours?</h3>
+              <h3 className="font-semibold text-white mb-2">What if I don't complete the intensive in 72 hours?</h3>
               <p className="text-neutral-400 text-sm">
-                If you complete the required checklist (intake, builder, calibration, activation start) and your activation isn't live within 48 hours, you get a full refund OR we'll apply it as credit to your annual membership. No-risk guarantee.
+                If you complete the required checklist (intake, builder, calibration, activation start) and your activation isn't live within 72 hours, you get a full refund OR we'll apply it as credit to your annual membership. No-risk guarantee.
               </p>
             </div>
           </div>

@@ -2,7 +2,7 @@
 -- HORMOZI PRICING SYSTEM - PART 2: CREATE TABLES AND FUNCTIONS
 -- ============================================================================
 -- ⚠️ PREREQUISITE: Run 20250112000001_add_hormozi_enum_values.sql FIRST!
--- Implements: $499 Intensive + Vision Pro Annual/28-Day + Token Dripping
+-- Implements: $499 Intensive (72-hour) + Vision Pro Annual/28-Day + Token Dripping
 -- ============================================================================
 
 -- ============================================================================
@@ -181,7 +181,7 @@ CREATE TABLE IF NOT EXISTS intensive_purchases (
   
   -- Completion tracking
   completion_status TEXT NOT NULL DEFAULT 'pending', -- pending, in_progress, completed, refunded
-  activation_deadline TIMESTAMP, -- 48 hours from purchase
+  activation_deadline TIMESTAMP, -- 72 hours from purchase
   
   -- Timestamps
   created_at TIMESTAMP DEFAULT NOW(),
@@ -197,7 +197,7 @@ CREATE INDEX IF NOT EXISTS idx_intensive_user ON intensive_purchases(user_id);
 CREATE INDEX IF NOT EXISTS idx_intensive_status ON intensive_purchases(completion_status);
 CREATE INDEX IF NOT EXISTS idx_intensive_payment_intent ON intensive_purchases(stripe_payment_intent_id);
 
-COMMENT ON TABLE intensive_purchases IS '$499 Vision Activation Intensive purchase tracking';
+COMMENT ON TABLE intensive_purchases IS '$499 Vision Activation Intensive (72-hour) purchase tracking';
 
 -- ============================================================================
 -- 5. CREATE INTENSIVE CHECKLIST TABLE
@@ -235,7 +235,7 @@ CREATE TABLE IF NOT EXISTS intensive_checklist (
   audios_generated BOOLEAN DEFAULT false,
   audios_generated_at TIMESTAMP,
   
-  -- Hour 36-48: Activate
+  -- Hour 36-72: Activate
   activation_protocol_started BOOLEAN DEFAULT false,
   activation_started_at TIMESTAMP,
   
@@ -256,7 +256,7 @@ CREATE TABLE IF NOT EXISTS intensive_checklist (
 CREATE INDEX IF NOT EXISTS idx_intensive_checklist_intensive ON intensive_checklist(intensive_id);
 CREATE INDEX IF NOT EXISTS idx_intensive_checklist_user ON intensive_checklist(user_id);
 
-COMMENT ON TABLE intensive_checklist IS '48-hour activation intensive completion tracking';
+COMMENT ON TABLE intensive_checklist IS '72-hour activation intensive completion tracking';
 
 -- ============================================================================
 -- 6. STORAGE QUOTA CHECK FUNCTION

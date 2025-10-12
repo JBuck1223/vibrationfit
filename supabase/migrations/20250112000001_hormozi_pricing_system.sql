@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS intensive_purchases (
   
   -- Completion tracking
   completion_status TEXT NOT NULL DEFAULT 'pending', -- pending, in_progress, completed, refunded
-  activation_deadline TIMESTAMP, -- 48 hours from purchase
+  activation_deadline TIMESTAMP, -- 72 hours from purchase
   
   -- Timestamps
   created_at TIMESTAMP DEFAULT NOW(),
@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS intensive_checklist (
 CREATE INDEX IF NOT EXISTS idx_intensive_checklist_intensive ON intensive_checklist(intensive_id);
 CREATE INDEX IF NOT EXISTS idx_intensive_checklist_user ON intensive_checklist(user_id);
 
-COMMENT ON TABLE intensive_checklist IS '48-hour activation intensive completion tracking';
+COMMENT ON TABLE intensive_checklist IS '72-hour activation intensive completion tracking';
 
 -- ============================================================================
 -- 6. STORAGE QUOTA CHECK FUNCTION

@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
 
           // Create intensive purchase record
           const activationDeadline = new Date()
-          activationDeadline.setHours(activationDeadline.getHours() + 48) // 48 hours from now
+          activationDeadline.setHours(activationDeadline.getHours() + 72) // 72 hours from now
 
           const { data: intensive, error: intensiveError } = await supabase
             .from('intensive_purchases')
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
           })
 
           // TODO: Send welcome email with intensive onboarding instructions
-          // TODO: Schedule SMS reminders for 24h, 36h, 48h checkpoints
+          // TODO: Schedule SMS reminders for 24h, 36h, 72h checkpoints
         }
         
         break

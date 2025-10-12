@@ -1,7 +1,7 @@
 # 🚀 VibrationFit: Hormozi Pricing & Onboarding Strategy
 
 **Based on:** Alex Hormozi's $100M Playbook, Offers, Leads, and Money Models  
-**Strategy:** Mandatory Intensive + Dripped Credits with 48-Hour Activation
+**Strategy:** Mandatory Intensive + Dripped Credits with 72-Hour Activation
 
 ---
 
@@ -26,7 +26,7 @@
 2. **Long Tail ($999-$1,287/year)** - Predictable recurring revenue
 3. **COGS Control** - Dripped credits prevent abuse, annual locks in commitment
 4. **Higher LTV** - $1,486–$1,786 first year vs. $777–$1,188 current
-5. **Faster Activation** - 48-hour intensive creates immediate results
+5. **Faster Activation** - 72-hour intensive creates immediate results
 
 ---
 
@@ -36,7 +36,7 @@
 
 **Price:** $499 one-time (mandatory for everyone)
 
-**What They Get (in 48 hours):**
+**What They Get (in 72 hours):**
 - ✅ Life Vision drafted and finalized across 12 categories
 - ✅ Vision Board built with templates and images
 - ✅ 2 personalized Activation Audios (morning + evening)
@@ -170,15 +170,15 @@ Metadata: drip_tokens: 375000, storage_gb: 25, rollover_max_cycles: 3
 
 ---
 
-## 🎯 The 48-Hour Activation Intensive
+## 🎯 The 72-Hour Activation Intensive
 
 ### Strategy: Compress Time-To-Activation
 
-**Goal:** Live in their vibration in 48 hours, not 7 days
+**Goal:** Live in their vibration in 72 hours (3 days)
 
-**Name:** "48-Hour Vision Activation Intensive"
+**Name:** "72-Hour Vision Activation Intensive"
 
-**Promise:** "Vision drafted, board built, audios recorded, daily journal started—live in your routine within 48 hours"
+**Promise:** "Vision drafted, board built, audios recorded, daily journal started—live in your routine within 72 hours"
 
 ---
 
@@ -188,7 +188,7 @@ Metadata: drip_tokens: 375000, storage_gb: 25, rollover_max_cycles: 3
 - ✅ Auto-schedule kickoff within 24 hours
 - ✅ Unlock builder + "Vision Draft" prework
 - ✅ Welcome email with checklist
-- ✅ SMS: "Your 48-hour activation starts now"
+- ✅ SMS: "Your 72-hour activation starts now"
 
 #### **Hour 1-24: Draft + Build**
 - ✅ 15-min intake form → AI generates first-draft vision
@@ -206,7 +206,7 @@ Metadata: drip_tokens: 375000, storage_gb: 25, rollover_max_cycles: 3
   - Evening: 8-10 minutes (reflective, gratitude)
 - ✅ Load first 7 daily journal prompts (pre-written)
 
-#### **Hour 36-48: Activate**
+#### **Hour 36-72: Activate**
 - ✅ **Activation Protocol:**
   - 2×/day audio (morning + evening)
   - 10-min journaling (with prompts)
@@ -218,7 +218,7 @@ Metadata: drip_tokens: 375000, storage_gb: 25, rollover_max_cycles: 3
 
 ---
 
-### Offer Stack (what they get in 48 hours)
+### Offer Stack (what they get in 72 hours)
 
 **Core Deliverables:**
 1. **Life Vision Draft + Final** ($497 value)  
@@ -264,9 +264,9 @@ Metadata: drip_tokens: 375000, storage_gb: 25, rollover_max_cycles: 3
 
 ### Guarantee (Risk Reversal)
 
-**Conditional "Activation in 48 Hours" Guarantee:**
+**Conditional "Activation in 72 Hours" Guarantee:**
 
-"Complete the checklist (intake form, builder session, calibration call, start 7-day protocol) and if your activation isn't live within 48 hours, get a full refund on your Intensive OR apply it as a credit to Vision Pro Annual."
+"Complete the checklist (intake form, builder session, calibration call, start 7-day protocol) and if your activation isn't live within 72 hours, get a full refund on your Intensive OR apply it as a credit to Vision Pro Annual."
 
 **Plus: 14-Day Unconditional Window**
 - First 14 days: Full refund, no questions asked
@@ -275,7 +275,7 @@ Metadata: drip_tokens: 375000, storage_gb: 25, rollover_max_cycles: 3
 **Why This Works:**
 - Action-based reduces refund-seekers
 - "Or credit to Annual" converts refunds to upgrades
-- 48-hour promise is operational, not aspirational
+- 72-hour promise is operational, not aspirational
 
 ---
 
@@ -370,7 +370,7 @@ CREATE TABLE intensive_purchases (
   installments_total INTEGER,
   installments_paid INTEGER DEFAULT 0,
   completion_status TEXT DEFAULT 'pending', -- pending, in_progress, completed
-  activation_deadline TIMESTAMP, -- 48 hours from purchase
+  activation_deadline TIMESTAMP, -- 72 hours from purchase
   created_at TIMESTAMP DEFAULT NOW(),
   completed_at TIMESTAMP,
   
@@ -463,7 +463,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 // Full payment
 {
   name: "Vision Activation Intensive",
-  description: "48-hour vision activation with personalized audios, board, and 7-day streak",
+  description: "72-hour vision activation with personalized audios, board, and 7-day streak",
   default_price_data: {
     currency: "usd",
     unit_amount: 49900, // $499
@@ -695,15 +695,15 @@ Create new pages:
 - Position as downsell
 
 **Intensive ($499):**
-- Display as: **"$499 to activate"** or **"Less than $10/day for 48-hour transformation"**
+- Display as: **"$499 to activate"** or **"Less than $7/day for 72-hour transformation"**
 - Stack value: "$1,829 value for $499"
 
 ### Page Structure (New Pricing Page)
 
 ```
 ┌─────────────────────────────────────────────┐
-│  48-Hour Vision Activation Intensive        │
-│  $499 • Transform Your Reality in 2 Days    │
+│  72-Hour Vision Activation Intensive        │
+│  $499 • Transform Your Reality in 3 Days    │
 │  [See What's Included]                      │
 └─────────────────────────────────────────────┘
 
@@ -758,7 +758,7 @@ Create new pages:
 - [ ] `/intensive/builder` - AI vision draft + builder
 - [ ] `/intensive/calibration` - Schedule + attend session
 - [ ] `/intensive/activate` - Protocol setup
-- [ ] Progress tracker with 48-hour countdown
+- [ ] Progress tracker with 72-hour countdown
 - [ ] Automated email/SMS sequences
 - [ ] Checklist tracking
 
@@ -793,7 +793,7 @@ Create new pages:
 ### Intensive Metrics
 - Intensive purchase rate (%)
 - Average time to complete checklist
-- 48-hour activation success rate
+- 72-hour activation success rate
 - Calibration call attendance
 - Refund/credit conversion rate
 
@@ -829,7 +829,7 @@ Create new pages:
 
 ### Activation Goals
 - ✅ 90%+ complete intake within 24 hours
-- ✅ 80%+ complete full intensive within 48 hours
+- ✅ 80%+ complete full intensive within 72 hours
 - ✅ 70%+ attend calibration call
 - ✅ 60%+ start 7-day activation protocol
 
@@ -841,7 +841,7 @@ Create new pages:
 **Mitigation:**
 - Offer payment plans (2-pay, 3-pay)
 - Show value stack ($1,829)
-- 48-hour promise creates urgency
+- 72-hour promise creates urgency
 - Conditional guarantee reduces risk
 
 ### Risk 2: Existing Users Revolt
@@ -883,7 +883,7 @@ Create new pages:
 
 ### Immediate Actions (This Week)
 1. **Review this guide** with your team
-2. **Lock the naming:** "Vision Pro" and "48-Hour Vision Activation Intensive"
+2. **Lock the naming:** "Vision Pro" and "72-Hour Vision Activation Intensive"
 3. **Create Stripe products** (3 intensive + 2 continuity)
 4. **Design pricing page mockup** (intensive + annual default)
 
@@ -891,7 +891,7 @@ Create new pages:
 5. **Build database schema** (intensive tracking, token drip)
 6. **Update webhooks** (28-day drip, annual grant)
 7. **Create intake form** (Hour 0-1)
-8. **Draft email/SMS sequences** (48-hour activation)
+8. **Draft email/SMS sequences** (72-hour activation)
 
 ### Medium-Term (Weeks 3-4)
 9. **Build intensive flow** (intake → builder → calibration → activate)
@@ -907,7 +907,7 @@ Create new pages:
 
 ---
 
-**This is a complete transformation.** The $499 intensive qualifies buyers, the 28-day billing increases revenue 8.3%, and the dripped tokens protect your margins. Combined with the 48-hour activation promise, you're selling speed + results, not just software.
+**This is a complete transformation.** The $499 intensive qualifies buyers, the 28-day billing increases revenue 8.3%, and the dripped tokens protect your margins. Combined with the 72-hour activation promise, you're selling speed + results, not just software.
 
 **Want to start building? Let's begin with Phase 1 database changes.**
 

@@ -166,7 +166,7 @@ After environment variables are set up:
 1. **Test the pricing page** (`/pricing-hormozi`)
 2. **Build intensive onboarding flow** (intake → builder → calibrate → activate)
 3. **Create intensive dashboard** (`/intensive/dashboard`)
-4. **Set up email/SMS sequences** (48-hour reminders)
+4. **Set up email/SMS sequences** (72-hour reminders)
 5. **Add auto top-up toggle** in user settings
 
 ---
