@@ -23,7 +23,8 @@ import {
   Card, 
   Button, 
   Badge,
-  ProgressBar
+  ProgressBar,
+  Spinner
 } from '@/lib/design-system/components'
 
 interface ActivationProtocol {
