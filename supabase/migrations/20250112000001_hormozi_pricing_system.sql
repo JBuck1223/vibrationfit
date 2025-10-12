@@ -31,17 +31,20 @@ INSERT INTO membership_tiers (
   tier_type,
   name,
   price_monthly,
-  billing_cycle,
-  viva_tokens_per_cycle,
+  price_yearly,
+  viva_tokens_monthly,
   features,
+  audio_generation_enabled,
+  priority_support,
   is_active,
-  metadata
+  description,
+  display_order
 ) VALUES (
   'vision_pro_annual',
   'Vision Pro Annual',
-  999,
-  'annual',
-  5000000,
+  83, -- Display as $83/month
+  99900, -- Actual charge $999/year
+  5000000, -- 5M tokens granted at start
   jsonb_build_array(
     '5M tokens granted immediately',
     '100GB storage',
@@ -56,33 +59,36 @@ INSERT INTO membership_tiers (
     'All future features'
   ),
   true,
-  jsonb_build_object(
-    'storage_gb', 100,
-    'token_strategy', 'grant_upfront',
-    'billing_day_cycle', 365
-  )
+  true,
+  true,
+  'Full year, full power - 5M tokens upfront',
+  1
 ) ON CONFLICT (tier_type) DO UPDATE SET
   name = EXCLUDED.name,
   price_monthly = EXCLUDED.price_monthly,
+  price_yearly = EXCLUDED.price_yearly,
+  viva_tokens_monthly = EXCLUDED.viva_tokens_monthly,
   features = EXCLUDED.features,
-  metadata = EXCLUDED.metadata;
+  audio_generation_enabled = EXCLUDED.audio_generation_enabled,
+  priority_support = EXCLUDED.priority_support;
 
 -- Insert Vision Pro 28-Day tier
 INSERT INTO membership_tiers (
   tier_type,
   name,
   price_monthly,
-  billing_cycle,
-  viva_tokens_per_cycle,
+  viva_tokens_monthly,
   features,
+  audio_generation_enabled,
+  priority_support,
   is_active,
-  metadata
+  description,
+  display_order
 ) VALUES (
   'vision_pro_28day',
   'Vision Pro 28-Day',
-  99,
-  'monthly', -- Stripe handles the 28-day billing cycle
-  375000,
+  9900, -- $99 every 28 days
+  375000, -- 375k tokens per cycle
   jsonb_build_array(
     '375k tokens per 28-day cycle',
     '25GB storage base',
@@ -91,17 +97,17 @@ INSERT INTO membership_tiers (
     'Standard support'
   ),
   true,
-  jsonb_build_object(
-    'storage_gb', 25,
-    'token_strategy', 'drip_per_cycle',
-    'rollover_max_cycles', 3,
-    'billing_day_cycle', 28
-  )
+  false,
+  true,
+  'Flexible billing cycle - $3.54/day',
+  2
 ) ON CONFLICT (tier_type) DO UPDATE SET
   name = EXCLUDED.name,
   price_monthly = EXCLUDED.price_monthly,
+  viva_tokens_monthly = EXCLUDED.viva_tokens_monthly,
   features = EXCLUDED.features,
-  metadata = EXCLUDED.metadata;
+  audio_generation_enabled = EXCLUDED.audio_generation_enabled,
+  priority_support = EXCLUDED.priority_support;
 
 -- ============================================================================
 -- 2. ADD TOKEN ROLLOVER COLUMNS TO USER_PROFILES
