@@ -15,10 +15,10 @@
       background-color: #f9f9f9;
     }
     .container {
-      background: white;
-      border-radius: 12px;
-      padding: 40px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 48px 40px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     }
     .header {
       text-align: center;
@@ -35,28 +35,30 @@
     }
     .main-content {
       margin-bottom: 30px;
+      text-align: center;
     }
     .title {
-      font-size: 20px;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 15px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #111111;
+      margin-bottom: 16px;
     }
     .description {
-      color: #666;
-      margin-bottom: 25px;
+      color: #444;
+      margin-bottom: 28px;
     }
     .button {
       display: inline-block;
       background: linear-gradient(135deg, #199D67, #5EC49A);
-      color: white;
+      color: #ffffff !important;
       text-decoration: none;
-      padding: 14px 28px;
-      border-radius: 25px;
-      font-weight: 600;
+      padding: 18px 36px;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 16px;
       text-align: center;
-      margin-bottom: 25px;
-      box-shadow: 0 4px 14px rgba(25,157,103,0.25);
+      margin-bottom: 28px;
+      box-shadow: 0 6px 18px rgba(25,157,103,0.25);
       transition: all 0.3s ease;
     }
     .button:hover {
@@ -64,30 +66,44 @@
       box-shadow: 0 6px 20px rgba(25,157,103,0.4);
     }
     .code-section {
-      background: #f8f9fa;
-      border: 2px solid #e9ecef;
-      border-radius: 8px;
-      padding: 20px;
+      background: #f8fffb;
+      border: 2px solid #A8E5CE; /* Green Lighter */
+      border-radius: 12px;
+      padding: 24px;
       text-align: center;
-      margin-top: 25px;
+      margin-top: 28px;
     }
     .code-label {
       font-size: 14px;
-      color: #666;
-      margin-bottom: 8px;
+      color: #0D9488; /* Teal Dark */
+      margin-bottom: 10px;
+      font-weight: 600;
     }
     .code {
-      font-size: 24px;
-      font-weight: bold;
-      color: #199D67;
-      letter-spacing: 3px;
+      font-size: 32px;
+      font-weight: 800;
+      color: #199D67; /* Primary Green */
+      letter-spacing: 4px;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 12px;
+    }
+    .code-input {
+      width: 280px;
+      max-width: 100%;
+      padding: 12px 14px;
+      font-size: 20px;
+      line-height: 1.2;
+      text-align: center;
+      border: 2px solid #199D67;
+      border-radius: 12px;
+      background: #ffffff;
+      color: #111111;
       font-family: 'Courier New', monospace;
     }
     .fallback-text {
       font-size: 13px;
-      color: #888;
-      margin-top: 15px;
-      font-style: italic;
+      color: #666;
+      margin-top: 14px;
     }
     .footer {
       text-align: center;
@@ -115,10 +131,11 @@
       </div>
       
       <div class="code-section">
-        <div class="code-label">Your verification code:</div>
-        <div class="code">{{ .Token }}</div>
+        <div class="code-label">Or enter this 6‑digit code:</div>
+        <div class="code" style="user-select: all; -webkit-user-select: all;">{{ .Token }}</div>
+        <input type="text" value="{{ .Token }}" readonly class="code-input" style="display:block;margin:0 auto;">
         <div class="fallback-text">
-          If you encounter any issues with the link above, you can enter this code on the login page instead.
+          Tip: Tap/click the code to select, then copy and paste it on the login page.
         </div>
       </div>
     </div>
