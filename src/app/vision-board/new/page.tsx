@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { PageLayout, Container, Card, Input, Button, Textarea, Badge } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
@@ -32,9 +32,13 @@ const STATUS_OPTIONS = [
 
 export default function NewVisionBoardItemPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isIntensiveMode = searchParams.get('intensive') === 'true'
   const supabase = createClient()
   
   const [loading, setLoading] = useState(false)
+  const [existingItems, setExistingItems] = useState<any[]>([])
+  const [categoriesNeeded, setCategoriesNeeded] = useState<string[]>(LIFE_CATEGORIES)
   const [file, setFile] = useState<File | null>(null)
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
@@ -46,6 +50,43 @@ export default function NewVisionBoardItemPage() {
   })
   
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  // Load existing vision board items to check which categories are covered
+  useEffect(() => {
+    const loadExistingItems = async () => {
+      if (!isIntensiveMode) return
+      
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const { data: items } = await supabase
+          .from('vision_board_items')
+          .select('categories')
+          .eq('user_id', user.id)
+
+        if (items) {
+          setExistingItems(items)
+          
+          // Get all unique categories that already have items
+          const coveredCategories = new Set<string>()
+          items.forEach(item => {
+            if (item.categories && Array.isArray(item.categories)) {
+              item.categories.forEach((cat: string) => coveredCategories.add(cat))
+            }
+          })
+          
+          // Calculate which categories still need items
+          const needed = LIFE_CATEGORIES.filter(cat => !coveredCategories.has(cat))
+          setCategoriesNeeded(needed)
+        }
+      } catch (error) {
+        console.error('Error loading existing items:', error)
+      }
+    }
+    
+    loadExistingItems()
+  }, [isIntensiveMode])
 
   const handleCategoryToggle = (category: string) => {
     setFormData(prev => ({
@@ -102,6 +143,41 @@ export default function NewVisionBoardItemPage() {
         p_user_id: user.id,
         p_status: formData.status 
       })
+
+      // If in intensive mode, check if all categories are now covered
+      if (isIntensiveMode) {
+        // Reload items to check completion
+        const { data: allItems } = await supabase
+          .from('vision_board_items')
+          .select('categories')
+          .eq('user_id', user.id)
+
+        if (allItems) {
+          const coveredCategories = new Set<string>()
+          allItems.forEach(item => {
+            if (item.categories && Array.isArray(item.categories)) {
+              item.categories.forEach((cat: string) => coveredCategories.add(cat))
+            }
+          })
+
+          // Check if all 12 life categories are covered
+          const allCategoriesCovered = LIFE_CATEGORIES.every(cat => coveredCategories.has(cat))
+
+          if (allCategoriesCovered) {
+            const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+            await markIntensiveStep('vision_board_completed')
+            alert('🎉 Vision Board Complete! All life areas covered.')
+            router.push('/intensive/dashboard')
+            return
+          } else {
+            // Show which categories still need items
+            const remaining = LIFE_CATEGORIES.filter(cat => !coveredCategories.has(cat))
+            alert(`Great! ${remaining.length} more ${remaining.length === 1 ? 'category' : 'categories'} to go: ${remaining.join(', ')}`)
+            router.push('/vision-board/new?intensive=true')
+            return
+          }
+        }
+      }
 
       router.push('/vision-board')
     } catch (error) {
@@ -302,22 +378,42 @@ export default function NewVisionBoardItemPage() {
               <div>
                 <label className="block text-sm font-medium text-neutral-200 mb-3">
                   Life Category (Select all that apply)
+                  {isIntensiveMode && categoriesNeeded.length > 0 && (
+                    <Badge variant="warning" className="ml-3">
+                      {categoriesNeeded.length} {categoriesNeeded.length === 1 ? 'category' : 'categories'} needed
+                    </Badge>
+                  )}
                 </label>
+                {isIntensiveMode && categoriesNeeded.length > 0 && (
+                  <p className="text-sm text-neutral-400 mb-3">
+                    ✨ Intensive: Add at least one image for each life area. Still need: <strong className="text-primary-500">{categoriesNeeded.join(', ')}</strong>
+                  </p>
+                )}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {LIFE_CATEGORIES.map((category) => (
-                    <label
-                      key={category}
-                      className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg cursor-pointer hover:bg-neutral-700 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.categories.includes(category)}
-                        onChange={() => handleCategoryToggle(category)}
-                        className="w-4 h-4 text-primary-500 bg-neutral-700 border-neutral-600 rounded focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-neutral-200">{category}</span>
-                    </label>
-                  ))}
+                  {LIFE_CATEGORIES.map((category) => {
+                    const isNeeded = isIntensiveMode && categoriesNeeded.includes(category)
+                    return (
+                      <label
+                        key={category}
+                        className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                          isNeeded 
+                            ? 'bg-primary-500/10 border-2 border-primary-500 hover:bg-primary-500/20' 
+                            : 'bg-neutral-800 hover:bg-neutral-700'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.categories.includes(category)}
+                          onChange={() => handleCategoryToggle(category)}
+                          className="w-4 h-4 text-primary-500 bg-neutral-700 border-neutral-600 rounded focus:ring-primary-500"
+                        />
+                        <span className={`text-sm ${isNeeded ? 'text-primary-500 font-semibold' : 'text-neutral-200'}`}>
+                          {category}
+                          {isNeeded && ' ⭐'}
+                        </span>
+                      </label>
+                    )
+                  })}
                 </div>
               </div>
 

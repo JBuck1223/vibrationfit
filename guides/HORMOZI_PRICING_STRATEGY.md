@@ -610,14 +610,29 @@ export async function checkStorageBeforeUpload(userId: string, fileSize: number)
 }
 ```
 
-#### 4. Intensive Onboarding Flow
+#### 4. Intensive Onboarding Flow (REFINED)
 
-Create new pages:
-- `/intensive/intake` - Intake form (Hour 0-1)
-- `/intensive/builder` - Vision builder (Hour 1-24)
-- `/intensive/calibration` - Schedule calibration (Hour 24-36)
-- `/intensive/activate` - Activation protocol (Hour 36-48)
-- `/intensive/dashboard` - Progress tracker
+**10-Step Journey** leveraging existing VibrationFit tools:
+
+**Phase 1: Foundation (Hours 0-24)**
+1. `/profile/edit?intensive=true` - Complete profile (personal info, goals, values)
+2. `/assessment?intensive=true` - Take 4-step Vibration Assessment
+3. `/intensive/schedule-call` - Book 1-on-1 Calibration Call
+
+**Phase 2: Vision Creation (Hours 24-48)**
+4. `/vision/build?intensive=true` - Build Life Vision with VIVA (existing flow)
+5. `/intensive/refine-vision` - Refine Vision with VIVA clarifying questions
+
+**Phase 3: Activation Tools (Hours 48-72)**
+6. `/life-vision?intensive=true&action=audio` - Generate personalized vision audio
+7. `/vision-board?intensive=true` - Create Vision Board (1 image per life area)
+8. `/journal?intensive=true` - First Conscious Creation journal entry
+
+**Phase 4: Calibration & Launch**
+9. `/intensive/call-prep` - Attend Calibration Call (Zoom)
+10. `/intensive/activation-protocol` - Complete Activation Protocol & daily rituals
+
+**Progress Tracker:** `/intensive/dashboard` - Shows countdown timer, completion status, next steps
 
 ---
 
@@ -754,12 +769,19 @@ Create new pages:
 - [ ] "Vision Pro" branding throughout
 
 ### Phase 4: Intensive Onboarding Flow (Week 2-3)
-- [ ] `/intensive/intake` - Intake form
-- [ ] `/intensive/builder` - AI vision draft + builder
-- [ ] `/intensive/calibration` - Schedule + attend session
-- [ ] `/intensive/activate` - Protocol setup
-- [ ] Progress tracker with 72-hour countdown
-- [ ] Automated email/SMS sequences
+- [x] `/intensive/dashboard` - Progress tracker with countdown & 10-step checklist
+- [x] `/intensive/schedule-call` - Call scheduling interface
+- [x] `/intensive/refine-vision` - Vision refinement with VIVA
+- [x] `/intensive/call-prep` - Calibration call preparation
+- [x] `/intensive/activation-protocol` - Daily rituals & completion
+- [ ] Add `?intensive=true` query param handling to existing pages:
+  - [ ] `/profile/edit` - Mark profile completion in checklist
+  - [ ] `/assessment` - Mark assessment completion
+  - [ ] `/vision/build` - Mark vision built
+  - [ ] `/life-vision` - Mark audio generated when action=audio
+  - [ ] `/vision-board` - Require 1 image per life area, mark completion
+  - [ ] `/journal` - Mark first entry completion
+- [ ] Automated email/SMS sequences for reminders
 - [ ] Checklist tracking
 
 ### Phase 5: Token & Storage Management (Week 3-4)
@@ -907,7 +929,114 @@ Create new pages:
 
 ---
 
-**This is a complete transformation.** The $499 intensive qualifies buyers, the 28-day billing increases revenue 8.3%, and the dripped tokens protect your margins. Combined with the 72-hour activation promise, you're selling speed + results, not just software.
+## 🛒 Guest Checkout Flow (Cold Traffic Conversion)
+
+### The Problem We Solved
+Cold users shouldn't have to create an account before purchasing. This creates friction and reduces conversion rates.
+
+### The Solution: Guest Checkout + Magic Link
+We implemented a seamless guest checkout flow that creates accounts **after** payment:
+
+#### **Step-by-Step Flow (Dual Auto-Login + Magic Link):**
+
+1. **User visits pricing page** (`/pricing-hormozi`)
+   - No login required
+   - Can browse and select payment plan
+
+2. **User clicks "Start Your 72-Hour Activation"**
+   - Goes directly to Stripe checkout
+   - No authentication barrier
+
+3. **User completes payment in Stripe**
+   - Enters email and payment info
+   - Stripe processes payment
+
+4. **Webhook processes payment** (`checkout.session.completed`)
+   - Creates user account in Supabase Auth
+   - Generates magic link (sent to email as backup)
+   - Creates `intensive_purchases` record
+   - Creates `intensive_checklist` record with 72-hour deadline
+
+5. **🚀 AUTO-LOGIN: User redirected to** `/auth/auto-login`
+   - Automatically generates and verifies login token
+   - Sets session cookies
+   - **No email click required!**
+   - Redirects to `/auth/setup-password?intensive=true`
+
+6. **User sets password** (`/auth/setup-password`)
+   - Creates secure password (8+ characters)
+   - Confirms password
+   - Account is now fully secured
+
+7. **User redirected to** `/intensive/dashboard`
+   - 72-hour countdown starts
+   - Shows intensive progress
+   - Ready to begin activation
+
+#### **Backup Flow (If Auto-Login Fails):**
+
+5b. **Fallback: User redirected to** `/intensive/check-email`
+    - Shows "Check Your Email" page
+    - Magic link sent to inbox
+
+6b. **User clicks magic link in email**
+    - Automatically logs in
+    - Continues to password setup
+
+### **Key Features:**
+
+✅ **Zero friction** - No account creation before purchase  
+✅ **Automatic account creation** - Webhook handles everything  
+✅ **🚀 Instant auto-login** - No email click required (primary flow)  
+✅ **Magic link backup** - Email fallback if auto-login fails  
+✅ **Secure password setup** - User creates password after auto-login  
+✅ **Seamless redirect** - Goes straight to password setup → intensive dashboard  
+✅ **Dual redundancy** - Both auto-login AND magic link for reliability  
+
+### **Technical Implementation:**
+
+#### **API Route:** `/api/stripe/checkout-intensive`
+- Allows guest checkout (no authentication required)
+- Creates Stripe session with customer email
+- Success URL: `/auth/auto-login?session_id={CHECKOUT_SESSION_ID}&email={CHECKOUT_SESSION_CUSTOMER_EMAIL}`
+
+#### **Webhook Handler:** `/api/stripe/webhook`
+- Detects `checkout.session.completed` for intensive purchases
+- Creates user with `supabase.auth.admin.createUser()`
+- Generates magic link with `supabase.auth.admin.generateLink()` (backup)
+- Logs magic link URL for testing
+- Creates intensive records in database
+
+#### **Auto-Login Route:** `/auth/auto-login` (NEW!)
+- Receives session_id and email from Stripe redirect
+- Generates fresh magic link for the user
+- Extracts token and verifies it
+- Sets session cookies (access_token + refresh_token)
+- Redirects to `/auth/setup-password?intensive=true`
+- **Fallback:** If any step fails, redirects to `/intensive/check-email`
+
+#### **Password Setup Page:** `/auth/setup-password`
+- Validates user is logged in (via auto-login or magic link)
+- Allows user to set password
+- Redirects to intensive dashboard after setup
+
+#### **Check Email Page:** `/intensive/check-email` (Backup)
+- Shows success message after payment
+- Explains magic link process
+- Provides step-by-step instructions
+- Only shown if auto-login fails
+
+### **Why This Works:**
+
+1. **Higher Conversion** - No signup friction before purchase
+2. **Better UX** - Pay first, set up account second
+3. **Secure** - Magic link ensures email ownership
+4. **Professional** - Matches best-in-class SaaS onboarding
+5. **Scalable** - Works for cold traffic at scale
+
+---
+
+**This is a complete transformation.** The $499 intensive qualifies buyers, the 28-day billing increases revenue 8.3%, and the dripped tokens protect your margins. Combined with the 72-hour activation promise and frictionless guest checkout, you're selling speed + results, not just software.
 
 **Want to start building? Let's begin with Phase 1 database changes.**
 

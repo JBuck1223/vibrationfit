@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Container, PageLayout, Button, Spinner, Card } from '@/lib/design-system/components'
 import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { ASSESSMENT_QUESTIONS, filterQuestionsByProfile, getAllCategories } from '@/lib/assessment/questions'
@@ -21,6 +21,8 @@ import ResultsSummary from './components/ResultsSummary'
 
 export default function AssessmentPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isIntensiveMode = searchParams.get('intensive') === 'true'
   
   // State
   const [assessmentId, setAssessmentId] = useState<string | null>(null)
@@ -180,6 +182,19 @@ export default function AssessmentPage() {
       await completeAssessment(assessmentId)
       setIsComplete(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      
+      // If in intensive mode, mark assessment as complete
+      if (isIntensiveMode) {
+        const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+        const success = await markIntensiveStep('assessment_completed')
+        
+        if (success) {
+          // Redirect to intensive dashboard after a moment
+          setTimeout(() => {
+            router.push('/intensive/dashboard')
+          }, 3000)
+        }
+      }
     } catch (error) {
       console.error('Failed to complete assessment:', error)
     }

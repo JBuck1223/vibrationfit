@@ -65,14 +65,6 @@ export function LifeVisionSidebar({ activeSection, onSectionChange, completedSec
         })}
       </nav>
 
-      <div className="mt-6 pt-6 border-t border-neutral-700">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-primary-500 mb-1">
-            {Math.round((completedSections.length / sections.length) * 100)}%
-          </div>
-          <div className="text-sm text-neutral-400">Life Vision Complete</div>
-        </div>
-      </div>
     </Card>
   )
 }

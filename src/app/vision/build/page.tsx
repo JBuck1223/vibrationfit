@@ -4,7 +4,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import VivaChat from '@/components/viva/VivaChat'
 import { Button, Card } from '@/lib/design-system/components'
 import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
@@ -23,6 +23,8 @@ interface VisionContent {
 
 export default function VisionBuildPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isIntensiveMode = searchParams.get('intensive') === 'true'
   const supabase = createClient()
   
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0)
@@ -84,7 +86,7 @@ export default function VisionBuildPage() {
   }
 
   // Move to next phase or category
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentPhaseIndex < phases.length - 1) {
       // Next phase
       setCurrentPhase(phases[currentPhaseIndex + 1].key)
@@ -96,7 +98,16 @@ export default function VisionBuildPage() {
       toast.success(`Great! Let's explore ${mainCategories[currentCategoryIndex + 1].label}`)
     } else {
       // All done!
-      router.push('/vision/complete')
+      if (isIntensiveMode) {
+        const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+        await markIntensiveStep('vision_built')
+        toast.success('Vision complete! Redirecting to intensive dashboard...')
+        setTimeout(() => {
+          router.push('/intensive/dashboard')
+        }, 2000)
+      } else {
+        router.push('/vision/complete')
+      }
     }
   }
 

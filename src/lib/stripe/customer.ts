@@ -220,7 +220,7 @@ export async function createIntensiveCheckoutSession({
   successUrl,
   cancelUrl,
 }: {
-  userId: string
+  userId: string | null
   email: string
   priceId: string
   paymentPlan: 'full' | '2pay' | '3pay'
@@ -232,10 +232,8 @@ export async function createIntensiveCheckoutSession({
     throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
   }
 
-  const customerId = await getOrCreateStripeCustomer(userId, email)
-
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
+  // For guest checkout, don't create customer yet - let Stripe handle it
+  const sessionParams: any = {
     mode: 'payment', // One-time payment
     payment_method_types: ['card'],
     line_items: [
@@ -247,12 +245,23 @@ export async function createIntensiveCheckoutSession({
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata: {
-      user_id: userId,
+      user_id: userId || 'guest',
       purchase_type: 'intensive',
       payment_plan: paymentPlan,
       continuity_preference: continuityPlan || 'annual',
     },
-  })
+  }
+
+  // If user is logged in, use existing customer
+  if (userId) {
+    const customerId = await getOrCreateStripeCustomer(userId, email)
+    sessionParams.customer = customerId
+  } else {
+    // Guest checkout - collect email in Stripe
+    sessionParams.customer_email = email !== 'guest@example.com' ? email : undefined
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams)
 
   return session
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { 
   ArrowLeft, 
   Play, 
@@ -73,7 +73,7 @@ export default function IntensiveActivation() {
   const [isPlaying, setIsPlaying] = useState(false)
 
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   useEffect(() => {
     loadActivationData()
@@ -99,7 +99,7 @@ export default function IntensiveActivation() {
         .from('intensive_purchases')
         .select('*')
         .eq('user_id', user.id)
-        .eq('completion_status', 'in_progress')
+        .eq('completion_status', 'pending')
         .single()
 
       if (error || !intensiveData) {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Mic, Video, Loader2, X } from 'lucide-react'
 import { Textarea, Button } from '@/lib/design-system/components'
 import { MediaRecorderComponent } from './MediaRecorder'
@@ -35,6 +35,20 @@ export function RecordingTextarea({
   const [recordingMode, setRecordingMode] = useState<'audio' | 'video'>('audio')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-resize textarea function
+  const autoResizeTextarea = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px'
+    }
+  }
+
+  // Auto-resize when value changes
+  useEffect(() => {
+    autoResizeTextarea()
+  }, [value])
 
   const handleRecordingComplete = async (blob: Blob, transcript?: string, shouldSaveFile?: boolean) => {
     console.log('📹 RecordingTextarea: handleRecordingComplete called', {
@@ -115,12 +129,16 @@ export function RecordingTextarea({
       {/* Text Input */}
       <div className="relative">
         <Textarea
+          ref={textareaRef}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            onChange(e.target.value)
+            autoResizeTextarea()
+          }}
           placeholder={placeholder}
           rows={rows}
           disabled={disabled || isUploading}
-          className="w-full"
+          className="w-full min-h-[100px] resize-none overflow-hidden"
         />
         
         {/* Recording Buttons */}

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { PageLayout, Container, Card, Input, Button } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -35,6 +35,8 @@ const ENTRY_TYPES = [
 
 export default function NewJournalEntryPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isIntensiveMode = searchParams.get('intensive') === 'true'
   const supabase = createClient()
   
   const [loading, setLoading] = useState(false)
@@ -106,7 +108,14 @@ export default function NewJournalEntryPage() {
       // Update user stats
       await supabase.rpc('increment_journal_stats', { p_user_id: user.id })
 
-      router.push('/journal')
+      // If in intensive mode, mark first journal entry as complete
+      if (isIntensiveMode) {
+        const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+        await markIntensiveStep('first_journal_entry')
+        router.push('/intensive/dashboard')
+      } else {
+        router.push('/journal')
+      }
     } catch (error) {
       console.error('Error creating journal entry:', error)
       alert('Failed to create journal entry')

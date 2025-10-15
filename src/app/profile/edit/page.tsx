@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { PageLayout, Container, Button, Badge } from '@/lib/design-system/components'
 import { ProfileSidebar } from '../components/ProfileSidebar'
 import { PersonalInfoSection } from '../components/PersonalInfoSection'
@@ -23,6 +23,9 @@ import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus } from 'luc
 
 export default function ProfilePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isIntensiveMode = searchParams.get('intensive') === 'true'
+  
   const [profile, setProfile] = useState<Partial<UserProfile>>({})
   const [activeSection, setActiveSection] = useState('personal')
   const [isLoading, setIsLoading] = useState(true)
@@ -33,6 +36,7 @@ export default function ProfilePage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [versions, setVersions] = useState<any[]>([])
   const [showVersions, setShowVersions] = useState(false)
+  const [intensiveId, setIntensiveId] = useState<string | null>(null)
 
   // Manual save only - no auto-save timeout needed
 
@@ -142,6 +146,7 @@ export default function ProfilePage() {
           console.error('Profile page: API error response', errorText)
           throw new Error(`Failed to fetch profile: ${response.status} ${response.statusText}`)
         }
+        
 
         const data = await response.json()
         console.log('Profile page: Data received', data)
@@ -269,6 +274,12 @@ export default function ProfilePage() {
       setSaveStatus('saved')
       setLastSaved(new Date())
       setError(null)
+
+      // If in intensive mode and profile is sufficiently complete, mark as done
+      if (isIntensiveMode && data.completionPercentage >= 70) {
+        const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+        await markIntensiveStep('profile_completed')
+      }
 
       // Clear save status after 2 seconds
       setTimeout(() => {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, ArrowRight, Sparkles, Wand2, Save, Eye, Clock } from 'lucide-react'
 
 import { 
@@ -55,7 +55,7 @@ export default function IntensiveBuilder() {
   const [timeRemaining, setTimeRemaining] = useState<string>('')
 
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   const sections = [
     { key: 'personal_growth', title: 'Personal Growth', description: 'Learning, skills, self-development' },
@@ -91,7 +91,7 @@ export default function IntensiveBuilder() {
         .from('intensive_purchases')
         .select('*')
         .eq('user_id', user.id)
-        .eq('completion_status', 'in_progress')
+        .eq('completion_status', 'pending')
         .single()
 
       if (error || !intensiveData) {

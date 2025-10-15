@@ -4,6 +4,8 @@ import "./globals.css";
 import '@/styles/brand.css'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { AuthProvider } from '@/components/AuthProvider'
+import { IntensiveBar } from '@/components/IntensiveBar'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { Toaster } from 'sonner'
 
@@ -50,20 +52,23 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning={true}
       >
-        <Header />
-        {children}
-        <Footer />
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: '#1F1F1F',
-              color: '#FFFFFF',
-              border: '1px solid #333',
-            },
-            className: 'toast',
-          }}
-        />
+        <AuthProvider>
+          <Header />
+          <IntensiveBar />
+          {children}
+          <Footer />
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: '#1F1F1F',
+                color: '#FFFFFF',
+                border: '1px solid #333',
+              },
+              className: 'toast',
+            }}
+          />
+        </AuthProvider>
       </body>
     </html>
   );

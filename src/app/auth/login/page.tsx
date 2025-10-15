@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -31,6 +33,44 @@ export default function LoginPage() {
       setLoading(false)
     } else {
       router.push('/dashboard')
+    }
+  }
+
+  const handleMagicLink = async () => {
+    if (!email) {
+      setError('Please enter your email address')
+      return
+    }
+
+    setMagicLinkLoading(true)
+    setError('')
+
+    console.log('🔍 Attempting to send magic link to:', email)
+    console.log('🔍 Redirect URL:', `${window.location.origin}/auth/callback`)
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      console.log('🔍 Supabase response:', { data, error })
+
+      if (error) {
+        console.error('❌ Magic link error:', error)
+        setError(`Magic link failed: ${error.message}`)
+        setMagicLinkLoading(false)
+      } else {
+        console.log('✅ Magic link sent successfully:', data)
+        setMagicLinkSent(true)
+        setMagicLinkLoading(false)
+      }
+    } catch (err) {
+      console.error('❌ Unexpected error:', err)
+      setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setMagicLinkLoading(false)
     }
   }
 
@@ -94,8 +134,33 @@ export default function LoginPage() {
               </div>
             )}
 
+            {magicLinkSent && (
+              <div className="bg-primary-500/10 border border-primary-500 text-primary-500 px-4 py-3 rounded-lg">
+                ✨ Magic link sent! Check your email and click the link to sign in.
+              </div>
+            )}
+
             <Button type="submit" loading={loading} className="w-full">
               {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-neutral-700" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-neutral-900 text-neutral-400">or</span>
+              </div>
+            </div>
+
+            <Button 
+              type="button" 
+              variant="outline" 
+              loading={magicLinkLoading}
+              onClick={handleMagicLink}
+              className="w-full"
+            >
+              {magicLinkLoading ? 'Sending...' : 'Send Magic Link'}
             </Button>
           </form>
 

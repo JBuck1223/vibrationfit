@@ -8,14 +8,17 @@ import { STRIPE_CONFIG } from '@/lib/stripe/config'
 
 export async function POST(request: NextRequest) {
   try {
+    // Allow guest checkout - no authentication required
     const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    let user = null
+    
+    // Try to get user if logged in, but don't require it
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      user = currentUser
+    } catch (error) {
+      // User not logged in - that's fine for guest checkout
+      console.log('Guest checkout - no user session')
     }
 
     const body = await request.json()
@@ -32,6 +35,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the appropriate price ID
+    console.log('Environment check:', {
+      intensive_full: process.env.STRIPE_PRICE_INTENSIVE_FULL,
+      intensive_2pay: process.env.STRIPE_PRICE_INTENSIVE_2PAY,
+      intensive_3pay: process.env.STRIPE_PRICE_INTENSIVE_3PAY,
+      config_full: STRIPE_CONFIG.prices.intensive_full,
+    })
+
     const priceIds = {
       full: STRIPE_CONFIG.prices.intensive_full,
       '2pay': STRIPE_CONFIG.prices.intensive_2pay,
@@ -50,12 +60,12 @@ export async function POST(request: NextRequest) {
     // Create checkout session
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const session = await createIntensiveCheckoutSession({
-      userId: user.id,
-      email: user.email!,
+      userId: user?.id || null, // Allow null for guest checkout
+      email: user?.email || 'guest@example.com', // Will be updated by Stripe
       priceId,
       paymentPlan,
       continuityPlan: continuityPlan || 'annual', // Default to annual
-      successUrl: `${appUrl}/intensive/dashboard`,
+      successUrl: `${appUrl}/auth/auto-login?session_id={CHECKOUT_SESSION_ID}&email={CHECKOUT_SESSION_CUSTOMER_EMAIL}`,
       cancelUrl: `${appUrl}/pricing-hormozi`,
     })
 

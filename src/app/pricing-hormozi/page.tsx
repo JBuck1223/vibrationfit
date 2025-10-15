@@ -28,7 +28,9 @@ export default function PricingHormoziPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session')
+        const errorData = await response.json()
+        console.error('API Error:', errorData)
+        throw new Error(`Failed to create checkout session: ${errorData.error || 'Unknown error'}`)
       }
 
       const { url } = await response.json()

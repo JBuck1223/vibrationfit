@@ -4,7 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe, STRIPE_CONFIG } from '@/lib/stripe/config'
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
@@ -44,7 +45,19 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const supabase = await createClient()
+  const supabase = await createServerClient()
+  
+  // Create admin client for user creation
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  )
 
   try {
     switch (event.type) {
@@ -181,19 +194,71 @@ export async function POST(request: NextRequest) {
         
         // Handle $499 Vision Activation Intensive purchases
         else if (session.mode === 'payment' && session.metadata?.purchase_type === 'intensive') {
-          const userId = session.metadata.user_id
+          const existingUserId = session.metadata.user_id
           const paymentPlan = session.metadata.payment_plan || 'full'
+          const customerEmail = session.customer_details?.email
 
-          if (!userId) {
-            console.error('Missing user_id in intensive checkout session')
+          // Handle guest checkout - create user account if needed
+          let userId = existingUserId && existingUserId !== 'guest' ? existingUserId : null
+          
+          if (!userId && customerEmail) {
+            console.log('Creating user account for guest checkout:', customerEmail)
+            
+            // Create user account in Supabase Auth with magic link (using admin client)
+            const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+              email: customerEmail,
+              email_confirm: true, // Skip email confirmation for purchased users
+            })
+
+            if (authError) {
+              console.error('Error creating user account:', authError)
+              break
+            }
+
+            userId = authData.user.id
+            console.log('Created user account:', userId)
+
+            // Generate both auto-login token AND magic link
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+            
+            // Generate magic link for email backup (using admin client)
+            const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+              type: 'magiclink',
+              email: customerEmail,
+              options: {
+                redirectTo: `${appUrl}/auth/setup-password?intensive=true`,
+              },
+            })
+
+            if (magicLinkError) {
+              console.error('Error generating magic link:', magicLinkError)
+            } else {
+              console.log('Magic link generated for:', customerEmail)
+              console.log('Magic link URL:', magicLinkData.properties.action_link)
+            }
+
+            // Store the access token in the intensive purchase for auto-login
+            if (magicLinkData?.properties?.hashed_token) {
+              // We'll use this to auto-login the user on redirect
+              console.log('Auto-login token ready for:', customerEmail)
+            }
+          }
+
+          if (!userId || userId === 'guest') {
+            console.error('Missing valid user_id - unable to create intensive purchase. User creation may have failed.')
             break
           }
+
+          console.log('✅ User ID confirmed:', userId)
+          console.log('Creating intensive purchase record...')
 
           // Create intensive purchase record
           const activationDeadline = new Date()
           activationDeadline.setHours(activationDeadline.getHours() + 72) // 72 hours from now
+          
+          console.log('Activation deadline:', activationDeadline.toISOString())
 
-          const { data: intensive, error: intensiveError } = await supabase
+          const { data: intensive, error: intensiveError } = await supabaseAdmin
             .from('intensive_purchases')
             .insert({
               user_id: userId,
@@ -211,11 +276,15 @@ export async function POST(request: NextRequest) {
 
           if (intensiveError) {
             console.error('❌ Failed to create intensive purchase:', intensiveError)
+            console.error('User ID that failed:', userId)
+            console.error('Payment plan:', paymentPlan)
             break
           }
+          
+          console.log('✅ Created intensive purchase:', intensive?.id)
 
           // Create checklist for intensive
-          await supabase.from('intensive_checklist').insert({
+          await supabaseAdmin.from('intensive_checklist').insert({
             intensive_id: intensive.id,
             user_id: userId,
           })

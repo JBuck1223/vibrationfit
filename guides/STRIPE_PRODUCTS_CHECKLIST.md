@@ -30,12 +30,15 @@ Go to: [Stripe Dashboard → Products](https://dashboard.stripe.com/test/product
 - [ ] **Price:** `$249.50` USD
 - [ ] **Billing period:** ✓ Monthly
 - [ ] Click "Show more options" or "Advanced"
-- [ ] **Billing:** Set to "Charge 2 times" or add metadata: `max_charges: 2`
+- [ ] **Add Metadata:**
+  - [ ] **Key:** `payment_plan` → **Value:** `2pay`
+  - [ ] **Key:** `max_installments` → **Value:** `2`
+  - [ ] **Key:** `product_type` → **Value:** `intensive_split`
 - [ ] Click "Save product"
 - [ ] **📋 Copy Price ID:** `price_________________`
 - [ ] **Variable name:** `STRIPE_PRICE_INTENSIVE_2PAY`
 
-**Note:** If Stripe doesn't support limited billing cycles directly, just make it monthly recurring - you'll cancel it after 2 payments in your webhook.
+**Note:** The metadata tells your webhook to cancel after 2 payments.
 
 ---
 
@@ -47,7 +50,11 @@ Go to: [Stripe Dashboard → Products](https://dashboard.stripe.com/test/product
 - [ ] **Pricing model:** ✓ Recurring
 - [ ] **Price:** `$166.33` USD
 - [ ] **Billing period:** ✓ Monthly
-- [ ] **Billing:** Set to "Charge 3 times" or add metadata: `max_charges: 3`
+- [ ] Click "Show more options" or "Advanced"
+- [ ] **Add Metadata:**
+  - [ ] **Key:** `payment_plan` → **Value:** `3pay`
+  - [ ] **Key:** `max_installments` → **Value:** `3`
+  - [ ] **Key:** `product_type` → **Value:** `intensive_split`
 - [ ] Click "Save product"
 - [ ] **📋 Copy Price ID:** `price_________________`
 - [ ] **Variable name:** `STRIPE_PRICE_INTENSIVE_3PAY`
@@ -85,6 +92,47 @@ Go to: [Stripe Dashboard → Products](https://dashboard.stripe.com/test/product
 
 ---
 
+## 🎁 **Optional: Token Packs (for Add-On Purchases)**
+
+### ✅ Product 6: Token Power Pack
+
+- [ ] Click "Add product"
+- [ ] **Name:** `Token Power Pack`
+- [ ] **Description:** `2M tokens for AI features, VIVA assistant, and audio generation`
+- [ ] **Pricing model:** ✓ One time
+- [ ] **Price:** `$99.00` USD
+- [ ] Click "Save product"
+- [ ] **📋 Copy Price ID:** `price_________________`
+- [ ] **Variable name:** `STRIPE_PRICE_TOKEN_POWER`
+
+---
+
+### ✅ Product 7: Token Mega Pack
+
+- [ ] Click "Add product"
+- [ ] **Name:** `Token Mega Pack`
+- [ ] **Description:** `5M tokens for heavy AI usage and unlimited creativity`
+- [ ] **Pricing model:** ✓ One time
+- [ ] **Price:** `$199.00` USD
+- [ ] Click "Save product"
+- [ ] **📋 Copy Price ID:** `price_________________`
+- [ ] **Variable name:** `STRIPE_PRICE_TOKEN_MEGA`
+
+---
+
+### ✅ Product 8: Token Ultra Pack
+
+- [ ] Click "Add product"
+- [ ] **Name:** `Token Ultra Pack`
+- [ ] **Description:** `12M tokens for power users and unlimited exploration`
+- [ ] **Pricing model:** ✓ One time
+- [ ] **Price:** `$399.00` USD
+- [ ] Click "Save product"
+- [ ] **📋 Copy Price ID:** `price_________________`
+- [ ] **Variable name:** `STRIPE_PRICE_TOKEN_ULTRA`
+
+---
+
 ## 📝 Paste Your Price IDs Here
 
 Once all 5 are created, copy them here:
@@ -98,6 +146,11 @@ STRIPE_PRICE_INTENSIVE_3PAY=price_
 # Continuity products  
 NEXT_PUBLIC_STRIPE_PRICE_ANNUAL=price_
 NEXT_PUBLIC_STRIPE_PRICE_28DAY=price_
+
+# Token packs (optional)
+STRIPE_PRICE_TOKEN_POWER=price_
+STRIPE_PRICE_TOKEN_MEGA=price_
+STRIPE_PRICE_TOKEN_ULTRA=price_
 ```
 
 ---

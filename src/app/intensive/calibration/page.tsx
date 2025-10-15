@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { 
   ArrowLeft, 
   ArrowRight,
@@ -60,7 +60,7 @@ export default function IntensiveCalibration() {
   })
 
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   // Generate available time slots (next 7 days)
   const generateTimeSlots = () => {
@@ -118,7 +118,7 @@ export default function IntensiveCalibration() {
         .from('intensive_purchases')
         .select('*')
         .eq('user_id', user.id)
-        .eq('completion_status', 'in_progress')
+        .eq('completion_status', 'pending')
         .single()
 
       if (error || !intensiveData) {
