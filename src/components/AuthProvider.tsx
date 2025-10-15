@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -28,5 +28,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router, searchParams])
 
   return <>{children}</>
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthProviderInner>{children}</AuthProviderInner>
+    </Suspense>
+  )
 }
 
