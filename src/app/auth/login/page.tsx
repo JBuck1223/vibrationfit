@@ -29,7 +29,7 @@ export default function LoginPage() {
     const hasOtpError = hash.includes('otp_expired') || hash.includes('access_denied') || hash.includes('error=')
     if (hasOtpError) {
       setShowCodeEntry(true)
-      setError('Your link may have expired or been pre-opened. Enter the 6-digit code we emailed you.')
+      setError('Your link may have expired or been pre-opened. Enter the 6-digit code from your email.')
     }
   }, [])
 
@@ -51,7 +51,7 @@ export default function LoginPage() {
     }
   }
 
-  const handleMagicLink = async () => {
+  const handleSendAuth = async () => {
     if (!email) {
       setError('Please enter your email address')
       return
@@ -60,7 +60,7 @@ export default function LoginPage() {
     setMagicLinkLoading(true)
     setError('')
 
-    console.log('🔍 Attempting to send magic link to:', email)
+    console.log('🔍 Attempting to send auth email to:', email)
     console.log('🔍 Redirect URL:', `${window.location.origin}/auth/callback`)
 
     try {
@@ -74,11 +74,11 @@ export default function LoginPage() {
       console.log('🔍 Supabase response:', { data, error })
 
       if (error) {
-        console.error('❌ Magic link error:', error)
-        setError(`Magic link failed: ${error.message}`)
+        console.error('❌ Auth email error:', error)
+        setError(`Failed to send auth email: ${error.message}`)
         setMagicLinkLoading(false)
       } else {
-        console.log('✅ Magic link sent successfully:', data)
+        console.log('✅ Auth email sent successfully:', data)
         setMagicLinkSent(true)
         setMagicLinkLoading(false)
       }
@@ -86,35 +86,6 @@ export default function LoginPage() {
       console.error('❌ Unexpected error:', err)
       setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`)
       setMagicLinkLoading(false)
-    }
-  }
-
-  const handleSendCode = async () => {
-    if (!email) {
-      setError('Please enter your email address')
-      return
-    }
-
-    setCodeLoading(true)
-    setError('')
-    setShowCodeEntry(true)
-
-    try {
-      // Request OTP code (Supabase sends both magic link and code)
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email,
-      })
-
-      if (error) {
-        setError(`Send code failed: ${error.message}`)
-        setCodeLoading(false)
-      } else {
-        setCodeSent(true)
-        setCodeLoading(false)
-      }
-    } catch (err) {
-      setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`)
-      setCodeLoading(false)
     }
   }
 
@@ -212,13 +183,7 @@ export default function LoginPage() {
 
             {magicLinkSent && (
               <div className="bg-primary-500/10 border border-primary-500 text-primary-500 px-4 py-3 rounded-lg">
-                ✨ Magic link sent! Check your email and click the link to sign in.
-              </div>
-            )}
-
-            {codeSent && (
-              <div className="bg-secondary-500/10 border border-secondary-500 text-secondary-500 px-4 py-3 rounded-lg">
-                🔐 6-digit code sent! Check your email for the code, or click the magic link if you prefer.
+                ✨ Auth email sent! Check your email for the magic link and verification code.
               </div>
             )}
 
@@ -235,26 +200,27 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Button 
-                type="button" 
-                variant="outline" 
-                loading={magicLinkLoading}
-                onClick={handleMagicLink}
-                className="w-full"
-              >
-                {magicLinkLoading ? 'Sending...' : 'Send Magic Link'}
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                loading={codeLoading}
-                onClick={handleSendCode}
-                className="w-full"
-              >
-                {codeLoading ? 'Sending...' : 'Send Code'}
-              </Button>
-            </div>
+            <Button 
+              type="button" 
+              variant="outline" 
+              loading={magicLinkLoading}
+              onClick={handleSendAuth}
+              className="w-full"
+            >
+              {magicLinkLoading ? 'Sending...' : 'Send Auth Email'}
+            </Button>
+
+            {magicLinkSent && !showCodeEntry && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowCodeEntry(true)}
+                  className="text-sm text-primary-500 hover:text-primary-400 underline"
+                >
+                  Having trouble with the link? Enter code instead
+                </button>
+              </div>
+            )}
 
             {showCodeEntry && (
               <div className="space-y-3">
