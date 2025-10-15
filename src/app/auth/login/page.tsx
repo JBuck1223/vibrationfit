@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageLayout, Container, Card, Input, Button } from '@/lib/design-system'
 import Image from 'next/image'
@@ -15,8 +15,23 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [magicLinkLoading, setMagicLinkLoading] = useState(false)
+  const [code, setCode] = useState('')
+  const [codeSent, setCodeSent] = useState(false)
+  const [codeLoading, setCodeLoading] = useState(false)
+  const [showCodeEntry, setShowCodeEntry] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  // If redirected with magic link errors (e.g., otp_expired), auto-switch to code entry
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash || ''
+    const hasOtpError = hash.includes('otp_expired') || hash.includes('access_denied') || hash.includes('error=')
+    if (hasOtpError) {
+      setShowCodeEntry(true)
+      setError('Your link may have expired or been pre-opened. Enter the 6-digit code we emailed you.')
+    }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,6 +86,67 @@ export default function LoginPage() {
       console.error('❌ Unexpected error:', err)
       setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`)
       setMagicLinkLoading(false)
+    }
+  }
+
+  const handleSendCode = async () => {
+    if (!email) {
+      setError('Please enter your email address')
+      return
+    }
+
+    setCodeLoading(true)
+    setError('')
+    setShowCodeEntry(true)
+
+    try {
+      // Request OTP code (Supabase will email a 6-digit code)
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email,
+      })
+
+      if (error) {
+        setError(`Send code failed: ${error.message}`)
+        setCodeLoading(false)
+      } else {
+        setCodeSent(true)
+        setCodeLoading(false)
+      }
+    } catch (err) {
+      setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setCodeLoading(false)
+    }
+  }
+
+  const handleVerifyCode = async () => {
+    if (!email || !code) {
+      setError('Enter your email and the 6-digit code')
+      return
+    }
+
+    setCodeLoading(true)
+    setError('')
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: 'email',
+      })
+
+      if (error) {
+        setError(`Code verification failed: ${error.message}`)
+        setCodeLoading(false)
+        return
+      }
+
+      // Small delay to ensure session is established
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 300)
+    } catch (err) {
+      setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setCodeLoading(false)
     }
   }
 
@@ -140,6 +216,12 @@ export default function LoginPage() {
               </div>
             )}
 
+            {codeSent && (
+              <div className="bg-secondary-500/10 border border-secondary-500 text-secondary-500 px-4 py-3 rounded-lg">
+                🔐 6-digit code sent! Enter it below to sign in.
+              </div>
+            )}
+
             <Button type="submit" loading={loading} className="w-full">
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
@@ -153,15 +235,42 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button 
-              type="button" 
-              variant="outline" 
-              loading={magicLinkLoading}
-              onClick={handleMagicLink}
-              className="w-full"
-            >
-              {magicLinkLoading ? 'Sending...' : 'Send Magic Link'}
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                loading={magicLinkLoading}
+                onClick={handleMagicLink}
+                className="w-full"
+              >
+                {magicLinkLoading ? 'Sending...' : 'Send Magic Link'}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                loading={codeLoading}
+                onClick={handleSendCode}
+                className="w-full"
+              >
+                {codeLoading ? 'Sending...' : 'Send Code'}
+              </Button>
+            </div>
+
+            {showCodeEntry && (
+              <div className="space-y-3">
+                <Input
+                  type="text"
+                  label="6-digit code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.trim())}
+                  placeholder="Enter the code from your email"
+                  required
+                />
+                <Button type="button" loading={codeLoading} onClick={handleVerifyCode} className="w-full">
+                  {codeLoading ? 'Verifying...' : 'Verify Code'}
+                </Button>
+              </div>
+            )}
           </form>
 
           <p className="text-neutral-400 text-center mt-6">
