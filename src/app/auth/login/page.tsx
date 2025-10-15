@@ -100,7 +100,7 @@ export default function LoginPage() {
     setShowCodeEntry(true)
 
     try {
-      // Request OTP code (Supabase will email a 6-digit code)
+      // Request OTP code (Supabase sends both magic link and code)
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
       })
@@ -218,7 +218,7 @@ export default function LoginPage() {
 
             {codeSent && (
               <div className="bg-secondary-500/10 border border-secondary-500 text-secondary-500 px-4 py-3 rounded-lg">
-                🔐 6-digit code sent! Enter it below to sign in.
+                🔐 6-digit code sent! Check your email for the code, or click the magic link if you prefer.
               </div>
             )}
 
