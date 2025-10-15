@@ -105,7 +105,10 @@ export async function POST(request: NextRequest) {
       response_value,
       response_text,
       response_emoji,
-      green_line
+      green_line,
+      is_custom_response,
+      ai_score,
+      ai_green_line
     } = body
 
     // Validate required fields
@@ -138,19 +141,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Prepare the upsert data, only including new fields if they exist
+    const upsertData: any = {
+      assessment_id,
+      question_id,
+      question_text,
+      category,
+      response_value,
+      response_text,
+      response_emoji,
+      green_line
+    }
+
+    // Add new fields if they're provided (for backward compatibility)
+    if (is_custom_response !== undefined) {
+      upsertData.is_custom_response = is_custom_response
+    }
+    if (ai_score !== undefined && ai_score !== null) {
+      upsertData.ai_score = ai_score
+    }
+    if (ai_green_line !== undefined && ai_green_line !== null) {
+      upsertData.ai_green_line = ai_green_line
+    }
+
     // Upsert the response (insert or update if exists)
     const { data: response, error } = await supabase
       .from('assessment_responses')
-      .upsert({
-        assessment_id,
-        question_id,
-        question_text,
-        category,
-        response_value,
-        response_text,
-        response_emoji,
-        green_line
-      }, {
+      .upsert(upsertData, {
         onConflict: 'assessment_id,question_id'
       })
       .select()

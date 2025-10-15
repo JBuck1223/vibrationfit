@@ -34,6 +34,9 @@ export default function AssessmentPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
   const [profile, setProfile] = useState<any>(null)
+  const [showCustomInput, setShowCustomInput] = useState(false)
+  const [customResponse, setCustomResponse] = useState('')
+  const [isScoring, setIsScoring] = useState(false)
 
   // Get assessment categories in the correct order (matching VISION_CATEGORIES, excluding forward/conclusion)
   const assessmentCategoriesOrder = VISION_CATEGORIES
@@ -104,8 +107,17 @@ export default function AssessmentPage() {
   const handleSelect = async (option: AssessmentOption) => {
     if (!assessmentId || isSaving) return
 
+    // Handle custom response option
+    if (option.isCustom) {
+      setShowCustomInput(true)
+      return
+    }
+
     setIsSaving(true)
     try {
+      // Update local state immediately for better UX
+      setResponses(prev => new Map(prev).set(currentQuestion.id, option.value))
+
       // Save response to database
       await saveResponse({
         assessment_id: assessmentId,
@@ -115,25 +127,82 @@ export default function AssessmentPage() {
         response_value: option.value,
         response_text: option.text,
         response_emoji: option.emoji,
-        green_line: option.greenLine
+        green_line: option.greenLine,
+        is_custom_response: false,
+        ai_score: undefined,
+        ai_green_line: undefined
+      })
+
+      // Refresh progress (do not auto-advance; require explicit Next click)
+      const progressData = await fetchAssessmentProgress(assessmentId)
+      setProgress(progressData)
+
+    } catch (error) {
+      console.error('Failed to save response:', error)
+      // Revert local state on error
+      setResponses(prev => {
+        const newMap = new Map(prev)
+        newMap.delete(currentQuestion.id)
+        return newMap
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Handle custom response submission with AI scoring
+  const handleCustomResponse = async () => {
+    if (!assessmentId || !customResponse.trim() || isScoring) return
+
+    setIsScoring(true)
+    try {
+      // AI scores the custom response
+      const aiResponse = await fetch('/api/assessment/ai-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionText: currentQuestion.text,
+          userResponse: customResponse
+        })
+      })
+
+      if (!aiResponse.ok) {
+        throw new Error('AI scoring failed')
+      }
+
+      const { score, greenLine } = await aiResponse.json()
+
+      // Save response with AI score (silently)
+      await saveResponse({
+        assessment_id: assessmentId,
+        question_id: currentQuestion.id,
+        question_text: currentQuestion.text,
+        category: currentQuestion.category,
+        response_value: score,
+        response_text: customResponse,
+        response_emoji: '🤔',
+        green_line: greenLine,
+        is_custom_response: true,
+        ai_score: score,
+        ai_green_line: greenLine
       })
 
       // Update local state
-      setResponses(prev => new Map(prev).set(currentQuestion.id, option.value))
+      setResponses(prev => new Map(prev).set(currentQuestion.id, score))
 
       // Refresh progress
       const progressData = await fetchAssessmentProgress(assessmentId)
       setProgress(progressData)
 
-      // Auto-advance to next question after short delay
-      setTimeout(() => {
-        handleNext()
-      }, 500)
+      // Hide custom input, show success
+      setShowCustomInput(false)
+      setCustomResponse('')
 
     } catch (error) {
-      console.error('Failed to save response:', error)
+      console.error('Failed to score custom response:', error)
+      // Could show error message to user
     } finally {
-      setIsSaving(false)
+      setIsScoring(false)
     }
   }
 
@@ -142,12 +211,10 @@ export default function AssessmentPage() {
     if (currentQuestionIndex < filteredQuestions.length - 1) {
       // Next question in current category
       setCurrentQuestionIndex(prev => prev + 1)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else if (currentCategoryIndex < orderedAssessmentQuestions.length - 1) {
       // Next category
       setCurrentCategoryIndex(prev => prev + 1)
       setCurrentQuestionIndex(0)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
       // Assessment complete
       handleComplete()
@@ -159,7 +226,6 @@ export default function AssessmentPage() {
     if (currentQuestionIndex > 0) {
       // Previous question in current category
       setCurrentQuestionIndex(prev => prev - 1)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else if (currentCategoryIndex > 0) {
       // Previous category
       const prevCategoryIndex = currentCategoryIndex - 1
@@ -170,7 +236,6 @@ export default function AssessmentPage() {
       
       setCurrentCategoryIndex(prevCategoryIndex)
       setCurrentQuestionIndex(prevQuestions.length - 1)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
@@ -181,7 +246,6 @@ export default function AssessmentPage() {
     try {
       await completeAssessment(assessmentId)
       setIsComplete(true)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
       
       // If in intensive mode, mark assessment as complete
       if (isIntensiveMode) {
@@ -324,7 +388,6 @@ export default function AssessmentPage() {
                         onClick={() => {
                           setCurrentCategoryIndex(index)
                           setCurrentQuestionIndex(0)
-                          window.scrollTo({ top: 0, behavior: 'smooth' })
                         }}
                         className={`
                           w-full flex items-center gap-3 p-3 rounded-lg transition-all
@@ -468,6 +531,46 @@ export default function AssessmentPage() {
                   )
                 })}
               </div>
+
+              {/* Custom Response Input */}
+              {showCustomInput && (
+                <div className="mt-6 p-6 bg-neutral-800/50 border-2 border-primary-500/30 rounded-xl">
+                  <h4 className="text-lg font-semibold text-white mb-4">
+                    Share your own response:
+                  </h4>
+                  
+                  <textarea
+                    value={customResponse}
+                    onChange={(e) => setCustomResponse(e.target.value)}
+                    placeholder="Type response here..."
+                    className="w-full p-4 bg-neutral-900 border border-neutral-600 rounded-lg text-white placeholder-neutral-400 resize-none"
+                    rows={4}
+                    disabled={isScoring}
+                  />
+                  
+                  <div className="flex items-center justify-between mt-4">
+                    <button
+                      onClick={() => {
+                        setShowCustomInput(false)
+                        setCustomResponse('')
+                      }}
+                      className="text-sm text-neutral-400 hover:text-neutral-300 transition-colors"
+                      disabled={isScoring}
+                    >
+                      Cancel
+                    </button>
+                    
+                    <Button
+                      onClick={handleCustomResponse}
+                      loading={isScoring}
+                      disabled={!customResponse.trim() || isScoring}
+                      className="px-6"
+                    >
+                      {isScoring ? 'Analyzing...' : 'Submit Response'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </Card>
 
             {/* Navigation */}
@@ -488,7 +591,7 @@ export default function AssessmentPage() {
               <Button
                 variant="primary"
                 onClick={handleNext}
-                disabled={!selectedValue || isSaving}
+                disabled={!selectedValue}
               >
                 {currentCategoryIndex === orderedAssessmentQuestions.length - 1 &&
                 currentQuestionIndex === filteredQuestions.length - 1

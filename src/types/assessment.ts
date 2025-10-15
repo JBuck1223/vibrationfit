@@ -20,9 +20,10 @@ export type GreenLineStatus = 'above' | 'neutral' | 'below'
 
 export interface AssessmentOption {
   text: string
-  value: ResponseValue
+  value: ResponseValue | 0
   emoji?: string
   greenLine: GreenLineStatus
+  isCustom?: boolean
 }
 
 export interface ConditionalLogic {
@@ -53,6 +54,9 @@ export interface AssessmentResponse {
   response_text: string
   category: AssessmentCategory
   answered_at: Date
+  is_custom_response?: boolean
+  ai_score?: ResponseValue
+  ai_green_line?: GreenLineStatus
 }
 
 export interface CategoryScore {

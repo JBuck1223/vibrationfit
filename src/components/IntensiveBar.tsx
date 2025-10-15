@@ -93,17 +93,44 @@ export function IntensiveBar() {
 
       if (!checklist) { setLoading(false); return }
 
+      // Auto-mark profile step complete when a profile version reaches 100%
+      if (!checklist.profile_completed) {
+        const { data: latestVersion } = await supabase
+          .from('profile_versions')
+          .select('completion_percentage')
+          .eq('user_id', user.id)
+          .order('version_number', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (latestVersion && latestVersion.completion_percentage === 100) {
+          await supabase
+            .from('intensive_checklist')
+            .update({ profile_completed: true, profile_completed_at: new Date().toISOString() })
+            .eq('intensive_id', intensive.id)
+          // Re-fetch checklist after update
+          const { data: refreshed } = await supabase
+            .from('intensive_checklist')
+            .select('*')
+            .eq('intensive_id', intensive.id)
+            .maybeSingle()
+          if (refreshed) {
+            Object.assign(checklist, refreshed)
+          }
+        }
+      }
+
       const s: Step[] = [
         { id: 'profile', title: 'Profile', href: '/profile/edit?intensive=true', completed: !!checklist.profile_completed, locked: false },
         { id: 'assessment', title: 'Assessment', href: '/assessment?intensive=true', completed: !!checklist.assessment_completed, locked: !checklist.profile_completed },
-        { id: 'call', title: 'Book Call', href: '/intensive/schedule-call', completed: !!checklist.call_scheduled, locked: !checklist.assessment_completed },
-        { id: 'build', title: 'Build Vision', href: '/vision/build?intensive=true', completed: !!checklist.vision_built, locked: !checklist.call_scheduled },
+        { id: 'call', title: 'Book Call', href: '/intensive/schedule-call', completed: !!checklist.call_booked, locked: !checklist.assessment_completed },
+        { id: 'build', title: 'Build Vision', href: '/vision/build?intensive=true', completed: !!checklist.vision_built, locked: !checklist.call_booked },
         { id: 'refine', title: 'Refine', href: '/intensive/refine-vision', completed: !!checklist.vision_refined, locked: !checklist.vision_built },
         { id: 'audio', title: 'Audio', href: '/life-vision?intensive=true&action=audio', completed: !!checklist.audio_generated, locked: !checklist.vision_refined },
         { id: 'board', title: 'Vision Board', href: '/vision-board?intensive=true', completed: !!checklist.vision_board_completed, locked: !checklist.vision_refined },
         { id: 'journal', title: 'Journal', href: '/journal/new?intensive=true', completed: !!checklist.first_journal_entry, locked: !checklist.vision_board_completed },
-        { id: 'call_prep', title: 'Call Prep', href: '/intensive/call-prep', completed: !!checklist.calibration_call_completed, locked: !checklist.first_journal_entry },
-        { id: 'activate', title: 'Activate', href: '/intensive/activation-protocol', completed: !!checklist.activation_protocol_completed, locked: !checklist.calibration_call_completed },
+        { id: 'call_prep', title: 'Call Prep', href: '/intensive/call-prep', completed: !!checklist.calibration_attended, locked: !checklist.first_journal_entry },
+        { id: 'activate', title: 'Activate', href: '/intensive/activation-protocol', completed: !!checklist.activation_protocol_completed, locked: !checklist.calibration_attended },
       ]
 
       const done = s.filter(x => x.completed).length
@@ -124,9 +151,21 @@ export function IntensiveBar() {
       <div className="w-full px-4 py-3">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Badge variant="premium" className="bg-purple-600/20 text-purple-300 border-purple-500/30">
-              <Clock className="w-4 h-4 mr-1" /> Activation Intensive
-            </Badge>
+            <button
+              type="button"
+              onClick={() => router.push('/intensive/dashboard')}
+              className="group inline-flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500/60 focus:ring-offset-2 focus:ring-offset-black transition-transform duration-200 hover:-translate-y-0.5"
+              aria-label="Open Intensive Dashboard"
+              title="Open Intensive Dashboard"
+            >
+              <Badge 
+                variant="premium" 
+                className="bg-purple-600/20 text-purple-300 border-purple-500/30 group-hover:bg-purple-600/30 group-hover:border-purple-400/40"
+              >
+                <Clock className="w-4 h-4 mr-1" /> Activation Intensive · Dashboard
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Badge>
+            </button>
             {timeRemaining && (
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-neutral-400" />

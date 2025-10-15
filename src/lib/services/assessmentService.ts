@@ -148,6 +148,9 @@ export async function saveResponse(responseData: {
   response_text: string
   response_emoji?: string
   green_line: 'above' | 'neutral' | 'below'
+  is_custom_response?: boolean
+  ai_score?: number
+  ai_green_line?: 'above' | 'neutral' | 'below'
 }): Promise<{ response: AssessmentResponse }> {
   const response = await fetch('/api/assessment/responses', {
     method: 'POST',
