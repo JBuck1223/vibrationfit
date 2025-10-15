@@ -81,6 +81,7 @@ export default function LoginPage() {
         console.log('✅ Auth email sent successfully:', data)
         setMagicLinkSent(true)
         setMagicLinkLoading(false)
+        setShowCodeEntry(true) // Show code entry after email is sent
       }
     } catch (err) {
       console.error('❌ Unexpected error:', err)
@@ -183,7 +184,7 @@ export default function LoginPage() {
 
             {magicLinkSent && (
               <div className="bg-primary-500/10 border border-primary-500 text-primary-500 px-4 py-3 rounded-lg">
-                ✨ Auth email sent! Check your email for the magic link and verification code.
+                ✨ Magic link sent! Click the link in your email, or enter the 6-digit code below.
               </div>
             )}
 
@@ -207,20 +208,8 @@ export default function LoginPage() {
               onClick={handleSendAuth}
               className="w-full"
             >
-              {magicLinkLoading ? 'Sending...' : 'Send Auth Email'}
+              {magicLinkLoading ? 'Sending...' : 'Send Magic Link'}
             </Button>
-
-            {magicLinkSent && !showCodeEntry && (
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setShowCodeEntry(true)}
-                  className="text-sm text-primary-500 hover:text-primary-400 underline"
-                >
-                  Having trouble with the link? Enter code instead
-                </button>
-              </div>
-            )}
 
             {showCodeEntry && (
               <div className="space-y-3">
