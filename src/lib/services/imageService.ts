@@ -1,8 +1,9 @@
 // /src/lib/services/imageService.ts
-// DALL-E image generation for vision boards and journal entries
+// VIVA image generation for vision boards and journal entries
 
 import OpenAI from 'openai'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
+import { createClient } from '@/lib/supabase/server'
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -26,6 +27,7 @@ export interface GenerateImageResult {
   imageUrl?: string
   revisedPrompt?: string
   tokensUsed?: number
+  galleryId?: string // ID of saved gallery entry
   error?: string
 }
 
@@ -104,11 +106,31 @@ export async function generateImage({
       quality,
     })
 
+    // Save to gallery (S3 + database)
+    let galleryId: string | undefined
+    try {
+      galleryId = await saveImageToGallery({
+        userId,
+        imageUrl,
+        prompt,
+        revisedPrompt,
+        size,
+        quality,
+        style,
+        context,
+      })
+      console.log('✅ Image saved to gallery:', galleryId)
+    } catch (error) {
+      console.error('⚠️ Failed to save image to gallery:', error)
+      // Don't fail the whole operation if gallery save fails
+    }
+
     return {
       success: true,
       imageUrl,
       revisedPrompt,
       tokensUsed: 1, // 1 image = 1 token equivalent
+      galleryId,
     }
 
   } catch (error: any) {
@@ -120,6 +142,7 @@ export async function generateImage({
       action_type: 'image_generation',
       model_used: 'dall-e-3',
       tokens_used: 0,
+      cost_estimate: 0,
       success: false,
       error_message: error.message || 'Failed to generate image',
       metadata: {
@@ -198,6 +221,93 @@ Style: Contemplative, artistic, emotionally resonant. Abstract or symbolic image
     style: 'natural',
     context: 'journal',
   })
+}
+
+// ============================================================================
+// GALLERY FUNCTIONS
+// ============================================================================
+
+interface SaveImageToGalleryParams {
+  userId: string
+  imageUrl: string
+  prompt: string
+  revisedPrompt?: string
+  size: string
+  quality: string
+  style: string
+  context: string
+}
+
+/**
+ * Save generated image to S3 and database gallery
+ */
+async function saveImageToGallery({
+  userId,
+  imageUrl,
+  prompt,
+  revisedPrompt,
+  size,
+  quality,
+  style,
+  context,
+}: SaveImageToGalleryParams): Promise<string> {
+  try {
+    // Download the image from provider
+    const imageResponse = await fetch(imageUrl)
+    if (!imageResponse.ok) {
+      throw new Error('Failed to download image from OpenAI')
+    }
+    
+    const imageBuffer = await imageResponse.arrayBuffer()
+    const imageData = new Uint8Array(imageBuffer)
+    
+    // Generate S3 key
+    const timestamp = Date.now()
+    const randomId = Math.random().toString(36).substring(2, 8)
+    const fileName = `${timestamp}-${randomId}-generated.png`
+    const s3Key = `user-uploads/${userId}/vision-board/generated/${fileName}`
+    
+    // Upload to S3 using the existing storage service
+    const { uploadUserFile } = await import('@/lib/storage/s3-storage-presigned')
+    
+    const file = new File([imageData], fileName, { type: 'image/png' })
+    const uploadResult = await uploadUserFile('visionBoardGenerated', file, userId)
+    
+    if (!uploadResult.url) {
+      throw new Error('Failed to upload image to S3')
+    }
+    
+    // Save to database
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('generated_images')
+      .insert({
+        user_id: userId,
+        image_url: uploadResult.url,
+        s3_key: s3Key,
+        file_name: fileName,
+        file_size: imageData.length,
+        mime_type: 'image/png',
+        prompt,
+        revised_prompt: revisedPrompt,
+        style_used: style,
+        size,
+        quality,
+        context,
+      })
+      .select('id')
+      .single()
+    
+    if (error) {
+      throw new Error(`Database error: ${error.message}`)
+    }
+    
+    return data.id
+    
+  } catch (error) {
+    console.error('❌ Failed to save image to gallery:', error)
+    throw error
+  }
 }
 
 // ============================================================================

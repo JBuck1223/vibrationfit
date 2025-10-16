@@ -278,10 +278,9 @@ export function AIImageGenerator({
             <Button
               onClick={handleGenerate}
               disabled={
-                generating || 
+                generating ||
                 (type === 'vision_board' && !visionText) ||
-                (type === 'journal' && !journalText) ||
-                (type === 'custom' && !prompt.trim())
+                (type === 'journal' && !journalText)
               }
               className="flex-1"
               variant="primary"

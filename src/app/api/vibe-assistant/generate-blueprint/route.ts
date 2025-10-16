@@ -437,6 +437,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           action_type: 'blueprint_generation',
           model_used: GPT_MODEL,
           tokens_used: 0,
+          cost_estimate: 0,
           success: false,
           error_message: error instanceof Error ? error.message : 'Unknown error',
           metadata: {

@@ -17,6 +17,8 @@ import {
   FileText,
   Users,
   HelpCircle,
+  Calendar,
+  CheckCircle,
   Rocket
 } from 'lucide-react'
 
@@ -28,29 +30,71 @@ export function Footer({ className = '' }: FooterProps) {
   // Use static year to avoid hydration mismatch
   const currentYear = 2024
 
-  const mainLinks = [
+  // Complete sitemap organized by functionality
+  const coreLinks = [
     { href: '/', label: 'Home', icon: Home },
     { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
+    { href: '/profile', label: 'Profile', icon: User },
+    { href: '/profile/edit', label: 'Edit Profile', icon: Settings },
+  ]
+
+  const visionLinks = [
     { href: '/life-vision', label: 'Life Visions', icon: Eye },
     { href: '/life-vision/new', label: 'New Life Vision', icon: Plus },
-    { href: '/actualization-blueprints', label: 'Blueprints', icon: Rocket },
+    { href: '/life-vision/create-with-viva', label: 'Create with VIVA', icon: Zap },
+    { href: '/vision/build', label: 'Build Your Vision', icon: Eye },
     { href: '/vision-board', label: 'Vision Board', icon: Star },
     { href: '/vision-board/new', label: 'Add Creation', icon: Plus },
+    { href: '/vision-board/gallery', label: 'Vision Gallery', icon: Star },
+    { href: '/actualization-blueprints', label: 'Blueprints', icon: Rocket },
+  ]
+
+  const intensiveLinks = [
+    { href: '/intensive/dashboard', label: 'Activation Intensive', icon: Rocket },
+    { href: '/assessment', label: 'Vibration Assessment', icon: FileText },
+    { href: '/intensive/schedule-call', label: 'Schedule Call', icon: Calendar },
+    { href: '/intensive/call-prep', label: 'Call Prep', icon: FileText },
+    { href: '/intensive/refine-vision', label: 'Refine Vision', icon: Eye },
+    { href: '/intensive/activation-protocol', label: 'Activation Protocol', icon: Zap },
+  ]
+
+  const journalLinks = [
     { href: '/journal', label: 'Journal', icon: FileText },
     { href: '/journal/new', label: 'New Entry', icon: Plus },
+  ]
+
+  const dashboardLinks = [
+    { href: '/dashboard/tokens', label: 'My Tokens', icon: Zap },
+    { href: '/dashboard/add-tokens', label: 'Add Tokens', icon: Plus },
+    { href: '/dashboard/storage', label: 'Storage', icon: FileText },
+    { href: '/dashboard/activity', label: 'Activity', icon: BarChart3 },
+    { href: '/dashboard/vibe-assistant-usage', label: 'Vibe Assistant', icon: MessageCircle },
+  ]
+
+  const billingLinks = [
+    { href: '/pricing', label: 'Pricing', icon: Star },
+    { href: '/pricing-hormozi', label: 'Hormozi Pricing', icon: Rocket },
+    { href: '/billing', label: 'Billing', icon: FileText },
+    { href: '/billing/success', label: 'Billing Success', icon: CheckCircle },
   ]
 
   const authLinks = [
     { href: '/auth/login', label: 'Login', icon: User },
     { href: '/auth/signup', label: 'Signup', icon: User },
-    { href: '/auth/logout', label: 'Logout', icon: User },
+    { href: '/auth/verify', label: 'Verify', icon: CheckCircle },
+    { href: '/auth/setup-password', label: 'Setup Password', icon: Settings },
+  ]
+
+  const adminLinks = [
+    { href: '/admin/users', label: 'Users', icon: Users },
+    { href: '/admin/ai-models', label: 'AI Models', icon: Zap },
+    { href: '/admin/token-usage', label: 'Token Usage', icon: BarChart3 },
   ]
 
   const devLinks = [
     { href: '/design-system', label: 'Design System', icon: Palette },
-    { href: '/docs', label: 'Documentation', icon: BookOpen },
-    { href: '/api', label: 'API Routes', icon: Zap },
-    { href: '/test', label: 'Test Pages', icon: HelpCircle },
+    { href: '/test-recording', label: 'Test Recording', icon: HelpCircle },
+    { href: '/debug/email', label: 'Debug Email', icon: MessageCircle },
   ]
 
   const futureLinks = [
@@ -89,66 +133,39 @@ export function Footer({ className = '' }: FooterProps) {
   return (
     <footer className={`bg-neutral-900 border-t border-neutral-800 ${className}`}>
       <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-          {/* Brand Section */}
-          <div className="lg:col-span-1">
-            <div className="flex items-center space-x-2 mb-4">
-              <Image
-                src={ASSETS.brand.logoWhite}
-                alt="VibrationFit"
-                width={120}
-                height={24}
-                className="h-6 w-auto"
-              />
-            </div>
-            <p className="text-neutral-400 text-sm mb-4">
-              The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.
-            </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-neutral-400 hover:text-primary-500 transition-colors">
-                <Heart className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-neutral-400 hover:text-primary-500 transition-colors">
-                <Star className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-neutral-400 hover:text-primary-500 transition-colors">
-                <MessageCircle className="w-5 h-5" />
-              </a>
-            </div>
+        {/* Brand Section */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <Image
+              src={ASSETS.brand.logoWhite}
+              alt="VibrationFit"
+              width={120}
+              height={24}
+              className="h-6 w-auto"
+            />
           </div>
-
-          {/* Main Navigation */}
-          <LinkGroup title="Main Pages" links={mainLinks} />
-
-          {/* Authentication */}
-          <LinkGroup title="Authentication" links={authLinks} />
-
-          {/* Development */}
-          <LinkGroup title="Development" links={devLinks} />
+          <p className="text-neutral-400 text-sm mb-4">
+            The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.
+          </p>
         </div>
 
-        {/* Future Features Section */}
+        {/* Complete Sitemap */}
         <div className="border-t border-neutral-800 pt-8 mb-8">
-          <h3 className="text-sm font-semibold text-neutral-200 mb-4">🚧 Coming Soon</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {futureLinks.map((link) => {
-              const Icon = link.icon
-              return (
-                <Link 
-                  key={link.href}
-                  href={link.href}
-                  className="flex items-center space-x-2 text-neutral-500 hover:text-secondary-500 transition-colors text-sm opacity-60 hover:opacity-100"
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{link.label}</span>
-                </Link>
-              )
-            })}
+          <h3 className="text-lg font-semibold text-neutral-200 mb-6 text-center">Complete Sitemap</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+            <LinkGroup title="Core" links={coreLinks} />
+            <LinkGroup title="Vision & Creation" links={visionLinks} />
+            <LinkGroup title="Activation Intensive" links={intensiveLinks} />
+            <LinkGroup title="Journal" links={journalLinks} />
+            <LinkGroup title="Dashboard Tools" links={dashboardLinks} />
+            <LinkGroup title="Billing & Pricing" links={billingLinks} />
+            <LinkGroup title="Authentication" links={authLinks} />
+            <LinkGroup title="Admin" links={adminLinks} />
+            <LinkGroup title="Development" links={devLinks} />
           </div>
         </div>
 
-        {/* Development Status */}
+        {/* Footer Bottom */}
         <div className="border-t border-neutral-800 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-neutral-500 text-sm">
@@ -161,21 +178,6 @@ export function Footer({ className = '' }: FooterProps) {
                 <span className="text-primary-500">Active Development</span>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Quick Dev Info */}
-        <div className="border-t border-neutral-800 pt-4 mt-4">
-          <div className="text-xs text-neutral-600 text-center">
-            <p>
-              <strong>Dev Mode:</strong> This footer includes all current and planned routes for easy navigation during development.
-            </p>
-            <p className="mt-1">
-              Last updated: December 2024 | 
-              <Link href="/design-system" className="text-primary-500 hover:text-primary-400 ml-1">
-                View Design System
-              </Link>
-            </p>
           </div>
         </div>
       </div>

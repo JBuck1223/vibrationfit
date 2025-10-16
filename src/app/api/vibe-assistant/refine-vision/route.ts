@@ -6,7 +6,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
+import { deductTokens } from '@/lib/tokens/token-tracker'
 import { getVisionCategoryServer } from '@/lib/design-system/vision-categories-server'
+import { estimateTokens, checkVibeAssistantAllowanceServer, decrementVibeAssistantAllowance, logVibeAssistantUsage, calculateCost, VIBE_ASSISTANT_OPERATIONS } from '@/lib/vibe-assistant/allowance'
 
 // Initialize OpenAI client (only if API key is available)
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
@@ -15,6 +17,22 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 
 // Use the most current and capable GPT model available
 const GPT_MODEL = 'gpt-5' // Latest GPT-5 model with advanced reasoning and creativity
+
+// Tonality options for refinement
+const TONALITY_OPTIONS = {
+  ENCOURAGING: 'encouraging',
+  CHALLENGING: 'challenging', 
+  BALANCED: 'balanced',
+  CELEBRATORY: 'celebratory'
+} as const
+
+// Emotional intensity options
+const EMOTIONAL_INTENSITY = {
+  GENTLE: 'gentle',
+  MODERATE: 'moderate',
+  INTENSE: 'intense',
+  TRANSFORMATIVE: 'transformative'
+} as const
 
 // Use centralized vision categories as const
 

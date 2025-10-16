@@ -258,12 +258,20 @@ export default function VisionBoardPage() {
               <h1 className="text-4xl font-bold mb-2">🎯 Vision Board</h1>
               <p className="text-secondary-500">Visualize and track your conscious creations</p>
             </div>
-            <Button asChild>
-              <Link href="/vision-board/new">
-                <Plus className="w-5 h-5 mr-2" />
-                Add Creation
-              </Link>
-            </Button>
+            <div className="flex gap-3">
+              <Button asChild>
+                <Link href="/vision-board/new">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add Creation
+                </Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link href="/vision-board/gallery">
+                  <Eye className="w-5 h-5 mr-2" />
+                  Gallery
+                </Link>
+              </Button>
+            </div>
           </div>
 
           {/* Stats */}

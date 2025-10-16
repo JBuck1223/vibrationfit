@@ -15,6 +15,8 @@ import {
   saveResponse,
   fetchAssessmentProgress,
   completeAssessment,
+  fetchAssessments,
+  fetchAssessment,
   AssessmentProgress
 } from '@/lib/services/assessmentService'
 import ResultsSummary from './components/ResultsSummary'
@@ -85,13 +87,51 @@ export default function AssessmentPage() {
           setProfile(profileData)
         }
 
-        // Create new assessment
-        const { assessment } = await createAssessment()
-        setAssessmentId(assessment.id)
-
-        // Fetch initial progress
-        const progressData = await fetchAssessmentProgress(assessment.id)
-        setProgress(progressData)
+        // Check for existing incomplete assessments first
+        const { assessments } = await fetchAssessments()
+        const incompleteAssessment = assessments.find(a => a.status === 'in_progress')
+        
+        if (incompleteAssessment) {
+          // Resume existing assessment
+          setAssessmentId(incompleteAssessment.id)
+          const progressData = await fetchAssessmentProgress(incompleteAssessment.id)
+          setProgress(progressData)
+          
+          // Load existing responses
+          const { responses } = await fetchAssessment(incompleteAssessment.id, { includeResponses: true })
+          if (responses) {
+            const responseMap = new Map<string, number>()
+            responses.forEach(response => {
+              responseMap.set(response.question_id, response.response_value)
+            })
+            setResponses(responseMap)
+            
+            // Find the current position (first unanswered question)
+            let foundPosition = false
+            for (let catIndex = 0; catIndex < orderedAssessmentQuestions.length && !foundPosition; catIndex++) {
+              const cat = orderedAssessmentQuestions[catIndex]
+              const catQuestions = profile 
+                ? filterQuestionsByProfile(cat.questions, profile)
+                : cat.questions
+              
+              for (let qIndex = 0; qIndex < catQuestions.length; qIndex++) {
+                const question = catQuestions[qIndex]
+                if (!responseMap.has(question.id)) {
+                  setCurrentCategoryIndex(catIndex)
+                  setCurrentQuestionIndex(qIndex)
+                  foundPosition = true
+                  break
+                }
+              }
+            }
+          }
+        } else {
+          // Create new assessment
+          const { assessment } = await createAssessment()
+          setAssessmentId(assessment.id)
+          const progressData = await fetchAssessmentProgress(assessment.id)
+          setProgress(progressData)
+        }
 
       } catch (error) {
         console.error('Failed to initialize assessment:', error)
