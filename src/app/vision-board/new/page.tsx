@@ -340,11 +340,12 @@ export default function NewVisionBoardItemPage() {
                   <AIImageGenerator
                     type="vision_board"
                     onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
-                    initialPrompt={
+                    visionText={
                       formData.name && formData.description
                         ? `${formData.name}. ${formData.description}`
                         : formData.description || formData.name || ''
                     }
+                    category={formData.categories[0] || 'General'} // Use first selected category
                   />
                 )}
               </div>

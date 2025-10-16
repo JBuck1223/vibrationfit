@@ -358,11 +358,12 @@ export default function NewJournalEntryPage() {
                   <AIImageGenerator
                     type="journal"
                     onImageGenerated={(url) => setAiGeneratedImageUrls([url])}
-                    initialPrompt={
+                    journalText={
                       formData.title && formData.content
                         ? `${formData.title}. ${formData.content}`
                         : formData.content || formData.title || ''
                     }
+                    mood={formData.entryType} // Use entry type as mood
                   />
                 )}
               </div>

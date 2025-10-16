@@ -13,13 +13,23 @@ interface AIImageGeneratorProps {
   type: 'vision_board' | 'journal'
   initialPrompt?: string
   className?: string
+  // Vision board specific props
+  visionText?: string
+  category?: string
+  // Journal specific props
+  journalText?: string
+  mood?: string
 }
 
 export function AIImageGenerator({ 
   onImageGenerated, 
   type, 
   initialPrompt = '',
-  className = ''
+  className = '',
+  visionText,
+  category,
+  journalText,
+  mood
 }: AIImageGeneratorProps) {
   const [prompt, setPrompt] = useState(initialPrompt)
   const [generating, setGenerating] = useState(false)
@@ -27,24 +37,48 @@ export function AIImageGenerator({
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null)
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      toast.error('Please enter a description')
-      return
+    if (type === 'vision_board') {
+      if (!visionText || !category) {
+        toast.error('Vision text and category are required for vision board generation')
+        return
+      }
+    } else if (type === 'journal') {
+      if (!journalText) {
+        toast.error('Journal text is required for journal image generation')
+        return
+      }
+    } else {
+      if (!prompt.trim()) {
+        toast.error('Please enter a description')
+        return
+      }
     }
 
     setGenerating(true)
 
     try {
+      const requestBody: any = {
+        type,
+        quality: 'standard',
+        size: type === 'vision_board' ? '1792x1024' : '1024x1024',
+        style: 'vivid',
+      }
+
+      // Add type-specific parameters
+      if (type === 'vision_board') {
+        requestBody.visionText = visionText
+        requestBody.category = category
+      } else if (type === 'journal') {
+        requestBody.journalText = journalText
+        requestBody.mood = mood
+      } else {
+        requestBody.prompt = prompt.trim()
+      }
+
       const response = await fetch('/api/images/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: prompt.trim(),
-          type,
-          quality: 'standard',
-          size: type === 'vision_board' ? '1792x1024' : '1024x1024',
-          style: 'vivid',
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
@@ -107,18 +141,49 @@ export function AIImageGenerator({
 
       {!generatedImage ? (
         <>
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe the image you want to create... (e.g., 'A peaceful mountain landscape at sunrise with vibrant colors, inspiring and uplifting')"
-            className="mb-4 min-h-[120px]"
-            disabled={generating}
-          />
+          {type === 'vision_board' ? (
+            <div className="mb-4 p-4 bg-primary-500/10 rounded-lg border border-primary-500/20">
+              <p className="text-sm text-primary-400 mb-2">
+                <strong>Vision Board Generation:</strong>
+              </p>
+              <p className="text-sm text-neutral-300 mb-2">
+                <strong>Category:</strong> {category || 'Not selected'}
+              </p>
+              <p className="text-sm text-neutral-300">
+                <strong>Vision Text:</strong> {visionText || 'Not provided'}
+              </p>
+            </div>
+          ) : type === 'journal' ? (
+            <div className="mb-4 p-4 bg-secondary-500/10 rounded-lg border border-secondary-500/20">
+              <p className="text-sm text-secondary-400 mb-2">
+                <strong>Journal Image Generation:</strong>
+              </p>
+              <p className="text-sm text-neutral-300 mb-2">
+                <strong>Mood:</strong> {mood || 'Not specified'}
+              </p>
+              <p className="text-sm text-neutral-300">
+                <strong>Journal Text:</strong> {journalText || 'Not provided'}
+              </p>
+            </div>
+          ) : (
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe the image you want to create... (e.g., 'A peaceful mountain landscape at sunrise with vibrant colors, inspiring and uplifting')"
+              className="mb-4 min-h-[120px]"
+              disabled={generating}
+            />
+          )}
 
           <div className="flex gap-3">
             <Button
               onClick={handleGenerate}
-              disabled={generating || !prompt.trim()}
+              disabled={
+                generating || 
+                (type === 'vision_board' && (!visionText || !category)) ||
+                (type === 'journal' && !journalText) ||
+                (type === 'custom' && !prompt.trim())
+              }
               className="flex-1"
               variant="primary"
             >
