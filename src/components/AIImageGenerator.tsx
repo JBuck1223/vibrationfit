@@ -70,10 +70,10 @@ export function AIImageGenerator({
       icon: '🧩'
     },
     {
-      id: 'vision_board_collage',
-      name: 'Vision Board Style',
-      description: 'Collage with floating elements - classic vision board look',
-      prompt: 'Vision board collage style, floating symbolic objects, soft depth-of-field, inspirational composition.',
+      id: 'symbolic_collage',
+      name: 'Symbolic Collage',
+      description: 'Floating elements and symbols - great for multi-concept goals',
+      prompt: 'Symbolic collage style, floating objects and symbols, soft depth-of-field, inspirational composition.',
       icon: '🪄'
     },
     {
@@ -306,7 +306,7 @@ export function AIImageGenerator({
               <br />• <strong>Photorealistic</strong> - For travel destinations, real places, specific objects
               <br />• <strong>Cosmic Realism</strong> - For spiritual goals, transformation, energy work
               <br />• <strong>Cinematic</strong> - For emotional scenes, lifestyle goals, relationships
-              <br />• <strong>Vision Board Style</strong> - For multi-element goals, career, wealth
+              <br />• <strong>Symbolic Collage</strong> - For multi-element goals, career, wealth
               {type === 'vision_board' 
                 ? ' Images will be landscape-oriented (1792x1024).'
                 : ' Images will be square (1024x1024).'}
