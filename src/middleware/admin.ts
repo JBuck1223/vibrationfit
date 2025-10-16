@@ -22,7 +22,8 @@ const ADMIN_EMAILS = [
 ]
 
 export function isAdminRoute(pathname: string): boolean {
-  return ADMIN_ROUTES.some(route => pathname.startsWith(route))
+  // Only check for exact admin routes, not API routes
+  return ADMIN_ROUTES.some(route => pathname.startsWith(route) && !pathname.startsWith('/api/'))
 }
 
 export function isAdminEmail(email: string): boolean {

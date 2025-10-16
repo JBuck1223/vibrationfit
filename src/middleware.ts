@@ -19,8 +19,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Handle admin route protection
-  if (isAdminRoute(pathname)) {
+  // Handle admin route protection (but not for API routes)
+  if (isAdminRoute(pathname) && !pathname.startsWith('/api/')) {
     try {
       const res = NextResponse.next()
       const supabase = createServerClient(
