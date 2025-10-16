@@ -1,5 +1,5 @@
 // /src/app/api/images/generate/route.ts
-// API endpoint for DALL-E image generation
+// API endpoint for VIVA image generation
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         result = await generateImage({
           userId: user.id,
           prompt,
-          size: size || '1792x1024',
+          size: size || '1600x1200',
           quality: quality || 'standard',
           style: style || 'vivid',
           context: 'vision_board',

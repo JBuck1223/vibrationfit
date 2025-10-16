@@ -39,7 +39,7 @@ export function AIImageGenerator({
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = useState<string>('photorealistic')
 
-  // DALL-E 3 Style Options - Practical for Vision Boards
+  // VIVA Style Options - Practical for Vision Boards
   const styleOptions = [
     {
       id: 'photorealistic',
@@ -130,7 +130,7 @@ export function AIImageGenerator({
       const requestBody: any = {
         type,
         quality: 'standard',
-        size: type === 'vision_board' ? '1792x1024' : '1024x1024',
+        size: type === 'vision_board' ? '1600x1200' : '1024x1024',
         style: 'vivid',
         prompt: enhancedPrompt
       }
@@ -195,7 +195,7 @@ export function AIImageGenerator({
         </div>
         <div>
           <h3 className="text-lg font-bold text-white">Generate Image with VIVA</h3>
-          <p className="text-sm text-neutral-400">Powered by DALL-E 3</p>
+          <p className="text-sm text-neutral-400">Powered by VIVA</p>
         </div>
       </div>
 
@@ -308,7 +308,7 @@ export function AIImageGenerator({
               <br />• <strong>Cinematic</strong> - For emotional scenes, lifestyle goals, relationships
               <br />• <strong>Symbolic Collage</strong> - For multi-element goals, career, wealth
               {type === 'vision_board' 
-                ? ' Images will be landscape-oriented (1792x1024).'
+                ? ' Images will be landscape-oriented (1600x1200, 4:3).'
                 : ' Images will be square (1024x1024).'}
             </p>
           </div>
@@ -333,7 +333,7 @@ export function AIImageGenerator({
           {/* Revised Prompt (if available) */}
           {revisedPrompt && revisedPrompt !== prompt && (
             <div className="p-3 bg-neutral-900 rounded-lg border border-neutral-800">
-              <p className="text-xs font-semibold text-neutral-400 mb-1">DALL-E Enhanced Prompt:</p>
+              <p className="text-xs font-semibold text-neutral-400 mb-1">VIVA Enhanced Prompt:</p>
               <p className="text-xs text-neutral-300">{revisedPrompt}</p>
             </div>
           )}
