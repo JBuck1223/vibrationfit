@@ -37,57 +37,57 @@ export function AIImageGenerator({
   const [generating, setGenerating] = useState(false)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null)
-  const [selectedStyle, setSelectedStyle] = useState<string>('cosmic_realism')
+  const [selectedStyle, setSelectedStyle] = useState<string>('photorealistic')
 
-  // DALL-E 3 Style Options
+  // DALL-E 3 Style Options - Practical for Vision Boards
   const styleOptions = [
+    {
+      id: 'photorealistic',
+      name: 'Photorealistic',
+      description: 'Realistic photos - perfect for travel, places, objects',
+      prompt: 'Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.',
+      icon: '📸'
+    },
     {
       id: 'cosmic_realism',
       name: 'Cosmic Realism',
-      description: 'Realistic lighting with subtle starlight and energy particles',
+      description: 'Realistic with mystical energy - spiritual transformation',
       prompt: 'Cosmic realism style — realistic lighting and textures with subtle starlight, nebula glows, and energy particles.',
       icon: '⭐️'
     },
     {
       id: 'cinematic_realism',
-      name: 'Cinematic Realism',
-      description: 'Film-still vibes with emotion and atmospheric depth',
-      prompt: 'Cinematic lighting, shallow depth of field, emotional realism, atmospheric haze.',
+      name: 'Cinematic',
+      description: 'Movie-like scenes with emotional depth and atmosphere',
+      prompt: 'Cinematic lighting, shallow depth of field, emotional realism, atmospheric haze, film photography style.',
       icon: '🎬'
     },
     {
-      id: 'minimalist_line',
-      name: 'Minimalist Line Art',
-      description: 'Clean vector-style icons with modern flat design',
-      prompt: 'Modern flat icon style, minimal outlines, vector aesthetic, white background.',
+      id: 'minimalist_clean',
+      name: 'Minimalist Clean',
+      description: 'Simple, clean design - great for icons and concepts',
+      prompt: 'Minimalist design, clean lines, simple composition, white or neutral background, modern aesthetic.',
       icon: '🧩'
     },
     {
-      id: 'surreal_collage',
-      name: 'Surreal Photo Collage',
-      description: 'Vision board style with floating symbolic objects',
-      prompt: 'Photorealistic collage, floating symbolic objects, soft depth-of-field, surreal composition.',
+      id: 'vision_board_collage',
+      name: 'Vision Board Style',
+      description: 'Collage with floating elements - classic vision board look',
+      prompt: 'Vision board collage style, floating symbolic objects, soft depth-of-field, inspirational composition.',
       icon: '🪄'
     },
     {
-      id: 'modern_3d',
-      name: 'Modern 3D Render',
-      description: 'Soft CGI with elegant composition and volumetric lighting',
-      prompt: 'Soft 3D render, clay-like smooth surfaces, volumetric lighting, elegant composition.',
-      icon: '💎'
-    },
-    {
-      id: 'watercolor',
-      name: 'Watercolor Illustration',
-      description: 'Ethereal washes with gentle gradients and luminous colors',
-      prompt: 'Soft watercolor illustration, minimal outlines, luminous washes, gentle gradients.',
+      id: 'watercolor_artistic',
+      name: 'Watercolor Artistic',
+      description: 'Soft, artistic interpretation - gentle and emotional',
+      prompt: 'Soft watercolor illustration, artistic interpretation, gentle colors, flowing textures, dreamy aesthetic.',
       icon: '🌸'
     },
     {
-      id: 'energy_fields',
-      name: 'Glow & Energy Fields',
-      description: 'Particle aesthetics with cosmic energy and transformation',
-      prompt: 'Human silhouette surrounded by glowing energy field, particle light motion, ethereal background, cosmic realism style.',
+      id: 'energy_transformation',
+      name: 'Energy & Transformation',
+      description: 'Glowing energy fields - perfect for growth and change',
+      prompt: 'Glowing energy field, particle light effects, transformation energy, ethereal background, cosmic elements.',
       icon: '⚡️'
     }
   ]
@@ -302,7 +302,11 @@ export function AIImageGenerator({
 
           <div className="mt-4 p-3 bg-neutral-900 rounded-lg border border-neutral-800">
             <p className="text-xs text-neutral-400">
-              <strong>💡 Tips:</strong> Choose a style that matches your vision. Each style is optimized for DALL-E 3's strengths. 
+              <strong>💡 Style Guide:</strong> 
+              <br />• <strong>Photorealistic</strong> - For travel destinations, real places, specific objects
+              <br />• <strong>Cosmic Realism</strong> - For spiritual goals, transformation, energy work
+              <br />• <strong>Cinematic</strong> - For emotional scenes, lifestyle goals, relationships
+              <br />• <strong>Vision Board Style</strong> - For multi-element goals, career, wealth
               {type === 'vision_board' 
                 ? ' Images will be landscape-oriented (1792x1024).'
                 : ' Images will be square (1024x1024).'}
