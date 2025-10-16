@@ -4,11 +4,16 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Admin token usage API called')
+    
     // Check admin authentication
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
+    console.log('User:', user?.email, 'Auth error:', authError)
+    
     if (authError || !user) {
+      console.log('Authentication failed')
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
@@ -16,7 +21,10 @@ export async function GET(request: NextRequest) {
     const adminEmails = ['buckinghambliss@gmail.com']
     const isAdmin = adminEmails.includes(user.email || '') || user.user_metadata?.is_admin
     
+    console.log('Is admin:', isAdmin, 'Email:', user.email)
+    
     if (!isAdmin) {
+      console.log('Admin access denied')
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 

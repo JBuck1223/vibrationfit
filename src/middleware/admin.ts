@@ -10,6 +10,7 @@ const ADMIN_ROUTES = [
   '/admin',
   '/admin/ai-models',
   '/admin/users',
+  '/admin/token-usage',
   '/admin/analytics',
   '/admin/settings'
 ]

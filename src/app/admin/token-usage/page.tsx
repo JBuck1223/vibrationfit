@@ -37,10 +37,18 @@ export default function AdminTokenUsagePage() {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`/api/admin/token-usage?type=${type}&days=${days}`)
+      const response = await fetch(`/api/admin/token-usage?type=${type}&days=${days}`, {
+        credentials: 'include' // Include cookies for authentication
+      })
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch ${type} data`)
+        if (response.status === 401) {
+          throw new Error('Please log in to access admin features')
+        } else if (response.status === 403) {
+          throw new Error('Admin access required')
+        } else {
+          throw new Error(`Failed to fetch ${type} data (${response.status})`)
+        }
       }
 
       const data = await response.json()
