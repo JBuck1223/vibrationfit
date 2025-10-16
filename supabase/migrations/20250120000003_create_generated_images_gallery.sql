@@ -98,7 +98,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER IF NOT EXISTS update_generated_images_updated_at
+CREATE TRIGGER update_generated_images_updated_at
   BEFORE UPDATE ON generated_images
   FOR EACH ROW
   EXECUTE FUNCTION update_generated_images_updated_at();
