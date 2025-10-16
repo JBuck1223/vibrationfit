@@ -1,13 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminTokenSummary, getTokenUsageByUser } from '@/lib/tokens/tracking'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   try {
     console.log('Admin token usage API called')
     
     // Check admin authentication
-    const supabase = await createClient()
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set() {
+            // No-op for API routes
+          },
+          remove() {
+            // No-op for API routes
+          },
+        },
+      }
+    )
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     console.log('User:', user?.email, 'Auth error:', authError)
