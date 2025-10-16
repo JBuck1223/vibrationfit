@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     console.log('🎨 IMAGE GENERATION REQUEST:', {
       userId: user.id,
       type,
-      category,
+      prompt: prompt ? prompt.substring(0, 100) + '...' : 'No prompt',
     })
 
     let result
@@ -32,31 +32,36 @@ export async function POST(request: NextRequest) {
     // Route to appropriate generation function
     switch (type) {
       case 'vision_board':
-        if (!visionText || !category) {
+        if (!prompt) {
           return NextResponse.json(
-            { error: 'Missing visionText or category' },
+            { error: 'Missing prompt for vision board generation' },
             { status: 400 }
           )
         }
-        result = await generateVisionBoardImage({
+        result = await generateImage({
           userId: user.id,
-          visionText,
-          category,
-          style,
+          prompt,
+          size: size || '1792x1024',
+          quality: quality || 'standard',
+          style: style || 'vivid',
+          context: 'vision_board',
         })
         break
 
       case 'journal':
-        if (!journalText) {
+        if (!prompt) {
           return NextResponse.json(
-            { error: 'Missing journalText' },
+            { error: 'Missing prompt for journal generation' },
             { status: 400 }
           )
         }
-        result = await generateJournalImage({
+        result = await generateImage({
           userId: user.id,
-          journalText,
-          mood,
+          prompt,
+          size: size || '1024x1024',
+          quality: quality || 'standard',
+          style: style || 'vivid',
+          context: 'journal',
         })
         break
 
