@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -53,6 +54,28 @@ export async function POST(request: NextRequest) {
     console.log('✅ Transcription complete:', {
       duration: transcription.duration,
       wordCount: transcription.text.split(' ').length
+    })
+
+    // Track token usage for transcription
+    // Whisper pricing: $0.006 per minute of audio
+    const costInCents = Math.round(transcription.duration * 0.006 * 100) // Convert to cents
+    
+    await trackTokenUsage({
+      user_id: user.id,
+      action_type: 'audio_generation', // Using audio_generation as closest match
+      model_used: 'whisper-1',
+      tokens_used: Math.ceil(transcription.duration * 60), // Estimate tokens based on duration
+      input_tokens: Math.ceil(transcription.duration * 60),
+      output_tokens: transcription.text.split(' ').length, // Word count as output tokens
+      cost_estimate: costInCents,
+      success: true,
+      metadata: {
+        audio_duration: transcription.duration,
+        word_count: transcription.text.split(' ').length,
+        language: transcription.language,
+        file_size: audioFile.size,
+        file_type: audioFile.type
+      }
     })
 
     // Return the transcript

@@ -5,17 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
-import { 
-  checkVibeAssistantAllowanceServer,
-  decrementVibeAssistantAllowance,
-  logVibeAssistantUsage,
-  estimateTokens,
-  calculateCost,
-  VIBE_ASSISTANT_OPERATIONS,
-  TONALITY_OPTIONS,
-  EMOTIONAL_INTENSITY
-} from '@/lib/vibe-assistant/allowance'
-import { deductTokens, checkTokenBalance } from '@/lib/tokens/token-tracker'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { getVisionCategoryServer } from '@/lib/design-system/vision-categories-server'
 
 // Initialize OpenAI client (only if API key is available)

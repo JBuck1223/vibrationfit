@@ -5,14 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
-import { 
-  checkVibeAssistantAllowanceServer,
-  decrementVibeAssistantAllowance,
-  logVibeAssistantUsage,
-  estimateTokens,
-  calculateCost,
-  VIBE_ASSISTANT_OPERATIONS
-} from '@/lib/vibe-assistant/allowance'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { getVisionCategoryServer } from '@/lib/design-system/vision-categories-server'
 
 // Initialize OpenAI client
@@ -293,30 +286,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       firstChars: userPrompt.substring(0, 300)
     })
 
-    // Estimate tokens and check allowance
-    const tokenEstimate = estimateTokens(userPrompt)
-    const estimatedCost = tokenEstimate.estimatedCost
-    
-    // Check if user has sufficient allowance
-    const allowance = await checkVibeAssistantAllowanceServer(user.id)
-    if (!allowance) {
-      return NextResponse.json({
-        success: false,
-        error: 'Unable to check allowance'
-      }, { status: 500 })
-    }
-
-    if (allowance.tokensRemaining < tokenEstimate.estimatedTokens) {
-      return NextResponse.json({
-        success: false,
-        error: 'Insufficient tokens remaining',
-        allowanceInfo: {
-          tokensRemaining: allowance.tokensRemaining,
-          monthlyLimit: allowance.monthlyLimit,
-          tierName: allowance.tierName
-        }
-      }, { status: 402 })
-    }
+    // Note: Token allowance checking removed - using new tracking system
 
     // Call OpenAI API
     let completion
@@ -371,21 +341,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const blueprintContent = blueprintMatch[1].trim()
 
-    // Calculate actual usage
+    // Calculate actual usage and track tokens
     const inputTokens = completion.usage?.prompt_tokens || 0
     const outputTokens = completion.usage?.completion_tokens || 0
     const totalTokens = completion.usage?.total_tokens || 0
-    const actualCost = calculateCost(inputTokens, outputTokens)
 
-    // Decrement user allowance
-    const allowanceDecremented = await decrementVibeAssistantAllowance(
-      user.id,
-      totalTokens,
-      actualCost
-    )
-
-    if (!allowanceDecremented) {
-      console.error('Failed to decrement allowance, but proceeding with response')
+    // Track token usage
+    if (totalTokens > 0) {
+      await trackTokenUsage({
+        user_id: user.id,
+        action_type: 'blueprint_generation',
+        model_used: GPT_MODEL,
+        tokens_used: totalTokens,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        cost_estimate: 0, // Will be calculated by trackTokenUsage
+        success: true,
+        metadata: {
+          category: category,
+          vision_id: visionId,
+          focus_area: focusArea,
+          timeline: timeline,
+          priority: priority,
+          blueprint_length: blueprintContent.length,
+        },
+      })
     }
 
     // Save the blueprint to the database
@@ -416,26 +396,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Continue without saving to database
     }
 
-    // Log usage
-    const processingTime = Date.now() - startTime
-    await logVibeAssistantUsage({
-      userId: user.id,
-      visionId: visionId,
-      category: category,
-      operationType: 'generate_blueprint',
-      inputTokens,
-      outputTokens,
-      totalTokens,
-      costUsd: actualCost,
-      instructions: `Generate blueprint for ${category}${focusArea ? ` focusing on ${focusArea}` : ''}${timeline ? ` with ${timeline} timeline` : ''}`,
-      inputText: visionContent,
-      outputText: blueprintContent,
-      processingTimeMs: processingTime,
-      success: true
-    })
-
-    // Get updated allowance info
-    const updatedAllowance = await checkVibeAssistantAllowanceServer(user.id)
+    // Note: Old logging system removed - using new token tracking
 
     // Return successful response
     return NextResponse.json({
@@ -457,39 +418,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         inputTokens,
         outputTokens,
         totalTokens,
-        costUsd: actualCost,
-        remainingTokens: updatedAllowance?.tokensRemaining || 0
-      },
-      allowanceInfo: updatedAllowance ? {
-        tokensRemaining: updatedAllowance.tokensRemaining,
-        monthlyLimit: updatedAllowance.monthlyLimit,
-        tierName: updatedAllowance.tierName
-      } : undefined
+        costUsd: 0, // Cost calculated by tracking system
+        remainingTokens: 0 // Not using allowance system anymore
+      }
     })
 
   } catch (error) {
     console.error('Blueprint generation error:', error)
     
-    // Log error if we have user context
+    // Track failed usage if we have user context
     try {
       const supabase = await createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        await logVibeAssistantUsage({
-          userId: user.id,
-          category: 'unknown',
-          operationType: 'generate_blueprint',
-          inputTokens: 0,
-          outputTokens: 0,
-          totalTokens: 0,
-          costUsd: 0,
+        await trackTokenUsage({
+          user_id: user.id,
+          action_type: 'blueprint_generation',
+          model_used: GPT_MODEL,
+          tokens_used: 0,
           success: false,
-          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+          error_message: error instanceof Error ? error.message : 'Unknown error',
+          metadata: {
+            category: 'unknown',
+            operation: 'generate_blueprint',
+          },
         })
       }
     } catch (logError) {
-      console.error('Failed to log error:', logError)
+      console.error('Failed to track error:', logError)
     }
 
     return NextResponse.json({

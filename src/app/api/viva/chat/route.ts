@@ -4,7 +4,7 @@
 import { streamText } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
-import { deductTokens } from '@/lib/tokens/token-tracker'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 
 export const runtime = 'edge' // Use Edge Runtime for faster cold starts
 
@@ -93,24 +93,27 @@ export async function POST(req: Request) {
             created_at: new Date().toISOString()
           })
 
-          // NEW: Track actual token usage
+          // Track actual token usage
           if (usage) {
             const totalTokens = usage.totalTokens || usage.total_tokens || 0
             const promptTokens = usage.promptTokens || usage.prompt_tokens || 0
             const completionTokens = usage.completionTokens || usage.completion_tokens || 0
 
             if (totalTokens > 0) {
-              await deductTokens({
-                userId: user.id,
-                actionType: 'chat',
-                tokensUsed: totalTokens,
-                model: 'gpt-4-turbo',
-                promptTokens,
-                completionTokens,
+              await trackTokenUsage({
+                user_id: user.id,
+                action_type: 'chat_conversation',
+                model_used: 'gpt-4-turbo',
+                tokens_used: totalTokens,
+                input_tokens: promptTokens,
+                output_tokens: completionTokens,
+                cost_estimate: 0, // Will be calculated by trackTokenUsage
+                success: true,
                 metadata: {
                   phase: visionBuildPhase,
                   category: context?.category,
-                  messageLength: text.length,
+                  message_length: text.length,
+                  is_initial_greeting: isInitialGreeting,
                 },
               })
             }

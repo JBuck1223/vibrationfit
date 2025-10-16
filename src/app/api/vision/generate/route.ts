@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 
 export const runtime = 'nodejs'
 
@@ -138,6 +139,27 @@ Generate the vision now based on the conversation below.`
       throw new Error('No vision generated from OpenAI')
     }
 
+    // Track token usage for vision generation
+    if (completion.usage) {
+      await trackTokenUsage({
+        user_id: user.id,
+        action_type: 'vision_generation',
+        model_used: 'gpt-4',
+        tokens_used: completion.usage.total_tokens,
+        input_tokens: completion.usage.prompt_tokens,
+        output_tokens: completion.usage.completion_tokens,
+        cost_estimate: 0, // Will be calculated by trackTokenUsage
+        success: true,
+        metadata: {
+          category: category,
+          vision_id: vision_id,
+          vibrational_state: vibrational_state,
+          previous_visions_count: previousVisions.length,
+          generated_vision_length: generatedVision.length,
+        },
+      })
+    }
+
     // Save generated vision to conversation
     const { error: updateError } = await supabase
       .from('vision_conversations')
@@ -185,6 +207,26 @@ Return ONLY a JSON array of theme strings (e.g., ["freedom and autonomy", "deep 
         temperature: 0.5,
         max_tokens: 150,
       })
+
+      // Track token usage for theme detection
+      if (themeCompletion.usage) {
+        await trackTokenUsage({
+          user_id: user.id,
+          action_type: 'vision_generation',
+          model_used: 'gpt-4',
+          tokens_used: themeCompletion.usage.total_tokens,
+          input_tokens: themeCompletion.usage.prompt_tokens,
+          output_tokens: themeCompletion.usage.completion_tokens,
+          cost_estimate: 0, // Will be calculated by trackTokenUsage
+          success: true,
+          metadata: {
+            category: category,
+            vision_id: vision_id,
+            action: 'theme_detection',
+            previous_visions_count: previousVisions.length,
+          },
+        })
+      }
 
       try {
         const themesText = themeCompletion.choices[0]?.message?.content || '[]'

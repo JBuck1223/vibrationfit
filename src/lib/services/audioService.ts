@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import crypto from 'crypto'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 
 export type OpenAIVoice = 'alloy' | 'ash' | 'coral' | 'echo' | 'fable' | 'onyx' | 'nova' | 'sage' | 'shimmer'
 
@@ -32,7 +33,7 @@ export function hashContent(text: string): string {
   return crypto.createHash('sha256').update(normalized).digest('hex')
 }
 
-async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', format: 'mp3' | 'wav' = 'mp3'): Promise<Buffer> {
+async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', format: 'mp3' | 'wav' = 'mp3', userId?: string): Promise<Buffer> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured')
 
@@ -56,7 +57,32 @@ async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', 
   }
 
   const arrayBuffer = await response.arrayBuffer()
-  return Buffer.from(arrayBuffer)
+  const buffer = Buffer.from(arrayBuffer)
+
+  // Track token usage for TTS
+  if (userId) {
+    // TTS pricing: $0.015 per 1K characters
+    const costInCents = Math.round((text.length / 1000) * 0.015 * 100) // Convert to cents
+    
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'audio_generation',
+      model_used: 'tts-1',
+      tokens_used: text.length, // Character count as tokens
+      input_tokens: text.length,
+      output_tokens: 0, // TTS doesn't have output tokens
+      cost_estimate: costInCents,
+      success: true,
+      metadata: {
+        voice: voice,
+        format: format,
+        text_length: text.length,
+        audio_size_bytes: buffer.length
+      }
+    })
+  }
+
+  return buffer
 }
 
 // Split long text to safer chunks for TTS (~3k chars per chunk)
@@ -186,7 +212,7 @@ export async function generateAudioTracks(params: {
           const chunks = chunkTextForTTS(section.text)
           const buffers: Buffer[] = []
           for (const part of chunks) {
-            const b = await synthesizeWithOpenAI(part, useVoice, format)
+            const b = await synthesizeWithOpenAI(part, useVoice, format, userId)
             buffers.push(b)
           }
           audioBuffer = Buffer.concat(buffers)
@@ -265,8 +291,8 @@ export function getOpenAIVoices(): { id: OpenAIVoice; name: string; brandName: s
 }
 
 export async function synthesizePreview(voice: OpenAIVoice, format: 'mp3' | 'wav' = 'mp3'): Promise<Buffer> {
-  const sample = "We are doing this! We’re taking the initiative to have a vibration transformation in our life! The infinite part of our consciousness is always there, always excited, and elated when we acknowledge it and decide to be all that we’ve become. This is a process of discovery. We know the vibrational signature of our most satisfying life already exists. Our intention now is to tap into it and allow ourselves an unabridged look into what we’ve already become."
-  return synthesizeWithOpenAI(sample, voice, format)
+  const sample = "We are doing this! We're taking the initiative to have a vibration transformation in our life! The infinite part of our consciousness is always there, always excited, and elated when we acknowledge it and decide to be all that we've become. This is a process of discovery. We know the vibrational signature of our most satisfying life already exists. Our intention now is to tap into it and allow ourselves an unabridged look into what we've already become."
+  return synthesizeWithOpenAI(sample, voice, format, 'system') // System user for previews
 }
 
 const REFERENCE_TEXT = "This vision serves as my magnet, attracting the people, ideas, resources, strategies, events, and circumstances that orchestrate its beautiful unfolding. I hereby give the Universe full permission to open all doors leading to the joyful experience of this or something even better. Thank you in advance for this fun and satisfying journey of unlimited creation. I am truly grateful for the opportunity to be here and experience ourselves as the conscious creators of the The Life I Choose."
@@ -285,7 +311,7 @@ export async function getOrCreateVoiceReference(voice: OpenAIVoice, format: 'mp3
     const chunks = chunkTextForTTS(REFERENCE_TEXT)
     const buffers: Buffer[] = []
     for (const part of chunks) {
-      const b = await synthesizeWithOpenAI(part, voice, format)
+      const b = await synthesizeWithOpenAI(part, voice, format, 'system') // System user for voice previews
       buffers.push(b)
     }
     const audioBuffer = Buffer.concat(buffers)

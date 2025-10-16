@@ -2,7 +2,7 @@
 // DALL-E image generation for vision boards and journal entries
 
 import OpenAI from 'openai'
-import { deductTokens, TOKEN_EQUIVALENTS } from '@/lib/tokens/token-tracker'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -48,26 +48,15 @@ export async function generateImage({
       }
     }
 
-    // Calculate token cost equivalent
-    const tokenCost = quality === 'hd' 
-      ? TOKEN_EQUIVALENTS.DALLE3_HD 
-      : TOKEN_EQUIVALENTS.DALLE3_STANDARD
-
-    // Check if user has enough tokens
-    const { hasEnough, balance } = await checkBalance(userId, tokenCost)
-    
-    if (!hasEnough) {
-      return {
-        success: false,
-        error: `Insufficient tokens. Need ${tokenCost}, have ${balance}`,
-      }
-    }
+    // Calculate cost for DALL-E 3
+    // DALL-E 3 pricing: $0.040 per image (standard), $0.080 per image (HD)
+    const costInCents = quality === 'hd' ? 8 : 4 // $0.08 or $0.04 in cents
 
     console.log('🎨 DALL-E: Generating image...', {
       userId,
       size,
       quality,
-      tokenCost,
+      costInCents,
     })
 
     // Generate image with DALL-E 3
@@ -90,12 +79,16 @@ export async function generateImage({
       }
     }
 
-    // Deduct tokens
-    await deductTokens({
-      userId,
-      actionType: 'image_generation',
-      tokensUsed: tokenCost,
-      model: 'dall-e-3',
+    // Track token usage
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'image_generation',
+      model_used: 'dall-e-3',
+      tokens_used: 1, // 1 image = 1 token equivalent
+      input_tokens: prompt.length, // Character count as input tokens
+      output_tokens: 0, // Images don't have output tokens
+      cost_estimate: costInCents,
+      success: true,
       metadata: {
         context,
         prompt: prompt.substring(0, 200), // First 200 chars
@@ -107,7 +100,7 @@ export async function generateImage({
     })
 
     console.log('✅ DALL-E: Image generated successfully', {
-      tokensUsed: tokenCost,
+      costInCents,
       quality,
     })
 
@@ -115,11 +108,28 @@ export async function generateImage({
       success: true,
       imageUrl,
       revisedPrompt,
-      tokensUsed: tokenCost,
+      tokensUsed: 1, // 1 image = 1 token equivalent
     }
 
   } catch (error: any) {
     console.error('❌ DALL-E ERROR:', error)
+    
+    // Track failed usage
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'image_generation',
+      model_used: 'dall-e-3',
+      tokens_used: 0,
+      success: false,
+      error_message: error.message || 'Failed to generate image',
+      metadata: {
+        context,
+        prompt: prompt.substring(0, 200),
+        size,
+        quality,
+        style,
+      },
+    })
     
     return {
       success: false,
@@ -193,26 +203,4 @@ Style: Contemplative, artistic, emotionally resonant. Abstract or symbolic image
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-
-async function checkBalance(userId: string, tokensNeeded: number) {
-  try {
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-    
-    const { data } = await supabase
-      .from('user_profiles')
-      .select('vibe_assistant_tokens_remaining')
-      .eq('user_id', userId)
-      .single()
-    
-    const balance = data?.vibe_assistant_tokens_remaining || 0
-    
-    return {
-      hasEnough: balance >= tokensNeeded,
-      balance,
-    }
-  } catch (error) {
-    return { hasEnough: false, balance: 0 }
-  }
-}
 
