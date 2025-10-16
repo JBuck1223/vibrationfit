@@ -45,22 +45,22 @@ CREATE INDEX IF NOT EXISTS idx_generated_images_is_expired ON generated_images(i
 ALTER TABLE generated_images ENABLE ROW LEVEL SECURITY;
 
 -- Users can only see their own generated images
-CREATE POLICY IF NOT EXISTS "Users can view their own generated images" 
+CREATE POLICY "Users can view their own generated images" 
 ON generated_images FOR SELECT 
 USING (auth.uid() = user_id);
 
 -- Users can insert their own generated images
-CREATE POLICY IF NOT EXISTS "Users can create their own generated images" 
+CREATE POLICY "Users can create their own generated images" 
 ON generated_images FOR INSERT 
 WITH CHECK (auth.uid() = user_id);
 
 -- Users can update their own generated images (mark as used, etc.)
-CREATE POLICY IF NOT EXISTS "Users can update their own generated images" 
+CREATE POLICY "Users can update their own generated images" 
 ON generated_images FOR UPDATE 
 USING (auth.uid() = user_id);
 
 -- Users can delete their own generated images
-CREATE POLICY IF NOT EXISTS "Users can delete their own generated images" 
+CREATE POLICY "Users can delete their own generated images" 
 ON generated_images FOR DELETE 
 USING (auth.uid() = user_id);
 
