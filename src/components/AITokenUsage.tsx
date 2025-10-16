@@ -9,10 +9,9 @@ import { Activity, Brain, DollarSign, Zap } from 'lucide-react'
 
 interface TokenSummary {
   total_tokens: number
-  total_cost: number
   actions_count: number
-  model_breakdown: Record<string, { tokens: number; cost: number; count: number }>
-  daily_usage: Record<string, { tokens: number; cost: number; count: number }>
+  model_breakdown: Record<string, { tokens: number; count: number }>
+  daily_usage: Record<string, { tokens: number; count: number }>
 }
 
 export default function AITokenUsage() {
@@ -45,9 +44,7 @@ export default function AITokenUsage() {
     }
   }
 
-  const formatCurrency = (cents: number) => {
-    return `$${(cents / 100).toFixed(2)}`
-  }
+  // Removed cost formatting from end-user view
 
   const formatNumber = (num: number) => {
     return num.toLocaleString()
@@ -149,15 +146,7 @@ export default function AITokenUsage() {
             <div className="text-xs text-neutral-400">Total Tokens</div>
           </div>
           
-          <div className="text-center">
-            <div className="p-3 bg-green-500/20 rounded-lg inline-flex mb-2">
-              <DollarSign className="w-5 h-5 text-green-500" />
-            </div>
-            <div className="text-2xl font-bold text-white mb-1">
-              {formatCurrency(summary.total_cost)}
-            </div>
-            <div className="text-xs text-neutral-400">Total Cost</div>
-          </div>
+          {/* Cost removed from user-facing component */}
           
           <div className="text-center">
             <div className="p-3 bg-purple-500/20 rounded-lg inline-flex mb-2">
@@ -174,37 +163,50 @@ export default function AITokenUsage() {
               <Brain className="w-5 h-5 text-yellow-500" />
             </div>
             <div className="text-2xl font-bold text-white mb-1">
-              {summary.actions_count > 0 ? formatCurrency(summary.total_cost / summary.actions_count) : '$0.00'}
+              {summary.actions_count}
             </div>
-            <div className="text-xs text-neutral-400">Avg Cost/Action</div>
+            <div className="text-xs text-neutral-400">Total Actions</div>
           </div>
         </div>
 
-        {/* Model Breakdown */}
+        {/* Feature Breakdown */}
         {Object.keys(summary.model_breakdown).length > 0 && (
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-neutral-300 mb-3">Usage by Model</h4>
+            <h4 className="text-sm font-medium text-neutral-300 mb-3">Usage by VIVA Feature</h4>
             {Object.entries(summary.model_breakdown)
-              .sort(([,a], [,b]) => b.cost - a.cost)
-              .slice(0, 3) // Show top 3 models
-              .map(([model, data]) => (
-                <div key={model} className="flex items-center justify-between p-3 bg-[#1F1F1F] rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Badge variant="info" className="text-xs">{model}</Badge>
-                    <span className="text-xs text-neutral-400">
-                      {formatNumber(data.count)} actions
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-white">
-                      {formatNumber(data.tokens)} tokens
+              .sort(([,a], [,b]) => b.tokens - a.tokens)
+              .slice(0, 3) // Show top 3 features
+              .map(([model, data]) => {
+                // Map technical model names to user-friendly VIVA feature names
+                const getFeatureName = (modelName: string) => {
+                  const featureMap: Record<string, string> = {
+                    'gpt-4': 'VIVA Intelligence',
+                    'gpt-4-turbo': 'VIVA Intelligence',
+                    'gpt-5': 'VIVA Intelligence',
+                    'dall-e-3': 'VIVA Image Generation',
+                    'tts-1': 'VIVA Audio Generation',
+                    'whisper-1': 'VIVA Transcription',
+                    'admin': 'Admin Tools'
+                  }
+                  return featureMap[modelName] || 'VIVA Feature'
+                }
+                
+                return (
+                  <div key={model} className="flex items-center justify-between p-3 bg-[#1F1F1F] rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="info" className="text-xs">{getFeatureName(model)}</Badge>
+                      <span className="text-xs text-neutral-400">
+                        {formatNumber(data.count)} actions
+                      </span>
                     </div>
-                    <div className="text-xs text-green-400">
-                      {formatCurrency(data.cost)}
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-white">
+                        {formatNumber(data.tokens)} tokens
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
           </div>
         )}
       </div>

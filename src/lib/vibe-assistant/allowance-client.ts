@@ -195,22 +195,18 @@ export async function checkVibeAssistantAllowance(): Promise<VibeAssistantAllowa
       return null
     }
 
-    // Get user's profile with allowance info
+    // Source of truth: user_profiles (not profiles)
     const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .select(`
+        user_id,
         vibe_assistant_tokens_used,
         vibe_assistant_tokens_remaining,
         vibe_assistant_monthly_reset_date,
         vibe_assistant_total_cost,
-        membership_tier_id,
-        membership_tiers (
-          name,
-          monthly_vibe_assistant_tokens,
-          monthly_vibe_assistant_cost_limit
-        )
+        membership_tier_id
       `)
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (profileError) {
@@ -229,19 +225,24 @@ export async function checkVibeAssistantAllowance(): Promise<VibeAssistantAllowa
       return null
     }
 
-    const tier = profile.membership_tiers as any
-    if (!tier) {
-      console.error('No membership tier found')
-      return null
+    // Fetch membership tier info separately for consistency
+    let tier: any = null
+    if (profile.membership_tier_id) {
+      const { data: tierData } = await supabase
+        .from('membership_tiers')
+        .select('name, monthly_vibe_assistant_tokens, monthly_vibe_assistant_cost_limit')
+        .eq('id', profile.membership_tier_id)
+        .single()
+      tier = tierData || null
     }
 
     return {
-      tokensRemaining: profile.vibe_assistant_tokens_remaining || 0,
-      tokensUsed: profile.vibe_assistant_tokens_used || 0,
-      monthlyLimit: tier.monthly_vibe_assistant_tokens || 100,
-      costLimit: tier.monthly_vibe_assistant_cost_limit || 1.00,
+      tokensRemaining: (profile.vibe_assistant_tokens_remaining ?? 100),
+      tokensUsed: (profile.vibe_assistant_tokens_used ?? 0),
+      monthlyLimit: (tier?.monthly_vibe_assistant_tokens ?? 100),
+      costLimit: (tier?.monthly_vibe_assistant_cost_limit ?? 1.00),
       resetDate: profile.vibe_assistant_monthly_reset_date || new Date().toISOString(),
-      tierName: tier.name || 'Free'
+      tierName: tier?.name || 'Free'
     }
 
   } catch (error) {

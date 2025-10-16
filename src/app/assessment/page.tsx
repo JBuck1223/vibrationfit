@@ -149,6 +149,8 @@ export default function AssessmentPage() {
 
     // Handle custom response option
     if (option.isCustom) {
+      // Optimistically highlight the custom option (value 0) while showing input
+      setResponses(prev => new Map(prev).set(currentQuestion.id, 0))
       setShowCustomInput(true)
       return
     }

@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url)
     const days = parseInt(searchParams.get('days') || '30')
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
 
     // Get user's token usage summary
     const summary = await getTokenSummary(user.id, days)
@@ -23,8 +25,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch token usage' }, { status: 500 })
     }
 
+    // Get detailed usage history
+    const { data: usageHistory, error: historyError } = await supabase
+      .from('token_usage')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: false })
+
+    if (historyError) {
+      console.error('Failed to fetch usage history:', historyError)
+    }
+
     return NextResponse.json({
       summary,
+      usage: usageHistory || [],
       period_days: days,
       success: true
     })

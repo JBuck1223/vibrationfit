@@ -6,7 +6,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
-import { deductTokens } from '@/lib/tokens/token-tracker'
 import { getVisionCategoryServer } from '@/lib/design-system/vision-categories-server'
 import { estimateTokens, checkVibeAssistantAllowanceServer, decrementVibeAssistantAllowance, logVibeAssistantUsage, calculateCost, VIBE_ASSISTANT_OPERATIONS } from '@/lib/vibe-assistant/allowance'
 
@@ -440,25 +439,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const actualCost = calculateCost(inputTokens, outputTokens)
 
     // NEW: Precise token tracking with real OpenAI costs
-    await deductTokens({
-      userId: user.id,
-      actionType: 'refinement',
-      tokensUsed: totalTokens,
-      model: GPT_MODEL,
-      promptTokens: inputTokens,
-      completionTokens: outputTokens,
+    await trackTokenUsage({
+      user_id: user.id,
+      action_type: 'vision_refinement',
+      model_used: 'gpt-4',
+      tokens_used: totalTokens,
+      cost_estimate: actualCost,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      success: true,
       metadata: {
-        vision_id: visionId,
-        category,
-        tonality,
-        emotional_intensity: emotionalIntensity,
-        instruction_length: instructions?.length || 0,
-        response_length: refinedText.length,
-      },
+        visionId: visionId,
+        category: category,
+        operationType: VIBE_ASSISTANT_OPERATIONS.REFINE_VISION,
+        inputTokens,
+        outputTokens,
+        totalTokens,
+        actualCost,
+        userPrompt: userPrompt.substring(0, 100) + '...'
+      }
     })
-
-    // LEGACY: Keep old allowance system for backward compatibility (will phase out)
-    await decrementVibeAssistantAllowance(user.id, totalTokens, calculateCost(inputTokens, outputTokens))
 
     // Log usage
     const processingTime = Date.now() - startTime

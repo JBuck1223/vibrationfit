@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 export interface TokenUsage {
   id?: string
   user_id: string
-  action_type: 'assessment_scoring' | 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation'
+  action_type: 'assessment_scoring' | 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'admin_grant' | 'admin_deduct'
   model_used: string
   tokens_used: number
   cost_estimate: number // in cents
@@ -44,27 +44,110 @@ const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
 /**
  * Track token usage for an AI action
  */
-export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at'>): Promise<void> {
+export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at'>, supabaseClient?: any): Promise<void> {
   try {
-    const supabase = createClient()
+    const supabase = supabaseClient || createClient()
     
-    // Calculate cost based on model and token usage
+    // Calculate cost based on model and token usage (in cents)
     const costEstimate = calculateTokenCost(usage.model_used, usage.input_tokens || 0, usage.output_tokens || 0)
     
-    const tokenRecord: Omit<TokenUsage, 'id'> = {
-      ...usage,
-      cost_estimate: costEstimate,
-      created_at: new Date().toISOString()
+    // Determine effective tokens (use override if no input/output tokens provided)
+    let effectiveTokens = usage.tokens_used
+    if ((usage.input_tokens || 0) + (usage.output_tokens || 0) > 0) {
+      effectiveTokens = (usage.input_tokens || 0) + (usage.output_tokens || 0)
+    }
+    
+    // If still no tokens, try to get override for this action type
+    if (effectiveTokens === 0) {
+      const { data: override } = await supabase
+        .from('ai_action_token_overrides')
+        .select('token_value')
+        .eq('action_type', usage.action_type)
+        .single()
+      
+      if (override) {
+        effectiveTokens = override.token_value
+      }
     }
 
-    const { error } = await supabase
+    // 1. Insert audit trail record (for user history)
+    const { error: auditError } = await supabase
       .from('token_usage')
-      .insert(tokenRecord)
+      .insert({
+        user_id: usage.user_id,
+        action_type: usage.action_type,
+        model_used: usage.model_used,
+        tokens_used: effectiveTokens,
+        cost_estimate: Math.round(costEstimate * 100),
+        input_tokens: usage.input_tokens || 0,
+        output_tokens: usage.output_tokens || 0,
+        success: usage.success,
+        error_message: usage.error_message,
+        metadata: usage.metadata || {},
+        created_at: new Date().toISOString()
+      })
 
-    if (error) {
-      console.error('Failed to track token usage:', error)
-      // Don't throw - we don't want token tracking failures to break the main flow
+    if (auditError) {
+      console.error('Failed to insert audit trail:', auditError)
     }
+
+    // 2. Update user balance (single source of truth) - only if successful
+    if (usage.success && effectiveTokens > 0) {
+      // Get current balance first
+      const { data: currentProfile } = await supabase
+        .from('user_profiles')
+        .select('vibe_assistant_tokens_used, vibe_assistant_tokens_remaining, vibe_assistant_total_cost')
+        .eq('user_id', usage.user_id)
+        .single()
+
+      if (currentProfile) {
+        let newTokensUsed = currentProfile.vibe_assistant_tokens_used || 0
+        let newTokensRemaining = currentProfile.vibe_assistant_tokens_remaining || 0
+        
+        // Handle different action types
+        if (usage.action_type === 'admin_grant') {
+          // Admin grants: add to remaining (don't touch tokens_used)
+          newTokensRemaining += effectiveTokens
+          // Don't modify tokens_used for grants
+        } else if (usage.action_type === 'admin_deduct') {
+          // Admin deductions: subtract from remaining, add to used
+          newTokensRemaining = Math.max(0, newTokensRemaining - effectiveTokens)
+          newTokensUsed += effectiveTokens
+        } else {
+          // Regular AI usage: subtract from remaining, add to used
+          newTokensRemaining = Math.max(0, newTokensRemaining - effectiveTokens)
+          newTokensUsed += effectiveTokens
+        }
+        
+        const newTotalCost = (currentProfile.vibe_assistant_total_cost || 0) + Math.round(costEstimate * 100)
+
+        console.log('Updating user balance:', {
+          user_id: usage.user_id,
+          old_tokens_remaining: currentProfile.vibe_assistant_tokens_remaining,
+          new_tokens_remaining: newTokensRemaining,
+          old_tokens_used: currentProfile.vibe_assistant_tokens_used,
+          new_tokens_used: newTokensUsed,
+          action_type: usage.action_type,
+          effective_tokens: effectiveTokens
+        })
+
+        const { error: balanceError } = await supabase
+          .from('user_profiles')
+          .update({
+            vibe_assistant_tokens_used: newTokensUsed,
+            vibe_assistant_tokens_remaining: newTokensRemaining,
+            vibe_assistant_total_cost: newTotalCost
+          })
+          .eq('user_id', usage.user_id)
+
+        if (balanceError) {
+          console.error('Failed to update user balance:', balanceError)
+        } else {
+          console.log('User balance updated successfully')
+        }
+      }
+    }
+
   } catch (error) {
     console.error('Token tracking error:', error)
     // Silent fail - tracking shouldn't break the main functionality

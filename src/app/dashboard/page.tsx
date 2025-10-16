@@ -108,9 +108,9 @@ export default async function DashboardPage() {
   const categoryProgress = getCategoryCompletion(latestVision)
 
   // Calculate Vibe Assistant stats
-  const vibeAssistantTokensUsed = vibeAssistantData?.vibe_assistant_tokens_used || 0
-  const vibeAssistantTokensRemaining = vibeAssistantData?.vibe_assistant_tokens_remaining || 100
-  const vibeAssistantTotalCost = vibeAssistantData?.vibe_assistant_total_cost || 0
+  const vibeAssistantTokensUsed = vibeAssistantData?.vibe_assistant_tokens_used ?? 0
+  const vibeAssistantTokensRemaining = vibeAssistantData?.vibe_assistant_tokens_remaining ?? 0
+  const vibeAssistantTotalCost = vibeAssistantData?.vibe_assistant_total_cost ?? 0
   const membershipTierId = vibeAssistantData?.membership_tier_id
 
   // Determine membership tier
@@ -268,33 +268,44 @@ export default async function DashboardPage() {
             <p className="text-xs text-neutral-500">Manifestation goals</p>
           </Card>
           
-          <Link href="/dashboard/tokens">
-            <Card className="p-6 hover:-translate-y-1 transition-transform cursor-pointer">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-energy-500/20 rounded-xl">
-                  <Zap className="w-6 h-6 text-energy-500" />
+          <div className="space-y-3">
+            <Link href="/dashboard/tokens">
+              <Card className="p-6 hover:-translate-y-1 transition-transform cursor-pointer">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-energy-500/20 rounded-xl">
+                    <Zap className="w-6 h-6 text-energy-500" />
+                  </div>
+                  <Badge variant="warning">Creation Tokens</Badge>
                 </div>
-                <Badge variant="warning">Creation Tokens</Badge>
-              </div>
-              <h3 className="text-neutral-400 text-sm mb-2">Token Balance</h3>
-              <p className="text-3xl font-bold text-white mb-1">
-                {vibeAssistantTokensRemaining >= 1_000_000 
-                  ? `${(vibeAssistantTokensRemaining / 1_000_000).toFixed(1)}M`
-                  : vibeAssistantTokensRemaining >= 1_000
-                    ? `${(vibeAssistantTokensRemaining / 1_000).toFixed(1)}K`
-                    : vibeAssistantTokensRemaining
-                }
-              </p>
-              <p className="text-xs text-neutral-500">
-                {vibeAssistantTokensUsed >= 1_000_000
-                  ? `${(vibeAssistantTokensUsed / 1_000_000).toFixed(1)}M used`
-                  : vibeAssistantTokensUsed >= 1_000
-                    ? `${(vibeAssistantTokensUsed / 1_000).toFixed(1)}K used`
-                    : `${vibeAssistantTokensUsed} used`
-                }
-              </p>
-            </Card>
-          </Link>
+                <h3 className="text-neutral-400 text-sm mb-2">Token Balance</h3>
+                <p className="text-3xl font-bold text-white mb-1">
+                  {vibeAssistantTokensRemaining >= 1_000_000 
+                    ? `${(vibeAssistantTokensRemaining / 1_000_000).toFixed(1)}M`
+                    : vibeAssistantTokensRemaining >= 1_000
+                      ? `${(vibeAssistantTokensRemaining / 1_000).toFixed(1)}K`
+                      : vibeAssistantTokensRemaining
+                  }
+                </p>
+                <p className="text-xs text-neutral-500">
+                  {vibeAssistantTokensUsed >= 1_000_000
+                    ? `${(vibeAssistantTokensUsed / 1_000_000).toFixed(1)}M used`
+                    : vibeAssistantTokensUsed >= 1_000
+                      ? `${(vibeAssistantTokensUsed / 1_000).toFixed(1)}K used`
+                      : `${vibeAssistantTokensUsed} used`
+                  }
+                </p>
+              </Card>
+            </Link>
+            
+            <Link href="/dashboard/token-history">
+              <Card className="p-4 hover:-translate-y-1 transition-transform cursor-pointer border-dashed">
+                <div className="flex items-center gap-3">
+                  <Activity className="w-5 h-5 text-neutral-400" />
+                  <span className="text-sm text-neutral-300">View Token Usage History</span>
+                </div>
+              </Card>
+            </Link>
+          </div>
         </div>
 
         {/* Main Content Grid */}

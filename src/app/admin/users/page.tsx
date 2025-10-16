@@ -5,6 +5,7 @@ import { Container, Card, Button, Badge, Input } from '@/lib/design-system/compo
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { createClient } from '@/lib/supabase/client'
 import { Search, UserPlus, Shield, Mail, Calendar } from 'lucide-react'
+import Image from 'next/image'
 
 interface User {
   id: string
@@ -13,6 +14,13 @@ interface User {
   last_sign_in_at: string
   is_admin: boolean
   user_metadata: any
+  tokens_remaining?: number
+  tokens_used?: number
+  storage_quota_gb?: number
+  membership_tier?: string
+  intensive_enrolled?: boolean
+  token_packs?: Array<{ name: string; purchased_at: string }>
+  profile_photo_url?: string
 }
 
 function UsersAdminContent() {
@@ -21,6 +29,19 @@ function UsersAdminContent() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showAddAdmin, setShowAddAdmin] = useState(false)
   const [newAdminEmail, setNewAdminEmail] = useState('')
+  const [adjustTokens, setAdjustTokens] = useState<Record<string, number>>({})
+  const [adjustStorage, setAdjustStorage] = useState<Record<string, number>>({})
+  const [showProductDropdown, setShowProductDropdown] = useState<Record<string, boolean>>({})
+
+  // Available products for enrollment
+  const availableProducts = [
+    { id: 'intensive', name: 'Activation Intensive', price: '$497' },
+    { id: 'token_pack_1000', name: '1000 Token Pack', price: '$29' },
+    { id: 'token_pack_5000', name: '5000 Token Pack', price: '$99' },
+    { id: 'token_pack_10000', name: '10000 Token Pack', price: '$179' },
+    { id: 'vision_pro_annual', name: 'Vision Pro Annual', price: '$997/year' },
+    { id: 'vision_pro_28day', name: 'Vision Pro 28-Day', price: '$97/month' }
+  ]
 
   useEffect(() => {
     fetchUsers()
@@ -38,6 +59,26 @@ function UsersAdminContent() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const updateUserTokens = (userId: string, delta: number) => {
+    setUsers(prev => prev.map(user => 
+      user.id === userId 
+        ? { 
+            ...user, 
+            tokens_remaining: (user.tokens_remaining || 0) + delta,
+            tokens_used: (user.tokens_used || 0) - delta
+          }
+        : user
+    ))
+  }
+
+  const updateUserStorage = (userId: string, quota: number) => {
+    setUsers(prev => prev.map(user => 
+      user.id === userId 
+        ? { ...user, storage_quota_gb: quota }
+        : user
+    ))
   }
 
   const toggleAdminStatus = async (userId: string, currentStatus: boolean) => {
@@ -155,6 +196,15 @@ function UsersAdminContent() {
         </div>
         
         <Button
+          variant="outline"
+          onClick={() => fetchUsers()}
+          className="flex items-center gap-2"
+        >
+          <Search className="w-4 h-4" />
+          Refresh
+        </Button>
+        
+        <Button
           variant="primary"
           onClick={() => setShowAddAdmin(true)}
           className="flex items-center gap-2"
@@ -221,39 +271,152 @@ function UsersAdminContent() {
           
           <div className="space-y-4">
             {adminUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 bg-primary-500/10 rounded-lg border border-primary-500/20">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-white" />
+              <div key={user.id} className="p-6 bg-gradient-to-r from-primary-500/10 to-secondary-500/10 rounded-xl border border-primary-500/30 space-y-6">
+                {/* Header Row */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    {user.profile_photo_url ? (
+                      <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 shadow-lg border-2 border-primary-500/30">
+                        <Image
+                          src={user.profile_photo_url}
+                          alt={`${user.email} profile`}
+                          width={64}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <Shield className="w-8 h-8 text-white" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="font-bold text-white text-xl">{user.email}</span>
+                        <Badge variant="success" className="text-sm">Admin</Badge>
+                      </div>
+                      <div className="flex items-center gap-6 text-sm text-neutral-300">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </span>
+                        {user.last_sign_in_at && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="w-4 h-4" />
+                            {new Date(user.last_sign_in_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-white">{user.email}</span>
-                      <Badge variant="success">Admin</Badge>
+                  {/* Quick Stats */}
+                  <div className="flex items-center gap-8">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary-400">{user.tokens_remaining || 0}</div>
+                      <div className="text-xs text-neutral-400">Tokens</div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-neutral-400 mt-1">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        Joined: {new Date(user.created_at).toLocaleDateString()}
-                      </span>
-                      {user.last_sign_in_at && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" />
-                          Last seen: {new Date(user.last_sign_in_at).toLocaleDateString()}
-                        </span>
-                      )}
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-secondary-400">{user.storage_quota_gb || 0}GB</div>
+                      <div className="text-xs text-neutral-400">Storage</div>
                     </div>
                   </div>
                 </div>
+
+                {/* Products Section */}
+                <div className="bg-neutral-800/50 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-sm font-semibold text-neutral-200">Active Products & Enrollments</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {user.membership_tier && (
+                      <Badge variant="premium" className="text-sm">{user.membership_tier}</Badge>
+                    )}
+                    {user.intensive_enrolled && (
+                      <Badge variant="premium" className="text-sm">Activation Intensive</Badge>
+                    )}
+                    {user.token_packs?.map((pack, idx) => (
+                      <Badge key={idx} variant="info" className="text-sm">{pack.name}</Badge>
+                    ))}
+                    {(!user.membership_tier && !user.intensive_enrolled && (!user.token_packs || user.token_packs.length === 0)) && (
+                      <span className="text-sm text-neutral-500 italic">No active products</span>
+                    )}
+                  </div>
+                </div>
                 
-                <Button
-                  variant="outline"
-                  onClick={() => toggleAdminStatus(user.id, user.is_admin)}
-                  className="text-red-400 border-red-400 hover:bg-red-400/10"
-                >
-                  Remove Admin
-                </Button>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      placeholder="± tokens"
+                      className="w-28"
+                      value={adjustTokens[user.id] ?? 0}
+                      onChange={(e) => setAdjustTokens(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={!((adjustTokens[user.id] ?? 0) !== 0)}
+                      onClick={async () => {
+                        const delta = adjustTokens[user.id] ?? 0
+                        console.log('Token adjustment clicked:', { userId: user.id, delta })
+                        if (!delta) return
+                        
+                        try {
+                          const res = await fetch('/api/admin/users/adjust-tokens', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ userId: user.id, delta })
+                          })
+                          
+                          console.log('API response:', res.status, res.ok)
+                          
+                          if (res.ok) {
+                            updateUserTokens(user.id, delta)
+                            // Clear the input only on success
+                            setAdjustTokens(prev => ({ ...prev, [user.id]: 0 }))
+                          } else {
+                            const errorData = await res.json()
+                            console.error('Token adjustment failed:', errorData)
+                          }
+                        } catch (error) {
+                          console.error('Token adjustment error:', error)
+                        }
+                      }}
+                    >{(adjustTokens[user.id] ?? 0) > 0 ? 'Add Tokens' : (adjustTokens[user.id] ?? 0) < 0 ? 'Deduct Tokens' : 'Apply'}</Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      placeholder="GB quota"
+                      className="w-28"
+                      value={adjustStorage[user.id] ?? 0}
+                      onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        const quota = adjustStorage[user.id] ?? 0
+                        if (!quota) return
+                        const res = await fetch('/api/admin/users/adjust-storage', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ userId: user.id, storageQuotaGb: quota })
+                        })
+                        if (res.ok) {
+                          updateUserStorage(user.id, quota)
+                        }
+                      }}
+                    >Set Storage</Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => toggleAdminStatus(user.id, user.is_admin)}
+                    className="text-red-400 border-red-400 hover:bg-red-400/10"
+                  >
+                    Remove Admin
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -275,37 +438,188 @@ function UsersAdminContent() {
         ) : (
           <div className="space-y-4">
             {regularUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-neutral-700 rounded-full flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-neutral-400" />
+              <div key={user.id} className="p-6 bg-gradient-to-r from-neutral-800 to-neutral-800/80 rounded-xl border border-neutral-600 space-y-6">
+                {/* Header Row */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    {user.profile_photo_url ? (
+                      <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 shadow-lg border-2 border-neutral-500/30">
+                        <Image
+                          src={user.profile_photo_url}
+                          alt={`${user.email} profile`}
+                          width={64}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 bg-gradient-to-br from-neutral-600 to-neutral-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <Mail className="w-8 h-8 text-neutral-300" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="font-bold text-white text-xl">{user.email}</span>
+                      </div>
+                      <div className="flex items-center gap-6 text-sm text-neutral-300">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </span>
+                        {user.last_sign_in_at && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="w-4 h-4" />
+                            {new Date(user.last_sign_in_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-white">{user.email}</span>
+                  {/* Quick Stats */}
+                  <div className="flex items-center gap-8">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary-400">{user.tokens_remaining || 0}</div>
+                      <div className="text-xs text-neutral-400">Tokens</div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-neutral-400 mt-1">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        Joined: {new Date(user.created_at).toLocaleDateString()}
-                      </span>
-                      {user.last_sign_in_at && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" />
-                          Last seen: {new Date(user.last_sign_in_at).toLocaleDateString()}
-                        </span>
-                      )}
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-secondary-400">{user.storage_quota_gb || 0}GB</div>
+                      <div className="text-xs text-neutral-400">Storage</div>
                     </div>
                   </div>
                 </div>
+
+                {/* Products Section */}
+                <div className="bg-neutral-700/50 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-sm font-semibold text-neutral-200">Active Products & Enrollments</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {user.membership_tier && (
+                      <Badge variant="premium" className="text-sm">{user.membership_tier}</Badge>
+                    )}
+                    {user.intensive_enrolled && (
+                      <Badge variant="premium" className="text-sm">Activation Intensive</Badge>
+                    )}
+                    {user.token_packs?.map((pack, idx) => (
+                      <Badge key={idx} variant="info" className="text-sm">{pack.name}</Badge>
+                    ))}
+                    {(!user.membership_tier && !user.intensive_enrolled && (!user.token_packs || user.token_packs.length === 0)) && (
+                      <span className="text-sm text-neutral-500 italic">No active products</span>
+                    )}
+                  </div>
+                </div>
                 
-                <Button
-                  variant="primary"
-                  onClick={() => toggleAdminStatus(user.id, user.is_admin)}
-                >
-                  Make Admin
-                </Button>
+                {/* Admin Controls */}
+                <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-neutral-600">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      placeholder="± tokens"
+                      className="w-32"
+                      value={adjustTokens[user.id] ?? 0}
+                      onChange={(e) => setAdjustTokens(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={!((adjustTokens[user.id] ?? 0) !== 0)}
+                      onClick={async () => {
+                        const delta = adjustTokens[user.id] ?? 0
+                        console.log('Token adjustment clicked:', { userId: user.id, delta })
+                        if (!delta) return
+                        
+                        try {
+                          const res = await fetch('/api/admin/users/adjust-tokens', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ userId: user.id, delta })
+                          })
+                          
+                          console.log('API response:', res.status, res.ok)
+                          
+                          if (res.ok) {
+                            updateUserTokens(user.id, delta)
+                            // Clear the input only on success
+                            setAdjustTokens(prev => ({ ...prev, [user.id]: 0 }))
+                          } else {
+                            const errorData = await res.json()
+                            console.error('Token adjustment failed:', errorData)
+                          }
+                        } catch (error) {
+                          console.error('Token adjustment error:', error)
+                        }
+                      }}
+                    >{(adjustTokens[user.id] ?? 0) > 0 ? 'Add' : (adjustTokens[user.id] ?? 0) < 0 ? 'Deduct' : 'Apply'}</Button>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      placeholder="GB quota"
+                      className="w-32"
+                      value={adjustStorage[user.id] ?? 0}
+                      onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        const quota = adjustStorage[user.id] ?? 0
+                        if (!quota) return
+                        const res = await fetch('/api/admin/users/adjust-storage', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ userId: user.id, storageQuotaGb: quota })
+                        })
+                        if (res.ok) {
+                          updateUserStorage(user.id, quota)
+                        }
+                      }}
+                    >Set Storage</Button>
+                  </div>
+
+                  <div className="relative">
+                    <Button
+                      variant="accent"
+                      onClick={() => setShowProductDropdown(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
+                    >
+                      Enroll Product
+                    </Button>
+                    {showProductDropdown[user.id] && (
+                      <div className="absolute top-full left-0 mt-1 w-64 bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-10">
+                        <div className="p-2">
+                          {availableProducts.map((product) => (
+                            <button
+                              key={product.id}
+                              className="w-full text-left px-3 py-2 text-sm text-white hover:bg-neutral-700 rounded flex items-center justify-between"
+                              onClick={async () => {
+                                if (product.id === 'intensive') {
+                                  await fetch('/api/admin/intensive/enroll', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ userId: user.id })
+                                  })
+                                }
+                                // Add other product enrollments here
+                                setShowProductDropdown(prev => ({ ...prev, [user.id]: false }))
+                              }}
+                            >
+                              <span>{product.name}</span>
+                              <span className="text-neutral-400">{product.price}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="primary"
+                    onClick={() => toggleAdminStatus(user.id, user.is_admin)}
+                  >
+                    Make Admin
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

@@ -13,7 +13,6 @@ interface TokenTransaction {
   action_type: string
   tokens_used: number
   tokens_remaining: number
-  estimated_cost_usd: number | null
   openai_model: string | null
   created_at: string
   metadata: any
@@ -35,15 +34,15 @@ function formatTokens(tokens: number, abbreviated = false): string {
 }
 
 const ACTION_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  chat: { label: 'VIVA Chat', color: 'text-secondary-500' },
-  refinement: { label: 'Vision Refinement', color: 'text-primary-500' },
-  blueprint: { label: 'Blueprint', color: 'text-accent-500' },
-  audio_generation: { label: 'Audio Generation', color: 'text-energy-500' },
-  transcription: { label: 'Transcription', color: 'text-neutral-400' },
-  image_generation: { label: 'Image Generation', color: 'text-accent-400' },
-  subscription_grant: { label: 'Subscription Grant', color: 'text-primary-500' },
-  renewal_grant: { label: 'Annual Renewal', color: 'text-primary-500' },
-  pack_purchase: { label: 'Token Pack', color: 'text-energy-500' },
+  chat_conversation: { label: 'VIVA Conversation', color: 'text-secondary-500' },
+  vision_refinement: { label: 'VIVA Vision Refinement', color: 'text-primary-500' },
+  blueprint_generation: { label: 'VIVA Blueprint Generation', color: 'text-accent-500' },
+  audio_generation: { label: 'VIVA Audio Generation', color: 'text-energy-500' },
+  assessment_scoring: { label: 'VIVA Scoring', color: 'text-neutral-400' },
+  image_generation: { label: 'VIVA Image Generation', color: 'text-accent-400' },
+  vision_generation: { label: 'VIVA Vision Generation', color: 'text-primary-500' },
+  admin_grant: { label: 'Admin Grant', color: 'text-primary-500' },
+  admin_deduct: { label: 'Admin Deduction', color: 'text-red-500' },
 }
 
 export default function TokensPage() {
@@ -189,7 +188,6 @@ export default function TokensPage() {
                         {formatTokens(data.tokens, true)}
                       </div>
                       <div className="text-xs text-neutral-500">
-                        {data.cost > 0 && `~$${data.cost.toFixed(4)} cost`}
                       </div>
                     </div>
                   ))}
@@ -267,11 +265,6 @@ export default function TokensPage() {
                         <div className="text-xs text-neutral-500">
                           {formatTokens(tx.tokens_remaining, true)} remaining
                         </div>
-                        {tx.estimated_cost_usd && tx.estimated_cost_usd > 0 && (
-                          <div className="text-xs text-neutral-600 mt-1">
-                            ${tx.estimated_cost_usd.toFixed(4)}
-                          </div>
-                        )}
                       </div>
                     </div>
                   ))}

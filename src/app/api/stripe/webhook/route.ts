@@ -166,30 +166,33 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Grant tokens to the user
-          const { grantTokens } = await import('@/lib/tokens/token-tracker')
-          const result = await grantTokens({
-            userId,
-            tokensToGrant: tokensAmount,
-            actionType: 'token_pack_purchase',
+          // Grant tokens to the user using centralized tracking
+          const { trackTokenUsage } = await import('@/lib/tokens/tracking')
+          await trackTokenUsage({
+            user_id: userId,
+            action_type: 'admin_grant',
+            model_used: 'stripe',
+            tokens_used: tokensAmount,
+            cost_estimate: 0, // Token pack purchases don't count as AI cost
+            input_tokens: 0,
+            output_tokens: 0,
+            success: true,
             metadata: {
+              stripe_payment_intent: session.payment_intent,
+              token_pack_id: packId,
+              purchase_amount: session.amount_total,
+              purchase_currency: session.currency,
               pack_id: packId,
               stripe_session_id: session.id,
-              stripe_payment_intent: session.payment_intent,
-              amount_paid: session.amount_total,
-            },
+              amount_paid: session.amount_total
+            }
           })
 
-          if (result.success) {
-            console.log('✅ Token pack granted:', {
-              userId,
-              packId,
-              tokens: tokensAmount,
-              newBalance: result.newBalance,
-            })
-          } else {
-            console.error('❌ Failed to grant token pack:', userId)
-          }
+          console.log('✅ Token pack granted:', {
+            userId,
+            packId,
+            tokens: tokensAmount
+          })
         }
         
         // Handle $499 Vision Activation Intensive purchases

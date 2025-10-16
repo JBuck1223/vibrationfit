@@ -33,7 +33,6 @@ import {
 } from '@/lib/design-system'
 import { 
   checkVibeAssistantAllowance,
-  formatCost,
   formatTokens,
   getMembershipTierColor,
   getMembershipTierBgColor,
@@ -259,10 +258,10 @@ export default function VibeAssistantUsageDashboard() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="w-8 h-8 text-purple-400" />
-                <h1 className="text-3xl font-bold text-white">Vibe Assistant Usage</h1>
+                <h1 className="text-3xl font-bold text-white">VIVA Assistant Usage</h1>
                 <Badge variant="premium" className="flex items-center gap-1">
                   <Zap className="w-4 h-4" />
-                  GPT-5 Powered
+                  AI Powered
                 </Badge>
               </div>
               <p className="text-neutral-400">
@@ -335,18 +334,7 @@ export default function VibeAssistantUsageDashboard() {
                 </div>
               </div>
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-400">This Month</span>
-                  <span className="text-lg font-bold text-green-400">
-                    {formatCost(allowance.costLimit - allowance.tokensUsed * 0.015 / 1000)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-400">Monthly Limit</span>
-                  <span className="text-sm text-white">
-                    {formatCost(allowance.costLimit)}
-                  </span>
-                </div>
+                {/* Cost hidden for end users */}
                 {monthlyStats && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-neutral-400">Operations</span>
@@ -419,7 +407,7 @@ export default function VibeAssistantUsageDashboard() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-1">
-                    Upgrade Your Vibe Assistant Experience
+                    Upgrade Your VIVA Assistant Experience
                   </h3>
                   <p className="text-neutral-400">
                     You're using {Math.round(usagePercentage)}% of your monthly allowance. 
@@ -502,7 +490,7 @@ export default function VibeAssistantUsageDashboard() {
                         {formatTokens(log.total_tokens)} tokens
                       </div>
                       <div className="text-neutral-400">
-                        {formatCost(log.cost_usd)}
+                        ${(log.cost_usd || 0).toFixed(4)}
                       </div>
                     </div>
                     <div className="text-neutral-400">
@@ -517,7 +505,7 @@ export default function VibeAssistantUsageDashboard() {
               <Sparkles className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-white mb-2">No Usage History</h3>
               <p className="text-neutral-400 mb-6">
-                Start refining your vision with the Vibe Assistant to see your usage here.
+                Start refining your vision with the VIVA Assistant to see your usage here.
               </p>
               <Button asChild>
                 <Link href="/life-vision">
@@ -533,7 +521,7 @@ export default function VibeAssistantUsageDashboard() {
         <Card className="p-6 mt-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Info className="w-5 h-5 text-primary-500" />
-            Understanding Vibe Assistant Costs
+            Understanding VIVA Assistant Usage
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>

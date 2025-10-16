@@ -40,10 +40,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 
-    // Transform users to include admin status
+    // Get user profiles for token/storage data and profile photos
+    const { data: profiles } = await supabaseAdmin
+      .from('user_profiles')
+      .select('user_id, vibe_assistant_tokens_remaining, vibe_assistant_tokens_used, storage_quota_gb, profile_picture_url')
+
+    const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || [])
+    
+    console.log('Profiles found:', profiles?.length || 0)
+    console.log('Profile map keys:', Array.from(profileMap.keys()))
+
+    // Transform users to include admin status and profile data
     const transformedUsers = users.users.map(authUser => {
       const isEmailAdmin = adminEmails.includes(authUser.email?.toLowerCase() || '')
       const isMetadataAdmin = authUser.user_metadata?.is_admin === true
+      const profile = profileMap.get(authUser.id)
+      
+      console.log(`User ${authUser.email}: profile found = ${!!profile}, tokens = ${profile?.vibe_assistant_tokens_remaining}`)
       
       return {
         id: authUser.id,
@@ -51,7 +64,11 @@ export async function GET(request: NextRequest) {
         created_at: authUser.created_at,
         last_sign_in_at: authUser.last_sign_in_at,
         is_admin: isEmailAdmin || isMetadataAdmin,
-        user_metadata: authUser.user_metadata
+        user_metadata: authUser.user_metadata,
+        tokens_remaining: profile?.vibe_assistant_tokens_remaining ?? 100,
+        tokens_used: profile?.vibe_assistant_tokens_used ?? 0,
+        storage_quota_gb: profile?.storage_quota_gb ?? 1,
+        profile_photo_url: profile?.profile_picture_url
       }
     })
 

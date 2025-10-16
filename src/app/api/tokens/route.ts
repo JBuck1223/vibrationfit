@@ -25,35 +25,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
     }
 
-    // Get transaction history
-    const { data: transactions, error: txError } = await supabase
-      .from('token_transactions')
+    // Get usage history from centralized token_usage table
+    const { data: usageHistory, error: usageError } = await supabase
+      .from('token_usage')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (txError) {
-      console.error('Error fetching transactions:', txError)
-      return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 })
+    if (usageError) {
+      console.error('Error fetching usage history:', usageError)
+      return NextResponse.json({ error: 'Failed to fetch usage history' }, { status: 500 })
     }
 
-    // Calculate stats
+    // Calculate stats from centralized data
     const totalUsed = profile?.vibe_assistant_tokens_used || 0
-    const totalGranted = (transactions || [])
-      .filter((tx: any) => tx.tokens_used < 0)
-      .reduce((sum: number, tx: any) => sum + Math.abs(tx.tokens_used), 0)
+    const totalGranted = (usageHistory || [])
+      .filter((usage: any) => usage.action_type === 'admin_grant')
+      .reduce((sum: number, usage: any) => sum + usage.tokens_used, 0)
 
-    const actionBreakdown = (transactions || [])
-      .filter((tx: any) => tx.tokens_used > 0)
-      .reduce((acc: any, tx: any) => {
-        const action = tx.action_type
+    const actionBreakdown = (usageHistory || [])
+      .filter((usage: any) => usage.tokens_used > 0 && usage.action_type !== 'admin_grant')
+      .reduce((acc: any, usage: any) => {
+        const action = usage.action_type
         if (!acc[action]) {
           acc[action] = { count: 0, tokens: 0, cost: 0 }
         }
         acc[action].count++
-        acc[action].tokens += tx.tokens_used
-        acc[action].cost += tx.estimated_cost_usd || 0
+        acc[action].tokens += usage.tokens_used
+        acc[action].cost += (usage.cost_estimate || 0) / 100 // Convert cents to dollars
         return acc
       }, {})
 
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       balance: profile?.vibe_assistant_tokens_remaining || 0,
       totalUsed,
       totalGranted,
-      transactions: transactions || [],
+      transactions: usageHistory || [],
       actionBreakdown,
     })
 

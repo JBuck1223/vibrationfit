@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Card } from '@/lib/design-system/components'
-import { Badge } from '@/lib/design-system/components'
-import { Button } from '@/lib/design-system/components'
-import { Spinner } from '@/lib/design-system/components'
+import { Container, Card, Badge, Button, Spinner } from '@/lib/design-system/components'
 
 interface TokenSummary {
   total_tokens: number
@@ -37,7 +34,7 @@ export default function AdminTokenUsagePage() {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`/api/admin/token-usage?type=${type}&days=${days}`, {
+      const response = await fetch(`/api/admin/token-usage?type=${type === 'users' ? 'by-user' : type}&days=${days}`, {
         credentials: 'include' // Include cookies for authentication
       })
       
@@ -89,7 +86,8 @@ export default function AdminTokenUsagePage() {
 
   return (
     <AdminWrapper>
-      <div className="space-y-6">
+      <Container size="xl" className="py-12">
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -320,7 +318,8 @@ export default function AdminTokenUsagePage() {
             </div>
           </Card>
         )}
-      </div>
+        </div>
+      </Container>
     </AdminWrapper>
   )
 }
