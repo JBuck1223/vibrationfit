@@ -112,6 +112,8 @@ export function getModelName(feature: keyof typeof AI_MODELS): string {
 export function isModelAvailable(model: string): boolean {
   const availableModels = [
     'gpt-5',
+    'gpt-5-mini',
+    'gpt-5-nano',
     'gpt-4o',
     'gpt-4o-mini',
     'gpt-4-turbo',
@@ -127,7 +129,9 @@ export function isModelAvailable(model: string): boolean {
  */
 export function getFallbackModel(feature: keyof typeof AI_MODELS): string {
   const fallbacks: Record<string, string> = {
-    'gpt-5': 'gpt-4o',
+    'gpt-5': 'gpt-5-mini',
+    'gpt-5-mini': 'gpt-5-nano',
+    'gpt-5-nano': 'gpt-4o-mini',
     'gpt-4o': 'gpt-4o-mini',
     'gpt-4o-mini': 'gpt-3.5-turbo',
     'dall-e-3': 'dall-e-2'

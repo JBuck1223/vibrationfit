@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { PageLayout, Container, Card, Button, Badge, ProgressBar } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import Link from 'next/link'
+import AITokenUsage from '@/components/AITokenUsage'
 import { 
   Sparkles, 
   BookOpen, 
@@ -526,6 +527,9 @@ export default async function DashboardPage() {
             </p>
           </div>
         </Card>
+
+        {/* AI Token Usage Tracking */}
+        <AITokenUsage />
 
         {/* Footer */}
         <div className="mt-8 text-center">

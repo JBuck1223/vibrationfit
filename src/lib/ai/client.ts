@@ -89,6 +89,8 @@ export async function generateText(request: AIRequest): Promise<AIResponse> {
       throw new Error('No response from AI model')
     }
 
+    // Note: Token tracking is handled in API routes where user context is available
+
     return {
       content: choice.message.content,
       model: data.model,
@@ -97,6 +99,9 @@ export async function generateText(request: AIRequest): Promise<AIResponse> {
 
   } catch (error) {
     console.error(`AI generation error for ${request.feature}:`, error)
+    
+    // Note: Token tracking is handled in API routes where user context is available
+    
     return {
       content: '',
       model: '',
