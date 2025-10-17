@@ -96,7 +96,7 @@ interface GradientButtonProps extends ButtonProps {
 }
 
 export const GradientButton = React.forwardRef<HTMLButtonElement, GradientButtonProps>(
-  ({ className, gradient = 'brand', size = 'md', children, ...props }, ref) => {
+  ({ className, gradient = 'brand', size = 'md', asChild = false, children, ...props }, ref) => {
     const gradients = {
       green: 'bg-gradient-to-r from-[#199D67] to-[#5EC49A] hover:from-[#5EC49A] hover:to-[#2DD4BF]',
       teal: 'bg-gradient-to-r from-[#14B8A6] to-[#2DD4BF] hover:from-[#2DD4BF] hover:to-[#0D9488]',
@@ -112,20 +112,29 @@ export const GradientButton = React.forwardRef<HTMLButtonElement, GradientButton
       xl: 'h-auto py-3.5 px-8 sm:py-5 sm:px-12 text-lg sm:text-xl',
     }
     
+    const classes = cn(
+      'inline-flex items-center justify-center font-semibold rounded-full text-white',
+      'transition-all duration-300 transform',
+      'hover:-translate-y-0.5 shadow-[0_4px_14px_rgba(0,0,0,0.25)]',
+      'hover:shadow-[0_6px_20px_rgba(25,157,103,0.4)]',
+      'active:translate-y-0 active:shadow-[0_2px_8px_rgba(25,157,103,0.3)]',
+      'disabled:opacity-50 disabled:cursor-not-allowed',
+      gradients[gradient],
+      sizes[size],
+      className
+    )
+    
+    if (asChild && React.isValidElement(children)) {
+      return React.cloneElement(children, {
+        className: cn(classes, (children.props as any)?.className),
+        ...props,
+      } as React.HTMLAttributes<HTMLElement>)
+    }
+    
     return (
       <button
         ref={ref}
-        className={cn(
-          'inline-flex items-center justify-center font-semibold rounded-full text-white',
-          'transition-all duration-300 transform',
-          'hover:-translate-y-0.5 shadow-[0_4px_14px_rgba(0,0,0,0.25)]',
-          'hover:shadow-[0_6px_20px_rgba(25,157,103,0.4)]',
-          'active:translate-y-0 active:shadow-[0_2px_8px_rgba(25,157,103,0.3)]',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
-          gradients[gradient],
-          sizes[size],
-          className
-        )}
+        className={classes}
         {...props}
       >
         {children}
@@ -137,7 +146,7 @@ GradientButton.displayName = 'GradientButton'
 
 // AI Button with mystical glow effect (from HTML Brand Kit)
 export const AIButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, size = 'md', children, ...props }, ref) => {
+  ({ className, size = 'md', asChild = false, children, ...props }, ref) => {
     const sizes = {
       sm: 'h-auto py-2 px-5 text-sm',
       md: 'h-auto py-3.5 px-7 text-base',
@@ -145,22 +154,31 @@ export const AIButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
       xl: 'h-auto py-5 px-12 text-xl',
     }
     
+    const classes = cn(
+      'inline-flex items-center justify-center font-semibold rounded-full',
+      'bg-transparent text-[#8B5CF6] border-2 border-[#8B5CF6]',
+      'shadow-[0_0_20px_rgba(139,92,246,0.3)]',
+      'hover:bg-[rgba(139,92,246,0.1)] hover:border-[#A78BFA] hover:text-[#A78BFA]',
+      'hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(139,92,246,0.5)]',
+      'active:translate-y-0 active:shadow-[0_0_15px_rgba(139,92,246,0.4)]',
+      'transition-all duration-300',
+      'disabled:opacity-50 disabled:cursor-not-allowed',
+      'before:content-["✨"] before:mr-2',
+      sizes[size],
+      className
+    )
+    
+    if (asChild && React.isValidElement(children)) {
+      return React.cloneElement(children, {
+        className: cn(classes, (children.props as any)?.className),
+        ...props,
+      } as React.HTMLAttributes<HTMLElement>)
+    }
+    
     return (
       <button
         ref={ref}
-        className={cn(
-          'inline-flex items-center justify-center font-semibold rounded-full',
-          'bg-transparent text-[#8B5CF6] border-2 border-[#8B5CF6]',
-          'shadow-[0_0_20px_rgba(139,92,246,0.3)]',
-          'hover:bg-[rgba(139,92,246,0.1)] hover:border-[#A78BFA] hover:text-[#A78BFA]',
-          'hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(139,92,246,0.5)]',
-          'active:translate-y-0 active:shadow-[0_0_15px_rgba(139,92,246,0.4)]',
-          'transition-all duration-300',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
-          'before:content-["✨"] before:mr-2',
-          sizes[size],
-          className
-        )}
+        className={classes}
         {...props}
       >
         {children}

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap, Target, Gem, Volume2, Download, VolumeX, Diamond } from 'lucide-react'
-import { PageLayout, Container, Card, Button, Badge, ProgressBar, Spinner, getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system'
+import { Card, Button, Badge, ProgressBar, Spinner, getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { LifeVisionSidebar } from './components/LifeVisionSidebar'
 
@@ -288,20 +288,20 @@ export default function VisionListPage() {
 
   if (loading) {
     return (
-      <PageLayout>
-        <Container size="xl" className="py-8">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+        <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-16">
             <Spinner variant="primary" size="lg" />
           </div>
-        </Container>
-      </PageLayout>
+        </div>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <PageLayout>
-        <Container size="xl" className="py-8">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+        <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
               <div className="text-red-500 mb-4">
@@ -314,14 +314,14 @@ export default function VisionListPage() {
               </Button>
             </div>
           </div>
-        </Container>
-      </PageLayout>
+        </div>
+      </div>
     )
   }
 
   return (
-    <PageLayout>
-      <Container size="xl" className="py-6">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <div className="container mx-auto px-4 py-8">
         {/* Create Button (only when no active vision) */}
         {!activeVision && (
           <div className="flex justify-end mb-8">
@@ -610,7 +610,7 @@ export default function VisionListPage() {
           </div>
         )}
 
-      </Container>
-    </PageLayout>
+      </div>
+    </div>
   )
 }
