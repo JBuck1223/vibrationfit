@@ -17,79 +17,79 @@
   }
   
   .btn-primary {
-    background: #199D67;
-    color: white;
+    background: #39FF14;
+    color: black;
   }
   
   .btn-primary:hover {
-    background: #5EC49A;
+    background: #00FF88;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(25, 157, 103, 0.4);
+    box-shadow: 0 6px 20px rgba(57, 255, 20, 0.4);
   }
   
   .btn-primary:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(25, 157, 103, 0.3);
+    box-shadow: 0 2px 8px rgba(57, 255, 20, 0.3);
   }
   
   .btn-secondary {
-    background: #14B8A6;
-    color: white;
+    background: #00FFFF;
+    color: black;
   }
   
   .btn-secondary:hover {
-    background: #2DD4BF;
+    background: #06B6D4;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(20, 184, 166, 0.4);
+    box-shadow: 0 6px 20px rgba(0, 255, 255, 0.4);
   }
   
   .btn-accent {
-    background: #8B5CF6;
+    background: #BF00FF;
     color: white;
   }
   
   .btn-accent:hover {
-    background: #A78BFA;
+    background: #A855F7;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 6px 20px rgba(191, 0, 255, 0.4);
   }
   
   .btn-outline {
     background: transparent;
-    color: #199D67;
-    border: 2px solid #199D67;
+    color: #39FF14;
+    border: 2px solid #39FF14;
     box-shadow: none;
   }
   
   .btn-outline:hover {
-    background: #199D67;
-    color: white;
+    background: #39FF14;
+    color: black;
   }
   
   .btn-ghost {
-    background: rgba(25, 157, 103, 0.1);
-    color: #199D67;
-    border: 1px solid rgba(25, 157, 103, 0.2);
+    background: rgba(57, 255, 20, 0.1);
+    color: #39FF14;
+    border: 1px solid rgba(57, 255, 20, 0.2);
     box-shadow: none;
   }
   
   .btn-gradient {
-    background: linear-gradient(135deg, #199D67, #14B8A6);
-    color: white;
+    background: linear-gradient(135deg, #39FF14, #00FFFF);
+    color: black;
   }
   
   .btn-ai {
     background: transparent;
-    color: #8B5CF6;
-    border: 2px solid #8B5CF6;
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    color: #BF00FF;
+    border: 2px solid #BF00FF;
+    box-shadow: 0 0 20px rgba(191, 0, 255, 0.3);
   }
   
   .btn-ai:hover {
-    background: rgba(139, 92, 246, 0.1);
-    border-color: #A78BFA;
-    color: #A78BFA;
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+    background: rgba(191, 0, 255, 0.1);
+    border-color: #A855F7;
+    color: #A855F7;
+    box-shadow: 0 0 30px rgba(191, 0, 255, 0.5);
   }
   
   .btn-sm {
@@ -113,7 +113,7 @@
   
   .brand-card:hover {
     transform: translateY(-4px);
-    border-color: #199D67;
+    border-color: #39FF14;
   }
   
   /* Status Indicators */
@@ -126,21 +126,21 @@
   
   /* Gradient Backgrounds */
   .gradient-green {
-    background: linear-gradient(135deg, #199D67, #5EC49A);
+    background: linear-gradient(135deg, #39FF14, #00FF88);
   }
   
   .gradient-teal {
-    background: linear-gradient(135deg, #14B8A6, #2DD4BF);
+    background: linear-gradient(135deg, #00FFFF, #06B6D4);
   }
   
   .gradient-purple {
-    background: linear-gradient(135deg, #601B9F, #8B5CF6);
+    background: linear-gradient(135deg, #BF00FF, #FF0080);
   }
   
   .gradient-brand {
-    background: linear-gradient(135deg, #199D67, #14B8A6);
+    background: linear-gradient(135deg, #39FF14, #00FFFF);
   }
   
   .gradient-cosmic {
-    background: linear-gradient(135deg, #601B9F, #B629D4, #2DD4BF);
+    background: linear-gradient(135deg, #BF00FF, #FF0080, #00FFFF);
   }

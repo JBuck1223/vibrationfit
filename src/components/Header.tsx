@@ -138,7 +138,14 @@ export function Header() {
                 onMouseEnter={() => handleMouseEnter(key)}
                 onMouseLeave={handleMouseLeave}
               >
-                <button className="flex items-center gap-1 text-neutral-300 hover:text-white transition-colors duration-200 font-medium">
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setOpenDropdown(openDropdown === key ? null : key)
+                  }}
+                  className="flex items-center gap-1 text-neutral-300 hover:text-white transition-colors duration-200 font-medium"
+                >
                   {group.label}
                   <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === key ? 'rotate-180' : ''}`} />
                 </button>
@@ -169,7 +176,11 @@ export function Header() {
             ) : user ? (
               <div className="relative">
                 <button
-                  onClick={() => setOpenDropdown(openDropdown === 'account' ? null : 'account')}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setOpenDropdown(openDropdown === 'account' ? null : 'account')
+                  }}
                   onMouseEnter={() => handleMouseEnter('account')}
                   onMouseLeave={handleMouseLeave}
                   className="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-neutral-800 transition-colors"

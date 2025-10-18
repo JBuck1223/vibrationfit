@@ -2,44 +2,53 @@
 // Design Tokens - Single source of truth for all design values
 
 export const colors = {
-  // Primary Brand Colors
+  // Primary Brand Colors - Neon Electric Green
   primary: {
-    50: '#A8E5CE',   // Green Lighter
-    100: '#5EC49A',  // Green Light  
-    500: '#199D67',  // Primary Green
-    600: '#15803D',  // Green Dark
-    700: '#166534',  // Green Darker
+    50: '#39FF14',   // Electric Lime Green (main)
+    100: '#00FF88',  // Neon Electric Green
+        200: '#00CC44',  // Electric Forest
+    500: '#39FF14',  // Primary Electric Lime
+    600: '#00FF88',  // Neon Electric Green
+    700: '#00CC44',  // Electric Forest Dark
   },
   
-  // Secondary Brand Colors
+  // Secondary Brand Colors - Neon Cyan
   secondary: {
-    50: '#CCFBF1',   // Teal Lighter
-    100: '#2DD4BF',  // Teal Light
-    500: '#14B8A6',  // Teal
-    600: '#0D9488',  // Teal Dark
+    50: '#00FFFF',   // Neon Cyan
+    100: '#06B6D4',   // Bright Cyan
+    500: '#00FFFF',  // Neon Cyan (main)
+    600: '#06B6D4',  // Bright Cyan Dark
     700: '#0F766E',  // Teal Darker
   },
   
-  // Accent Colors
+  // Accent Colors - Neon Purple
   accent: {
-    50: '#C4B5FD',   // Purple Lighter
-    100: '#A78BFA',  // Purple Light
-    500: '#8B5CF6',  // Accent Purple
-    600: '#7C3AED',  // Button Purple
+    50: '#BF00FF',   // Neon Purple
+    100: '#A855F7',  // Brighter Purple
+    500: '#BF00FF',  // Neon Purple (main)
+    600: '#A855F7',  // Brighter Purple Dark
     700: '#601B9F',  // Primary Purple
     800: '#B629D4',  // Violet
   },
   
-  // Energy Colors
+  // Energy Colors - Neon Variants
   energy: {
     yellow: {
-      50: '#FCD34D',  // Yellow Light
-      500: '#FFB701', // Energy Yellow
+      50: '#FFFF00',  // Neon Yellow
+      500: '#FFFF00', // Neon Yellow (main)
+    },
+    orange: {
+      50: '#FF6600',  // Neon Orange
+      500: '#FF6600', // Neon Orange (main)
+    },
+    pink: {
+      50: '#FF0080',  // Neon Pink
+      500: '#FF0080', // Neon Pink (main)
     },
     red: {
-      50: '#FEE2E2',  // Red Light
-      500: '#EF4444', // Red Light
-      600: '#D03739', // Vibrant Red
+      50: '#FF3366',  // Electric Red
+      500: '#FF0040', // Neon Red
+      600: '#FF0040', // Neon Red (main)
     },
   },
   
@@ -58,13 +67,13 @@ export const colors = {
     900: '#111827',  // Darker Gray
   },
   
-  // Semantic Colors
+  // Semantic Colors - Neon Variants
   semantic: {
-    success: '#199D67',    // Aligned / Above Green Line
-    info: '#14B8A6',       // Clarity / Info
-    warning: '#FFB701',    // Celebration / Win
-    error: '#D03739',      // Contrast / Below Green Line
-    premium: '#8B5CF6',    // Premium / AI Assistant
+    success: '#39FF14',    // Electric Lime / Above Green Line
+    info: '#00FFFF',       // Neon Cyan / Clarity / Info
+    warning: '#FFFF00',    // Neon Yellow / Celebration / Win
+    error: '#FF0040',      // Neon Red / Below Green Line
+    premium: '#BF00FF',    // Neon Purple / Premium / AI Assistant
   }
 } as const
 
@@ -106,10 +115,11 @@ export const shadows = {
   xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
   '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
   inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
-  // Brand-specific shadows
-  primary: '0 4px 12px rgba(25, 157, 103, 0.25)',
-  secondary: '0 4px 12px rgba(20, 184, 166, 0.25)',
-  accent: '0 4px 12px rgba(139, 92, 246, 0.25)',
+  // Brand-specific shadows - Neon Glow Effects
+  primary: '0 4px 12px rgba(57, 255, 20, 0.3)',
+  secondary: '0 4px 12px rgba(0, 255, 255, 0.3)',
+  accent: '0 4px 12px rgba(191, 0, 255, 0.3)',
+  neon: '0 0 20px rgba(57, 255, 20, 0.4)',
 } as const
 
 export const typography = {
@@ -152,14 +162,16 @@ export const breakpoints = {
   '2xl': '1536px',
 } as const
 
-// Brand-specific gradients
+// Brand-specific gradients - Neon Variants
 export const gradients = {
-  primary: 'linear-gradient(135deg, #199D67, #5EC49A)',
-  secondary: 'linear-gradient(135deg, #14B8A6, #2DD4BF)',
-  accent: 'linear-gradient(135deg, #601B9F, #8B5CF6)',
-  brand: 'linear-gradient(135deg, #199D67, #14B8A6)',
-  cosmic: 'linear-gradient(135deg, #601B9F, #B629D4, #2DD4BF)',
-  energy: 'linear-gradient(135deg, #FFB701, #FCD34D)',
+  primary: 'linear-gradient(135deg, #39FF14, #00FF88)',
+  secondary: 'linear-gradient(135deg, #00FFFF, #06B6D4)',
+  accent: 'linear-gradient(135deg, #BF00FF, #FF0080)',
+  brand: 'linear-gradient(135deg, #39FF14, #00FFFF)',
+  cosmic: 'linear-gradient(135deg, #BF00FF, #FF0080, #00FFFF)',
+  energy: 'linear-gradient(135deg, #FF6600, #FFFF00)',
+  neon: 'linear-gradient(135deg, #39FF14, #00FFFF)',
+  electric: 'linear-gradient(135deg, #BF00FF, #FF0080)',
 } as const
 
 // Animation durations

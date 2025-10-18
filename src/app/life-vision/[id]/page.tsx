@@ -532,7 +532,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             .cover-divider {
               width: 200px;
               height: 3px;
-              background: #199D67;
+              background: #39FF14;
               margin: 0 auto 40px auto;
             }
             .cover-version {
@@ -551,7 +551,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               width: 40px;
               height: 40px;
               margin: 0 auto 15px auto;
-              background: #199D67;
+              background: #39FF14;
               border-radius: 8px;
               display: flex;
               align-items: center;
@@ -579,13 +579,13 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             .content-header {
               text-align: center;
               margin-bottom: 40px;
-              border-bottom: 3px solid #199D67;
+              border-bottom: 3px solid #00CC44;
               padding-bottom: 20px;
             }
             .content-title {
               font-size: 32px;
               font-weight: bold;
-              color: #199D67;
+              color: #00CC44;
               margin-bottom: 10px;
             }
             .content-version {
@@ -604,9 +604,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             .section-title {
               font-size: 24px;
               font-weight: bold;
-              color: #199D67;
+              color: #00CC44;
               margin-bottom: 15px;
-              border-left: 4px solid #199D67;
+              border-left: 4px solid #00CC44;
               padding-left: 15px;
             }
             .section-content {
@@ -632,7 +632,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               text-align: center;
               margin-top: 40px;
               padding: 20px;
-              background: #199D67;
+              background: #39FF14;
               color: white;
               border-radius: 8px;
             }

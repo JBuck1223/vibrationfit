@@ -13,10 +13,13 @@ interface CareerSectionProps {
 }
 
 const employmentTypeOptions = [
-  { value: 'Employee', label: 'Employee' },
+  { value: 'Employed', label: 'Employed' },
   { value: 'Business Owner', label: 'Business Owner' },
-  { value: 'Contractor/Freelancer', label: 'Contractor/Freelancer' },
-  { value: 'Prefer not to say', label: 'Prefer not to say' }
+  { value: 'Freelance/Contractor', label: 'Freelance/Contractor' },
+  { value: 'Retired', label: 'Retired' },
+  { value: 'Student (Full Time)', label: 'Student (Full Time)' },
+  { value: 'Student (Working)', label: 'Student (Working)' },
+  { value: 'Unemployed', label: 'Unemployed' }
 ]
 
 const timeInRoleOptions = [

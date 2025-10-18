@@ -75,7 +75,8 @@ const navigation: NavItem[] = [
     icon: Brain,
     hasDropdown: true,
     children: [
-      { name: 'See Current Assessment', href: '/assessment', icon: Eye },
+      { name: 'Take Assessment', href: '/assessment', icon: Eye },
+      { name: 'View Results', href: '/assessment/results', icon: BarChart3 },
       { name: 'New Assessment', href: '/assessment/new', icon: Plus },
     ]
   },
@@ -170,7 +171,7 @@ export function Sidebar({ className }: SidebarProps) {
       <div className="flex items-center justify-between p-4 border-b border-neutral-800">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#199D67] to-[#14B8A6] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#39FF14] to-[#00FFFF] rounded-lg flex items-center justify-center">
               <Zap className="w-5 h-5 text-white" />
             </div>
             <span className="text-white font-bold text-lg">VibrationFit</span>
@@ -204,7 +205,7 @@ export function Sidebar({ className }: SidebarProps) {
                     className={cn(
                       'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full text-left',
                       isActive
-                        ? 'bg-[#199D67]/20 text-[#199D67] border border-[#199D67]/30'
+                        ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
                         : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
                     )}
                   >
@@ -229,7 +230,7 @@ export function Sidebar({ className }: SidebarProps) {
                             className={cn(
                               'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
                               isChildActive
-                                ? 'bg-[#199D67]/20 text-[#199D67] border border-[#199D67]/30'
+                                ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
                                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                             )}
                           >
@@ -247,7 +248,7 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                     isActive
-                      ? 'bg-[#199D67]/20 text-[#199D67] border border-[#199D67]/30'
+                      ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
                       : 'text-neutral-300 hover:text-white hover:bg-neutral-800',
                     collapsed && 'justify-center'
                   )}
@@ -257,7 +258,7 @@ export function Sidebar({ className }: SidebarProps) {
                     <>
                       <span className="flex-1">{item.name}</span>
                       {item.badge && (
-                        <span className="px-2 py-0.5 text-xs bg-[#199D67] text-white rounded-full">
+                        <span className="px-2 py-0.5 text-xs bg-[#39FF14] text-black rounded-full">
                           {item.badge}
                         </span>
                       )}

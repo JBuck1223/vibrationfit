@@ -39,6 +39,13 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
+  // Fetch assessment data
+  const { data: assessmentData } = await supabase
+      .from('assessments')
+      .select('*')
+      .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
   return (
     <SidebarLayout>
       <DashboardContent 
@@ -47,6 +54,7 @@ export default async function DashboardPage() {
         visionData={visionData || []}
         visionBoardData={visionBoardData || []}
         journalData={journalData || []}
+        assessmentData={assessmentData || []}
       />
     </SidebarLayout>
   )

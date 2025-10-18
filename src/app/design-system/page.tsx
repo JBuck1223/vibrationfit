@@ -4,7 +4,6 @@ import {
   Container, 
   Card, 
   Button, 
-  GradientButton, 
   AIButton,
   Badge,
   ProgressBar,
@@ -19,31 +18,31 @@ export default function DesignSystemPage() {
       <div className="min-h-screen bg-black text-white">
         <Container size="xl" className="py-12">
           {/* Header */}
-          <div className="text-center mb-16 py-12 bg-gradient-to-br from-[#199D67] to-[#14B8A6] rounded-3xl">
+          <div className="text-center mb-16 py-12 bg-gradient-to-br from-[#39FF14] to-[#00CC44] rounded-3xl">
             <h1 className="text-5xl font-bold mb-4">VibrationFit Brand Kit</h1>
             <p className="text-xl text-white/90">Color Guidelines & Component Library</p>
           </div>
 
           {/* System Colors */}
           <section className="mb-16">
-            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#199D67]">System Colors</h2>
+            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#39FF14]">System Colors</h2>
             <p className="text-[#9CA3AF] mb-8 text-lg">Core system colors used throughout the platform for consistent branding.</p>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
               {/* Primary */}
               <Card variant="default">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-20 h-20 bg-[#199D67] rounded-xl shadow-lg"></div>
+                  <div className="w-20 h-20 bg-[#39FF14] rounded-xl shadow-lg shadow-[#39FF14]/30"></div>
                   <div>
                     <h3 className="text-2xl font-semibold">Primary</h3>
-                    <div className="font-mono text-lg text-[#9CA3AF]">#199D67</div>
+                    <div className="font-mono text-lg text-[#9CA3AF]">#39FF14</div>
                   </div>
                 </div>
                 <div className="text-[#cbd5e1] mb-4 leading-relaxed">
-                  Main brand color representing growth, alignment, and living "above the Green Line."
+                  Electric lime green representing growth, alignment, and living "above the Green Line."
                 </div>
-                <div className="bg-[#199D67]/10 p-4 rounded-lg border-l-4 border-[#199D67]">
-                  <div className="text-[#199D67] font-semibold mb-2">When to use:</div>
+                <div className="bg-[#39FF14]/10 p-4 rounded-lg border-l-4 border-[#39FF14]">
+                  <div className="text-[#39FF14] font-semibold mb-2">When to use:</div>
                   <ul className="text-sm text-[#cbd5e1] space-y-1">
                     <li>• Primary CTA buttons</li>
                     <li>• Success states</li>
@@ -56,17 +55,17 @@ export default function DesignSystemPage() {
               {/* Secondary */}
               <Card variant="default">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-20 h-20 bg-[#14B8A6] rounded-xl shadow-lg"></div>
+                  <div className="w-20 h-20 bg-[#00FFFF] rounded-xl shadow-lg shadow-[#00FFFF]/30"></div>
                   <div>
                     <h3 className="text-2xl font-semibold">Secondary</h3>
-                    <div className="font-mono text-lg text-[#9CA3AF]">#14B8A6</div>
+                    <div className="font-mono text-lg text-[#9CA3AF]">#00FFFF</div>
                   </div>
                 </div>
                 <div className="text-[#cbd5e1] mb-4 leading-relaxed">
-                  Secondary color representing clarity, flow, and calm energy.
+                  Neon cyan representing clarity, flow, and calm energy.
                 </div>
-                <div className="bg-[#14B8A6]/10 p-4 rounded-lg border-l-4 border-[#14B8A6]">
-                  <div className="text-[#14B8A6] font-semibold mb-2">When to use:</div>
+                <div className="bg-[#00FFFF]/10 p-4 rounded-lg border-l-4 border-[#00FFFF]">
+                  <div className="text-[#00FFFF] font-semibold mb-2">When to use:</div>
                   <ul className="text-sm text-[#cbd5e1] space-y-1">
                     <li>• Info cards</li>
                     <li>• Progress bars</li>
@@ -79,17 +78,17 @@ export default function DesignSystemPage() {
               {/* Accent */}
               <Card variant="default">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-20 h-20 bg-[#8B5CF6] rounded-xl shadow-lg"></div>
+                  <div className="w-20 h-20 bg-[#BF00FF] rounded-xl shadow-lg shadow-[#BF00FF]/30"></div>
                   <div>
                     <h3 className="text-2xl font-semibold">Accent</h3>
-                    <div className="font-mono text-lg text-[#9CA3AF]">#8B5CF6</div>
+                    <div className="font-mono text-lg text-[#9CA3AF]">#BF00FF</div>
                   </div>
                 </div>
                 <div className="text-[#cbd5e1] mb-4 leading-relaxed">
-                  Premium accent color for special moments and premium features.
+                  Neon purple for special moments and premium features.
                 </div>
-                <div className="bg-[#8B5CF6]/10 p-4 rounded-lg border-l-4 border-[#8B5CF6]">
-                  <div className="text-[#8B5CF6] font-semibold mb-2">When to use:</div>
+                <div className="bg-[#BF00FF]/10 p-4 rounded-lg border-l-4 border-[#BF00FF]">
+                  <div className="text-[#BF00FF] font-semibold mb-2">When to use:</div>
                   <ul className="text-sm text-[#cbd5e1] space-y-1">
                     <li>• Hover states</li>
                     <li>• AI Vibrational Assistant</li>
@@ -103,13 +102,13 @@ export default function DesignSystemPage() {
 
           {/* Button Showcase */}
           <section className="mb-16">
-            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#199D67]">Button System</h2>
+            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#00CC44]">Button System</h2>
             <p className="text-[#9CA3AF] mb-8 text-lg">Modern, pill-shaped buttons with smooth interactions.</p>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Standard Buttons */}
               <Card>
-                <h3 className="text-2xl font-semibold text-[#199D67] mb-6">Standard Buttons</h3>
+                <h3 className="text-2xl font-semibold text-white mb-6">Standard Buttons</h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Button variant="primary" className="w-full">Primary Button</Button>
@@ -138,40 +137,24 @@ export default function DesignSystemPage() {
                 </div>
               </Card>
 
-              {/* Gradient Buttons */}
+              {/* Special Buttons */}
               <Card>
-                <h3 className="text-2xl font-semibold text-[#14B8A6] mb-6">Gradient Buttons</h3>
+                <h3 className="text-2xl font-semibold text-white mb-6">Special Buttons</h3>
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <GradientButton gradient="brand" className="w-full">Brand Harmony</GradientButton>
-                    <p className="text-sm text-[#9CA3AF]">Hero CTAs, main actions</p>
-                  </div>
-                  <div className="space-y-2">
-                    <GradientButton gradient="green" className="w-full">Green Energy</GradientButton>
-                    <p className="text-sm text-[#9CA3AF]">Growth, success moments</p>
-                  </div>
-                  <div className="space-y-2">
-                    <GradientButton gradient="teal" className="w-full">Clarity Flow</GradientButton>
-                    <p className="text-sm text-[#9CA3AF]">Calm energy, water themes</p>
-                  </div>
-                  <div className="space-y-2">
-                    <GradientButton gradient="purple" className="w-full">Purple Power</GradientButton>
-                    <p className="text-sm text-[#9CA3AF]">Premium, mystical elements</p>
-                  </div>
-                  <div className="space-y-2">
-                    <GradientButton gradient="cosmic" className="w-full">Cosmic Journey</GradientButton>
-                    <p className="text-sm text-[#9CA3AF]">Transformational moments</p>
-                  </div>
                   <div className="space-y-2">
                     <AIButton className="w-full">Ask AI Assistant</AIButton>
                     <p className="text-sm text-[#9CA3AF]">AI features with mystical glow</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Button variant="accent" className="w-full">Premium Feature</Button>
+                    <p className="text-sm text-[#9CA3AF]">Special accent for premium features</p>
                   </div>
                 </div>
               </Card>
 
               {/* Button Sizes */}
               <Card>
-                <h3 className="text-2xl font-semibold text-[#8B5CF6] mb-6">Button Sizes</h3>
+                <h3 className="text-2xl font-semibold text-white mb-6">Button Sizes</h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Button variant="primary" size="sm">Small Button</Button>
@@ -194,7 +177,7 @@ export default function DesignSystemPage() {
 
               {/* Button States */}
               <Card>
-                <h3 className="text-2xl font-semibold text-[#FFB701] mb-6">Interactive States</h3>
+                <h3 className="text-2xl font-semibold text-white mb-6">Interactive States</h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Button variant="primary">Normal State</Button>
@@ -219,53 +202,53 @@ export default function DesignSystemPage() {
 
           {/* Color Palette */}
           <section className="mb-16">
-            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#199D67]">Complete Color Palette</h2>
+            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#39FF14]">Complete Color Palette</h2>
             
             {/* Primary Green Family */}
             <div className="mb-12">
-              <h3 className="text-2xl font-semibold text-[#199D67] mb-6">Primary Green Family</h3>
+              <h3 className="text-2xl font-semibold text-white mb-6">Primary Neon Green Family</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#199D67] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Primary Green</h4>
-                  <p className="font-mono text-[#9CA3AF] mb-2">#199D67</p>
+                  <div className="h-32 bg-[#39FF14] rounded-xl mb-4 shadow-lg shadow-[#39FF14]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Electric Lime</h4>
+                  <p className="font-mono text-[#9CA3AF] mb-2">#39FF14</p>
                   <p className="text-sm text-[#cbd5e1]">Main brand color, primary CTAs</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#5EC49A] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Green Light</h4>
-                  <p className="font-mono text-[#9CA3AF] mb-2">#5EC49A</p>
-                  <p className="text-sm text-[#cbd5e1]">Hover states, lighter accents</p>
+                  <div className="h-32 bg-[#00FF88] rounded-xl mb-4 shadow-lg shadow-[#00FF88]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Neon Electric Green</h4>
+                  <p className="font-mono text-[#9CA3AF] mb-2">#00FF88</p>
+                  <p className="text-sm text-[#cbd5e1]">Hover states, bright accents</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#A8E5CE] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Green Lighter</h4>
-                  <p className="font-mono text-[#9CA3AF] mb-2">#A8E5CE</p>
-                  <p className="text-sm text-[#cbd5e1]">Backgrounds, subtle highlights</p>
+                  <div className="h-32 bg-[#00CC44] rounded-xl mb-4 shadow-lg shadow-[#00CC44]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Electric Forest</h4>
+                  <p className="font-mono text-[#9CA3AF] mb-2">#00CC44</p>
+                  <p className="text-sm text-[#cbd5e1]">Backgrounds, vibrant accents</p>
                 </Card>
               </div>
             </div>
 
             {/* Teal Family */}
             <div className="mb-12">
-              <h3 className="text-2xl font-semibold text-[#14B8A6] mb-6">Teal (Secondary) Family</h3>
+              <h3 className="text-2xl font-semibold text-white mb-6">Neon Cyan Family</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#14B8A6] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Teal</h4>
-                  <p className="font-mono text-[#9CA3AF] mb-2">#14B8A6</p>
-                  <p className="text-sm text-[#cbd5e1]">Secondary actions, links</p>
+                  <div className="h-32 bg-[#00FFFF] rounded-xl mb-4 shadow-lg shadow-[#00FFFF]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Neon Cyan</h4>
+                  <p className="font-mono text-[#9CA3AF] mb-2">#00FFFF</p>
+                  <p className="text-sm text-[#cbd5e1]">Secondary actions, info elements</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#2DD4BF] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Teal Light</h4>
-                  <p className="font-mono text-[#9CA3AF] mb-2">#2DD4BF</p>
+                  <div className="h-32 bg-[#06B6D4] rounded-xl mb-4 shadow-lg shadow-[#06B6D4]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Bright Cyan</h4>
+                  <p className="font-mono text-[#9CA3AF] mb-2">#06B6D4</p>
                   <p className="text-sm text-[#cbd5e1]">Hover states, bright accents</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#0D9488] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Teal Dark</h4>
-                  <p className="font-mono text-[#9CA3AF] mb-2">#0D9488</p>
+                  <div className="h-32 bg-[#0F766E] rounded-xl mb-4 shadow-lg shadow-[#0F766E]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Deep Teal</h4>
+                  <p className="font-mono text-[#9CA3AF] mb-2">#0F766E</p>
                   <p className="text-sm text-[#cbd5e1]">Active states, deep moments</p>
                 </Card>
               </div>
@@ -273,34 +256,34 @@ export default function DesignSystemPage() {
 
             {/* Purple Family */}
             <div className="mb-12">
-              <h3 className="text-2xl font-semibold text-[#8B5CF6] mb-6">Purple (Accent) Family</h3>
+              <h3 className="text-2xl font-semibold text-white mb-6">Neon Purple Family</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#601B9F] rounded-xl mb-4"></div>
+                  <div className="h-32 bg-[#601B9F] rounded-xl mb-4 shadow-lg shadow-[#601B9F]/30"></div>
                   <h4 className="text-lg font-semibold mb-2">Primary Purple</h4>
                   <p className="font-mono text-sm text-[#9CA3AF] mb-2">#601B9F</p>
                   <p className="text-xs text-[#cbd5e1]">Premium base</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#8B5CF6] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Accent Purple</h4>
-                  <p className="font-mono text-sm text-[#9CA3AF] mb-2">#8B5CF6</p>
+                  <div className="h-32 bg-[#BF00FF] rounded-xl mb-4 shadow-lg shadow-[#BF00FF]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Neon Purple</h4>
+                  <p className="font-mono text-sm text-[#9CA3AF] mb-2">#BF00FF</p>
                   <p className="text-xs text-[#cbd5e1]">Main accent</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#7C3AED] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Button Purple</h4>
-                  <p className="font-mono text-sm text-[#9CA3AF] mb-2">#7C3AED</p>
+                  <div className="h-32 bg-[#A855F7] rounded-xl mb-4 shadow-lg shadow-[#A855F7]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Brighter Purple</h4>
+                  <p className="font-mono text-sm text-[#9CA3AF] mb-2">#A855F7</p>
                   <p className="text-xs text-[#cbd5e1]">Active states</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#B629D4] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Violet</h4>
-                  <p className="font-mono text-sm text-[#9CA3AF] mb-2">#B629D4</p>
+                  <div className="h-32 bg-[#FF0080] rounded-xl mb-4 shadow-lg shadow-[#FF0080]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Neon Pink</h4>
+                  <p className="font-mono text-sm text-[#9CA3AF] mb-2">#FF0080</p>
                   <p className="text-xs text-[#cbd5e1]">Special accents</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#C4B5FD] rounded-xl mb-4"></div>
+                  <div className="h-32 bg-[#C4B5FD] rounded-xl mb-4 shadow-lg shadow-[#C4B5FD]/30"></div>
                   <h4 className="text-lg font-semibold mb-2">Purple Lighter</h4>
                   <p className="font-mono text-sm text-[#9CA3AF] mb-2">#C4B5FD</p>
                   <p className="text-xs text-[#cbd5e1]">Backgrounds</p>
@@ -310,31 +293,31 @@ export default function DesignSystemPage() {
 
             {/* Energy Colors */}
             <div className="mb-12">
-              <h3 className="text-2xl font-semibold text-[#FFB701] mb-6">Energy Colors</h3>
+              <h3 className="text-2xl font-semibold text-white mb-6">Energy Colors</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#D03739] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Vibrant Red</h4>
-                  <p className="font-mono text-[#9CA3AF] mb-2">#D03739</p>
+                  <div className="h-32 bg-[#FF0040] rounded-xl mb-4 shadow-lg shadow-[#FF0040]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Neon Red</h4>
+                  <p className="font-mono text-[#9CA3AF] mb-2">#FF0040</p>
                   <p className="text-sm text-[#cbd5e1]">Alerts, below green line</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#EF4444] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Red Light</h4>
-                  <p className="font-mono text-[#9CA3AF] mb-2">#EF4444</p>
+                  <div className="h-32 bg-[#FF3366] rounded-xl mb-4 shadow-lg shadow-[#FF3366]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Electric Red</h4>
+                  <p className="font-mono text-[#9CA3AF] mb-2">#FF3366</p>
                   <p className="text-sm text-[#cbd5e1]">Hover states, warnings</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#FFB701] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Energy Yellow</h4>
-                  <p className="font-mono text-[#9CA3AF] mb-2">#FFB701</p>
+                  <div className="h-32 bg-[#FFFF00] rounded-xl mb-4 shadow-lg shadow-[#FFFF00]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Neon Yellow</h4>
+                  <p className="font-mono text-[#9CA3AF] mb-2">#FFFF00</p>
                   <p className="text-sm text-[#cbd5e1]">Celebration, wins</p>
                 </Card>
                 <Card variant="outlined">
-                  <div className="h-32 bg-[#FCD34D] rounded-xl mb-4"></div>
-                  <h4 className="text-lg font-semibold mb-2">Yellow Light</h4>
-                  <p className="font-mono text-[#9CA3AF] mb-2">#FCD34D</p>
-                  <p className="text-sm text-[#cbd5e1]">Subtle highlights</p>
+                  <div className="h-32 bg-[#FF6600] rounded-xl mb-4 shadow-lg shadow-[#FF6600]/30"></div>
+                  <h4 className="text-lg font-semibold mb-2">Neon Orange</h4>
+                  <p className="font-mono text-[#9CA3AF] mb-2">#FF6600</p>
+                  <p className="text-sm text-[#cbd5e1]">Energy highlights</p>
                 </Card>
               </div>
             </div>
@@ -342,11 +325,11 @@ export default function DesignSystemPage() {
 
           {/* Badges & Status */}
           <section className="mb-16">
-            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#199D67]">Badges & Status Indicators</h2>
+            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#39FF14]">Badges & Status Indicators</h2>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <Card>
-                <h3 className="text-2xl font-semibold text-[#199D67] mb-6">Badge Variants</h3>
+                <h3 className="text-2xl font-semibold text-white mb-6">Badge Variants</h3>
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <Badge variant="success">Success</Badge>
@@ -376,7 +359,7 @@ export default function DesignSystemPage() {
               </Card>
 
               <Card>
-                <h3 className="text-2xl font-semibold text-[#14B8A6] mb-6">Progress Bars</h3>
+                <h3 className="text-2xl font-semibold text-white mb-6">Progress Bars</h3>
                 <div className="space-y-6">
                   <ProgressBar 
                     value={75} 
@@ -400,11 +383,11 @@ export default function DesignSystemPage() {
 
           {/* Form Components */}
           <section className="mb-16">
-            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#199D67]">Form Components</h2>
+            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#00CC44]">Form Components</h2>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <Card>
-                <h3 className="text-2xl font-semibold text-[#199D67] mb-6">Inputs</h3>
+                <h3 className="text-2xl font-semibold text-white mb-6">Inputs</h3>
                 <div className="space-y-4">
                   <Input 
                     label="Email Address" 
@@ -425,7 +408,7 @@ export default function DesignSystemPage() {
               </Card>
 
               <Card>
-                <h3 className="text-2xl font-semibold text-[#14B8A6] mb-6">Textarea</h3>
+                <h3 className="text-2xl font-semibold text-white mb-6">Textarea</h3>
                 <Textarea 
                   label="Your Vision"
                   placeholder="Describe your vision..."
@@ -438,21 +421,26 @@ export default function DesignSystemPage() {
 
           {/* Loading States */}
           <section className="mb-16">
-            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#199D67]">Loading States</h2>
+            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#39FF14]">Loading States</h2>
+            <p className="text-[#9CA3AF] mb-8 text-lg">Branded loading indicators using the VibrationFit logo.</p>
             
             <Card>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div className="text-center">
                   <Spinner variant="primary" size="lg" className="mx-auto mb-4" />
-                  <p className="text-sm text-[#9CA3AF]">Primary Spinner</p>
+                  <p className="text-sm text-[#9CA3AF]">Primary Loading</p>
                 </div>
                 <div className="text-center">
                   <Spinner variant="secondary" size="lg" className="mx-auto mb-4" />
-                  <p className="text-sm text-[#9CA3AF]">Secondary Spinner</p>
+                  <p className="text-sm text-[#9CA3AF]">Secondary Loading</p>
                 </div>
                 <div className="text-center">
                   <Spinner variant="accent" size="lg" className="mx-auto mb-4" />
-                  <p className="text-sm text-[#9CA3AF]">Accent Spinner</p>
+                  <p className="text-sm text-[#9CA3AF]">Accent Loading</p>
+                </div>
+                <div className="text-center">
+                  <Spinner variant="branded" size="lg" className="mx-auto mb-4" />
+                  <p className="text-sm text-[#9CA3AF]">Branded Loading</p>
                 </div>
               </div>
             </Card>
@@ -460,64 +448,64 @@ export default function DesignSystemPage() {
 
           {/* Best Practices */}
           <section className="mb-16">
-            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#199D67]">Best Practices</h2>
+            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#39FF14]">Best Practices</h2>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="border-2 border-[#199D67]">
-                <h3 className="text-2xl font-semibold text-[#199D67] mb-6">✓ Do</h3>
+              <Card className="border-2 border-[#39FF14]">
+                <h3 className="text-2xl font-semibold text-white mb-6">✓ Do</h3>
                 <ul className="space-y-3 text-[#cbd5e1]">
                   <li className="flex items-start gap-3">
-                    <span className="text-[#199D67] mt-1">•</span>
+                    <span className="text-[#39FF14] mt-1">•</span>
                     <span>Use primary green for main CTAs and success states</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-[#199D67] mt-1">•</span>
+                    <span className="text-[#39FF14] mt-1">•</span>
                     <span>Maintain high contrast ratios for accessibility</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-[#199D67] mt-1">•</span>
-                    <span>Use gradients sparingly for special moments</span>
+                    <span className="text-[#39FF14] mt-1">•</span>
+                    <span>Use neon colors strategically for maximum impact</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-[#199D67] mt-1">•</span>
+                    <span className="text-[#39FF14] mt-1">•</span>
                     <span>Test colors in both light and dark contexts</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-[#199D67] mt-1">•</span>
+                    <span className="text-[#39FF14] mt-1">•</span>
                     <span>Use consistent color meanings across the app</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-[#199D67] mt-1">•</span>
+                    <span className="text-[#39FF14] mt-1">•</span>
                     <span>Apply hover states that lift elements up</span>
                   </li>
                 </ul>
               </Card>
 
-              <Card className="border-2 border-[#D03739]">
-                <h3 className="text-2xl font-semibold text-[#D03739] mb-6">✗ Don't</h3>
+              <Card className="border-2 border-[#FF0040]">
+                <h3 className="text-2xl font-semibold text-white mb-6">✗ Don't</h3>
                 <ul className="space-y-3 text-[#cbd5e1]">
                   <li className="flex items-start gap-3">
-                    <span className="text-[#D03739] mt-1">•</span>
+                    <span className="text-[#FF0040] mt-1">•</span>
                     <span>Don't use too many colors in one interface</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-[#D03739] mt-1">•</span>
+                    <span className="text-[#FF0040] mt-1">•</span>
                     <span>Don't use red for positive actions</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-[#D03739] mt-1">•</span>
+                    <span className="text-[#FF0040] mt-1">•</span>
                     <span>Don't ignore accessibility guidelines</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-[#D03739] mt-1">•</span>
+                    <span className="text-[#FF0040] mt-1">•</span>
                     <span>Don't use colors inconsistently</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-[#D03739] mt-1">•</span>
-                    <span>Don't overuse gradients or effects</span>
+                    <span className="text-[#FF0040] mt-1">•</span>
+                    <span>Don't overuse effects or animations</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-[#D03739] mt-1">•</span>
+                    <span className="text-[#FF0040] mt-1">•</span>
                     <span>Don't use squared buttons (always pill-shaped)</span>
                   </li>
                 </ul>
@@ -533,9 +521,9 @@ export default function DesignSystemPage() {
                 Use this design system as your single source of truth for all VibrationFit development.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <GradientButton gradient="brand" size="lg">
+                <Button variant="primary" size="lg">
                   Start Building
-                </GradientButton>
+                </Button>
                 <Button variant="outline" size="lg">
                   View Documentation
                 </Button>
