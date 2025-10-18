@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validate required fields
-    if (!assessment_id || !question_id || !category || !response_value || !response_text || !green_line) {
+    if (!assessment_id || !question_id || !category || response_value === undefined || response_value === null || !response_text || !green_line) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }

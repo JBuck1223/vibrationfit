@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { ASSESSMENT_QUESTIONS, filterQuestionsByProfile } from '@/lib/assessment/questions'
+import { assessmentQuestions, filterQuestionsByProfile } from '@/lib/assessment/questions'
 
 // ============================================================================
 // GET - Calculate assessment progress
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     let answeredQuestions = 0
     const categoryProgress: Record<string, { total: number; answered: number; percentage: number }> = {}
 
-    for (const categoryData of ASSESSMENT_QUESTIONS) {
+    for (const categoryData of assessmentQuestions) {
       const filteredQuestions = filterQuestionsByProfile(
         categoryData.questions,
         profile || {}

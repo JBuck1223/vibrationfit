@@ -20,32 +20,36 @@ export async function POST(request: NextRequest) {
     }
 
     // AI scoring prompt
-    const prompt = `Analyze this assessment response for vibrational alignment and score it.
+    const prompt = `You are a vibrational alignment expert. Analyze this assessment response and score it based on the person's vibrational energy and mindset.
 
 QUESTION: "${questionText}"
 USER RESPONSE: "${userResponse}"
 
-Score the response on a scale of 2, 4, 6, 8, or 10 based on vibrational alignment:
+SCORING SCALE (2-10):
+- 10: EXCEPTIONAL alignment - Pure joy, excitement, confidence, "I can do anything" energy
+- 8: STRONG alignment - Positive, optimistic, empowered, taking action
+- 6: NEUTRAL/TRANSITION - Mixed feelings, aware but not fully aligned, working on it
+- 4: WEAK alignment - Some negativity, victim mindset, scarcity thinking
+- 2: POOR alignment - Hopeless, defeated, negative, self-sabotaging
 
-SCORING CRITERIA:
-- 10: Above Green Line - Empowered, confident, abundance mindset, takes ownership
-- 8: Above Green Line - Positive, optimistic, growth-oriented, self-aware
-- 6: Neutral/Transition - Balanced, realistic, working on growth, aware but not fully aligned
-- 4: Below Green Line - Victim mindset, scarcity thinking, disempowered, blaming others
-- 2: Below Green Line - Hopeless, defeated, negative, self-sabotaging thoughts
+EXAMPLES:
+- "My wife is the best thing ever!!! We are super romantic all the time" → 10 (pure joy, excitement)
+- "I feel anxious walking into our home sometimes" → 4 (anxiety, negative energy)
+- "I just want my wife! She's the best" → 8 (positive, loving energy)
+- "We're working on our relationship" → 6 (neutral, transitional)
 
 GREEN LINE STATUS:
 - "above": Score 8-10 (empowered, aligned mindset)
-- "neutral": Score 6 (transitional, aware but working on it)
+- "neutral": Score 6 (transitional, aware but working on it)  
 - "below": Score 2-4 (disempowered, victim mindset)
 
-Respond with ONLY a JSON object in this exact format:
+Respond with ONLY a JSON object:
 {
   "score": [2, 4, 6, 8, or 10],
   "greenLine": "above" | "neutral" | "below"
 }
 
-Be decisive and consistent with scoring. Focus on the vibrational energy and mindset, not the content.`
+Be decisive! Look for emotional energy, confidence, and empowerment vs. anxiety, negativity, and victimhood.`
 
     // Use centralized AI client with safe fallback
     let result: { score: 2 | 4 | 6 | 8 | 10; greenLine: 'above' | 'neutral' | 'below' } | null = null
@@ -66,17 +70,40 @@ Be decisive and consistent with scoring. Focus on the vibrational energy and min
     }
 
     if (!result) {
-      // Heuristic fallback scoring (never fails)
+      // Improved heuristic fallback scoring
       const text = `${questionText} ${userResponse}`.toLowerCase()
-      const positive = ['confident', 'grateful', 'can', 'will', 'excited', 'abundant', 'aligned', 'responsible']
-      const negative = ['can\'t', 'won\'t', 'stuck', 'hopeless', 'afraid', 'scarce', 'blame', 'victim']
-      let scoreValue = 6
-      let posHits = positive.reduce((c, k) => c + (text.includes(k) ? 1 : 0), 0)
-      let negHits = negative.reduce((c, k) => c + (text.includes(k) ? 1 : 0), 0)
-      if (posHits >= 2 && negHits === 0) scoreValue = 10
-      else if (posHits >= 1 && negHits <= 1) scoreValue = 8
-      else if (negHits >= 2 && posHits === 0) scoreValue = 2
-      else if (negHits >= 1 && posHits === 0) scoreValue = 4
+      
+      // Strong positive indicators
+      const strongPositive = ['best thing ever', 'amazing', 'incredible', 'love', 'excited', 'confident', 'can do anything', 'super', 'perfect', 'fantastic', 'wonderful']
+      // Moderate positive indicators  
+      const moderatePositive = ['good', 'great', 'happy', 'positive', 'optimistic', 'grateful', 'blessed', 'lucky', 'proud']
+      // Negative indicators
+      const negative = ['anxious', 'worried', 'stressed', 'overwhelmed', 'difficult', 'hard', 'struggle', 'problem', 'issue', 'concern', 'fear', 'afraid']
+      // Strong negative indicators
+      const strongNegative = ['hopeless', 'defeated', 'can\'t', 'won\'t', 'impossible', 'terrible', 'awful', 'hate', 'desperate']
+      
+      let scoreValue = 6 // Default neutral
+      
+      const strongPosHits = strongPositive.reduce((c, k) => c + (text.includes(k) ? 1 : 0), 0)
+      const moderatePosHits = moderatePositive.reduce((c, k) => c + (text.includes(k) ? 1 : 0), 0)
+      const negHits = negative.reduce((c, k) => c + (text.includes(k) ? 1 : 0), 0)
+      const strongNegHits = strongNegative.reduce((c, k) => c + (text.includes(k) ? 1 : 0), 0)
+      
+      // Scoring logic
+      if (strongPosHits >= 2 || (strongPosHits >= 1 && moderatePosHits >= 2)) {
+        scoreValue = 10
+      } else if (strongPosHits >= 1 || moderatePosHits >= 3) {
+        scoreValue = 8
+      } else if (strongNegHits >= 2 || (strongNegHits >= 1 && negHits >= 2)) {
+        scoreValue = 2
+      } else if (strongNegHits >= 1 || negHits >= 3) {
+        scoreValue = 4
+      } else if (moderatePosHits >= 1 && negHits <= 1) {
+        scoreValue = 8
+      } else if (negHits >= 2 && moderatePosHits === 0) {
+        scoreValue = 4
+      }
+      
       const gl: 'above' | 'neutral' | 'below' = scoreValue >= 8 ? 'above' : scoreValue === 6 ? 'neutral' : 'below'
       result = { score: scoreValue as 2 | 4 | 6 | 8 | 10, greenLine: gl }
     }
