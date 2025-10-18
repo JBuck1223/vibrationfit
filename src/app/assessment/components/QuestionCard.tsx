@@ -27,7 +27,7 @@ export default function QuestionCard({
       {/* Question Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-sm font-semibold text-primary-500">
+          <span className="text-sm font-semibold text-[#39FF14]">
             Question {questionNumber} of {totalQuestions}
           </span>
         </div>
@@ -50,7 +50,7 @@ export default function QuestionCard({
           let hoverBorderColor = 'hover:border-neutral-500'
           
           if (isSelected) {
-            borderColor = 'border-primary-500'
+            borderColor = 'border-[#39FF14]'
           }
 
           return (
@@ -67,10 +67,6 @@ export default function QuestionCard({
                 text-left relative group
               `}
             >
-              {/* Selection Indicator */}
-              {isSelected && (
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-12 rounded-r-full bg-primary-500" />
-              )}
 
               <div className="flex items-center gap-4">
                 {/* Option Text */}
@@ -83,7 +79,7 @@ export default function QuestionCard({
 
                 {/* Check Icon */}
                 {isSelected && (
-                  <Check className="flex-shrink-0 w-5 h-5 text-primary-500" />
+                  <Check className="flex-shrink-0 w-5 h-5 text-[#39FF14]" />
                 )}
               </div>
             </button>

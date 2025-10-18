@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, Button, Badge, ProgressBar, PageLayout, Container, GradientButton, AIButton } from '@/lib/design-system'
+import { Card, Button, Badge, ProgressBar, PageLayout, Container, AIButton } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import Link from 'next/link'
 import AITokenUsage from '@/components/AITokenUsage'
@@ -41,15 +41,16 @@ import {
 
 interface DashboardContentProps {
   user: {
-    email: string
+    email?: string
   }
   profileData: any
   visionData: any[]
   visionBoardData: any[]
   journalData: any[]
+  assessmentData?: any[]
 }
 
-export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData }: DashboardContentProps) {
+export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [] }: DashboardContentProps) {
   // Calculate completion percentage manually (same logic as profile API)
   const calculateCompletionManually = (profileData: any): number => {
     if (!profileData) return 0
@@ -118,7 +119,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
   }
 
   // Get latest assessment
-  const latestAssessment = null // This would come from assessment data
+  const latestAssessment = assessmentData?.find(a => a.status === 'completed') || assessmentData?.[0]
 
   // Profile completion call-to-action
   const profileCompletePercentage = completionPercentage
@@ -129,7 +130,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
         {/* Hero Welcome Section */}
         <div className="mb-12">
           <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-[#199D67] to-[#14B8A6] bg-clip-text text-transparent">
+            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-[#39FF14] to-[#00FFFF] bg-clip-text text-transparent">
               Welcome to Your Conscious Creation Hub
             </h1>
             <p className="text-xl text-neutral-300 max-w-3xl mx-auto">
@@ -143,7 +144,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
         {/* Key Metrics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           <Card className="p-6 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-[#199D67] to-[#5EC49A] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-[#39FF14] to-[#00FF88] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <User className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">1</h3>
@@ -151,7 +152,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
           </Card>
 
           <Card className="p-6 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-[#14B8A6] to-[#2DD4BF] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-[#00FFFF] to-[#06B6D4] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Eye className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">{visionData.length}</h3>
@@ -187,33 +188,33 @@ export default function DashboardContent({ user, profileData, visionData, vision
           {/* First Row - Core Actions */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="p-6 text-center hover:scale-105 transition-transform duration-300">
-              <div className="w-20 h-20 bg-gradient-to-br from-[#199D67] to-[#5EC49A] rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#39FF14] to-[#00FF88] rounded-3xl flex items-center justify-center mx-auto mb-4">
                 <User className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Profile</h3>
               <p className="text-neutral-400 text-sm mb-4">
                 Complete your personal information and preferences
               </p>
-              <GradientButton gradient="green" size="sm" asChild>
+              <Button variant="primary" size="sm" asChild>
                 <Link href="/profile">Edit Profile</Link>
-              </GradientButton>
+              </Button>
             </Card>
 
             <Card className="p-6 text-center hover:scale-105 transition-transform duration-300">
-              <div className="w-20 h-20 bg-gradient-to-br from-[#14B8A6] to-[#2DD4BF] rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#00FFFF] to-[#06B6D4] rounded-3xl flex items-center justify-center mx-auto mb-4">
                 <Eye className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Life Vision</h3>
               <p className="text-neutral-400 text-sm mb-4">
                 Build your Life I Choose™ document
               </p>
-              <GradientButton gradient="teal" size="sm" asChild>
+              <Button variant="secondary" size="sm" asChild>
                 <Link href="/life-vision">Build Vision</Link>
-              </GradientButton>
+              </Button>
             </Card>
 
             <Card className="p-6 text-center hover:scale-105 transition-transform duration-300">
-              <div className="w-20 h-20 bg-gradient-to-br from-[#8B5CF6] to-[#A78BFA] rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#BF00FF] to-[#FF0080] rounded-3xl flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">VIVA Assistant</h3>
@@ -236,9 +237,9 @@ export default function DashboardContent({ user, profileData, visionData, vision
               <p className="text-neutral-400 text-sm mb-4">
                 Visualize and track your conscious creations
               </p>
-              <GradientButton gradient="brand" size="sm" asChild>
+              <Button variant="accent" size="sm" asChild>
                 <Link href="/vision-board">View Board</Link>
-              </GradientButton>
+              </Button>
             </Card>
 
             <Card className="p-6 text-center hover:scale-105 transition-transform duration-300">
@@ -249,22 +250,32 @@ export default function DashboardContent({ user, profileData, visionData, vision
               <p className="text-neutral-400 text-sm mb-4">
                 Capture evidence of actualization with rich entries
               </p>
-              <GradientButton gradient="brand" size="sm" asChild>
+              <Button variant="primary" size="sm" asChild>
                 <Link href="/journal">Start Journaling</Link>
-              </GradientButton>
+              </Button>
             </Card>
 
             <Card className="p-6 text-center hover:scale-105 transition-transform duration-300">
-              <div className="w-20 h-20 bg-gradient-to-br from-[#8B5CF6] to-[#A78BFA] rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#BF00FF] to-[#FF0080] rounded-3xl flex items-center justify-center mx-auto mb-4">
                 <Brain className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Vibration Assessment</h3>
               <p className="text-neutral-400 text-sm mb-4">
-                Discover your current alignment and insights
+                {latestAssessment 
+                  ? `Latest: ${latestAssessment.overall_percentage || 0}% complete`
+                  : 'Discover your current alignment and insights'
+                }
               </p>
-              <AIButton size="sm" asChild>
-                <Link href="/assessment">Take Assessment</Link>
-              </AIButton>
+              <div className="flex gap-2 justify-center">
+                <AIButton size="sm" asChild>
+                  <Link href="/assessment">Take Assessment</Link>
+                </AIButton>
+                {latestAssessment && (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/assessment/results">View Results</Link>
+                  </Button>
+                )}
+              </div>
             </Card>
           </div>
         </div>
@@ -292,8 +303,8 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 const IconComponent = activity.icon
                 return (
                   <div key={index} className="flex items-center gap-4 p-3 rounded-lg bg-neutral-800/50">
-                    <div className="p-2 bg-[#199D67]/20 rounded-lg">
-                      <IconComponent className="w-4 h-4 text-[#199D67]" />
+                    <div className="p-2 bg-[#39FF14]/20 rounded-lg">
+                      <IconComponent className="w-4 h-4 text-[#39FF14]" />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-medium text-white">{activity.title}</h4>
@@ -315,8 +326,8 @@ export default function DashboardContent({ user, profileData, visionData, vision
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#199D67]/20 rounded-xl flex items-center justify-center">
-                  <User className="w-6 h-6 text-[#199D67]" />
+                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
+                  <User className="w-6 h-6 text-[#39FF14]" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">Profile</h3>
@@ -358,7 +369,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                   
                   <div className="mt-3 w-full bg-neutral-700 rounded-full h-2">
                     <div 
-                      className="bg-[#199D67] h-2 rounded-full" 
+                      className="bg-[#39FF14] h-2 rounded-full" 
                       style={{ width: `${profileCompletePercentage}%` }}
                     ></div>
                   </div>
@@ -387,8 +398,8 @@ export default function DashboardContent({ user, profileData, visionData, vision
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#14B8A6]/20 rounded-xl flex items-center justify-center">
-                  <Eye className="w-6 h-6 text-[#14B8A6]" />
+                <div className="w-12 h-12 bg-[#00FFFF]/20 rounded-xl flex items-center justify-center">
+                  <Eye className="w-6 h-6 text-[#00FFFF]" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">Life Vision</h3>
@@ -431,7 +442,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                   
                   <div className="mt-3 w-full bg-neutral-700 rounded-full h-2">
                     <div 
-                      className="bg-[#14B8A6] h-2 rounded-full" 
+                      className="bg-[#00FFFF] h-2 rounded-full" 
                       style={{ width: '100%' }}
                     ></div>
                   </div>
@@ -477,13 +488,13 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 <div className="text-xs text-neutral-400">Total</div>
               </div>
               <div className="text-center p-3 rounded-lg bg-neutral-800/50">
-                <div className="text-lg font-bold text-[#14B8A6]">
+                <div className="text-lg font-bold text-[#00FFFF]">
                   {visionBoardData.filter(item => item.status === 'active').length}
                 </div>
                 <div className="text-xs text-neutral-400">In Progress</div>
               </div>
               <div className="text-center p-3 rounded-lg bg-neutral-800/50">
-                <div className="text-lg font-bold text-[#199D67]">
+                <div className="text-lg font-bold text-[#39FF14]">
                   {visionBoardData.filter(item => item.status === 'actualized').length}
                 </div>
                 <div className="text-xs text-neutral-400">Actualized</div>
@@ -513,7 +524,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
               </div>
             </div>
             {journalData.length > 0 ? (
-              <div className="bg-gradient-to-r from-[#199D67]/10 to-[#5EC49A]/10 border border-[#199D67]/30 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#00FF88]/10 border border-[#39FF14]/30 rounded-lg p-4">
                 <p className="text-sm text-neutral-300">
                   You have {journalData.length} journal entries capturing your evidence of actualization. Keep building your proof!
                 </p>
@@ -531,8 +542,8 @@ export default function DashboardContent({ user, profileData, visionData, vision
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#8B5CF6]/20 rounded-xl flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-[#8B5CF6]" />
+                <div className="w-12 h-12 bg-[#BF00FF]/20 rounded-xl flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-[#BF00FF]" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">VIVA Tokens</h3>
@@ -552,7 +563,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
               </div>
               <div className="w-full bg-neutral-700 rounded-full h-2">
                 <div 
-                  className="bg-[#8B5CF6] h-2 rounded-full" 
+                  className="bg-[#BF00FF] h-2 rounded-full" 
                   style={{ 
                     width: `${tokenUsagePercentage}%`
                   }}
@@ -565,8 +576,8 @@ export default function DashboardContent({ user, profileData, visionData, vision
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#14B8A6]/20 rounded-xl flex items-center justify-center">
-                  <Settings className="w-6 h-6 text-[#14B8A6]" />
+                <div className="w-12 h-12 bg-[#00FFFF]/20 rounded-xl flex items-center justify-center">
+                  <Settings className="w-6 h-6 text-[#00FFFF]" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">Storage</h3>
@@ -589,7 +600,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
               </div>
               <div className="w-full bg-neutral-700 rounded-full h-2">
                 <div 
-                  className="bg-[#14B8A6] h-2 rounded-full" 
+                  className="bg-[#00FFFF] h-2 rounded-full" 
                   style={{ width: '0%' }}
                 ></div>
               </div>
@@ -600,8 +611,8 @@ export default function DashboardContent({ user, profileData, visionData, vision
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#199D67]/20 rounded-xl flex items-center justify-center">
-                  <CreditCard className="w-6 h-6 text-[#199D67]" />
+                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
+                  <CreditCard className="w-6 h-6 text-[#39FF14]" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">Billing</h3>
@@ -617,7 +628,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-neutral-400">Subscription</span>
-                <span className="text-sm text-[#199D67]">Active</span>
+                <span className="text-sm text-[#39FF14]">Active</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-neutral-400">Next Billing</span>
@@ -630,8 +641,8 @@ export default function DashboardContent({ user, profileData, visionData, vision
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#14B8A6]/20 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-[#14B8A6]" />
+                <div className="w-12 h-12 bg-[#00FFFF]/20 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-[#00FFFF]" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">Support</h3>
@@ -644,7 +655,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 </Button>
               </div>
             </div>
-            <div className="bg-gradient-to-r from-[#14B8A6]/10 to-[#2DD4BF]/10 border border-[#14B8A6]/30 rounded-lg p-4">
+            <div className="bg-gradient-to-r from-[#00FFFF]/10 to-[#06B6D4]/10 border border-[#00FFFF]/30 rounded-lg p-4">
               <p className="text-sm text-neutral-300">
                 Need help? Our support team is here to assist you with any questions or issues.
               </p>

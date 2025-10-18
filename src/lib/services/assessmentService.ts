@@ -152,15 +152,29 @@ export async function saveResponse(responseData: {
   ai_score?: number
   ai_green_line?: 'above' | 'neutral' | 'below'
 }): Promise<{ response: AssessmentResponse }> {
+  console.log('Sending to API:', responseData)
+  
   const response = await fetch('/api/assessment/responses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(responseData)
   })
 
+  console.log('API response status:', response.status)
+  console.log('API response ok:', response.ok)
+
   if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to save response')
+    const errorText = await response.text()
+    console.error('API error response:', errorText)
+    
+    let errorData
+    try {
+      errorData = JSON.parse(errorText)
+    } catch {
+      errorData = { error: errorText }
+    }
+    
+    throw new Error(errorData.error || 'Failed to save response')
   }
 
   return response.json()
