@@ -302,9 +302,22 @@ export default function AssessmentPage() {
       // Update local state immediately for better UX
       setResponses(prev => new Map(prev).set(currentQuestion.id, option.value))
 
-      // Convert 1-5 scale to 2-10 scale for database storage
-      const dbValue = option.value === 0 ? 0 : option.value * 2 // 1->2, 2->4, 3->6, 4->8, 5->10
+      // Use 1-5 scale directly for database storage
+      // No conversion needed - database now accepts 1-5 values
+      const dbValue = option.value // 0, 1, 2, 3, 4, 5
       
+      // For custom responses, we'll use ai_score for the actual calculation
+      const aiScore = option.value === 0 ? 0 : undefined
+      
+      // Debug logging
+      console.log('🔍 Saving response with data:', {
+        assessment_id: assessmentId,
+        question_id: currentQuestion.id,
+        response_value: dbValue,
+        response_text: option.text,
+        category: currentQuestion.category
+      })
+
       // Save response to database
       await saveResponse({
         assessment_id: assessmentId,
@@ -315,9 +328,9 @@ export default function AssessmentPage() {
         response_text: option.text,
         response_emoji: option.emoji,
         green_line: option.greenLine as 'above' | 'neutral' | 'below',
-        is_custom_response: false,
-        ai_score: undefined,
-        ai_green_line: undefined
+        is_custom_response: option.value === 0,
+        ai_score: aiScore,
+        ai_green_line: option.value === 0 ? 'neutral' : undefined
       })
 
       // Refresh progress (do not auto-advance; require explicit Next click)
@@ -345,8 +358,8 @@ export default function AssessmentPage() {
 
     setIsSaving(true)
     try {
-      // Convert 1-5 scale to 2-10 scale for database compatibility
-      const dbScore = customResponseScore * 2 // 1->2, 2->4, 3->6, 4->8, 5->10
+      // Use 1-5 scale directly for database compatibility
+      const dbScore = customResponseScore // 1, 2, 3, 4, 5
       
       // Determine green line status based on score
       const greenLine = customResponseScore >= 4 ? 'above' : customResponseScore <= 2 ? 'below' : 'neutral'
