@@ -282,7 +282,10 @@ export default function AssessmentPage() {
 
   // Handle option selection
   const handleSelect = async (option: AssessmentOption) => {
-    if (!assessmentId || isSaving) return
+    if (!assessmentId || isSaving) {
+      console.error('❌ Cannot save response: assessmentId =', assessmentId, 'isSaving =', isSaving)
+      return
+    }
 
     console.log('Option selected:', option.text, 'isCustom:', option.isCustom)
 
