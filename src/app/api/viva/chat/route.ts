@@ -155,7 +155,7 @@ ${profileData ? `- Age: ${profileSummary.age}
 CURRENT CONTEXT:
 - Phase: ${currentPhase || 'Vision Building'}
 - Category: ${context?.category || 'General'}
-- Overall Assessment Score: ${assessmentData?.total_score || '?'}/${assessmentData ? '840' : '?'} (${assessmentData?.overall_percentage || '?'}%)
+- Overall Assessment Score: ${assessmentData?.total_score || '?'}/${assessmentData ? '420' : '?'} (${assessmentData?.overall_percentage || '?'}%)
 - Assessment Scores by Category: ${JSON.stringify(assessmentData?.category_scores || {})}
 - Categories Below Green Line: ${Object.entries(assessmentData?.green_line_status || {})
   .filter(([_, status]) => status === 'below')

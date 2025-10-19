@@ -471,10 +471,8 @@ export default function AssessmentPage() {
         const success = await markIntensiveStep('assessment_completed')
         
         if (success) {
-          // Redirect to intensive dashboard after a moment
-          setTimeout(() => {
-            router.push('/intensive/dashboard')
-          }, 3000)
+          // Don't auto-redirect - let user see results and navigate manually
+          console.log('Assessment completed in intensive mode')
         }
       }
     } catch (error) {
