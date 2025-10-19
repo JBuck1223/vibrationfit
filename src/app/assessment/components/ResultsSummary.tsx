@@ -1,13 +1,28 @@
-import { Card, Badge, ProgressBar } from '@/lib/design-system/components'
-import { AssessmentResult, AssessmentCategory } from '@/types/assessment'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Card, Badge, ProgressBar, Button } from '@/lib/design-system/components'
+import { AssessmentResult, AssessmentCategory, AssessmentResponse } from '@/types/assessment'
+import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp } from 'lucide-react'
 import { categoryMetadata } from '@/lib/assessment/questions'
+import { useState } from 'react'
 
 interface ResultsSummaryProps {
   assessment: AssessmentResult
+  responses?: AssessmentResponse[]
 }
 
-export default function ResultsSummary({ assessment }: ResultsSummaryProps) {
+export default function ResultsSummary({ assessment, responses = [] }: ResultsSummaryProps) {
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(category)) {
+        newSet.delete(category)
+      } else {
+        newSet.add(category)
+      }
+      return newSet
+    })
+  }
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'above':
@@ -98,23 +113,80 @@ export default function ResultsSummary({ assessment }: ResultsSummaryProps) {
       <Card className="p-6">
         <h3 className="text-xl font-semibold text-white mb-4">Category Breakdown</h3>
         <div className="space-y-4">
-          {categories.map((category, index) => (
-            <div key={index} className="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                {getCategoryIcon(category.status)}
-                <span className="text-white font-medium">{category.name}</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="text-white font-medium">{category.score}/{category.maxScore}</div>
-                  <div className="text-xs text-neutral-400">{category.percentage}%</div>
+          {categories.map((category, index) => {
+            const categoryResponses = responses.filter(r => r.category === category.category)
+            const isExpanded = expandedCategories.has(category.category)
+            
+            return (
+              <div key={index} className="bg-neutral-800/50 rounded-lg">
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    {getCategoryIcon(category.status)}
+                    <span className="text-white font-medium">{category.name}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="text-white font-medium">{category.score}/{category.maxScore}</div>
+                      <div className="text-xs text-neutral-400">{category.percentage}%</div>
+                    </div>
+                    <Badge variant={getCategoryColor(category.status)}>
+                      {getCategoryLabel(category.status)}
+                    </Badge>
+                    {categoryResponses.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => toggleCategory(category.category)}
+                        className="text-xs p-2"
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                        <span className="ml-1">{categoryResponses.length} responses</span>
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <Badge variant={getCategoryColor(category.status)}>
-                  {getCategoryLabel(category.status)}
-                </Badge>
+                
+                {isExpanded && categoryResponses.length > 0 && (
+                  <div className="px-4 pb-4 border-t border-neutral-700">
+                    <div className="space-y-2 mt-3 max-h-64 overflow-y-auto">
+                      {categoryResponses.map((response, responseIndex) => (
+                        <div key={responseIndex} className="p-3 bg-neutral-900/50 rounded text-sm">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <div className="font-medium text-white mb-1">
+                                {response.question_text}
+                              </div>
+                              <div className="text-neutral-300 mb-1">
+                                <strong>Response:</strong> {response.response_text}
+                              </div>
+                            </div>
+                            <div className="ml-4 text-right">
+                              <div className={`px-2 py-1 rounded text-xs font-medium ${
+                                response.is_custom_response 
+                                  ? 'bg-purple-500/20 text-purple-300' 
+                                  : 'bg-green-500/20 text-green-300'
+                              }`}>
+                                {response.is_custom_response ? 'Custom' : 'Standard'}
+                              </div>
+                              <div className="mt-1 text-xs text-neutral-400">
+                                <div>Response Value: {response.response_value}</div>
+                                {response.is_custom_response && (
+                                  <div>Custom Score: {response.custom_response_value || 'N/A'}</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </Card>
 
