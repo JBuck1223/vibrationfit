@@ -88,7 +88,10 @@ export default function AssessmentLandingPage() {
               <div>
                 <h2 className="text-2xl font-semibold">Continue Your Assessment</h2>
                 <p className="text-neutral-400">
-                  You have an assessment in progress from {formatDate(incompleteAssessment.created_at)}
+                  Assessment ID: <span className="font-mono text-primary-500">{incompleteAssessment.id}</span>
+                </p>
+                <p className="text-neutral-400 text-sm">
+                  Started on {formatDate(incompleteAssessment.created_at)}
                 </p>
               </div>
             </div>
