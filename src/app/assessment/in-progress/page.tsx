@@ -130,18 +130,22 @@ export default function AssessmentPage() {
           setProfile(profileData)
         }
 
-        // Check for existing incomplete assessments first
-        const { assessments } = await fetchAssessments()
-        const incompleteAssessment = assessments.find(a => a.status === 'in_progress')
-        
-        if (incompleteAssessment) {
-          // Resume existing assessment
-          setAssessmentId(incompleteAssessment.id)
-          const progressData = await fetchAssessmentProgress(incompleteAssessment.id)
+        // Check URL parameters first
+        const assessmentIdParam = searchParams.get('assessmentId')
+        const resumeParam = searchParams.get('resume')
+        const newParam = searchParams.get('new')
+
+        console.log('URL params:', { assessmentIdParam, resumeParam, newParam })
+
+        if (assessmentIdParam) {
+          // Use specific assessment ID from URL
+          console.log('Using assessment ID from URL:', assessmentIdParam)
+          setAssessmentId(assessmentIdParam)
+          const progressData = await fetchAssessmentProgress(assessmentIdParam)
           setProgress(progressData)
           
-          // Load existing responses
-          const { responses } = await fetchAssessment(incompleteAssessment.id, { includeResponses: true })
+          // Load existing responses for this specific assessment
+          const { responses } = await fetchAssessment(assessmentIdParam, { includeResponses: true })
           if (responses) {
             const responseMap = new Map<string, number>()
             responses.forEach(response => {
@@ -180,7 +184,7 @@ export default function AssessmentPage() {
             setCustomResponseScores(customScores)
             
             // Try to restore saved position first
-            const savedPosition = loadCurrentPosition(incompleteAssessment.id)
+            const savedPosition = loadCurrentPosition(assessmentIdParam)
             let foundPosition = false
             
             if (savedPosition) {
@@ -219,12 +223,113 @@ export default function AssessmentPage() {
               }
             }
           }
-        } else {
+        } else if (newParam === 'true') {
           // Create new assessment
+          console.log('Creating new assessment from URL param')
           const { assessment } = await createAssessment()
           setAssessmentId(assessment.id)
           const progressData = await fetchAssessmentProgress(assessment.id)
           setProgress(progressData)
+        } else {
+          // Fall back to checking for existing incomplete assessments
+          console.log('No URL params, checking for incomplete assessments')
+          const { assessments } = await fetchAssessments()
+          const incompleteAssessment = assessments.find(a => a.status === 'in_progress')
+          
+          if (incompleteAssessment) {
+            // Resume existing assessment
+            console.log('Found incomplete assessment:', incompleteAssessment.id)
+            setAssessmentId(incompleteAssessment.id)
+            const progressData = await fetchAssessmentProgress(incompleteAssessment.id)
+            setProgress(progressData)
+            
+            // Load existing responses
+            const { responses } = await fetchAssessment(incompleteAssessment.id, { includeResponses: true })
+            if (responses) {
+              const responseMap = new Map<string, number>()
+              responses.forEach(response => {
+                // Debug logging
+                console.log('Loading response:', {
+                  question_id: response.question_id,
+                  response_value: response.response_value,
+                  ai_score: response.ai_score,
+                  is_custom_response: response.is_custom_response,
+                  response_text: response.response_text?.substring(0, 50)
+                })
+                
+                // Convert 2-10 scale back to 1-5 scale for display
+                const displayScore = response.is_custom_response 
+                  ? 0  // Show "None of these specifically resonate" as selected
+                  : response.response_value === 0 ? 0 : Math.round(response.response_value / 2)
+                
+                console.log('Using score:', displayScore, 'for question:', response.question_id)
+                responseMap.set(response.question_id, displayScore)
+              })
+              setResponses(responseMap)
+              
+              // Load custom response text for any custom responses
+              const customTexts = new Map<string, string>()
+              const customScores = new Map<string, number>()
+              responses.forEach(response => {
+                if (response.is_custom_response && response.response_text) {
+                  customTexts.set(response.question_id, response.response_text)
+                  // Convert ai_score back to 1-5 scale for display
+                  const userScore = response.ai_score ? Math.round(response.ai_score / 2) : 3
+                  customScores.set(response.question_id, userScore)
+                  console.log('Found custom response for question:', response.question_id, response.response_text.substring(0, 50), 'score:', userScore)
+                }
+              })
+              setCustomResponseTexts(customTexts)
+              setCustomResponseScores(customScores)
+              
+              // Try to restore saved position first
+              const savedPosition = loadCurrentPosition(incompleteAssessment.id)
+              let foundPosition = false
+              
+              if (savedPosition) {
+                // Validate saved position is still valid
+                const cat = orderedAssessmentQuestions[savedPosition.categoryIndex]
+                if (cat) {
+                  const catQuestions = profile 
+                    ? filterQuestionsByProfile(cat.questions, profile)
+                    : cat.questions
+                  
+                  if (savedPosition.questionIndex < catQuestions.length) {
+                    setCurrentCategoryIndex(savedPosition.categoryIndex)
+                    setCurrentQuestionIndex(savedPosition.questionIndex)
+                    foundPosition = true
+                  }
+                }
+              }
+              
+              // If no saved position or invalid, find first unanswered question
+              if (!foundPosition) {
+                for (let catIndex = 0; catIndex < orderedAssessmentQuestions.length && !foundPosition; catIndex++) {
+                  const cat = orderedAssessmentQuestions[catIndex]
+                  const catQuestions = profile 
+                    ? filterQuestionsByProfile(cat.questions, profile)
+                    : cat.questions
+                  
+                  for (let qIndex = 0; qIndex < catQuestions.length; qIndex++) {
+                    const question = catQuestions[qIndex]
+                    if (!responseMap.has(question.id)) {
+                      setCurrentCategoryIndex(catIndex)
+                      setCurrentQuestionIndex(qIndex)
+                      foundPosition = true
+                      break
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            // Create new assessment
+            console.log('No incomplete assessment found, creating new one')
+            const { assessment } = await createAssessment()
+            setAssessmentId(assessment.id)
+            const progressData = await fetchAssessmentProgress(assessment.id)
+            setProgress(progressData)
+          }
         }
 
       } catch (error) {

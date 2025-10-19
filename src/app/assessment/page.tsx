@@ -126,7 +126,7 @@ export default function AssessmentHub() {
                 <div>
                   <p className="text-sm text-primary-500 font-medium">Progress</p>
                   <p className="text-sm text-neutral-300">
-                    {incompleteAssessment.total_responses || 0} questions answered
+                    Assessment in progress
                   </p>
                 </div>
                 <div className="text-right">
@@ -241,7 +241,7 @@ export default function AssessmentHub() {
                       Started: {formatDate(assessment.started_at || assessment.created_at)}
                     </p>
                     <p className="text-sm text-neutral-400">
-                      Completed: {formatDate(assessment.completed_at)}
+                      Completed: {assessment.completed_at ? formatDate(assessment.completed_at) : 'Not completed'}
                     </p>
                   </div>
                   <div className="flex gap-2">

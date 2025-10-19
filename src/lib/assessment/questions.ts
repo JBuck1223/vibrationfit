@@ -87,7 +87,7 @@ const moneyQuestions: AssessmentQuestion[] = [
     category: 'money',
     text: 'When unexpected money shows up (refund, gift, bonus), what\'s your first thought?',
     options: [
-      { text: 'Hell yes, more abundance coming!', value: 5, emoji: '🟢', greenLine: 'above' },
+      { text: 'Awesome, more abundance coming!', value: 5, emoji: '🟢', greenLine: 'above' },
       { text: 'This is awesome, what do I want to do with it?', value: 4, emoji: '🟢', greenLine: 'above' },
       { text: 'Cool, I\'ll save or invest it', value: 3, emoji: '⚪', greenLine: 'neutral' },
       { text: 'Better save this for the next emergency', value: 2, emoji: '🔴', greenLine: 'below' },
@@ -381,7 +381,7 @@ const romanceQuestions: AssessmentQuestion[] = [
     options: [
       { text: 'I have a clear vision and feel excited', value: 5, emoji: '🟢', greenLine: 'above' },
       { text: 'I know what I want and feel optimistic', value: 4, emoji: '🟢', greenLine: 'above' },
-      { text: 'I have some ideas but feel uncertain', value: 3, emoji: '⚪', greenLine: 'neutral' },
+      { text: 'I have some ideas but don\'t think about it much', value: 3, emoji: '⚪', greenLine: 'neutral' },
       { text: 'I feel confused or frustrated about dating', value: 2, emoji: '🔴', greenLine: 'below' },
       { text: 'I feel hopeless or have given up', value: 1, emoji: '🔴', greenLine: 'below' },
       { text: 'None of these specifically resonate', value: 0, emoji: '🤔', greenLine: 'neutral', isCustom: true }
@@ -483,7 +483,7 @@ const romanceQuestions: AssessmentQuestion[] = [
     options: [
       { text: 'Confident it will happen when it\'s right', value: 5, emoji: '🟢', greenLine: 'above' },
       { text: 'Hopeful and optimistic', value: 4, emoji: '🟢', greenLine: 'above' },
-      { text: 'Uncertain but open to possibilities', value: 3, emoji: '⚪', greenLine: 'neutral' },
+      { text: 'Neutral, but open to possibilities', value: 3, emoji: '⚪', greenLine: 'neutral' },
       { text: 'Worried it might not happen', value: 2, emoji: '🔴', greenLine: 'below' },
       { text: 'Hopeless or resigned to being alone', value: 1, emoji: '🔴', greenLine: 'below' },
       { text: 'None of these specifically resonate', value: 0, emoji: '🤔', greenLine: 'neutral', isCustom: true }
@@ -1030,13 +1030,13 @@ const funQuestions: AssessmentQuestion[] = [
   {
     id: 'fun_6',
     category: 'fun',
-    text: 'When you reflect on your childhood play and fun, what comes up?',
+    text: 'When you reflect on your current play and fun, what comes up?',
     options: [
-      { text: 'Great memories that still inspire me', value: 5, emoji: '🟢', greenLine: 'above' },
-      { text: 'Happy memories I sometimes revisit', value: 4, emoji: '🟢', greenLine: 'above' },
-      { text: 'Mixed memories, some good some not', value: 3, emoji: '⚪', greenLine: 'neutral' },
-      { text: 'I remember feeling restricted or limited', value: 2, emoji: '🔴', greenLine: 'below' },
-      { text: 'Painful memories, I avoid thinking about it', value: 1, emoji: '🔴', greenLine: 'below' },
+      { text: 'I have a lot of fun and feel playful regularly', value: 5, emoji: '🟢', greenLine: 'above' },
+      { text: 'I play and have fun when I can', value: 4, emoji: '🟢', greenLine: 'above' },
+      { text: 'I engage in fun things sometimes, but it\'s not a priority', value: 3, emoji: '⚪', greenLine: 'neutral' },
+      { text: 'I don\'t play much, a bit too busy at the moment', value: 2, emoji: '🔴', greenLine: 'below' },
+      { text: 'I never play or have fun', value: 1, emoji: '🔴', greenLine: 'below' },
       { text: 'None of these specifically resonate', value: 0, emoji: '🤔', greenLine: 'neutral', isCustom: true }
     ]
   },
@@ -1144,7 +1144,7 @@ const travelQuestions: AssessmentQuestion[] = [
     options: [
       { text: 'I have clear visions of amazing destinations', value: 5, emoji: '🟢', greenLine: 'above' },
       { text: 'I have several places I\'d love to visit', value: 4, emoji: '🟢', greenLine: 'above' },
-      { text: 'I have some ideas but feel uncertain', value: 3, emoji: '⚪', greenLine: 'neutral' },
+      { text: 'I have some ideas but don\'t think about it much', value: 3, emoji: '⚪', greenLine: 'neutral' },
       { text: 'I feel overwhelmed by too many options', value: 2, emoji: '🔴', greenLine: 'below' },
       { text: 'I don\'t really think about travel much', value: 1, emoji: '🔴', greenLine: 'below' },
       { text: 'None of these specifically resonate', value: 0, emoji: '🤔', greenLine: 'neutral', isCustom: true }
@@ -1215,7 +1215,7 @@ const homeQuestions: AssessmentQuestion[] = [
     options: [
       { text: 'I have a clear vision of my perfect home', value: 5, emoji: '🟢', greenLine: 'above' },
       { text: 'I know what I want and feel optimistic', value: 4, emoji: '🟢', greenLine: 'above' },
-      { text: 'I have some ideas but feel uncertain', value: 3, emoji: '⚪', greenLine: 'neutral' },
+      { text: 'I have some ideas but don\'t think about it much', value: 3, emoji: '⚪', greenLine: 'neutral' },
       { text: 'I feel overwhelmed by housing options', value: 2, emoji: '🔴', greenLine: 'below' },
       { text: 'I feel hopeless about my living situation', value: 1, emoji: '🔴', greenLine: 'below' },
       { text: 'None of these specifically resonate', value: 0, emoji: '🤔', greenLine: 'neutral', isCustom: true }
@@ -1435,7 +1435,7 @@ const possessionsQuestions: AssessmentQuestion[] = [
     options: [
       { text: 'I have a clear vision of my perfect space', value: 5, emoji: '🟢', greenLine: 'above' },
       { text: 'I know what I want and feel optimistic', value: 4, emoji: '🟢', greenLine: 'above' },
-      { text: 'I have some ideas but feel uncertain', value: 3, emoji: '⚪', greenLine: 'neutral' },
+      { text: 'I have some ideas but don\'t think about it much', value: 3, emoji: '⚪', greenLine: 'neutral' },
       { text: 'I feel overwhelmed by too many options', value: 2, emoji: '🔴', greenLine: 'below' },
       { text: 'I feel hopeless about creating my ideal space', value: 1, emoji: '🔴', greenLine: 'below' },
       { text: 'None of these specifically resonate', value: 0, emoji: '🤔', greenLine: 'neutral', isCustom: true }
@@ -1532,7 +1532,7 @@ const givingQuestions: AssessmentQuestion[] = [
     options: [
       { text: 'I want to be remembered for helping others', value: 5, emoji: '🟢', greenLine: 'above' },
       { text: 'I hope to be remembered for making a positive impact', value: 4, emoji: '🟢', greenLine: 'above' },
-      { text: 'I want to be remembered for being a good person', value: 3, emoji: '⚪', greenLine: 'neutral' },
+      { text: 'I want to be remembered but it\'s not a big priority', value: 3, emoji: '⚪', greenLine: 'neutral' },
       { text: 'I feel uncertain about my legacy', value: 2, emoji: '🔴', greenLine: 'below' },
       { text: 'I feel hopeless about making a meaningful impact', value: 1, emoji: '🔴', greenLine: 'below' },
       { text: 'None of these specifically resonate', value: 0, emoji: '🤔', greenLine: 'neutral', isCustom: true }
@@ -1590,7 +1590,7 @@ const spiritualityQuestions: AssessmentQuestion[] = [
     options: [
       { text: 'I have a clear sense of purpose and meaning', value: 5, emoji: '🟢', greenLine: 'above' },
       { text: 'I feel like I\'m living with purpose', value: 4, emoji: '🟢', greenLine: 'above' },
-      { text: 'I sometimes feel purposeful but often uncertain', value: 3, emoji: '⚪', greenLine: 'neutral' },
+      { text: 'I feel neutral about my purpose', value: 3, emoji: '⚪', greenLine: 'neutral' },
       { text: 'I feel lost and uncertain about my purpose', value: 2, emoji: '🔴', greenLine: 'below' },
       { text: 'I feel like life has no meaning', value: 1, emoji: '🔴', greenLine: 'below' },
       { text: 'None of these specifically resonate', value: 0, emoji: '🤔', greenLine: 'neutral', isCustom: true }
