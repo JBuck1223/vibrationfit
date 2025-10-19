@@ -224,6 +224,20 @@ export async function deleteResponse(
   }
 }
 
+/**
+ * Delete an assessment
+ */
+export async function deleteAssessment(assessmentId: string): Promise<void> {
+  const response = await fetch(`/api/assessment/${assessmentId}`, {
+    method: 'DELETE'
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to delete assessment')
+  }
+}
+
 // ============================================================================
 // Progress Tracking
 // ============================================================================
