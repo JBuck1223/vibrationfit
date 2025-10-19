@@ -32,12 +32,12 @@ export default function AssessmentLandingPage() {
 
   const handleContinueAssessment = () => {
     if (incompleteAssessment) {
-      router.push(`/assessment/take?assessmentId=${incompleteAssessment.id}&resume=true`)
+      router.push(`/assessment/in-progress?assessmentId=${incompleteAssessment.id}&resume=true`)
     }
   }
 
   const handleStartNew = () => {
-    router.push('/assessment/take?new=true')
+    router.push('/assessment/in-progress?new=true')
   }
 
   const handleViewResults = (assessmentId: string) => {
