@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Fixes - VibrationFit</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+        }
+        .container {
+            background: #1F1F1F;
+            border-radius: 16px;
+            padding: 32px;
+            border: 2px solid #333;
+        }
+        h1 {
+            color: #39FF14;
+            margin-bottom: 24px;
+        }
+        .fix-section {
+            background: #2A2A2A;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border-left: 4px solid #39FF14;
+        }
+        .fix-title {
+            color: #39FF14;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .sql-code {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #E0E0E0;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .copy-btn {
+            background: #39FF14;
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+        .copy-btn:hover {
+            background: #2ECC71;
+        }
+        .instructions {
+            background: #1A1A1A;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .step {
+            margin-bottom: 8px;
+            color: #E0E0E0;
+        }
+        .step-number {
+            color: #39FF14;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Database Fixes for VibrationFit</h1>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <div class="step"><span class="step-number">1.</span> Go to your Supabase dashboard</div>
+            <div class="step"><span class="step-number">2.</span> Navigate to SQL Editor</div>
+            <div class="step"><span class="step-number">3.</span> Copy and paste each SQL command below</div>
+            <div class="step"><span class="step-number">4.</span> Run them one by one</div>
+            <div class="step"><span class="step-number">5.</span> Test your assessment again</div>
+        </div>
+
+        <div class="fix-section">
+            <div class="fix-title">📊 Fix 1: Response Value Constraint</div>
+            <p>This fixes the "Failed to save response" error by allowing 0 values for custom responses.</p>
+            <div class="sql-code" id="sql1">-- Fix response_value constraint to allow 0 for custom responses
+ALTER TABLE assessment_responses DROP CONSTRAINT IF EXISTS assessment_responses_response_value_check;
+
+ALTER TABLE assessment_responses ADD CONSTRAINT assessment_responses_response_value_check 
+CHECK (response_value IN (0, 2, 4, 6, 8, 10));
+
+COMMENT ON COLUMN assessment_responses.response_value IS 'Numerical value of the response (0 for custom responses, 2, 4, 6, 8, or 10 for regular responses)';
+
+-- Log the change
+DO $$ BEGIN RAISE NOTICE '✅ Updated response_value constraint to allow 0 for custom responses'; END $$;</div>
+            <button class="copy-btn" onclick="copyToClipboard('sql1')">📋 Copy SQL</button>
+        </div>
+
+        <div class="fix-section">
+            <div class="fix-title">📈 Fix 2: Green Line Calculations</div>
+            <p>This fixes the calculation issues by using 35 as max score per category instead of 70.</p>
+            <div class="sql-code" id="sql2">-- Fix Green Line calculations for 7-question categories
+CREATE OR REPLACE FUNCTION get_green_line_status(p_score INTEGER)
+RETURNS green_line_status AS $$
+DECLARE
+  v_percentage NUMERIC;
+BEGIN
+  -- Calculate percentage (max score per category is 35 points: 7 questions × 5 points each)
+  v_percentage := (p_score::NUMERIC / 35.0) * 100;
+  
+  -- Determine status
+  IF v_percentage >= 80 THEN
+    RETURN 'above'::green_line_status;
+  ELSIF v_percentage >= 60 THEN
+    RETURN 'transition'::green_line_status;
+  ELSE
+    RETURN 'below'::green_line_status;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION get_green_line_status IS 'Determines Green Line status based on score percentage (max 35 points per category)';
+
+-- Log the change
+DO $$ BEGIN RAISE NOTICE '✅ Updated get_green_line_status function to use 35 as max score per category'; END $$;</div>
+            <button class="copy-btn" onclick="copyToClipboard('sql2')">📋 Copy SQL</button>
+        </div>
+
+        <div class="instructions">
+            <h3>✅ After running these fixes:</h3>
+            <div class="step">• Assessment responses will save without errors</div>
+            <div class="step">• Calculations will be accurate (5/5 = 100%, not 45%)</div>
+            <div class="step">• All 12 categories will display correctly</div>
+            <div class="step">• Green Line status will be calculated properly</div>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                const btn = element.nextElementSibling;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = '#2ECC71';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#39FF14';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy. Please select and copy manually.');
+            });
+        }
+    </script>
+</body>
+</html>

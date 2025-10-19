@@ -41,11 +41,16 @@ export default function ResultsSummary({ assessment }: ResultsSummaryProps) {
     }
   }
 
-  // Get real category data from assessment
-  const categories = Object.entries(assessment.category_scores || {}).map(([category, score]) => {
-    const categoryKey = category as AssessmentCategory
+  // Get all 12 categories with real data from assessment
+  const allCategories: AssessmentCategory[] = [
+    'fun', 'travel', 'home', 'family', 'romance', 'health',
+    'money', 'business', 'social', 'possessions', 'giving', 'spirituality'
+  ]
+  
+  const categories = allCategories.map((categoryKey) => {
     const metadata = categoryMetadata[categoryKey]
-    const maxScore = 35 // 7 questions × 5 max points each
+    const score = assessment.category_scores?.[categoryKey] || 0
+    const maxScore = 35 // 7 questions × 5 max points each (1-5 scale)
     const percentage = Math.round((score / maxScore) * 100)
     const status = assessment.green_line_status?.[categoryKey] || 'neutral'
     
