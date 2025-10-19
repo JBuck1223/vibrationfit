@@ -411,7 +411,7 @@ export default function AssessmentResultsPage() {
                                 <div className="mt-1 text-xs text-neutral-400">
                                   <div>Response Value: {response.response_value}</div>
                                   {response.is_custom_response && (
-                                    <div>AI Score: {response.ai_score || 'N/A'}</div>
+                                    <div>Custom Score: {response.custom_response_value || 'N/A'}</div>
                                   )}
                                 </div>
                               </div>

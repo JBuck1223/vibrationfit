@@ -153,7 +153,7 @@ export default function AssessmentPage() {
               console.log('Loading response:', {
                 question_id: response.question_id,
                 response_value: response.response_value,
-                ai_score: response.ai_score,
+                custom_response_value: response.custom_response_value,
                 is_custom_response: response.is_custom_response,
                 response_text: response.response_text?.substring(0, 50)
               })
@@ -174,8 +174,8 @@ export default function AssessmentPage() {
             responses.forEach(response => {
               if (response.is_custom_response && response.response_text) {
                 customTexts.set(response.question_id, response.response_text)
-                // Convert ai_score back to 1-5 scale for display
-                const userScore = response.ai_score ? Math.round(response.ai_score / 2) : 3
+                // Convert custom_response_value back to 1-5 scale for display
+                const userScore = response.custom_response_value ? Math.round(response.custom_response_value / 2) : 3
                 customScores.set(response.question_id, userScore)
                 console.log('Found custom response for question:', response.question_id, response.response_text.substring(0, 50), 'score:', userScore)
               }
@@ -252,7 +252,7 @@ export default function AssessmentPage() {
                 console.log('Loading response:', {
                   question_id: response.question_id,
                   response_value: response.response_value,
-                  ai_score: response.ai_score,
+                  custom_response_value: response.custom_response_value,
                   is_custom_response: response.is_custom_response,
                   response_text: response.response_text?.substring(0, 50)
                 })
@@ -273,8 +273,8 @@ export default function AssessmentPage() {
               responses.forEach(response => {
                 if (response.is_custom_response && response.response_text) {
                   customTexts.set(response.question_id, response.response_text)
-                  // Convert ai_score back to 1-5 scale for display
-                  const userScore = response.ai_score ? Math.round(response.ai_score / 2) : 3
+                  // Convert custom_response_value back to 1-5 scale for display
+                  const userScore = response.custom_response_value ? Math.round(response.custom_response_value / 2) : 3
                   customScores.set(response.question_id, userScore)
                   console.log('Found custom response for question:', response.question_id, response.response_text.substring(0, 50), 'score:', userScore)
                 }
@@ -411,8 +411,8 @@ export default function AssessmentPage() {
       // No conversion needed - database now accepts 1-5 values
       const dbValue = option.value // 0, 1, 2, 3, 4, 5
       
-      // For custom responses, we'll use ai_score for the actual calculation
-      const aiScore = option.value === 0 ? 0 : undefined
+      // For custom responses, we'll use custom_response_value for the actual calculation
+      const customScore = option.value === 0 ? 0 : undefined
       
       // Debug logging
       console.log('🔍 Saving response with data:', {
@@ -434,8 +434,8 @@ export default function AssessmentPage() {
         response_emoji: option.emoji,
         green_line: option.greenLine as 'above' | 'neutral' | 'below',
         is_custom_response: option.value === 0,
-        ai_score: aiScore,
-        ai_green_line: option.value === 0 ? 'neutral' : undefined
+        custom_response_value: customScore,
+        custom_green_line: option.value === 0 ? 'neutral' : undefined
       })
 
       // Refresh progress (do not auto-advance; require explicit Next click)
@@ -487,8 +487,8 @@ export default function AssessmentPage() {
         response_emoji: '🤔',
         green_line: greenLine as 'above' | 'neutral' | 'below',
         is_custom_response: true,
-        ai_score: dbScore, // Store user's score in ai_score field for calculations
-        ai_green_line: greenLine as 'above' | 'neutral' | 'below'
+        custom_response_value: dbScore, // Store user's score in custom_response_value field for calculations
+        custom_green_line: greenLine as 'above' | 'neutral' | 'below'
       }
       
       console.log('Saving response data:', saveData)

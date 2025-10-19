@@ -149,8 +149,8 @@ export async function saveResponse(responseData: {
   response_emoji?: string
   green_line: 'above' | 'neutral' | 'below'
   is_custom_response?: boolean
-  ai_score?: number
-  ai_green_line?: 'above' | 'neutral' | 'below'
+  custom_response_value?: number
+  custom_green_line?: 'above' | 'neutral' | 'below'
 }): Promise<{ response: AssessmentResponse }> {
   console.log('Sending to API:', responseData)
   

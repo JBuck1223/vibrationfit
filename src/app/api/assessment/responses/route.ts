@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
       response_emoji,
       green_line,
       is_custom_response,
-      ai_score,
-      ai_green_line
+      custom_response_value,
+      custom_green_line
     } = body
 
     // Validate required fields
@@ -157,11 +157,11 @@ export async function POST(request: NextRequest) {
     if (is_custom_response !== undefined) {
       upsertData.is_custom_response = is_custom_response
     }
-    if (ai_score !== undefined && ai_score !== null) {
-      upsertData.ai_score = ai_score
+    if (custom_response_value !== undefined && custom_response_value !== null) {
+      upsertData.custom_response_value = custom_response_value
     }
-    if (ai_green_line !== undefined && ai_green_line !== null) {
-      upsertData.ai_green_line = ai_green_line
+    if (custom_green_line !== undefined && custom_green_line !== null) {
+      upsertData.custom_green_line = custom_green_line
     }
 
     // Upsert the response (insert or update if exists)

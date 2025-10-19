@@ -55,8 +55,8 @@ export interface AssessmentResponse {
   category: AssessmentCategory
   answered_at: Date
   is_custom_response?: boolean
-  ai_score?: ResponseValue
-  ai_green_line?: GreenLineStatus
+  custom_response_value?: ResponseValue
+  custom_green_line?: GreenLineStatus
 }
 
 export interface CategoryScore {
