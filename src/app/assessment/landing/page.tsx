@@ -91,7 +91,7 @@ export default function AssessmentLandingPage() {
                   Assessment ID: <span className="font-mono text-primary-500">{incompleteAssessment.id}</span>
                 </p>
                 <p className="text-neutral-400 text-sm">
-                  Started on {formatDate(incompleteAssessment.created_at)}
+                  Started on {formatDate(incompleteAssessment.started_at || incompleteAssessment.created_at)}
                 </p>
               </div>
             </div>
@@ -199,7 +199,10 @@ export default function AssessmentLandingPage() {
                   <div>
                     <p className="font-medium">Assessment Completed</p>
                     <p className="text-sm text-neutral-400">
-                      {formatDate(assessment.created_at)}
+                      Started: {formatDate(assessment.started_at || assessment.created_at)}
+                    </p>
+                    <p className="text-sm text-neutral-400">
+                      Completed: {formatDate(assessment.completed_at)}
                     </p>
                   </div>
                   <Button 
