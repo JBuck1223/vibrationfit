@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Container, PageLayout, Button, Card, Badge, ProgressBar } from '@/lib/design-system/components'
 import { ArrowLeft, Calendar, BarChart3, Eye, Download, RefreshCw, Trash2, Copy } from 'lucide-react'
 import { fetchAssessments, fetchAssessment } from '@/lib/services/assessmentService'
@@ -10,6 +10,7 @@ import ResultsSummary from '../components/ResultsSummary'
 
 export default function AssessmentResultsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [assessments, setAssessments] = useState<AssessmentResult[]>([])
   const [selectedAssessment, setSelectedAssessment] = useState<AssessmentResult | null>(null)
   const [loading, setLoading] = useState(true)
@@ -25,10 +26,25 @@ export default function AssessmentResultsPage() {
       const { assessments: assessmentData } = await fetchAssessments()
       setAssessments(assessmentData)
       
-      // Auto-select the most recent completed assessment
-      const completedAssessments = assessmentData.filter(a => a.status === 'completed')
-      if (completedAssessments.length > 0) {
-        setSelectedAssessment(completedAssessments[0])
+      // Check for specific assessment ID in URL
+      const assessmentIdParam = searchParams.get('id')
+      
+      if (assessmentIdParam) {
+        // Load specific assessment from URL
+        const specificAssessment = assessmentData.find(a => a.id === assessmentIdParam)
+        if (specificAssessment) {
+          setSelectedAssessment(specificAssessment)
+          console.log('Loaded specific assessment from URL:', assessmentIdParam)
+        } else {
+          console.error('Assessment not found:', assessmentIdParam)
+          setError('Assessment not found')
+        }
+      } else {
+        // Auto-select the most recent completed assessment
+        const completedAssessments = assessmentData.filter(a => a.status === 'completed')
+        if (completedAssessments.length > 0) {
+          setSelectedAssessment(completedAssessments[0])
+        }
       }
     } catch (err) {
       setError('Failed to load assessments')
