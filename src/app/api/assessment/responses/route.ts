@@ -165,6 +165,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert the response (insert or update if exists)
+    console.log('🔍 Attempting to upsert response with data:', upsertData)
+    
     const { data: response, error } = await supabase
       .from('assessment_responses')
       .upsert(upsertData, {
@@ -174,7 +176,13 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error saving response:', error)
+      console.error('❌ Database error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        upsertData: upsertData
+      })
       return NextResponse.json(
         { error: 'Failed to save response' },
         { status: 500 }
