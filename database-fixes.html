@@ -92,18 +92,39 @@
         </div>
 
         <div class="fix-section">
-            <div class="fix-title">📊 Fix 1: Response Value Constraint</div>
-            <p>This fixes the "Failed to save response" error by allowing 0 values for custom responses.</p>
-            <div class="sql-code" id="sql1">-- Fix response_value constraint to allow 0 for custom responses
+            <div class="fix-title">📊 Fix 1: Response Value Constraint (1-5 Scale)</div>
+            <p>This fixes the "Failed to save response" error by updating the constraint to allow 0-5 values.</p>
+            <div class="sql-code" id="sql1">-- Step 1: Check current constraint
+SELECT conname, consrc FROM pg_constraint WHERE conrelid = 'assessment_responses'::regclass AND contype = 'c';
+
+-- Step 2: Check what values currently exist
+SELECT response_value, COUNT(*) FROM assessment_responses GROUP BY response_value ORDER BY response_value;
+
+-- Step 3: Update existing data from 2-10 scale to 1-5 scale
+UPDATE assessment_responses SET response_value = CASE
+  WHEN response_value = 2 THEN 1
+  WHEN response_value = 4 THEN 2
+  WHEN response_value = 6 THEN 3
+  WHEN response_value = 8 THEN 4
+  WHEN response_value = 10 THEN 5
+  WHEN response_value > 5 THEN 5
+  WHEN response_value < 0 THEN 0
+  ELSE response_value
+END;
+
+-- Step 4: Drop all existing constraints
 ALTER TABLE assessment_responses DROP CONSTRAINT IF EXISTS assessment_responses_response_value_check;
+ALTER TABLE assessment_responses DROP CONSTRAINT IF EXISTS response_value_range;
 
-ALTER TABLE assessment_responses ADD CONSTRAINT assessment_responses_response_value_check 
-CHECK (response_value IN (0, 2, 4, 6, 8, 10));
+-- Step 5: Add new constraint for 0-5 range
+ALTER TABLE assessment_responses ADD CONSTRAINT response_value_range
+CHECK (response_value >= 0 AND response_value <= 5);
 
-COMMENT ON COLUMN assessment_responses.response_value IS 'Numerical value of the response (0 for custom responses, 2, 4, 6, 8, or 10 for regular responses)';
+-- Step 6: Verify constraint
+SELECT conname, consrc FROM pg_constraint WHERE conrelid = 'assessment_responses'::regclass AND contype = 'c';
 
--- Log the change
-DO $$ BEGIN RAISE NOTICE '✅ Updated response_value constraint to allow 0 for custom responses'; END $$;</div>
+-- Step 7: Verify data
+SELECT response_value, COUNT(*) FROM assessment_responses GROUP BY response_value ORDER BY response_value;</div>
             <button class="copy-btn" onclick="copyToClipboard('sql1')">📋 Copy SQL</button>
         </div>
 
@@ -139,7 +160,8 @@ DO $$ BEGIN RAISE NOTICE '✅ Updated get_green_line_status function to use 35 a
 
         <div class="instructions">
             <h3>✅ After running these fixes:</h3>
-            <div class="step">• Assessment responses will save without errors</div>
+            <div class="step">• Assessment responses will save without "Failed to save response" errors</div>
+            <div class="step">• Database will accept 0-5 scale values (not 2-10 scale)</div>
             <div class="step">• Calculations will be accurate (5/5 = 100%, not 45%)</div>
             <div class="step">• All 12 categories will display correctly</div>
             <div class="step">• Green Line status will be calculated properly</div>
