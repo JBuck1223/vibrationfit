@@ -95,7 +95,9 @@
             <div class="fix-title">📊 Fix 1: Response Value Constraint (1-5 Scale)</div>
             <p>This fixes the "Failed to save response" error by updating the constraint to allow 0-5 values.</p>
             <div class="sql-code" id="sql1">-- Step 1: Check current constraint
-SELECT conname, consrc FROM pg_constraint WHERE conrelid = 'assessment_responses'::regclass AND contype = 'c';
+SELECT conname, pg_get_constraintdef(oid) as definition 
+FROM pg_constraint 
+WHERE conrelid = 'assessment_responses'::regclass AND contype = 'c';
 
 -- Step 2: Check what values currently exist
 SELECT response_value, COUNT(*) FROM assessment_responses GROUP BY response_value ORDER BY response_value;
@@ -121,7 +123,9 @@ ALTER TABLE assessment_responses ADD CONSTRAINT response_value_range
 CHECK (response_value >= 0 AND response_value <= 5);
 
 -- Step 6: Verify constraint
-SELECT conname, consrc FROM pg_constraint WHERE conrelid = 'assessment_responses'::regclass AND contype = 'c';
+SELECT conname, pg_get_constraintdef(oid) as definition 
+FROM pg_constraint 
+WHERE conrelid = 'assessment_responses'::regclass AND contype = 'c';
 
 -- Step 7: Verify data
 SELECT response_value, COUNT(*) FROM assessment_responses GROUP BY response_value ORDER BY response_value;</div>
