@@ -19,7 +19,7 @@ import {
   fetchAssessment,
   AssessmentProgress
 } from '@/lib/services/assessmentService'
-import ResultsSummary from './components/ResultsSummary'
+import ResultsSummary from '../components/ResultsSummary'
 
 export default function AssessmentPage() {
   const router = useRouter()
