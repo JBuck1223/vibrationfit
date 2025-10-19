@@ -16,6 +16,8 @@ export default function AssessmentResultsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [responses, setResponses] = useState<any[]>([])
+  const [showResponses, setShowResponses] = useState(false)
 
   useEffect(() => {
     loadAssessments()
@@ -35,6 +37,8 @@ export default function AssessmentResultsPage() {
         if (specificAssessment) {
           setSelectedAssessment(specificAssessment)
           console.log('Loaded specific assessment from URL:', assessmentIdParam)
+          // Load responses for this assessment
+          await loadResponses(assessmentIdParam)
         } else {
           console.error('Assessment not found:', assessmentIdParam)
           setError('Assessment not found')
@@ -52,6 +56,20 @@ export default function AssessmentResultsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadResponses = async (assessmentId: string) => {
+    try {
+      const { responses } = await fetchAssessment(assessmentId, { includeResponses: true })
+      setResponses(responses || [])
+    } catch (err) {
+      console.error('Error loading responses:', err)
+    }
+  }
+
+  const handleAssessmentSelect = async (assessment: AssessmentResult) => {
+    setSelectedAssessment(assessment)
+    await loadResponses(assessment.id)
   }
 
   const handleDeleteAssessment = async (assessmentId: string) => {
@@ -206,7 +224,7 @@ export default function AssessmentResultsPage() {
                     >
                       <div 
                         className="cursor-pointer"
-                        onClick={() => setSelectedAssessment(assessment)}
+                        onClick={() => handleAssessmentSelect(assessment)}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -350,6 +368,60 @@ export default function AssessmentResultsPage() {
                     </div>
                   )}
                 </Card>
+
+                {/* Responses Debug Dropdown */}
+                {selectedAssessment.status === 'completed' && responses.length > 0 && (
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white">Response Details</h3>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowResponses(!showResponses)}
+                        className="text-sm"
+                      >
+                        {showResponses ? 'Hide' : 'Show'} Responses ({responses.length})
+                      </Button>
+                    </div>
+                    
+                    {showResponses && (
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {responses.map((response, index) => (
+                          <div key={index} className="p-3 bg-neutral-800/50 rounded-lg text-sm">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="font-medium text-white mb-1">
+                                  {response.question_text}
+                                </div>
+                                <div className="text-neutral-300 mb-1">
+                                  <strong>Response:</strong> {response.response_text}
+                                </div>
+                                <div className="text-neutral-400 text-xs">
+                                  <strong>Category:</strong> {response.category} | 
+                                  <strong> Question:</strong> {response.question_id}
+                                </div>
+                              </div>
+                              <div className="ml-4 text-right">
+                                <div className={`px-2 py-1 rounded text-xs font-medium ${
+                                  response.is_custom_response 
+                                    ? 'bg-purple-500/20 text-purple-300' 
+                                    : 'bg-green-500/20 text-green-300'
+                                }`}>
+                                  {response.is_custom_response ? 'Custom' : 'Standard'}
+                                </div>
+                                <div className="mt-1 text-xs text-neutral-400">
+                                  <div>Response Value: {response.response_value}</div>
+                                  {response.is_custom_response && (
+                                    <div>AI Score: {response.ai_score || 'N/A'}</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+                )}
 
                 {/* Results Summary */}
                 {selectedAssessment.status === 'completed' && (
