@@ -526,13 +526,13 @@ export default function DesignSystemExperiment() {
                         <Input
                           label="Input with Error"
                           placeholder="This field has an error"
-                          value="Invalid input"
+                          defaultValue="Invalid input"
                           error="This is an error message"
                         />
                         <Input
                           label="Disabled Input"
                           placeholder="This input is disabled"
-                          value="Disabled text"
+                          defaultValue="Disabled text"
                           disabled
                         />
                       </Stack>
@@ -554,7 +554,7 @@ export default function DesignSystemExperiment() {
                         <Textarea
                           label="Textarea with Error"
                           placeholder="This field has an error"
-                          value="Invalid message"
+                          defaultValue="Invalid message"
                           error="This is an error message"
                           rows={3}
                         />
