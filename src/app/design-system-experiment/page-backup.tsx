@@ -24,7 +24,7 @@ import {
   Input,
   Textarea,
   PageLayout,
-} from '@/lib/design-system/vf-components-test'
+} from '../../lib/design-system/test/components'
 
 // Vision Categories
 const VISION_CATEGORIES = [
