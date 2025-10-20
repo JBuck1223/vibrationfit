@@ -144,3 +144,37 @@
   .gradient-cosmic {
     background: linear-gradient(135deg, #BF00FF, #FF0080, #00FFFF);
   }
+  
+  /* Bar Chart Hover Effects - More Specific Selectors */
+  .bar-chart-container .recharts-bar-rectangle:hover {
+    filter: brightness(1.2) !important;
+    stroke: currentColor !important;
+    stroke-width: 3px !important;
+    stroke-dasharray: 0 0 1000px 0 !important;
+    transition: all 0.2s ease-in-out !important;
+  }
+  
+  .bar-chart-container .recharts-bar-rectangle {
+    transition: all 0.2s ease-in-out !important;
+  }
+  
+  /* Remove white background from tooltips - Multiple selectors */
+  .recharts-tooltip-wrapper,
+  .recharts-tooltip-content,
+  .recharts-default-tooltip,
+  .recharts-tooltip-wrapper .recharts-tooltip-content,
+  .recharts-tooltip-wrapper .recharts-tooltip-content .recharts-tooltip-content-wrapper,
+  .recharts-tooltip-wrapper .recharts-tooltip-content .recharts-tooltip-content-wrapper .recharts-tooltip-content-wrapper {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  /* Force all Recharts tooltip elements to be transparent */
+  .bar-chart-container .recharts-tooltip-wrapper,
+  .bar-chart-container .recharts-tooltip-content,
+  .bar-chart-container .recharts-default-tooltip {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }

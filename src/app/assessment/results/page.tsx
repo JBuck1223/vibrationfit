@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Container, PageLayout, Button, Card, Badge, ProgressBar } from '@/lib/design-system/components'
-import { ArrowLeft, Calendar, BarChart3, Eye, Download, RefreshCw, Trash2, Copy } from 'lucide-react'
+import { Button, Card } from '@/lib/design-system/components'
+import { BarChart3, RefreshCw, Play, Plus, Eye } from 'lucide-react'
 import { fetchAssessments, fetchAssessment } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import ResultsSummary from '../components/ResultsSummary'
@@ -15,13 +15,18 @@ export default function AssessmentResultsPage() {
   const [selectedAssessment, setSelectedAssessment] = useState<AssessmentResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState<string | null>(null)
   const [responses, setResponses] = useState<any[]>([])
-  const [showResponses, setShowResponses] = useState(false)
 
   useEffect(() => {
     loadAssessments()
   }, [])
+
+  // Load responses when selectedAssessment changes
+  useEffect(() => {
+    if (selectedAssessment && selectedAssessment.status === 'completed') {
+      loadResponses(selectedAssessment.id)
+    }
+  }, [selectedAssessment])
 
   const loadAssessments = async () => {
     try {
@@ -37,8 +42,6 @@ export default function AssessmentResultsPage() {
         if (specificAssessment) {
           setSelectedAssessment(specificAssessment)
           console.log('Loaded specific assessment from URL:', assessmentIdParam)
-          // Load responses for this assessment
-          await loadResponses(assessmentIdParam)
         } else {
           console.error('Assessment not found:', assessmentIdParam)
           setError('Assessment not found')
@@ -65,47 +68,6 @@ export default function AssessmentResultsPage() {
     } catch (err) {
       console.error('Error loading responses:', err)
     }
-  }
-
-  const handleAssessmentSelect = async (assessment: AssessmentResult) => {
-    setSelectedAssessment(assessment)
-    await loadResponses(assessment.id)
-  }
-
-  const handleDeleteAssessment = async (assessmentId: string) => {
-    if (!confirm('Are you sure you want to delete this assessment? This action cannot be undone.')) {
-      return
-    }
-
-    setDeleting(assessmentId)
-    try {
-      const response = await fetch(`/api/assessment?id=${assessmentId}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete assessment')
-      }
-
-      // Remove from local state
-      setAssessments(prev => prev.filter(a => a.id !== assessmentId))
-      
-      // Clear selection if deleted assessment was selected
-      if (selectedAssessment?.id === assessmentId) {
-        const remainingAssessments = assessments.filter(a => a.id !== assessmentId)
-        setSelectedAssessment(remainingAssessments.length > 0 ? remainingAssessments[0] : null)
-      }
-    } catch (err) {
-      setError('Failed to delete assessment')
-      console.error('Error deleting assessment:', err)
-    } finally {
-      setDeleting(null)
-    }
-  }
-
-  const copyAssessmentId = (assessmentId: string) => {
-    navigator.clipboard.writeText(assessmentId)
-    // You could add a toast notification here
   }
 
   const formatDate = (date: Date | string) => {
@@ -147,155 +109,44 @@ export default function AssessmentResultsPage() {
 
   if (loading) {
     return (
-      <PageLayout>
-        <Container size="xl" className="py-8">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+        <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <RefreshCw className="w-8 h-8 animate-spin text-[#39FF14] mx-auto mb-4" />
             <div className="text-neutral-400">Loading your assessments...</div>
           </div>
-        </Container>
-      </PageLayout>
+        </div>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <PageLayout>
-        <Container size="xl" className="py-8">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+        <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <div className="text-red-400 mb-4">{error}</div>
             <Button onClick={loadAssessments} variant="primary">
               Try Again
             </Button>
           </div>
-        </Container>
-      </PageLayout>
+        </div>
+      </div>
     )
   }
 
   return (
-    <PageLayout>
-      <Container size="xl" className="py-8">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Assessment Results</h1>
-            <p className="text-neutral-400">
-              View and analyze your vibrational assessment results
-            </p>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">Assessment Results</h1>
+          <p className="text-neutral-400">
+            View and analyze your vibrational assessment results
+          </p>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Assessment List */}
-          <div className="lg:col-span-1">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Your Assessments</h2>
-              
-              {assessments.length === 0 ? (
-                <div className="text-center py-8">
-                  <BarChart3 className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-                  <p className="text-neutral-400 mb-4">No assessments yet</p>
-                  <Button 
-                    variant="primary" 
-                    onClick={() => router.push('/assessment')}
-                  >
-                    Take Your First Assessment
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {assessments.map((assessment) => (
-                    <div
-                      key={assessment.id}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        selectedAssessment?.id === assessment.id
-                          ? 'border-[#39FF14] bg-[#39FF14]/10'
-                          : 'border-neutral-700 hover:border-neutral-600'
-                      }`}
-                    >
-                      <div 
-                        className="cursor-pointer"
-                        onClick={() => handleAssessmentSelect(assessment)}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-neutral-400" />
-                            <span className="text-sm text-neutral-300">
-                              {formatDate(assessment.created_at)}
-                            </span>
-                          </div>
-                          <Badge variant={getStatusColor(assessment.status)}>
-                            {getStatusLabel(assessment.status)}
-                          </Badge>
-                        </div>
-                        
-                        <div className="text-sm text-neutral-400 mb-2">
-                          Assessment ID: {assessment.id.substring(0, 8)}...
-                        </div>
-                        
-                        {assessment.status === 'completed' && (
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-neutral-300">Score</span>
-                              <span className="text-white font-medium">
-                                {assessment.total_score}/{assessment.max_possible_score}
-                              </span>
-                            </div>
-                            <ProgressBar
-                              value={assessment.overall_percentage || 0}
-                              variant="primary"
-                            />
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 mt-3 pt-3 border-t border-neutral-700">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            copyAssessmentId(assessment.id)
-                          }}
-                          className="flex items-center gap-1 text-xs"
-                        >
-                          <Copy className="w-3 h-3" />
-                          Copy ID
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteAssessment(assessment.id)
-                          }}
-                          disabled={deleting === assessment.id}
-                          className="flex items-center gap-1 text-xs"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          {deleting === assessment.id ? 'Deleting...' : 'Delete'}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
-
           {/* Assessment Details */}
-          <div className="lg:col-span-2">
-            {selectedAssessment ? (
+          {selectedAssessment ? (
               <div className="space-y-6">
                 {/* Assessment Header */}
                 <Card className="p-6">
@@ -312,15 +163,6 @@ export default function AssessmentResultsPage() {
                         <code className="text-xs text-neutral-300 bg-neutral-800 px-2 py-1 rounded">
                           {selectedAssessment.id}
                         </code>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyAssessmentId(selectedAssessment.id)}
-                          className="flex items-center gap-1 text-xs"
-                        >
-                          <Copy className="w-3 h-3" />
-                          Copy
-                        </Button>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -402,17 +244,23 @@ export default function AssessmentResultsPage() {
                 <div className="text-center py-16">
                   <BarChart3 className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-white mb-2">
-                    Select an Assessment
+                    No Assessment Selected
                   </h3>
-                  <p className="text-neutral-400">
-                    Choose an assessment from the list to view its results
+                  <p className="text-neutral-400 mb-6">
+                    Use a URL with an assessment ID or take a new assessment to view results.
                   </p>
+                  <Button
+                    variant="primary"
+                    onClick={() => router.push('/assessment')}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Take Assessment
+                  </Button>
                 </div>
               </Card>
             )}
-          </div>
-        </div>
-      </Container>
-    </PageLayout>
+      </div>
+    </div>
   )
 }

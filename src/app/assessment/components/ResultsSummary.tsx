@@ -3,6 +3,7 @@ import { AssessmentResult, AssessmentCategory, AssessmentResponse } from '@/type
 import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp } from 'lucide-react'
 import { categoryMetadata } from '@/lib/assessment/questions'
 import { useState } from 'react'
+import AssessmentBarChart from './AssessmentBarChart'
 
 interface ResultsSummaryProps {
   assessment: AssessmentResult
@@ -108,6 +109,9 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
           </div>
         </div>
       </Card>
+
+      {/* Bar Chart Visualization */}
+      <AssessmentBarChart assessment={assessment} />
 
       {/* Category Breakdown */}
       <Card className="p-6">

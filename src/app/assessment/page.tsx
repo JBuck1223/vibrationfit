@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, PageLayout, Badge } from '@/lib/design-system/components'
+import { Button, Card, Badge } from '@/lib/design-system/components'
 import { fetchAssessments, deleteAssessment } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import { 
@@ -82,20 +82,20 @@ export default function AssessmentHub() {
 
   if (isLoading) {
     return (
-      <PageLayout>
-        <Container size="lg" className="py-12">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+        <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
             <p className="mt-4 text-neutral-400">Loading your assessments...</p>
           </div>
-        </Container>
-      </PageLayout>
+        </div>
+      </div>
     )
   }
 
   return (
-    <PageLayout>
-      <Container size="lg" className="py-12">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Assessment Hub</h1>
           <p className="text-xl text-neutral-300 max-w-2xl mx-auto">
@@ -300,7 +300,7 @@ export default function AssessmentHub() {
             </Button>
           </Card>
         )}
-      </Container>
-    </PageLayout>
+      </div>
+    </div>
   )
 }

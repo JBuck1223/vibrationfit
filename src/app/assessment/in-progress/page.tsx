@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Container, PageLayout, Button, Spinner, Card } from '@/lib/design-system/components'
+import { Button, Spinner, Card } from '@/lib/design-system/components'
 import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, getAllCategories, categoryMetadata } from '@/lib/assessment/questions'
 import { AssessmentQuestion, AssessmentOption, AssessmentCategory } from '@/types/assessment'
@@ -610,21 +610,21 @@ export default function AssessmentPage() {
 
   if (isLoading) {
     return (
-      <PageLayout>
-        <Container size="xl" className="py-12">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+        <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <Spinner variant="primary" size="lg" />
           </div>
-        </Container>
-      </PageLayout>
+        </div>
+      </div>
     )
   }
 
   if (isComplete && assessmentId && progress) {
     // Show results summary
     return (
-      <PageLayout>
-        <Container size="xl" className="py-12">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+        <div className="container mx-auto px-4 py-8">
           <ResultsSummary
             assessment={{
               id: assessmentId,
@@ -643,8 +643,8 @@ export default function AssessmentPage() {
               updated_at: new Date()
             } as any}
           />
-        </Container>
-      </PageLayout>
+        </div>
+      </div>
     )
   }
 
@@ -652,8 +652,8 @@ export default function AssessmentPage() {
   const selectedValue = responses.get(currentQuestion.id)
 
   return (
-    <PageLayout>
-      <Container size="xl" className="py-8">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-white mb-2">Vibrational Assessment</h1>
@@ -998,8 +998,8 @@ export default function AssessmentPage() {
             </div>
           </div>
         </div>
-      </Container>
-    </PageLayout>
+      </div>
+    </div>
   )
 }
 
