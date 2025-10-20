@@ -205,11 +205,11 @@ export default function DesignSystemExperiment() {
                     Inline - Horizontal Spacing & Wrapping
                   </h3>
                   <Inline gap="md" wrap className="p-6 bg-neutral-900 rounded-lg border border-neutral-700">
-                    <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg flex-1 min-w-0">Item 1</div>
-                    <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg flex-1 min-w-0">Item 2</div>
-                    <div className="p-4 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg flex-1 min-w-0">Item 3</div>
-                    <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg flex-1 min-w-0">Item 4</div>
-                    <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg flex-1 min-w-0">Item 5</div>
+                    <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg">Item 1</div>
+                    <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg">Item 2</div>
+                    <div className="p-4 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg">Item 3</div>
+                    <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg">Item 4</div>
+                    <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg">Item 5</div>
                   </Inline>
                 </Stack>
               </Card>

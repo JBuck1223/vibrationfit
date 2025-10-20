@@ -53,7 +53,7 @@ export const Stack = React.forwardRef<HTMLDivElement, StackProps>(
 )
 Stack.displayName = 'Stack'
 
-// Inline/Cluster - Horizontal row that wraps gracefully
+// Inline/Cluster - Mobile-first responsive horizontal row
 interface InlineProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   gap?: 'xs' | 'sm' | 'md' | 'lg'
@@ -90,7 +90,7 @@ export const Inline = React.forwardRef<HTMLDivElement, InlineProps>(
       <div 
         ref={ref}
         className={cn(
-          'flex',
+          'flex flex-col md:flex-row',
           wrap ? 'flex-wrap' : '',
           gaps[gap],
           alignments[align],
@@ -99,7 +99,17 @@ export const Inline = React.forwardRef<HTMLDivElement, InlineProps>(
         )}
         {...props}
       >
-        {children}
+        {React.Children.map(children, (child) => {
+          if (React.isValidElement(child)) {
+            return React.cloneElement(child, {
+              className: cn(
+                'w-full md:flex-1',
+                child.props.className
+              )
+            })
+          }
+          return child
+        })}
       </div>
     )
   }
