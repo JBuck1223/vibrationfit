@@ -1,12 +1,13 @@
 // VibrationFit Design System
 // Design Tokens - Single source of truth for all design values
+// Path: /src/lib/design-system/tokens.ts
 
 export const colors = {
   // Primary Brand Colors - Neon Electric Green
   primary: {
     50: '#39FF14',   // Electric Lime Green (main)
     100: '#00FF88',  // Neon Electric Green
-        200: '#00CC44',  // Electric Forest
+    200: '#00CC44',  // Electric Forest
     500: '#39FF14',  // Primary Electric Lime
     600: '#00FF88',  // Neon Electric Green
     700: '#00CC44',  // Electric Forest Dark
@@ -15,7 +16,7 @@ export const colors = {
   // Secondary Brand Colors - Neon Cyan
   secondary: {
     50: '#00FFFF',   // Neon Cyan
-    100: '#06B6D4',   // Bright Cyan
+    100: '#06B6D4',  // Bright Cyan
     500: '#00FFFF',  // Neon Cyan (main)
     600: '#06B6D4',  // Bright Cyan Dark
     700: '#0F766E',  // Teal Darker
@@ -63,8 +64,13 @@ export const colors = {
     500: '#6B7280',  // Subtle Text
     600: '#4B5563',  // Disabled Text
     700: '#374151',  // Text Dark
-    800: '#1F1F1F',  // Dark Gray
+    800: '#1F1F1F',  // Dark Gray (Cards)
     900: '#111827',  // Darker Gray
+    // Special aliases for clarity
+    cardBg: '#1F1F1F',
+    inputBg: '#404040',
+    border: '#666666',
+    borderLight: '#333333',
   },
   
   // Semantic Colors - Neon Variants
@@ -80,31 +86,31 @@ export const colors = {
 export const spacing = {
   px: '1px',
   0: '0',
-  1: '0.25rem',
-  2: '0.5rem',
-  3: '0.75rem',
-  4: '1rem',
-  5: '1.25rem',
-  6: '1.5rem',
-  8: '2rem',
-  10: '2.5rem',
-  12: '3rem',
-  16: '4rem',
-  20: '5rem',
-  24: '6rem',
-  32: '8rem',
+  1: '0.25rem',    // 4px
+  2: '0.5rem',     // 8px
+  3: '0.75rem',    // 12px
+  4: '1rem',       // 16px
+  5: '1.25rem',    // 20px
+  6: '1.5rem',     // 24px
+  8: '2rem',       // 32px
+  10: '2.5rem',    // 40px
+  12: '3rem',      // 48px
+  16: '4rem',      // 64px
+  20: '5rem',      // 80px
+  24: '6rem',      // 96px
+  32: '8rem',      // 128px
 } as const
 
 export const borderRadius = {
   none: '0',
-  sm: '0.125rem',
-  base: '0.25rem',
-  md: '0.375rem',
-  lg: '0.5rem',
-  xl: '0.75rem',
-  '2xl': '1rem',
-  '3xl': '1.5rem',
-  full: '9999px',
+  sm: '0.125rem',   // 2px
+  base: '0.25rem',  // 4px
+  md: '0.375rem',   // 6px
+  lg: '0.5rem',     // 8px
+  xl: '0.75rem',    // 12px
+  '2xl': '1rem',    // 16px
+  '3xl': '1.5rem',  // 24px
+  full: '9999px',   // Pill shape
 } as const
 
 export const shadows = {
@@ -115,11 +121,16 @@ export const shadows = {
   xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
   '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
   inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+  
   // Brand-specific shadows - Neon Glow Effects
   primary: '0 4px 12px rgba(57, 255, 20, 0.3)',
   secondary: '0 4px 12px rgba(0, 255, 255, 0.3)',
   accent: '0 4px 12px rgba(191, 0, 255, 0.3)',
   neon: '0 0 20px rgba(57, 255, 20, 0.4)',
+  
+  // Button shadows (matching HTML brand kit)
+  button: '0 4px 14px rgba(0, 0, 0, 0.25)',
+  buttonHover: '0 6px 20px rgba(57, 255, 20, 0.3)',
 } as const
 
 export const typography = {
@@ -128,16 +139,16 @@ export const typography = {
     mono: ['Courier New', 'monospace'],
   },
   fontSize: {
-    xs: '0.75rem',
-    sm: '0.875rem',
-    base: '1rem',
-    lg: '1.125rem',
-    xl: '1.25rem',
-    '2xl': '1.5rem',
-    '3xl': '1.875rem',
-    '4xl': '2.25rem',
-    '5xl': '3rem',
-    '6xl': '3.75rem',
+    xs: '0.75rem',    // 12px
+    sm: '0.875rem',   // 14px
+    base: '1rem',     // 16px
+    lg: '1.125rem',   // 18px
+    xl: '1.25rem',    // 20px
+    '2xl': '1.5rem',  // 24px
+    '3xl': '1.875rem',// 30px
+    '4xl': '2.25rem', // 36px
+    '5xl': '3rem',    // 48px
+    '6xl': '3.75rem', // 60px
   },
   fontWeight: {
     normal: '400',
@@ -155,11 +166,11 @@ export const typography = {
 } as const
 
 export const breakpoints = {
-  sm: '640px',
-  md: '768px',
-  lg: '1024px',
-  xl: '1280px',
-  '2xl': '1536px',
+  sm: '640px',   // Mobile landscape
+  md: '768px',   // Tablet
+  lg: '1024px',  // Desktop
+  xl: '1280px',  // Large desktop
+  '2xl': '1536px', // Extra large
 } as const
 
 // Brand-specific gradients - Neon Variants
@@ -172,6 +183,7 @@ export const gradients = {
   energy: 'linear-gradient(135deg, #FF6600, #FFFF00)',
   neon: 'linear-gradient(135deg, #39FF14, #00FFFF)',
   electric: 'linear-gradient(135deg, #BF00FF, #FF0080)',
+  heroGlow: 'linear-gradient(135deg, rgba(57, 255, 20, 0.2), rgba(0, 255, 255, 0.1), rgba(191, 0, 255, 0.2))',
 } as const
 
 // Animation durations
@@ -180,7 +192,7 @@ export const durations = {
   100: '100ms',
   150: '150ms',
   200: '200ms',
-  300: '300ms',
+  300: '300ms',   // Standard button/card transitions
   500: '500ms',
   700: '700ms',
   1000: '1000ms',
@@ -215,16 +227,20 @@ export const zIndex = {
 export const components = {
   button: {
     height: {
-      sm: '2rem',
-      md: '2.5rem',
-      lg: '3rem',
-      xl: '3.5rem',
+      sm: '2rem',      // 32px
+      md: '2.5rem',    // 40px (mobile) / 48px (desktop)
+      lg: '3rem',      // 48px (mobile) / 56px (desktop)
+      xl: '3.5rem',    // 56px (mobile) / 64px (desktop)
     },
     padding: {
-      sm: '0.5rem 1rem',
-      md: '0.75rem 1.5rem',
-      lg: '1rem 2rem',
-      xl: '1.25rem 2.5rem',
+      sm: '0.5rem 1rem',           // Mobile
+      smDesktop: '0.5rem 1.25rem', // Desktop
+      md: '0.625rem 1.25rem',      // Mobile
+      mdDesktop: '0.75rem 1.75rem',// Desktop
+      lg: '0.75rem 1.5rem',        // Mobile
+      lgDesktop: '1rem 2.5rem',    // Desktop
+      xl: '0.875rem 2rem',         // Mobile
+      xlDesktop: '1.25rem 3rem',   // Desktop
     },
   },
   input: {
@@ -241,12 +257,23 @@ export const components = {
   },
   card: {
     padding: {
-      sm: '1rem',
-      md: '1.5rem',
-      lg: '2rem',
+      sm: '1rem',       // Mobile
+      md: '1.5rem',     // Tablet
+      lg: '2rem',       // Desktop
     },
-    borderRadius: '0.75rem',
+    borderRadius: '1rem',  // 16px (rounded-2xl)
+    borderWidth: '2px',
   },
+} as const
+
+// Mobile-first container widths
+export const containers = {
+  sm: '48rem',    // 768px
+  md: '64rem',    // 1024px
+  lg: '80rem',    // 1280px
+  xl: '88rem',    // 1408px (max-w-7xl)
+  '2xl': '96rem', // 1536px
+  full: '100%',
 } as const
 
 export default {
@@ -261,4 +288,5 @@ export default {
   easings,
   zIndex,
   components,
+  containers,
 }

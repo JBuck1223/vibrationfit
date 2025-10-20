@@ -1,21 +1,39 @@
-// VibrationFit Design System
-// Main export file for easy importing
+// VibrationFit Design System v2
+// Enhanced mobile-first design system with layout primitives
+// All components are rebuilt and approved through the design system page
 
-export * from './tokens'
+// Export the enhanced design system
 export * from './components'
-export * from './vision-categories'
+export * from './tokens'
 
 // Re-export commonly used components with shorter names
 export {
-  Button,
+  // Layout Primitives
+  Stack,
+  Inline,
+  Grid,
+  Switcher,
+  Cover,
+  Frame,
+  Container,
+  TwoColumn,
+  FourColumn,
+  
+  // UI Components
   Card,
+  Button,
+  GradientButton,
+  AIButton,
+  Icon,
+  Select,
+  Badge,
   Input,
   Textarea,
-  Badge,
-  ProgressBar,
-  Spinner,
-  Container,
   PageLayout,
+  
+  // Feedback Components
+  Spinner,
+  ProgressBar,
 } from './components'
 
 // Re-export design tokens
@@ -33,7 +51,7 @@ export {
   components,
 } from './tokens'
 
-// Vision categories
+// Re-export vision categories
 export {
   VISION_CATEGORIES,
   getVisionCategory,
@@ -47,4 +65,4 @@ export {
 } from './vision-categories'
 
 // Utility function
-export { cn } from '../utils'
+export { cn } from '@/lib/utils'
