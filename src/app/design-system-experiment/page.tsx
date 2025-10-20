@@ -360,6 +360,33 @@ export default function DesignSystemExperiment() {
             </Stack>
           </section>
 
+          {/* Loading States */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#39FF14]">Loading States</h2>
+            <p className="text-[#9CA3AF] mb-8 text-lg">Branded loading indicators using the VibrationFit logo.</p>
+            
+            <Card>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div className="text-center">
+                  <Spinner variant="primary" size="lg" className="mx-auto mb-4" />
+                  <p className="text-sm text-[#9CA3AF]">Primary Loading</p>
+                </div>
+                <div className="text-center">
+                  <Spinner variant="secondary" size="lg" className="mx-auto mb-4" />
+                  <p className="text-sm text-[#9CA3AF]">Secondary Loading</p>
+                </div>
+                <div className="text-center">
+                  <Spinner variant="accent" size="lg" className="mx-auto mb-4" />
+                  <p className="text-sm text-[#9CA3AF]">Accent Loading</p>
+                </div>
+                <div className="text-center">
+                  <Spinner variant="branded" size="lg" className="mx-auto mb-4" />
+                  <p className="text-sm text-[#9CA3AF]">Branded Loading</p>
+                </div>
+              </div>
+            </Card>
+          </section>
+
           {/* UI Components Section */}
           <section>
             <Stack gap="lg">
@@ -464,27 +491,24 @@ export default function DesignSystemExperiment() {
                   
                   {/* Spinner */}
                   <Card variant="default" className="p-4">
-                    <Stack gap="sm">
-                      <h4 className="text-lg font-medium mb-2 text-white">Spinner - Loading Indicators</h4>
-                      <Inline gap="md" wrap>
-                        <Stack className="items-center">
-                          <Spinner size="sm" variant="primary" />
-                          <p className="text-xs text-neutral-400 mt-2">Small Primary</p>
-                        </Stack>
-                        <Stack className="items-center">
-                          <Spinner size="md" variant="secondary" />
-                          <p className="text-xs text-neutral-400 mt-2">Medium Secondary</p>
-                        </Stack>
-                        <Stack className="items-center">
-                          <Spinner size="lg" variant="accent" />
-                          <p className="text-xs text-neutral-400 mt-2">Large Accent</p>
-                        </Stack>
-                        <Stack className="items-center">
-                          <Spinner size="xl" variant="branded" />
-                          <p className="text-xs text-neutral-400 mt-2">XL Branded</p>
-                        </Stack>
-                      </Inline>
-                    </Stack>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                      <div className="text-center">
+                        <Spinner variant="primary" size="lg" className="mx-auto mb-4" />
+                        <p className="text-sm text-[#9CA3AF]">Primary Loading</p>
+                      </div>
+                      <div className="text-center">
+                        <Spinner variant="secondary" size="lg" className="mx-auto mb-4" />
+                        <p className="text-sm text-[#9CA3AF]">Secondary Loading</p>
+                      </div>
+                      <div className="text-center">
+                        <Spinner variant="accent" size="lg" className="mx-auto mb-4" />
+                        <p className="text-sm text-[#9CA3AF]">Accent Loading</p>
+                      </div>
+                      <div className="text-center">
+                        <Spinner variant="branded" size="lg" className="mx-auto mb-4" />
+                        <p className="text-sm text-[#9CA3AF]">Branded Loading</p>
+                      </div>
+                    </div>
                   </Card>
 
                   {/* ProgressBar */}
