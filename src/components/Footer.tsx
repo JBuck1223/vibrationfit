@@ -34,74 +34,77 @@ export function Footer({ className = '' }: FooterProps) {
   const coreLinks = [
     { href: '/', label: 'Home', icon: Home },
     { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
-    { href: '/profile', label: 'Profile', icon: User },
-    { href: '/profile/edit', label: 'Edit Profile', icon: Settings },
+    { href: '/pricing', label: 'Pricing', icon: Star },
+    { href: '/pricing-hormozi', label: 'Hormozi Pricing', icon: Rocket },
   ]
 
   const visionLinks = [
     { href: '/life-vision', label: 'Life Visions', icon: Eye },
-    { href: '/life-vision/new', label: 'New Life Vision', icon: Plus },
+    { href: '/life-vision/new', label: 'Create New Vision', icon: Plus },
     { href: '/life-vision/create-with-viva', label: 'Create with VIVA', icon: Zap },
-    { href: '/vision/build', label: 'Build Your Vision', icon: Eye },
-    { href: '/vision-board', label: 'Vision Board', icon: Star },
-    { href: '/vision-board/new', label: 'Add Creation', icon: Plus },
-    { href: '/vision-board/gallery', label: 'Vision Gallery', icon: Star },
-    { href: '/actualization-blueprints', label: 'Blueprints', icon: Rocket },
-  ]
-
-  const intensiveLinks = [
-    { href: '/intensive/dashboard', label: 'Activation Intensive', icon: Rocket },
+    { href: '/vision/build', label: 'Vision Builder', icon: Eye },
     { href: '/assessment', label: 'Vibration Assessment', icon: FileText },
-    { href: '/intensive/schedule-call', label: 'Schedule Call', icon: Calendar },
-    { href: '/intensive/call-prep', label: 'Call Prep', icon: FileText },
-    { href: '/intensive/refine-vision', label: 'Refine Vision', icon: Eye },
-    { href: '/intensive/activation-protocol', label: 'Activation Protocol', icon: Zap },
+    { href: '/vision-board', label: 'Vision Board', icon: Star },
+    { href: '/vision-board/new', label: 'New Vision Board', icon: Plus },
+    { href: '/vision-board/gallery', label: 'Vision Gallery', icon: Star },
   ]
 
-  const journalLinks = [
+  const toolsLinks = [
     { href: '/journal', label: 'Journal', icon: FileText },
-    { href: '/journal/new', label: 'New Entry', icon: Plus },
+    { href: '/journal/new', label: 'New Journal Entry', icon: Plus },
+    { href: '/actualization-blueprints', label: 'Blueprints', icon: Rocket },
+    { href: '/intensive/dashboard', label: 'Activation Intensive', icon: Rocket },
+  ]
+
+  const profileLinks = [
+    { href: '/profile', label: 'My Profile', icon: User },
+    { href: '/profile/edit', label: 'Edit Profile', icon: Settings },
+    { href: '/profile/new', label: 'Create Profile', icon: Plus },
+    { href: '/account/settings', label: 'Account Settings', icon: Settings },
   ]
 
   const dashboardLinks = [
     { href: '/dashboard/tokens', label: 'My Tokens', icon: Zap },
     { href: '/dashboard/add-tokens', label: 'Add Tokens', icon: Plus },
     { href: '/dashboard/storage', label: 'Storage', icon: FileText },
-    { href: '/dashboard/activity', label: 'Activity', icon: BarChart3 },
+    { href: '/dashboard/activity', label: 'Activity Feed', icon: BarChart3 },
     { href: '/dashboard/vibe-assistant-usage', label: 'Vibe Assistant', icon: MessageCircle },
   ]
 
+  const intensiveLinks = [
+    { href: '/intensive/intake', label: 'Intensive Intake', icon: FileText },
+    { href: '/intensive/calibration', label: 'Calibration', icon: CheckCircle },
+    { href: '/intensive/builder', label: 'Intensive Builder', icon: Rocket },
+    { href: '/intensive/schedule-call', label: 'Schedule Call', icon: Calendar },
+    { href: '/intensive/call-prep', label: 'Call Prep', icon: FileText },
+    { href: '/intensive/refine-vision', label: 'Refine Vision', icon: Eye },
+    { href: '/intensive/activation-protocol', label: 'Activation Protocol', icon: Zap },
+    { href: '/intensive/activate', label: 'Activation Process', icon: Rocket },
+  ]
+
   const billingLinks = [
-    { href: '/pricing', label: 'Pricing', icon: Star },
-    { href: '/pricing-hormozi', label: 'Hormozi Pricing', icon: Rocket },
-    { href: '/billing', label: 'Billing', icon: FileText },
+    { href: '/billing', label: 'Billing Dashboard', icon: FileText },
     { href: '/billing/success', label: 'Billing Success', icon: CheckCircle },
   ]
 
   const authLinks = [
     { href: '/auth/login', label: 'Login', icon: User },
     { href: '/auth/signup', label: 'Signup', icon: User },
-    { href: '/auth/verify', label: 'Verify', icon: CheckCircle },
+    { href: '/auth/verify', label: 'Verify Email', icon: CheckCircle },
     { href: '/auth/setup-password', label: 'Setup Password', icon: Settings },
   ]
 
   const adminLinks = [
-    { href: '/admin/users', label: 'Users', icon: Users },
-    { href: '/admin/ai-models', label: 'AI Models', icon: Zap },
-    { href: '/admin/token-usage', label: 'Token Usage', icon: BarChart3 },
+    { href: '/admin/users', label: 'User Management', icon: Users },
+    { href: '/admin/ai-models', label: 'AI Model Management', icon: Zap },
+    { href: '/admin/token-usage', label: 'Token Usage Analytics', icon: BarChart3 },
   ]
 
   const devLinks = [
     { href: '/design-system', label: 'Design System', icon: Palette },
+    { href: '/design-system-experiment', label: 'Design Experiment', icon: Palette },
     { href: '/test-recording', label: 'Test Recording', icon: HelpCircle },
     { href: '/debug/email', label: 'Debug Email', icon: MessageCircle },
-  ]
-
-  const futureLinks = [
-    { href: '/alignment', label: 'Alignment Plan', icon: Star },
-    { href: '/ai-assistant', label: 'AI Assistant', icon: MessageCircle },
-    { href: '/community', label: 'Community', icon: Users },
-    { href: '/settings', label: 'Settings', icon: Settings },
   ]
 
   const LinkGroup = ({ title, links, className: groupClassName = '' }: { 
@@ -154,13 +157,14 @@ export function Footer({ className = '' }: FooterProps) {
           <h3 className="text-lg font-semibold text-neutral-200 mb-6 text-center">Complete Sitemap</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
             <LinkGroup title="Core" links={coreLinks} />
-            <LinkGroup title="Vision & Creation" links={visionLinks} />
-            <LinkGroup title="Activation Intensive" links={intensiveLinks} />
-            <LinkGroup title="Journal" links={journalLinks} />
+            <LinkGroup title="Life Vision" links={visionLinks} />
+            <LinkGroup title="Tools & Creation" links={toolsLinks} />
+            <LinkGroup title="Profile Management" links={profileLinks} />
             <LinkGroup title="Dashboard Tools" links={dashboardLinks} />
+            <LinkGroup title="Activation Intensive" links={intensiveLinks} />
             <LinkGroup title="Billing & Pricing" links={billingLinks} />
             <LinkGroup title="Authentication" links={authLinks} />
-            <LinkGroup title="Admin" links={adminLinks} />
+            <LinkGroup title="Admin Panel" links={adminLinks} />
             <LinkGroup title="Development" links={devLinks} />
           </div>
         </div>

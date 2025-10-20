@@ -77,7 +77,6 @@ export function Header() {
   const directLinks = [
     { name: 'Dashboard', href: '/dashboard', icon: Layout },
     { name: 'Pricing', href: '/pricing', icon: Target },
-    { name: 'Profile', href: '/profile', icon: UserIcon },
   ]
 
   const navigationGroups = {
@@ -86,8 +85,10 @@ export function Header() {
       icon: Target,
       items: [
         { name: 'My Life Visions', href: '/life-vision' },
+        { name: 'Create New Vision', href: '/life-vision/new' },
         { name: 'Build with VIVA', href: '/vision/build' },
         { name: 'Take Assessment', href: '/assessment' },
+        { name: 'Vision Board', href: '/vision-board' },
       ]
     },
     tools: {
@@ -95,8 +96,17 @@ export function Header() {
       icon: Sparkles,
       items: [
         { name: 'Journal', href: '/journal' },
-        { name: 'Vision Board', href: '/vision-board' },
         { name: 'Blueprints', href: '/actualization-blueprints' },
+        { name: 'Intensive', href: '/intensive/dashboard' },
+      ]
+    },
+    profile: {
+      label: 'Profile',
+      icon: UserIcon,
+      items: [
+        { name: 'My Profile', href: '/profile' },
+        { name: 'Edit Profile', href: '/profile/edit' },
+        { name: 'Account Settings', href: '/account/settings' },
       ]
     }
   }
@@ -378,6 +388,23 @@ export function Header() {
                   Tools
                 </div>
                 {navigationGroups.tools.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="block px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-900 transition-colors font-medium"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+
+              {/* Profile Section */}
+              <div className="border-b border-neutral-800 pb-3 mb-3">
+                <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider px-4 mb-2">
+                  Profile
+                </div>
+                {navigationGroups.profile.items.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
