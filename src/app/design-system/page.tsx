@@ -64,7 +64,6 @@ const CategoryCard = ({ category, selected = false, onClick }: any) => {
       <Stack align="center" gap="xs" className="text-center px-2 py-1">
         <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} className="opacity-80" />
         <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
-        {selected && <Badge variant="primary" className="text-xs">Selected</Badge>}
       </Stack>
     </Card>
   )
