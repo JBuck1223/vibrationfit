@@ -61,9 +61,9 @@ const CategoryCard = ({ category, selected = false, onClick }: any) => {
       className={`cursor-pointer ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''}`}
       onClick={onClick}
     >
-      <Stack align="center" gap="xs" className="text-center px-4 py-2">
-        <Icon icon={IconComponent} size="md" color={selected ? '#39FF14' : '#00FFFF'} className="opacity-80" />
-        <h4 className="text-xs md:text-sm font-medium text-neutral-300">{category.label}</h4>
+      <Stack align="center" gap="xs" className="text-center px-2 py-1">
+        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} className="opacity-80" />
+        <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
         {selected && <Badge variant="primary" className="text-xs">Selected</Badge>}
       </Stack>
     </Card>
@@ -107,6 +107,7 @@ export default function DesignSystemExperiment() {
   const [isLoading, setIsLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [modalSize, setModalSize] = useState<'sm' | 'md' | 'lg' | 'xl' | 'full'>('md')
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
   const [billingPeriod, setBillingPeriod] = useState<'annual' | '28day'>('annual')
 
   const handleLoadingToggle = () => {
@@ -214,7 +215,198 @@ export default function DesignSystemExperiment() {
               </Stack>
             </Card>
           </section>
+{/* Color Reference */}
+<Card>
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={Palette} size="md" color="#39FF14" />
+                    Color Reference - VibrationFit Brand Palette
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Primary Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#39FF14]">Primary Colors</h4>
+                  <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#39FF14] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Primary Green</p>
+                              <p className="text-xs text-[#9CA3AF]">#39FF14</p>
+                  </div>
+                  </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#00FF88] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Electric Green</p>
+                              <p className="text-xs text-[#9CA3AF]">#00FF88</p>
+                  </div>
+                  </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#00CC44] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Forest Green</p>
+                              <p className="text-xs text-[#9CA3AF]">#00CC44</p>
+                  </div>
+                  </div>
+                </div>
+                      </Stack>
+              </Card>
 
+                    {/* Secondary Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#00FFFF]">Secondary Colors</h4>
+                  <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#00FFFF] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Neon Cyan</p>
+                              <p className="text-xs text-[#9CA3AF]">#00FFFF</p>
+                  </div>
+                  </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#06B6D4] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Bright Cyan</p>
+                              <p className="text-xs text-[#9CA3AF]">#06B6D4</p>
+                </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#0F766E] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Teal Dark</p>
+                              <p className="text-xs text-[#9CA3AF]">#0F766E</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Stack>
+              </Card>
+
+                    {/* Accent Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#BF00FF]">Accent Colors</h4>
+                  <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#BF00FF] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Neon Purple</p>
+                              <p className="text-xs text-[#9CA3AF]">#BF00FF</p>
+                  </div>
+                  </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#A855F7] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Bright Purple</p>
+                              <p className="text-xs text-[#9CA3AF]">#A855F7</p>
+                  </div>
+                  </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#601B9F] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Primary Purple</p>
+                              <p className="text-xs text-[#9CA3AF]">#601B9F</p>
+                </div>
+                          </div>
+                        </div>
+                      </Stack>
+              </Card>
+
+                    {/* Energy Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#FFFF00]">Energy Colors</h4>
+                  <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#FFFF00] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Neon Yellow</p>
+                              <p className="text-xs text-[#9CA3AF]">#FFFF00</p>
+                  </div>
+                  </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#FF6600] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Neon Orange</p>
+                              <p className="text-xs text-[#9CA3AF]">#FF6600</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#FF0080] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Neon Pink</p>
+                              <p className="text-xs text-[#9CA3AF]">#FF0080</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+
+                    {/* Warning Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#FF3366]">Warning Colors</h4>
+                  <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#FF3366] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Electric Red</p>
+                              <p className="text-xs text-[#9CA3AF]">#FF3366</p>
+                  </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#FF0040] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Vibrant Red</p>
+                              <p className="text-xs text-[#9CA3AF]">#FF0040</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#D03739] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Contrast Red</p>
+                              <p className="text-xs text-[#9CA3AF]">#D03739</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+
+                    {/* Neutral Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#9CA3AF]">Neutral Colors</h4>
+                  <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#000000] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Pure Black</p>
+                              <p className="text-xs text-[#9CA3AF]">#000000</p>
+                  </div>
+                </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#1F1F1F] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Dark Gray</p>
+                              <p className="text-xs text-[#9CA3AF]">#1F1F1F</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#404040] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Medium Gray</p>
+                              <p className="text-xs text-[#9CA3AF]">#404040</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Stack>
+              </Card>
+            </div>
+                </Stack>
+              </Card>
+              
           {/* Layout Primitives */}
           <section id="layout-primitives">
             <Stack gap="lg">
@@ -631,197 +823,7 @@ export default function DesignSystemExperiment() {
                 </Stack>
               </Card>
 
-              {/* Color Reference */}
-              <Card>
-                <Stack gap="md">
-                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
-                    <Icon icon={Palette} size="md" color="#39FF14" />
-                    Color Reference - VibrationFit Brand Palette
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Primary Colors */}
-                    <Card variant="default" className="p-4">
-                      <Stack gap="sm">
-                        <h4 className="text-lg font-semibold mb-2 text-[#39FF14]">Primary Colors</h4>
-                  <div className="space-y-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#39FF14] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Primary Green</p>
-                              <p className="text-xs text-[#9CA3AF]">#39FF14</p>
-                  </div>
-                  </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#00FF88] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Electric Green</p>
-                              <p className="text-xs text-[#9CA3AF]">#00FF88</p>
-                  </div>
-                  </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#00CC44] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Forest Green</p>
-                              <p className="text-xs text-[#9CA3AF]">#00CC44</p>
-                  </div>
-                  </div>
-                </div>
-                      </Stack>
-              </Card>
-
-                    {/* Secondary Colors */}
-                    <Card variant="default" className="p-4">
-                      <Stack gap="sm">
-                        <h4 className="text-lg font-semibold mb-2 text-[#00FFFF]">Secondary Colors</h4>
-                  <div className="space-y-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#00FFFF] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Neon Cyan</p>
-                              <p className="text-xs text-[#9CA3AF]">#00FFFF</p>
-                  </div>
-                  </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#06B6D4] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Bright Cyan</p>
-                              <p className="text-xs text-[#9CA3AF]">#06B6D4</p>
-                </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#0F766E] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Teal Dark</p>
-                              <p className="text-xs text-[#9CA3AF]">#0F766E</p>
-                            </div>
-                          </div>
-                        </div>
-                      </Stack>
-              </Card>
-
-                    {/* Accent Colors */}
-                    <Card variant="default" className="p-4">
-                      <Stack gap="sm">
-                        <h4 className="text-lg font-semibold mb-2 text-[#BF00FF]">Accent Colors</h4>
-                  <div className="space-y-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#BF00FF] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Neon Purple</p>
-                              <p className="text-xs text-[#9CA3AF]">#BF00FF</p>
-                  </div>
-                  </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#A855F7] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Bright Purple</p>
-                              <p className="text-xs text-[#9CA3AF]">#A855F7</p>
-                  </div>
-                  </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#601B9F] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Primary Purple</p>
-                              <p className="text-xs text-[#9CA3AF]">#601B9F</p>
-                </div>
-                          </div>
-                        </div>
-                      </Stack>
-              </Card>
-
-                    {/* Energy Colors */}
-                    <Card variant="default" className="p-4">
-                      <Stack gap="sm">
-                        <h4 className="text-lg font-semibold mb-2 text-[#FFFF00]">Energy Colors</h4>
-                  <div className="space-y-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#FFFF00] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Neon Yellow</p>
-                              <p className="text-xs text-[#9CA3AF]">#FFFF00</p>
-                  </div>
-                  </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#FF6600] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Neon Orange</p>
-                              <p className="text-xs text-[#9CA3AF]">#FF6600</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#FF0080] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Neon Pink</p>
-                              <p className="text-xs text-[#9CA3AF]">#FF0080</p>
-                            </div>
-                          </div>
-                        </div>
-                      </Stack>
-                    </Card>
-
-                    {/* Warning Colors */}
-                    <Card variant="default" className="p-4">
-                      <Stack gap="sm">
-                        <h4 className="text-lg font-semibold mb-2 text-[#FF3366]">Warning Colors</h4>
-                  <div className="space-y-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#FF3366] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Electric Red</p>
-                              <p className="text-xs text-[#9CA3AF]">#FF3366</p>
-                  </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#FF0040] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Vibrant Red</p>
-                              <p className="text-xs text-[#9CA3AF]">#FF0040</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#D03739] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Contrast Red</p>
-                              <p className="text-xs text-[#9CA3AF]">#D03739</p>
-                            </div>
-                          </div>
-                        </div>
-                      </Stack>
-                    </Card>
-
-                    {/* Neutral Colors */}
-                    <Card variant="default" className="p-4">
-                      <Stack gap="sm">
-                        <h4 className="text-lg font-semibold mb-2 text-[#9CA3AF]">Neutral Colors</h4>
-                  <div className="space-y-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#000000] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Pure Black</p>
-                              <p className="text-xs text-[#9CA3AF]">#000000</p>
-                  </div>
-                </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#1F1F1F] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Dark Gray</p>
-                              <p className="text-xs text-[#9CA3AF]">#1F1F1F</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#404040] border-2 border-white"></div>
-                            <div>
-                              <p className="text-sm font-medium text-white">Medium Gray</p>
-                              <p className="text-xs text-[#9CA3AF]">#404040</p>
-                            </div>
-                          </div>
-                        </div>
-                      </Stack>
-              </Card>
-            </div>
-                </Stack>
-              </Card>
+              
 
               {/* Media Components */}
               <Card id="video">
@@ -892,6 +894,24 @@ export default function DesignSystemExperiment() {
                               Large
                             </Button>
                           </div>
+                        </Stack>
+                      </Stack>
+                </Card>
+
+                    {/* Video Modal Component */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-medium mb-2 text-white">Video Modal</h4>
+                        <p className="text-sm text-[#9CA3AF] mb-4">Modal with embedded video player</p>
+                        
+                        <Stack gap="sm">
+                          <Button 
+                            variant="primary" 
+                            onClick={() => setVideoModalOpen(true)}
+                          >
+                            <Icon icon={Play} size="sm" className="mr-2" />
+                            Open Video Modal
+                          </Button>
                         </Stack>
                       </Stack>
                 </Card>
@@ -1384,9 +1404,9 @@ export default function DesignSystemExperiment() {
             <Stack gap="lg">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">All Life Categories</h2>
-                <p className="text-[#9CA3AF] text-sm md:text-base">Responsive grid - click to select (7 across on desktop, 2 across on mobile)</p>
+                <p className="text-[#9CA3AF] text-sm md:text-base">Responsive grid - click to select (14 across on desktop, 2 across on mobile)</p>
             </div>
-              <div className="grid grid-cols-2 md:grid-cols-7 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-14 gap-2 md:gap-3">
                 {VISION_CATEGORIES.map((category) => (
                   <CategoryCard 
                     key={category.key} 
@@ -1647,6 +1667,31 @@ export default function DesignSystemExperiment() {
               Close Modal
             </Button>
       </div>
+        </Stack>
+      </Modal>
+
+      {/* Video Modal Example */}
+      <Modal
+        isOpen={videoModalOpen}
+        onClose={() => setVideoModalOpen(false)}
+        size="xl"
+        title="Video Player"
+      >
+        <Stack gap="md">
+          <div className="aspect-video bg-black rounded-lg overflow-hidden">
+            <Video
+              src="https://media.vibrationfit.com/site-assets/videos/intro-video/1080p.mp4"
+              poster="https://media.vibrationfit.com/site-assets/videos/intro-video/poster.jpg"
+              className="w-full h-full"
+            />
+          </div>
+          
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-white mb-2">VibrationFit Introduction</h3>
+            <p className="text-sm text-neutral-400">
+              Discover how conscious creation can transform your life in just 72 hours.
+            </p>
+          </div>
         </Stack>
       </Modal>
 
