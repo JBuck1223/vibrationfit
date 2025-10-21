@@ -1741,11 +1741,7 @@ export default function DesignSystemExperiment() {
               {/* Show unselected cards */}
               {billingPeriod !== 'annual' && (
                 <Card 
-                  className={`p-10 transition-all relative cursor-pointer md:order-1 order-2 ${
-                    billingPeriod === 'annual'
-                      ? 'border-2 border-[#39FF14] bg-gradient-to-br from-primary-500/5 to-secondary-500/5 scale-105 ring-2 ring-[#39FF14]'
-                      : 'border border-neutral-700 opacity-60 hover:opacity-80'
-                  }`}
+                  className="p-10 transition-all relative cursor-pointer md:order-1 order-2 border border-neutral-700 opacity-60 hover:opacity-80"
                   onClick={() => setBillingPeriod('annual')}
                 >
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -1801,11 +1797,7 @@ export default function DesignSystemExperiment() {
 
               {billingPeriod !== '28day' && (
                 <Card 
-                  className={`p-10 transition-all cursor-pointer md:order-2 order-2 ${
-                    billingPeriod === '28day'
-                      ? 'border-2 border-[#00FFFF] bg-gradient-to-br from-[#00FFFF]/10 to-[#00FFFF]/5 scale-105 ring-2 ring-[#00FFFF]'
-                      : 'border border-neutral-700 opacity-60 hover:opacity-80'
-                  }`}
+                  className="p-10 transition-all cursor-pointer md:order-2 order-2 border border-neutral-700 opacity-60 hover:opacity-80"
                   onClick={() => setBillingPeriod('28day')}
                 >
                   <div className="text-center mb-8">
