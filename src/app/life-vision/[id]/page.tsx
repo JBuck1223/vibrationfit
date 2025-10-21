@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles, Trash2, Download, VolumeX, Gem } from 'lucide-react'
 import { 
   Button, 
-  GradientButton,
   Card, 
   ProgressBar, 
   Badge, 

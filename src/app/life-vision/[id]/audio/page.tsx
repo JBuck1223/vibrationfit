@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, PageLayout, GradientButton, Spinner, Badge } from '@/lib/design-system/components'
+import { Button, Card, Container, PageLayout, Spinner, Badge } from '@/lib/design-system/components'
 import { getVisionCategoryKeys, getVisionCategoryLabel } from '@/lib/design-system'
 import { AudioPlayer } from '@/components/AudioPlayer'
 import { createClient } from '@/lib/supabase/client'
@@ -238,9 +238,9 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
             >
               {isPreviewing ? 'Playing...' : 'Preview Voice'}
             </Button>
-            <GradientButton gradient="brand" onClick={handleGenerate} disabled={generating}>
+            <Button variant="primary" onClick={handleGenerate} disabled={generating}>
               {generating ? 'Generating…' : 'Generate Audio'}
-            </GradientButton>
+            </Button>
           </div>
         </div>
 

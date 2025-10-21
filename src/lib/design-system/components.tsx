@@ -419,13 +419,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     
     const sizes = {
       sm: 'px-3 py-2 text-xs md:text-sm md:px-5',
-      md: 'px-3 py-2.5 text-sm md:text-base md:px-7 md:py-3',
-      lg: 'px-4 py-3 text-base md:text-lg md:px-10 md:py-4',
-      xl: 'px-5 py-3.5 text-lg md:text-xl md:px-12 md:py-5',
+      md: 'px-3 py-2.5 text-xs md:text-sm md:px-7 md:py-3',
+      lg: 'px-4 py-3 text-sm md:text-base md:px-10 md:py-4',
+      xl: 'px-5 py-3.5 text-base md:text-lg md:px-12 md:py-5',
     }
     
     const buttonClasses = cn(
-      'rounded-full transition-all duration-300 transform disabled:opacity-50 disabled:cursor-not-allowed',
+      'rounded-full transition-all duration-300 transform disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap',
       variants[variant],
       sizes[size],
       fullWidth ? 'w-full' : '',
@@ -545,7 +545,7 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
       <span 
         ref={ref}
         className={cn(
-          'inline-flex items-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border',
+          'inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border',
           variants[variant],
           className
         )}
@@ -826,70 +826,28 @@ export const ProgressBar = React.forwardRef<HTMLDivElement, ProgressBarProps>(
 
 ProgressBar.displayName = 'ProgressBar'
 
-// GradientButton - Special gradient button for hero sections
-interface GradientButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  gradient?: 'brand' | 'green' | 'teal' | 'purple' | 'cosmic'
-  size?: 'sm' | 'md' | 'lg' | 'xl'
-  children: React.ReactNode
-  className?: string
-}
+// Removed GradientButton - colors are already poppy enough
 
-export const GradientButton = React.forwardRef<HTMLButtonElement, GradientButtonProps>(
-  ({ gradient = 'brand', size = 'md', children, className = '', ...props }, ref) => {
-    const gradients = {
-      brand: 'bg-gradient-to-r from-[#39FF14] to-[#00FFFF] hover:from-[#2ECC71] hover:to-[#1ABC9C]',
-      green: 'bg-gradient-to-r from-[#39FF14] to-[#2ECC71] hover:from-[#2ECC71] hover:to-[#27AE60]',
-      teal: 'bg-gradient-to-r from-[#00FFFF] to-[#1ABC9C] hover:from-[#1ABC9C] hover:to-[#16A085]',
-      purple: 'bg-gradient-to-r from-[#BF00FF] to-[#8B5CF6] hover:from-[#8B5CF6] hover:to-[#7C3AED]',
-      cosmic: 'bg-gradient-to-r from-[#BF00FF] via-[#00FFFF] to-[#39FF14] hover:from-[#8B5CF6] hover:via-[#1ABC9C] hover:to-[#2ECC71]'
-    }
-    
-    const sizes = {
-      sm: 'px-4 py-2 text-sm',
-      md: 'px-6 py-3 text-base',
-      lg: 'px-8 py-4 text-lg',
-      xl: 'px-12 py-6 text-xl'
-    }
-    
-    return (
-      <button
-        ref={ref}
-        className={cn(
-          'inline-flex items-center justify-center font-semibold text-black rounded-full transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed',
-          gradients[gradient],
-          sizes[size],
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </button>
-    )
-  }
-)
-
-GradientButton.displayName = 'GradientButton'
-
-// AIButton - Special button for AI features
-interface AIButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+// VIVAButton - Special button for VIVA features
+interface VIVAButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg' | 'xl'
   children: React.ReactNode
   className?: string
   asChild?: boolean
 }
 
-export const AIButton = React.forwardRef<HTMLButtonElement, AIButtonProps>(
+export const VIVAButton = React.forwardRef<HTMLButtonElement, VIVAButtonProps>(
   ({ size = 'md', children, asChild = false, className = '', ...props }, ref) => {
     const sizes = {
-      sm: 'px-4 py-2 text-sm',
-      md: 'px-6 py-3 text-base',
-      lg: 'px-8 py-4 text-lg',
-      xl: 'px-12 py-6 text-xl'
+      sm: 'px-4 py-2 text-xs md:text-sm',
+      md: 'px-6 py-3 text-sm md:text-base',
+      lg: 'px-8 py-4 text-base md:text-lg',
+      xl: 'px-12 py-6 text-lg md:text-xl'
     }
     
     const buttonClasses = cn(
-      'inline-flex items-center justify-center font-semibold text-white rounded-full transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed',
-      'bg-gradient-to-r from-[#BF00FF] to-[#8B5CF6] hover:from-[#8B5CF6] hover:to-[#7C3AED] border border-[#BF00FF]/30 hover:border-[#8B5CF6]/50',
+      'inline-flex items-center justify-center font-semibold rounded-full transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap',
+      'bg-[#BF00FF] text-white hover:bg-[rgba(191,0,255,0.1)] hover:text-[#BF00FF] hover:border hover:border-[rgba(191,0,255,0.2)] shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:shadow-none active:translate-y-0 active:shadow-none',
       sizes[size],
       className
     )
@@ -907,11 +865,362 @@ export const AIButton = React.forwardRef<HTMLButtonElement, AIButtonProps>(
         className={buttonClasses}
         {...props}
       >
-        <Icon icon={Sparkles} size="sm" color="currentColor" className="mr-2" />
         {children}
       </button>
     )
   }
 )
 
-AIButton.displayName = 'AIButton'
+VIVAButton.displayName = 'VIVAButton'
+
+// ============================================================================
+// 6. MEDIA COMPONENTS
+// ============================================================================
+
+// Video - Lightning-fast S3 video player with VibrationFit styling and engagement tracking
+interface VideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
+  src: string
+  poster?: string
+  variant?: 'default' | 'hero' | 'card'
+  autoplay?: boolean
+  muted?: boolean
+  loop?: boolean
+  controls?: boolean
+  className?: string
+  // Performance optimization
+  preload?: 'none' | 'metadata' | 'auto'
+  quality?: 'auto' | 'high' | 'medium' | 'low'
+  // Engagement tracking props
+  onMilestoneReached?: (milestone: 25 | 50 | 75 | 95, currentTime: number) => void
+  onLeadCapture?: (data: { name: string; email: string }) => void
+  showLeadCaptureAt?: 25 | 50 | 75 | 95
+  trackingId?: string
+  saveProgress?: boolean
+  // Analytics
+  onPlay?: () => void
+  onPause?: () => void
+  onComplete?: () => void
+}
+
+export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
+  ({ 
+    src, 
+    poster, 
+    variant = 'default', 
+    autoplay = false, 
+    muted = false, 
+    loop = false, 
+    controls = true,
+    className = '',
+    preload = 'metadata',
+    quality = 'auto',
+    onMilestoneReached,
+    onLeadCapture,
+    showLeadCaptureAt,
+    trackingId,
+    saveProgress = true,
+    onPlay,
+    onPause,
+    onComplete,
+    ...props 
+  }, ref) => {
+    const videoRef = React.useRef<HTMLVideoElement>(null)
+    const [currentTime, setCurrentTime] = React.useState(0)
+    const [duration, setDuration] = React.useState(0)
+    const [isPlaying, setIsPlaying] = React.useState(false)
+    const [milestonesReached, setMilestonesReached] = React.useState<Set<number>>(new Set())
+    const [showLeadForm, setShowLeadForm] = React.useState(false)
+    const [leadFormData, setLeadFormData] = React.useState({ name: '', email: '' })
+
+    const variants = {
+      default: 'rounded-xl border-2 border-[#404040]',
+      hero: 'rounded-3xl border-2 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.3)]',
+      card: 'rounded-2xl border border-[#404040]'
+    }
+
+    // Combine refs
+    React.useImperativeHandle(ref, () => videoRef.current!)
+
+    // Load saved progress
+    React.useEffect(() => {
+      if (saveProgress && trackingId) {
+        const savedTime = localStorage.getItem(`video-progress-${trackingId}`)
+        if (savedTime && videoRef.current) {
+          videoRef.current.currentTime = parseFloat(savedTime)
+        }
+      }
+    }, [trackingId, saveProgress])
+
+    // Track progress and milestones
+    const handleTimeUpdate = () => {
+      if (!videoRef.current) return
+      
+      const time = videoRef.current.currentTime
+      const total = videoRef.current.duration
+      
+      setCurrentTime(time)
+      setDuration(total)
+
+      // Save progress to localStorage
+      if (saveProgress && trackingId) {
+        localStorage.setItem(`video-progress-${trackingId}`, time.toString())
+      }
+
+      // Check milestones
+      if (total > 0) {
+        const percentage = (time / total) * 100
+        const milestones = [25, 50, 75, 95]
+        
+        milestones.forEach(milestone => {
+          if (percentage >= milestone && !milestonesReached.has(milestone)) {
+            setMilestonesReached(prev => new Set([...prev, milestone]))
+            onMilestoneReached?.(milestone as 25 | 50 | 75 | 95, time)
+            
+            // Show lead capture form if specified
+            if (showLeadCaptureAt === milestone) {
+              setShowLeadForm(true)
+            }
+          }
+        })
+      }
+    }
+
+    const handleLoadedMetadata = () => {
+      if (videoRef.current) {
+        setDuration(videoRef.current.duration)
+      }
+    }
+
+    const handlePlay = () => {
+      setIsPlaying(true)
+      onPlay?.()
+    }
+
+    const handlePause = () => {
+      setIsPlaying(false)
+      onPause?.()
+    }
+
+    const handleEnded = () => {
+      onComplete?.()
+    }
+
+    // Use the provided src directly - quality selection handled by the URL
+    const getOptimizedSrc = () => {
+      return src
+    }
+
+    const handleLeadSubmit = (e: React.FormEvent) => {
+      e.preventDefault()
+      onLeadCapture?.(leadFormData)
+      setShowLeadForm(false)
+      setLeadFormData({ name: '', email: '' })
+    }
+
+    const handlePlayButtonClick = () => {
+      if (videoRef.current) {
+        videoRef.current.play()
+      }
+    }
+
+
+    return (
+      <div className={cn('relative overflow-hidden', variants[variant], className)}>
+        <video
+          ref={videoRef}
+          src={getOptimizedSrc()}
+          poster={poster}
+          autoPlay={autoplay}
+          muted={muted}
+          loop={loop}
+          controls={controls}
+          preload={preload}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onEnded={handleEnded}
+          className="w-full h-auto"
+          style={{
+            aspectRatio: '16/9'
+          }}
+          {...props}
+        />
+        
+        {!controls && !isPlaying && (
+          <div 
+            className="absolute inset-0 flex items-center justify-center bg-black/20 cursor-pointer"
+            onClick={handlePlayButtonClick}
+          >
+            <div className="w-20 h-14 bg-[#D03739] rounded-lg flex items-center justify-center shadow-lg border border-white/20">
+              <div className="w-0 h-0 border-l-[16px] border-l-white border-y-[10px] border-y-transparent ml-1"></div>
+            </div>
+          </div>
+        )}
+
+        {/* Lead Capture Form Overlay */}
+        {showLeadForm && (
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-[#1F1F1F] border-2 border-[#39FF14] rounded-2xl p-6 max-w-md w-full">
+              <h3 className="text-xl font-semibold text-white mb-4">
+                Get More VibrationFit Content
+              </h3>
+              <form onSubmit={handleLeadSubmit} className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Your Name"
+                  value={leadFormData.name}
+                  onChange={(e) => setLeadFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#404040] border-2 border-[#39FF14] rounded-xl text-white placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#39FF14]"
+                  required
+                />
+                <input
+                  type="email"
+                  placeholder="Your Email"
+                  value={leadFormData.email}
+                  onChange={(e) => setLeadFormData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#404040] border-2 border-[#39FF14] rounded-xl text-white placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#39FF14]"
+                  required
+                />
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#39FF14] text-black font-semibold py-3 px-6 rounded-xl hover:bg-[#00FF88] transition-colors"
+                  >
+                    Continue Watching
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowLeadForm(false)}
+                    className="px-4 py-3 bg-[#404040] text-white rounded-xl hover:bg-[#666666] transition-colors"
+                  >
+                    Skip
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Progress Indicator - Only show when controls are disabled */}
+        {!controls && duration > 0 && (
+          <div className="absolute bottom-2 left-2 right-2 bg-black/50 rounded-full h-1">
+            <div 
+              className="bg-[#39FF14] h-full rounded-full transition-all duration-300"
+              style={{ width: `${(currentTime / duration) * 100}%` }}
+            />
+          </div>
+        )}
+      </div>
+    )
+  }
+)
+Video.displayName = 'Video'
+
+// ============================================================================
+// 7. OVERLAY COMPONENTS
+// ============================================================================
+
+// Modal - Accessible modal with overlay and animations
+interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
+  isOpen: boolean
+  onClose: () => void
+  title?: string
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
+  variant?: 'default' | 'hero' | 'card'
+  children: React.ReactNode
+}
+
+export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
+  ({ 
+    isOpen, 
+    onClose, 
+    title, 
+    size = 'md', 
+    variant = 'default',
+    children, 
+    className = '',
+    ...props 
+  }, ref) => {
+    const sizes = {
+      sm: 'max-w-md',
+      md: 'max-w-2xl',
+      lg: 'max-w-4xl',
+      xl: 'max-w-6xl',
+      full: 'max-w-full mx-4'
+    }
+    
+    const variants = {
+      default: 'bg-[#1F1F1F] border-2 border-[#404040]',
+      hero: 'bg-gradient-to-br from-[#1F1F1F] to-[#000000] border-2 border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.4)]',
+      card: 'bg-[#1F1F1F] border border-[#404040]'
+    }
+    
+    React.useEffect(() => {
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose()
+      }
+      
+      if (isOpen) {
+        document.addEventListener('keydown', handleEscape)
+        document.body.style.overflow = 'hidden'
+      }
+      
+      return () => {
+        document.removeEventListener('keydown', handleEscape)
+        document.body.style.overflow = 'unset'
+      }
+    }, [isOpen, onClose])
+    
+    if (!isOpen) return null
+    
+    return (
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? 'modal-title' : undefined}
+      >
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        
+        {/* Modal Content */}
+        <div 
+          ref={ref}
+          className={cn(
+            'relative w-full rounded-2xl shadow-2xl transform transition-all duration-300',
+            sizes[size],
+            variants[variant],
+            className
+          )}
+          {...props}
+        >
+          {/* Header */}
+          {title && (
+            <div className="flex items-center justify-between p-6 border-b border-[#404040]">
+              <h2 id="modal-title" className="text-xl font-semibold text-white">
+                {title}
+              </h2>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#404040] hover:bg-[#FF3366] transition-colors"
+                aria-label="Close modal"
+              >
+                <span className="text-white text-lg">×</span>
+              </button>
+            </div>
+          )}
+          
+          {/* Content */}
+          <div className={cn('p-6', !title && 'pt-6')}>
+            {children}
+          </div>
+        </div>
+      </div>
+    )
+  }
+)
+Modal.displayName = 'Modal'

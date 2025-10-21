@@ -4,7 +4,7 @@ import {
   Container, 
   Card, 
   Button, 
-  AIButton,
+  VIVAButton,
   Badge,
   ProgressBar,
   Spinner,
@@ -142,7 +142,7 @@ export default function DesignSystemPage() {
                 <h3 className="text-2xl font-semibold text-white mb-6">Special Buttons</h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <AIButton className="w-full">Ask AI Assistant</AIButton>
+                    <VIVAButton className="w-full">Ask VIVA Assistant</VIVAButton>
                     <p className="text-sm text-[#9CA3AF]">AI features with mystical glow</p>
                   </div>
                   <div className="space-y-2">

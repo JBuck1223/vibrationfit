@@ -7,7 +7,6 @@ import { Save, CheckCircle, Circle, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { 
   Button, 
-  GradientButton, 
   Card, 
   ProgressBar, 
   Badge, 
@@ -544,23 +543,23 @@ export default function NewLifeVisionPage() {
             </Button>
 
             {activeSection < sections.length - 1 ? (
-              <GradientButton
-                gradient="brand"
+              <Button
+                variant="primary"
                 onClick={handleNext}
                 className="px-8 py-4"
               >
                 Next Section →
-              </GradientButton>
+              </Button>
             ) : (
-              <GradientButton
-                gradient="purple"
+              <Button
+                variant="accent"
                 onClick={handleSubmit}
                 disabled={loading}
                 className="px-12 py-4 flex items-center gap-3"
               >
                 <CheckCircle size={24} />
                 Complete Vision
-              </GradientButton>
+              </Button>
             )}
           </div>
 
@@ -591,8 +590,8 @@ export default function NewLifeVisionPage() {
 
       {/* Mobile Sidebar Toggle */}
       <div className="lg:hidden fixed bottom-6 right-6 z-50">
-        <GradientButton
-          gradient="brand"
+        <Button
+          variant="primary"
           onClick={() => {
             // Simple mobile navigation - could be enhanced with a modal
             const nextSection = activeSection < sections.length - 1 ? activeSection + 1 : 0
@@ -602,7 +601,7 @@ export default function NewLifeVisionPage() {
           className="w-16 h-16 rounded-full text-xl font-bold"
         >
           {activeSection < sections.length - 1 ? '→' : '✓'}
-        </GradientButton>
+        </Button>
       </div>
     </div>
     </PageLayout>

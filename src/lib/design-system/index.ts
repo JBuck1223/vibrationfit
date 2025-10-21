@@ -22,8 +22,7 @@ export {
   // UI Components
   Card,
   Button,
-  GradientButton,
-  AIButton,
+  VIVAButton,
   Icon,
   Select,
   Badge,
@@ -34,7 +33,16 @@ export {
   // Feedback Components
   Spinner,
   ProgressBar,
+  
+  // Media Components
+  Video,
+  
+  // Overlay Components
+  Modal,
 } from './components'
+
+// Legacy alias for backward compatibility
+export { VIVAButton as AIButton } from './components'
 
 // Re-export design tokens
 export {

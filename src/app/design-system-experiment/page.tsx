@@ -25,8 +25,7 @@ import {
   Container,
   Card,
   Button,
-  GradientButton,
-  AIButton,
+  VIVAButton,
   Icon,
   Select,
   Badge,
@@ -35,6 +34,8 @@ import {
   PageLayout,
   Spinner,
   ProgressBar,
+  Video,
+  Modal,
 } from '@/lib/design-system/components'
 
 // Vision Categories
@@ -82,23 +83,31 @@ const CategoryCard = ({ category, selected = false, onClick }: any) => {
   )
 }
 
-const StatCard = ({ icon, label, value, trend, variant = 'primary' }: any) => {
-  const colorMap: any = { primary: '#39FF14', secondary: '#00FFFF', accent: '#BF00FF' }
-  return (
-    <Card variant="glass">
-      <Stack gap="sm">
-        <Inline justify="between" align="center">
-          <Icon icon={icon} size="md" color={colorMap[variant]} />
-          {trend && <Badge variant={trend > 0 ? 'primary' : 'error'}>{trend > 0 ? '+' : ''}{trend}%</Badge>}
-        </Inline>
-        <div>
-          <p className="text-xs md:text-sm text-[#9CA3AF]">{label}</p>
-          <p className="text-2xl md:text-3xl font-bold text-white mt-1">{value}</p>
-        </div>
-      </Stack>
-    </Card>
-  )
-}
+        const StatCard = ({ icon, label, value, variant = 'primary' }: any) => {
+          const badgeStyles: any = {
+            primary: 'bg-[#39FF14]/20 border-[#39FF14] text-[#39FF14]',
+            secondary: 'bg-[#00FFFF]/20 border-[#00FFFF] text-[#00FFFF]',
+            accent: 'bg-[#BF00FF]/20 border-[#BF00FF] text-[#BF00FF]',
+            success: 'bg-[#39FF14]/20 border-[#39FF14] text-[#39FF14]',
+            warning: 'bg-[#FFFF00]/20 border-[#FFFF00] text-[#FFFF00]',
+            danger: 'bg-[#FF0040]/20 border-[#FF0040] text-[#FF0040]',
+            error: 'bg-[#FF0040]/20 border-[#FF0040] text-[#FF0040]',
+            info: 'bg-[#00FFFF]/20 border-[#00FFFF] text-[#00FFFF]',
+            premium: 'bg-[#BF00FF]/20 border-[#BF00FF] text-[#BF00FF]',
+            neutral: 'bg-[#9CA3AF]/20 border-[#9CA3AF] text-[#9CA3AF]'
+          }
+          return (
+            <Card variant="glass" className="group hover:scale-105 transition-transform duration-300">
+              <div className="p-6 md:p-8 text-center">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 border ${badgeStyles[variant]}`}>
+                  <Icon icon={icon} size="sm" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">{value}</h3>
+                <p className="text-neutral-400">{label}</p>
+              </div>
+            </Card>
+          )
+        }
 
 // Main Component
 export default function DesignSystemExperiment() {
@@ -109,6 +118,8 @@ export default function DesignSystemExperiment() {
   const [selectValue, setSelectValue] = useState('')
   const [progressValue, setProgressValue] = useState(75)
   const [isLoading, setIsLoading] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalSize, setModalSize] = useState<'sm' | 'md' | 'lg' | 'xl' | 'full'>('md')
 
   const handleLoadingToggle = () => {
     setIsLoading(true)
@@ -120,12 +131,7 @@ export default function DesignSystemExperiment() {
       {/* Header */}
       <div className="sticky top-0 z-50 bg-[#1F1F1F] border-b-2 border-[#333]">
         <Container>
-          <Inline justify="between" align="center" className="py-4">
-            <h1 className="text-xl md:text-2xl font-bold text-[#39FF14]">VibrationFit Component System</h1>
-            <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </Inline>
+          <div className="py-4"></div>
         </Container>
       </div>
 
@@ -135,7 +141,7 @@ export default function DesignSystemExperiment() {
           {/* Hero */}
           <section>
             <Cover minHeight="300px" className="bg-gradient-to-br from-[#39FF14]/20 via-[#00FFFF]/10 to-[#BF00FF]/20 rounded-3xl border-2 border-[#333]">
-              <Stack align="center" gap="md" className="text-center max-w-3xl">
+              <Stack align="center" gap="md" className="text-center max-w-4xl">
                 <h2 className="text-3xl md:text-5xl font-bold text-white">Mobile-First Component System</h2>
                 <p className="text-lg md:text-xl text-[#cbd5e1]">Complete design system with layout primitives, UI components, and feedback elements that work predictably across all screen sizes</p>
                 <Inline gap="sm" className="mt-4">
@@ -151,19 +157,17 @@ export default function DesignSystemExperiment() {
             <Stack gap="lg">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">Layout Primitives</h2>
-                <p className="text-[#9CA3AF] text-sm md:text-base">The 9 core containers that solve 95% of layout needs</p>
+                <p className="text-[#9CA3AF] text-sm md:text-base">The 7 core containers that solve 95% of layout needs</p>
               </div>
               <Grid minWidth="200px" gap="md">
                 {[
                   { name: 'Stack', desc: 'Vertical rhythm with consistent gaps', color: '#39FF14' },
-                  { name: 'Inline', desc: 'Horizontal row that wraps gracefully', color: '#00FFFF' },
+                  { name: 'Inline', desc: 'Horizontal row that stacks on mobile', color: '#00FFFF' },
                   { name: 'Grid', desc: 'Auto-wrapping responsive grid', color: '#BF00FF' },
-                  { name: 'TwoColumn', desc: 'Two columns that stack on mobile', color: '#39FF14' },
-                  { name: 'FourColumn', desc: 'Four columns (2x2 mobile, 4x1 desktop)', color: '#00FFFF' },
-                  { name: 'Switcher', desc: 'Toggles row/column at breakpoint', color: '#BF00FF' },
-                  { name: 'Cover', desc: 'Centered hero with min-height', color: '#39FF14' },
-                  { name: 'Frame', desc: 'Aspect ratio media wrapper', color: '#00FFFF' },
-                  { name: 'Container', desc: 'Page width with responsive gutters', color: '#BF00FF' },
+                  { name: 'Switcher', desc: 'Toggles row/column at breakpoint', color: '#39FF14' },
+                  { name: 'Cover', desc: 'Centered hero with min-height', color: '#00FFFF' },
+                  { name: 'Frame', desc: 'Aspect ratio media wrapper', color: '#BF00FF' },
+                  { name: 'Container', desc: 'Page width with responsive gutters', color: '#39FF14' },
                 ].map(({ name, desc, color }) => (
                   <Card key={name} hover>
                     <h3 className="text-lg md:text-xl font-bold mb-2" style={{ color }}>{name}</h3>
@@ -222,12 +226,12 @@ export default function DesignSystemExperiment() {
                     Grid - Responsive Grid
                   </h3>
                   <Grid cols={3} className="p-6 bg-neutral-900 rounded-lg border border-neutral-700">
-                    <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg">Item 1</div>
-                    <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg">Item 2</div>
-                    <div className="p-4 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg">Item 3</div>
-                    <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg">Item 4</div>
-                    <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg">Item 5</div>
-                    <div className="p-4 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg">Item 6</div>
+                    <div className="p-3 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg text-sm font-medium text-center">Item 1</div>
+                    <div className="p-3 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg text-sm font-medium text-center">Item 2</div>
+                    <div className="p-3 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg text-sm font-medium text-center">Item 3</div>
+                    <div className="p-3 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg text-sm font-medium text-center">Item 4</div>
+                    <div className="p-3 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg text-sm font-medium text-center">Item 5</div>
+                    <div className="p-3 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg text-sm font-medium text-center">Item 6</div>
                   </Grid>
                 </Stack>
               </Card>
@@ -429,7 +433,7 @@ export default function DesignSystemExperiment() {
                     <Icon icon={Mouse} size="md" color="#00FFFF" />
                     Buttons - Interactive Elements
                   </h3>
-                  <Grid cols={2} gap="md">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Card variant="default" className="p-4">
                       <Stack gap="sm">
                         <h4 className="text-lg font-medium mb-2 text-white">Variants</h4>
@@ -450,34 +454,289 @@ export default function DesignSystemExperiment() {
                         <Button variant="primary" size="xl" fullWidth>Extra Large</Button>
                       </Stack>
                     </Card>
-                  </Grid>
+                  </div>
 
-                  {/* Gradient Buttons */}
+
+                  {/* VIVA Buttons */}
                   <Card variant="default" className="p-4">
                     <Stack gap="sm">
-                      <h4 className="text-lg font-medium mb-2 text-white">Gradient Buttons</h4>
+                      <h4 className="text-lg font-medium mb-2 text-white">VIVA Buttons</h4>
                       <Inline gap="md" wrap>
-                        <GradientButton gradient="brand">Brand</GradientButton>
-                        <GradientButton gradient="green">Green</GradientButton>
-                        <GradientButton gradient="teal">Teal</GradientButton>
-                        <GradientButton gradient="purple">Purple</GradientButton>
-                        <GradientButton gradient="cosmic">Cosmic</GradientButton>
+                        <VIVAButton size="sm">Small VIVA</VIVAButton>
+                        <VIVAButton size="md">Medium VIVA</VIVAButton>
+                        <VIVAButton size="lg">Large VIVA</VIVAButton>
+                        <VIVAButton>Ask VIVA Assistant</VIVAButton>
                       </Inline>
                     </Stack>
                   </Card>
+                </Stack>
+              </Card>
 
-                  {/* AI Buttons */}
-                  <Card variant="default" className="p-4">
-                    <Stack gap="sm">
-                      <h4 className="text-lg font-medium mb-2 text-white">AI Buttons</h4>
-                      <Inline gap="md" wrap>
-                        <AIButton size="sm">Small AI</AIButton>
-                        <AIButton size="md">Medium AI</AIButton>
-                        <AIButton size="lg">Large AI</AIButton>
-                        <AIButton>Ask AI Assistant</AIButton>
-                      </Inline>
-                    </Stack>
-                  </Card>
+              {/* Color Reference */}
+              <Card>
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={Palette} size="md" color="#39FF14" />
+                    Color Reference - VibrationFit Brand Palette
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Primary Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#39FF14]">Primary Colors</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#39FF14] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Primary Green</p>
+                              <p className="text-xs text-[#9CA3AF]">#39FF14</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#00FF88] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Electric Green</p>
+                              <p className="text-xs text-[#9CA3AF]">#00FF88</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#00CC44] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Forest Green</p>
+                              <p className="text-xs text-[#9CA3AF]">#00CC44</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+
+                    {/* Secondary Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#00FFFF]">Secondary Colors</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#00FFFF] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Neon Cyan</p>
+                              <p className="text-xs text-[#9CA3AF]">#00FFFF</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#06B6D4] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Bright Cyan</p>
+                              <p className="text-xs text-[#9CA3AF]">#06B6D4</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#0F766E] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Teal Dark</p>
+                              <p className="text-xs text-[#9CA3AF]">#0F766E</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+
+                    {/* Accent Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#BF00FF]">Accent Colors</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#BF00FF] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Neon Purple</p>
+                              <p className="text-xs text-[#9CA3AF]">#BF00FF</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#A855F7] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Bright Purple</p>
+                              <p className="text-xs text-[#9CA3AF]">#A855F7</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#601B9F] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Primary Purple</p>
+                              <p className="text-xs text-[#9CA3AF]">#601B9F</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+
+                    {/* Energy Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#FFFF00]">Energy Colors</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#FFFF00] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Neon Yellow</p>
+                              <p className="text-xs text-[#9CA3AF]">#FFFF00</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#FF6600] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Neon Orange</p>
+                              <p className="text-xs text-[#9CA3AF]">#FF6600</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#FF0080] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Neon Pink</p>
+                              <p className="text-xs text-[#9CA3AF]">#FF0080</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+
+                    {/* Warning Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#FF3366]">Warning Colors</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#FF3366] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Electric Red</p>
+                              <p className="text-xs text-[#9CA3AF]">#FF3366</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#FF0040] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Vibrant Red</p>
+                              <p className="text-xs text-[#9CA3AF]">#FF0040</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#D03739] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Contrast Red</p>
+                              <p className="text-xs text-[#9CA3AF]">#D03739</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+
+                    {/* Neutral Colors */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-semibold mb-2 text-[#9CA3AF]">Neutral Colors</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#000000] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Pure Black</p>
+                              <p className="text-xs text-[#9CA3AF]">#000000</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#1F1F1F] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Dark Gray</p>
+                              <p className="text-xs text-[#9CA3AF]">#1F1F1F</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#404040] border-2 border-white"></div>
+                            <div>
+                              <p className="text-sm font-medium text-white">Medium Gray</p>
+                              <p className="text-xs text-[#9CA3AF]">#404040</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+                  </div>
+                </Stack>
+              </Card>
+
+              {/* Media Components */}
+              <Card>
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={Monitor} size="md" color="#39FF14" />
+                    Media Components
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Video Component */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-medium mb-2 text-white">Video Player</h4>
+                        <p className="text-sm text-[#9CA3AF] mb-4">Responsive video with VibrationFit styling and YouTube-style play button</p>
+                        
+                        <Video 
+                          src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
+                          poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
+                          variant="default"
+                          controls
+                          className="w-full"
+                          trackingId="intro-video-active-demo"
+                          quality="auto"
+                          saveProgress={false}
+                          showLeadCaptureAt={50}
+                          onMilestoneReached={(milestone, time) => {
+                            console.log(`Video reached ${milestone}% at ${time}s`)
+                            // Trigger marketing events here
+                            // Example: trackEvent('video_milestone', { milestone, time })
+                          }}
+                          onLeadCapture={(data) => {
+                            console.log('Lead captured:', data)
+                            // Send to your marketing platform
+                            // Example: addToMailchimp(data.email, data.name)
+                          }}
+                        />
+                      </Stack>
+                    </Card>
+
+                    {/* Modal Component */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-medium mb-2 text-white">Modal Dialog</h4>
+                        <p className="text-sm text-[#9CA3AF] mb-4">Accessible modal with overlay and animations</p>
+                        
+                        <Stack gap="sm">
+                          <Button 
+                            variant="primary" 
+                            onClick={() => setModalOpen(true)}
+                          >
+                            Open Modal
+                          </Button>
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={() => setModalSize('sm')}
+                            >
+                              Small
+                            </Button>
+                            <Button 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={() => setModalSize('lg')}
+                            >
+                              Large
+                            </Button>
+                          </div>
+                        </Stack>
+                      </Stack>
+                    </Card>
+                  </div>
                 </Stack>
               </Card>
 
@@ -784,7 +1043,7 @@ export default function DesignSystemExperiment() {
                         <Stack gap="sm">
                           <Inline align="center" gap="sm">
                             <span className="text-sm font-medium text-white">Version 2</span>
-                            <Badge variant="neutral">Complete</Badge>
+                            <Badge variant="success">Complete</Badge>
                             <span className="text-sm text-[#9CA3AF]">100% complete</span>
                           </Inline>
                           <Stack gap="xs">
@@ -880,10 +1139,10 @@ export default function DesignSystemExperiment() {
                 <p className="text-[#9CA3AF] text-sm md:text-base">Responsive stat cards with icons and trends</p>
               </div>
               <Grid minWidth="200px" gap="md">
-                <StatCard icon={Activity} label="Workouts This Week" value="12" trend={15} variant="primary" />
-                <StatCard icon={Zap} label="Current Streak" value="7 days" trend={20} variant="secondary" />
-                <StatCard icon={CheckCircle} label="Goals Achieved" value="24" trend={8} variant="accent" />
-                <StatCard icon={Heart} label="Alignment Score" value="87%" trend={-3} variant="primary" />
+                <StatCard icon={Activity} label="Workouts This Week" value="12" variant="primary" />
+                <StatCard icon={Zap} label="Current Streak" value="7 days" variant="secondary" />
+                <StatCard icon={CheckCircle} label="Goals Achieved" value="24" variant="accent" />
+                <StatCard icon={Heart} label="Alignment Score" value="87%" variant="primary" />
               </Grid>
             </Stack>
           </section>
@@ -1034,7 +1293,7 @@ export default function DesignSystemExperiment() {
                   <p><strong className="text-white">2. Compose with Components:</strong> Use Button, Card, Icon, Select, Badge, Input, Textarea, Spinner, ProgressBar inside your layouts</p>
                   <p><strong className="text-white">3. Use Composite Patterns:</strong> IconTitleButton, CategoryCard, StatCard for common use cases</p>
                   <p><strong className="text-white">4. Everything is Mobile-First:</strong> All components automatically adapt to screen size</p>
-                  <p><strong className="text-white">5. Special Components:</strong> GradientButton for hero sections, AIButton for AI features</p>
+                  <p><strong className="text-white">5. Special Components:</strong> VIVAButton for VIVA assistant features</p>
                   <p className="text-[#39FF14] font-semibold">⚡ Rebuild your entire site using ONLY these primitives and components for 100% predictable, mobile-friendly behavior.</p>
                 </div>
               </Stack>
@@ -1043,6 +1302,47 @@ export default function DesignSystemExperiment() {
 
         </Stack>
       </Container>
+      
+      {/* Modal Example */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Design System Modal"
+        size={modalSize}
+        variant="hero"
+      >
+        <Stack gap="md">
+          <p className="text-[#9CA3AF]">
+            This is a fully accessible modal with VibrationFit styling. 
+            It includes backdrop blur, keyboard navigation, and proper ARIA attributes.
+          </p>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <Button 
+              variant="primary" 
+              onClick={() => setModalSize('sm')}
+            >
+              Small Size
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={() => setModalSize('lg')}
+            >
+              Large Size
+            </Button>
+          </div>
+          
+          <div className="pt-4 border-t border-[#404040]">
+            <Button 
+              variant="outline" 
+              onClick={() => setModalOpen(false)}
+              className="w-full"
+            >
+              Close Modal
+            </Button>
+          </div>
+        </Stack>
+      </Modal>
     </PageLayout>
   )
 }
