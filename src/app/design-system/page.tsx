@@ -61,7 +61,7 @@ const CategoryCard = ({ category, selected = false, onClick }: any) => {
       className={`cursor-pointer ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''}`}
       onClick={onClick}
     >
-      <Stack align="center" gap="xs" className="text-center px-2 py-1">
+      <Stack align="center" gap="xs" className="text-center px-2 aspect-square justify-center">
         <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} className="opacity-80" />
         <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
       </Stack>
