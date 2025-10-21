@@ -705,28 +705,16 @@ Textarea.displayName = 'Textarea'
 interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   containerSize?: 'sm' | 'md' | 'default' | 'lg' | 'xl' | 'full'
-  showHeader?: boolean
-  headerContent?: React.ReactNode
 }
 
 export const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
-  ({ children, containerSize = 'lg', showHeader = false, headerContent, className = '', ...props }, ref) => {
+  ({ children, containerSize = 'lg', className = '', ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={cn('min-h-screen bg-black text-white', className)}
         {...props}
       >
-        {showHeader && (
-          <div className="sticky top-0 z-50 bg-[#1F1F1F] border-b-2 border-[#333]">
-            <Container size={containerSize}>
-              <div className="py-4">
-                {headerContent}
-              </div>
-            </Container>
-          </div>
-        )}
-        
         <Container size={containerSize} className="py-12">
           {children}
         </Container>

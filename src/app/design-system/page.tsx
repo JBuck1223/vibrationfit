@@ -115,7 +115,7 @@ export default function DesignSystemExperiment() {
   }
 
   return (
-    <PageLayout showHeader={true}>
+    <PageLayout>
       <Stack gap="xl">
           
           {/* Hero */}
