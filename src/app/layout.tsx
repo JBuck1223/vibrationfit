@@ -48,7 +48,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <AuthProvider>
-          <Header />
+          {/* <Header /> */}
           {/* <IntensiveBar /> */}
           {children}
           <Footer />
