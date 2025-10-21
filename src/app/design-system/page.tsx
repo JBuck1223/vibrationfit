@@ -12,7 +12,7 @@ import {
   Layout, PanelTop, Square, Monitor, Smartphone, Grid as GridIcon,
   Palette, FileText, Tag, TrendingUp, RotateCcw, Mouse, CreditCard,
   AlignLeft, AlignCenter, AlignRight, Loader2, AlertCircle, Info,
-  ArrowRight, Play, Download, Share, Settings, MousePointer, Check, List
+  ArrowRight, Play, Download, Share, Settings, MousePointer, Check, List, Image
 } from 'lucide-react'
 import {
   Stack,
@@ -643,6 +643,75 @@ export default function DesignSystemExperiment() {
                 </div>
                 </div>
               </Card>
+          </section>
+
+          {/* Frame Example */}
+          <section>
+            <Stack gap="lg">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">Frame - Aspect Ratio Container</h2>
+                <p className="text-[#9CA3AF] text-sm md:text-base">Fixed aspect ratio containers perfect for videos, images, and media content</p>
+              </div>
+              
+              <Grid minWidth="300px" gap="md">
+                <Card>
+                  <Stack gap="md">
+                    <h4 className="text-lg font-semibold text-white">16:9 Video Frame</h4>
+                    <Frame ratio="16/9" className="bg-gradient-to-br from-[#39FF14]/20 to-[#00FFFF]/20 border border-[#39FF14]/30 rounded-lg">
+                      <div className="flex items-center justify-center h-full">
+                        <Icon icon={Play} size="xl" color="#39FF14" />
+                      </div>
+                    </Frame>
+                  </Stack>
+                </Card>
+
+                <Card>
+                  <Stack gap="md">
+                    <h4 className="text-lg font-semibold text-white">4:3 Image Frame</h4>
+                    <Frame ratio="4/3" className="bg-gradient-to-br from-[#00FFFF]/20 to-[#BF00FF]/20 border border-[#00FFFF]/30 rounded-lg">
+                      <div className="flex items-center justify-center h-full">
+                        <Icon icon={Image} size="xl" color="#00FFFF" />
+                      </div>
+                    </Frame>
+                  </Stack>
+                </Card>
+
+                <Card>
+                  <Stack gap="md">
+                    <h4 className="text-lg font-semibold text-white">1:1 Square Frame</h4>
+                    <Frame ratio="1/1" className="bg-gradient-to-br from-[#BF00FF]/20 to-[#39FF14]/20 border border-[#BF00FF]/30 rounded-lg">
+                      <div className="flex items-center justify-center h-full">
+                        <Icon icon={Square} size="xl" color="#BF00FF" />
+                      </div>
+                    </Frame>
+                  </Stack>
+                </Card>
+              </Grid>
+
+              {/* Code Example */}
+              <Card variant="glass">
+                <Stack gap="sm">
+                  <h4 className="text-lg font-semibold text-white">Frame Component Usage</h4>
+                  <div className="bg-black/20 p-4 rounded-lg border border-[#333]">
+                    <pre className="text-xs text-neutral-300 overflow-x-auto">
+{`<Frame ratio="16/9" className="bg-black rounded-lg">
+  <Video src="video.mp4" />
+</Frame>
+
+<Frame ratio="4/3" className="bg-gray-100 rounded-lg">
+  <Image src="image.jpg" />
+</Frame>
+
+<Frame ratio="1/1" className="bg-gradient-to-br from-primary-500 to-secondary-500">
+  <div className="flex items-center justify-center">
+    <Icon icon={Play} />
+  </div>
+</Frame>`}
+                    </pre>
+                  </div>
+                </Stack>
+              </Card>
+            </Stack>
           </section>
 
           {/* UI Components Section */}
