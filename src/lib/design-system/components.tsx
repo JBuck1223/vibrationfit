@@ -101,10 +101,10 @@ export const Inline = React.forwardRef<HTMLDivElement, InlineProps>(
       >
         {React.Children.map(children, (child) => {
           if (React.isValidElement(child)) {
-            return React.cloneElement(child, {
+            return React.cloneElement(child as any, {
               className: cn(
                 'w-full md:flex-1',
-                child.props.className
+                (child as any).props.className
               )
             })
           }
