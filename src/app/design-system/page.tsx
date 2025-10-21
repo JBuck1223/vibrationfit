@@ -1685,18 +1685,22 @@ export default function DesignSystemExperiment() {
           >
             <div className="aspect-video bg-black">
               <Video
-                src="https://media.vibrationfit.com/site-assets/videos/intro-video/1080p.mp4"
-                poster="https://media.vibrationfit.com/site-assets/videos/intro-video/poster.jpg"
+                src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
+                poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
                 className="w-full h-full"
+                variant="default"
+                controls
+                trackingId="intro-video-modal-demo"
+                quality="auto"
+                saveProgress={false}
+                showLeadCaptureAt={50}
+                onMilestoneReached={(milestone, time) => {
+                  console.log(`Video reached ${milestone}% at ${time}s`)
+                }}
+                onLeadCapture={(data) => {
+                  console.log('Lead captured:', data)
+                }}
               />
-            </div>
-            
-            {/* Video info overlay */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-              <h3 className="text-lg font-semibold text-white mb-1">VibrationFit Introduction</h3>
-              <p className="text-sm text-neutral-300">
-                Discover how conscious creation can transform your life in just 72 hours.
-              </p>
             </div>
           </div>
         </div>
