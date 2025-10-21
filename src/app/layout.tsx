@@ -49,7 +49,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <Header />
-          <IntensiveBar />
+          {/* <IntensiveBar /> */}
           {children}
           <Footer />
           <Toaster 
