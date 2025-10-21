@@ -132,8 +132,91 @@ export default function DesignSystemExperiment() {
             </Cover>
           </section>
 
+          {/* Feature Jump Navigation */}
+          <section id="navigation">
+            <Card className="bg-gradient-to-r from-[#39FF14]/10 to-[#00FFFF]/10 border-[#39FF14]/30">
+              <Stack gap="md">
+                <h3 className="text-xl font-bold text-white text-center">Quick Navigation</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <a href="#layout-primitives" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Layout} size="sm" className="mr-2" />
+                      Layout
+                    </Button>
+                  </a>
+                  <a href="#buttons" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={MousePointer} size="sm" className="mr-2" />
+                      Buttons
+                    </Button>
+                  </a>
+                  <a href="#cards" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Square} size="sm" className="mr-2" />
+                      Cards
+                    </Button>
+                  </a>
+                  <a href="#badges" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Tag} size="sm" className="mr-2" />
+                      Badges
+                    </Button>
+                  </a>
+                  <a href="#inputs" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Edit} size="sm" className="mr-2" />
+                      Inputs
+                    </Button>
+                  </a>
+                  <a href="#progress" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Activity} size="sm" className="mr-2" />
+                      Progress
+                    </Button>
+                  </a>
+                  <a href="#video" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Play} size="sm" className="mr-2" />
+                      Video
+                    </Button>
+                  </a>
+                  <a href="#modals" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Monitor} size="sm" className="mr-2" />
+                      Modals
+                    </Button>
+                  </a>
+                  <a href="#pricing-cards" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={CreditCard} size="sm" className="mr-2" />
+                      Pricing
+                    </Button>
+                  </a>
+                  <a href="#categories" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Users} size="sm" className="mr-2" />
+                      Categories
+                    </Button>
+                  </a>
+                  <a href="#stats" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={TrendingUp} size="sm" className="mr-2" />
+                      Stats
+                    </Button>
+                  </a>
+                  <a href="#guidelines" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={FileText} size="sm" className="mr-2" />
+                      Guidelines
+                    </Button>
+                  </a>
+                </div>
+              </Stack>
+            </Card>
+          </section>
+
           {/* Layout Primitives */}
-          <section>
+          <section id="layout-primitives">
             <Stack gap="lg">
                   <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">Layout Primitives</h2>
@@ -372,7 +455,7 @@ export default function DesignSystemExperiment() {
           </section>
 
           {/* UI Components Section */}
-          <section>
+          <section id="buttons">
             <Stack gap="lg">
                   <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">UI Components</h2>
@@ -924,13 +1007,13 @@ export default function DesignSystemExperiment() {
                 <Stack gap="md">
                   <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                     <Icon icon={Crown} size="md" color="#39FF14" />
-                    Pricing Cards
+                    Feature Cards
                   </h3>
                   
                   {/* Pricing Card Example */}
                   <Card variant="default" className="p-4">
                     <Stack gap="sm">
-                      <h4 className="text-lg font-medium mb-2 text-white">Pricing Card - Plan Selection</h4>
+                      <h4 className="text-lg font-medium mb-2 text-white">Feature Card - Plan Example</h4>
                       
                       {/* Component Usage */}
                       <PricingCard
@@ -1297,7 +1380,7 @@ export default function DesignSystemExperiment() {
           </section>
 
           {/* Categories Grid */}
-          <section>
+          <section id="categories">
             <Stack gap="lg">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">All Life Categories</h2>
@@ -1317,7 +1400,7 @@ export default function DesignSystemExperiment() {
           </section>
 
           {/* Stats */}
-          <section>
+          <section id="stats">
             <Stack gap="lg">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">Dashboard Stats Pattern</h2>
@@ -1333,7 +1416,7 @@ export default function DesignSystemExperiment() {
           </section>
 
           {/* Forms */}
-          <section>
+          <section id="inputs">
             <Stack gap="lg">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">Form Components</h2>
@@ -1469,7 +1552,7 @@ export default function DesignSystemExperiment() {
           </section>
 
           {/* Responsive Design Guidelines */}
-          <section>
+          <section id="guidelines">
             <Card variant="glass" className="border-2 border-[#FF0040]/30">
               <Stack gap="md">
                 <h2 className="text-xl md:text-2xl font-bold text-[#FF0040]">🚨 Mobile-First Design Rules</h2>

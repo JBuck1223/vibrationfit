@@ -27,10 +27,10 @@ export default function PricingHormoziPage() {
 
   const getPaymentAmount = () => {
     switch (paymentPlan) {
-      case 'full': return 499
-      case '2pay': return 249.50
-      case '3pay': return 166.33
-      default: return 499
+      case 'full': return '499'
+      case '2pay': return '249.50'
+      case '3pay': return '166.33'
+      default: return '499'
     }
   }
 
@@ -63,16 +63,16 @@ export default function PricingHormoziPage() {
         {/* ACTIVATION INTENSIVE TITLE - ENHANCED */}
         <div className="text-center">
           <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-gradient-to-r from-[#BF00FF]/20 to-[#8B5CF6]/20 text-[#BF00FF] border-[#BF00FF]/30 mb-4">
-            <Clock className="w-4 h-4 inline mr-2" />
-            72-Hour Activation
+              <Clock className="w-4 h-4 inline mr-2" />
+              72-Hour Activation
           </span>
           <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-[#39FF14] via-[#14B8A6] to-[#8B5CF6] bg-clip-text text-transparent">
-            Vision Activation Intensive
-          </h1>
-          <p className="text-2xl text-neutral-300 max-w-3xl mx-auto">
+              Vision Activation Intensive
+            </h1>
+            <p className="text-2xl text-neutral-300 max-w-3xl mx-auto">
             Go from blank slate to fully activated in 72 hours. Vision drafted, board built, audios recorded, conscious creation system live.
-          </p>
-        </div>
+            </p>
+          </div>
 
         {/* MAIN PRICING CARD */}
         <Card variant="elevated" className="border-2 border-[#39FF14]">
@@ -136,7 +136,7 @@ export default function PricingHormoziPage() {
 
             {/* Billing Toggle */}
             <div className="inline-flex items-center gap-2 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700 mx-auto mb-8">
-              <button 
+              <button
                 onClick={() => setBillingPeriod('annual')}
                 className={`px-4 py-3.5 rounded-full font-semibold transition-all duration-300 ${
                   billingPeriod === 'annual'
@@ -151,7 +151,7 @@ export default function PricingHormoziPage() {
                   </span>
                 </span>
               </button>
-              <button 
+              <button
                 onClick={() => setBillingPeriod('28day')}
                 className={`px-4 py-3.5 rounded-full font-semibold transition-all duration-300 ${
                   billingPeriod === '28day'
@@ -161,7 +161,7 @@ export default function PricingHormoziPage() {
               >
                 28-Day
               </button>
-            </div>
+          </div>
 
             {/* VISION PRO MEMBERSHIP CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-6 gap-y-12 max-w-5xl mx-auto mb-8">
@@ -176,88 +176,89 @@ export default function PricingHormoziPage() {
                   }`}
                   onClick={() => setBillingPeriod('annual')}
                 >
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg">
-                      Best Value
+                    Best Value
                     </div>
-                  </div>
+                </div>
 
-                  <div className="text-center mb-8">
-                    <Crown className="w-12 h-12 text-primary-500 mx-auto mb-4" />
-                    <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Annual</h3>
-                    <p className="text-neutral-400 mb-6">Full year, full power</p>
-                    
-                    <div className="inline-flex items-baseline gap-2 mb-2">
+              <div className="text-center mb-8">
+                <Crown className="w-12 h-12 text-primary-500 mx-auto mb-4" />
+                <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Annual</h3>
+                <p className="text-neutral-400 mb-6">Full year, full power</p>
+                
+                <div className="inline-flex items-baseline gap-2 mb-2">
                       <span className="text-5xl font-bold text-white">$999</span>
                       <span className="text-xl text-neutral-400">/year</span>
-                    </div>
-                    <div className="text-neutral-500 text-sm mb-1">
+                </div>
+                <div className="text-neutral-500 text-sm mb-1">
                       $76.85/28 days, billed annually
-                    </div>
-                    <div className="text-primary-500 text-sm font-semibold">
+                </div>
+                <div className="text-primary-500 text-sm font-semibold">
                       Save 22% vs $99 every 28 days
-                    </div>
-                  </div>
+                </div>
+              </div>
 
-                  <div className="space-y-3 mb-8">
-                    {[
-                      'VibrationFit platform access (all 12 categories)',
-                      'MAP, Vision Boards, Vision Audio, Immersion Tracks',
+              <div className="space-y-3 mb-8">
+                {[
+                      'VibrationFit platform access',
+                      'Life Vision Builder and Assistant (12 Categories)',
+                      'Vision Boards, Vision Audio, Immersion Tracks',
                       'VIVA AI assistant (5M tokens)',
                       'Journal, community access',
                       'Activation history & progress tracking',
                       'Library access & future features',
                       'Transparent renewal timing (starts Day 56)',
-                      '100GB storage',
                       'Priority response queue',
                       '60-day satisfaction guarantee',
                       'Price locked for 12 months',
                       '4 bonus calibration check-ins per year',
-                    ].map((feature, idx) => (
-                      <div key={idx} className="flex items-start gap-3">
-                        <Check className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-neutral-200 text-sm">{feature}</span>
-                      </div>
-                    ))}
+                ].map((feature, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-neutral-200 text-sm">{feature}</span>
                   </div>
+                ))}
+              </div>
 
-                  <div className="text-xs text-neutral-500 text-center mb-4">
-                    Tokens reset annually at renewal
-                  </div>
-                </Card>
+              <div className="text-xs text-neutral-500 text-center mb-4">
+                Tokens reset annually at renewal
+              </div>
+            </Card>
               )}
 
               {/* 28-Day Plan - Show first on mobile if selected */}
               {billingPeriod === '28day' && (
-                <Card 
+            <Card
                   className={`p-10 transition-all cursor-pointer md:order-2 order-1 ${
-                    billingPeriod === '28day'
+                billingPeriod === '28day'
                       ? 'border-2 border-[#00FFFF] bg-gradient-to-br from-[#00FFFF]/10 to-[#00FFFF]/5 scale-105 ring-2 ring-[#00FFFF]'
                       : 'border border-neutral-700 opacity-60 hover:opacity-80'
-                  }`}
+              }`}
                   onClick={() => setBillingPeriod('28day')}
-                >
-                  <div className="text-center mb-8">
-                    <Zap className="w-12 h-12 text-secondary-500 mx-auto mb-4" />
-                    <h3 className="text-3xl font-bold text-white mb-2">Vision Pro 28-Day</h3>
-                    <p className="text-neutral-400 mb-6">Flexible billing cycle</p>
-                    
-                    <div className="inline-flex items-baseline gap-2 mb-2">
-                      <span className="text-5xl font-bold text-white">$99</span>
-                      <span className="text-xl text-neutral-400">/28 days</span>
-                    </div>
-                    <div className="text-neutral-500 text-sm mb-1">
+            >
+              <div className="text-center mb-8">
+                <Zap className="w-12 h-12 text-secondary-500 mx-auto mb-4" />
+                <h3 className="text-3xl font-bold text-white mb-2">Vision Pro 28-Day</h3>
+                <p className="text-neutral-400 mb-6">Flexible billing cycle</p>
+                
+                <div className="inline-flex items-baseline gap-2 mb-2">
+                  <span className="text-5xl font-bold text-white">$99</span>
+                  <span className="text-xl text-neutral-400">/28 days</span>
+                </div>
+                <div className="text-neutral-500 text-sm mb-1">
                       Billed every 4 weeks
-                    </div>
-                    <div className="text-neutral-400 text-sm">
-                      $1,287 per year (13 cycles)
-                    </div>
-                  </div>
+                </div>
+                <div className="text-neutral-400 text-sm">
+                  $1,287 per year (13 cycles)
+                </div>
+              </div>
 
-                  <div className="space-y-3 mb-8">
-                    {[
-                      'VibrationFit platform access (all 12 categories)',
-                      'MAP, Vision Boards, Vision Audio, Immersion Tracks',
+              <div className="space-y-3 mb-8">
+                {[
+                      'VibrationFit platform access',
+                      'Life Vision Builder and Assistant (12 Categories)',
+                      'Vision Boards, Vision Audio, Immersion Tracks',
                       'VIVA AI assistant (375k tokens per 28 days)',
                       'Journal, community access',
                       'Activation history & progress tracking',
@@ -267,18 +268,18 @@ export default function PricingHormoziPage() {
                       'Standard support queue',
                       '30-day satisfaction guarantee',
                       'Flexible - cancel any cycle',
-                    ].map((feature, idx) => (
-                      <div key={idx} className="flex items-start gap-3">
-                        <Check className="w-5 h-5 text-secondary-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-neutral-200 text-sm">{feature}</span>
-                      </div>
-                    ))}
+                ].map((feature, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-secondary-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-neutral-200 text-sm">{feature}</span>
                   </div>
+                ))}
+              </div>
 
-                  <div className="text-xs text-neutral-500 text-center mb-4">
-                    Unused tokens roll over (max 3 cycles)
-                  </div>
-                </Card>
+              <div className="text-xs text-neutral-500 text-center mb-4">
+                Unused tokens roll over (max 3 cycles)
+              </div>
+            </Card>
               )}
 
               {/* Show unselected cards */}
@@ -295,7 +296,7 @@ export default function PricingHormoziPage() {
                     <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg">
                       Best Value
                     </div>
-                  </div>
+          </div>
 
                   <div className="text-center mb-8">
                     <Crown className="w-12 h-12 text-primary-500 mx-auto mb-4" />
@@ -311,13 +312,14 @@ export default function PricingHormoziPage() {
                     </div>
                     <div className="text-primary-500 text-sm font-semibold">
                       Save 22% vs $99 every 28 days
-                    </div>
-                  </div>
+          </div>
+        </div>
 
                   <div className="space-y-3 mb-8">
                     {[
-                      'VibrationFit platform access (all 12 categories)',
-                      'MAP, Vision Boards, Vision Audio, Immersion Tracks',
+                      'VibrationFit platform access',
+                      'Life Vision Builder and Assistant (12 Categories)',
+                      'Vision Boards, Vision Audio, Immersion Tracks',
                       'VIVA AI assistant (5M tokens)',
                       'Journal, community access',
                       'Activation history & progress tracking',
@@ -370,8 +372,9 @@ export default function PricingHormoziPage() {
 
                   <div className="space-y-3 mb-8">
                     {[
-                      'VibrationFit platform access (all 12 categories)',
-                      'MAP, Vision Boards, Vision Audio, Immersion Tracks',
+                      'VibrationFit platform access',
+                      'Life Vision Builder and Assistant (12 Categories)',
+                      'Vision Boards, Vision Audio, Immersion Tracks',
                       'VIVA AI assistant (375k tokens per 28 days)',
                       'Journal, community access',
                       'Activation history & progress tracking',
@@ -603,17 +606,17 @@ export default function PricingHormoziPage() {
                     <p className="text-neutral-300 text-center text-sm">Complete vision + activation tools</p>
                   </Stack>
                 </Card>
-              </div>
-              
+            </div>
+
               <div className="mt-6 pt-6 border-t border-neutral-700 text-center">
                 <p className="text-lg text-white font-semibold mb-2">
                   If you aren't satisfied in 72 hours, you get a full refund.
                 </p>
                 <p className="text-sm text-neutral-400">
                   No questions asked. We're that confident in our system.
-                </p>
-              </div>
+              </p>
             </div>
+          </div>
           </Stack>
         </Card>
 
