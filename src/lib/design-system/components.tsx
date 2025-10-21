@@ -13,6 +13,61 @@ const cn = (...classes: (string | undefined | false)[]) => {
 }
 
 // ============================================================================
+// RESPONSIVE DESIGN GUIDELINES
+// ============================================================================
+
+/**
+ * MOBILE-FIRST RESPONSIVE DESIGN RULES
+ * 
+ * 1. GRID MINWIDTH RULES:
+ *    ❌ NEVER use minWidth > 350px for mobile compatibility
+ *    ✅ USE minWidth="300px" or smaller for mobile-first grids
+ *    ✅ USE minWidth="200px" for category cards and small items
+ * 
+ * 2. TEXT SIZE RULES:
+ *    ❌ NEVER use fixed large text (text-4xl, text-5xl) without responsive variants
+ *    ✅ ALWAYS use responsive text: text-xl md:text-4xl
+ *    ✅ MOBILE: text-sm, text-base, text-lg, text-xl (max)
+ *    ✅ DESKTOP: text-xl, text-2xl, text-3xl, text-4xl, text-5xl
+ * 
+ * 3. SPACING RULES:
+ *    ❌ NEVER use fixed large spacing (mx-8, mx-12) on mobile
+ *    ✅ ALWAYS use responsive spacing: mx-2 md:mx-4
+ *    ✅ MOBILE: mx-1, mx-2, mx-3, mx-4 (max)
+ *    ✅ DESKTOP: mx-4, mx-6, mx-8, mx-12
+ * 
+ * 4. PADDING RULES:
+ *    ❌ NEVER use excessive padding (p-12, p-16) on mobile
+ *    ✅ ALWAYS use responsive padding: p-4 md:p-8
+ *    ✅ MOBILE: p-2, p-4, p-6 (max)
+ *    ✅ DESKTOP: p-6, p-8, p-12, p-16
+ * 
+ * 5. GRID BREAKPOINT RULES:
+ *    ❌ NEVER use minmax(400px, 1fr) - causes mobile overflow
+ *    ✅ USE minmax(280px, 1fr) or smaller for mobile compatibility
+ *    ✅ USE Grid minWidth="300px" for standard content
+ *    ✅ USE Grid minWidth="200px" for small items
+ * 
+ * 6. CONTAINER RULES:
+ *    ✅ ALWAYS use PageLayout component for consistent container sizing
+ *    ✅ USE containerSize="lg" (1400px) for sidebar-compatible layouts
+ *    ✅ USE containerSize="xl" (1600px) for full-width content
+ * 
+ * 7. TESTING CHECKLIST:
+ *    ✅ Test on iPhone SE (375px width) - smallest common mobile
+ *    ✅ Test on iPhone 12/13/14 (390px width) - standard mobile
+ *    ✅ Test on iPad (768px width) - tablet breakpoint
+ *    ✅ Test on desktop (1200px+ width) - desktop experience
+ * 
+ * 8. COMMON MOBILE OVERFLOW PATTERNS TO AVOID:
+ *    ❌ Long text without responsive sizing
+ *    ❌ Grid items with minWidth > 350px
+ *    ❌ Fixed large margins/padding
+ *    ❌ Wide tables or data displays
+ *    ❌ Long form fields without wrapping
+ */
+
+// ============================================================================
 // 1. LAYOUT PRIMITIVES
 // ============================================================================
 
@@ -418,13 +473,14 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
     
     const sizes = {
-      sm: 'px-3 py-2 text-xs md:text-sm md:px-5',
-      md: 'px-3 py-2.5 text-xs md:text-sm md:px-7 md:py-3',
-      lg: 'px-4 py-3 text-sm md:text-base md:px-10 md:py-4',
-      xl: 'px-5 py-3.5 text-base md:text-lg md:px-12 md:py-5',
+      sm: 'px-3 py-2 text-xs md:text-sm md:px-5 gap-1.5',
+      md: 'px-3 py-2.5 text-xs md:text-sm md:px-7 md:py-3 gap-2',
+      lg: 'px-4 py-3 text-sm md:text-base md:px-10 md:py-4 gap-2.5',
+      xl: 'px-4 py-3.5 text-sm md:text-base md:px-6 md:py-4 gap-3',
     }
     
     const buttonClasses = cn(
+      'inline-flex items-center justify-center',
       'rounded-full transition-all duration-300 transform disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap',
       variants[variant],
       sizes[size],
@@ -471,7 +527,14 @@ export const Icon: React.FC<IconProps> = ({ icon: IconComponent, size = 'md', co
     xl: 48
   }
   
-  return <IconComponent size={sizes[size]} color={color} className={className} />
+  return (
+    <IconComponent 
+      size={sizes[size]} 
+      color={color} 
+      className={cn('flex-shrink-0', className)}
+      strokeWidth={2}
+    />
+  )
 }
 
 // Select/Dropdown Component
@@ -638,20 +701,35 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 )
 Textarea.displayName = 'Textarea'
 
-// Page Layout Component
+// Page Layout Component - Standardized site-wide layout
 interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
+  containerSize?: 'sm' | 'md' | 'default' | 'lg' | 'xl' | 'full'
+  showHeader?: boolean
+  headerContent?: React.ReactNode
 }
 
 export const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
-  ({ children, className = '', ...props }, ref) => {
+  ({ children, containerSize = 'lg', showHeader = false, headerContent, className = '', ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={cn('min-h-screen bg-black text-white', className)}
         {...props}
       >
-        {children}
+        {showHeader && (
+          <div className="sticky top-0 z-50 bg-[#1F1F1F] border-b-2 border-[#333]">
+            <Container size={containerSize}>
+              <div className="py-4">
+                {headerContent}
+              </div>
+            </Container>
+          </div>
+        )}
+        
+        <Container size={containerSize} className="py-12">
+          {children}
+        </Container>
       </div>
     )
   }
@@ -841,8 +919,8 @@ export const VIVAButton = React.forwardRef<HTMLButtonElement, VIVAButtonProps>(
     const sizes = {
       sm: 'px-4 py-2 text-xs md:text-sm',
       md: 'px-6 py-3 text-sm md:text-base',
-      lg: 'px-8 py-4 text-base md:text-lg',
-      xl: 'px-12 py-6 text-lg md:text-xl'
+      lg: 'px-8 py-4 text-sm md:text-base', // Reduced from text-base/text-lg to text-sm/text-base
+      xl: 'px-12 py-6 text-base md:text-lg' // Reduced from text-lg/text-xl to text-base/text-lg
     }
     
     const buttonClasses = cn(

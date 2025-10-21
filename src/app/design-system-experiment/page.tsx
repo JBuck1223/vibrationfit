@@ -1,5 +1,5 @@
-// VibrationFit Design System Experiment Page
-// Combined: Original focused patterns + Comprehensive component showcase
+// VibrationFit Design System - Live Component Library
+// Complete design system with layout primitives, UI components, and responsive guidelines
 
 'use client'
 
@@ -11,7 +11,8 @@ import {
   Star, Target, Shield, Crown, Plus, Minus, Edit, MessageSquare,
   Layout, PanelTop, Square, Monitor, Smartphone, Grid as GridIcon,
   Palette, FileText, Tag, TrendingUp, RotateCcw, Mouse, CreditCard,
-  AlignLeft, AlignCenter, AlignRight, Loader2, AlertCircle, Info
+  AlignLeft, AlignCenter, AlignRight, Loader2, AlertCircle, Info,
+  ArrowRight, Play, Download, Share, Settings, MousePointer
 } from 'lucide-react'
 import {
   Stack,
@@ -37,24 +38,8 @@ import {
   Video,
   Modal,
 } from '@/lib/design-system/components'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
-// Vision Categories
-const VISION_CATEGORIES = [
-  { key: 'forward', label: 'Forward', icon: Sparkles },
-  { key: 'fun', label: 'Fun / Recreation', icon: PartyPopper },
-  { key: 'travel', label: 'Travel / Adventure', icon: Plane },
-  { key: 'home', label: 'Home / Environment', icon: Home },
-  { key: 'family', label: 'Family / Parenting', icon: Users },
-  { key: 'romance', label: 'Love / Romance', icon: Heart },
-  { key: 'health', label: 'Health / Vitality', icon: Activity },
-  { key: 'money', label: 'Money / Wealth', icon: DollarSign },
-  { key: 'business', label: 'Business / Career', icon: Briefcase },
-  { key: 'social', label: 'Social / Friends', icon: UserPlus },
-  { key: 'possessions', label: 'Possessions / Stuff', icon: Package },
-  { key: 'giving', label: 'Giving / Legacy', icon: Gift },
-  { key: 'spirituality', label: 'Spirituality', icon: Zap },
-  { key: 'conclusion', label: 'Conclusion', icon: CheckCircle },
-]
 
 // Composite Patterns
 const IconTitleButton = ({ icon, title, buttonText, buttonVariant = 'primary', onButtonClick }: any) => (
@@ -74,10 +59,10 @@ const CategoryCard = ({ category, selected = false, onClick }: any) => {
       className={`cursor-pointer ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''}`}
       onClick={onClick}
     >
-      <Stack align="center" gap="sm" className="text-center">
-        <Icon icon={IconComponent} size="lg" color={selected ? '#39FF14' : '#00FFFF'} />
-        <h4 className="text-base md:text-lg font-semibold text-white">{category.label}</h4>
-        {selected && <Badge variant="primary">Selected</Badge>}
+      <Stack align="center" gap="xs" className="text-center px-4 py-2">
+        <Icon icon={IconComponent} size="md" color={selected ? '#39FF14' : '#00FFFF'} className="opacity-80" />
+        <h4 className="text-xs md:text-sm font-medium text-neutral-300">{category.label}</h4>
+        {selected && <Badge variant="primary" className="text-xs">Selected</Badge>}
       </Stack>
     </Card>
   )
@@ -127,16 +112,8 @@ export default function DesignSystemExperiment() {
   }
 
   return (
-    <PageLayout>
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-[#1F1F1F] border-b-2 border-[#333]">
-        <Container>
-          <div className="py-4"></div>
-        </Container>
-      </div>
-
-      <Container className="py-12">
-        <Stack gap="xl">
+    <PageLayout showHeader={true}>
+      <Stack gap="xl">
           
           {/* Hero */}
           <section>
@@ -466,6 +443,102 @@ export default function DesignSystemExperiment() {
                         <VIVAButton size="md">Medium VIVA</VIVAButton>
                         <VIVAButton size="lg">Large VIVA</VIVAButton>
                         <VIVAButton>Ask VIVA Assistant</VIVAButton>
+                      </Inline>
+                    </Stack>
+                  </Card>
+                </Stack>
+              </Card>
+
+              {/* Buttons with Icons */}
+              <Card>
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={MousePointer} size="md" color="#39FF14" />
+                    Buttons with Icons
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left side - Button with icon on left */}
+                    <Card variant="default" className="p-6">
+                      <Stack gap="md">
+                        <h4 className="text-lg font-medium text-white">Icon Left + Text</h4>
+                        <p className="text-sm text-[#9CA3AF] mb-4">Icon positioned to the left of text</p>
+                        <Inline gap="md">
+                          <Button variant="primary" size="lg">
+                            <Icon icon={ArrowRight} size="sm" />
+                            Get Started
+                          </Button>
+                          <Button variant="secondary" size="lg">
+                            <Icon icon={Play} size="sm" />
+                            Watch Video
+                          </Button>
+                        </Inline>
+                      </Stack>
+                    </Card>
+
+                    {/* Right side - Button with icon on right */}
+                    <Card variant="default" className="p-6">
+                      <Stack gap="md">
+                        <h4 className="text-lg font-medium text-white">Text + Icon Right</h4>
+                        <p className="text-sm text-[#9CA3AF] mb-4">Icon positioned to the right of text</p>
+                        <Inline gap="md">
+                          <Button variant="primary" size="lg">
+                            Learn More
+                            <Icon icon={ArrowRight} size="sm" />
+                          </Button>
+                          <Button variant="secondary" size="lg">
+                            Download
+                            <Icon icon={Download} size="sm" />
+                          </Button>
+                        </Inline>
+                      </Stack>
+                    </Card>
+                  </div>
+
+                  {/* Different sizes with icons */}
+                  <Card variant="default" className="p-6">
+                    <Stack gap="md">
+                      <h4 className="text-lg font-medium text-white">All Sizes with Icons</h4>
+                      <p className="text-sm text-[#9CA3AF] mb-4">Testing icons across all button sizes</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <Button variant="primary" size="sm">
+                          <Icon icon={Star} size="xs" />
+                          Small
+                        </Button>
+                        <Button variant="primary" size="md">
+                          <Icon icon={Star} size="xs" />
+                          Medium
+                        </Button>
+                        <Button variant="primary" size="lg">
+                          <Icon icon={Star} size="sm" />
+                          Large
+                        </Button>
+                        <Button variant="primary" size="xl">
+                          <Icon icon={Star} size="sm" />
+                          Extra Large
+                        </Button>
+                      </div>
+                    </Stack>
+                  </Card>
+
+                  {/* Icon-only buttons */}
+                  <Card variant="default" className="p-6">
+                    <Stack gap="md">
+                      <h4 className="text-lg font-medium text-white">Icon-Only Buttons</h4>
+                      <p className="text-sm text-[#9CA3AF] mb-4">Buttons with only icons, no text</p>
+                      <Inline gap="md">
+                        <Button variant="ghost" size="md" className="w-12 h-12 p-0">
+                          <Icon icon={Heart} size="md" />
+                        </Button>
+                        <Button variant="ghost" size="lg" className="w-14 h-14 p-0">
+                          <Icon icon={Share} size="md" />
+                        </Button>
+                        <Button variant="outline" size="md" className="w-12 h-12 p-0">
+                          <Icon icon={Settings} size="md" />
+                        </Button>
+                        <Button variant="primary" size="lg" className="w-14 h-14 p-0">
+                          <Icon icon={Plus} size="md" />
+                        </Button>
                       </Inline>
                     </Stack>
                   </Card>
@@ -918,6 +991,7 @@ export default function DesignSystemExperiment() {
             </Stack>
           </section>
 
+
           {/* Button Containers */}
           <section>
             <Stack gap="lg">
@@ -1283,6 +1357,45 @@ export default function DesignSystemExperiment() {
             </Stack>
           </section>
 
+          {/* Responsive Design Guidelines */}
+          <section>
+            <Card variant="glass" className="border-2 border-[#FF0040]/30">
+              <Stack gap="md">
+                <h2 className="text-xl md:text-2xl font-bold text-[#FF0040]">🚨 Mobile-First Design Rules</h2>
+                <div className="text-[#cbd5e1] space-y-4 text-sm md:text-base">
+                  
+                  <div className="bg-black/20 p-4 rounded-lg border border-[#FF0040]/20">
+                    <h3 className="text-white font-semibold mb-2">Grid minWidth Rules:</h3>
+                    <p className="text-[#FF0040]">❌ NEVER use minWidth &gt; 350px</p>
+                    <p className="text-[#39FF14]">✅ USE minWidth="300px" for content, "200px" for small items</p>
+                  </div>
+
+                  <div className="bg-black/20 p-4 rounded-lg border border-[#FF0040]/20">
+                    <h3 className="text-white font-semibold mb-2">Text Size Rules:</h3>
+                    <p className="text-[#FF0040]">❌ NEVER use fixed large text (text-4xl) without responsive variants</p>
+                    <p className="text-[#39FF14]">✅ ALWAYS use responsive: text-xl md:text-4xl</p>
+                  </div>
+
+                  <div className="bg-black/20 p-4 rounded-lg border border-[#FF0040]/20">
+                    <h3 className="text-white font-semibold mb-2">Spacing Rules:</h3>
+                    <p className="text-[#FF0040]">❌ NEVER use fixed large spacing (mx-8) on mobile</p>
+                    <p className="text-[#39FF14]">✅ ALWAYS use responsive: mx-2 md:mx-4</p>
+                  </div>
+
+                  <div className="bg-black/20 p-4 rounded-lg border border-[#FF0040]/20">
+                    <h3 className="text-white font-semibold mb-2">Testing Checklist:</h3>
+                    <p className="text-white">✅ iPhone SE (375px) - smallest mobile</p>
+                    <p className="text-white">✅ iPhone 12/13/14 (390px) - standard mobile</p>
+                    <p className="text-white">✅ iPad (768px) - tablet breakpoint</p>
+                    <p className="text-white">✅ Desktop (1200px+) - desktop experience</p>
+                  </div>
+
+                  <p className="text-[#FF0040] font-semibold">⚠️ Always test on mobile first to prevent overflow issues!</p>
+                </div>
+              </Stack>
+            </Card>
+          </section>
+
           {/* Instructions */}
           <section>
             <Card variant="glass" className="border-2 border-[#39FF14]/30">
@@ -1300,8 +1413,7 @@ export default function DesignSystemExperiment() {
             </Card>
           </section>
 
-        </Stack>
-      </Container>
+      </Stack>
       
       {/* Modal Example */}
       <Modal

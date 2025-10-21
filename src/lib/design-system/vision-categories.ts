@@ -39,77 +39,77 @@ export const VISION_CATEGORIES: VisionCategory[] = [
   },
   {
     key: 'fun',
-    label: 'Fun / Recreation',
+    label: 'Fun',
     description: 'Hobbies and joyful activities',
     icon: PartyPopper,
     order: 2
   },
   {
-    key: 'travel',
-    label: 'Travel / Adventure',
-    description: 'Places to explore and adventures',
-    icon: Plane,
+    key: 'health',
+    label: 'Health',
+    description: 'Physical and mental well-being',
+    icon: Activity,
     order: 3
   },
   {
-    key: 'home',
-    label: 'Home / Environment',
-    description: 'Living space and environment',
-    icon: Home,
+    key: 'travel',
+    label: 'Travel',
+    description: 'Places to explore and adventures',
+    icon: Plane,
     order: 4
   },
   {
-    key: 'family',
-    label: 'Family / Parenting',
-    description: 'Family relationships and life',
-    icon: Users,
+    key: 'romance',
+    label: 'Love',
+    description: 'Romantic relationships',
+    icon: Heart,
     order: 5
   },
   {
-    key: 'romance',
-    label: 'Love / Romance',
-    description: 'Romantic relationships',
-    icon: Heart,
+    key: 'family',
+    label: 'Family',
+    description: 'Family relationships and life',
+    icon: Users,
     order: 6
   },
   {
-    key: 'health',
-    label: 'Health / Vitality',
-    description: 'Physical and mental well-being',
-    icon: Activity,
+    key: 'social',
+    label: 'Social',
+    description: 'Social connections and friendships',
+    icon: UserPlus,
     order: 7
   },
   {
-    key: 'money',
-    label: 'Money / Wealth',
-    description: 'Financial goals and wealth',
-    icon: DollarSign,
+    key: 'home',
+    label: 'Home',
+    description: 'Living space and environment',
+    icon: Home,
     order: 8
   },
   {
     key: 'business',
-    label: 'Business / Career',
+    label: 'Work',
     description: 'Work and career aspirations',
     icon: Briefcase,
     order: 9
   },
   {
-    key: 'social',
-    label: 'Social / Friends',
-    description: 'Social connections and friendships',
-    icon: UserPlus,
+    key: 'money',
+    label: 'Money',
+    description: 'Financial goals and wealth',
+    icon: DollarSign,
     order: 10
   },
   {
     key: 'possessions',
-    label: 'Possessions / Stuff',
+    label: 'Possessions',
     description: 'Material belongings and things',
     icon: Package,
     order: 11
   },
   {
     key: 'giving',
-    label: 'Giving / Legacy',
+    label: 'Giving',
     description: 'Contribution and legacy',
     icon: Gift,
     order: 12

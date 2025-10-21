@@ -102,7 +102,6 @@ export function Footer({ className = '' }: FooterProps) {
 
   const devLinks = [
     { href: '/design-system', label: 'Design System', icon: Palette },
-    { href: '/design-system-experiment', label: 'Design Experiment', icon: Palette },
     { href: '/test-recording', label: 'Test Recording', icon: HelpCircle },
     { href: '/debug/email', label: 'Debug Email', icon: MessageCircle },
   ]

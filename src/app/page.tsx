@@ -45,14 +45,13 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   return (
-    <PageLayout>
+    <PageLayout containerSize="xl">
       <Stack gap="xl">
         
         {/* Hero Section */}
         <section>
           <Cover minHeight="700px" className="bg-gradient-to-br from-[#39FF14]/10 via-[#00FFFF]/5 to-[#BF00FF]/10 rounded-3xl border-2 border-[#333]">
-            <Container size="xl">
-              <Stack align="center" gap="lg" className="text-center">
+            <Stack align="center" gap="lg" className="text-center">
                 <Badge variant="premium" className="mb-4">
                   <Icon icon={Sparkles} size="xs" className="mr-2" />
                   Bridge the Woo-Woo with the How-To
@@ -73,12 +72,12 @@ export default function HomePage() {
                   <Button variant="primary" size="xl" asChild>
                     <a href="#solution">
                       Find Out Why
-                      <Icon icon={ArrowRight} size="sm" className="ml-2" />
+                      <Icon icon={ArrowRight} size="sm" />
                     </a>
                   </Button>
                   <Button variant="secondary" size="xl" asChild>
                     <a href="#video">
-                      <Icon icon={Play} size="sm" className="mr-2" />
+                      <Icon icon={Play} size="sm" />
                       Watch Our Story
                     </a>
                   </Button>
@@ -100,13 +99,11 @@ export default function HomePage() {
                   <span>Trusted by conscious entrepreneurs</span>
                 </div>
               </Stack>
-            </Container>
           </Cover>
         </section>
 
         {/* Video Section */}
         <section id="video">
-          <Container size="xl">
             <Card variant="elevated" className="overflow-hidden">
               <Stack gap="md" className="p-8">
                 <div className="text-center">
@@ -131,12 +128,10 @@ export default function HomePage() {
                 </div>
               </Stack>
             </Card>
-          </Container>
         </section>
 
         {/* The Problem: Vibrational Chaos */}
         <section id="problem">
-          <Container size="xl">
             <Stack gap="lg" align="center">
               <div className="text-center max-w-3xl">
                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
@@ -178,12 +173,10 @@ export default function HomePage() {
                 </Stack>
               </Card>
             </Stack>
-          </Container>
         </section>
 
         {/* The Solution: Conscious Creation System */}
         <section id="solution">
-          <Container size="xl">
             <Stack gap="lg" align="center">
               <div className="text-center max-w-3xl">
                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
@@ -242,11 +235,11 @@ export default function HomePage() {
               <Card variant="glass" className="text-center max-w-2xl">
                 <Stack gap="md" className="p-8">
                   <h3 className="text-2xl font-bold text-white">The Formula</h3>
-                  <div className="text-4xl font-bold">
+                  <div className="text-xl md:text-4xl font-bold">
                     <span className="text-[#39FF14]">Desire</span>
-                    <span className="text-white mx-4">+</span>
+                    <span className="text-white mx-2 md:mx-4">+</span>
                     <span className="text-[#00FFFF]">Vibrational Harmony</span>
-                    <span className="text-white mx-4">=</span>
+                    <span className="text-white mx-2 md:mx-4">=</span>
                     <span className="text-[#BF00FF]">Actualization</span>
                   </div>
                   <p className="text-neutral-400">
@@ -255,12 +248,10 @@ export default function HomePage() {
                 </Stack>
               </Card>
             </Stack>
-          </Container>
         </section>
 
         {/* What is Vibrational Fitness */}
         <section>
-          <Container size="xl">
             <Cover minHeight="300px" className="bg-gradient-to-r from-[#39FF14]/10 via-[#00FFFF]/5 to-[#BF00FF]/10 rounded-3xl border border-[#333]">
               <Stack align="center" gap="lg" className="text-center">
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -279,12 +270,10 @@ export default function HomePage() {
                 </Badge>
               </Stack>
             </Cover>
-          </Container>
         </section>
 
         {/* Life Categories Grid */}
         <section>
-          <Container size="xl">
             <Stack gap="lg">
               <div className="text-center max-w-3xl mx-auto">
                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
@@ -323,12 +312,10 @@ export default function HomePage() {
                 ))}
               </Grid>
             </Stack>
-          </Container>
         </section>
 
         {/* Transformation Story */}
         <section id="story">
-          <Container size="xl">
             <Stack gap="lg">
               <div className="text-center max-w-4xl mx-auto">
                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
@@ -341,7 +328,7 @@ export default function HomePage() {
               </div>
 
               {/* Before & After Comparison */}
-              <Grid minWidth="400px" gap="lg">
+              <Grid minWidth="300px" gap="lg">
                 {/* Before */}
                 <Card variant="elevated" className="border-[#FF0040]/30 bg-[#FF0040]/5">
                   <Stack gap="md" className="p-8">
@@ -425,12 +412,10 @@ export default function HomePage() {
                 </Stack>
               </Card>
             </Stack>
-          </Container>
         </section>
 
         {/* Stats Section */}
         <section>
-          <Container size="xl">
             <Cover minHeight="300px" className="bg-gradient-to-r from-[#39FF14]/10 via-[#00FFFF]/5 to-[#BF00FF]/10 rounded-3xl border border-[#333]">
               <Stack align="center" gap="lg">
                 <div className="text-center">
@@ -466,12 +451,10 @@ export default function HomePage() {
                 </Grid>
               </Stack>
             </Cover>
-          </Container>
         </section>
 
         {/* How It Works */}
         <section>
-          <Container size="xl">
             <Stack gap="lg">
               <div className="text-center">
                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
@@ -524,12 +507,10 @@ export default function HomePage() {
                 </Card>
               </Switcher>
             </Stack>
-          </Container>
         </section>
 
         {/* Final CTA */}
         <section>
-          <Container size="xl">
             <Cover minHeight="500px" className="bg-gradient-to-br from-[#39FF14]/20 via-[#00FFFF]/10 to-[#BF00FF]/20 rounded-3xl border-2 border-[#333]">
               <Stack align="center" gap="lg" className="text-center">
                 <h2 className="text-4xl md:text-6xl font-bold text-white">
@@ -577,7 +558,7 @@ export default function HomePage() {
                   <Button variant="primary" size="xl" asChild>
                     <a href="/auth/signup">
                       Join the Vibe Tribe
-                      <Icon icon={ArrowRight} size="sm" className="ml-2" />
+                      <Icon icon={ArrowRight} size="sm" />
                     </a>
                   </Button>
                   <Button variant="secondary" size="xl" asChild>
@@ -597,7 +578,6 @@ export default function HomePage() {
                 </p>
               </Stack>
             </Cover>
-          </Container>
         </section>
 
       </Stack>
