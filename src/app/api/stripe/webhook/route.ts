@@ -304,7 +304,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Handle Combined Checkout: Intensive + Vision Pro Continuity
-        else if (session.mode === 'subscription' && session.metadata?.product_type === 'combined_intensive_continuity') {
+        else if ((session.mode as string) === 'subscription' && session.metadata?.product_type === 'combined_intensive_continuity') {
           console.log('🔄 Processing combined intensive + continuity checkout...')
           
           const customerId = session.customer as string

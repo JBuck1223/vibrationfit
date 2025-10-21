@@ -1397,14 +1397,14 @@ export const PricingCard = React.forwardRef<HTMLDivElement, PricingCardProps>(
         onClick={onClick}
         {...props}
       >
-        <div className="flex flex-col gap-6 items-stretch">
-          <div className="flex flex-col md:flex-row flex-wrap gap-4 items-center justify-start">
+        <div className="flex flex-col gap-6 items-center text-center">
+          <div className="flex flex-col gap-4 items-center">
             {IconComponent && (
-              <IconComponent className="w-full md:flex-1 w-6 h-6" style={{ color: iconColor }} />
+              <IconComponent className="w-6 h-6" style={{ color: iconColor }} />
             )}
-            <h3 className="w-full md:flex-1 text-xl font-bold text-white">{title}</h3>
+            <h3 className="text-xl font-bold text-white">{title}</h3>
             {badge && (
-              <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-green-500/20 text-green-400 border-green-500/30 w-full md:flex-1">
+              <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-green-500/20 text-green-400 border-green-500/30">
                 {badge}
               </span>
             )}
