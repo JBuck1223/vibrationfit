@@ -220,7 +220,20 @@ export default function PricingHormoziPage() {
                 {/* Order Summary */}
                 <Stack gap="sm" align="center">
                   <div className="text-white text-center">
-                    <strong>Today:</strong> ${getPaymentAmount()}{paymentPlan === 'full' ? '' : paymentPlan === '2pay' ? ' × 2' : ' × 3'} for the 72‑Hour Intensive + 8 weeks included.
+                    {paymentPlan === 'full' ? (
+                      <><strong>Today:</strong> $499 for the 72‑Hour Intensive + 8 weeks included.</>
+                    ) : paymentPlan === '2pay' ? (
+                      <>
+                        <strong>Today:</strong> $249.50 for the 72‑Hour Intensive + 8 weeks included.<br />
+                        <strong>In 4 weeks:</strong> $249.50 (final payment)
+                      </>
+                    ) : (
+                      <>
+                        <strong>Today:</strong> $166.33 for the 72‑Hour Intensive + 8 weeks included.<br />
+                        <strong>In 4 weeks:</strong> $166.33<br />
+                        <strong>In 8 weeks:</strong> $166.33 (final payment)
+                      </>
+                    )}
                   </div>
                   <div className="text-white text-center">
                     <strong>Day 56:</strong> {continuityPlan === 'annual' 
