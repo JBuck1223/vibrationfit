@@ -463,7 +463,7 @@ export default function DesignSystemExperiment() {
                   </div>
 
               {/* Card Variants */}
-              <Card>
+              <Card id="cards">
                 <Stack gap="md">
                   <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                     <Icon icon={CreditCard} size="md" color="#39FF14" />
@@ -824,7 +824,7 @@ export default function DesignSystemExperiment() {
               </Card>
 
               {/* Media Components */}
-              <Card>
+              <Card id="video">
                 <Stack gap="md">
                   <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                     <Icon icon={Monitor} size="md" color="#39FF14" />
@@ -863,7 +863,7 @@ export default function DesignSystemExperiment() {
                 </Card>
 
                     {/* Modal Component */}
-                    <Card variant="default" className="p-4">
+                    <Card variant="default" className="p-4" id="modals">
                       <Stack gap="sm">
                         <h4 className="text-lg font-medium mb-2 text-white">Modal Dialog</h4>
                         <p className="text-sm text-[#9CA3AF] mb-4">Accessible modal with overlay and animations</p>
@@ -900,7 +900,7 @@ export default function DesignSystemExperiment() {
                 </Card>
 
               {/* Feedback Components */}
-              <Card>
+              <Card id="progress">
                 <Stack gap="md">
                   <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                     <Icon icon={Loader2} size="md" color="#39FF14" />
@@ -947,7 +947,7 @@ export default function DesignSystemExperiment() {
                 </Card>
 
               {/* Item List Cards */}
-              <Card>
+              <Card id="pricing-cards">
                 <Stack gap="md">
                   <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                     <Icon icon={List} size="md" color="#39FF14" />
@@ -1133,7 +1133,7 @@ export default function DesignSystemExperiment() {
                 </Card>
 
               {/* Badges */}
-              <Card>
+              <Card id="badges">
                 <Stack gap="md">
                   <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                     <Icon icon={Tag} size="md" color="#39FF14" />
