@@ -1670,29 +1670,37 @@ export default function DesignSystemExperiment() {
       </Modal>
 
       {/* Video Modal Example */}
-      <Modal
-        isOpen={videoModalOpen}
-        onClose={() => setVideoModalOpen(false)}
-        size="xl"
-        title="Video Player"
-      >
-        <Stack gap="md">
-          <div className="aspect-video bg-black rounded-lg overflow-hidden">
-            <Video
-              src="https://media.vibrationfit.com/site-assets/videos/intro-video/1080p.mp4"
-              poster="https://media.vibrationfit.com/site-assets/videos/intro-video/poster.jpg"
-              className="w-full h-full"
-            />
-          </div>
+      {videoModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          onClick={() => setVideoModalOpen(false)}
+        >
+          {/* Semi-transparent black background */}
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-white mb-2">VibrationFit Introduction</h3>
-            <p className="text-sm text-neutral-400">
-              Discover how conscious creation can transform your life in just 72 hours.
-            </p>
+          {/* Video container with green border */}
+          <div 
+            className="relative border-2 border-[#39FF14] rounded-lg overflow-hidden max-w-4xl w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="aspect-video bg-black">
+              <Video
+                src="https://media.vibrationfit.com/site-assets/videos/intro-video/1080p.mp4"
+                poster="https://media.vibrationfit.com/site-assets/videos/intro-video/poster.jpg"
+                className="w-full h-full"
+              />
+            </div>
+            
+            {/* Video info overlay */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+              <h3 className="text-lg font-semibold text-white mb-1">VibrationFit Introduction</h3>
+              <p className="text-sm text-neutral-300">
+                Discover how conscious creation can transform your life in just 72 hours.
+              </p>
+            </div>
           </div>
-        </Stack>
-      </Modal>
+        </div>
+      )}
 
       {/* VISION PRO MEMBERSHIP SECTION FROM COMMIT 9236e41 */}
       <section className="py-12">
