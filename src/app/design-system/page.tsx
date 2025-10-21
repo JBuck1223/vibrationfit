@@ -58,10 +58,10 @@ const CategoryCard = ({ category, selected = false, onClick }: any) => {
     <Card 
       variant={selected ? 'elevated' : 'default'} 
       hover 
-      className={`cursor-pointer ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''}`}
+      className={`cursor-pointer aspect-square ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''}`}
       onClick={onClick}
     >
-      <Stack align="center" gap="xs" className="text-center px-2 aspect-square justify-center">
+      <Stack align="center" gap="xs" className="text-center px-2 justify-center h-full">
         <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} className="opacity-80" />
         <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
       </Stack>
