@@ -3,7 +3,7 @@
 // Path: /src/lib/design-system/components.tsx
 
 import React from 'react'
-import { LucideIcon, Sparkles } from 'lucide-react'
+import { LucideIcon, Sparkles, Check } from 'lucide-react'
 
 // ============================================================================
 // UTILITY FUNCTION
@@ -1302,3 +1302,122 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
   }
 )
 Modal.displayName = 'Modal'
+
+// ============================================================================
+// ITEM LIST CARD COMPONENT
+// ============================================================================
+
+interface ItemListCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  title: string
+  items: string[]
+  iconColor?: string
+  variant?: 'default' | 'elevated'
+}
+
+export const ItemListCard = React.forwardRef<HTMLDivElement, ItemListCardProps>(
+  ({ title, items, iconColor = '#39FF14', variant = 'default', className = '', ...props }, ref) => {
+    const variants = {
+      default: 'rounded-2xl p-6 md:p-8 bg-[#1F1F1F] border-2 border-[#333]',
+      elevated: 'rounded-2xl p-6 md:p-8 bg-[#1F1F1F] border-2 border-[#333] shadow-xl'
+    }
+
+    return (
+      <div
+        ref={ref}
+        className={cn(variants[variant], className)}
+        {...props}
+      >
+        <div className="flex flex-col gap-6 items-stretch">
+          <h3 className="text-xl font-bold" style={{ color: iconColor }}>
+            {title}
+          </h3>
+          <div 
+            className="grid gap-4" 
+            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
+          >
+            {items.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-3">
+                <Check className="w-4 h-4 flex-shrink-0" style={{ color: iconColor }} />
+                <span className="text-neutral-200 text-sm">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+)
+ItemListCard.displayName = 'ItemListCard'
+
+// ============================================================================
+// PRICING CARD COMPONENT
+// ============================================================================
+
+interface PricingCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  title: string
+  price: string
+  description?: string
+  badge?: string
+  icon?: React.ElementType
+  iconColor?: string
+  selected?: boolean
+  onClick?: () => void
+  variant?: 'default' | 'elevated'
+}
+
+export const PricingCard = React.forwardRef<HTMLDivElement, PricingCardProps>(
+  ({ 
+    title, 
+    price, 
+    description, 
+    badge, 
+    icon: IconComponent, 
+    iconColor = '#39FF14', 
+    selected = false, 
+    onClick, 
+    variant = 'default',
+    className = '', 
+    ...props 
+  }, ref) => {
+    const variants = {
+      default: 'rounded-2xl p-6 md:p-8 bg-[#1F1F1F] border-2 border-[#333] shadow-xl hover:border-[#00CC44] hover:-translate-y-1 transition-all duration-200 cursor-pointer',
+      elevated: 'rounded-2xl p-6 md:p-8 bg-[#1F1F1F] border-2 border-[#333] shadow-xl hover:border-[#00CC44] hover:-translate-y-1 transition-all duration-200 cursor-pointer transition-all ring-2 border-[#39FF14]'
+    }
+
+    const cardClasses = cn(
+      variants[variant],
+      selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : '',
+      className
+    )
+
+    return (
+      <div
+        ref={ref}
+        className={cardClasses}
+        onClick={onClick}
+        {...props}
+      >
+        <div className="flex flex-col gap-6 items-stretch">
+          <div className="flex flex-col md:flex-row flex-wrap gap-4 items-center justify-start">
+            {IconComponent && (
+              <IconComponent className="w-full md:flex-1 w-6 h-6" style={{ color: iconColor }} />
+            )}
+            <h3 className="w-full md:flex-1 text-xl font-bold text-white">{title}</h3>
+            {badge && (
+              <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-green-500/20 text-green-400 border-green-500/30 w-full md:flex-1">
+                {badge}
+              </span>
+            )}
+          </div>
+          <div className="text-3xl font-bold" style={{ color: iconColor }}>
+            {price}
+          </div>
+          {description && (
+            <div className="text-neutral-400">{description}</div>
+          )}
+        </div>
+      </div>
+    )
+  }
+)
+PricingCard.displayName = 'PricingCard'

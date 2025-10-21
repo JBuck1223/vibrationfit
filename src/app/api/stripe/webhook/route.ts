@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
           })
         }
         
-        // Handle $499 Vision Activation Intensive purchases
+        // Handle $499 Vision Activation Intensive purchases (standalone)
         else if (session.mode === 'payment' && session.metadata?.purchase_type === 'intensive') {
           const existingUserId = session.metadata.user_id
           const paymentPlan = session.metadata.payment_plan || 'full'
@@ -301,6 +301,184 @@ export async function POST(request: NextRequest) {
 
           // TODO: Send welcome email with intensive onboarding instructions
           // TODO: Schedule SMS reminders for 24h, 36h, 72h checkpoints
+        }
+        
+        // Handle Combined Checkout: Intensive + Vision Pro Continuity
+        else if (session.mode === 'subscription' && session.metadata?.product_type === 'combined_intensive_continuity') {
+          console.log('🔄 Processing combined intensive + continuity checkout...')
+          
+          const customerId = session.customer as string
+          const subscriptionId = session.subscription as string
+          const customerEmail = session.customer_details?.email
+          const intensivePaymentPlan = session.metadata.intensive_payment_plan || 'full'
+          const continuityPlan = session.metadata.continuity_plan || 'annual'
+          
+          // Handle guest checkout - create user account if needed
+          let userId = session.metadata.user_id && session.metadata.user_id !== 'guest' ? session.metadata.user_id : null
+          
+          if (!userId && customerEmail) {
+            console.log('Creating user account for combined checkout:', customerEmail)
+            
+            // Create user account in Supabase Auth
+            const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+              email: customerEmail,
+              email_confirm: true,
+            })
+
+            if (authError) {
+              console.error('Error creating user account:', authError)
+              break
+            }
+
+            userId = authData.user.id
+            console.log('Created user account for combined checkout:', userId)
+
+            // Generate magic link for backup
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+            const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+              type: 'magiclink',
+              email: customerEmail,
+              options: {
+                redirectTo: `${appUrl}/auth/setup-password?intensive=true`,
+              },
+            })
+
+            if (magicLinkError) {
+              console.error('Error generating magic link:', magicLinkError)
+            } else {
+              console.log('Magic link generated for combined checkout:', customerEmail)
+            }
+          }
+
+          if (!userId || userId === 'guest') {
+            console.error('Missing valid user_id for combined checkout')
+            break
+          }
+
+          // 1. Create Vision Pro subscription
+          console.log('Creating Vision Pro subscription...')
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+          const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
+
+          // Get membership tier
+          const { data: tier } = await supabase
+            .from('membership_tiers')
+            .select('id')
+            .eq('tier_type', tierType)
+            .single()
+
+          if (!tier) {
+            console.error('Tier not found:', tierType)
+            break
+          }
+
+          // Create subscription record with delayed billing
+          const { data: newSubscription } = await supabase.from('customer_subscriptions').insert({
+            user_id: userId,
+            membership_tier_id: tier.id,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            stripe_price_id: subscription.items.data[0].price.id,
+            status: 'trialing' as any, // Mark as trialing during 8-week period
+            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            trial_start: new Date().toISOString(), // Start trial immediately
+            trial_end: new Date(Date.now() + (56 * 24 * 60 * 60 * 1000)).toISOString(), // End trial after 56 days
+          })
+          .select()
+          .single()
+
+          console.log('✅ Vision Pro subscription created:', subscriptionId)
+
+          // Grant trial tokens during 8-week period
+          if (tierType === 'vision_pro_annual') {
+            // During trial: Grant 1M tokens for 8 weeks (scaled down from 5M annual)
+            const { data: result, error: grantError } = await supabase
+              .rpc('grant_trial_tokens', {
+                p_user_id: userId,
+                p_subscription_id: newSubscription?.id || null,
+                p_tokens: 1000000, // 1M tokens for 8-week trial
+                p_trial_period_days: 56,
+              })
+            
+            if (grantError) {
+              console.error('❌ Failed to grant trial tokens:', grantError)
+            } else {
+              console.log('✅ Trial tokens granted for annual plan:', result)
+            }
+            
+            // Set storage quota to 25GB during trial (will upgrade to 100GB after Day 56)
+            await supabase
+              .from('user_profiles')
+              .update({ storage_quota_gb: 25 })
+              .eq('user_id', userId)
+          } 
+          else if (tierType === 'vision_pro_28day') {
+            // During trial: Grant 500k tokens for 8 weeks (more than normal 375k cycle)
+            const { data: result, error: grantError } = await supabase
+              .rpc('grant_trial_tokens', {
+                p_user_id: userId,
+                p_subscription_id: newSubscription?.id || null,
+                p_tokens: 500000, // 500k tokens for 8-week trial
+                p_trial_period_days: 56,
+              })
+            
+            if (grantError) {
+              console.error('❌ Failed to grant trial tokens:', grantError)
+            } else {
+              console.log('✅ Trial tokens granted for 28-day plan:', result)
+            }
+            
+            // Set storage quota to 25GB during trial
+            await supabase
+              .from('user_profiles')
+              .update({ storage_quota_gb: 25 })
+              .eq('user_id', userId)
+          }
+
+          // 2. Create Intensive Purchase
+          console.log('Creating intensive purchase...')
+          const activationDeadline = new Date()
+          activationDeadline.setHours(activationDeadline.getHours() + 72) // 72 hours from now
+
+          const { data: intensive, error: intensiveError } = await supabaseAdmin
+            .from('intensive_purchases')
+            .insert({
+              user_id: userId,
+              stripe_payment_intent_id: session.payment_intent as string,
+              stripe_checkout_session_id: session.id,
+              amount: session.amount_total || 49900, // This will be the intensive portion
+              payment_plan: intensivePaymentPlan,
+              installments_total: intensivePaymentPlan === 'full' ? 1 : intensivePaymentPlan === '2pay' ? 2 : 3,
+              installments_paid: 1,
+              completion_status: 'pending',
+              activation_deadline: activationDeadline.toISOString(),
+            })
+            .select()
+            .single()
+
+          if (intensiveError) {
+            console.error('❌ Failed to create intensive purchase:', intensiveError)
+            break
+          }
+
+          // Create checklist for intensive
+          await supabaseAdmin.from('intensive_checklist').insert({
+            intensive_id: intensive.id,
+            user_id: userId,
+          })
+
+          console.log('✅ Combined checkout completed:', {
+            userId,
+            subscriptionId,
+            intensiveId: intensive.id,
+            intensivePaymentPlan,
+            continuityPlan,
+            deadline: activationDeadline.toISOString(),
+          })
+
+          // TODO: Send welcome email with intensive onboarding + subscription details
+          // TODO: Schedule SMS reminders for intensive milestones
         }
         
         break

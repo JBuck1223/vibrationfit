@@ -12,7 +12,7 @@ import {
   Layout, PanelTop, Square, Monitor, Smartphone, Grid as GridIcon,
   Palette, FileText, Tag, TrendingUp, RotateCcw, Mouse, CreditCard,
   AlignLeft, AlignCenter, AlignRight, Loader2, AlertCircle, Info,
-  ArrowRight, Play, Download, Share, Settings, MousePointer
+  ArrowRight, Play, Download, Share, Settings, MousePointer, Check, List
 } from 'lucide-react'
 import {
   Stack,
@@ -37,6 +37,8 @@ import {
   ProgressBar,
   Video,
   Modal,
+  ItemListCard,
+  PricingCard,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -857,6 +859,114 @@ export default function DesignSystemExperiment() {
                       </Stack>
                     </Stack>
                 </Card>
+                </Stack>
+                </Card>
+
+              {/* Item List Cards */}
+              <Card>
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={List} size="md" color="#39FF14" />
+                    Item List Cards
+                  </h3>
+                  
+                  {/* Item List Card Example */}
+                  <Card variant="default" className="p-4">
+                    <Stack gap="sm">
+                      <h4 className="text-lg font-medium mb-2 text-white">Item List Card - Feature Lists</h4>
+                      
+                      {/* Component Usage */}
+                      <ItemListCard
+                        title="72-Hour Vision Activation Intensive"
+                        items={[
+                          'Life Vision Draft + Final',
+                          'Vision Board (Custom Built)',
+                          'Two Activation Audios',
+                          '7-Day Streak Launcher',
+                          'Small-Group Calibration',
+                          'Template Vault + Prompt Library',
+                        ]}
+                        iconColor="#39FF14"
+                        variant="default"
+                      />
+                      
+                      <div className="text-sm text-neutral-400 mt-4">
+                        <strong>Mobile Issues:</strong> Grid uses minmax(200px, 1fr) which can cause overflow on mobile.
+                        <br />
+                        <strong>Solution:</strong> Use responsive grid with smaller minWidth or stack on mobile.
+                        <br />
+                        <strong>Best Practice:</strong> Test on iPhone SE (375px) and iPhone 12 (390px) for mobile compatibility.
+                      </div>
+                      
+                      {/* Code Example */}
+                      <div className="bg-black/20 p-4 rounded-lg border border-[#333] mt-4">
+                        <pre className="text-xs text-neutral-300 overflow-x-auto">
+{`<ItemListCard
+  title="72-Hour Vision Activation Intensive"
+  items={[
+    'Life Vision Draft + Final',
+    'Vision Board (Custom Built)',
+    'Two Activation Audios',
+  ]}
+  iconColor="#39FF14"
+  variant="default"
+/>`}
+                        </pre>
+                      </div>
+                    </Stack>
+                  </Card>
+                </Stack>
+                </Card>
+
+              {/* Pricing Cards */}
+              <Card>
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={Crown} size="md" color="#39FF14" />
+                    Pricing Cards
+                  </h3>
+                  
+                  {/* Pricing Card Example */}
+                  <Card variant="default" className="p-4">
+                    <Stack gap="sm">
+                      <h4 className="text-lg font-medium mb-2 text-white">Pricing Card - Plan Selection</h4>
+                      
+                      {/* Component Usage */}
+                      <PricingCard
+                        title="Vision Pro Annual"
+                        price="$999/year"
+                        description="$83/month • Save vs. every-4-weeks"
+                        badge="Best Value"
+                        icon={Crown}
+                        iconColor="#39FF14"
+                        selected={true}
+                        variant="elevated"
+                      />
+                      
+                      <div className="text-sm text-neutral-400 mt-4">
+                        <strong>Mobile Issues:</strong> Flex layout with w-full md:flex-1 can cause alignment issues.
+                        <br />
+                        <strong>Solution:</strong> Use proper responsive classes and test on mobile devices.
+                      </div>
+                      
+                      {/* Code Example */}
+                      <div className="bg-black/20 p-4 rounded-lg border border-[#333] mt-4">
+                        <pre className="text-xs text-neutral-300 overflow-x-auto">
+{`<PricingCard
+  title="Vision Pro Annual"
+  price="$999/year"
+  description="$83/month • Save vs. every-4-weeks"
+  badge="Best Value"
+  icon={Crown}
+  iconColor="#39FF14"
+  selected={true}
+  variant="elevated"
+  onClick={() => setSelectedPlan('annual')}
+/>`}
+                        </pre>
+                      </div>
+                    </Stack>
+                  </Card>
                 </Stack>
                 </Card>
 

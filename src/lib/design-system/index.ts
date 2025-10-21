@@ -39,6 +39,10 @@ export {
   
   // Overlay Components
   Modal,
+  
+  // Specialized Cards
+  ItemListCard,
+  PricingCard,
 } from './components'
 
 // Legacy alias for backward compatibility
