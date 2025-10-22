@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import '@/styles/brand.css'
-import { Header } from '@/components/Header'
-import { Footer } from '@/components/Footer'
+import { GlobalLayout } from '@/components/GlobalLayout'
 import { AuthProvider } from '@/components/AuthProvider'
 import { IntensiveBar } from '@/components/IntensiveBar'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
@@ -48,10 +47,10 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <AuthProvider>
-          <Header />
-          {/* <IntensiveBar /> */}
-          {children}
-          <Footer />
+          <GlobalLayout>
+            {/* <IntensiveBar /> */}
+            {children}
+          </GlobalLayout>
           <Toaster 
             position="top-right"
             toastOptions={{

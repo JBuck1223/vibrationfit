@@ -11,7 +11,6 @@ import {
   ProgressBar, 
   Badge, 
   PageLayout, 
-  Container,
   Spinner,
   Input
 } from '@/lib/design-system/components'
@@ -372,9 +371,8 @@ export default function NewLifeVisionPage() {
 
   return (
     <PageLayout>
-      <div className="min-h-screen bg-black text-white">
-        {/* AI Option Banner */}
-        <div className="bg-gradient-to-r from-[#8B5CF6] to-[#14B8A6] py-4 px-6 text-center">
+      {/* AI Option Banner */}
+      <div className="bg-gradient-to-r from-[#8B5CF6] to-[#14B8A6] py-4 px-6 text-center -mx-6 mb-8">
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-left">
               <p className="text-white font-semibold text-lg flex items-center gap-2">
@@ -603,7 +601,6 @@ export default function NewLifeVisionPage() {
           {activeSection < sections.length - 1 ? '→' : '✓'}
         </Button>
       </div>
-    </div>
     </PageLayout>
   )
 }

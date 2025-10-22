@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, PageLayout, Button, getVisionCategoryLabel } from '@/lib/design-system'
+import { PageLayout, Button, getVisionCategoryLabel } from '@/lib/design-system'
 import { CategoryProgress } from '@/components/vision/CategoryProgress'
 import { DiscoveryQuestion } from '@/components/vision/DiscoveryQuestion'
 import { ArrowLeft, Sparkles, Loader2, CheckCircle } from 'lucide-react'
@@ -384,26 +384,23 @@ export default function VisionCreateWithVivaPage() {
   if (initializing) {
     return (
       <PageLayout>
-        <Container className="py-12">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#14B8A6] to-[#8B5CF6] flex items-center justify-center animate-pulse">
-                <Sparkles className="w-10 h-10 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Viva is Getting Ready</h2>
-              <p className="text-neutral-400">Preparing your vision creation journey...</p>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#14B8A6] to-[#8B5CF6] flex items-center justify-center animate-pulse">
+              <Sparkles className="w-10 h-10 text-white" />
             </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Viva is Getting Ready</h2>
+            <p className="text-neutral-400">Preparing your vision creation journey...</p>
           </div>
-        </Container>
+        </div>
       </PageLayout>
     )
   }
 
   return (
     <PageLayout>
-      <Container className="py-12">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
             <Button
               variant="ghost"
               onClick={() => router.push('/life-vision')}
@@ -585,7 +582,6 @@ export default function VisionCreateWithVivaPage() {
             </div>
           )}
         </div>
-      </Container>
     </PageLayout>
   )
 }

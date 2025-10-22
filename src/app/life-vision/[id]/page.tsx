@@ -11,7 +11,6 @@ import {
   ProgressBar, 
   Badge, 
   PageLayout, 
-  Container,
   Spinner,
   Input,
   Textarea,
@@ -809,11 +808,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   if (loading) {
     return (
       <PageLayout>
-        <Container size="xl" className="py-8">
-          <div className="flex items-center justify-center py-16">
-            <Spinner variant="primary" size="lg" />
-          </div>
-        </Container>
+        <div className="flex items-center justify-center py-16">
+          <Spinner variant="primary" size="lg" />
+        </div>
       </PageLayout>
     )
   }
@@ -821,22 +818,19 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   if (!vision) {
     return (
       <PageLayout>
-        <Container size="xl" className="py-8">
-          <Card className="text-center py-16">
-            <h2 className="text-2xl font-bold text-white mb-4">Vision not found</h2>
-            <p className="text-neutral-400 mb-6">This vision doesn't exist or you don't have permission to view it.</p>
-            <Button asChild>
-              <Link href="/life-vision">Back to Life Visions</Link>
-            </Button>
-          </Card>
-        </Container>
+        <Card className="text-center py-16">
+          <h2 className="text-2xl font-bold text-white mb-4">Vision not found</h2>
+          <p className="text-neutral-400 mb-6">This vision doesn't exist or you don't have permission to view it.</p>
+          <Button asChild>
+            <Link href="/life-vision">Back to Life Visions</Link>
+          </Button>
+        </Card>
       </PageLayout>
     )
   }
 
   return (
-    <PageLayout>
-      <Container size="xl" className="pt-0 pb-6">
+    <PageLayout className="pt-0">
         {/* Header */}
         <div className="mb-8">
           {/* Title Section */}
@@ -865,12 +859,29 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               )}
             </div>
             
-            {/* Created Date */}
-            <div className="text-center mb-6">
-              <p className="text-xs text-neutral-500 mb-1">Created</p>
-              <p className="text-sm text-white">
-                {new Date(vision.created_at).toLocaleDateString()} at {new Date(vision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-              </p>
+            {/* Created Date & History */}
+            <div className="flex items-center justify-center gap-3 mb-6">
+              {/* Created Date Badge */}
+              <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+                <div className="text-xs md:text-sm">
+                  <p className="text-white font-medium">
+                    {new Date(vision.created_at).toLocaleDateString()} at {new Date(vision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Version History Button */}
+              {versions.length > 0 && (
+                <Button
+                  onClick={() => setShowVersions(!showVersions)}
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-2 px-3 py-2 border border-neutral-700 rounded-lg hover:border-neutral-600"
+                >
+                  <Icon icon={History} size="sm" />
+                  {showVersions ? 'Hide' : 'Show'} History
+                </Button>
+              )}
             </div>
           </div>
 
@@ -882,7 +893,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               variant="primary"
               className="flex items-center gap-2"
             >
-              <Edit3 className="w-4 h-4" />
+              <Icon icon={Edit3} size="sm" />
               {isEditing ? 'View' : 'Edit'}
             </Button>
             <Button
@@ -890,7 +901,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               variant="secondary"
               className="flex items-center gap-2"
             >
-              <VolumeX className="w-4 h-4" />
+              <Icon icon={VolumeX} size="sm" />
               Audio Tracks
             </Button>
             <Button
@@ -898,7 +909,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               variant="secondary"
               className="flex items-center gap-2"
             >
-              <Download className="w-4 h-4" />
+              <Icon icon={Download} size="sm" />
               Download PDF
             </Button>
             <Button
@@ -907,11 +918,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               className="flex items-center gap-2"
             >
               <Link href={`/life-vision/${vision.id}/refine`}>
-                <Gem className="w-4 h-4" />
+                <Icon icon={Gem} size="sm" />
                 Refine
               </Link>
             </Button>
           </div>
+
 
 
           {/* Versions Dropdown */}
@@ -1225,7 +1237,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           </Link>
         </div>
         </div>
-      </Container>
-    </PageLayout>
-  )
+      </PageLayout>
+    )
 }

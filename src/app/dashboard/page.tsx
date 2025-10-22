@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { SidebarLayout } from '@/components/Sidebar'
 import DashboardContent from '@/components/DashboardContent'
 
 export default async function DashboardPage() {
@@ -47,15 +46,13 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
 
   return (
-    <SidebarLayout>
-      <DashboardContent 
-        user={user}
-        profileData={profileData}
-        visionData={visionData || []}
-        visionBoardData={visionBoardData || []}
-        journalData={journalData || []}
-        assessmentData={assessmentData || []}
-      />
-    </SidebarLayout>
+    <DashboardContent 
+      user={user}
+      profileData={profileData}
+      visionData={visionData || []}
+      visionBoardData={visionBoardData || []}
+      journalData={journalData || []}
+      assessmentData={assessmentData || []}
+    />
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, PageLayout, Spinner, Badge } from '@/lib/design-system/components'
+import { Button, Card, PageLayout, Spinner, Badge } from '@/lib/design-system/components'
 import { getVisionCategoryKeys, getVisionCategoryLabel } from '@/lib/design-system'
 import { AudioPlayer } from '@/components/AudioPlayer'
 import { createClient } from '@/lib/supabase/client'
@@ -175,8 +175,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
 
   return (
     <PageLayout>
-      <Container size="xl" className="py-12">
-        <div className="text-center py-12 bg-gradient-to-br from-[#199D67] to-[#14B8A6] rounded-3xl">
+      <div className="text-center py-12 bg-gradient-to-br from-[#199D67] to-[#14B8A6] rounded-3xl -mx-6 mb-8">
           <h1 className="text-5xl font-bold mb-4 text-white">Life Vision Audio</h1>
           <p className="text-xl text-white/90 mb-6">Generate premium, narrated audio of your vision</p>
           <div className="flex items-center justify-center gap-3">
@@ -272,7 +271,6 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
             </>
           )}
         </div>
-      </Container>
     </PageLayout>
   )
 }
