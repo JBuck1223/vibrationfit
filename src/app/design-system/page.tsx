@@ -39,6 +39,9 @@ import {
   Modal,
   ItemListCard,
   PricingCard,
+  BulletedList,
+  ListItem,
+  OrderedList,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -1141,6 +1144,157 @@ export default function DesignSystemExperiment() {
                   </Card>
                 </Stack>
                 </Card>
+
+              {/* List Components */}
+              <Card>
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={List} size="md" color="#39FF14" />
+                    List Components
+                  </h3>
+                  
+                  {/* Bulleted Lists */}
+                  <Card variant="default" className="p-4">
+                    <Stack gap="sm">
+                      <h4 className="text-lg font-medium mb-2 text-white">BulletedList - Brand-Colored Lists</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h5 className="text-sm font-medium text-neutral-400 mb-2">Default</h5>
+                          <BulletedList>
+                            <ListItem>Vision creation and refinement</ListItem>
+                            <ListItem>AI-powered insights and guidance</ListItem>
+                            <ListItem>Progress tracking and analytics</ListItem>
+                          </BulletedList>
+                        </div>
+                        <div>
+                          <h5 className="text-sm font-medium text-neutral-400 mb-2">Primary (Green)</h5>
+                          <BulletedList variant="primary">
+                            <ListItem>Above the Green Line</ListItem>
+                            <ListItem>Growth and alignment</ListItem>
+                            <ListItem>Success metrics</ListItem>
+                          </BulletedList>
+                        </div>
+                        <div>
+                          <h5 className="text-sm font-medium text-neutral-400 mb-2">Accent (Purple)</h5>
+                          <BulletedList variant="accent">
+                            <ListItem>Premium AI features</ListItem>
+                            <ListItem>Advanced analytics</ListItem>
+                            <ListItem>Priority support</ListItem>
+                          </BulletedList>
+                        </div>
+                        <div>
+                          <h5 className="text-sm font-medium text-neutral-400 mb-2">Warning (Yellow)</h5>
+                          <BulletedList variant="warning">
+                            <ListItem>Action required</ListItem>
+                            <ListItem>Attention needed</ListItem>
+                            <ListItem>Important updates</ListItem>
+                          </BulletedList>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <pre className="bg-neutral-800 p-4 rounded-lg text-sm text-neutral-300 overflow-x-auto">
+{`<BulletedList variant="primary">
+  <ListItem>Above the Green Line</ListItem>
+  <ListItem>Growth and alignment</ListItem>
+  <ListItem>Success metrics</ListItem>
+</BulletedList>`}
+                        </pre>
+                      </div>
+                    </Stack>
+                  </Card>
+
+                  {/* List Items with Icons */}
+                  <Card variant="default" className="p-4">
+                    <Stack gap="sm">
+                      <h4 className="text-lg font-medium mb-2 text-white">ListItem - Custom Icons</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h5 className="text-sm font-medium text-neutral-400 mb-2">With Icons</h5>
+                          <BulletedList>
+                            <ListItem icon={CheckCircle}>Task completed</ListItem>
+                            <ListItem icon={Zap}>Energy boost</ListItem>
+                            <ListItem icon={Star}>Achievement unlocked</ListItem>
+                            <ListItem icon={Target}>Goal achieved</ListItem>
+                          </BulletedList>
+                        </div>
+                        <div>
+                          <h5 className="text-sm font-medium text-neutral-400 mb-2">Different Sizes</h5>
+                          <BulletedList size="sm" spacing="tight">
+                            <ListItem>Small compact list</ListItem>
+                            <ListItem>Perfect for summaries</ListItem>
+                          </BulletedList>
+                          <div className="mt-4">
+                            <BulletedList size="lg" spacing="loose">
+                              <ListItem>Large prominent list</ListItem>
+                              <ListItem>Great for important content</ListItem>
+                            </BulletedList>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <pre className="bg-neutral-800 p-4 rounded-lg text-sm text-neutral-300 overflow-x-auto">
+{`<BulletedList>
+  <ListItem icon={CheckCircle}>Task completed</ListItem>
+  <ListItem icon={Zap}>Energy boost</ListItem>
+  <ListItem icon={Star}>Achievement unlocked</ListItem>
+</BulletedList>`}
+                        </pre>
+                      </div>
+                    </Stack>
+                  </Card>
+
+                  {/* Ordered Lists */}
+                  <Card variant="default" className="p-4">
+                    <Stack gap="sm">
+                      <h4 className="text-lg font-medium mb-2 text-white">OrderedList - Numbered Lists</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h5 className="text-sm font-medium text-neutral-400 mb-2">Default</h5>
+                          <OrderedList>
+                            <li>Create your life vision</li>
+                            <li>Set specific goals</li>
+                            <li>Track your progress</li>
+                            <li>Celebrate achievements</li>
+                          </OrderedList>
+                        </div>
+                        <div>
+                          <h5 className="text-sm font-medium text-neutral-400 mb-2">Secondary (Teal)</h5>
+                          <OrderedList variant="secondary">
+                            <li>Clarity and flow</li>
+                            <li>Calm energy</li>
+                            <li>Information processing</li>
+                            <li>Mental alignment</li>
+                          </OrderedList>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <pre className="bg-neutral-800 p-4 rounded-lg text-sm text-neutral-300 overflow-x-auto">
+{`<OrderedList variant="secondary">
+  <li>Clarity and flow</li>
+  <li>Calm energy</li>
+  <li>Information processing</li>
+  <li>Mental alignment</li>
+</OrderedList>`}
+                        </pre>
+                      </div>
+                    </Stack>
+                  </Card>
+
+                  {/* Usage Guidelines */}
+                  <Card variant="outlined" className="p-4 border-[#39FF14]/20">
+                    <Stack gap="sm">
+                      <h4 className="text-lg font-medium mb-2 text-[#39FF14]">Usage Guidelines</h4>
+                      <BulletedList variant="primary" size="sm">
+                        <ListItem>Use <code className="bg-neutral-800 px-1 rounded">BulletedList</code> for unordered items</ListItem>
+                        <ListItem>Use <code className="bg-neutral-800 px-1 rounded">OrderedList</code> for sequential steps</ListItem>
+                        <ListItem>Choose variants based on content context (primary for success, warning for alerts)</ListItem>
+                        <ListItem>Add custom icons with <code className="bg-neutral-800 px-1 rounded">icon</code> prop</ListItem>
+                        <ListItem>Adjust <code className="bg-neutral-800 px-1 rounded">size</code> and <code className="bg-neutral-800 px-1 rounded">spacing</code> for hierarchy</ListItem>
+                      </BulletedList>
+                    </Stack>
+                  </Card>
+                </Stack>
+              </Card>
 
               {/* Form Components */}
               <Card>
