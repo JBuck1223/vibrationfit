@@ -15,20 +15,66 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   
   // Define pages that should use the full navigation system (logged-in user pages)
   const navigationPages = [
+    // Dashboard and sub-pages
     '/dashboard',
-    '/life-vision',
-    '/vision-board',
-    '/journal',
-    '/profile',
-    '/assessment',
-    '/billing',
-    '/support',
     '/dashboard/activity',
     '/dashboard/add-tokens',
     '/dashboard/storage',
     '/dashboard/token-history',
     '/dashboard/tokens',
     '/dashboard/vibe-assistant-usage',
+    
+    // Life Vision and sub-pages
+    '/life-vision',
+    '/life-vision/new',
+    '/life-vision/create-with-viva',
+    '/life-vision/[id]',
+    '/life-vision/[id]/audio',
+    '/life-vision/[id]/refine',
+    
+    // Vision Board and sub-pages
+    '/vision-board',
+    '/vision-board/new',
+    '/vision-board/gallery',
+    '/vision-board/[id]',
+    
+    // Journal and sub-pages
+    '/journal',
+    '/journal/new',
+    '/journal/[id]',
+    '/journal/[id]/edit',
+    
+    // Profile and sub-pages
+    '/profile',
+    '/profile/edit',
+    '/profile/new',
+    
+    // Assessment and sub-pages
+    '/assessment',
+    '/assessment/in-progress',
+    '/assessment/results',
+    
+    // Actualization Blueprints
+    '/actualization-blueprints',
+    '/actualization-blueprints/[id]',
+    
+    // Intensive program pages
+    '/intensive',
+    '/intensive/activate',
+    '/intensive/activation-protocol',
+    '/intensive/builder',
+    '/intensive/calibration',
+    '/intensive/call-prep',
+    '/intensive/check-email',
+    '/intensive/dashboard',
+    '/intensive/intake',
+    '/intensive/refine-vision',
+    '/intensive/schedule-call',
+    
+    // Other user pages
+    '/billing',
+    '/support',
+    '/account/settings',
   ]
   
   // Check if current page should use navigation system
