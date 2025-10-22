@@ -658,9 +658,9 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           </Card>
 
           {/* Quick Stats */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-4 h-full">
             
-            <Card className="p-6">
+            <Card className="p-6 h-full">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <User className="w-5 h-5 text-primary-500" />
                 Personal Information
@@ -726,6 +726,72 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
         </div>
 
         {/* Detailed Sections */}
+        {/* Current Version Information & Profile Completion */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Current Version Information */}
+          {!currentVersionId && versions.length > 0 && (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <History className="w-5 h-5 text-green-500" />
+                Current Version Information
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-neutral-400">Version ID:</span>
+                  <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
+                    {versions[0]?.id}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-neutral-400">Last Updated:</span>
+                  <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+                    <div className="text-xs md:text-sm">
+                      <p className="text-white font-medium">
+                        {versions[0]?.created_at 
+                          ? `${new Date(versions[0].created_at).toLocaleDateString()} at ${new Date(versions[0].created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+                          : 'Date not available'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Profile Completion */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary-500" />
+              Profile Completion
+            </h3>
+            <div className="text-center mb-4">
+              <span className="text-4xl font-bold text-[#39FF14]">
+                {completionPercentage}%
+              </span>
+            </div>
+            <div className="w-full bg-neutral-700 rounded-full h-3 mb-3">
+              <div
+                className="h-3 rounded-full transition-all duration-500 bg-[#39FF14]"
+                style={{ width: `${completionPercentage}%` }}
+              ></div>
+            </div>
+            <p className="text-sm text-neutral-400 text-center">
+              {completionPercentage >= 80 
+                ? "Excellent! Your profile is well-completed." 
+                : completionPercentage >= 60 
+                ? "Good progress! A few more details would be helpful."
+                : "Keep going! Complete more sections to unlock your full potential."
+              }
+            </p>
+            {isViewingVersion && getCurrentVersionInfo() && (
+              <p className="text-xs text-neutral-500 text-center mt-2">
+                Version {getCurrentVersionInfo()?.version_number} • Saved on {new Date(getCurrentVersionInfo()?.created_at).toLocaleDateString()}
+              </p>
+            )}
+          </Card>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Relationship */}
           <Card className="p-6">
@@ -1494,74 +1560,6 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             </Card>
           )}
         </div>
-
-        {/* Profile Completion & Version Info */}
-        <Card className="p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Current Version Information - Left Side */}
-            {!currentVersionId && versions.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <History className="w-5 h-5 text-green-500" />
-                  Current Version Information
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-neutral-400">Version ID:</span>
-                    <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
-                      {versions[0]?.id}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-neutral-400">Last Updated:</span>
-                    <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg">
-                      <div className="text-xs md:text-sm">
-                        <p className="text-white font-medium">
-                          {versions[0]?.created_at 
-                            ? `${new Date(versions[0].created_at).toLocaleDateString()} at ${new Date(versions[0].created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
-                            : 'Date not available'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Profile Completion - Right Side */}
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary-500" />
-                Profile Completion
-              </h3>
-              <div className="text-center mb-4">
-                <span className={`text-4xl font-bold ${getCompletionColor(completionPercentage)}`}>
-                  {completionPercentage}%
-                </span>
-              </div>
-              <div className="w-full bg-neutral-700 rounded-full h-3 mb-3">
-                <div
-                  className={`h-3 rounded-full transition-all duration-500 ${getCompletionBg(completionPercentage)}`}
-                  style={{ width: `${completionPercentage}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-neutral-400 text-center">
-                {completionPercentage >= 80 
-                  ? "Excellent! Your profile is well-completed." 
-                  : completionPercentage >= 60 
-                  ? "Good progress! A few more details would be helpful."
-                  : "Keep going! Complete more sections to unlock your full potential."
-                }
-              </p>
-              {isViewingVersion && getCurrentVersionInfo() && (
-                <p className="text-xs text-neutral-500 text-center mt-2">
-                  Version {getCurrentVersionInfo()?.version_number} • Saved on {new Date(getCurrentVersionInfo()?.created_at).toLocaleDateString()}
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
 
         {/* Media */}
         <div className="mt-8">
