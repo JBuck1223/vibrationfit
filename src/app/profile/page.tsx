@@ -579,7 +579,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                             onClick={() => window.location.href = `/profile?versionId=${version.id}`}
                             variant="outline"
                             size="sm"
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 flex-1 md:flex-none"
                           >
                             <Eye className="w-4 h-4" />
                             View
@@ -588,7 +588,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                             onClick={() => deleteVersion(version.id)}
                             variant="danger"
                             size="sm"
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 flex-1 md:flex-none"
                             disabled={deletingVersion === version.id}
                           >
                             {deletingVersion === version.id ? (
