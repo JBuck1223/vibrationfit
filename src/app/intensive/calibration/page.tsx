@@ -320,7 +320,7 @@ export default function IntensiveCalibration() {
 
   if (!calibrationData) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-16">
           <div className="text-center">
             <Spinner size="lg" className="mx-auto mb-6" />
@@ -328,12 +328,12 @@ export default function IntensiveCalibration() {
             <p className="text-neutral-400">Setting up your calibration session...</p>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-16">
         
         {/* Header */}
@@ -562,6 +562,6 @@ export default function IntensiveCalibration() {
         </Card>
 
       </Container>
-    </PageLayout>
+    </>
   )
 }

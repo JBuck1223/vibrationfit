@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap, Target, Gem, Volume2, Download, VolumeX, Diamond } from 'lucide-react'
-import { Card, Button, Badge, ProgressBar, Spinner, Grid, PageLayout } from '@/lib/design-system/components'
+import { Card, Button, Badge, ProgressBar, Spinner, Grid } from '@/lib/design-system/components'
 import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 import { LifeVisionSidebar } from './components/LifeVisionSidebar'
@@ -347,7 +347,7 @@ export default function VisionListPage() {
   }
 
   return (
-    <PageLayout>
+    <>
         {/* Create Button (only when no active vision) */}
         {!activeVision && (
           <div className="flex justify-end mb-8">
@@ -634,6 +634,6 @@ export default function VisionListPage() {
           </div>
         )}
 
-    </PageLayout>
+    </>
   )
 }

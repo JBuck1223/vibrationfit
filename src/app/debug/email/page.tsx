@@ -75,7 +75,7 @@ export default function EmailDebugPage() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container className="py-8">
         <Card>
           <h1 className="text-2xl font-bold mb-6">Email Debug Tool</h1>
@@ -120,6 +120,6 @@ export default function EmailDebugPage() {
           </div>
         </Card>
       </Container>
-    </PageLayout>
+    </>
   )
 }

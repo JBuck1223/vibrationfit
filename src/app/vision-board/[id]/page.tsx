@@ -258,19 +258,19 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container size="md" className="py-8">
           <div className="flex items-center justify-center py-16">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   if (!item) {
     return (
-      <PageLayout>
+      <>
         <Container size="md" className="py-8">
           <Card className="text-center py-16">
             <h2 className="text-2xl font-bold text-white mb-4">Item not found</h2>
@@ -280,12 +280,12 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             </Button>
           </Card>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="md" className="py-8">
         {/* Header */}
         <div className="mb-8">
@@ -571,6 +571,6 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
           </div>
         )}
       </Container>
-    </PageLayout>
+    </>
   )
 }

@@ -324,19 +324,19 @@ export default function NewProfileVersionPage() {
   // Loading state
   if (isLoading) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-8">
           <div className="text-center py-16">
             <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
             <div className="text-neutral-400">Loading profile...</div>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-8">
         {/* Header */}
         <div className="mb-8">
@@ -450,6 +450,6 @@ export default function NewProfileVersionPage() {
           </div>
         )}
       </Container>
-    </PageLayout>
+    </>
   )
 }

@@ -89,16 +89,16 @@ export default function ActivationProtocolPage() {
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
           <Spinner size="lg" />
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="lg" className="py-16">
         
         <div className="mb-8">
@@ -274,7 +274,7 @@ export default function ActivationProtocolPage() {
         </Card>
 
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

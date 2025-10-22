@@ -160,11 +160,11 @@ export default function ScheduleCallPage() {
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
           <Spinner size="lg" />
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
@@ -178,7 +178,7 @@ export default function ScheduleCallPage() {
   const dates = Object.keys(slotsByDate).slice(0, 7) // Show next 7 available days
 
   return (
-    <PageLayout>
+    <>
       <Container size="lg" className="py-16">
         
         {/* Header */}
@@ -401,7 +401,7 @@ export default function ScheduleCallPage() {
         </div>
 
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

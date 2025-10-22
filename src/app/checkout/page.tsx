@@ -76,7 +76,7 @@ export default function CheckoutPage() {
   const continuityPrice = getContinuityPrice()
 
   return (
-    <PageLayout>
+    <>
       <Container size="lg" className="py-16">
         
         {/* Header */}
@@ -399,6 +399,6 @@ export default function CheckoutPage() {
           </p>
         </div>
       </Container>
-    </PageLayout>
+    </>
   )
 }

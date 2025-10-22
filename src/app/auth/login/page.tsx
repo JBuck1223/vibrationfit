@@ -123,7 +123,7 @@ export default function LoginPage() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="sm" className="py-12">
         <Card className="max-w-md mx-auto">
           <div className="text-center mb-8">
@@ -233,6 +233,6 @@ export default function LoginPage() {
           </p>
         </Card>
       </Container>
-    </PageLayout>
+    </>
   )
 }

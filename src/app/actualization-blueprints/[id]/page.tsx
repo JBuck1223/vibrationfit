@@ -182,19 +182,19 @@ export default function BlueprintDetailPage({ params }: { params: Promise<{ id: 
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-8">
           <div className="flex items-center justify-center py-16">
             <Spinner variant="primary" size="lg" />
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   if (error || !blueprint) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-8">
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
@@ -209,12 +209,12 @@ export default function BlueprintDetailPage({ params }: { params: Promise<{ id: 
             </div>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-6">
         {/* Header */}
         <div className="mb-8">
@@ -563,6 +563,6 @@ export default function BlueprintDetailPage({ params }: { params: Promise<{ id: 
           )}
         </div>
       </Container>
-    </PageLayout>
+    </>
   )
 }

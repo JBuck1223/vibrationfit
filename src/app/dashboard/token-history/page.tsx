@@ -100,20 +100,20 @@ export default function TokenHistoryPage() {
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-8">
           <div className="flex items-center justify-center py-16">
             <Spinner variant="primary" size="lg" />
             <span className="ml-3 text-neutral-400">Loading token history...</span>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   if (error) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-8">
           <div className="text-center py-16">
             <div className="text-red-400 mb-4">⚠️ Error loading token history</div>
@@ -123,12 +123,12 @@ export default function TokenHistoryPage() {
             </Button>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -232,6 +232,6 @@ export default function TokenHistoryPage() {
           </div>
         )}
       </Container>
-    </PageLayout>
+    </>
   )
 }

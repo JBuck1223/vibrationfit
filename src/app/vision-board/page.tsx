@@ -249,7 +249,7 @@ export default function VisionBoardPage() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-6">
         {/* Header */}
         <div className="mb-8">
@@ -622,6 +622,6 @@ export default function VisionBoardPage() {
           </div>
         )}
       </Container>
-    </PageLayout>
+    </>
   )
 }

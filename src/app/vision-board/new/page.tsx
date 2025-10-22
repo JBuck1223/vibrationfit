@@ -189,7 +189,7 @@ export default function NewVisionBoardItemPage() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="md" className="py-8">
         <div className="py-8">
           <div className="mb-8">
@@ -442,6 +442,6 @@ export default function NewVisionBoardItemPage() {
           </Card>
         </div>
       </Container>
-    </PageLayout>
+    </>
   )
 }

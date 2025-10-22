@@ -545,7 +545,7 @@ export default function IntensiveIntake() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-16">
         
         {/* Header */}
@@ -652,7 +652,7 @@ export default function IntensiveIntake() {
         )}
 
       </Container>
-    </PageLayout>
+    </>
   )
 
   function canProceed(): boolean {

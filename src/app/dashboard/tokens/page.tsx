@@ -85,7 +85,7 @@ export default function TokensPage() {
     : 0
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-12">
         {/* Header */}
         <div className="mb-8">
@@ -274,7 +274,7 @@ export default function TokensPage() {
           </>
         )}
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

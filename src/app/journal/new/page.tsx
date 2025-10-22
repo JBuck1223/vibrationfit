@@ -125,7 +125,7 @@ export default function NewJournalEntryPage() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="md" className="py-8">
         <div className="py-8">
           <div className="mb-8">
@@ -391,6 +391,6 @@ export default function NewJournalEntryPage() {
           </Card>
         </div>
       </Container>
-    </PageLayout>
+    </>
   )
 }

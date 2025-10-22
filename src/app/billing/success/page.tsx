@@ -20,7 +20,7 @@ export default function CheckoutSuccessPage() {
   }, [router])
 
   return (
-    <PageLayout>
+    <>
       <Container size="md" className="py-16">
         <Card variant="elevated" className="p-12 text-center bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-2 border-primary-500/30">
           {/* Success Icon */}
@@ -96,7 +96,7 @@ export default function CheckoutSuccessPage() {
           A receipt has been sent to your email. Need help? <a href="mailto:support@vibrationfit.com" className="text-primary-500 hover:text-primary-400">Contact us</a>
         </p>
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

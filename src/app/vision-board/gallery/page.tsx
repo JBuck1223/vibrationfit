@@ -40,7 +40,7 @@ export default function GeneratedGalleryPage() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-8">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -102,7 +102,7 @@ export default function GeneratedGalleryPage() {
           </div>
         )}
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

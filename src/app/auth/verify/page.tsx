@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Container, PageLayout, Spinner } from '@/lib/design-system/components'
+import { Container, Spinner } from '@/lib/design-system/components'
 
 export default function VerifyPage() {
   const router = useRouter()
@@ -63,7 +63,7 @@ export default function VerifyPage() {
 
   if (error) {
     return (
-      <PageLayout>
+      <>
         <Container size="sm" className="py-16 text-center">
           <div className="bg-red-500/10 border-2 border-red-500 rounded-2xl p-8">
             <h1 className="text-2xl font-bold text-red-500 mb-4">Verification Failed</h1>
@@ -71,12 +71,12 @@ export default function VerifyPage() {
             <p className="text-sm text-neutral-500 mt-4">Redirecting to login...</p>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="sm" className="py-16 text-center">
         <div className="bg-primary-500/10 border-2 border-primary-500 rounded-2xl p-12">
           <Spinner variant="primary" size="lg" className="mx-auto mb-6" />
@@ -84,7 +84,7 @@ export default function VerifyPage() {
           <p className="text-neutral-300">Please wait while we log you in...</p>
         </div>
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

@@ -60,7 +60,7 @@ export default function AccountSettingsPage() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="lg" className="py-12">
         {/* Header */}
         <div className="mb-8">
@@ -193,7 +193,7 @@ export default function AccountSettingsPage() {
           </div>
         )}
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

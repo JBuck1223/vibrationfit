@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button, Card, Container, PageLayout } from '@/lib/design-system/components'
+import { Button, Card, Container} from '@/lib/design-system/components'
 
 export default function SetupPasswordPage() {
   const router = useRouter()
@@ -93,7 +93,7 @@ export default function SetupPasswordPage() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="sm" className="py-16">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4">
@@ -193,7 +193,7 @@ export default function SetupPasswordPage() {
           </p>
         </div>
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

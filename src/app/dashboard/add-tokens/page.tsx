@@ -90,7 +90,7 @@ export default function AddTokensPage() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-12">
         {/* Header */}
         <div className="text-center mb-12">
@@ -218,7 +218,7 @@ export default function AddTokensPage() {
           </div>
         </Card>
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

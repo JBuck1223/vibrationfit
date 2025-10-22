@@ -453,17 +453,17 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <div className="flex items-center justify-center py-16">
           <Spinner variant="primary" size="lg" />
         </div>
-      </PageLayout>
+      </>
     )
   }
 
   if (error || !vision) {
     return (
-      <PageLayout>
+      <>
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <div className="text-red-500 mb-4">
@@ -476,14 +476,14 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </Button>
           </div>
         </div>
-      </PageLayout>
+      </>
     )
   }
 
   const selectedCategoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
 
   return (
-    <PageLayout className="pt-0">
+    <>
       {/* Header */}
       <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
@@ -931,6 +931,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </div>
           </Card>
         )}
-    </PageLayout>
+    </>
   )
 }

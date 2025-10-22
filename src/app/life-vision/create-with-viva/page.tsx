@@ -383,7 +383,7 @@ export default function VisionCreateWithVivaPage() {
 
   if (initializing) {
     return (
-      <PageLayout>
+      <>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#14B8A6] to-[#8B5CF6] flex items-center justify-center animate-pulse">
@@ -393,12 +393,12 @@ export default function VisionCreateWithVivaPage() {
             <p className="text-neutral-400">Preparing your vision creation journey...</p>
           </div>
         </div>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
             <Button
@@ -582,6 +582,6 @@ export default function VisionCreateWithVivaPage() {
             </div>
           )}
         </div>
-    </PageLayout>
+    </>
   )
 }

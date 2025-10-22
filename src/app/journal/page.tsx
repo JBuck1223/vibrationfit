@@ -90,20 +90,20 @@ export default function JournalPage() {
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-6">
           <div className="text-center py-16">
             <div className="text-neutral-400">Loading journal entries...</div>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   const entryCount = entries.length
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-6">
         {/* Header */}
         <div className="mb-8">
@@ -432,6 +432,6 @@ export default function JournalPage() {
           </Link>
         </div>
       </Container>
-    </PageLayout>
+    </>
   )
 }

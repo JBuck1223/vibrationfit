@@ -79,7 +79,7 @@ export default function StoragePage() {
   const usagePercentage = data ? (data.totalSize / STORAGE_LIMIT) * 100 : 0
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-12">
         {/* Header */}
         <div className="mb-8">
@@ -409,7 +409,7 @@ export default function StoragePage() {
           </div>
         )}
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

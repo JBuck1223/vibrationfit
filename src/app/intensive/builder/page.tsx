@@ -348,7 +348,7 @@ My daily routines support my vision and values. I wake up with purpose and energ
 
   if (generating) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-16">
           <div className="text-center">
             <Spinner size="lg" className="mx-auto mb-6" />
@@ -358,13 +358,13 @@ My daily routines support my vision and values. I wake up with purpose and energ
             </p>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   if (!visionDraft) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-16">
           <Card className="max-w-2xl mx-auto p-12 text-center">
             <h1 className="text-3xl font-bold text-white mb-4">No Vision Found</h1>
@@ -379,7 +379,7 @@ My daily routines support my vision and values. I wake up with purpose and energ
             </Button>
           </Card>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
@@ -387,7 +387,7 @@ My daily routines support my vision and values. I wake up with purpose and energ
   const currentContent = getCurrentSectionContent()
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-16">
         
         {/* Header */}
@@ -531,6 +531,6 @@ My daily routines support my vision and values. I wake up with purpose and energ
         </Card>
 
       </Container>
-    </PageLayout>
+    </>
   )
 }

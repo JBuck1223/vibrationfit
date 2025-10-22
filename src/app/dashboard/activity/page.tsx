@@ -92,7 +92,7 @@ export default function ActivityFeedPage() {
   ]
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-12">
         {/* Header */}
         <div className="mb-8">
@@ -269,7 +269,7 @@ export default function ActivityFeedPage() {
           </>
         )}
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

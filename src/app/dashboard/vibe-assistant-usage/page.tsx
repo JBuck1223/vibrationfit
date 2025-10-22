@@ -210,19 +210,19 @@ export default function VibeAssistantUsageDashboard() {
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-8">
           <div className="flex items-center justify-center py-16">
             <Spinner variant="primary" size="lg" />
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   if (error) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-8">
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
@@ -237,12 +237,12 @@ export default function VibeAssistantUsageDashboard() {
             </div>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-6">
         {/* Header */}
         <div className="mb-8">
@@ -565,6 +565,6 @@ export default function VibeAssistantUsageDashboard() {
           </div>
         </Card>
       </Container>
-    </PageLayout>
+    </>
   )
 }

@@ -374,7 +374,7 @@ export default function IntensiveActivation() {
 
   if (!protocol) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-16">
           <div className="text-center">
             <Spinner size="lg" className="mx-auto mb-6" />
@@ -382,7 +382,7 @@ export default function IntensiveActivation() {
             <p className="text-neutral-400">Setting up your activation protocol...</p>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
@@ -390,7 +390,7 @@ export default function IntensiveActivation() {
   const progress = getProtocolProgress()
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-16">
         
         {/* Header */}
@@ -624,6 +624,6 @@ export default function IntensiveActivation() {
         </Card>
 
       </Container>
-    </PageLayout>
+    </>
   )
 }

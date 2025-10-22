@@ -323,17 +323,17 @@ export default function IntensiveDashboard() {
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
           <Spinner size="lg" />
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   if (!intensive || !checklist) {
     return (
-      <PageLayout>
+      <>
         <Container className="py-16">
           <Card className="text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -346,7 +346,7 @@ export default function IntensiveDashboard() {
             </Button>
           </Card>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
@@ -356,7 +356,7 @@ export default function IntensiveDashboard() {
   const currentPhase = getCurrentPhase()
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-16">
         
         {/* Header */}
@@ -546,6 +546,6 @@ export default function IntensiveDashboard() {
         )}
 
       </Container>
-    </PageLayout>
+    </>
   )
 }

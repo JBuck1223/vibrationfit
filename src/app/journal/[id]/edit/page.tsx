@@ -145,30 +145,30 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container size="md" className="py-8">
           <div className="text-center py-16">
             <div className="text-neutral-400">Loading journal entry...</div>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   if (!entry) {
     return (
-      <PageLayout>
+      <>
         <Container size="md" className="py-8">
           <div className="text-center py-16">
             <div className="text-neutral-400">Entry not found</div>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="md" className="py-8">
         {/* Header */}
         <div className="mb-8">
@@ -303,6 +303,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
           )}
         </Card>
       </Container>
-    </PageLayout>
+    </>
   )
 }

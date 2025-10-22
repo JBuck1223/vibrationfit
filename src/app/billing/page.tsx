@@ -53,19 +53,19 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-12">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-neutral-800 rounded w-1/4"></div>
             <div className="h-64 bg-neutral-800 rounded"></div>
           </div>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-12">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Billing & Subscription</h1>
@@ -205,7 +205,7 @@ export default function BillingPage() {
           </div>
         </div>
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

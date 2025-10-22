@@ -1,14 +1,14 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { Card, Container, PageLayout, Button } from '@/lib/design-system/components'
+import { Card, Container, Button } from '@/lib/design-system/components'
 
 export default function CheckEmailPage() {
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
 
   return (
-    <PageLayout>
+    <>
       <Container size="sm" className="py-16">
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -114,7 +114,7 @@ export default function CheckEmailPage() {
           </p>
         </div>
       </Container>
-    </PageLayout>
+    </>
   )
 }
 
