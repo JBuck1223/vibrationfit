@@ -8,7 +8,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings } from 'lucide-react'
+import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket } from 'lucide-react'
 
 // ============================================================================
 // UTILITY FUNCTION
@@ -1429,6 +1429,74 @@ interface NavItem {
   hasDropdown?: boolean
 }
 
+// Admin Navigation Configuration
+const adminNavigation: NavItem[] = [
+  {
+    name: 'Admin Dashboard',
+    href: '/admin/dashboard',
+    icon: BarChart3,
+  },
+  {
+    name: 'User Management',
+    href: '/admin/users',
+    icon: Users,
+    hasDropdown: true,
+    children: [
+      { name: 'All Users', href: '/admin/users', icon: Users },
+      { name: 'Add Admin', href: '/admin/users/add-admin', icon: Plus },
+      { name: 'Adjust Tokens', href: '/admin/users/adjust-tokens', icon: Zap },
+      { name: 'Adjust Storage', href: '/admin/users/adjust-storage', icon: HardDrive },
+      { name: 'Toggle Admin', href: '/admin/users/toggle-admin', icon: Settings },
+    ]
+  },
+  {
+    name: 'AI Management',
+    href: '/admin/ai-models',
+    icon: Brain,
+    hasDropdown: true,
+    children: [
+      { name: 'AI Models', href: '/admin/ai-models', icon: Brain },
+      { name: 'AI Overrides', href: '/api/admin/ai-overrides', icon: Settings },
+    ]
+  },
+  {
+    name: 'Analytics',
+    href: '/admin/token-usage',
+    icon: BarChart3,
+    hasDropdown: true,
+    children: [
+      { name: 'Token Usage', href: '/admin/token-usage', icon: Zap },
+      { name: 'Activity Feed', href: '/api/activity/feed', icon: BarChart3 },
+    ]
+  },
+  {
+    name: 'Database Tools',
+    href: '/api/admin/fix-database',
+    icon: HardDrive,
+    hasDropdown: true,
+    children: [
+      { name: 'Fix Database', href: '/api/admin/fix-database', icon: HardDrive },
+      { name: 'Fix Green Line', href: '/api/admin/fix-green-line', icon: CheckCircle },
+      { name: 'Fix Response Constraint', href: '/api/admin/fix-response-constraint', icon: Settings },
+    ]
+  },
+  {
+    name: 'Intensive Management',
+    href: '/api/admin/intensive/enroll',
+    icon: Rocket,
+    hasDropdown: true,
+    children: [
+      { name: 'Enroll User', href: '/api/admin/intensive/enroll', icon: Plus },
+    ]
+  },
+  {
+    name: 'User Dashboard',
+    href: '/dashboard',
+    icon: Home,
+    badge: 'Switch',
+  },
+]
+
 // Default Navigation Configuration
 const defaultNavigation: NavItem[] = [
   {
@@ -1541,10 +1609,13 @@ const defaultNavigation: NavItem[] = [
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string
   navigation?: NavItem[]
+  isAdmin?: boolean
 }
 
 export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
-  ({ className, navigation = defaultNavigation, ...props }, ref) => {
+  ({ className, navigation, isAdmin = false, ...props }, ref) => {
+    // Use admin navigation if isAdmin is true, otherwise use provided navigation or default
+    const navItems = isAdmin ? adminNavigation : (navigation || defaultNavigation)
     const [collapsed, setCollapsed] = useState(false)
     const [expandedItems, setExpandedItems] = useState<string[]>([])
     const [user, setUser] = useState<any>(null)
@@ -1680,7 +1751,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          {navigation.map((item) => {
+          {navItems.map((item) => {
             const isActive = pathname === item.href || (item.children && item.children.some(child => pathname === child.href))
             const isExpanded = expandedItems.includes(item.name)
             const Icon = item.icon
@@ -1796,51 +1867,48 @@ Sidebar.displayName = 'Sidebar'
 interface MobileBottomNavProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string
   navigation?: NavItem[]
+  isAdmin?: boolean
 }
 
 export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavProps>(
-  ({ className, navigation = defaultNavigation, ...props }, ref) => {
+  ({ className, navigation, isAdmin = false, ...props }, ref) => {
     const pathname = usePathname()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
     
-    // Key navigation items for mobile (most important ones)
-    const mobileNavItems = [
-      {
-        name: 'Vision',
-        href: '/life-vision',
-        icon: Target,
-      },
-      {
-        name: 'Board',
-        href: '/vision-board',
-        icon: Image,
-      },
-      {
-        name: 'Journal',
-        href: '/journal',
-        icon: FileText,
-      },
-      {
-        name: 'VIVA',
-        href: '/dashboard/vibe-assistant-usage',
-        icon: Sparkles,
-      },
-      {
-        name: 'More',
-        href: '#',
-        icon: Settings,
-        isAction: true,
-      },
+    // Use admin navigation if isAdmin is true, otherwise use provided navigation or default
+    const navItems = isAdmin ? adminNavigation : (navigation || defaultNavigation)
+    
+    // Admin mobile nav items
+    const adminMobileNavItems = [
+      { name: 'Users', href: '/admin/users', icon: Users },
+      { name: 'AI', href: '/admin/ai-models', icon: Brain },
+      { name: 'Analytics', href: '/admin/token-usage', icon: BarChart3 },
+      { name: 'Tools', href: '/api/admin/fix-database', icon: HardDrive },
+      { name: 'More', href: '#', icon: Settings, isAction: true },
     ]
+    
+    // User mobile nav items
+    const userMobileNavItems = [
+      { name: 'Vision', href: '/life-vision', icon: Target },
+      { name: 'Board', href: '/vision-board', icon: Image },
+      { name: 'Journal', href: '/journal', icon: FileText },
+      { name: 'VIVA', href: '/dashboard/vibe-assistant-usage', icon: Sparkles },
+      { name: 'More', href: '#', icon: Settings, isAction: true },
+    ]
+    
+    const mobileNavItems = isAdmin ? adminMobileNavItems : userMobileNavItems
 
     // Get all sidebar items for the drawer (exclude main nav items)
-    const allSidebarItems = navigation.filter(item => 
+    const allSidebarItems = navItems.filter(item => 
       !mobileNavItems.some(mobileItem => 
         mobileItem.href === item.href || 
         (mobileItem.href === '/life-vision' && item.href === '/life-vision') ||
         (mobileItem.href === '/vision-board' && item.href === '/vision-board') ||
-        (mobileItem.href === '/journal' && item.href === '/journal')
+        (mobileItem.href === '/journal' && item.href === '/journal') ||
+        (mobileItem.href === '/admin/users' && item.href === '/admin/users') ||
+        (mobileItem.href === '/admin/ai-models' && item.href === '/admin/ai-models') ||
+        (mobileItem.href === '/admin/token-usage' && item.href === '/admin/token-usage')
       )
     )
 
@@ -1992,21 +2060,22 @@ interface SidebarLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   className?: string
   navigation?: NavItem[]
+  isAdmin?: boolean
 }
 
 export const SidebarLayout = React.forwardRef<HTMLDivElement, SidebarLayoutProps>(
-  ({ children, className, navigation, ...props }, ref) => {
+  ({ children, className, navigation, isAdmin = false, ...props }, ref) => {
     return (
       <div 
         ref={ref}
         className="flex h-screen bg-black"
         {...props}
       >
-        <Sidebar navigation={navigation} />
+        <Sidebar navigation={navigation} isAdmin={isAdmin} />
         <main className={cn('flex-1 overflow-auto pb-16 md:pb-0', className)}>
           {children}
         </main>
-        <MobileBottomNav navigation={navigation} />
+        <MobileBottomNav navigation={navigation} isAdmin={isAdmin} />
       </div>
     )
   }

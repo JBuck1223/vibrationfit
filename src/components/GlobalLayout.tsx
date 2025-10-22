@@ -142,7 +142,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   if (pageType === 'USER' || pageType === 'ADMIN') {
     // User and Admin pages: Use SidebarLayout with PageLayout
     return (
-      <SidebarLayout>
+      <SidebarLayout isAdmin={pageType === 'ADMIN'}>
         <PageLayout containerSize="xl">
           {children}
         </PageLayout>
