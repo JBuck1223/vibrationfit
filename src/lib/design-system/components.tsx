@@ -2074,11 +2074,11 @@ export const SidebarLayout = React.forwardRef<HTMLDivElement, SidebarLayoutProps
     return (
       <div 
         ref={ref}
-        className="flex h-screen bg-black"
+        className="flex min-h-screen bg-black"
         {...props}
       >
         <Sidebar navigation={navigation} isAdmin={isAdmin} />
-        <main className={cn('flex-1 overflow-auto pb-16 md:pb-0', className)}>
+        <main className={cn('flex-1 overflow-auto pb-20 md:pb-0', className)}>
           {children}
         </main>
         <MobileBottomNav navigation={navigation} isAdmin={isAdmin} />
