@@ -83,6 +83,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       '/admin/ai-models',
       '/admin/token-usage',
       '/admin/users',
+      '/sitemap',
     ],
     
     // PUBLIC PAGES - Marketing/auth, get header + footer
@@ -93,7 +94,6 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       '/pricing-hormozi',
       '/design-system',
       '/design-system-experiment',
-      '/sitemap',
       
       // Authentication pages
       '/auth/login',

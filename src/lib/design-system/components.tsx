@@ -1490,6 +1490,12 @@ const adminNavigation: NavItem[] = [
     ]
   },
   {
+    name: 'Sitemap',
+    href: '/sitemap',
+    icon: FileText,
+    badge: 'Dev',
+  },
+  {
     name: 'User Dashboard',
     href: '/dashboard',
     icon: Home,
