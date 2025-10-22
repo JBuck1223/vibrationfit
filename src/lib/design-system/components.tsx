@@ -1767,10 +1767,18 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-lg font-bold text-white">
-                  {profile?.storage_used_mb ? `${(profile.storage_used_mb / 1024).toFixed(1)}` : '0.0'}
+                  {profile?.storage_used_mb && profile.storage_used_mb > 0 
+                    ? `${(profile.storage_used_mb / 1024).toFixed(1)}` 
+                    : '0.0'}
                 </span>
                 <span className="text-xs text-neutral-500">GB used</span>
               </div>
+              {/* Debug info - remove after testing */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-neutral-600 mt-1">
+                  Debug: {profile?.storage_used_mb || 'null'} MB
+                </div>
+              )}
             </div>
           </div>
         )}
