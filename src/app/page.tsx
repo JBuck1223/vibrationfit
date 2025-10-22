@@ -116,6 +116,41 @@ export default function HomePage() {
           </Cover>
         </section>
 
+        {/* What 'active in 72 hours' means - Credibility Box */}
+        <section>
+          <Container size="lg">
+            <Card variant="elevated" className="bg-[#39FF14]/10 border-[#39FF14]/30">
+              <Stack gap="md">
+                <h3 className="text-xl font-bold text-[#39FF14] text-center">
+                  What "active in 72 hours" means
+                </h3>
+                <Stack gap="sm" className="items-center">
+                  <Inline gap="sm" align="center" className="justify-center">
+                    <Icon icon={CheckCircle} size="sm" color="#39FF14" />
+                    <span className="text-sm text-neutral-300">12-category vision completed</span>
+                  </Inline>
+                  <Inline gap="sm" align="center" className="justify-center">
+                    <Icon icon={CheckCircle} size="sm" color="#39FF14" />
+                    <span className="text-sm text-neutral-300">AM/PM audio recordings</span>
+                  </Inline>
+                  <Inline gap="sm" align="center" className="justify-center">
+                    <Icon icon={CheckCircle} size="sm" color="#39FF14" />
+                    <span className="text-sm text-neutral-300">Vision board created</span>
+                  </Inline>
+                  <Inline gap="sm" align="center" className="justify-center">
+                    <Icon icon={CheckCircle} size="sm" color="#39FF14" />
+                    <span className="text-sm text-neutral-300">3 journal entries logged</span>
+                  </Inline>
+                  <Inline gap="sm" align="center" className="justify-center">
+                    <Icon icon={CheckCircle} size="sm" color="#39FF14" />
+                    <span className="text-sm text-neutral-300">Calibration call booked</span>
+                  </Inline>
+                </Stack>
+              </Stack>
+            </Card>
+          </Container>
+        </section>
+
         {/* Video Section */}
         <section id="video">
             <Card variant="elevated" className="overflow-hidden">
