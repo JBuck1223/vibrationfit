@@ -53,23 +53,23 @@ export default function HomePage() {
           <Cover minHeight="500px" className="!p-0">
             <div className="w-full max-w-6xl mx-auto">
               {/* Headline at top */}
-              <div className="text-center mb-4 md:mb-6 mt-2 md:mt-0">
-                <h1 className="text-2xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+              <div className="text-center mb-4 md:mb-6 -mt-8 md:-mt-6 px-2 md:px-0">
+                <h1 className="text-xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
                   Thoughts become things…
                   <br />
-                  <span className="text-xl md:text-4xl lg:text-5xl text-white">so why isn't it working?</span>
+                  <span className="text-lg md:text-4xl lg:text-5xl text-white">so why isn't it working?</span>
                 </h1>
               </div>
               
               {/* Two column layout for desktop */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                 {/* Left column - Content */}
-                <div className="space-y-4 text-center lg:text-left">
-                  <p className="text-lg md:text-2xl text-neutral-200 leading-relaxed font-bold md:font-medium mt-2 md:mt-2">
+                <div className="space-y-4 text-center lg:text-left flex flex-col justify-center">
+                  <p className="text-lg md:text-2xl text-neutral-200 leading-relaxed font-bold md:font-medium mt-2 md:mt-2 px-2 md:px-0 text-center md:text-center">
                     Bridge the woo-woo with the how-to.
                   </p>
                   
-                  <p className="text-base md:text-lg text-[#39FF14] leading-relaxed">
+                  <p className="text-base md:text-lg text-[#39FF14] leading-relaxed text-center md:text-center">
                     Activate your Life Vision in <span className="font-bold text-[#39FF14]">72 hours</span>
                     <br />
                     with the Activation Intensive.
@@ -92,13 +92,15 @@ export default function HomePage() {
                     </ul>
                   </div>
                   
-                  <Button variant="primary" size="xl" className="mt-2 md:mt-2">
-                    Start the 72‑Hour Activation Intensive
-                  </Button>
+                  <div className="flex justify-center md:justify-center">
+                    <Button variant="primary" size="xl" className="mt-2 md:mt-2">
+                      Start the 72‑Hour Activation Intensive
+                    </Button>
+                  </div>
                 </div>
                 
                 {/* Right column - Video */}
-                <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-4xl mx-auto order-last lg:order-last">
+                <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-4xl mx-auto order-last lg:order-last lg:mt-4">
                   <Video
                     src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
                     poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
