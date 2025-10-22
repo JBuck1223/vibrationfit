@@ -9,12 +9,13 @@ interface LifeVisionSidebarProps {
   activeSection: string
   onSectionChange: (section: string) => void
   completedSections: string[]
+  onScrollToContent?: () => void
 }
 
 // Use centralized vision categories
 const sections = VISION_CATEGORIES
 
-export function LifeVisionSidebar({ activeSection, onSectionChange, completedSections }: LifeVisionSidebarProps) {
+export function LifeVisionSidebar({ activeSection, onSectionChange, completedSections, onScrollToContent }: LifeVisionSidebarProps) {
   return (
     <Card className="p-6 lg:sticky lg:top-6">
 
@@ -29,8 +30,10 @@ export function LifeVisionSidebar({ activeSection, onSectionChange, completedSec
               key={section.key}
               onClick={() => {
                 onSectionChange(section.key)
-                // Scroll to top of page
-                window.scrollTo({ top: 0, behavior: 'smooth' })
+                // Scroll to main content area
+                if (onScrollToContent) {
+                  onScrollToContent()
+                }
               }}
               className={`w-full text-left p-3 rounded-lg transition-all duration-200 group ${
                 isActive
@@ -41,9 +44,6 @@ export function LifeVisionSidebar({ activeSection, onSectionChange, completedSec
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <Icon className={`w-5 h-5 ${isActive ? 'text-primary-400' : 'text-neutral-500'}`} />
-                  {isCompleted && (
-                    <CheckCircle className="absolute -top-1 -right-1 w-3 h-3 text-green-500 bg-black rounded-full" />
-                  )}
                 </div>
                 
                 <div className="flex-1 min-w-0">

@@ -405,14 +405,6 @@ export default function VisionListPage() {
                 View Vision
               </Button>
               <Button
-                onClick={() => router.push(`/life-vision/${activeVision.id}/refine`)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Gem className="w-4 h-4" />
-                Refine
-              </Button>
-              <Button
                 onClick={() => router.push(`/life-vision/${activeVision.id}/audio`)}
                 variant="secondary"
                 className="flex items-center gap-2"
@@ -427,6 +419,14 @@ export default function VisionListPage() {
               >
                 <Download className="w-4 h-4" />
                 Download PDF
+              </Button>
+              <Button
+                onClick={() => router.push(`/life-vision/${activeVision.id}/refine`)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Gem className="w-4 h-4" />
+                Refine
               </Button>
             </div>
           </div>

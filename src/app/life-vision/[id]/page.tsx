@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles, Trash2, Download, VolumeX, Gem } from 'lucide-react'
+import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles, Trash2, Download, VolumeX, Gem, ChevronDown } from 'lucide-react'
 import { 
   Button, 
   Card, 
@@ -14,10 +14,11 @@ import {
   Container,
   Spinner,
   Input,
-  Textarea
+  Textarea,
+  Icon
 } from '@/lib/design-system/components'
 import { LifeVisionSidebar } from '../components/LifeVisionSidebar'
-import { VISION_CATEGORIES } from '@/lib/design-system'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 interface VisionData {
   id: string
@@ -63,9 +64,41 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [isViewingVersion, setIsViewingVersion] = useState(false)
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   // Ref for textarea auto-resize
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // Ref for main content section to scroll to
+  const mainContentRef = useRef<HTMLDivElement>(null)
+  // Ref for mobile dropdown to scroll above it
+  const mobileDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Scroll to appropriate section based on screen size (responsive)
+  const scrollToMainContent = useCallback(() => {
+    const isMobile = window.innerWidth < 1024 // lg breakpoint
+    
+    if (isMobile && mobileDropdownRef.current) {
+      // Mobile: scroll above the dropdown
+      const headerHeight = 80 // Approximate header height
+      const elementTop = mobileDropdownRef.current.offsetTop
+      const scrollPosition = elementTop - headerHeight - 10 // Header height + padding
+      
+      window.scrollTo({
+        top: scrollPosition,
+        behavior: 'smooth'
+      })
+    } else if (mainContentRef.current) {
+      // Desktop: scroll to main content section
+      const headerHeight = 80 // Approximate header height
+      const elementTop = mainContentRef.current.offsetTop
+      const scrollPosition = elementTop - headerHeight - 10 // Header height + padding
+      
+      window.scrollTo({
+        top: scrollPosition,
+        behavior: 'smooth'
+      })
+    }
+  }, [])
 
   // Auto-resize textarea function
   const autoResizeTextarea = useCallback((textarea: HTMLTextAreaElement) => {
@@ -803,21 +836,18 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <PageLayout>
-      <Container size="xl" className="py-6">
+      <Container size="xl" className="pt-0 pb-6">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <Button variant="ghost" onClick={() => router.back()}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-          </div>
-          
-          {/* Centered Title Section */}
+          {/* Title Section */}
           <div className="text-center mb-6">
-            <h1 className="text-4xl font-bold text-white mb-3">
+            <h1 className="text-4xl font-bold text-white">
               {isEditing ? 'Edit Life Vision' : 'The Life I Choose'}
             </h1>
+          </div>
+          
+          {/* Centered Version Info */}
+          <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-3 mb-3">
               <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
                 V{vision.version_number}
@@ -844,15 +874,16 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             </div>
           </div>
 
-          {/* Action Buttons - Centered */}
-          <div className="flex flex-wrap gap-3 justify-center mb-6">
+          {/* Action Buttons - Responsive Grid 2x2 on mobile */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 justify-center mb-6">
             <Button
-              onClick={() => downloadVisionPDF()}
+              onClick={() => setIsEditing(!isEditing)}
+              disabled={saving}
               variant="primary"
               className="flex items-center gap-2"
             >
-              <Download className="w-4 h-4" />
-              Download PDF
+              <Edit3 className="w-4 h-4" />
+              {isEditing ? 'View' : 'Edit'}
             </Button>
             <Button
               onClick={() => router.push(`/life-vision/${vision.id}/audio`)}
@@ -863,13 +894,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               Audio Tracks
             </Button>
             <Button
-              onClick={() => setIsEditing(!isEditing)}
-              disabled={saving}
-              variant="outline"
+              onClick={() => downloadVisionPDF()}
+              variant="secondary"
               className="flex items-center gap-2"
             >
-              <Edit3 className="w-4 h-4" />
-              Edit
+              <Download className="w-4 h-4" />
+              Download PDF
             </Button>
             <Button
               asChild
@@ -883,13 +913,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             </Button>
           </div>
 
-          {/* Progress Bar */}
-          <ProgressBar 
-            value={completionPercentage}
-            variant="primary"
-            label="Vision Completion"
-            showLabel
-          />
 
           {/* Versions Dropdown */}
           {showVersions && versions.length > 0 && (
@@ -1004,20 +1027,91 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           )}
         </div>
 
+        {/* Mobile Dropdown Navigation */}
+        <div ref={mobileDropdownRef} className="lg:hidden mb-6">
+          <Card className="p-4">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="w-full flex items-center justify-between p-3 rounded-lg bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                {(() => {
+                  const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
+                  if (!currentSection) return null
+                  const IconComponent = currentSection.icon
+                  return <IconComponent className="w-5 h-5 text-primary-400" />
+                })()}
+                <span className="font-medium text-white">
+                  {VISION_SECTIONS.find(s => s.key === activeSection)?.label || 'Select Section'}
+                </span>
+              </div>
+              <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isDropdownOpen && (
+              <div className="mt-3 space-y-1">
+                {VISION_SECTIONS.map((section) => {
+                  const Icon = section.icon
+                  const isActive = activeSection === section.key
+                  const isCompleted = completedSections.includes(section.key)
+
+                  return (
+                    <button
+                      key={section.key}
+                      onClick={() => {
+                        setActiveSection(section.key)
+                        setIsDropdownOpen(false)
+                        setTimeout(() => scrollToMainContent(), 50)
+                      }}
+                      className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
+                        isActive
+                          ? 'bg-primary-500/20 border border-primary-500/50 text-primary-400'
+                          : 'hover:bg-neutral-800 border border-transparent text-neutral-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <Icon className={`w-5 h-5 ${isActive ? 'text-primary-400' : 'text-neutral-500'}`} />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm truncate">
+                              {section.label}
+                            </span>
+                            {isCompleted && (
+                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-xs text-neutral-500 mt-1 truncate">
+                            {section.description}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
+        <div ref={mainContentRef}>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar - Hidden on mobile */}
+          <div className="hidden lg:block lg:col-span-1">
             <LifeVisionSidebar
               activeSection={activeSection}
               onSectionChange={setActiveSection}
               completedSections={completedSections}
+              onScrollToContent={scrollToMainContent}
             />
           </div>
 
-          {/* Main Content Area */}
-          <div className="lg:col-span-3">
-            <Card className="p-8">
+          {/* Main Content Area - Full width on mobile */}
+          <div className="col-span-1 lg:col-span-3">
+            <Card className="p-4 md:p-8">
               {isEditing ? (
                 <div className="space-y-6">
                   {/* Section Content */}
@@ -1036,12 +1130,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                     return (
                       <div>
                         {/* Section Header */}
-                        <div className="mb-6">
+                        <div className="mb-4 md:mb-6">
                           <div className="flex items-center gap-3 mb-2">
-                            <IconComponent className="w-8 h-8 text-primary-500" />
-                            <h2 className="text-3xl font-bold text-white">{currentSection.label}</h2>
+                            <IconComponent className="w-6 h-6 md:w-8 md:h-8 text-primary-500" />
+                            <h2 className="text-2xl md:text-3xl font-bold text-white">{currentSection.label}</h2>
                           </div>
-                          <p className="text-neutral-400 text-sm">
+                          <p className="text-neutral-400 text-xs md:text-sm">
                             {currentSection.description}
                           </p>
                         </div>
@@ -1049,8 +1143,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                         {/* Section Content */}
                         {value?.trim() ? (
                           <div className="prose prose-invert max-w-none">
-                            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
-                              <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-base">
+                            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-3 md:p-6">
+                              <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
                                 {value}
                               </p>
                             </div>
@@ -1079,8 +1173,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                               const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
                               if (currentIndex > 0) {
                                 setActiveSection(VISION_SECTIONS[currentIndex - 1].key)
-                                // Scroll to top of page
-                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                                setTimeout(() => scrollToMainContent(), 50)
                               }
                             }}
                             variant="ghost"
@@ -1101,8 +1194,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                               const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
                               if (currentIndex < VISION_SECTIONS.length - 1) {
                                 setActiveSection(VISION_SECTIONS[currentIndex + 1].key)
-                                // Scroll to top of page
-                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                                setTimeout(() => scrollToMainContent(), 50)
                               }
                             }}
                             variant="ghost"
@@ -1131,6 +1223,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           >
             ← Back to Life Visions
           </Link>
+        </div>
         </div>
       </Container>
     </PageLayout>
