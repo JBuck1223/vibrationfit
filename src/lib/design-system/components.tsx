@@ -720,7 +720,7 @@ export const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
         className={cn('min-h-screen bg-black text-white', className)}
         {...props}
       >
-        <Container size={containerSize} className="py-12">
+        <Container size={containerSize} className="pt-6 pb-12 md:py-12">
           {children}
         </Container>
       </div>
