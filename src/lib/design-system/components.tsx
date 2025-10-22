@@ -1584,7 +1584,7 @@ const defaultNavigation: NavItem[] = [
     icon: Zap,
     hasDropdown: true,
     children: [
-      { name: '# Tokens Available', href: '/dashboard/tokens', icon: Zap },
+      { name: 'See Activity', href: '/dashboard/activity', icon: BarChart3 },
       { name: 'Token Tracking', href: '/dashboard/token-history', icon: BarChart3 },
       { name: 'Buy Tokens', href: '/dashboard/add-tokens', icon: ShoppingCart },
     ]
@@ -1694,7 +1694,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       <div 
         ref={ref}
         className={cn(
-          'hidden md:flex flex-col bg-neutral-900 border-r border-neutral-800 transition-all duration-300',
+          'hidden md:flex flex-col bg-neutral-900 border-r border-neutral-800 transition-all duration-300 sticky top-0 h-screen',
           collapsed ? 'w-16' : 'w-64',
           className
         )}
@@ -1750,6 +1750,26 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
                   {(profile?.vibe_assistant_tokens_remaining ?? 0).toLocaleString()}
                 </span>
                 <span className="text-xs text-neutral-500">tokens</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Storage Card */}
+        {!collapsed && (
+          <div className="px-4 py-3 border-b border-neutral-800">
+            <div className="px-3 py-2 bg-neutral-800/50 rounded-lg border border-neutral-700">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                  Storage
+                </span>
+                <HardDrive className="w-3 h-3 text-[#14B8A6]" />
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-bold text-white">
+                  {profile?.storage_used_mb ? `${(profile.storage_used_mb / 1024).toFixed(1)}` : '0.0'}
+                </span>
+                <span className="text-xs text-neutral-500">GB used</span>
               </div>
             </div>
           </div>
