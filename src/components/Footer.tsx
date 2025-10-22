@@ -146,14 +146,32 @@ export function Footer({ className = '' }: FooterProps) {
       <ul className="space-y-2">
         {links.map((link) => {
           const Icon = link.icon
+          const isDynamic = link.href.includes('[id]')
+          
+          const linkContent = (
+            <div className={`flex items-center space-x-2 text-sm ${
+              isDynamic 
+                ? 'text-neutral-500 cursor-default' 
+                : 'text-neutral-400 hover:text-primary-500 transition-colors cursor-pointer'
+            }`}>
+              <Icon className="w-4 h-4" />
+              <span>{link.label}</span>
+              {isDynamic && <span className="text-xs text-neutral-600">(dynamic)</span>}
+            </div>
+          )
+
+          if (isDynamic) {
+            return (
+              <li key={link.href}>
+                {linkContent}
+              </li>
+            )
+          }
+
           return (
             <li key={link.href}>
-              <Link 
-                href={link.href}
-                className="flex items-center space-x-2 text-neutral-400 hover:text-primary-500 transition-colors text-sm"
-              >
-                <Icon className="w-4 h-4" />
-                <span>{link.label}</span>
+              <Link href={link.href}>
+                {linkContent}
               </Link>
             </li>
           )
