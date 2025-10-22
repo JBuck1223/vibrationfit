@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, Button, Badge, ProgressBar, PageLayout, Container, AIButton } from '@/lib/design-system'
+import { Card, Button, Badge, ProgressBar, Container, AIButton } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import Link from 'next/link'
 import AITokenUsage from '@/components/AITokenUsage'
@@ -125,7 +125,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
   const profileCompletePercentage = completionPercentage
 
   return (
-    <PageLayout containerSize="xl">
+    <>
       {/* Hero Welcome Section */}
       <div className="mb-12">
         <div className="text-center mb-8">
@@ -661,6 +661,6 @@ export default function DashboardContent({ user, profileData, visionData, vision
             </div>
           </Card>
         </div>
-    </PageLayout>
+    </>
   )
 }
