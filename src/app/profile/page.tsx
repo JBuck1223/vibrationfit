@@ -1535,7 +1535,6 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             <span className="hidden sm:inline">Back to Dashboard</span>
           </Button>
         </div>
-      </div>
 
       {/* Lightbox */}
       {lightboxOpen && profile.progress_photos && (
