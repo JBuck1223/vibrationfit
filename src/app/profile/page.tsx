@@ -35,9 +35,105 @@ import {
   ChevronLeft,
   ChevronRight,
   Play,
-  Pause
+  Pause,
+  Plane,
+  UserPlus,
+  Package,
+  Sparkles
 } from 'lucide-react'
 import NextImage from 'next/image'
+
+// Life Categories Configuration - matches ProfileSidebar order
+const lifeCategories = [
+  {
+    id: 'personal',
+    title: 'Personal Information',
+    icon: User,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'relationship',
+    title: 'Romance & Partnership',
+    icon: Heart,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'family',
+    title: 'Family & Parenting',
+    icon: Users,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'health',
+    title: 'Health & Vitality',
+    icon: Activity,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'location',
+    title: 'Home & Environment',
+    icon: Home,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'career',
+    title: 'Business & Career',
+    icon: Briefcase,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'financial',
+    title: 'Money & Wealth',
+    icon: DollarSign,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'fun-recreation',
+    title: 'Fun & Recreation',
+    icon: Star,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'travel-adventure',
+    title: 'Travel & Adventure',
+    icon: Plane,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'social-friends',
+    title: 'Social & Friends',
+    icon: UserPlus,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'possessions-lifestyle',
+    title: 'Possessions & Stuff',
+    icon: Package,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'spirituality-growth',
+    title: 'Spirituality & Growth',
+    icon: Sparkles,
+    color: 'text-primary-500'
+  },
+  {
+    id: 'giving-legacy',
+    title: 'Giving & Legacy',
+    icon: Heart,
+    color: 'text-primary-500'
+  }
+]
+
+// Helper function to get category info
+const getCategoryInfo = (categoryId: string) => {
+  return lifeCategories.find(cat => cat.id === categoryId) || {
+    id: categoryId,
+    title: categoryId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    icon: User,
+    color: 'text-primary-500'
+  }
+}
 
 interface ProfileViewPageProps {}
 
@@ -790,6 +886,60 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               </p>
             )}
           </Card>
+        </div>
+
+        {/* Version Notes & Media */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Version Notes */}
+          {profile.version_notes && (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary-500" />
+                Version Notes
+              </h3>
+              <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
+                <p className="text-white whitespace-pre-wrap">{profile.version_notes}</p>
+              </div>
+            </Card>
+          )}
+
+          {/* Media */}
+          {profile.progress_photos && profile.progress_photos.length > 0 && (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Camera className="w-5 h-5 text-primary-500" />
+                Media
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {profile.progress_photos.map((media, index) => (
+                  <div key={index} className="relative group">
+                    {isVideo(media) ? (
+                      <div className="relative">
+                        <video
+                          src={media}
+                          className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                          onClick={() => openLightbox(index)}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+                          <Play className="w-8 h-8 text-white" />
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={media}
+                        alt={`Media ${index + 1}`}
+                        className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                        onClick={() => openLightbox(index)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-neutral-400 mt-3">
+                {profile.progress_photos.length} media file{profile.progress_photos.length !== 1 ? 's' : ''} • Click to view in lightbox
+              </p>
+            </Card>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1547,58 +1697,6 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             </div>
           </Card>
 
-          {/* Version Notes */}
-          {profile.version_notes && (
-            <Card className="p-6 lg:col-span-2">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary-500" />
-                Version Notes
-              </h3>
-              <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
-                <p className="text-white whitespace-pre-wrap">{profile.version_notes}</p>
-              </div>
-            </Card>
-          )}
-        </div>
-
-        {/* Media */}
-        <div className="mt-8">
-          {profile.progress_photos && profile.progress_photos.length > 0 && (
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Camera className="w-5 h-5 text-primary-500" />
-                Media
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {profile.progress_photos.map((media, index) => (
-                  <div key={index} className="relative group">
-                    {isVideo(media) ? (
-                      <div className="relative">
-                        <video
-                          src={media}
-                          className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                          onClick={() => openLightbox(index)}
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
-                          <Play className="w-8 h-8 text-white" />
-                        </div>
-                      </div>
-                    ) : (
-                      <img
-                        src={media}
-                        alt={`Media ${index + 1}`}
-                        className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                        onClick={() => openLightbox(index)}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-neutral-400 mt-3">
-                {profile.progress_photos.length} media file{profile.progress_photos.length !== 1 ? 's' : ''} • Click to view in lightbox
-              </p>
-            </Card>
-          )}
         </div>
 
         {/* Action Buttons */}
