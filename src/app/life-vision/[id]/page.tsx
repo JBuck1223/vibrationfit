@@ -10,7 +10,6 @@ import {
   Card, 
   ProgressBar, 
   Badge, 
-  PageLayout, 
   Spinner,
   Input,
   Textarea,
@@ -807,17 +806,17 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <div className="flex items-center justify-center py-16">
           <Spinner variant="primary" size="lg" />
         </div>
-      </PageLayout>
+      </>
     )
   }
 
   if (!vision) {
     return (
-      <PageLayout>
+      <>
         <Card className="text-center py-16">
           <h2 className="text-2xl font-bold text-white mb-4">Vision not found</h2>
           <p className="text-neutral-400 mb-6">This vision doesn't exist or you don't have permission to view it.</p>
@@ -825,12 +824,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             <Link href="/life-vision">Back to Life Visions</Link>
           </Button>
         </Card>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout className="pt-0">
+    <>
         {/* Header */}
         <div className="mb-8">
           {/* Title Section */}
@@ -1237,6 +1236,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           </Link>
         </div>
         </div>
-      </PageLayout>
-    )
+    </>
+  )
 }
