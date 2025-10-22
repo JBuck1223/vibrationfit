@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap, Target, Gem, Volume2, Download, VolumeX, Diamond } from 'lucide-react'
-import { Card, Button, Badge, ProgressBar, Spinner, getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system'
+import { Card, Button, Badge, ProgressBar, Spinner, Grid, PageLayout, Container, getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { LifeVisionSidebar } from './components/LifeVisionSidebar'
 
@@ -58,6 +58,8 @@ export default function VisionListPage() {
   const [isViewingVersion, setIsViewingVersion] = useState(false)
   const [activeSection, setActiveSection] = useState('forward')
   const [completedSections, setCompletedSections] = useState<string[]>([])
+  const [refinementsCount, setRefinementsCount] = useState(0)
+  const [audiosCount, setAudiosCount] = useState(0)
 
   // Utility: add timeout to any async operation to avoid infinite loading
   const withTimeout = async <T,>(operation: Promise<T> | (() => Promise<T>), ms = 10000, label = 'operation'): Promise<T> => {
@@ -203,6 +205,30 @@ export default function VisionListPage() {
       }
       
       setVersions(versionsData || [])
+      
+      // Fetch refinements count
+      const refinementsResult = await withTimeout(
+        async () => await supabase
+          .from('vibe_assistant_logs')
+          .select('id', { count: 'exact' })
+          .eq('user_id', user.id)
+          .eq('action_type', 'vision_refinement'),
+        5000,
+        'fetch refinements count'
+      )
+      setRefinementsCount(refinementsResult.count || 0)
+      
+      // Fetch audios count
+      const audiosResult = await withTimeout(
+        async () => await supabase
+          .from('audio_tracks')
+          .select('id', { count: 'exact' })
+          .eq('user_id', user.id),
+        5000,
+        'fetch audios count'
+      )
+      setAudiosCount(audiosResult.count || 0)
+      
       setError(null)
     } catch (err) {
       console.error('Error fetching vision:', err)
@@ -320,8 +346,8 @@ export default function VisionListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-      <div className="container mx-auto px-4 py-8">
+    <PageLayout>
+      <Container size="lg">
         {/* Create Button (only when no active vision) */}
         {!activeVision && (
           <div className="flex justify-end mb-8">
@@ -336,9 +362,9 @@ export default function VisionListPage() {
           </div>
         )}
 
-        {/* Current Version Information Card */}
+        {/* Current Version Information - No Card Background */}
         {activeVision && (
-          <Card className="p-8 mb-8">
+          <div className="mb-8">
             <div className="text-center mb-6">
               <h2 className="text-4xl font-bold text-white mb-3">The Life I Choose</h2>
               <div className="flex items-center justify-center gap-3 mb-3">
@@ -368,8 +394,8 @@ export default function VisionListPage() {
               </div>
             </div>
 
-            {/* Action Buttons - Centered */}
-            <div className="flex flex-wrap gap-3 justify-center">
+            {/* Action Buttons - Responsive Grid 2x2 on mobile */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 justify-center">
               <Button
                 onClick={() => router.push(`/life-vision/${activeVision.id}`)}
                 variant="primary"
@@ -379,12 +405,12 @@ export default function VisionListPage() {
                 View Vision
               </Button>
               <Button
-                onClick={() => alert('PDF download coming soon!')}
-                variant="secondary"
+                onClick={() => router.push(`/life-vision/${activeVision.id}/refine`)}
+                variant="outline"
                 className="flex items-center gap-2"
               >
-                <Download className="w-4 h-4" />
-                Download PDF
+                <Gem className="w-4 h-4" />
+                Refine
               </Button>
               <Button
                 onClick={() => router.push(`/life-vision/${activeVision.id}/audio`)}
@@ -395,28 +421,20 @@ export default function VisionListPage() {
                 Audio Tracks
               </Button>
               <Button
-                onClick={() => router.push(`/life-vision/${activeVision.id}`)}
-                variant="outline"
+                onClick={() => alert('PDF download coming soon!')}
+                variant="secondary"
                 className="flex items-center gap-2"
               >
-                <Edit3 className="w-4 h-4" />
-                Edit
-              </Button>
-              <Button
-                onClick={() => router.push(`/life-vision/${activeVision.id}/refine`)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Gem className="w-4 h-4" />
-                Refine
+                <Download className="w-4 h-4" />
+                Download PDF
               </Button>
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Stats Cards */}
         {activeVision && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-3 gap-6 mb-8">
             <Card className="p-6 text-center">
               <div className="flex flex-col items-center">
                 <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center mb-3">
@@ -431,7 +449,7 @@ export default function VisionListPage() {
                 <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center mb-3">
                   <Gem className="w-6 h-6 text-secondary-500" />
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">0</p>
+                <p className="text-3xl font-bold text-white mb-1">{refinementsCount}</p>
                 <p className="text-sm text-neutral-400 mb-2">Refinements</p>
               </div>
             </Card>
@@ -440,8 +458,8 @@ export default function VisionListPage() {
                 <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center mb-3">
                   <Volume2 className="w-6 h-6 text-accent-500" />
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">0</p>
-                <p className="text-sm text-neutral-400 mb-2">Audios Generated</p>
+                <p className="text-3xl font-bold text-white mb-1">{audiosCount}</p>
+                <p className="text-sm text-neutral-400 mb-2">Audios</p>
               </div>
             </Card>
           </div>
@@ -502,49 +520,55 @@ export default function VisionListPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 min-w-[200px]">
+                    <div className="min-w-[200px]">
                       {version.status === 'draft' ? (
-                        <>
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Button
                             onClick={() => router.push('/life-vision/create-with-viva')}
                             variant="primary"
                             size="sm"
-                            className="flex items-center justify-center gap-1 w-full sm:w-auto"
+                            className="flex items-center justify-center gap-1"
                           >
                             <Sparkles className="w-3 h-3" />
                             <span className="whitespace-nowrap">Continue with VIVA</span>
                           </Button>
                           <Button
-                            onClick={() => router.push(`/life-vision/${version.id}`)}
-                            variant="secondary"
+                            onClick={() => deleteVersion(version.id)}
+                            variant="outline"
                             size="sm"
-                            className="flex items-center justify-center gap-1 w-full sm:w-auto"
+                            className="flex items-center justify-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
+                            disabled={deletingVersion === version.id}
                           >
-                            <Edit3 className="w-3 h-3" />
-                            <span className="whitespace-nowrap">Edit On My Own</span>
+                            {deletingVersion === version.id ? (
+                              <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                            Delete
                           </Button>
-                        </>
+                        </div>
                       ) : (
-                        <>
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Button
                             onClick={() => router.push(`/life-vision/${version.id}`)}
                             variant="outline"
                             size="sm"
-                            className="flex items-center justify-center gap-1 w-full sm:w-auto"
+                            className="flex items-center justify-center gap-1"
                           >
                             <Eye className="w-3 h-3" />
                             View
                           </Button>
-                          <Button
-                            onClick={() => router.push(`/life-vision/${version.id}`)}
-                            variant="secondary"
-                            size="sm"
-                            className="flex items-center justify-center gap-1 w-full sm:w-auto"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                            Edit
-                          </Button>
-                          {!isActive && (
+                          {isActive ? (
+                            <Button
+                              onClick={() => router.push(`/life-vision/${version.id}/refine`)}
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center justify-center gap-1 border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14] hover:text-black"
+                            >
+                              <Gem className="w-3 h-3" />
+                              Refine
+                            </Button>
+                          ) : (
                             <Button
                               onClick={async () => {
                                 if (confirm('Make this your active vision? This will replace your current active vision.')) {
@@ -560,28 +584,28 @@ export default function VisionListPage() {
                               }}
                               variant="primary"
                               size="sm"
-                              className="flex items-center justify-center gap-1 w-full sm:w-auto whitespace-nowrap"
+                              className="flex items-center justify-center gap-1 whitespace-nowrap"
                             >
                               <CheckCircle className="w-3 h-3" />
                               Make Active
                             </Button>
                           )}
-                        </>
+                          <Button
+                            onClick={() => deleteVersion(version.id)}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center justify-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
+                            disabled={deletingVersion === version.id}
+                          >
+                            {deletingVersion === version.id ? (
+                              <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                            Delete
+                          </Button>
+                        </div>
                       )}
-                      <Button
-                        onClick={() => deleteVersion(version.id)}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center justify-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400 w-full sm:w-auto"
-                        disabled={deletingVersion === version.id}
-                      >
-                        {deletingVersion === version.id ? (
-                          <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Trash2 className="w-3 h-3" />
-                        )}
-                        Delete
-                      </Button>
                     </div>
                   </div>
                 )
@@ -610,7 +634,7 @@ export default function VisionListPage() {
           </div>
         )}
 
-      </div>
-    </div>
+      </Container>
+    </PageLayout>
   )
 }

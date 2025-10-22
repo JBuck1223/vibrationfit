@@ -54,7 +54,7 @@ export default function PricingHormoziPage() {
   }
 
   return (
-    <PageLayout showHeader={true}>
+    <PageLayout>
       <Container size="lg" className="py-16">
         
         {/* ================================================================ */}

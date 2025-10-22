@@ -55,7 +55,7 @@ export default function PricingHormoziPage() {
   }
 
   return (
-    <PageLayout showHeader={false} containerSize="lg">
+    <PageLayout containerSize="lg">
       
       {/* MAIN OFFER */}
       <Stack gap="xl">
@@ -286,9 +286,7 @@ export default function PricingHormoziPage() {
               {billingPeriod !== 'annual' && (
                 <Card 
                   className={`p-10 transition-all relative cursor-pointer md:order-1 order-2 ${
-                    billingPeriod === 'annual'
-                      ? 'border-2 border-[#39FF14] bg-gradient-to-br from-primary-500/5 to-secondary-500/5 scale-105 ring-2 ring-[#39FF14]'
-                      : 'border border-neutral-700 opacity-60 hover:opacity-80'
+                    'border border-neutral-700 opacity-60 hover:opacity-80'
                   }`}
                   onClick={() => setBillingPeriod('annual')}
                 >
@@ -347,9 +345,7 @@ export default function PricingHormoziPage() {
               {billingPeriod !== '28day' && (
                 <Card 
                   className={`p-10 transition-all cursor-pointer md:order-2 order-2 ${
-                    billingPeriod === '28day'
-                      ? 'border-2 border-[#00FFFF] bg-gradient-to-br from-[#00FFFF]/10 to-[#00FFFF]/5 scale-105 ring-2 ring-[#00FFFF]'
-                      : 'border border-neutral-700 opacity-60 hover:opacity-80'
+                    'border border-neutral-700 opacity-60 hover:opacity-80'
                   }`}
                   onClick={() => setBillingPeriod('28day')}
                 >

@@ -1392,16 +1392,16 @@ export default function DesignSystemExperiment() {
                   <p className="text-sm text-[#9CA3AF] mb-4">This recreates the complex HTML card using our clean, reusable components</p>
                   
                   {/* The actual version card */}
-                  <Card variant="glass" className="p-4">
+                  <Card variant="glass" className="px-2.5 py-4 md:px-4">
                     <Switcher gap="lg" className="items-start md:items-center justify-between">
                       {/* Left side - Version info */}
                       <div className="flex-1">
                         <Stack gap="sm">
-                          <Inline align="center" gap="sm">
+                          <div className="flex items-center gap-1 md:gap-3 mb-2">
                             <span className="text-sm font-medium text-white">Version 2</span>
                             <Badge variant="success">Complete</Badge>
-                            <span className="text-sm text-[#9CA3AF]">100% complete</span>
-                          </Inline>
+                            <span className="text-sm text-neutral-400">100% complete</span>
+                          </div>
                           <Stack gap="xs">
                             <p className="text-xs text-[#9CA3AF]">
                               <span className="font-medium">Created:</span> 10/5/2025 at 5:15 PM
