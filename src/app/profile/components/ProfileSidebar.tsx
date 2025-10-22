@@ -2,7 +2,8 @@
 
 import React from 'react'
 import { Card } from '@/lib/design-system/components'
-import { User, CheckCircle, Camera, PartyPopper, Plane, Home, Users, Heart, Activity, DollarSign, Briefcase, UserPlus, Package, Gift, Zap } from 'lucide-react'
+import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
+import { User, CheckCircle, Camera } from 'lucide-react'
 
 interface ProfileSidebarProps {
   activeSection: string
@@ -10,112 +11,175 @@ interface ProfileSidebarProps {
   completedSections: string[]
 }
 
-// Match Life Vision categories exactly
+// Helper function to get category info from design system
+const getCategoryInfo = (categoryId: string) => {
+  // Map profile section IDs to vision category keys
+  const categoryMapping: Record<string, string> = {
+    'personal': 'personal', // Special case - not in vision categories
+    'fun-recreation': 'fun',
+    'health': 'health',
+    'travel-adventure': 'travel',
+    'relationship': 'romance',
+    'family': 'family',
+    'social-friends': 'social',
+    'location': 'home',
+    'career': 'business',
+    'financial': 'money',
+    'possessions-lifestyle': 'possessions',
+    'giving-legacy': 'giving',
+    'spirituality-growth': 'spirituality'
+  }
+  
+  const visionCategoryKey = categoryMapping[categoryId] || categoryId
+  const category = getVisionCategory(visionCategoryKey)
+  
+  if (category) {
+    return {
+      id: categoryId,
+      title: category.label,
+      icon: category.icon,
+      description: category.description
+    }
+  }
+  
+  // Fallback for personal info (not in vision categories)
+  if (categoryId === 'personal') {
+    return {
+      id: 'personal',
+      title: 'Personal Info',
+      icon: User,
+      description: 'Basic information about you'
+    }
+  }
+  
+  // Fallback for other categories
+  return {
+    id: categoryId,
+    title: categoryId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    icon: User,
+    description: 'Profile section'
+  }
+}
+
+// Sections in design system order (excluding forward and conclusion)
 const sections = [
   {
     id: 'personal',
     title: 'Personal Info',
     icon: User,
     description: 'Basic information about you',
-    category: 'basics'
-  },
-  {
-    id: 'health',
-    title: 'Health / Vitality',
-    icon: Activity,
-    description: 'Physical and mental well-being',
-    category: 'life-vision'
-  },
-  {
-    id: 'relationship',
-    title: 'Love / Romance',
-    icon: Heart,
-    description: 'Romantic relationships',
-    category: 'life-vision'
-  },
-  {
-    id: 'family',
-    title: 'Family / Parenting',
-    icon: Users,
-    description: 'Family relationships and life',
-    category: 'life-vision'
-  },
-  {
-    id: 'career',
-    title: 'Business / Career',
-    icon: Briefcase,
-    description: 'Work and career aspirations',
-    category: 'life-vision'
-  },
-  {
-    id: 'financial',
-    title: 'Money / Wealth',
-    icon: DollarSign,
-    description: 'Financial goals and wealth',
-    category: 'life-vision'
-  },
-  {
-    id: 'location',
-    title: 'Home / Environment',
-    icon: Home,
-    description: 'Living space and environment',
-    category: 'life-vision'
+    category: 'basics',
+    order: 0 // Personal info comes first
   },
   {
     id: 'fun-recreation',
-    title: 'Fun / Recreation',
-    icon: PartyPopper,
+    title: 'Fun',
+    icon: getCategoryInfo('fun-recreation').icon,
     description: 'Hobbies and joyful activities',
-    category: 'life-vision'
+    category: 'life-vision',
+    order: 2
+  },
+  {
+    id: 'health',
+    title: 'Health',
+    icon: getCategoryInfo('health').icon,
+    description: 'Physical and mental well-being',
+    category: 'life-vision',
+    order: 3
   },
   {
     id: 'travel-adventure',
-    title: 'Travel / Adventure',
-    icon: Plane,
+    title: 'Travel',
+    icon: getCategoryInfo('travel-adventure').icon,
     description: 'Places to explore and adventures',
-    category: 'life-vision'
+    category: 'life-vision',
+    order: 4
+  },
+  {
+    id: 'relationship',
+    title: 'Love',
+    icon: getCategoryInfo('relationship').icon,
+    description: 'Romantic relationships',
+    category: 'life-vision',
+    order: 5
+  },
+  {
+    id: 'family',
+    title: 'Family',
+    icon: getCategoryInfo('family').icon,
+    description: 'Family relationships and life',
+    category: 'life-vision',
+    order: 6
   },
   {
     id: 'social-friends',
-    title: 'Social / Friends',
-    icon: UserPlus,
+    title: 'Social',
+    icon: getCategoryInfo('social-friends').icon,
     description: 'Social connections and friendships',
-    category: 'life-vision'
+    category: 'life-vision',
+    order: 7
+  },
+  {
+    id: 'location',
+    title: 'Home',
+    icon: getCategoryInfo('location').icon,
+    description: 'Living space and environment',
+    category: 'life-vision',
+    order: 8
+  },
+  {
+    id: 'career',
+    title: 'Work',
+    icon: getCategoryInfo('career').icon,
+    description: 'Work and career aspirations',
+    category: 'life-vision',
+    order: 9
+  },
+  {
+    id: 'financial',
+    title: 'Money',
+    icon: getCategoryInfo('financial').icon,
+    description: 'Financial goals and wealth',
+    category: 'life-vision',
+    order: 10
   },
   {
     id: 'possessions-lifestyle',
-    title: 'Possessions / Stuff',
-    icon: Package,
+    title: 'Possessions',
+    icon: getCategoryInfo('possessions-lifestyle').icon,
     description: 'Material belongings and things',
-    category: 'life-vision'
+    category: 'life-vision',
+    order: 11
+  },
+  {
+    id: 'giving-legacy',
+    title: 'Giving',
+    icon: getCategoryInfo('giving-legacy').icon,
+    description: 'Contribution and legacy',
+    category: 'life-vision',
+    order: 12
   },
   {
     id: 'spirituality-growth',
     title: 'Spirituality',
-    icon: Zap,
+    icon: getCategoryInfo('spirituality-growth').icon,
     description: 'Spiritual growth and expansion',
-    category: 'life-vision'
-  },
-  {
-    id: 'giving-legacy',
-    title: 'Giving / Legacy',
-    icon: Gift,
-    description: 'Contribution and legacy',
-    category: 'life-vision'
+    category: 'life-vision',
+    order: 13
   },
   {
     id: 'photos-notes',
-    title: 'Media & Notes',
+    title: 'Photos & Notes',
     icon: Camera,
-    description: 'Photos, videos, and notes',
-    category: 'extras'
+    description: 'Media and additional notes',
+    category: 'basics',
+    order: 14
   }
-]
+].sort((a, b) => a.order - b.order)
 
 export function ProfileSidebar({ activeSection, onSectionChange, completedSections }: ProfileSidebarProps) {
   const basicsSections = sections.filter(s => s.category === 'basics')
   const lifeVisionSections = sections.filter(s => s.category === 'life-vision')
-  const extrasSections = sections.filter(s => s.category === 'extras')
 
   const renderSection = (section: typeof sections[0]) => {
     const Icon = section.icon
@@ -185,16 +249,6 @@ export function ProfileSidebar({ activeSection, onSectionChange, completedSectio
           </h3>
           <div className="space-y-2">
             {lifeVisionSections.map(renderSection)}
-          </div>
-        </div>
-
-        {/* Extras Section */}
-        <div>
-          <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2 px-3">
-            Extras
-          </h3>
-          <div className="space-y-2">
-            {extrasSections.map(renderSection)}
           </div>
         </div>
       </nav>
