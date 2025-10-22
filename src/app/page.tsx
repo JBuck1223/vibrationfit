@@ -51,13 +51,13 @@ export default function HomePage() {
         {/* Hero Section */}
         <section>
           <Cover minHeight="500px" className="!p-0">
-            <div className="w-full max-w-6xl mx-auto">
+            <div className="w-full">
               {/* Headline at top */}
               <div className="text-center mb-4 md:mb-6 -mt-8 md:-mt-6 px-2 md:px-0">
-                <h1 className="text-xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+                <h1 className="text-2xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
                   Thoughts become things…
                   <br />
-                  <span className="text-lg md:text-4xl lg:text-5xl text-white">so why isn't it working?</span>
+                  <span className="text-xl md:text-4xl lg:text-5xl text-white">so why isn't it working?</span>
                 </h1>
               </div>
               
@@ -79,15 +79,15 @@ export default function HomePage() {
                     <ul className="space-y-1">
                       <li className="flex items-start gap-2">
                         <span className="text-[#39FF14] mt-0">→</span>
-                        <span className="text-justify">Conscious Creation System: Train → Tune → Track</span>
+                        <span className="text-left">Conscious Creation System: Train → Tune → Track</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-[#39FF14] mt-0">→</span>
-                        <span className="text-justify">VIVA AI turns contrast into clarity—even if you don't know what you want</span>
+                        <span className="text-left">VIVA AI turns contrast into clarity—even if you don't know what you want</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-[#39FF14] mt-0">→</span>
-                        <span className="text-justify">Includes 8 weeks of Vision Pro; auto‑starts Day 56 at your plan</span>
+                        <span className="text-left">Includes 8 weeks of Vision Pro; auto‑starts Day 56 at your plan</span>
                       </li>
                     </ul>
                   </div>
@@ -118,37 +118,37 @@ export default function HomePage() {
 
         {/* What 'active in 72 hours' means - Credibility Box */}
         <section>
-          <Container size="lg">
-            <Card variant="elevated" className="bg-[#39FF14]/10 border-[#39FF14]/30">
-              <Stack gap="md">
+          <div className="w-full">
+            <Card variant="elevated" className="bg-[#39FF14]/10 border-[#39FF14]/30 !mx-0 !w-full">
+              <Stack gap="md" className="px-4">
                 <h3 className="text-xl font-bold text-[#39FF14] text-center">
                   What "active in 72 hours" means
                 </h3>
-                <Stack gap="sm" className="items-center">
-                  <Inline gap="sm" align="center" className="justify-center">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-center gap-3">
                     <Icon icon={CheckCircle} size="sm" color="#39FF14" />
                     <span className="text-sm text-neutral-300">12-category vision completed</span>
-                  </Inline>
-                  <Inline gap="sm" align="center" className="justify-center">
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
                     <Icon icon={CheckCircle} size="sm" color="#39FF14" />
                     <span className="text-sm text-neutral-300">AM/PM audio recordings</span>
-                  </Inline>
-                  <Inline gap="sm" align="center" className="justify-center">
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
                     <Icon icon={CheckCircle} size="sm" color="#39FF14" />
                     <span className="text-sm text-neutral-300">Vision board created</span>
-                  </Inline>
-                  <Inline gap="sm" align="center" className="justify-center">
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
                     <Icon icon={CheckCircle} size="sm" color="#39FF14" />
                     <span className="text-sm text-neutral-300">3 journal entries logged</span>
-                  </Inline>
-                  <Inline gap="sm" align="center" className="justify-center">
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
                     <Icon icon={CheckCircle} size="sm" color="#39FF14" />
                     <span className="text-sm text-neutral-300">Calibration call booked</span>
-                  </Inline>
-                </Stack>
+                  </div>
+                </div>
               </Stack>
             </Card>
-          </Container>
+          </div>
         </section>
 
         {/* Video Section */}
