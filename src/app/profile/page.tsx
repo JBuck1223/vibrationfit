@@ -558,7 +558,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                                 Draft
                               </Badge>
                             )}
-                            <Badge variant="info">
+                            <Badge variant="success" className="px-2 md:px-3">
                               {version.completion_percentage}% complete
                             </Badge>
                           </div>
@@ -574,7 +574,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="flex flex-row gap-2">
                           <Button
                             onClick={() => window.location.href = `/profile?versionId=${version.id}`}
                             variant="outline"
