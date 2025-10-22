@@ -1694,7 +1694,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       <div 
         ref={ref}
         className={cn(
-          'hidden md:flex flex-col bg-neutral-900 border-r border-neutral-800 transition-all duration-300 sticky top-0 h-screen',
+          'hidden md:flex flex-col bg-neutral-900 border-r border-neutral-800 transition-all duration-300 sticky top-0 h-screen overflow-hidden',
           collapsed ? 'w-16' : 'w-64',
           className
         )}
@@ -1784,7 +1784,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.children && item.children.some(child => pathname === child.href))
             const isExpanded = expandedItems.includes(item.name)
