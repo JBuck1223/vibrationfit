@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Button } from '@/lib/design-system/components'
+import { Card, Button, Badge } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { ProfileField } from './components/ProfileField'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -351,34 +351,105 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     <>
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              onClick={() => router.back()}
-              variant="ghost"
-              className="text-neutral-400 hover:text-white"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back
-            </Button>
+          {/* Mobile Header */}
+          <div className="md:hidden space-y-4 mb-6">
+            {/* Title and Badge */}
+            <div>
+              <h1 className="text-2xl font-bold text-white mb-2">My Profile</h1>
+              {isViewingVersion && getCurrentVersionInfo() && (
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="info">
+                    Version {getCurrentVersionInfo()?.version_number}
+                  </Badge>
+                  {getCurrentVersionInfo()?.is_draft && (
+                    <Badge variant="warning">
+                      Draft
+                    </Badge>
+                  )}
+                </div>
+              )}
+              {!isViewingVersion && (
+                <Badge variant="success" className="mb-2">
+                  Current Version
+                </Badge>
+              )}
+              <p className="text-neutral-400 text-sm">
+                {isViewingVersion 
+                  ? `Viewing saved version from ${getCurrentVersionInfo() ? new Date(getCurrentVersionInfo().created_at).toLocaleDateString() : ''}`
+                  : 'Complete overview of your current personal information'
+                }
+              </p>
+            </div>
+
+            {/* Action Buttons - Stacked */}
+            <div className="space-y-2">
+              {isViewingVersion && currentVersionId ? (
+                <Button
+                  onClick={() => {
+                    setCurrentVersionId(null)
+                    setIsViewingVersion(false)
+                    window.history.pushState({}, '', '/profile')
+                    fetchProfile()
+                  }}
+                  variant="primary"
+                  className="w-full"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Current
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => router.push('/profile/edit')}
+                  variant="primary"
+                  className="w-full"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              )}
+              
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => setShowVersions(!showVersions)}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Star className="w-4 h-4 mr-1" />
+                  {showVersions ? 'Hide' : 'Show'} Versions
+                </Button>
+                <Button
+                  onClick={() => router.push('/profile/new')}
+                  variant="secondary"
+                  size="sm"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  New Version
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Header */}
+          <div className="hidden md:flex items-center gap-4 mb-6">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl font-bold text-white">My Profile</h1>
                 {isViewingVersion && getCurrentVersionInfo() && (
                   <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium">
+                    <Badge variant="info">
                       Version {getCurrentVersionInfo()?.version_number}
-                    </span>
+                    </Badge>
                     {getCurrentVersionInfo()?.is_draft && (
-                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
+                      <Badge variant="warning">
                         Draft
-                      </span>
+                      </Badge>
                     )}
                   </div>
                 )}
                 {!isViewingVersion && (
-                  <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+                  <Badge variant="success">
                     Current Version
-                  </span>
+                  </Badge>
                 )}
               </div>
               <p className="text-neutral-400">
