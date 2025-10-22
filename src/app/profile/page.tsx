@@ -355,28 +355,30 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <div className="md:hidden space-y-4 mb-6">
             {/* Title and Badge */}
             <div>
-              <h1 className="text-2xl font-bold text-white mb-2">My Profile</h1>
-              {isViewingVersion && getCurrentVersionInfo() && (
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="info">
-                    Version {getCurrentVersionInfo()?.version_number}
-                  </Badge>
-                  {getCurrentVersionInfo()?.is_draft && (
-                    <Badge variant="warning">
-                      Draft
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-2xl font-bold text-white">My Profile</h1>
+                {isViewingVersion && getCurrentVersionInfo() && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="info">
+                      Version {getCurrentVersionInfo()?.version_number}
                     </Badge>
-                  )}
-                </div>
-              )}
-              {!isViewingVersion && (
-                <Badge variant="success" className="mb-2">
-                  Current Version
-                </Badge>
-              )}
+                    {getCurrentVersionInfo()?.is_draft && (
+                      <Badge variant="warning">
+                        Draft
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                {!isViewingVersion && (
+                  <Badge variant="success">
+                    Current Version
+                  </Badge>
+                )}
+              </div>
               <p className="text-neutral-400 text-sm">
                 {isViewingVersion 
                   ? `Viewing saved version from ${getCurrentVersionInfo() ? new Date(getCurrentVersionInfo().created_at).toLocaleDateString() : ''}`
-                  : 'Complete overview of your current personal information'
+                  : 'This is your current active profile.'
                 }
               </p>
             </div>
