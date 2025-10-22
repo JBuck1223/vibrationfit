@@ -318,12 +318,10 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
   if (loading) {
     return (
       <>
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-              <p className="text-neutral-400">Loading your profile...</p>
-            </div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+            <p className="text-neutral-400">Loading your profile...</p>
           </div>
         </div>
       </>
@@ -333,18 +331,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
   if (error) {
     return (
       <>
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="text-red-500 mb-4">
-                <User className="w-16 h-16 mx-auto" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Profile Error</h2>
-              <p className="text-neutral-400 mb-6">{error}</p>
-              <Button onClick={fetchProfile} variant="primary">
-                Try Again
-              </Button>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <User className="w-16 h-16 mx-auto" />
             </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Profile Error</h2>
+            <p className="text-neutral-400 mb-6">{error}</p>
+            <Button onClick={fetchProfile} variant="primary">
+              Try Again
+            </Button>
           </div>
         </div>
       </>
@@ -353,7 +349,6 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
   return (
     <>
-      <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
