@@ -13,9 +13,9 @@ interface GlobalLayoutProps {
 export function GlobalLayout({ children }: GlobalLayoutProps) {
   const pathname = usePathname()
   
-  // Define page classifications
+  // Define page classifications - COMPLETE LIST OF ALL PAGES
   const pageClassifications = {
-    // User pages - logged-in users, get sidebar + mobile nav
+    // USER PAGES - Logged-in users, get sidebar + mobile nav
     USER: [
       // Dashboard and sub-pages
       '/dashboard',
@@ -73,20 +73,20 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       '/intensive/refine-vision',
       '/intensive/schedule-call',
       
-      // Other user pages
+      // Account and billing
       '/billing',
-      '/support',
       '/account/settings',
     ],
     
-    // Admin pages - admin users, get sidebar + mobile nav (same as user for now)
+    // ADMIN PAGES - Admin users, get sidebar + mobile nav
     ADMIN: [
       '/admin/ai-models',
       '/admin/token-usage',
       '/admin/users',
+      '/sitemap',
     ],
     
-    // Public pages - marketing/auth, get header + footer
+    // PUBLIC PAGES - Marketing/auth, get header + footer
     PUBLIC: [
       // Marketing pages
       '/',
@@ -104,12 +104,15 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       '/auth/callback',
       '/auth/auto-login',
       
-      // Other public pages
+      // Public utility pages
       '/checkout',
       '/billing/success',
       '/debug/email',
       '/test-recording',
       '/vision/build',
+      
+      // Support (public access)
+      '/support',
     ]
   }
   
@@ -139,7 +142,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   if (pageType === 'USER' || pageType === 'ADMIN') {
     // User and Admin pages: Use SidebarLayout with PageLayout
     return (
-      <SidebarLayout>
+      <SidebarLayout isAdmin={pageType === 'ADMIN'}>
         <PageLayout containerSize="xl">
           {children}
         </PageLayout>
