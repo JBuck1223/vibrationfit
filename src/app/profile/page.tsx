@@ -546,10 +546,10 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                 <div className="space-y-4">
                   {versions.map((version) => (
                     <Card key={version.id} variant="outlined" className="p-4">
-                      <div className="space-y-3">
+                      <div className="flex flex-col md:flex-row md:items-center gap-3">
                         {/* Version Info */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-lg font-semibold text-white">
                               Version {version.version_number}
                             </h3>
@@ -558,8 +558,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                                 Draft
                               </Badge>
                             )}
-                            <Badge variant="success" className="px-1 md:px-2">
-                              {version.completion_percentage}% complete
+                            <Badge variant="success" className="px-1 text-xs">
+                              {version.completion_percentage}%
                             </Badge>
                           </div>
                           
@@ -574,7 +574,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-row gap-2 w-full">
+                        <div className="flex flex-row gap-2 md:w-auto w-full">
                           <Button
                             onClick={() => window.location.href = `/profile?versionId=${version.id}`}
                             variant="outline"
