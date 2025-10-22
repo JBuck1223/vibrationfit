@@ -176,46 +176,63 @@ export default function SitemapPage() {
     const Icon = page.icon
     const isActive = pathname === page.href || (page.isDynamic && pathname.includes(page.href.replace('/[id]', '')))
     
-    return (
-      <Link href={page.href}>
-        <Card 
-          variant="outlined" 
-          className={`group hover:border-[#39FF14]/50 transition-all duration-200 ${
-            isActive ? 'border-[#39FF14]/50 bg-[#39FF14]/5' : ''
-          }`}
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-3">
-              <div className={`p-2 rounded-lg ${sectionColor.replace('text-', 'bg-').replace('[#39FF14]', '[#39FF14]/20').replace('[#8B5CF6]', '[#8B5CF6]/20').replace('[#14B8A6]', '[#14B8A6]/20')}`}>
-                <Icon className={`w-4 h-4 ${sectionColor}`} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white group-hover:text-[#39FF14] transition-colors">
-                  {page.label}
-                </h3>
-                <p className="text-sm text-neutral-400 mt-1">
-                  {page.description}
-                </p>
-                <code className="text-xs text-neutral-500 font-mono mt-1 block">
-                  {page.href}
-                </code>
-              </div>
+    const CardContent = (
+      <Card 
+        variant="outlined" 
+        className={`group transition-all duration-200 ${
+          page.isDynamic 
+            ? 'opacity-75 cursor-default' 
+            : 'hover:border-[#39FF14]/50 cursor-pointer'
+        } ${
+          isActive ? 'border-[#39FF14]/50 bg-[#39FF14]/5' : ''
+        }`}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-3">
+            <div className={`p-2 rounded-lg ${sectionColor.replace('text-', 'bg-').replace('[#39FF14]', '[#39FF14]/20').replace('[#8B5CF6]', '[#8B5CF6]/20').replace('[#14B8A6]', '[#14B8A6]/20')}`}>
+              <Icon className={`w-4 h-4 ${sectionColor}`} />
             </div>
-            <div className="flex items-center space-x-2">
-              {page.badge && (
-                <Badge variant="secondary" className="text-xs">
-                  {page.badge}
-                </Badge>
-              )}
-              {page.isDynamic && (
-                <Badge variant="secondary" className="text-xs">
-                  Dynamic
-                </Badge>
-              )}
-              <ChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-[#39FF14] transition-colors" />
+            <div>
+              <h3 className={`font-semibold text-white transition-colors ${
+                page.isDynamic ? '' : 'group-hover:text-[#39FF14]'
+              }`}>
+                {page.label}
+              </h3>
+              <p className="text-sm text-neutral-400 mt-1">
+                {page.description}
+              </p>
+              <code className="text-xs text-neutral-500 font-mono mt-1 block">
+                {page.href}
+              </code>
             </div>
           </div>
-        </Card>
+          <div className="flex items-center space-x-2">
+            {page.badge && (
+              <Badge variant="secondary" className="text-xs">
+                {page.badge}
+              </Badge>
+            )}
+            {page.isDynamic && (
+              <Badge variant="secondary" className="text-xs">
+                Dynamic
+              </Badge>
+            )}
+            {!page.isDynamic && (
+              <ChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-[#39FF14] transition-colors" />
+            )}
+          </div>
+        </div>
+      </Card>
+    )
+
+    // Only wrap in Link if it's not a dynamic route
+    if (page.isDynamic) {
+      return CardContent
+    }
+
+    return (
+      <Link href={page.href}>
+        {CardContent}
       </Link>
     )
   }
