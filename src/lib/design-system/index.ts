@@ -43,6 +43,11 @@ export {
   // Specialized Cards
   ItemListCard,
   PricingCard,
+  
+  // Navigation Components
+  Sidebar,
+  MobileBottomNav,
+  SidebarLayout,
 } from './components'
 
 // Legacy alias for backward compatibility

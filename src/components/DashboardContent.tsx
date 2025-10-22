@@ -125,21 +125,20 @@ export default function DashboardContent({ user, profileData, visionData, vision
   const profileCompletePercentage = completionPercentage
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Hero Welcome Section */}
-        <div className="mb-12">
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-[#39FF14] to-[#00FFFF] bg-clip-text text-transparent">
-              Welcome to Your Conscious Creation Hub
-            </h1>
-            <p className="text-xl text-neutral-300 max-w-3xl mx-auto">
-              Transform your vision into reality with VibrationFit's complete conscious creation system. 
-              Build your Life I Choose™, align daily, and capture evidence of actualization.
-            </p>
-          </div>
-
+    <PageLayout containerSize="xl">
+      {/* Hero Welcome Section */}
+      <div className="mb-12">
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-[#39FF14] to-[#00FFFF] bg-clip-text text-transparent">
+            Welcome to Your Conscious Creation Hub
+          </h1>
+          <p className="text-xl text-neutral-300 max-w-3xl mx-auto">
+            Transform your vision into reality with VibrationFit's complete conscious creation system. 
+            Build your Life I Choose™, align daily, and capture evidence of actualization.
+          </p>
         </div>
+
+      </div>
 
         {/* Key Metrics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
@@ -662,8 +661,6 @@ export default function DashboardContent({ user, profileData, visionData, vision
             </div>
           </Card>
         </div>
-
-      </div>
-    </div>
+    </PageLayout>
   )
 }

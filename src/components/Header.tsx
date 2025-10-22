@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/lib/design-system/components'
 import { Container } from '@/lib/design-system/components'
+import { cn } from '@/lib/utils'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
@@ -112,7 +113,11 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-neutral-800">
+    <header className={cn(
+      "sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-neutral-800",
+      // Hide header on mobile for logged-in users
+      user ? "hidden md:block" : "block"
+    )}>
       <Container size="full" className="px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center justify-between h-16">
           {/* Logo */}

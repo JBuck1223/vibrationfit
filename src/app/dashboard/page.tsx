@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { SidebarLayout } from '@/components/Sidebar'
+import { SidebarLayout } from '@/lib/design-system'
 import DashboardContent from '@/components/DashboardContent'
 
 export default async function DashboardPage() {

@@ -21,7 +21,6 @@ import {
 } from 'lucide-react'
 import { 
   PageLayout, 
-  Container, 
   Card, 
   Button, 
   Badge, 
@@ -455,11 +454,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   if (loading) {
     return (
       <PageLayout>
-        <Container size="xl" className="py-8">
-          <div className="flex items-center justify-center py-16">
-            <Spinner variant="primary" size="lg" />
-          </div>
-        </Container>
+        <div className="flex items-center justify-center py-16">
+          <Spinner variant="primary" size="lg" />
+        </div>
       </PageLayout>
     )
   }
@@ -467,20 +464,18 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   if (error || !vision) {
     return (
       <PageLayout>
-        <Container size="xl" className="py-8">
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="text-red-500 mb-4">
-                <Sparkles className="w-16 h-16 mx-auto" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Vision Error</h2>
-              <p className="text-neutral-400 mb-6">{error || 'Vision not found'}</p>
-              <Button onClick={() => router.back()} variant="primary">
-                Go Back
-              </Button>
+        <div className="flex items-center justify-center py-16">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <Sparkles className="w-16 h-16 mx-auto" />
             </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Vision Error</h2>
+            <p className="text-neutral-400 mb-6">{error || 'Vision not found'}</p>
+            <Button onClick={() => router.back()} variant="primary">
+              Go Back
+            </Button>
           </div>
-        </Container>
+        </div>
       </PageLayout>
     )
   }
@@ -488,10 +483,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const selectedCategoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
 
   return (
-    <PageLayout>
-      <Container size="xl" className="py-6">
-        {/* Header */}
-        <div className="mb-8">
+    <PageLayout className="pt-0">
+      {/* Header */}
+      <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
             <Button
               onClick={() => router.back()}
@@ -937,7 +931,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </div>
           </Card>
         )}
-      </Container>
     </PageLayout>
   )
 }
