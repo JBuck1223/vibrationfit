@@ -537,60 +537,70 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             <Card className="p-6 mb-8">
               <h2 className="text-xl font-semibold text-white mb-4">Profile Versions</h2>
               {versions.length === 0 ? (
-                <p className="text-neutral-400">No saved versions yet.</p>
+                <div className="text-center py-8">
+                  <FileText className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                  <p className="text-neutral-400 mb-2">No saved versions yet</p>
+                  <p className="text-sm text-neutral-500">Create your first version to get started</p>
+                </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {versions.map((version) => (
-                    <div key={version.id} className="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-sm font-medium text-white">
-                            Version {version.version_number}
-                          </span>
-                          {version.is_draft && (
-                            <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
-                              Draft
-                            </span>
-                          )}
-                          <span className="text-sm text-neutral-400">
-                            {version.completion_percentage}% complete
-                          </span>
+                    <Card key={version.id} variant="outlined" className="p-4">
+                      <div className="flex flex-col md:flex-row md:items-center gap-4">
+                        {/* Version Info */}
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <h3 className="text-lg font-semibold text-white">
+                              Version {version.version_number}
+                            </h3>
+                            {version.is_draft && (
+                              <Badge variant="warning">
+                                Draft
+                              </Badge>
+                            )}
+                            <Badge variant="info">
+                              {version.completion_percentage}% complete
+                            </Badge>
+                          </div>
+                          
+                          <div className="space-y-1 text-sm text-neutral-400">
+                            <p>
+                              <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                            </p>
+                            <p className="text-xs text-neutral-500 font-mono">
+                              ID: {version.id}
+                            </p>
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-neutral-500">
-                            <span className="font-mono">ID:</span> {version.id}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            <span className="font-medium">Submitted:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
-                          </p>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            onClick={() => window.location.href = `/profile?versionId=${version.id}`}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View
+                          </Button>
+                          <Button
+                            onClick={() => deleteVersion(version.id)}
+                            variant="danger"
+                            size="sm"
+                            className="flex items-center gap-2"
+                            disabled={deletingVersion === version.id}
+                          >
+                            {deletingVersion === version.id ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                            Delete
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => window.location.href = `/profile?versionId=${version.id}`}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <Eye className="w-3 h-3" />
-                          View
-                        </Button>
-                        <Button
-                          onClick={() => deleteVersion(version.id)}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
-                          disabled={deletingVersion === version.id}
-                        >
-                          {deletingVersion === version.id ? (
-                            <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3 h-3" />
-                          )}
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               )}
