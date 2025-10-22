@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, Button, Badge } from '@/lib/design-system/components'
+import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
 import { ProfileField } from './components/ProfileField'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -43,93 +44,40 @@ import {
 } from 'lucide-react'
 import NextImage from 'next/image'
 
-// Life Categories Configuration - matches ProfileSidebar order
-const lifeCategories = [
-  {
-    id: 'personal',
-    title: 'Personal Information',
-    icon: User,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'relationship',
-    title: 'Romance & Partnership',
-    icon: Heart,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'family',
-    title: 'Family & Parenting',
-    icon: Users,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'health',
-    title: 'Health & Vitality',
-    icon: Activity,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'location',
-    title: 'Home & Environment',
-    icon: Home,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'career',
-    title: 'Business & Career',
-    icon: Briefcase,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'financial',
-    title: 'Money & Wealth',
-    icon: DollarSign,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'fun-recreation',
-    title: 'Fun & Recreation',
-    icon: Star,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'travel-adventure',
-    title: 'Travel & Adventure',
-    icon: Plane,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'social-friends',
-    title: 'Social & Friends',
-    icon: UserPlus,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'possessions-lifestyle',
-    title: 'Possessions & Stuff',
-    icon: Package,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'spirituality-growth',
-    title: 'Spirituality & Growth',
-    icon: Sparkles,
-    color: 'text-primary-500'
-  },
-  {
-    id: 'giving-legacy',
-    title: 'Giving & Legacy',
-    icon: Heart,
-    color: 'text-primary-500'
-  }
-]
-
-// Helper function to get category info
+// Helper function to get category info from design system
 const getCategoryInfo = (categoryId: string) => {
-  return lifeCategories.find(cat => cat.id === categoryId) || {
+  // Map profile category filters to vision category keys
+  const categoryMapping: Record<string, string> = {
+    'romance_partnership': 'romance',
+    'family_parenting': 'family', 
+    'health_vitality': 'health',
+    'home_environment': 'home',
+    'career_work': 'business',
+    'money_wealth': 'money',
+    'fun_recreation': 'fun',
+    'travel_adventure': 'travel',
+    'social_friends': 'social',
+    'possessions_lifestyle': 'possessions',
+    'spirituality_growth': 'spirituality',
+    'giving_legacy': 'giving'
+  }
+  
+  const visionCategoryKey = categoryMapping[categoryId] || categoryId
+  const category = getVisionCategory(visionCategoryKey)
+  
+  if (category) {
+    return {
+      id: categoryId,
+      title: category.label,
+      icon: category.icon,
+      color: 'text-primary-500'
+    }
+  }
+  
+  // Fallback for categories not in vision categories
+  return {
     id: categoryId,
-    title: categoryId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    title: categoryId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     icon: User,
     color: 'text-primary-500'
   }
@@ -947,7 +895,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Heart className="w-5 h-5 text-primary-500" />
-              Romance & Partnership
+              {getCategoryInfo('romance_partnership').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1011,7 +959,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 text-primary-500" />
-              Family & Parenting
+              {getCategoryInfo('family_parenting').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1060,7 +1008,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Activity className="w-5 h-5 text-primary-500" />
-              Health & Vitality
+              {getCategoryInfo('health_vitality').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1127,7 +1075,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Home className="w-5 h-5 text-primary-500" />
-              Home & Environment
+              {getCategoryInfo('home_environment').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1208,7 +1156,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-primary-500" />
-              Career & Work
+              {getCategoryInfo('career_work').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1279,7 +1227,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-primary-500" />
-              Money & Wealth
+              {getCategoryInfo('money_wealth').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1383,8 +1331,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           {/* Fun & Recreation */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Star className="w-5 h-5 text-accent-500" />
-              Fun & Recreation
+              <Star className="w-5 h-5 text-primary-500" />
+              {getCategoryInfo('fun_recreation').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1430,8 +1378,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           {/* Travel & Adventure */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-secondary-500" />
-              Travel & Adventure
+              <Plane className="w-5 h-5 text-primary-500" />
+              {getCategoryInfo('travel_adventure').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1484,8 +1432,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           {/* Social & Friends */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-secondary-500" />
-              Social & Friends
+              <UserPlus className="w-5 h-5 text-primary-500" />
+              {getCategoryInfo('social_friends').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1535,8 +1483,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           {/* Possessions & Lifestyle */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Building className="w-5 h-5 text-primary-500" />
-              Possessions & Lifestyle
+              <Package className="w-5 h-5 text-primary-500" />
+              {getCategoryInfo('possessions_lifestyle').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1580,8 +1528,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           {/* Spirituality & Growth */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-accent-500" />
-              Spirituality & Growth
+              <Sparkles className="w-5 h-5 text-primary-500" />
+              {getCategoryInfo('spirituality_growth').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
@@ -1640,8 +1588,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           {/* Giving & Legacy */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Heart className="w-5 h-5 text-secondary-500" />
-              Giving & Legacy
+              <Heart className="w-5 h-5 text-primary-500" />
+              {getCategoryInfo('giving_legacy').title}
             </h3>
             <div className="space-y-3">
               <ProfileField 
