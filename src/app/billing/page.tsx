@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PageLayout, Container, Card, Button, Badge } from '@/lib/design-system/components'
+import { PageLayout, Card, Button, Badge } from '@/lib/design-system/components'
 import { CreditCard, Calendar, TrendingUp, ExternalLink, AlertCircle, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -53,20 +53,15 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <>
-        <Container size="xl" className="py-12">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-neutral-800 rounded w-1/4"></div>
-            <div className="h-64 bg-neutral-800 rounded"></div>
-          </div>
-        </Container>
-      </>
+      <div className="animate-pulse space-y-6">
+        <div className="h-8 bg-neutral-800 rounded w-1/4"></div>
+        <div className="h-64 bg-neutral-800 rounded"></div>
+      </div>
     )
   }
 
   return (
     <>
-      <Container size="xl" className="py-12">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Billing & Subscription</h1>
           <p className="text-neutral-400">
@@ -204,7 +199,6 @@ export default function BillingPage() {
             </Card>
           </div>
         </div>
-      </Container>
     </>
   )
 }

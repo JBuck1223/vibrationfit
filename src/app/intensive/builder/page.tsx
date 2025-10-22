@@ -7,7 +7,6 @@ import { ArrowLeft, ArrowRight, Sparkles, Wand2, Save, Eye, Clock } from 'lucide
 
 import { 
   PageLayout, 
-  Container, 
   Card, 
   Button, 
   Textarea,
@@ -348,38 +347,30 @@ My daily routines support my vision and values. I wake up with purpose and energ
 
   if (generating) {
     return (
-      <>
-        <Container size="xl" className="py-16">
-          <div className="text-center">
-            <Spinner size="lg" className="mx-auto mb-6" />
-            <h1 className="text-3xl font-bold text-white mb-4">Generating Your Vision</h1>
-            <p className="text-neutral-400">
-              Our AI is analyzing your intake responses and creating a personalized vision draft...
-            </p>
-          </div>
-        </Container>
-      </>
+      <div className="text-center">
+        <Spinner size="lg" className="mx-auto mb-6" />
+        <h1 className="text-3xl font-bold text-white mb-4">Generating Your Vision</h1>
+        <p className="text-neutral-400">
+          Our AI is analyzing your intake responses and creating a personalized vision draft...
+        </p>
+      </div>
     )
   }
 
   if (!visionDraft) {
     return (
-      <>
-        <Container size="xl" className="py-16">
-          <Card className="max-w-2xl mx-auto p-12 text-center">
-            <h1 className="text-3xl font-bold text-white mb-4">No Vision Found</h1>
-            <p className="text-neutral-400 mb-8">
-              We couldn't find your vision draft. Please try again.
-            </p>
-            <Button 
-              variant="primary" 
-              onClick={() => router.push('/intensive/intake')}
-            >
-              Back to Intake
-            </Button>
-          </Card>
-        </Container>
-      </>
+      <Card className="max-w-2xl mx-auto p-12 text-center">
+        <h1 className="text-3xl font-bold text-white mb-4">No Vision Found</h1>
+        <p className="text-neutral-400 mb-8">
+          We couldn't find your vision draft. Please try again.
+        </p>
+        <Button 
+          variant="primary" 
+          onClick={() => router.push('/intensive/intake')}
+        >
+          Back to Intake
+        </Button>
+      </Card>
     )
   }
 
@@ -388,7 +379,6 @@ My daily routines support my vision and values. I wake up with purpose and energ
 
   return (
     <>
-      <Container size="xl" className="py-16">
         
         {/* Header */}
         <div className="text-center mb-12">
@@ -530,7 +520,6 @@ My daily routines support my vision and values. I wake up with purpose and energ
           </div>
         </Card>
 
-      </Container>
     </>
   )
 }

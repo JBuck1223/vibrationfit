@@ -70,7 +70,8 @@ const getCategoryInfo = (categoryId: string) => {
       id: categoryId,
       title: category.label,
       icon: category.icon,
-      color: 'text-primary-500'
+      color: 'text-primary-500',
+      order: category.order
     }
   }
   
@@ -79,9 +80,33 @@ const getCategoryInfo = (categoryId: string) => {
     id: categoryId,
     title: categoryId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     icon: User,
-    color: 'text-primary-500'
+    color: 'text-primary-500',
+    order: 999 // High number to put unmapped categories at the end
   }
 }
+
+// Helper function to get profile categories in design system order
+const getOrderedProfileCategories = () => {
+  const profileCategories = [
+    'romance_partnership',
+    'family_parenting', 
+    'health_vitality',
+    'home_environment',
+    'career_work',
+    'money_wealth',
+    'fun_recreation',
+    'travel_adventure',
+    'social_friends',
+    'possessions_lifestyle',
+    'spirituality_growth',
+    'giving_legacy'
+  ]
+  
+  return profileCategories
+    .map(categoryId => getCategoryInfo(categoryId))
+    .sort((a, b) => a.order - b.order)
+}
+
 
 interface ProfileViewPageProps {}
 
@@ -335,6 +360,648 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
   const isVideo = (url: string) => {
     return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
+  }
+
+  // Helper function to render fields for each category
+  const renderCategoryFields = (categoryId: string) => {
+    switch (categoryId) {
+      case 'romance_partnership':
+        return (
+          <>
+            <ProfileField 
+              label="Status" 
+              value={profile.relationship_status}
+              editable={!isViewingVersion}
+              fieldKey="relationship_status"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'Single', label: 'Single' },
+                { value: 'Dating', label: 'Dating' },
+                { value: 'In a Relationship', label: 'In a Relationship' },
+                { value: 'Engaged', label: 'Engaged' },
+                { value: 'Married', label: 'Married' },
+                { value: 'Separated', label: 'Separated' },
+                { value: 'Divorced', label: 'Divorced' },
+                { value: 'Widowed', label: 'Widowed' },
+              ]}
+            />
+            <ProfileField 
+              label="Partner" 
+              value={profile.partner_name}
+              editable={!isViewingVersion}
+              fieldKey="partner_name"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="Relationship Length" 
+              value={profile.relationship_length}
+              editable={!isViewingVersion}
+              fieldKey="relationship_length"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'Less than 1 year', label: 'Less than 1 year' },
+                { value: '1-2 years', label: '1-2 years' },
+                { value: '3-5 years', label: '3-5 years' },
+                { value: '6-10 years', label: '6-10 years' },
+                { value: '10+ years', label: '10+ years' },
+              ]}
+            />
+            <ProfileField 
+              label="My Current Story Around Romance & Partnership" 
+              value={profile.romance_partnership_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="romance_partnership_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'family_parenting':
+        return (
+          <>
+            <ProfileField 
+              label="Has Children" 
+              value={profile.has_children} 
+              type="boolean"
+              editable={!isViewingVersion}
+              fieldKey="has_children"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="Number of Children" 
+              value={profile.number_of_children}
+              type="number"
+              editable={!isViewingVersion}
+              fieldKey="number_of_children"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="Children's Ages" 
+              value={profile.children_ages} 
+              type="array"
+              editable={!isViewingVersion}
+              fieldKey="children_ages"
+              onSave={handleFieldSave}
+              placeholder="Add child's age (e.g., 5, 12, 16)"
+            />
+            <ProfileField 
+              label="My Current Story Around Family & Parenting" 
+              value={profile.family_parenting_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="family_parenting_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'health_vitality':
+        return (
+          <>
+            <ProfileField 
+              label="Height" 
+              value={profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : null}
+              editable={!isViewingVersion}
+              fieldKey="height"
+              onSave={handleFieldSave}
+              type="number"
+            />
+            <ProfileField 
+              label="Weight" 
+              value={profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : null}
+              editable={!isViewingVersion}
+              fieldKey="weight"
+              onSave={handleFieldSave}
+              type="number"
+            />
+            <ProfileField 
+              label="Units" 
+              value={profile.units}
+              editable={!isViewingVersion}
+              fieldKey="units"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'US', label: 'US (inches, lbs)' },
+                { value: 'Metric', label: 'Metric (cm, kg)' },
+              ]}
+            />
+            <ProfileField 
+              label="Exercise Frequency" 
+              value={profile.exercise_frequency}
+              editable={!isViewingVersion}
+              fieldKey="exercise_frequency"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'Never', label: 'Never' },
+                { value: '1-2 times per week', label: '1-2 times per week' },
+                { value: '3-4 times per week', label: '3-4 times per week' },
+                { value: '5+ times per week', label: '5+ times per week' },
+                { value: 'Daily', label: 'Daily' },
+              ]}
+            />
+            <ProfileField 
+              label="My Current Story Around Health & Vitality" 
+              value={profile.health_vitality_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="health_vitality_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'home_environment':
+        return (
+          <>
+            <ProfileField 
+              label="Living Situation" 
+              value={profile.living_situation}
+              editable={!isViewingVersion}
+              fieldKey="living_situation"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'Own', label: 'Own' },
+                { value: 'Rent', label: 'Rent' },
+                { value: 'Living with family', label: 'Living with family' },
+                { value: 'Other', label: 'Other' },
+              ]}
+            />
+            <ProfileField 
+              label="Time at Location" 
+              value={profile.time_at_location}
+              editable={!isViewingVersion}
+              fieldKey="time_at_location"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'Less than 1 year', label: 'Less than 1 year' },
+                { value: '1-2 years', label: '1-2 years' },
+                { value: '3-5 years', label: '3-5 years' },
+                { value: '6-10 years', label: '6-10 years' },
+                { value: '10+ years', label: '10+ years' },
+              ]}
+            />
+            <ProfileField 
+              label="City" 
+              value={profile.city}
+              editable={!isViewingVersion}
+              fieldKey="city"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="State" 
+              value={profile.state}
+              editable={!isViewingVersion}
+              fieldKey="state"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="Postal Code" 
+              value={profile.postal_code}
+              editable={!isViewingVersion}
+              fieldKey="postal_code"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="Country" 
+              value={profile.country}
+              editable={!isViewingVersion}
+              fieldKey="country"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="My Current Story Around Home & Environment" 
+              value={profile.home_environment_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="home_environment_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'career_work':
+        return (
+          <>
+            <ProfileField 
+              label="Employment Type" 
+              value={profile.employment_type}
+              editable={!isViewingVersion}
+              fieldKey="employment_type"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'Full-time', label: 'Full-time' },
+                { value: 'Part-time', label: 'Part-time' },
+                { value: 'Self-employed', label: 'Self-employed' },
+                { value: 'Business Owner', label: 'Business Owner' },
+                { value: 'Freelance', label: 'Freelance' },
+                { value: 'Unemployed', label: 'Unemployed' },
+                { value: 'Retired', label: 'Retired' },
+                { value: 'Student', label: 'Student' },
+              ]}
+            />
+            <ProfileField 
+              label="Occupation" 
+              value={profile.occupation}
+              editable={!isViewingVersion}
+              fieldKey="occupation"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="Company" 
+              value={profile.company}
+              editable={!isViewingVersion}
+              fieldKey="company"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="Time in Role" 
+              value={profile.time_in_role}
+              editable={!isViewingVersion}
+              fieldKey="time_in_role"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'Less than 1 year', label: 'Less than 1 year' },
+                { value: '1-2 years', label: '1-2 years' },
+                { value: '3-5 years', label: '3-5 years' },
+                { value: '5-10 years', label: '5-10 years' },
+                { value: '10+ years', label: '10+ years' },
+              ]}
+            />
+            <ProfileField 
+              label="My Current Story Around Career & Work" 
+              value={profile.career_work_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="career_work_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'money_wealth':
+        return (
+          <>
+            <ProfileField 
+              label="Currency" 
+              value={profile.currency}
+              editable={!isViewingVersion}
+              fieldKey="currency"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'USD', label: 'USD ($)' },
+                { value: 'EUR', label: 'EUR (€)' },
+                { value: 'GBP', label: 'GBP (£)' },
+                { value: 'CAD', label: 'CAD ($)' },
+                { value: 'AUD', label: 'AUD ($)' },
+              ]}
+            />
+            <ProfileField 
+              label="Household Income" 
+              value={profile.household_income}
+              editable={!isViewingVersion}
+              fieldKey="household_income"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'Under 25,000', label: 'Under $25,000' },
+                { value: '25,000-49,999', label: '$25,000-$49,999' },
+                { value: '50,000-74,999', label: '$50,000-$74,999' },
+                { value: '75,000-99,999', label: '$75,000-$99,999' },
+                { value: '100,000-249,999', label: '$100,000-$249,999' },
+                { value: '250,000-499,999', label: '$250,000-$499,999' },
+                { value: '500,000+', label: '$500,000+' },
+              ]}
+            />
+            <ProfileField 
+              label="Savings & Retirement" 
+              value={profile.savings_retirement}
+              editable={!isViewingVersion}
+              fieldKey="savings_retirement"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'Under 10,000', label: 'Under $10,000' },
+                { value: '10,000-24,999', label: '$10,000-$24,999' },
+                { value: '25,000-49,999', label: '$25,000-$49,999' },
+                { value: '50,000-99,999', label: '$50,000-$99,999' },
+                { value: '100,000-249,999', label: '$100,000-$249,999' },
+                { value: '250,000-499,999', label: '$250,000-$499,999' },
+                { value: '500,000+', label: '$500,000+' },
+              ]}
+            />
+            <ProfileField 
+              label="Assets & Equity" 
+              value={profile.assets_equity}
+              editable={!isViewingVersion}
+              fieldKey="assets_equity"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'Under 10,000', label: 'Under $10,000' },
+                { value: '10,000-24,999', label: '$10,000-$24,999' },
+                { value: '25,000-49,999', label: '$25,000-$49,999' },
+                { value: '50,000-99,999', label: '$50,000-$99,999' },
+                { value: '100,000-249,999', label: '$100,000-$249,999' },
+                { value: '250,000-499,999', label: '$250,000-$499,999' },
+                { value: '500,000+', label: '$500,000+' },
+              ]}
+            />
+            <ProfileField 
+              label="Consumer Debt" 
+              value={profile.consumer_debt}
+              editable={!isViewingVersion}
+              fieldKey="consumer_debt"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'None', label: 'None' },
+                { value: 'Under 10,000', label: 'Under $10,000' },
+                { value: '10,000-24,999', label: '$10,000-$24,999' },
+                { value: '25,000-49,999', label: '$25,000-$49,999' },
+                { value: '50,000+', label: '$50,000+' },
+              ]}
+            />
+            <ProfileField 
+              label="My Current Story Around Money & Wealth" 
+              value={profile.money_wealth_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="money_wealth_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'fun_recreation':
+        return (
+          <>
+            <ProfileField 
+              label="Current Hobbies" 
+              value={profile.hobbies} 
+              type="array"
+              editable={!isViewingVersion}
+              fieldKey="hobbies"
+              onSave={handleFieldSave}
+              placeholder="Add a hobby"
+            />
+            <ProfileField 
+              label="Leisure Time Per Week" 
+              value={profile.leisure_time_weekly}
+              editable={!isViewingVersion}
+              fieldKey="leisure_time_weekly"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: '0-5 hours', label: '0-5 hours' },
+                { value: '6-15 hours', label: '6-15 hours' },
+                { value: '16-25 hours', label: '16-25 hours' },
+                { value: '25+ hours', label: '25+ hours' },
+              ]}
+            />
+            <ProfileField 
+              label="My Current Story Around Fun & Recreation" 
+              value={profile.fun_recreation_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="fun_recreation_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'travel_adventure':
+        return (
+          <>
+            <ProfileField 
+              label="Travel Frequency" 
+              value={profile.travel_frequency}
+              editable={!isViewingVersion}
+              fieldKey="travel_frequency"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'never', label: 'Never' },
+                { value: 'yearly', label: 'Yearly' },
+                { value: 'quarterly', label: 'Quarterly' },
+                { value: 'monthly', label: 'Monthly' },
+              ]}
+            />
+            <ProfileField 
+              label="Has Valid Passport" 
+              value={profile.passport} 
+              type="boolean"
+              editable={!isViewingVersion}
+              fieldKey="passport"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="Countries Visited" 
+              value={profile.countries_visited}
+              type="number"
+              editable={!isViewingVersion}
+              fieldKey="countries_visited"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="My Current Story Around Travel & Adventure" 
+              value={profile.travel_adventure_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="travel_adventure_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'social_friends':
+        return (
+          <>
+            <ProfileField 
+              label="Close Friends Count" 
+              value={profile.close_friends_count}
+              editable={!isViewingVersion}
+              fieldKey="close_friends_count"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: '0', label: '0' },
+                { value: '1-3', label: '1-3' },
+                { value: '4-8', label: '4-8' },
+                { value: '9+', label: '9+' },
+              ]}
+            />
+            <ProfileField 
+              label="Social Preference" 
+              value={profile.social_preference}
+              editable={!isViewingVersion}
+              fieldKey="social_preference"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'introvert', label: 'Introvert' },
+                { value: 'ambivert', label: 'Ambivert' },
+                { value: 'extrovert', label: 'Extrovert' },
+              ]}
+            />
+            <ProfileField 
+              label="My Current Story Around Social & Friends" 
+              value={profile.social_friends_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="social_friends_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'possessions_lifestyle':
+        return (
+          <>
+            <ProfileField 
+              label="Lifestyle Category" 
+              value={profile.lifestyle_category}
+              editable={!isViewingVersion}
+              fieldKey="lifestyle_category"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'minimalist', label: 'Minimalist' },
+                { value: 'moderate', label: 'Moderate' },
+                { value: 'comfortable', label: 'Comfortable' },
+                { value: 'luxury', label: 'Luxury' },
+              ]}
+            />
+            <ProfileField 
+              label="Primary Vehicle" 
+              value={profile.primary_vehicle}
+              editable={!isViewingVersion}
+              fieldKey="primary_vehicle"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="My Current Story Around Possessions & Lifestyle" 
+              value={profile.possessions_lifestyle_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="possessions_lifestyle_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'spirituality_growth':
+        return (
+          <>
+            <ProfileField 
+              label="Spiritual Practice" 
+              value={profile.spiritual_practice}
+              editable={!isViewingVersion}
+              fieldKey="spiritual_practice"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'none', label: 'None' },
+                { value: 'religious', label: 'Religious' },
+                { value: 'spiritual', label: 'Spiritual' },
+                { value: 'secular', label: 'Secular' },
+              ]}
+            />
+            <ProfileField 
+              label="Meditation Frequency" 
+              value={profile.meditation_frequency}
+              editable={!isViewingVersion}
+              fieldKey="meditation_frequency"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'never', label: 'Never' },
+                { value: 'rarely', label: 'Rarely' },
+                { value: 'weekly', label: 'Weekly' },
+                { value: 'daily', label: 'Daily' },
+              ]}
+            />
+            <ProfileField 
+              label="Personal Growth Focus" 
+              value={profile.personal_growth_focus} 
+              type="boolean"
+              editable={!isViewingVersion}
+              fieldKey="personal_growth_focus"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="My Current Story Around Spirituality & Growth" 
+              value={profile.spirituality_growth_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="spirituality_growth_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      case 'giving_legacy':
+        return (
+          <>
+            <ProfileField 
+              label="Volunteer Status" 
+              value={profile.volunteer_status}
+              editable={!isViewingVersion}
+              fieldKey="volunteer_status"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'none', label: 'None' },
+                { value: 'occasional', label: 'Occasional' },
+                { value: 'regular', label: 'Regular' },
+                { value: 'frequent', label: 'Frequent' },
+              ]}
+            />
+            <ProfileField 
+              label="Annual Charitable Giving" 
+              value={profile.charitable_giving}
+              editable={!isViewingVersion}
+              fieldKey="charitable_giving"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'none', label: 'None' },
+                { value: '<500', label: 'Under $500' },
+                { value: '500-2000', label: '$500-$2,000' },
+                { value: '2000+', label: '$2,000+' },
+              ]}
+            />
+            <ProfileField 
+              label="Legacy Mindset" 
+              value={profile.legacy_mindset} 
+              type="boolean"
+              editable={!isViewingVersion}
+              fieldKey="legacy_mindset"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label="My Current Story Around Giving & Legacy" 
+              value={profile.giving_legacy_story}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="giving_legacy_story"
+              onSave={handleFieldSave}
+            />
+          </>
+        )
+      
+      default:
+        return null
+    }
   }
 
   // Keyboard navigation for lightbox
@@ -890,761 +1557,29 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
           )}
         </div>
 
+        {/* Life Category Cards - Ordered by Design System */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Relationship */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Heart className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('romance_partnership').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Status" 
-                value={profile.relationship_status}
-                editable={!isViewingVersion}
-                fieldKey="relationship_status"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'Single', label: 'Single' },
-                  { value: 'Dating', label: 'Dating' },
-                  { value: 'In a Relationship', label: 'In a Relationship' },
-                  { value: 'Engaged', label: 'Engaged' },
-                  { value: 'Married', label: 'Married' },
-                  { value: 'Separated', label: 'Separated' },
-                  { value: 'Divorced', label: 'Divorced' },
-                  { value: 'Widowed', label: 'Widowed' },
-                ]}
-              />
-              <ProfileField 
-                label="Partner" 
-                value={profile.partner_name}
-                editable={!isViewingVersion}
-                fieldKey="partner_name"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="Relationship Length" 
-                value={profile.relationship_length}
-                editable={!isViewingVersion}
-                fieldKey="relationship_length"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'Less than 1 year', label: 'Less than 1 year' },
-                  { value: '1-2 years', label: '1-2 years' },
-                  { value: '3-5 years', label: '3-5 years' },
-                  { value: '6-10 years', label: '6-10 years' },
-                  { value: '10+ years', label: '10+ years' },
-                ]}
-              />
-              <ProfileField 
-                label="My Current Story Around Romance & Partnership" 
-                value={profile.romance_partnership_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="romance_partnership_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="romance_partnership"
-              />
-            </div>
-          </Card>
-
-          {/* Family */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('family_parenting').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Has Children" 
-                value={profile.has_children} 
-                type="boolean"
-                editable={!isViewingVersion}
-                fieldKey="has_children"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="Number of Children" 
-                value={profile.number_of_children}
-                type="number"
-                editable={!isViewingVersion}
-                fieldKey="number_of_children"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="Children's Ages" 
-                value={profile.children_ages} 
-                type="array"
-                editable={!isViewingVersion}
-                fieldKey="children_ages"
-                onSave={handleFieldSave}
-                placeholder="Add child's age (e.g., 5, 12, 16)"
-              />
-              <ProfileField 
-                label="My Current Story Around Family & Parenting" 
-                value={profile.family_parenting_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="family_parenting_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="family_parenting"
-              />
-            </div>
-          </Card>
-
-          {/* Health */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('health_vitality').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Height" 
-                value={profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : null}
-                editable={!isViewingVersion}
-                fieldKey="height"
-                onSave={handleFieldSave}
-                type="number"
-              />
-              <ProfileField 
-                label="Weight" 
-                value={profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : null}
-                editable={!isViewingVersion}
-                fieldKey="weight"
-                onSave={handleFieldSave}
-                type="number"
-              />
-              <ProfileField 
-                label="Units" 
-                value={profile.units}
-                editable={!isViewingVersion}
-                fieldKey="units"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'US', label: 'US (inches, lbs)' },
-                  { value: 'Metric', label: 'Metric (cm, kg)' },
-                ]}
-              />
-              <ProfileField 
-                label="Exercise Frequency" 
-                value={profile.exercise_frequency}
-                editable={!isViewingVersion}
-                fieldKey="exercise_frequency"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'Never', label: 'Never' },
-                  { value: '1-2 times per week', label: '1-2 times per week' },
-                  { value: '3-4 times per week', label: '3-4 times per week' },
-                  { value: '5+ times per week', label: '5+ times per week' },
-                  { value: 'Daily', label: 'Daily' },
-                ]}
-              />
-              <ProfileField 
-                label="My Current Story Around Health & Vitality" 
-                value={profile.health_vitality_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="health_vitality_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="health_vitality"
-              />
-            </div>
-          </Card>
-
-          {/* Location */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Home className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('home_environment').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Living Situation" 
-                value={profile.living_situation}
-                editable={!isViewingVersion}
-                fieldKey="living_situation"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'Own', label: 'Own' },
-                  { value: 'Rent', label: 'Rent' },
-                  { value: 'Living with family', label: 'Living with family' },
-                  { value: 'Other', label: 'Other' },
-                ]}
-              />
-              <ProfileField 
-                label="Time at Location" 
-                value={profile.time_at_location}
-                editable={!isViewingVersion}
-                fieldKey="time_at_location"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'Less than 1 year', label: 'Less than 1 year' },
-                  { value: '1-2 years', label: '1-2 years' },
-                  { value: '3-5 years', label: '3-5 years' },
-                  { value: '6-10 years', label: '6-10 years' },
-                  { value: '10+ years', label: '10+ years' },
-                ]}
-              />
-              <ProfileField 
-                label="City" 
-                value={profile.city}
-                editable={!isViewingVersion}
-                fieldKey="city"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="State" 
-                value={profile.state}
-                editable={!isViewingVersion}
-                fieldKey="state"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="Postal Code" 
-                value={profile.postal_code}
-                editable={!isViewingVersion}
-                fieldKey="postal_code"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="Country" 
-                value={profile.country}
-                editable={!isViewingVersion}
-                fieldKey="country"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="My Current Story Around Home & Environment" 
-                value={profile.home_environment_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="home_environment_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="home_environment"
-              />
-            </div>
-          </Card>
-
-          {/* Career */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('career_work').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Employment Type" 
-                value={profile.employment_type}
-                editable={!isViewingVersion}
-                fieldKey="employment_type"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'Full-time', label: 'Full-time' },
-                  { value: 'Part-time', label: 'Part-time' },
-                  { value: 'Self-employed', label: 'Self-employed' },
-                  { value: 'Business Owner', label: 'Business Owner' },
-                  { value: 'Freelance', label: 'Freelance' },
-                  { value: 'Unemployed', label: 'Unemployed' },
-                  { value: 'Retired', label: 'Retired' },
-                  { value: 'Student', label: 'Student' },
-                ]}
-              />
-              <ProfileField 
-                label="Occupation" 
-                value={profile.occupation}
-                editable={!isViewingVersion}
-                fieldKey="occupation"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="Company" 
-                value={profile.company}
-                editable={!isViewingVersion}
-                fieldKey="company"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="Time in Role" 
-                value={profile.time_in_role}
-                editable={!isViewingVersion}
-                fieldKey="time_in_role"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'Less than 1 year', label: 'Less than 1 year' },
-                  { value: '1-2 years', label: '1-2 years' },
-                  { value: '3-5 years', label: '3-5 years' },
-                  { value: '5-10 years', label: '5-10 years' },
-                  { value: '10+ years', label: '10+ years' },
-                ]}
-              />
-              <ProfileField 
-                label="My Current Story Around Career & Work" 
-                value={profile.career_work_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="career_work_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="career_work"
-              />
-            </div>
-          </Card>
-
-          {/* Financial */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('money_wealth').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Currency" 
-                value={profile.currency}
-                editable={!isViewingVersion}
-                fieldKey="currency"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'USD', label: 'USD ($)' },
-                  { value: 'EUR', label: 'EUR (€)' },
-                  { value: 'GBP', label: 'GBP (£)' },
-                  { value: 'CAD', label: 'CAD ($)' },
-                  { value: 'AUD', label: 'AUD ($)' },
-                ]}
-              />
-              <ProfileField 
-                label="Household Income" 
-                value={profile.household_income}
-                editable={!isViewingVersion}
-                fieldKey="household_income"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'Under 25,000', label: 'Under $25,000' },
-                  { value: '25,000-49,999', label: '$25,000-$49,999' },
-                  { value: '50,000-74,999', label: '$50,000-$74,999' },
-                  { value: '75,000-99,999', label: '$75,000-$99,999' },
-                  { value: '100,000-249,999', label: '$100,000-$249,999' },
-                  { value: '250,000-499,999', label: '$250,000-$499,999' },
-                  { value: '500,000+', label: '$500,000+' },
-                ]}
-              />
-              <ProfileField 
-                label="Savings & Retirement" 
-                value={profile.savings_retirement}
-                editable={!isViewingVersion}
-                fieldKey="savings_retirement"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'Under 10,000', label: 'Under $10,000' },
-                  { value: '10,000-24,999', label: '$10,000-$24,999' },
-                  { value: '25,000-49,999', label: '$25,000-$49,999' },
-                  { value: '50,000-99,999', label: '$50,000-$99,999' },
-                  { value: '100,000-249,999', label: '$100,000-$249,999' },
-                  { value: '250,000-499,999', label: '$250,000-$499,999' },
-                  { value: '500,000+', label: '$500,000+' },
-                ]}
-              />
-              <ProfileField 
-                label="Assets & Equity" 
-                value={profile.assets_equity}
-                editable={!isViewingVersion}
-                fieldKey="assets_equity"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'Under 10,000', label: 'Under $10,000' },
-                  { value: '10,000-24,999', label: '$10,000-$24,999' },
-                  { value: '25,000-49,999', label: '$25,000-$49,999' },
-                  { value: '50,000-99,999', label: '$50,000-$99,999' },
-                  { value: '100,000-249,999', label: '$100,000-$249,999' },
-                  { value: '250,000-499,999', label: '$250,000-$499,999' },
-                  { value: '500,000+', label: '$500,000+' },
-                ]}
-              />
-              <ProfileField 
-                label="Consumer Debt" 
-                value={profile.consumer_debt}
-                editable={!isViewingVersion}
-                fieldKey="consumer_debt"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'None', label: 'None' },
-                  { value: 'Under 10,000', label: 'Under $10,000' },
-                  { value: '10,000-24,999', label: '$10,000-$24,999' },
-                  { value: '25,000-49,999', label: '$25,000-$49,999' },
-                  { value: '50,000+', label: '$50,000+' },
-                ]}
-              />
-              <ProfileField 
-                label="My Current Story Around Money & Wealth" 
-                value={profile.money_wealth_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="money_wealth_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="money_wealth"
-              />
-            </div>
-          </Card>
-
-          {/* Fun & Recreation */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Star className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('fun_recreation').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Current Hobbies" 
-                value={profile.hobbies} 
-                type="array"
-                editable={!isViewingVersion}
-                fieldKey="hobbies"
-                onSave={handleFieldSave}
-                placeholder="Add a hobby"
-              />
-              <ProfileField 
-                label="Leisure Time Per Week" 
-                value={profile.leisure_time_weekly}
-                editable={!isViewingVersion}
-                fieldKey="leisure_time_weekly"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: '0-5 hours', label: '0-5 hours' },
-                  { value: '6-15 hours', label: '6-15 hours' },
-                  { value: '16-25 hours', label: '16-25 hours' },
-                  { value: '25+ hours', label: '25+ hours' },
-                ]}
-              />
-              <ProfileField 
-                label="My Current Story Around Fun & Recreation" 
-                value={profile.fun_recreation_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="fun_recreation_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="fun_recreation"
-              />
-            </div>
-          </Card>
-
-          {/* Travel & Adventure */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Plane className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('travel_adventure').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Travel Frequency" 
-                value={profile.travel_frequency}
-                editable={!isViewingVersion}
-                fieldKey="travel_frequency"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'never', label: 'Never' },
-                  { value: 'yearly', label: 'Yearly' },
-                  { value: 'quarterly', label: 'Quarterly' },
-                  { value: 'monthly', label: 'Monthly' },
-                ]}
-              />
-              <ProfileField 
-                label="Has Valid Passport" 
-                value={profile.passport} 
-                type="boolean"
-                editable={!isViewingVersion}
-                fieldKey="passport"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="Countries Visited" 
-                value={profile.countries_visited}
-                type="number"
-                editable={!isViewingVersion}
-                fieldKey="countries_visited"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="My Current Story Around Travel & Adventure" 
-                value={profile.travel_adventure_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="travel_adventure_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="travel_adventure"
-              />
-            </div>
-          </Card>
-
-          {/* Social & Friends */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('social_friends').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Close Friends Count" 
-                value={profile.close_friends_count}
-                editable={!isViewingVersion}
-                fieldKey="close_friends_count"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: '0', label: '0' },
-                  { value: '1-3', label: '1-3' },
-                  { value: '4-8', label: '4-8' },
-                  { value: '9+', label: '9+' },
-                ]}
-              />
-              <ProfileField 
-                label="Social Preference" 
-                value={profile.social_preference}
-                editable={!isViewingVersion}
-                fieldKey="social_preference"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'introvert', label: 'Introvert' },
-                  { value: 'ambivert', label: 'Ambivert' },
-                  { value: 'extrovert', label: 'Extrovert' },
-                ]}
-              />
-              <ProfileField 
-                label="My Current Story Around Social & Friends" 
-                value={profile.social_friends_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="social_friends_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="social_friends"
-              />
-            </div>
-          </Card>
-
-          {/* Possessions & Lifestyle */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Package className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('possessions_lifestyle').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Lifestyle Category" 
-                value={profile.lifestyle_category}
-                editable={!isViewingVersion}
-                fieldKey="lifestyle_category"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'minimalist', label: 'Minimalist' },
-                  { value: 'moderate', label: 'Moderate' },
-                  { value: 'comfortable', label: 'Comfortable' },
-                  { value: 'luxury', label: 'Luxury' },
-                ]}
-              />
-              <ProfileField 
-                label="Primary Vehicle" 
-                value={profile.primary_vehicle}
-                editable={!isViewingVersion}
-                fieldKey="primary_vehicle"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="My Current Story Around Possessions & Lifestyle" 
-                value={profile.possessions_lifestyle_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="possessions_lifestyle_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="possessions_lifestyle"
-              />
-            </div>
-          </Card>
-
-          {/* Spirituality & Growth */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('spirituality_growth').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Spiritual Practice" 
-                value={profile.spiritual_practice}
-                editable={!isViewingVersion}
-                fieldKey="spiritual_practice"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'none', label: 'None' },
-                  { value: 'religious', label: 'Religious' },
-                  { value: 'spiritual', label: 'Spiritual' },
-                  { value: 'secular', label: 'Secular' },
-                ]}
-              />
-              <ProfileField 
-                label="Meditation Frequency" 
-                value={profile.meditation_frequency}
-                editable={!isViewingVersion}
-                fieldKey="meditation_frequency"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'never', label: 'Never' },
-                  { value: 'rarely', label: 'Rarely' },
-                  { value: 'weekly', label: 'Weekly' },
-                  { value: 'daily', label: 'Daily' },
-                ]}
-              />
-              <ProfileField 
-                label="Personal Growth Focus" 
-                value={profile.personal_growth_focus} 
-                type="boolean"
-                editable={!isViewingVersion}
-                fieldKey="personal_growth_focus"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="My Current Story Around Spirituality & Growth" 
-                value={profile.spirituality_growth_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="spirituality_growth_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="spirituality_growth"
-              />
-            </div>
-          </Card>
-
-          {/* Giving & Legacy */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Heart className="w-5 h-5 text-primary-500" />
-              {getCategoryInfo('giving_legacy').title}
-            </h3>
-            <div className="space-y-3">
-              <ProfileField 
-                label="Volunteer Status" 
-                value={profile.volunteer_status}
-                editable={!isViewingVersion}
-                fieldKey="volunteer_status"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'none', label: 'None' },
-                  { value: 'occasional', label: 'Occasional' },
-                  { value: 'regular', label: 'Regular' },
-                  { value: 'frequent', label: 'Frequent' },
-                ]}
-              />
-              <ProfileField 
-                label="Annual Charitable Giving" 
-                value={profile.charitable_giving}
-                editable={!isViewingVersion}
-                fieldKey="charitable_giving"
-                onSave={handleFieldSave}
-                type="select"
-                selectOptions={[
-                  { value: 'none', label: 'None' },
-                  { value: '<500', label: 'Under $500' },
-                  { value: '500-2000', label: '$500-$2,000' },
-                  { value: '2000+', label: '$2,000+' },
-                ]}
-              />
-              <ProfileField 
-                label="Legacy Mindset" 
-                value={profile.legacy_mindset} 
-                type="boolean"
-                editable={!isViewingVersion}
-                fieldKey="legacy_mindset"
-                onSave={handleFieldSave}
-              />
-              <ProfileField 
-                label="My Current Story Around Giving & Legacy" 
-                value={profile.giving_legacy_story}
-                type="story"
-                editable={!isViewingVersion}
-                fieldKey="giving_legacy_story"
-                onSave={handleFieldSave}
-              />
-              
-              {/* Saved Recordings */}
-              <SavedRecordings
-                recordings={profile.story_recordings || []}
-                categoryFilter="giving_legacy"
-              />
-            </div>
-          </Card>
-
+          {getOrderedProfileCategories().map((category) => {
+            const IconComponent = category.icon
+            
+            return (
+              <Card key={category.id} className="p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <IconComponent className="w-5 h-5 text-primary-500" />
+                  {category.title}
+                </h3>
+                <div className="space-y-3">
+                  {renderCategoryFields(category.id)}
+                  
+                  {/* Saved Recordings */}
+                  <SavedRecordings
+                    recordings={profile.story_recordings || []}
+                    categoryFilter={category.id}
+                  />
+                </div>
+              </Card>
+            )
+          })}
         </div>
 
         {/* Action Buttons */}

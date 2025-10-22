@@ -12,7 +12,6 @@
 #### **Low Risk Pages (Start Here):**
 1. **`/pricing`** - Simple, mostly static content
 2. **`/design-system`** - Already showcases components
-3. **`/design-system-experiment`** - Perfect test case
 
 #### **Medium Risk Pages:**
 4. **`/dashboard`** - Complex but isolated

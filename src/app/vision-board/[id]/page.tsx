@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Container, Card, Input, Button, Textarea } from '@/lib/design-system'
+import { PageLayout, Card, Input, Button, Textarea } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
@@ -258,35 +258,26 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
 
   if (loading) {
     return (
-      <>
-        <Container size="md" className="py-8">
-          <div className="flex items-center justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-          </div>
-        </Container>
-      </>
+      <div className="flex items-center justify-center py-16">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+      </div>
     )
   }
 
   if (!item) {
     return (
-      <>
-        <Container size="md" className="py-8">
-          <Card className="text-center py-16">
-            <h2 className="text-2xl font-bold text-white mb-4">Item not found</h2>
-            <p className="text-neutral-400 mb-6">This vision board item doesn't exist or you don't have permission to view it.</p>
-            <Button asChild>
-              <Link href="/vision-board">Back to Vision Board</Link>
-            </Button>
-          </Card>
-        </Container>
-      </>
+      <Card className="text-center py-16">
+        <h2 className="text-2xl font-bold text-white mb-4">Item not found</h2>
+        <p className="text-neutral-400 mb-6">This vision board item doesn't exist or you don't have permission to view it.</p>
+        <Button asChild>
+          <Link href="/vision-board">Back to Vision Board</Link>
+        </Button>
+      </Card>
     )
   }
 
   return (
     <>
-      <Container size="md" className="py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -570,7 +561,6 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             </Card>
           </div>
         )}
-      </Container>
     </>
   )
 }

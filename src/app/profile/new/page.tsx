@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Container, Button, Badge } from '@/lib/design-system/components'
+import { PageLayout, Button, Badge } from '@/lib/design-system/components'
 import { ProfileSidebar } from '../components/ProfileSidebar'
 import { PersonalInfoSection } from '../components/PersonalInfoSection'
 import { RelationshipSection } from '../components/RelationshipSection'
@@ -324,20 +324,15 @@ export default function NewProfileVersionPage() {
   // Loading state
   if (isLoading) {
     return (
-      <>
-        <Container size="xl" className="py-8">
-          <div className="text-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
-            <div className="text-neutral-400">Loading profile...</div>
-          </div>
-        </Container>
-      </>
+      <div className="text-center py-16">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
+        <div className="text-neutral-400">Loading profile...</div>
+      </div>
     )
   }
 
   return (
     <>
-      <Container size="xl" className="py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
@@ -449,7 +444,6 @@ export default function NewProfileVersionPage() {
             </p>
           </div>
         )}
-      </Container>
     </>
   )
 }

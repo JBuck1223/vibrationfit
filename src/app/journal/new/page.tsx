@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { PageLayout, Container, Card, Input, Button } from '@/lib/design-system'
+import { PageLayout, Card, Input, Button } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
@@ -126,7 +126,6 @@ export default function NewJournalEntryPage() {
 
   return (
     <>
-      <Container size="md" className="py-8">
         <div className="py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
@@ -390,7 +389,6 @@ export default function NewJournalEntryPage() {
             </form>
           </Card>
         </div>
-      </Container>
     </>
   )
 }

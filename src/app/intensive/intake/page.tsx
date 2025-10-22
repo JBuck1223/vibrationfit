@@ -7,7 +7,6 @@ import { ArrowLeft, ArrowRight, Clock, CheckCircle } from 'lucide-react'
 
 import { 
   PageLayout, 
-  Container, 
   Card, 
   Button, 
   Input, 
@@ -546,7 +545,6 @@ export default function IntensiveIntake() {
 
   return (
     <>
-      <Container size="xl" className="py-16">
         
         {/* Header */}
         <div className="text-center mb-12">
@@ -651,7 +649,6 @@ export default function IntensiveIntake() {
           </Card>
         )}
 
-      </Container>
     </>
   )
 

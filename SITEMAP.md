@@ -76,7 +76,6 @@
 
 ## 🛠 **Development & Testing**
 - `/design-system` - Design System Showcase
-- `/design-system-experiment` - Design System Experiment
 - `/test-recording` - Audio Recording Test
 - `/debug/email` - Email Debug Tools
 

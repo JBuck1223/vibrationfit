@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { PageLayout, Container, Card, Input, Button, Textarea, Badge } from '@/lib/design-system'
+import { PageLayout, Card, Input, Button, Textarea, Badge } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
@@ -190,7 +190,6 @@ export default function NewVisionBoardItemPage() {
 
   return (
     <>
-      <Container size="md" className="py-8">
         <div className="py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
@@ -441,7 +440,6 @@ export default function NewVisionBoardItemPage() {
             </form>
           </Card>
         </div>
-      </Container>
     </>
   )
 }

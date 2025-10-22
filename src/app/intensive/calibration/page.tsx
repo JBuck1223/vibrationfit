@@ -17,7 +17,6 @@ import {
 
 import { 
   PageLayout, 
-  Container, 
   Card, 
   Button, 
   Badge,
@@ -320,21 +319,16 @@ export default function IntensiveCalibration() {
 
   if (!calibrationData) {
     return (
-      <>
-        <Container size="xl" className="py-16">
-          <div className="text-center">
-            <Spinner size="lg" className="mx-auto mb-6" />
-            <h1 className="text-3xl font-bold text-white mb-4">Loading Calibration</h1>
-            <p className="text-neutral-400">Setting up your calibration session...</p>
-          </div>
-        </Container>
-      </>
+      <div className="text-center">
+        <Spinner size="lg" className="mx-auto mb-6" />
+        <h1 className="text-3xl font-bold text-white mb-4">Loading Calibration</h1>
+        <p className="text-neutral-400">Setting up your calibration session...</p>
+      </div>
     )
   }
 
   return (
     <>
-      <Container size="xl" className="py-16">
         
         {/* Header */}
         <div className="text-center mb-12">
@@ -561,7 +555,6 @@ export default function IntensiveCalibration() {
           </div>
         </Card>
 
-      </Container>
     </>
   )
 }

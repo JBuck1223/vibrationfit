@@ -19,7 +19,6 @@ import {
 
 import { 
   PageLayout, 
-  Container, 
   Card, 
   Button, 
   Badge,
@@ -374,15 +373,11 @@ export default function IntensiveActivation() {
 
   if (!protocol) {
     return (
-      <>
-        <Container size="xl" className="py-16">
-          <div className="text-center">
-            <Spinner size="lg" className="mx-auto mb-6" />
-            <h1 className="text-3xl font-bold text-white mb-4">Loading Activation</h1>
-            <p className="text-neutral-400">Setting up your activation protocol...</p>
-          </div>
-        </Container>
-      </>
+      <div className="text-center">
+        <Spinner size="lg" className="mx-auto mb-6" />
+        <h1 className="text-3xl font-bold text-white mb-4">Loading Activation</h1>
+        <p className="text-neutral-400">Setting up your activation protocol...</p>
+      </div>
     )
   }
 
@@ -391,7 +386,6 @@ export default function IntensiveActivation() {
 
   return (
     <>
-      <Container size="xl" className="py-16">
         
         {/* Header */}
         <div className="text-center mb-12">
@@ -623,7 +617,6 @@ export default function IntensiveActivation() {
           </div>
         </Card>
 
-      </Container>
     </>
   )
 }

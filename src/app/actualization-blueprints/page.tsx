@@ -25,7 +25,6 @@ import {
 } from 'lucide-react'
 import { 
   PageLayout, 
-  Container, 
   Card, 
   Button, 
   Badge, 
@@ -259,34 +258,26 @@ export default function ActualizationBlueprintsPage() {
 
   if (loading) {
     return (
-      <>
-        <Container size="xl" className="py-8">
-          <div className="flex items-center justify-center py-16">
-            <Spinner variant="primary" size="lg" />
-          </div>
-        </Container>
-      </>
+      <div className="flex items-center justify-center py-16">
+        <Spinner variant="primary" size="lg" />
+      </div>
     )
   }
 
   if (error) {
     return (
-      <>
-        <Container size="xl" className="py-8">
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="text-red-500 mb-4">
-                <Sparkles className="w-16 h-16 mx-auto" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Error</h2>
-              <p className="text-neutral-400 mb-6">{error}</p>
-              <Button onClick={() => router.back()} variant="primary">
-                Go Back
-              </Button>
-            </div>
+      <div className="flex items-center justify-center py-16">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <Sparkles className="w-16 h-16 mx-auto" />
           </div>
-        </Container>
-      </>
+          <h2 className="text-2xl font-bold text-white mb-2">Error</h2>
+          <p className="text-neutral-400 mb-6">{error}</p>
+          <Button onClick={() => router.back()} variant="primary">
+            Go Back
+          </Button>
+        </div>
+      </div>
     )
   }
 
@@ -294,7 +285,6 @@ export default function ActualizationBlueprintsPage() {
 
   return (
     <>
-      <Container size="xl" className="py-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
@@ -635,7 +625,6 @@ export default function ActualizationBlueprintsPage() {
             )}
           </div>
         </div>
-      </Container>
     </>
   )
 }

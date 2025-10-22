@@ -4,7 +4,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PageLayout, Container, Card, Button, Badge } from '@/lib/design-system/components'
+import { PageLayout, Card, Button, Badge } from '@/lib/design-system/components'
 import { Zap, Check, Sparkles, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -91,7 +91,6 @@ export default function AddTokensPage() {
 
   return (
     <>
-      <Container size="xl" className="py-12">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500/10 border border-primary-500/30 rounded-full mb-4">
@@ -217,7 +216,6 @@ export default function AddTokensPage() {
             </div>
           </div>
         </Card>
-      </Container>
     </>
   )
 }

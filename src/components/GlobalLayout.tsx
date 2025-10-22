@@ -93,7 +93,6 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       '/pricing',
       '/pricing-hormozi',
       '/design-system',
-      '/design-system-experiment',
       
       // Authentication pages
       '/auth/login',

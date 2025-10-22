@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { PageLayout, Container, Button, Badge } from '@/lib/design-system/components'
+import { PageLayout, Button, Badge, Card } from '@/lib/design-system/components'
 import { ProfileSidebar } from '../components/ProfileSidebar'
 import { PersonalInfoSection } from '../components/PersonalInfoSection'
 import { RelationshipSection } from '../components/RelationshipSection'
@@ -19,7 +19,7 @@ import { PossessionsLifestyleSection } from '../components/PossessionsLifestyleS
 import { SpiritualityGrowthSection } from '../components/SpiritualityGrowthSection'
 import { GivingLegacySection } from '../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3 } from 'lucide-react'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -486,96 +486,116 @@ export default function ProfilePage() {
   // Loading state
   if (isLoading) {
     return (
-      <>
-        <Container size="xl" className="py-8">
-          <div className="text-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
-            <div className="text-neutral-400">Loading your profile...</div>
-          </div>
-        </Container>
-      </>
+      <div className="text-center py-16">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
+        <div className="text-neutral-400">Loading your profile...</div>
+      </div>
     )
   }
 
   return (
     <>
-      <Container size="xl" className="py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Complete Your Profile</h1>
-          <p className="text-neutral-400">
-            Help your AI Vibrational Assistant understand you better. The more complete your profile, the more personalized your guidance becomes.
-          </p>
+      {/* Header */}
+      <div className="mb-8">
+        {/* Mobile Header */}
+        <div className="md:hidden space-y-4 mb-6">
+          {/* Title and Badge */}
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl font-bold text-white">Complete Your Profile</h1>
+            </div>
+            <p className="text-neutral-400 text-sm">
+              Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
+            </p>
+          </div>
         </div>
 
-        {/* Save Status Bar */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {saveStatus === 'saving' && (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                <span className="text-sm text-primary-500">Saving...</span>
-              </>
-            )}
-            {saveStatus === 'saved' && (
-              <>
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-green-500">Saved</span>
-              </>
-            )}
-            {saveStatus === 'error' && (
-              <>
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <span className="text-sm text-red-500">Save failed</span>
-              </>
-            )}
-            {lastSaved && saveStatus === 'idle' && (
-              <span className="text-sm text-neutral-500">
-                Last saved: {lastSaved.toLocaleTimeString()}
-              </span>
-            )}
-            {saveStatus === 'idle' && !lastSaved && (
-              <span className="text-sm text-neutral-500">
-                Click "Save Edits" to save your changes
-              </span>
-            )}
+        {/* Desktop Header */}
+        <div className="hidden md:flex items-center gap-4 mb-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold text-white">Complete Your Profile</h1>
+            </div>
+            <p className="text-neutral-400">
+              Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
+            </p>
+          </div>
+        </div>
+      </div>
+
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {saveStatus === 'saving' && (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                  <span className="text-sm text-primary-500">Saving...</span>
+                </>
+              )}
+              {saveStatus === 'saved' && (
+                <>
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-sm text-green-500">Saved</span>
+                </>
+              )}
+              {saveStatus === 'error' && (
+                <>
+                  <AlertCircle className="w-4 h-4 text-red-500" />
+                  <span className="text-sm text-red-500">Save failed</span>
+                </>
+              )}
+              {lastSaved && saveStatus === 'idle' && (
+                <span className="text-sm text-neutral-500">
+                  Last saved: {lastSaved.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-3">
-            <Badge variant="info" className="flex items-center gap-2">
-              {completionPercentage}% Complete
-            </Badge>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4">
+            {/* Profile Percentage Bar */}
+            <div className="flex items-center gap-3 sm:flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-neutral-400">Profile:</span>
+                <span className="text-sm font-medium text-primary-500">{completionPercentage}%</span>
+              </div>
+              <div className="flex-1 bg-neutral-700 rounded-full h-2">
+                <div
+                  className="h-2 rounded-full transition-all duration-500 bg-primary-500"
+                  style={{ width: `${completionPercentage}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
               <Button
                 onClick={() => router.push('/profile')}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 w-full sm:w-auto"
+                className="flex items-center gap-2 font-semibold w-full sm:w-auto"
               >
                 <Eye className="w-4 h-4" />
-                <span className="sm:hidden">View</span>
-                <span className="hidden sm:inline">View Current Profile</span>
+                View Profile
               </Button>
               <Button
                 onClick={handleManualSave}
                 disabled={isSaving}
                 size="sm"
-                className="flex items-center gap-2 w-full sm:w-auto"
+                className="flex items-center gap-2 font-semibold w-full sm:w-auto"
               >
                 <Save className="w-4 h-4" />
-                <span className="sm:hidden">Save</span>
-                <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save Edits'}</span>
+                {isSaving ? 'Saving...' : 'Save Edits'}
               </Button>
               <Button
                 onClick={() => saveAsVersion(false)}
                 disabled={isSaving}
                 variant="secondary"
                 size="sm"
-                className="flex items-center gap-2 w-full sm:w-auto"
+                className="flex items-center gap-2 font-semibold w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
-                <span className="sm:hidden">New Version</span>
-                <span className="hidden sm:inline">Save As New Version</span>
+                Save As New Version
               </Button>
             </div>
           </div>
@@ -686,7 +706,6 @@ export default function ProfilePage() {
             </p>
           </div>
         )}
-      </Container>
-    </>
-  )
-}
+      </>
+    )
+  }

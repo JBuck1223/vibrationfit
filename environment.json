@@ -1,0 +1,17 @@
+{
+  "install": "npm install",
+  "start": "npm run dev",
+  "terminals": [
+    {
+      "name": "dev-server",
+      "command": "npm run dev"
+    },
+    {
+      "name": "supabase",
+      "command": "npx supabase start"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

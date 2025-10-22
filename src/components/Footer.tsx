@@ -114,7 +114,6 @@ export function Footer({ className = '' }: FooterProps) {
     { href: '/pricing', label: 'Pricing', icon: Star },
     { href: '/pricing-hormozi', label: 'Hormozi Pricing', icon: Rocket },
     { href: '/design-system', label: 'Design System', icon: Palette },
-    { href: '/design-system-experiment', label: 'Design Experiments', icon: Palette },
   ]
 
   const publicAuthLinks = [

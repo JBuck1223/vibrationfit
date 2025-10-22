@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Container, Card, Button } from '@/lib/design-system'
+import { PageLayout, Card, Button } from '@/lib/design-system'
 import Link from 'next/link'
 import { Plus, Calendar, FileText, Play, Volume2, Edit, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -90,13 +90,9 @@ export default function JournalPage() {
 
   if (loading) {
     return (
-      <>
-        <Container size="xl" className="py-6">
-          <div className="text-center py-16">
-            <div className="text-neutral-400">Loading journal entries...</div>
-          </div>
-        </Container>
-      </>
+      <div className="text-center py-16">
+        <div className="text-neutral-400">Loading journal entries...</div>
+      </div>
     )
   }
 
@@ -104,7 +100,6 @@ export default function JournalPage() {
 
   return (
     <>
-      <Container size="xl" className="py-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
@@ -431,7 +426,6 @@ export default function JournalPage() {
             ← Back to Dashboard
           </Link>
         </div>
-      </Container>
     </>
   )
 }

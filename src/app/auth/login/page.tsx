@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Container, Card, Input, Button } from '@/lib/design-system'
+import { PageLayout, Card, Input, Button } from '@/lib/design-system'
 import Image from 'next/image'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 
@@ -124,7 +124,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <Container size="sm" className="py-12">
         <Card className="max-w-md mx-auto">
           <div className="text-center mb-8">
             <Image
@@ -232,7 +231,6 @@ export default function LoginPage() {
             Don&apos;t have an account? <a href="/auth/signup" className="text-green-500 hover:text-green-400 transition-colors">Sign up</a>
           </p>
         </Card>
-      </Container>
     </>
   )
 }

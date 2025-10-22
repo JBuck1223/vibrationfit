@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PageLayout, Container, Card, Button, Badge, ProgressBar } from '@/lib/design-system/components'
+import { PageLayout, Card, Button, Badge, ProgressBar } from '@/lib/design-system/components'
 import { HardDrive, Image, Video, Music, FileText, Folder, Clock, Trash2, ExternalLink, X } from 'lucide-react'
 import Link from 'next/link'
 
@@ -80,7 +80,6 @@ export default function StoragePage() {
 
   return (
     <>
-      <Container size="xl" className="py-12">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Storage Usage</h1>
@@ -408,7 +407,6 @@ export default function StoragePage() {
             </div>
           </div>
         )}
-      </Container>
     </>
   )
 }

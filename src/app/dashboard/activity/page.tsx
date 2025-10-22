@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PageLayout, Container, Card, Badge, Button } from '@/lib/design-system/components'
+import { PageLayout, Card, Badge, Button } from '@/lib/design-system/components'
 import { 
   Activity, 
   Target, 
@@ -93,7 +93,6 @@ export default function ActivityFeedPage() {
 
   return (
     <>
-      <Container size="xl" className="py-12">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
@@ -268,7 +267,6 @@ export default function ActivityFeedPage() {
             )}
           </>
         )}
-      </Container>
     </>
   )
 }

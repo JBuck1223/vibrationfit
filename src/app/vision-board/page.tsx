@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Container, Card, Button, Badge } from '@/lib/design-system'
+import { PageLayout, Card, Button, Badge } from '@/lib/design-system'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, Trash2, X, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { VisionBoardDeleteButton } from '@/components/VisionBoardDeleteButton'
@@ -250,7 +250,6 @@ export default function VisionBoardPage() {
 
   return (
     <>
-      <Container size="xl" className="py-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -621,7 +620,6 @@ export default function VisionBoardPage() {
             </div>
           </div>
         )}
-      </Container>
     </>
   )
 }

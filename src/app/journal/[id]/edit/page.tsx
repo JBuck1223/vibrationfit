@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Container, Card, Button } from '@/lib/design-system'
+import { PageLayout, Card, Button } from '@/lib/design-system'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -145,31 +145,22 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
   if (loading) {
     return (
-      <>
-        <Container size="md" className="py-8">
-          <div className="text-center py-16">
-            <div className="text-neutral-400">Loading journal entry...</div>
-          </div>
-        </Container>
-      </>
+      <div className="text-center py-16">
+        <div className="text-neutral-400">Loading journal entry...</div>
+      </div>
     )
   }
 
   if (!entry) {
     return (
-      <>
-        <Container size="md" className="py-8">
-          <div className="text-center py-16">
-            <div className="text-neutral-400">Entry not found</div>
-          </div>
-        </Container>
-      </>
+      <div className="text-center py-16">
+        <div className="text-neutral-400">Entry not found</div>
+      </div>
     )
   }
 
   return (
     <>
-      <Container size="md" className="py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -302,7 +293,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
             </div>
           )}
         </Card>
-      </Container>
     </>
   )
 }

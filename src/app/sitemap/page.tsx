@@ -150,7 +150,6 @@ export default function SitemapPage() {
         { href: '/pricing', label: 'Pricing', icon: Star, description: 'Pricing plans' },
         { href: '/pricing-hormozi', label: 'Hormozi Pricing', icon: Rocket, description: 'Special pricing page' },
         { href: '/design-system', label: 'Design System', icon: Palette, description: 'Design system showcase' },
-        { href: '/design-system-experiment', label: 'Design Experiments', icon: Palette, description: 'Design experiments' },
 
         // Authentication
         { href: '/auth/login', label: 'Login', icon: User, description: 'User login' },

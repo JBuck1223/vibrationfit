@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PageLayout, Container, Card, Button, Input } from '@/lib/design-system/components'
+import { PageLayout, Card, Button, Input } from '@/lib/design-system/components'
 import { User, Mail, Bell, Shield, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -61,7 +61,6 @@ export default function AccountSettingsPage() {
 
   return (
     <>
-      <Container size="lg" className="py-12">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Account Settings</h1>
@@ -192,7 +191,6 @@ export default function AccountSettingsPage() {
             </Card>
           </div>
         )}
-      </Container>
     </>
   )
 }

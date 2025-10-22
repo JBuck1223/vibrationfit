@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Container, Card, Button, Badge } from '@/lib/design-system'
+import { PageLayout, Card, Button, Badge } from '@/lib/design-system'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, FileText, Tag, X, Download, Play, Volume2, Edit, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -111,31 +111,22 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <>
-        <Container size="md" className="py-8">
-          <div className="text-center py-16">
-            <div className="text-neutral-400">Loading journal entry...</div>
-          </div>
-        </Container>
-      </>
+      <div className="text-center py-16">
+        <div className="text-neutral-400">Loading journal entry...</div>
+      </div>
     )
   }
 
   if (!entry) {
     return (
-      <>
-        <Container size="md" className="py-8">
-          <div className="text-center py-16">
-            <div className="text-neutral-400">Entry not found</div>
-          </div>
-        </Container>
-      </>
+      <div className="text-center py-16">
+        <div className="text-neutral-400">Entry not found</div>
+      </div>
     )
   }
 
   return (
     <>
-      <Container size="md" className="py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -303,7 +294,6 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
             </div>
           </div>
         </Card>
-      </Container>
 
       {/* Lightbox */}
       {lightboxOpen && lightboxMedia && (

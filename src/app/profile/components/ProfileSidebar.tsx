@@ -199,9 +199,6 @@ export function ProfileSidebar({ activeSection, onSectionChange, completedSectio
         <div className="flex items-center gap-3">
           <div className="relative">
             <Icon className={`w-5 h-5 ${isActive ? 'text-primary-400' : 'text-neutral-500'}`} />
-            {isCompleted && (
-              <CheckCircle className="absolute -top-1 -right-1 w-3 h-3 text-green-500 bg-black rounded-full" />
-            )}
           </div>
           
           <div className="flex-1 min-w-0">
