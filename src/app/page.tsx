@@ -5,7 +5,7 @@ import {
   Sparkles, PartyPopper, Plane, Home, Users, Heart, 
   Activity, DollarSign, Briefcase, UserPlus, Package, 
   Gift, Zap, CheckCircle, ArrowRight, Star, Target,
-  Brain, TrendingUp, Shield, Play, Award, Globe, Crown
+  Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check
 } from 'lucide-react'
 import {
   Stack,
@@ -45,60 +45,72 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   return (
-    <PageLayout containerSize="xl">
+    <PageLayout containerSize="xl" className="!-mt-6">
       <Stack gap="xl">
         
         {/* Hero Section */}
         <section>
-          <Cover minHeight="700px" className="bg-gradient-to-br from-[#39FF14]/10 via-[#00FFFF]/5 to-[#BF00FF]/10 rounded-3xl border-2 border-[#333]">
-            <Stack align="center" gap="lg" className="text-center">
-                <Badge variant="premium" className="mb-4">
-                  <Icon icon={Sparkles} size="xs" className="mr-2" />
-                  Bridge the Woo-Woo with the How-To
-                </Badge>
-                
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight">
-                  "Thoughts Become Things"
+          <Cover minHeight="500px" className="!p-0">
+            <div className="w-full max-w-6xl mx-auto">
+              {/* Headline at top */}
+              <div className="text-center mb-4 md:mb-6 mt-2 md:mt-0">
+                <h1 className="text-2xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+                  Thoughts become things…
                   <br />
-                  <span className="text-3xl md:text-5xl lg:text-6xl text-neutral-400">But Why Isn't It Working?</span>
+                  <span className="text-xl md:text-4xl lg:text-5xl text-white">so why isn't it working?</span>
                 </h1>
-                
-                <p className="text-xl md:text-2xl text-neutral-300 max-w-4xl leading-relaxed">
-                  You've probably heard the phrase "thoughts become things," but if you're anything like we were, 
-                  you might be wondering: <span className="text-[#39FF14] font-semibold">why isn't this working for me?</span>
-                </p>
-
-                <Inline gap="md" className="mt-8">
-                  <Button variant="primary" size="xl" asChild>
-                    <a href="#solution">
-                      Find Out Why
-                      <Icon icon={ArrowRight} size="sm" />
-                    </a>
-                  </Button>
-                  <Button variant="secondary" size="xl" asChild>
-                    <a href="#video">
-                      <Icon icon={Play} size="sm" />
-                      Watch Our Story
-                    </a>
-                  </Button>
-                </Inline>
-
-                {/* Social Proof */}
-                <div className="flex flex-wrap items-center justify-center gap-6 mt-12 text-sm text-neutral-400">
-                  <div className="flex items-center gap-2">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Icon key={i} icon={Star} size="xs" color="#FFB701" />
-                      ))}
-                    </div>
-                    <span>4.9/5 from 1000+ creators</span>
+              </div>
+              
+              {/* Two column layout for desktop */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                {/* Left column - Content */}
+                <div className="space-y-4 text-center lg:text-left">
+                  <p className="text-lg md:text-2xl text-neutral-200 leading-relaxed font-bold md:font-medium mt-2 md:mt-2">
+                    Bridge the woo-woo with the how-to.
+                  </p>
+                  
+                  <p className="text-base md:text-lg text-[#39FF14] leading-relaxed">
+                    Activate your Life Vision in <span className="font-bold text-[#39FF14]">72 hours</span>
+                    <br />
+                    with the Activation Intensive.
+                  </p>
+                  
+                  <div className="text-base text-neutral-500 leading-relaxed text-left">
+                    <ul className="space-y-1">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#39FF14] mt-0">→</span>
+                        <span className="text-justify">Conscious Creation System: Train → Tune → Track</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#39FF14] mt-0">→</span>
+                        <span className="text-justify">VIVA AI turns contrast into clarity—even if you don't know what you want</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#39FF14] mt-0">→</span>
+                        <span className="text-justify">Includes 8 weeks of Vision Pro; auto‑starts Day 56 at your plan</span>
+                      </li>
+                    </ul>
                   </div>
-                  <div className="hidden md:block w-px h-4 bg-neutral-600"></div>
-                  <span>Join 10,000+ aligned creators</span>
-                  <div className="hidden md:block w-px h-4 bg-neutral-600"></div>
-                  <span>Trusted by conscious entrepreneurs</span>
+                  
+                  <Button variant="primary" size="xl" className="mt-2 md:mt-2">
+                    Start the 72‑Hour Activation Intensive
+                  </Button>
                 </div>
-              </Stack>
+                
+                {/* Right column - Video */}
+                <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-4xl mx-auto order-last lg:order-last">
+                  <Video
+                    src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
+                    poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
+                    variant="hero"
+                    quality="auto"
+                    trackingId="homepage-hero-video"
+                    saveProgress={true}
+                    className="w-full h-auto"
+                  />
+                </div>
+              </div>
+            </div>
           </Cover>
         </section>
 
@@ -116,16 +128,7 @@ export default function HomePage() {
                   </p>
                 </div>
                 
-                <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl">
-                  <Video
-                    src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
-                    poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
-                    variant="hero"
-                    quality="auto"
-                    trackingId="homepage-hero-video"
-                    saveProgress={true}
-                  />
-                </div>
+              
               </Stack>
             </Card>
         </section>
