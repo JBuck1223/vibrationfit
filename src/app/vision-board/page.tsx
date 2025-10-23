@@ -240,28 +240,28 @@ export default function VisionBoardPage() {
   const getStatusBadge = (status: string) => {
     if (status === 'active') {
       return (
-        <Badge variant="primary" className="flex items-center gap-2">
+        <div className="bg-green-600 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-          <span>Active</span>
-        </Badge>
+          <span className="text-white text-sm font-semibold">Active</span>
+        </div>
       )
     }
 
     if (status === 'actualized') {
       return (
-        <Badge variant="secondary" className="flex items-center gap-2">
-          <CheckCircle className="w-4 h-4" />
-          <span>Actualized</span>
-        </Badge>
+        <div className="bg-purple-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
+          <CheckCircle className="w-4 h-4 text-white" />
+          <span className="text-white text-sm font-semibold">Actualized</span>
+        </div>
       )
     }
 
     if (status === 'inactive') {
       return (
-        <Badge variant="neutral" className="flex items-center gap-2">
-          <XCircle className="w-4 h-4" />
-          <span>Inactive</span>
-        </Badge>
+        <div className="bg-gray-600 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
+          <XCircle className="w-4 h-4 text-white" />
+          <span className="text-white text-sm font-semibold">Inactive</span>
+        </div>
       )
     }
 
@@ -367,33 +367,45 @@ export default function VisionBoardPage() {
           {/* Status Filter */}
           <div>
             <h3 className="text-lg font-semibold text-white mb-3">Status</h3>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setSelectedStatus('all')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+            <div className="space-y-2">
+              {/* All Status Button - Full Width */}
+              <div 
+                className={`cursor-pointer rounded-2xl border-2 transition-all hover:-translate-y-1 w-full ${
                   selectedStatus === 'all'
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                    ? 'bg-[#1F1F1F] border-[#39FF14] ring-2 ring-[#39FF14]' 
+                    : 'bg-[#1F1F1F] border-[#333] hover:border-[#39FF14]'
                 }`}
+                onClick={() => setSelectedStatus('all')}
               >
-                All Status
-              </button>
-              {STATUS_OPTIONS.map((status) => (
-                <button
-                  key={status.value}
-                  onClick={() => setSelectedStatus(status.value)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                    selectedStatus === status.value
-                      ? 'bg-primary-500 text-white shadow-lg'
-                      : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-                  }`}
-                >
-                  {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
-                  {status.value === 'actualized' && <CheckCircle className="w-3 h-3 text-white" />}
-                  {status.value === 'inactive' && <XCircle className="w-3 h-3 text-white" />}
-                  {status.label}
-                </button>
-              ))}
+                <div className="flex items-center justify-center gap-3 px-4 py-2">
+                  <CheckCircle className="w-4 h-4 text-[#39FF14]" />
+                  <h4 className="text-sm font-medium text-neutral-300">All Status</h4>
+                </div>
+              </div>
+              
+              {/* Status Buttons - Single Line, Equal Width */}
+              <div className="flex gap-2">
+                {STATUS_OPTIONS.map((status) => (
+                  <button
+                    key={status.value}
+                    onClick={() => setSelectedStatus(status.value)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
+                      selectedStatus === status.value
+                        ? status.value === 'active' 
+                          ? 'bg-green-600 text-white shadow-lg'
+                          : status.value === 'actualized'
+                          ? 'bg-purple-500 text-white shadow-lg'
+                          : 'bg-gray-600 text-white shadow-lg'
+                        : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                    }`}
+                  >
+                    {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
+                    {status.value === 'actualized' && <CheckCircle className="w-3 h-3 text-white" />}
+                    {status.value === 'inactive' && <XCircle className="w-3 h-3 text-white" />}
+                    {status.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -453,9 +465,9 @@ export default function VisionBoardPage() {
                     {/* Actualized Indicator */}
                     {item.status === 'actualized' && (
                       <div className="absolute top-3 left-3">
-                        <Badge variant="secondary" className="p-1">
+                        <div className="bg-purple-500 text-white p-1 rounded-full">
                           <CheckCircle className="w-4 h-4" />
-                        </Badge>
+                        </div>
                       </div>
                     )}
 
@@ -473,8 +485,8 @@ export default function VisionBoardPage() {
                             }}
                             className={`px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
                               item.status === 'active'
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-neutral-700 text-neutral-300 hover:bg-primary-500 hover:text-white'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-neutral-700 text-neutral-300 hover:bg-green-600 hover:text-white'
                             }`}
                           >
                             <div className="w-2 h-2 bg-current rounded-full"></div>
@@ -487,8 +499,8 @@ export default function VisionBoardPage() {
                             }}
                             className={`px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
                               item.status === 'actualized'
-                                ? 'bg-secondary-500 text-white'
-                                : 'bg-neutral-700 text-neutral-300 hover:bg-secondary-500 hover:text-white'
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-neutral-700 text-neutral-300 hover:bg-purple-500 hover:text-white'
                             }`}
                           >
                             <CheckCircle className="w-3 h-3" />
@@ -501,8 +513,8 @@ export default function VisionBoardPage() {
                             }}
                             className={`px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
                               item.status === 'inactive'
-                                ? 'bg-neutral-500 text-white'
-                                : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-500 hover:text-white'
+                                ? 'bg-gray-600 text-white'
+                                : 'bg-neutral-700 text-neutral-300 hover:bg-gray-600 hover:text-white'
                             }`}
                           >
                             <XCircle className="w-3 h-3" />
@@ -591,7 +603,7 @@ export default function VisionBoardPage() {
               )}
 
               {/* Image Content */}
-              <div className="max-w-4xl max-h-full w-full h-full flex items-center justify-center relative">
+              <div className="max-w-4xl max-h-full w-full h-full flex items-center justify-center">
                 {filteredItems[lightboxIndex]?.image_url ? (
                   <img
                     src={filteredItems[lightboxIndex].image_url}
@@ -603,11 +615,6 @@ export default function VisionBoardPage() {
                     <Grid3X3 className="w-24 h-24 text-neutral-600" />
                   </div>
                 )}
-                
-                {/* Status Badge */}
-                <div className="absolute top-4 right-4">
-                  {getStatusBadge(filteredItems[lightboxIndex]?.status)}
-                </div>
               </div>
 
               {/* Image Counter */}
