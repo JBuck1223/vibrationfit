@@ -104,6 +104,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         .select('*')
         .eq('user_id', user.id)
         .eq('vision_id', visionId)
+        .eq('operation_type', 'refine_vision') // Filter for refinement operations
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -117,14 +118,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         throw error
       }
       
-      // Filter for draft status if the status column exists
-      const drafts = data?.filter(item => 
-        item.status === 'draft' || 
-        !item.status // Include items without status if status column doesn't exist
-      ) || []
-      
-      console.log('Successfully loaded drafts:', drafts.length)
-      setAllDrafts(drafts)
+      console.log('Successfully loaded drafts:', data?.length || 0)
+      setAllDrafts(data || [])
     } catch (error) {
       console.error('Error loading drafts:', error)
       // Set empty array on error to prevent UI issues
@@ -179,8 +174,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       // Create new vision version with all draft refinements
       const updatedVision = { ...vision } as any
       allDrafts.forEach((draft: any) => {
-        if (draft.category && draft.refinement_text) {
-          updatedVision[draft.category] = draft.refinement_text
+        if (draft.category && (draft.output_text || draft.refinement_text)) {
+          updatedVision[draft.category] = draft.output_text || draft.refinement_text
         }
       })
 
@@ -197,16 +192,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         .single()
 
       if (versionError) throw versionError
-
-      // Update all drafts to committed status
-      const { error: updateError } = await supabase
-        .from('refinements')
-        .update({ status: 'committed' })
-        .eq('user_id', user.id)
-        .eq('vision_id', visionId)
-        .eq('status', 'draft')
-
-      if (updateError) throw updateError
 
       // Reload vision and drafts
       await loadVisionById()
@@ -225,7 +210,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   // Edit a draft
   const editDraft = (draft: any) => {
     setSelectedCategory(draft.category)
-    setCurrentRefinement(draft.refinement_text || draft.current_refinement || '')
+    setCurrentRefinement(draft.output_text || draft.refinement_text || draft.current_refinement || '')
     setEditingDraft(draft.id)
     // Scroll to refinement section
     setTimeout(() => {
@@ -437,17 +422,9 @@ Would you like to refine another category, or are you satisfied with this refine
         user_id: user.id,
         vision_id: vision.id,
         category: selectedCategory,
-        refinement_text: currentRefinement, // Use refinement_text instead of current_refinement
+        output_text: currentRefinement, // Use output_text (the actual column name)
         operation_type: 'refine_vision',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-
-      // Only add status if the column exists
-      try {
-        draftData.status = 'draft'
-      } catch (e) {
-        console.log('Status column may not exist, skipping')
+        created_at: new Date().toISOString()
       }
 
       const { error } = await supabase
@@ -834,7 +811,7 @@ Would you like to refine another category, or are you satisfied with this refine
                         </div>
                       </div>
                       <p className="text-sm text-neutral-300 line-clamp-2">
-                        {draft.refinement_text || draft.current_refinement || 'No content'}
+                        {draft.output_text || draft.refinement_text || draft.current_refinement || 'No content'}
                       </p>
                       <p className="text-xs text-neutral-500 mt-2">
                         Created {new Date(draft.created_at).toLocaleDateString()}
