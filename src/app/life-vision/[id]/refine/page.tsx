@@ -109,6 +109,13 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
       if (error) {
         console.error('Supabase error loading refinements:', error)
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
+        
         // If the table doesn't exist or has different structure, return empty array
         if (error.code === '42P01' || error.message.includes('does not exist')) {
           console.log('Refinements table does not exist yet, returning empty array')
@@ -226,6 +233,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     if (!confirm('Are you sure you want to delete this draft?')) return
 
     try {
+      console.log('Attempting to delete draft:', draftId)
+      
       const { error } = await supabase
         .from('refinements')
         .delete()
@@ -233,6 +242,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
       if (error) {
         console.error('Error deleting draft:', error)
+        alert(`Failed to delete draft: ${error.message}`)
         return
       }
 
@@ -241,6 +251,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       console.log('Draft deleted successfully')
     } catch (error) {
       console.error('Error in deleteDraft:', error)
+      alert(`Failed to delete draft: ${error}`)
     }
   }
 
@@ -427,17 +438,26 @@ Would you like to refine another category, or are you satisfied with this refine
         created_at: new Date().toISOString()
       }
 
+      console.log('Saving draft with data:', draftData)
+
       const { error } = await supabase
         .from('refinements')
-        .upsert(draftData, {
-          onConflict: 'user_id,vision_id,category'
-        })
+        .upsert(draftData)
 
       if (error) {
         console.error('Error saving draft:', error)
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
+        
         // If the table doesn't exist, just log and continue
         if (error.code === '42P01' || error.message.includes('does not exist')) {
           console.log('Refinements table does not exist yet, skipping save')
+        } else {
+          alert(`Failed to save draft: ${error.message}`)
         }
         return
       }
