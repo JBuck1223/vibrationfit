@@ -64,6 +64,171 @@ interface ChatMessage {
   timestamp: Date
 }
 
+// CategoryCard component moved outside to prevent re-creation on every render
+const CategoryCard = ({ category, selected, onClick, className = '' }: { 
+  category: any, 
+  selected: boolean, 
+  onClick: () => void, 
+  className?: string 
+}) => {
+  const IconComponent = category.icon
+  return (
+    <Card 
+      variant="outlined" 
+      hover 
+      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500' : ''} ${className}`}
+      onClick={onClick}
+    >
+      <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#14B8A6'} />
+        <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
+          {category.label}
+        </span>
+      </div>
+    </Card>
+  )
+}
+
+// ChatInterface component moved outside to prevent re-creation on every render
+const ChatInterface = ({ 
+  chatMessages, 
+  isTyping, 
+  chatEndRef, 
+  currentMessage, 
+  setCurrentMessage, 
+  sendMessage, 
+  showCopyPrompt, 
+  setShowCopyPrompt, 
+  copyToRefinement 
+}: { 
+  chatMessages: ChatMessage[], 
+  isTyping: boolean, 
+  chatEndRef: React.RefObject<HTMLDivElement | null>, 
+  currentMessage: string, 
+  setCurrentMessage: (value: string) => void, 
+  sendMessage: () => void, 
+  showCopyPrompt: boolean, 
+  setShowCopyPrompt: (value: boolean) => void, 
+  copyToRefinement: () => void 
+}) => (
+  <div className="space-y-6">
+    {/* Chat Interface */}
+    <Card className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+          <Bot className="w-5 h-5 text-white" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-white">VIVA Assistant</h3>
+          <p className="text-sm text-neutral-400">Intelligent Vision Refinement</p>
+        </div>
+      </div>
+
+      {/* Chat Messages */}
+      <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto">
+        {chatMessages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex gap-3 ${
+              message.role === 'user' ? 'justify-end' : 'justify-start'
+            }`}
+          >
+            {message.role === 'assistant' && (
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+            )}
+            
+            <div
+              className={`max-w-[80%] p-4 rounded-lg ${
+                message.role === 'user'
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-neutral-800 text-neutral-100'
+              }`}
+            >
+              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              <p className="text-xs opacity-70 mt-2">
+                {message.timestamp.toLocaleTimeString()}
+              </p>
+            </div>
+
+            {message.role === 'user' && (
+              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <User className="w-4 h-4 text-white" />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {isTyping && (
+          <div className="flex gap-3 justify-start">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+              <Bot className="w-4 h-4 text-white" />
+            </div>
+            <div className="bg-neutral-800 p-4 rounded-lg">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={chatEndRef} />
+      </div>
+
+      {/* Message Input */}
+      <div className="flex gap-3">
+        <Textarea
+          key="viva-input"
+          value={currentMessage}
+          onChange={(e) => setCurrentMessage(e.target.value)}
+          placeholder="Type your response..."
+          className="flex-1 bg-neutral-800/50 border-neutral-600"
+        />
+        <Button
+          onClick={sendMessage}
+          disabled={!currentMessage.trim() || isTyping}
+          className="px-4"
+        >
+          <Send className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Copy Prompt */}
+      {showCopyPrompt && (
+        <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-300 text-sm font-medium">
+                Ready to copy this refinement to your current refinement?
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCopyPrompt(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={copyToRefinement}
+                className="flex items-center gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Copy to Refinement
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
+  </div>
+)
+
 export default function VisionRefinementPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -713,149 +878,6 @@ Would you like to refine another category, or are you satisfied with this refine
     }
   }
 
-  const CategoryCard = ({ category, selected, onClick, className = '' }: { 
-    category: any, 
-    selected: boolean, 
-    onClick: () => void, 
-    className?: string 
-  }) => {
-    const IconComponent = category.icon
-    return (
-      <Card 
-        variant="outlined" 
-        hover 
-        className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500' : ''} ${className}`}
-        onClick={onClick}
-      >
-        <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
-          <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#14B8A6'} />
-          <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-            {category.label}
-          </span>
-        </div>
-      </Card>
-    )
-  }
-
-  const ChatInterface = () => (
-    <div className="space-y-6">
-      {/* Chat Interface */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-            <Bot className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-white">VIVA Assistant</h3>
-            <p className="text-sm text-neutral-400">Intelligent Vision Refinement</p>
-          </div>
-        </div>
-
-        {/* Chat Messages */}
-        <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto">
-          {chatMessages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex gap-3 ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              }`}
-            >
-              {message.role === 'assistant' && (
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 text-white" />
-                </div>
-              )}
-              
-              <div
-                className={`max-w-[80%] p-4 rounded-lg ${
-                  message.role === 'user'
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-neutral-800 text-neutral-100'
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                <p className="text-xs opacity-70 mt-2">
-                  {message.timestamp.toLocaleTimeString()}
-                </p>
-              </div>
-
-              {message.role === 'user' && (
-                <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-              )}
-            </div>
-          ))}
-
-          {isTyping && (
-            <div className="flex gap-3 justify-start">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                <Bot className="w-4 h-4 text-white" />
-              </div>
-              <div className="bg-neutral-800 p-4 rounded-lg">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                  <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={chatEndRef} />
-        </div>
-
-        {/* Message Input */}
-        <div className="flex gap-3">
-          <Textarea
-            key="viva-input"
-            value={currentMessage}
-            onChange={(e) => setCurrentMessage(e.target.value)}
-            placeholder="Type your response..."
-            className="flex-1 bg-neutral-800/50 border-neutral-600"
-          />
-          <Button
-            onClick={sendMessage}
-            disabled={!currentMessage.trim() || isTyping}
-            className="px-4"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
-
-        {/* Copy Prompt */}
-        {showCopyPrompt && (
-          <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-300 text-sm font-medium">
-                  Ready to copy this refinement to your current refinement?
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowCopyPrompt(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={copyToRefinement}
-                  className="flex items-center gap-2"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy to Refinement
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
-    </div>
-  )
-
   if (loading) {
     return (
       <PageLayout>
@@ -1252,7 +1274,17 @@ Would you like to refine another category, or are you satisfied with this refine
               </Button>
                   </div>
           ) : (
-            <ChatInterface />
+            <ChatInterface 
+              chatMessages={chatMessages}
+              isTyping={isTyping}
+              chatEndRef={chatEndRef}
+              currentMessage={currentMessage}
+              setCurrentMessage={setCurrentMessage}
+              sendMessage={sendMessage}
+              showCopyPrompt={showCopyPrompt}
+              setShowCopyPrompt={setShowCopyPrompt}
+              copyToRefinement={copyToRefinement}
+            />
           )}
         </div>
       )}
