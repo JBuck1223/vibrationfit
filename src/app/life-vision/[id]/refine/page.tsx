@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   Sparkles, 
   MessageCircle, 
@@ -60,6 +60,7 @@ interface ChatMessage {
 
 export default function VisionRefinementPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [vision, setVision] = useState<VisionData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -79,6 +80,19 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   useEffect(() => {
     loadVisionById()
   }, [params])
+
+  // Read category from URL parameters
+  useEffect(() => {
+    const categoryParam = searchParams.get('category')
+    if (categoryParam) {
+      // Validate that the category exists in VISION_CATEGORIES
+      const validCategory = VISION_CATEGORIES.find(cat => cat.key === categoryParam)
+      if (validCategory) {
+        setSelectedCategory(categoryParam)
+        console.log('Category selected from URL:', categoryParam)
+      }
+    }
+  }, [searchParams])
 
   // Auto-scroll chat to bottom
   useEffect(() => {
