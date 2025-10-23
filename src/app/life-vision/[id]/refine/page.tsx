@@ -228,6 +228,56 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     }, 100)
   }
 
+  // Commit a single draft to new vision
+  const commitSingleDraft = async (draft: any) => {
+    if (!user || !visionId || !vision) return
+
+    try {
+      setIsDraftSaving(true)
+
+      // Create new vision version with this draft refinement
+      const updatedVision = { ...vision } as any
+      if (draft.category && (draft.output_text || draft.refinement_text)) {
+        updatedVision[draft.category] = draft.output_text || draft.refinement_text
+      }
+
+      // Create new vision version
+      const { data: newVersion, error: versionError } = await supabase
+        .from('vision_versions')
+        .insert({
+          user_id: user.id,
+          vision: updatedVision,
+          version_number: (vision.version_number || 0) + 1,
+          status: 'complete'
+        })
+        .select()
+        .single()
+
+      if (versionError) throw versionError
+
+      // Delete the committed draft
+      const { error: deleteError } = await supabase
+        .from('refinements')
+        .delete()
+        .eq('id', draft.id)
+
+      if (deleteError) throw deleteError
+
+      // Reload vision and drafts
+      await loadVisionById()
+      await loadAllDrafts()
+      
+      setDraftStatus('committed')
+      setTimeout(() => setDraftStatus('none'), 2000)
+
+    } catch (error) {
+      console.error('Error committing single draft:', error)
+      alert(`Failed to commit draft: ${error}`)
+    } finally {
+      setIsDraftSaving(false)
+    }
+  }
+
   // Delete a draft
   const deleteDraft = async (draftId: string) => {
     if (!confirm('Are you sure you want to delete this draft?')) return
@@ -809,12 +859,36 @@ Would you like to refine another category, or are you satisfied with this refine
                           <span className="font-medium text-white">{categoryInfo?.label}</span>
                           <Badge variant="warning" className="text-xs">Draft</Badge>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="text-xs text-neutral-500 font-mono">
+                          ID: {draft.id.slice(0, 8)}...
+                        </div>
+                      </div>
+                      
+                      {/* Mobile-first responsive button layout */}
+                      <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                        {/* Commit button - full width on mobile, auto on desktop */}
+                        <Button
+                          onClick={() => commitSingleDraft(draft)}
+                          disabled={isDraftSaving}
+                          variant="primary"
+                          size="sm"
+                          className="flex items-center gap-1 w-full sm:w-auto"
+                        >
+                          {isDraftSaving ? (
+                            <Spinner variant="primary" size="sm" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                          Commit This Draft
+                        </Button>
+                        
+                        {/* Edit and Delete buttons - inline on mobile, separate on desktop */}
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
                           <Button
                             onClick={() => editDraft(draft)}
                             variant="ghost"
                             size="sm"
-                            className="flex items-center gap-1 text-neutral-400 hover:text-white"
+                            className="flex items-center gap-1 text-neutral-400 hover:text-white flex-1 sm:flex-none"
                           >
                             <Edit className="w-4 h-4" />
                             Edit
@@ -823,13 +897,14 @@ Would you like to refine another category, or are you satisfied with this refine
                             onClick={() => deleteDraft(draft.id)}
                             variant="ghost"
                             size="sm"
-                            className="flex items-center gap-1 text-neutral-400 hover:text-red-400"
+                            className="flex items-center gap-1 text-neutral-400 hover:text-red-400 flex-1 sm:flex-none"
                           >
                             <Trash2 className="w-4 h-4" />
                             Delete
                           </Button>
                         </div>
                       </div>
+                      
                       <p className="text-sm text-neutral-300 line-clamp-2">
                         {draft.output_text || draft.refinement_text || draft.current_refinement || 'No content'}
                       </p>
