@@ -1,18 +1,19 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   Sparkles, 
-  Zap, 
-  Lightbulb, 
-  Beaker, 
-  Rocket,
-  Target,
-  Palette,
-  Layers,
-  Eye,
-  Code,
-  Wand2
+  MessageCircle, 
+  Send,
+  Copy,
+  Check,
+  ArrowLeft,
+  Bot,
+  User,
+  Wand2,
+  Brain,
+  Target
 } from 'lucide-react'
 import { 
   PageLayout, 
@@ -20,220 +21,404 @@ import {
   Button, 
   Badge, 
   Spinner,
-  Input,
   Textarea,
   Icon
 } from '@/lib/design-system'
+import { VISION_CATEGORIES } from '@/lib/design-system'
+import { createClient } from '@/lib/supabase/client'
+
+interface VisionData {
+  id: string
+  user_id: string
+  forward: string
+  fun: string
+  travel: string
+  home: string
+  family: string
+  romance: string
+  health: string
+  money: string
+  business: string
+  social: string
+  possessions: string
+  giving: string
+  spirituality: string
+  conclusion: string
+  status: 'draft' | 'complete' | string
+  completion_percent: number
+  created_at: string
+  updated_at: string
+}
+
+interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+}
 
 export default function ExperimentPage() {
-  const [activeExperiment, setActiveExperiment] = useState<string | null>(null)
-  const [experimentData, setExperimentData] = useState<any>({})
+  const router = useRouter()
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [vision, setVision] = useState<VisionData | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [currentMessage, setCurrentMessage] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const [currentRefinement, setCurrentRefinement] = useState('')
+  const [showCopyPrompt, setShowCopyPrompt] = useState(false)
+  const [lastVivaResponse, setLastVivaResponse] = useState('')
+  const [conversationPhase, setConversationPhase] = useState<'initial' | 'exploring' | 'refining' | 'finalizing'>('initial')
+  const chatEndRef = useRef<HTMLDivElement>(null)
 
-  const experiments = [
-    {
-      id: 'single-select-cards',
-      title: 'Single-Select Card Interface',
-      description: 'Test a radio-button style card selection system',
-      icon: Target,
-      color: '#199D67',
-      status: 'ready'
-    },
-    {
-      id: 'sidebar-removal',
-      title: 'Sidebar-Free Layout',
-      description: 'Experiment with full-width layouts without sidebars',
-      icon: Layers,
-      color: '#14B8A6',
-      status: 'ready'
-    },
-    {
-      id: 'ai-refinement',
-      title: 'AI-Powered Refinement',
-      description: 'Test advanced AI refinement features',
-      icon: Wand2,
-      color: '#8B5CF6',
-      status: 'ready'
-    },
-    {
-      id: 'visual-feedback',
-      title: 'Enhanced Visual Feedback',
-      description: 'Experiment with better user feedback systems',
-      icon: Eye,
-      color: '#FFB701',
-      status: 'ready'
-    },
-    {
-      id: 'component-library',
-      title: 'Component Library',
-      description: 'Test new component designs and patterns',
-      icon: Palette,
-      color: '#D03739',
-      status: 'ready'
-    },
-    {
-      id: 'performance-test',
-      title: 'Performance Testing',
-      description: 'Test performance optimizations',
-      icon: Zap,
-      color: '#199D67',
-      status: 'ready'
+  const supabase = createClient()
+
+  // Load user's vision when component mounts
+  useEffect(() => {
+    loadUserVision()
+  }, [])
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatMessages])
+
+  const loadUserVision = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data, error } = await supabase
+        .from('life_visions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'complete')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (error) {
+        console.error('Error loading vision:', error)
+        return
+      }
+
+      setVision(data)
+    } catch (error) {
+      console.error('Error loading vision:', error)
     }
-  ]
+  }
 
-  const ExperimentCard = ({ experiment, onClick }: { 
-    experiment: any, 
-    onClick: () => void 
-  }) => {
-    const IconComponent = experiment.icon
+  const getCategoryValue = (category: string) => {
+    if (!vision) return ''
+    return vision[category as keyof VisionData] as string || ''
+  }
+
+  const startConversation = () => {
+    if (!selectedCategory || !vision) return
+
+    const categoryValue = getCategoryValue(selectedCategory)
+    const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
+    
+    const initialMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `Hello! I'm VIVA, your intelligent vision refinement assistant. I see you want to work on your **${categoryInfo?.label}** vision.
+
+Your current vision for this area is:
+"${categoryValue}"
+
+Let me help you refine this vision through a thoughtful conversation. I'll ask you questions to help you dive deeper and create a more powerful, specific vision.
+
+What aspects of your ${categoryInfo?.label.toLowerCase()} vision feel most important to you right now?`,
+      timestamp: new Date()
+    }
+
+    setChatMessages([initialMessage])
+    setConversationPhase('exploring')
+  }
+
+  const sendMessage = async () => {
+    if (!currentMessage.trim() || !selectedCategory) return
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: currentMessage,
+      timestamp: new Date()
+    }
+
+    setChatMessages(prev => [...prev, userMessage])
+    setCurrentMessage('')
+    setIsTyping(true)
+
+    // Simulate AI response (in real implementation, this would call your AI API)
+    setTimeout(() => {
+      const aiResponse = generateAIResponse(currentMessage, conversationPhase)
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: aiResponse.content,
+        timestamp: new Date()
+      }
+
+      setChatMessages(prev => [...prev, assistantMessage])
+      setLastVivaResponse(aiResponse.content)
+      setConversationPhase(aiResponse.nextPhase)
+      setIsTyping(false)
+
+      // Show copy prompt if we're in finalizing phase
+      if (aiResponse.nextPhase === 'finalizing') {
+        setShowCopyPrompt(true)
+      }
+    }, 1500)
+  }
+
+  const generateAIResponse = (userMessage: string, phase: string) => {
+    const responses = {
+      exploring: {
+        content: `That's a great insight! I can see how ${userMessage.toLowerCase()} connects to your vision. 
+
+Let me ask you this: When you imagine achieving this vision, what specific feelings do you want to experience? How will you know you've truly actualized this vision in your life?
+
+The more specific and emotionally connected we can make your vision, the more powerful it becomes.`,
+        nextPhase: 'refining' as const
+      },
+      refining: {
+        content: `Beautiful! I can feel the energy in what you're describing. 
+
+Based on our conversation, here's a refined version of your vision:
+
+**Refined Vision:**
+"${userMessage}"
+
+This refined vision is more specific, emotionally connected, and actionable than your original. It captures the essence of what you truly want to actualize.
+
+Would you like me to copy this refined vision to your current refinement? You can always edit it further after I copy it over.`,
+        nextPhase: 'finalizing' as const
+      },
+      finalizing: {
+        content: `Perfect! I've copied the refined vision to your current refinement. You can now edit it further if you'd like, or move on to refine another category.
+
+Remember, this is your vision - make it yours! The refinement process is about making it more powerful and aligned with your true desires.
+
+Would you like to refine another category, or are you satisfied with this refinement?`,
+        nextPhase: 'initial' as const
+      }
+    }
+
+    return responses[phase as keyof typeof responses] || responses.exploring
+  }
+
+  const copyToRefinement = () => {
+    setCurrentRefinement(lastVivaResponse)
+    setShowCopyPrompt(false)
+  }
+
+  const CategoryCard = ({ category }: { category: any }) => {
+    const isSelected = selectedCategory === category.key
+    const categoryValue = getCategoryValue(category.key)
+    
     return (
       <Card 
-        variant="outlined" 
-        hover 
-        className="cursor-pointer transition-all duration-300 hover:shadow-lg"
-        onClick={onClick}
+        variant="outlined"
+        hover
+        className={`cursor-pointer transition-all duration-300 ${
+          isSelected 
+            ? 'border-primary-500 bg-primary-500/10 shadow-lg' 
+            : 'hover:border-primary-500/50'
+        }`}
+        onClick={() => setSelectedCategory(category.key)}
       >
         <div className="p-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div 
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: `${experiment.color}20` }}
-            >
-              <IconComponent 
-                className="w-6 h-6" 
-                style={{ color: experiment.color }}
-              />
+          <div className="flex items-center gap-4 mb-3">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              isSelected ? 'bg-primary-500' : 'bg-neutral-700'
+            }`}>
+              <category.icon className={`w-6 h-6 ${
+                isSelected ? 'text-white' : 'text-neutral-400'
+              }`} />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-white mb-1">
-                {experiment.title}
+              <h3 className={`text-lg font-semibold ${
+                isSelected ? 'text-primary-300' : 'text-white'
+              }`}>
+                {category.label}
               </h3>
               <p className="text-sm text-neutral-400">
-                {experiment.description}
+                {category.description}
               </p>
             </div>
-            <Badge 
-              variant={experiment.status === 'ready' ? 'success' : 'warning'}
-              className="text-xs"
-            >
-              {experiment.status}
-            </Badge>
+            {isSelected && (
+              <Badge variant="success" className="flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                Selected
+              </Badge>
+            )}
           </div>
           
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-neutral-500">
-              <Beaker className="w-4 h-4" />
-              <span>Experimental</span>
+          {categoryValue && (
+            <div className="mt-3 p-3 bg-neutral-800/50 rounded-lg">
+              <p className="text-sm text-neutral-300 line-clamp-2">
+                "{categoryValue}"
+              </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Rocket className="w-4 h-4" />
-              Launch
-            </Button>
-          </div>
+          )}
         </div>
       </Card>
     )
   }
 
-  const SingleSelectExperiment = () => (
+  const ChatInterface = () => (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">Single-Select Card Interface</h2>
-        <p className="text-neutral-400">Testing radio-button style card selection</p>
+      {/* Current Vision & Refinement Display */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary-400" />
+            Current Vision
+          </h3>
+          <div className="bg-neutral-800/50 p-4 rounded-lg">
+            <p className="text-neutral-300 text-sm">
+              "{getCategoryValue(selectedCategory!)}"
+            </p>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Wand2 className="w-5 h-5 text-purple-400" />
+            Current Refinement
+          </h3>
+          <Textarea
+            value={currentRefinement}
+            onChange={(e) => setCurrentRefinement(e.target.value)}
+            placeholder="Your refined vision will appear here..."
+            className="min-h-[100px] bg-neutral-800/50 border-neutral-600"
+          />
+        </Card>
       </div>
 
+      {/* Chat Interface */}
       <Card className="p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Select One Category</h3>
-        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
-          {['Health', 'Money', 'Family', 'Fun', 'Travel', 'Home', 'Business', 'Social', 'Romance', 'Possessions', 'Giving', 'Spirituality'].map((category, index) => (
-            <Card 
-              key={category}
-              variant="outlined" 
-              hover 
-              className={`cursor-pointer aspect-square transition-all duration-300 ${
-                experimentData.selectedCategory === category 
-                  ? 'border border-primary-500 bg-primary-500/10' 
-                  : ''
-              }`}
-              onClick={() => setExperimentData({ ...experimentData, selectedCategory: category })}
-            >
-              <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
-                <div className={`w-6 h-6 rounded-full ${
-                  experimentData.selectedCategory === category 
-                    ? 'bg-primary-500' 
-                    : 'bg-neutral-600'
-                }`} />
-                <span className="text-xs font-medium text-center leading-tight text-neutral-300">
-                  {category}
-                </span>
-              </div>
-            </Card>
-          ))}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+            <Bot className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-white">VIVA Assistant</h3>
+            <p className="text-sm text-neutral-400">Intelligent Vision Refinement</p>
+          </div>
         </div>
-        
-        {experimentData.selectedCategory && (
-          <div className="mt-6 p-4 bg-primary-500/10 border border-primary-500/30 rounded-lg">
-            <p className="text-primary-300 text-sm">
-              Selected: <strong>{experimentData.selectedCategory}</strong>
-            </p>
+
+        {/* Chat Messages */}
+        <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto">
+          {chatMessages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex gap-3 ${
+                message.role === 'user' ? 'justify-end' : 'justify-start'
+              }`}
+            >
+              {message.role === 'assistant' && (
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+              )}
+              
+              <div
+                className={`max-w-[80%] p-4 rounded-lg ${
+                  message.role === 'user'
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-neutral-800 text-neutral-100'
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <p className="text-xs opacity-70 mt-2">
+                  {message.timestamp.toLocaleTimeString()}
+                </p>
+              </div>
+
+              {message.role === 'user' && (
+                <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+              )}
+            </div>
+          ))}
+
+          {isTyping && (
+            <div className="flex gap-3 justify-start">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+              <div className="bg-neutral-800 p-4 rounded-lg">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Message Input */}
+        <div className="flex gap-3">
+          <Textarea
+            value={currentMessage}
+            onChange={(e) => setCurrentMessage(e.target.value)}
+            placeholder="Type your response..."
+            className="flex-1 bg-neutral-800/50 border-neutral-600"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                sendMessage()
+              }
+            }}
+          />
+          <Button
+            onClick={sendMessage}
+            disabled={!currentMessage.trim() || isTyping}
+            className="px-4"
+          >
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Copy Prompt */}
+        {showCopyPrompt && (
+          <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-300 text-sm font-medium">
+                  Ready to copy this refinement to your current refinement?
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCopyPrompt(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={copyToRefinement}
+                  className="flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy to Refinement
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </Card>
     </div>
   )
-
-  const SidebarFreeExperiment = () => (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">Sidebar-Free Layout</h2>
-        <p className="text-neutral-400">Testing full-width layouts without sidebars</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Content Area 1</h3>
-          <p className="text-neutral-300 mb-4">
-            This is a full-width content area without any sidebar constraints. 
-            The layout flows naturally across the entire viewport.
-          </p>
-          <Button variant="primary" className="w-full">
-            Action Button
-          </Button>
-        </Card>
-
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Content Area 2</h3>
-          <p className="text-neutral-300 mb-4">
-            Another content area that demonstrates the flexibility of 
-            sidebar-free layouts for better content presentation.
-          </p>
-          <Button variant="secondary" className="w-full">
-            Secondary Action
-          </Button>
-        </Card>
-      </div>
-    </div>
-  )
-
-  const renderExperiment = () => {
-    switch (activeExperiment) {
-      case 'single-select-cards':
-        return <SingleSelectExperiment />
-      case 'sidebar-removal':
-        return <SidebarFreeExperiment />
-      default:
-        return (
-          <div className="text-center py-16">
-            <Lightbulb className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Select an Experiment</h3>
-            <p className="text-neutral-400">Choose an experiment from the grid above to get started</p>
-          </div>
-        )
-    }
-  }
 
   return (
     <PageLayout>
@@ -241,47 +426,67 @@ export default function ExperimentPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Beaker className="w-8 h-8 text-purple-400" />
-            <h1 className="text-4xl font-bold text-white">Experiment Lab</h1>
+            <Brain className="w-8 h-8 text-purple-400" />
+            <h1 className="text-4xl font-bold text-white">Intelligent Refinement</h1>
             <Badge variant="premium" className="flex items-center gap-1">
               <Sparkles className="w-4 h-4" />
-              Beta
+              VIVA AI
             </Badge>
           </div>
           <p className="text-neutral-400 text-lg">
-            Test new features and UI patterns before they go live
+            Select a category and let VIVA help you refine your vision through intelligent conversation
           </p>
         </div>
 
-        {/* Experiment Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {experiments.map((experiment) => (
-            <ExperimentCard 
-              key={experiment.id}
-              experiment={experiment}
-              onClick={() => setActiveExperiment(experiment.id)}
-            />
-          ))}
+        {/* Category Selection */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-6">Choose a Category to Refine</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {VISION_CATEGORIES.map((category) => (
+              <CategoryCard key={category.key} category={category} />
+            ))}
+          </div>
         </div>
 
-        {/* Active Experiment */}
-        <Card className="p-8">
-          {renderExperiment()}
-        </Card>
-
-        {/* Navigation */}
-        {activeExperiment && (
-          <div className="mt-6 text-center">
-            <Button
-              onClick={() => setActiveExperiment(null)}
-              variant="outline"
-              className="flex items-center gap-2 mx-auto"
-            >
-              <Layers className="w-4 h-4" />
-              Back to Experiments
-            </Button>
+        {/* Chat Interface */}
+        {selectedCategory && (
+          <div className="space-y-6">
+            {chatMessages.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">Ready to Start?</h3>
+                <p className="text-neutral-400 mb-6">
+                  VIVA will help you refine your {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label.toLowerCase()} vision through intelligent conversation.
+                </p>
+                <Button
+                  onClick={startConversation}
+                  variant="primary"
+                  size="lg"
+                  className="flex items-center gap-2"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Start Conversation with VIVA
+                </Button>
+              </div>
+            ) : (
+              <ChatInterface />
+            )}
           </div>
         )}
+
+        {/* Navigation */}
+        <div className="mt-8 text-center">
+          <Button
+            onClick={() => router.push('/life-vision')}
+            variant="outline"
+            className="flex items-center gap-2 mx-auto"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Life Vision
+          </Button>
+        </div>
       </div>
     </PageLayout>
   )

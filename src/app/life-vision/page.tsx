@@ -467,147 +467,80 @@ export default function VisionListPage() {
 
         {/* All Versions List */}
         {activeVision && versions.length > 0 && (
-          <Card className="p-8 mb-8">
+          <Card className="p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">All Life Visions</h2>
+              <h2 className="text-xl font-semibold text-white">Life Vision Versions</h2>
               <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {versions.map((version, index) => {
                 // Most recent complete version is "Active"
                 const isActive = version.id === activeVision?.id
-                const isFirstComplete = version.status === 'complete' && index === 0
                 
                 return (
-                  <div 
-                    key={version.id} 
-                    className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg border transition-colors gap-4 ${
-                      isActive 
-                        ? 'bg-primary-500/10 border-primary-500/50' 
-                        : 'bg-neutral-800/50 border-neutral-700 hover:border-neutral-600'
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-sm font-medium text-white">
-                          Version {version.version_number}
-                        </span>
-                        {version.status === 'draft' && (
-                          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
-                            Draft
-                          </span>
-                        )}
-                        {version.status === 'complete' && isActive && (
-                          <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">
-                            Active
-                          </span>
-                        )}
-                        {version.status === 'complete' && !isActive && (
-                          <span className="px-2 py-1 bg-neutral-600/20 text-neutral-400 rounded text-xs">
-                            Complete
-                          </span>
-                        )}
-                        <span className="text-sm text-neutral-400">
-                          {version.completion_percent}% complete
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-neutral-500">
-                          <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          <span className="font-mono">ID:</span> {version.id}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="min-w-[200px]">
-                      {version.status === 'draft' ? (
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <Button
-                            onClick={() => router.push('/life-vision/create-with-viva')}
-                            variant="primary"
-                            size="sm"
-                            className="flex items-center justify-center gap-1"
-                          >
-                            <Sparkles className="w-3 h-3" />
-                            <span className="whitespace-nowrap">Continue with VIVA</span>
-                          </Button>
-                          <Button
-                            onClick={() => deleteVersion(version.id)}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center justify-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
-                            disabled={deletingVersion === version.id}
-                          >
-                            {deletingVersion === version.id ? (
-                              <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <Trash2 className="w-3 h-3" />
-                            )}
-                            Delete
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <Button
-                            onClick={() => router.push(`/life-vision/${version.id}`)}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center justify-center gap-1"
-                          >
-                            <Eye className="w-3 h-3" />
-                            View
-                          </Button>
-                          {isActive ? (
-                            <Button
-                              onClick={() => router.push(`/life-vision/${version.id}/refine`)}
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center justify-center gap-1 border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14] hover:text-black"
-                            >
-                              <Gem className="w-3 h-3" />
-                              Refine
-                            </Button>
-                          ) : (
-                            <Button
-                              onClick={async () => {
-                                if (confirm('Make this your active vision? This will replace your current active vision.')) {
-                                  try {
-                                    const supabase = createClient()
-                                    // In the future, we could implement a proper "active" flag
-                                    // For now, we'll just navigate to it
-                                    window.location.href = `/life-vision/${version.id}`
-                                  } catch (error) {
-                                    alert('Failed to set active vision')
-                                  }
-                                }
-                              }}
-                              variant="primary"
-                              size="sm"
-                              className="flex items-center justify-center gap-1 whitespace-nowrap"
-                            >
-                              <CheckCircle className="w-3 h-3" />
-                              Make Active
-                            </Button>
+                  <Card key={version.id} variant="outlined" className="p-4">
+                    <div className="flex flex-col md:flex-row md:items-center gap-3">
+                      {/* Version Info */}
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-lg font-semibold text-white">
+                            Version {version.version_number}
+                          </h3>
+                          {version.status === 'draft' && (
+                            <Badge variant="warning">
+                              Draft
+                            </Badge>
                           )}
-                          <Button
-                            onClick={() => deleteVersion(version.id)}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center justify-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
-                            disabled={deletingVersion === version.id}
-                          >
-                            {deletingVersion === version.id ? (
-                              <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <Trash2 className="w-3 h-3" />
-                            )}
-                            Delete
-                          </Button>
+                          {version.status === 'complete' && isActive && (
+                            <Badge variant="success">
+                              Active
+                            </Badge>
+                          )}
+                          {version.status === 'complete' && !isActive && (
+                            <Badge variant="neutral">
+                              Complete
+                            </Badge>
+                          )}
                         </div>
-                      )}
+                        
+                        <div className="space-y-1 text-sm text-neutral-400">
+                          <p>
+                            <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                          </p>
+                          <p className="text-xs text-neutral-500 font-mono">
+                            ID: {version.id}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-row gap-2 md:w-auto w-full">
+                        <Button
+                          onClick={() => router.push(`/life-vision/${version.id}`)}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-2 flex-1 md:flex-none"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </Button>
+                        <Button
+                          onClick={() => deleteVersion(version.id)}
+                          variant="danger"
+                          size="sm"
+                          className="flex items-center gap-2 flex-1 md:flex-none"
+                          disabled={deletingVersion === version.id}
+                        >
+                          {deletingVersion === version.id ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  </Card>
                 )
               })}
             </div>
