@@ -8,7 +8,6 @@ import {
   Send,
   Copy, 
   Check,
-  ArrowLeft,
   Bot,
   User,
   Wand2,
@@ -17,7 +16,9 @@ import {
   Zap,
   Save,
   Edit,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react'
 import { 
   PageLayout, 
@@ -26,6 +27,7 @@ import {
   Badge, 
   Spinner,
   Textarea,
+  AutoResizeTextarea,
   Icon
 } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
@@ -84,6 +86,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [user, setUser] = useState<any>(null)
   const [visionId, setVisionId] = useState<string | null>(null)
   const [editingDraft, setEditingDraft] = useState<string | null>(null)
+  const [showCurrentVision, setShowCurrentVision] = useState(true)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const supabase = createClient()
@@ -216,9 +219,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   // Edit a draft
   const editDraft = (draft: any) => {
+    console.log('Edit draft clicked:', draft.id)
     setSelectedCategory(draft.category)
     setCurrentRefinement(draft.output_text || draft.refinement_text || draft.current_refinement || '')
     setEditingDraft(draft.id)
+    setShowAllDrafts(false) // Hide drafts when editing
+    
     // Scroll to refinement section
     setTimeout(() => {
       const refinementSection = document.querySelector('[data-refinement-section]')
@@ -230,6 +236,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   // Commit a single draft to new vision
   const commitSingleDraft = async (draft: any) => {
+    console.log('Commit single draft clicked:', draft.id)
     if (!user || !visionId || !vision) return
 
     try {
@@ -280,10 +287,26 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   // Delete a draft
   const deleteDraft = async (draftId: string) => {
+    console.log('Delete draft clicked:', draftId)
     if (!confirm('Are you sure you want to delete this draft?')) return
 
     try {
       console.log('Attempting to delete draft:', draftId)
+      
+      // First, let's check if the draft exists
+      const { data: checkData, error: checkError } = await supabase
+        .from('refinements')
+        .select('id, category, output_text')
+        .eq('id', draftId)
+        .single()
+
+      if (checkError) {
+        console.error('Error checking draft before delete:', checkError)
+        alert(`Draft not found: ${checkError.message}`)
+        return
+      }
+
+      console.log('Draft found for deletion:', checkData)
       
       const { error } = await supabase
         .from('refinements')
@@ -292,13 +315,32 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
       if (error) {
         console.error('Error deleting draft:', error)
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
         alert(`Failed to delete draft: ${error.message}`)
         return
       }
 
-      // Reload drafts
+      console.log('Draft deleted from database successfully')
+      
+      // Immediately update the local state to remove the draft
+      setAllDrafts(prevDrafts => {
+        const filtered = prevDrafts.filter(draft => draft.id !== draftId)
+        console.log('Updated drafts list:', filtered.length, 'drafts remaining')
+        return filtered
+      })
+      
+      // Also reload drafts from database to ensure consistency
       await loadAllDrafts()
-      console.log('Draft deleted successfully')
+      
+      console.log('Draft removed from UI successfully')
+      
+      // Show success message
+      alert('Draft deleted successfully!')
     } catch (error) {
       console.error('Error in deleteDraft:', error)
       alert(`Failed to delete draft: ${error}`)
@@ -478,42 +520,76 @@ Would you like to refine another category, or are you satisfied with this refine
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Save draft to refinements table
+      console.log('Saving draft for category:', selectedCategory, 'user:', user.id, 'vision:', vision.id)
+
+      // Check if a draft already exists for this category
+      const { data: existingDrafts, error: checkError } = await supabase
+        .from('refinements')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('vision_id', vision.id)
+        .eq('category', selectedCategory)
+        .eq('operation_type', 'refine_vision')
+
+      if (checkError) {
+        console.error('Error checking existing drafts:', checkError)
+        return
+      }
+
+      console.log('Existing drafts found:', existingDrafts?.length || 0)
+
+      // If draft exists, update it; otherwise create new one
       const draftData: any = {
         user_id: user.id,
         vision_id: vision.id,
         category: selectedCategory,
-        output_text: currentRefinement, // Use output_text (the actual column name)
+        output_text: currentRefinement,
         operation_type: 'refine_vision',
         created_at: new Date().toISOString()
       }
 
-      console.log('Saving draft with data:', draftData)
+      let result
+      if (existingDrafts && existingDrafts.length > 0) {
+        // Update existing draft
+        console.log('Updating existing draft:', existingDrafts[0].id)
+        result = await supabase
+          .from('refinements')
+          .update({
+            output_text: currentRefinement,
+            created_at: new Date().toISOString()
+          })
+          .eq('id', existingDrafts[0].id)
+      } else {
+        // Create new draft
+        console.log('Creating new draft')
+        result = await supabase
+          .from('refinements')
+          .insert(draftData)
+      }
 
-      const { error } = await supabase
-        .from('refinements')
-        .upsert(draftData)
-
-      if (error) {
-        console.error('Error saving draft:', error)
+      if (result.error) {
+        console.error('Error saving draft:', result.error)
         console.error('Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
+          code: result.error.code,
+          message: result.error.message,
+          details: result.error.details,
+          hint: result.error.hint
         })
         
         // If the table doesn't exist, just log and continue
-        if (error.code === '42P01' || error.message.includes('does not exist')) {
+        if (result.error.code === '42P01' || result.error.message.includes('does not exist')) {
           console.log('Refinements table does not exist yet, skipping save')
         } else {
-          alert(`Failed to save draft: ${error.message}`)
+          alert(`Failed to save draft: ${result.error.message}`)
         }
         return
       }
 
       setLastSaved(new Date())
       console.log('Draft saved successfully')
+      
+      // Reload drafts to show the new one
+      await loadAllDrafts()
     } catch (error) {
       console.error('Error saving draft:', error)
     } finally {
@@ -766,27 +842,19 @@ Would you like to refine another category, or are you satisfied with this refine
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
-          <Button
-            onClick={() => router.back()}
-            variant="ghost"
-            className="text-neutral-400 hover:text-white"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back
-          </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <Brain className="w-8 h-8 text-purple-400" />
-              <h1 className="text-3xl font-bold text-white">Intelligent Refinement</h1>
-              <Badge variant="premium" className="flex items-center gap-1">
-                <Zap className="w-4 h-4" />
-                VIVA AI
-              </Badge>
-                        </div>
-            <p className="text-neutral-400">
-              Select a category and let VIVA help you refine your vision through intelligent conversation
-                            </p>
-                          </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <Brain className="w-8 h-8 text-purple-400" />
+            <h1 className="text-3xl font-bold text-white">Intelligent Refinement</h1>
+            <Badge variant="premium" className="flex items-center gap-1">
+              <Zap className="w-4 h-4" />
+              VIVA AI
+            </Badge>
+          </div>
+          <p className="text-neutral-400">
+            Select a category and let VIVA help you refine your vision through intelligent conversation
+          </p>
+        </div>
                           </div>
                       </div>
 
@@ -809,7 +877,7 @@ Would you like to refine another category, or are you satisfied with this refine
       {allDrafts.length > 0 && (
         <div className="mb-8">
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
                   <span className="text-yellow-500 text-sm font-bold">{allDrafts.length}</span>
@@ -821,12 +889,12 @@ Would you like to refine another category, or are you satisfied with this refine
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <Button
                   onClick={() => setShowAllDrafts(!showAllDrafts)}
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-1"
+                  className="flex items-center justify-center gap-1 w-full sm:w-auto"
                 >
                   {showAllDrafts ? 'Hide' : 'Show'} Drafts
                 </Button>
@@ -835,7 +903,7 @@ Would you like to refine another category, or are you satisfied with this refine
                   disabled={isDraftSaving}
                   variant="primary"
                   size="sm"
-                  className="flex items-center gap-1"
+                  className="flex items-center justify-center gap-1 w-full sm:w-auto"
                 >
                   {isDraftSaving ? (
                     <Spinner variant="primary" size="sm" />
@@ -853,63 +921,59 @@ Would you like to refine another category, or are you satisfied with this refine
                   const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === draft.category)
                   return (
                     <div key={draft.id} className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
                         <div className="flex items-center gap-3">
                           {categoryInfo && <categoryInfo.icon className="w-5 h-5 text-primary-500" />}
                           <span className="font-medium text-white">{categoryInfo?.label}</span>
                           <Badge variant="warning" className="text-xs">Draft</Badge>
                         </div>
-                        <div className="text-xs text-neutral-500 font-mono">
-                          ID: {draft.id.slice(0, 8)}...
+                        {/* Commit, Edit and Delete buttons - responsive layout */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <Button
+                            onClick={() => commitSingleDraft(draft)}
+                            disabled={isDraftSaving}
+                            variant="primary"
+                            size="sm"
+                            className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px]"
+                          >
+                            {isDraftSaving ? (
+                              <Spinner variant="primary" size="sm" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                            Commit
+                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              onClick={() => editDraft(draft)}
+                              variant="ghost"
+                              size="sm"
+                              className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px] flex-1 sm:flex-none"
+                            >
+                              <Edit className="w-4 h-4" />
+                              View
+                            </Button>
+                            <Button
+                              onClick={() => deleteDraft(draft.id)}
+                              variant="danger"
+                              size="sm"
+                              className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px] flex-1 sm:flex-none"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </Button>
+                          </div>
                         </div>
                       </div>
                       
-                      {/* Mobile-first responsive button layout */}
-                      <div className="flex flex-col sm:flex-row gap-2 mb-3">
-                        {/* Commit button - full width on mobile, auto on desktop */}
-                        <Button
-                          onClick={() => commitSingleDraft(draft)}
-                          disabled={isDraftSaving}
-                          variant="primary"
-                          size="sm"
-                          className="flex items-center gap-1 w-full sm:w-auto"
-                        >
-                          {isDraftSaving ? (
-                            <Spinner variant="primary" size="sm" />
-                          ) : (
-                            <Check className="w-4 h-4" />
-                          )}
-                          Commit This Draft
-                        </Button>
-                        
-                        {/* Edit and Delete buttons - inline on mobile, separate on desktop */}
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <Button
-                            onClick={() => editDraft(draft)}
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center gap-1 text-neutral-400 hover:text-white flex-1 sm:flex-none"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => deleteDraft(draft.id)}
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center gap-1 text-neutral-400 hover:text-red-400 flex-1 sm:flex-none"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </Button>
-                        </div>
+                      {/* ID and Date under the title */}
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mb-3 text-xs text-neutral-500">
+                        <span className="font-mono break-all">ID: {draft.id}</span>
+                        <span className="whitespace-nowrap">Created {new Date(draft.created_at).toLocaleDateString()}</span>
                       </div>
                       
-                      <p className="text-sm text-neutral-300 line-clamp-2">
+                      <p className="text-sm text-neutral-300 line-clamp-2 break-words">
                         {draft.output_text || draft.refinement_text || draft.current_refinement || 'No content'}
-                      </p>
-                      <p className="text-xs text-neutral-500 mt-2">
-                        Created {new Date(draft.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   )
@@ -922,28 +986,48 @@ Would you like to refine another category, or are you satisfied with this refine
 
       {/* Current Vision & Refinement Display */}
       {selectedCategory && (
-            <div className="mb-8">
+        <div className="mb-8">
+          {/* Mobile Toggle Button */}
+          <div className="lg:hidden mb-4">
+            <Button
+              onClick={() => setShowCurrentVision(!showCurrentVision)}
+              variant="outline"
+              size="sm"
+              className="w-full flex items-center justify-center gap-2"
+            >
+              {showCurrentVision ? (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  Hide Current Vision
+                </>
+              ) : (
+                <>
+                  <ChevronRight className="w-4 h-4" />
+                  Show Current Vision
+                </>
+              )}
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                {(() => {
-                  const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
-                  return categoryInfo && <categoryInfo.icon className="w-8 h-8 text-primary-500" />
-                })()}
-                <div>
-                  <h3 className="text-lg font-semibold text-white">
-                    Current Vision - {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label}
-                  </h3>
-                  <p className="text-sm text-neutral-400">
-                    Your existing vision for this category
-                  </p>
-                </div>
-              </div>
-              <div className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
-                <div className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">
-                  {getCategoryValue(selectedCategory) || "No vision content available for this category."}
-                </div>
-                <div className="mt-3 flex justify-end">
+            {/* Current Vision Card - Hidden on mobile when toggled */}
+            <div className={`${showCurrentVision ? 'block' : 'hidden lg:block'}`}>
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
+                      return categoryInfo && <categoryInfo.icon className="w-8 h-8 text-primary-500" />
+                    })()}
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">
+                        Current Vision - {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label}
+                      </h3>
+                      <p className="text-sm text-neutral-400">
+                        Your existing vision for this category
+                      </p>
+                    </div>
+                  </div>
                   <Button
                     onClick={() => setCurrentRefinement(getCategoryValue(selectedCategory!))}
                     variant="outline"
@@ -954,8 +1038,13 @@ Would you like to refine another category, or are you satisfied with this refine
                     Copy to Refinement
                   </Button>
                 </div>
-              </div>
-            </Card>
+                <div className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
+                  <div className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">
+                    {getCategoryValue(selectedCategory) || "No vision content available for this category."}
+                  </div>
+                </div>
+              </Card>
+            </div>
 
             <Card className="p-6" data-refinement-section>
               <div className="flex items-center gap-3 mb-4">
@@ -969,11 +1058,12 @@ Would you like to refine another category, or are you satisfied with this refine
                   </p>
                 </div>
               </div>
-              <Textarea
+              <AutoResizeTextarea
                 value={currentRefinement}
-                onChange={(e) => setCurrentRefinement(e.target.value)}
+                onChange={setCurrentRefinement}
                 placeholder="Start refining your vision here, or let VIVA help you through conversation..."
-                className="min-h-[120px] bg-neutral-800/50 border-neutral-600"
+                className="bg-neutral-800/50 border-neutral-600"
+                minHeight={120}
               />
               
               {/* Draft Status & Actions */}

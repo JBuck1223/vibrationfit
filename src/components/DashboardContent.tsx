@@ -572,34 +572,31 @@ export default function DashboardContent({ user, profileData, visionData, vision
           </Card>
 
           {/* Storage Details */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#00FFFF]/20 rounded-xl flex items-center justify-center">
-                  <Settings className="w-6 h-6 text-[#00FFFF]" />
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#00FFFF]/20 rounded-lg flex items-center justify-center">
+                  <Settings className="w-5 h-5 text-[#00FFFF]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Storage</h3>
-                  <p className="text-sm text-neutral-400">0 GB Used</p>
+                  <h3 className="text-base font-bold text-white">Storage</h3>
+                  <p className="text-xs text-neutral-400">0 GB Used</p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/dashboard/storage">View Usage</Link>
-                </Button>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/dashboard/storage">Add Storage</Link>
+                  <Link href="/dashboard/storage">View</Link>
                 </Button>
               </div>
             </div>
-            <div className="bg-neutral-800/50 rounded-lg p-4">
+            <div className="bg-neutral-800/50 rounded-lg p-3">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-neutral-400">Storage Used</span>
-                <span className="text-sm text-neutral-400">0 GB / {profileData?.storage_quota_gb ?? 5} GB</span>
+                <span className="text-xs text-neutral-400">Storage Used</span>
+                <span className="text-xs text-neutral-400">0 GB / {profileData?.storage_quota_gb ?? 5} GB</span>
               </div>
-              <div className="w-full bg-neutral-700 rounded-full h-2">
+              <div className="w-full bg-neutral-700 rounded-full h-1.5">
                 <div 
-                  className="bg-[#00FFFF] h-2 rounded-full" 
+                  className="bg-[#00FFFF] h-1.5 rounded-full" 
                   style={{ width: '0%' }}
                 ></div>
               </div>

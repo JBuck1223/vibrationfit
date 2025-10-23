@@ -13,6 +13,7 @@ import {
   Spinner,
   Input,
   Textarea,
+  AutoResizeTextarea,
   Icon
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -44,12 +45,137 @@ interface VisionData {
 // Use centralized vision categories
 const VISION_SECTIONS = VISION_CATEGORIES
 
+// VisionCard component moved outside to prevent re-creation on every render
+const VisionCard = ({ 
+  category, 
+  content, 
+  isEditing, 
+  onSave, 
+  onCancel, 
+  onUpdate, 
+  saving,
+  onEditCategory,
+  vision
+}: { 
+  category: any, 
+  content: string, 
+  isEditing: boolean, 
+  onSave: () => void, 
+  onCancel: () => void, 
+  onUpdate: (content: string) => void, 
+  saving: boolean,
+  onEditCategory: (categoryKey: string) => void,
+  vision: any
+}) => {
+  const isCompleted = content?.trim().length > 0
+  
+  return (
+    <Card className="transition-all duration-300 hover:shadow-lg">
+      <div className="px-1 py-4 md:p-6">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCompleted ? 'bg-primary-500' : 'bg-neutral-700'}`}>
+            <Icon icon={category.icon} size="sm" color={isCompleted ? '#FFFFFF' : '#14B8A6'} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-white">{category.label}</h3>
+            <p className="text-sm text-neutral-400">{category.description}</p>
+          </div>
+        </div>
+
+        {/* Content or Edit Mode */}
+        {isEditing ? (
+          <div className="space-y-4">
+            <AutoResizeTextarea
+              value={content || ''}
+              onChange={onUpdate}
+              placeholder={`Describe your vision for ${category.label.toLowerCase()}...`}
+              className="w-full bg-neutral-800 border-neutral-700 text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none"
+              minHeight={200}
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                onClick={onCancel}
+                variant="outline"
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={onSave}
+                variant="primary"
+                disabled={saving}
+                className="flex items-center gap-2"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Content Display */}
+            <div className="mb-4">
+              {content?.trim() ? (
+                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg px-1 py-3 md:p-4">
+                  <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
+                    {content}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg px-2 py-4 md:p-8 text-center">
+                  <p className="text-neutral-500 mb-3">No content for this section yet</p>
+                  <Button
+                    onClick={() => onEditCategory(category.key)}
+                    variant="primary"
+                    size="sm"
+                    className="flex items-center gap-2 mx-auto"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Add Content
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            {content?.trim() && (
+              <div className="flex justify-end gap-2">
+                <Button
+                  onClick={() => onEditCategory(category.key)}
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Edit
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Link href={`/life-vision/${vision?.id}/refine?category=${category.key}`}>
+                    <Gem className="w-4 h-4" />
+                    Refine
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Card>
+  )
+}
+
 export default function VisionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const supabase = createClient()
   
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [vision, setVision] = useState<VisionData | null>(null)
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [completedSections, setCompletedSections] = useState<string[]>([])
@@ -63,16 +189,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
-
-  // Ref for textarea auto-resize
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-
-  // Auto-resize textarea function
-  const autoResizeTextarea = useCallback((textarea: HTMLTextAreaElement) => {
-    textarea.style.height = 'auto'
-    textarea.style.height = textarea.scrollHeight + 'px'
-  }, [])
 
   // Card-based view functions
   const handleCategoryToggle = (categoryKey: string) => {
@@ -182,30 +298,20 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         console.log('Loading vision with ID:', resolvedParams.id)
         console.log('User ID:', user.id)
         
-        // Load main vision data
-        const { data: vision, error } = await supabase
-          .from('vision_versions')
-          .select('*')
-          .eq('id', resolvedParams.id)
-          .eq('user_id', user.id)
-          .single()
-
-        if (error) {
-          console.error('Supabase query error:', error)
-          throw error
+        // Use API route instead of direct Supabase queries
+        const response = await fetch(`/api/vision?id=${resolvedParams.id}&includeVersions=true&t=${Date.now()}`)
+        
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to load vision')
         }
-
+        
+        const data = await response.json()
+        const { vision, versions } = data
+        
         if (!vision) {
-          console.error('No vision found with ID:', resolvedParams.id)
-          throw new Error(`Vision with ID ${resolvedParams.id} not found`)
+          throw new Error('Vision not found')
         }
-
-        // Load versions
-        const { data: versionsData } = await supabase
-          .from('vision_versions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('version_number', { ascending: false })
 
         const actualCompletion = calculateCompletion(vision)
         const completed = getCompletedSections(vision)
@@ -233,7 +339,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         setVision(vision)
         setCompletionPercentage(actualCompletion)
         setCompletedSections(completed)
-        setVersions(versionsData || [])
+        setVersions(versions || [])
         
         // Initialize with all categories selected
         setSelectedCategories(VISION_SECTIONS.map(cat => cat.key))
@@ -250,7 +356,13 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         if (error && typeof error === 'object' && 'code' in error) {
           console.error('Supabase error code:', error.code)
           console.error('Supabase error message:', (error as any).message)
+          console.error('Supabase error details:', (error as any).details)
+          console.error('Supabase error hint:', (error as any).hint)
         }
+        
+        // Set error state but don't crash the app
+        setError(error instanceof Error ? error.message : 'Failed to load vision')
+        setLoading(false)
         
         router.push('/life-vision')
       } finally {
@@ -339,142 +451,37 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       const completionPercentage = calculateCompletion(vision)
       const completed = getCompletedSections(vision)
 
-      // Only update the fields that should be updated
-      // Ensure all fields are strings and not null/undefined
-      const updateData = {
-        forward: vision.forward || '',
-        fun: vision.fun || '',
-        travel: vision.travel || '',
-        home: vision.home || '',
-        family: vision.family || '',
-        romance: vision.romance || '',
-        health: vision.health || '',
-        money: vision.money || '',
-        business: vision.business || '',
-        social: vision.social || '',
-        possessions: vision.possessions || '',
-        giving: vision.giving || '',
-        spirituality: vision.spirituality || '',
-        conclusion: vision.conclusion || '',
-        completion_percent: completionPercentage
-        // Note: updated_at is automatically handled by database trigger
-      }
-
-      // Check user authentication
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError || !user) {
-        console.error('Authentication error:', authError)
-        throw new Error('User not authenticated')
-      }
-
-      // Test basic Supabase connection
-      console.log('Testing Supabase connection...')
-      const { data: connectionTest, error: connectionError } = await supabase
-        .from('vision_versions')
-        .select('id, title, completion_percent')
-        .limit(1)
-
-      console.log('Connection test result:', { connectionTest, connectionError })
-
-      if (connectionError) {
-        console.error('Supabase connection failed:', connectionError)
-        console.error('Connection error type:', typeof connectionError)
-        console.error('Connection error keys:', connectionError && typeof connectionError === 'object' ? Object.keys(connectionError) : 'Not an object')
-        console.error('Connection error stringified:', JSON.stringify(connectionError))
-        throw new Error(`Database connection failed: ${connectionError.message || JSON.stringify(connectionError) || 'Unknown error'}`)
-      }
-
-      console.log('Attempting to save vision with data:', {
-        userId: user.id,
-        visionId: vision.id,
-        visionUserId: vision.user_id,
-        updateData,
-        completionPercentage
+      // Use API route for saving
+      const response = await fetch('/api/vision', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          visionId: vision.id,
+          vision: vision,
+          versionNumber: vision.version_number
+        })
       })
 
-      // Verify the vision belongs to the current user
-      if (vision.user_id !== user.id) {
-        console.error('Vision ownership mismatch:', {
-          visionUserId: vision.user_id,
-          currentUserId: user.id
-        })
-        throw new Error('You do not have permission to edit this vision')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save vision')
       }
 
-      // Verify the vision exists and has a valid ID
-      if (!vision.id) {
-        console.error('Vision ID is missing:', vision)
-        throw new Error('Invalid vision data - missing ID')
-      }
-
-      // Try a different approach - check if we can even read the record first
-      console.log('Testing if we can read the vision record...')
-      const { data: readData, error: readError } = await supabase
-        .from('vision_versions')
-        .select('id, title, completion_percent')
-        .eq('id', vision.id)
-        .eq('user_id', user.id)
-        .single()
-
-      console.log('Read test result:', { readData, readError })
-
-      if (readError) {
-        console.error('Cannot read vision record:', readError)
-        throw new Error(`Cannot access vision record: ${readError.message || 'Unknown error'}`)
-      }
-
-      // Try a simple update without the user_id filter (RLS should handle this)
-      console.log('Testing simple update with just completion_percent...')
-      const { data: testData, error: testError } = await supabase
-        .from('vision_versions')
-        .update({ completion_percent: completionPercentage })
-        .eq('id', vision.id)
-        .select()
-
-      console.log('Test update result:', { testData, testError })
-
-      if (testError) {
-        console.error('Simple update failed:', testError)
-        console.error('Error type:', typeof testError)
-        console.error('Error keys:', testError && typeof testError === 'object' ? Object.keys(testError) : 'Not an object')
-        console.error('Error stringified:', JSON.stringify(testError))
-        throw new Error(`Update failed: ${testError.message || JSON.stringify(testError) || 'Unknown error'}`)
-      }
-
-      // If simple update works, try the full update
-      console.log('Simple update successful, trying full update...')
-      const { data, error } = await supabase
-        .from('vision_versions')
-        .update(updateData)
-        .eq('id', vision.id)
-        .select()
+      const result = await response.json()
+      console.log('Vision saved successfully:', result)
       
-      console.log('Supabase response:', { data, error })
-      
-      if (error) {
-        console.error('Supabase error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
-        throw error
-      }
-      
-      console.log('Vision saved successfully:', data)
       setCompletionPercentage(completionPercentage)
       setCompletedSections(completed)
       setLastSaved(new Date())
     } catch (error) {
       console.error('Error saving vision:', error)
-      console.error('Error type:', typeof error)
-      console.error('Error keys:', error && typeof error === 'object' ? Object.keys(error) : 'Not an object')
-      console.error('Error stringified:', JSON.stringify(error))
       alert(`Failed to save vision: ${error instanceof Error ? error.message : JSON.stringify(error)}`)
     } finally {
       setSaving(false)
     }
-  }, [vision, supabase, calculateCompletion, getCompletedSections])
+  }, [vision, calculateCompletion, getCompletedSections])
 
   // Save as version
   const saveAsVersion = useCallback(async (isDraft = true) => {
@@ -791,24 +798,36 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   }, [vision, completionPercentage])
 
   // Auto-resize textarea when content or section changes
-  useEffect(() => {
-    if (textareaRef.current && isEditing) {
-      // Small delay to ensure DOM is updated
-      setTimeout(() => {
-        if (textareaRef.current) {
-          autoResizeTextarea(textareaRef.current)
-        }
-      }, 50)
-    }
-  }, [vision, isEditing, autoResizeTextarea])
-
-
   if (loading) {
     return (
       <>
         <div className="flex items-center justify-center py-16">
           <Spinner variant="primary" size="lg" />
         </div>
+      </>
+    )
+  }
+
+  if (error) {
+    return (
+      <>
+        <Card className="text-center py-16">
+          <div className="text-red-400 mb-4">
+            <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-4">Error Loading Vision</h2>
+          <p className="text-neutral-400 mb-6">{error}</p>
+          <div className="flex gap-4 justify-center">
+            <Button onClick={() => window.location.reload()} variant="primary">
+              Try Again
+            </Button>
+            <Button onClick={() => router.push('/life-vision')} variant="outline">
+              Back to Life Vision
+            </Button>
+          </div>
+        </Card>
       </>
     )
   }
@@ -852,150 +871,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     )
   }
 
-  const VisionCard = ({ 
-    category, 
-    content, 
-    isEditing, 
-    onSave, 
-    onCancel, 
-    onUpdate, 
-    saving 
-  }: { 
-    category: any, 
-    content: string, 
-    isEditing: boolean, 
-    onSave: () => void, 
-    onCancel: () => void, 
-    onUpdate: (content: string) => void, 
-    saving: boolean 
-  }) => {
-    const textareaRef = useRef<HTMLTextAreaElement>(null)
-    const isCompleted = content?.trim().length > 0
-    
-    const autoResizeTextarea = useCallback(() => {
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'
-        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
-      }
-    }, [])
-
-    useEffect(() => {
-      if (isEditing) {
-        autoResizeTextarea()
-      }
-    }, [isEditing, autoResizeTextarea])
-
-    useEffect(() => {
-      if (isEditing && content) {
-        autoResizeTextarea()
-      }
-    }, [content, isEditing, autoResizeTextarea])
-
-    return (
-      <Card className="transition-all duration-300 hover:shadow-lg">
-        <div className="px-1 py-4 md:p-6">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCompleted ? 'bg-primary-500' : 'bg-neutral-700'}`}>
-              <Icon icon={category.icon} size="sm" color={isCompleted ? '#FFFFFF' : '#14B8A6'} />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-white">{category.label}</h3>
-              <p className="text-sm text-neutral-400">{category.description}</p>
-            </div>
-          </div>
-
-          {/* Content or Edit Mode */}
-          {isEditing ? (
-            <div className="space-y-4">
-              <textarea
-                ref={textareaRef}
-                value={content || ''}
-                onChange={(e) => {
-                  onUpdate(e.target.value)
-                  if (textareaRef.current) {
-                    autoResizeTextarea()
-                  }
-                }}
-                placeholder={`Describe your vision for ${category.label.toLowerCase()}...`}
-                className="w-full min-h-[200px] px-1 py-3 md:p-4 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none resize-none"
-                style={{ overflow: 'hidden' }}
-              />
-              <div className="flex justify-end gap-3">
-                <Button
-                  onClick={onCancel}
-                  variant="outline"
-                  disabled={saving}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={onSave}
-                  variant="primary"
-                  disabled={saving}
-                  className="flex items-center gap-2"
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Content Display */}
-              <div className="mb-4">
-                {content?.trim() ? (
-                  <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg px-1 py-3 md:p-4">
-                    <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
-                      {content}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg px-2 py-4 md:p-8 text-center">
-                    <p className="text-neutral-500 mb-3">No content for this section yet</p>
-                    <Button
-                      onClick={() => handleEditCategory(category.key)}
-                      variant="primary"
-                      size="sm"
-                      className="flex items-center gap-2 mx-auto"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      Add Content
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              {content?.trim() && (
-                <div className="flex justify-end gap-2">
-                  <Button
-                    onClick={() => handleEditCategory(category.key)}
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Edit
-                  </Button>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Link href={`/life-vision/${vision?.id}/refine?category=${category.key}`}>
-                      <Gem className="w-4 h-4" />
-                      Refine
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </Card>
-    )
-  }
 
   return (
     <>
@@ -1244,8 +1119,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   const category = VISION_SECTIONS.find(cat => cat.key === categoryKey)
                   if (!category) return null
                   
-                  const content = vision?.[categoryKey as keyof VisionData] as string || ''
+                  const originalContent = vision?.[categoryKey as keyof VisionData] as string || ''
                   const isEditing = editingCategory === categoryKey
+                  const content = isEditing ? editingContent : originalContent
                   
                   return (
                     <VisionCard
@@ -1257,6 +1133,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       onCancel={handleCancelEdit}
                       onUpdate={handleUpdateContent}
                       saving={saving}
+                      onEditCategory={handleEditCategory}
+                      vision={vision}
                     />
                   )
                 })}
