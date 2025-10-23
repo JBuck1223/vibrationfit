@@ -312,22 +312,6 @@ export function AIImageGenerator({
               )}
             </Button>
           </div>
-
-          <div className="mt-4 p-3 bg-neutral-900 rounded-lg border border-neutral-800">
-            <p className="text-xs text-neutral-400">
-              <strong>💡 Style Guide:</strong> 
-              <br />• <strong>Photorealistic</strong> - For travel destinations, real places, specific objects
-              <br />• <strong>Cosmic Realism</strong> - For spiritual goals, transformation, energy work
-              <br />• <strong>Cinematic</strong> - For emotional scenes, lifestyle goals, relationships
-              <br />• <strong>Clean Icons</strong> - For simple concepts, icons, and clean designs
-              <br />• <strong>Minimalist</strong> - For ultra-clean, focused designs with maximum impact
-              <br />• <strong>Vibrant</strong> - For bold, energetic goals with high contrast
-              <br />• <strong>Symbolic Collage</strong> - For multi-element goals, career, wealth
-              {type === 'vision_board' 
-                ? ' Images will be landscape-oriented (1600x1200, 4:3).'
-                : ' Images will be square (1024x1024).'}
-            </p>
-          </div>
         </>
       ) : (
         <div className="space-y-4">
