@@ -807,6 +807,7 @@ Would you like to refine another category, or are you satisfied with this refine
         {/* Message Input */}
         <div className="flex gap-3">
           <Textarea
+            key="viva-input"
             value={currentMessage}
             onChange={(e) => setCurrentMessage(e.target.value)}
             placeholder="Type your response..."
