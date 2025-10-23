@@ -142,6 +142,7 @@ export default function VisionBoardPage() {
   const totalItems = items?.length || 0
   const actualizedItems = items?.filter(item => item.status === 'actualized').length || 0
   const activeItems = items?.filter(item => item.status === 'active').length || 0
+  const inactiveItems = items?.filter(item => item.status === 'inactive').length || 0
 
   const openLightbox = (index: number) => {
     setLightboxIndex(index)
@@ -252,29 +253,31 @@ export default function VisionBoardPage() {
     <>
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">🎯 Vision Board</h1>
-              <p className="text-secondary-500">Visualize and track your conscious creations</p>
-            </div>
-            <div className="flex gap-3">
-              <Button asChild>
-                <Link href="/vision-board/new">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Add Creation
-                </Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link href="/vision-board/gallery">
-                  <Eye className="w-5 h-5 mr-2" />
-                  Gallery
-                </Link>
-              </Button>
-            </div>
+          {/* Centered Title and Subtext */}
+          <div className="text-center mb-6">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">🎯 Vision Board</h1>
+            <p className="text-secondary-500">Visualize and track your conscious creations</p>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* Full-width Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <Button asChild className="flex-1">
+              <Link href="/vision-board/new">
+                <Plus className="w-5 h-5 mr-2" />
+                Add Creation
+              </Link>
+            </Button>
+            <Button asChild variant="secondary" className="flex-1">
+              <Link href="/vision-board/gallery">
+                <Eye className="w-5 h-5 mr-2" />
+                Gallery
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+          {/* Stats - Responsive 2x2 Grid */}
+          <div className="grid grid-cols-2 gap-4 mb-8">
             <Card>
               <h3 className="text-neutral-400 text-sm mb-2">Total Creations</h3>
               <p className="text-2xl md:text-3xl font-bold text-primary-500">{totalItems}</p>
@@ -291,13 +294,10 @@ export default function VisionBoardPage() {
             </Card>
             
             <Card>
-              <h3 className="text-neutral-400 text-sm mb-2">Success Rate</h3>
-              <p className="text-2xl md:text-3xl font-bold text-secondary-500">
-                {totalItems > 0 ? Math.round((actualizedItems / totalItems) * 100) : 0}%
-              </p>
+              <h3 className="text-neutral-400 text-sm mb-2">Inactive</h3>
+              <p className="text-2xl md:text-3xl font-bold text-neutral-500">{inactiveItems}</p>
             </Card>
           </div>
-        </div>
 
         {/* Filters */}
         <div className="mb-8 space-y-6">

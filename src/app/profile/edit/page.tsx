@@ -506,17 +506,48 @@ export default function ProfilePage() {
       <div className="space-y-6">
         {sectionContent}
         
-        {/* Section Save Button Container */}
-        <div className="bg-neutral-800/30 border border-neutral-700 rounded-lg p-6">
-          <div className="flex justify-center">
+        {/* Save Button */}
+        <div className="flex justify-center">
+          <Button
+            onClick={handleManualSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
+        
+        {/* Navigation Buttons */}
+        <div className="flex items-center justify-between mt-6">
+          <div className="flex-1 flex justify-start">
             <Button
-              onClick={handleManualSave}
-              variant="primary"
-              disabled={isSaving}
-              className="flex items-center gap-2"
+              onClick={goToPreviousSection}
+              disabled={isFirstSection()}
+              variant="outline"
+              className="flex items-center gap-2 w-24"
             >
-              <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
+          </div>
+          
+          <div className="flex items-center gap-2 text-sm text-neutral-400">
+            <span>{getCurrentSectionIndex() + 1} of {profileSections.length}</span>
+            <span>•</span>
+            <span>{profileSections.find(s => s.id === activeSection)?.title}</span>
+          </div>
+          
+          <div className="flex-1 flex justify-end">
+            <Button
+              onClick={goToNextSection}
+              disabled={isLastSection()}
+              variant="outline"
+              className="flex items-center gap-2 w-24"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
