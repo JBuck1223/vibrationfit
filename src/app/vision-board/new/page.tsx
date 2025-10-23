@@ -228,7 +228,7 @@ export default function NewVisionBoardItemPage() {
               <Input
                 label="Creation Name"
                 type="text"
-                placeholder="What do you want to create or manifest?"
+                placeholder="What do you want to create?"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
@@ -250,7 +250,7 @@ export default function NewVisionBoardItemPage() {
                 </label>
                 
                 {/* Toggle Buttons */}
-                <div className="flex gap-2 mb-4">
+                <div className="flex flex-col sm:flex-row gap-2 mb-4">
                   <Button
                     type="button"
                     variant={imageSource === 'upload' ? 'primary' : 'outline'}
@@ -265,7 +265,7 @@ export default function NewVisionBoardItemPage() {
                         setAiGeneratedImageUrl(null)
                       }
                     }}
-                    className="flex-1"
+                    className="w-full sm:flex-1"
                   >
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Image
@@ -278,7 +278,7 @@ export default function NewVisionBoardItemPage() {
                       setImageSource('ai')
                       setFile(null)
                     }}
-                    className="flex-1"
+                    className="w-full sm:flex-1"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     Generate with VIVA
@@ -333,14 +333,14 @@ export default function NewVisionBoardItemPage() {
 
                 {imageSource === 'upload' && file && (
                   <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                       <img
                         src={URL.createObjectURL(file)}
                         alt="Preview"
-                        className="w-20 h-20 object-cover rounded-lg"
+                        className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
                       />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-white">{file.name}</p>
+                      <div className="flex-1 text-center sm:text-left">
+                        <p className="text-sm font-medium text-white break-words">{file.name}</p>
                         <p className="text-xs text-neutral-400">
                           {(file.size / 1024 / 1024).toFixed(2)} MB
                         </p>
@@ -350,6 +350,7 @@ export default function NewVisionBoardItemPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setFile(null)}
+                        className="w-full sm:w-auto"
                       >
                         Remove
                       </Button>
@@ -378,12 +379,12 @@ export default function NewVisionBoardItemPage() {
                   Select the status for your vision item
                 </p>
                 {/* Status Buttons - Single Line, Equal Width */}
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   {STATUS_OPTIONS.map((status) => (
                     <button
                       key={status.value}
                       onClick={() => setFormData({ ...formData, status: status.value })}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 w-full sm:flex-1 ${
                         formData.status === status.value
                           ? status.value === 'active' 
                             ? 'bg-green-600 text-white shadow-lg'
