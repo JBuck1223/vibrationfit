@@ -21,6 +21,85 @@ interface VivaChatProps {
   onSaveVision?: (content: string) => Promise<void>
 }
 
+// Individual message component with streaming support
+function Message({ message, onQuickAction }: { message: Message; onQuickAction: (action: string, content?: string) => void }) {
+  const isUser = message.role === 'user'
+  
+  return (
+    <div
+      className={cn(
+        'flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300',
+        isUser ? 'justify-end' : 'justify-start'
+      )}
+    >
+      {!isUser && (
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center flex-shrink-0">
+          <Sparkles className="w-4 h-4 text-white" />
+        </div>
+      )}
+      
+      <div
+        className={cn(
+          'max-w-[80%] rounded-2xl px-4 py-3',
+          isUser
+            ? 'bg-primary-500 text-white'
+            : 'bg-neutral-900 border border-neutral-800 text-white'
+        )}
+      >
+        {/* Message content with streaming effect */}
+        <div className="prose prose-invert prose-sm max-w-none">
+          {message.content}
+        </div>
+
+        {/* Inline action buttons (appear after message completes) */}
+        {!isUser && message.content.length > 50 && (
+          <div className="flex gap-2 mt-3 pt-3 border-t border-neutral-800">
+            <button
+              onClick={() => onQuickAction('Save', message.content)}
+              className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
+            >
+              Save This
+            </button>
+            <button
+              onClick={() => onQuickAction('Refine')}
+              className="text-xs text-secondary-400 hover:text-secondary-300 transition-colors"
+            >
+              Make It Better
+            </button>
+          </div>
+        )}
+      </div>
+
+      {isUser && (
+        <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center flex-shrink-0 text-xs font-semibold">
+          You
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Welcome message for first interaction
+function WelcomeMessage({ phase }: { phase: string }) {
+  const phaseMessages = {
+    contrast: "Let's explore what you're ready to move beyond. What's no longer serving you?",
+    peak: "Tell me about a time you felt absolutely AMAZING. What was happening?",
+    specific: "Let's get crystal clear on what you desire. Make it real enough to taste."
+  }
+
+  return (
+    <div className="text-center py-12 space-y-4">
+      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center mx-auto">
+        <Sparkles className="w-8 h-8 text-white" />
+      </div>
+      <h3 className="text-2xl font-semibold text-white">Hey there! I'm VIVA ✨</h3>
+      <p className="text-neutral-400 max-w-md mx-auto">
+        {phaseMessages[phase as keyof typeof phaseMessages]}
+      </p>
+    </div>
+  )
+}
+
 export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVision }: VivaChatProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -276,85 +355,6 @@ export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVisi
           </Button>
         </div>
       </form>
-    </div>
-  )
-}
-
-// Individual message component with streaming support
-function Message({ message, onQuickAction }: { message: Message; onQuickAction: (action: string, content?: string) => void }) {
-  const isUser = message.role === 'user'
-  
-  return (
-    <div
-      className={cn(
-        'flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300',
-        isUser ? 'justify-end' : 'justify-start'
-      )}
-    >
-      {!isUser && (
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center flex-shrink-0">
-          <Sparkles className="w-4 h-4 text-white" />
-        </div>
-      )}
-      
-      <div
-        className={cn(
-          'max-w-[80%] rounded-2xl px-4 py-3',
-          isUser
-            ? 'bg-primary-500 text-white'
-            : 'bg-neutral-900 border border-neutral-800 text-white'
-        )}
-      >
-        {/* Message content with streaming effect */}
-        <div className="prose prose-invert prose-sm max-w-none">
-          {message.content}
-        </div>
-
-        {/* Inline action buttons (appear after message completes) */}
-        {!isUser && message.content.length > 50 && (
-          <div className="flex gap-2 mt-3 pt-3 border-t border-neutral-800">
-            <button
-              onClick={() => onQuickAction('Save', message.content)}
-              className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
-            >
-              Save This
-            </button>
-            <button
-              onClick={() => onQuickAction('Refine')}
-              className="text-xs text-secondary-400 hover:text-secondary-300 transition-colors"
-            >
-              Make It Better
-            </button>
-          </div>
-        )}
-      </div>
-
-      {isUser && (
-        <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center flex-shrink-0 text-xs font-semibold">
-          You
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Welcome message for first interaction
-function WelcomeMessage({ phase }: { phase: string }) {
-  const phaseMessages = {
-    contrast: "Let's explore what you're ready to move beyond. What's no longer serving you?",
-    peak: "Tell me about a time you felt absolutely AMAZING. What was happening?",
-    specific: "Let's get crystal clear on what you desire. Make it real enough to taste."
-  }
-
-  return (
-    <div className="text-center py-12 space-y-4">
-      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center mx-auto">
-        <Sparkles className="w-8 h-8 text-white" />
-      </div>
-      <h3 className="text-2xl font-semibold text-white">Hey there! I'm VIVA ✨</h3>
-      <p className="text-neutral-400 max-w-md mx-auto">
-        {phaseMessages[phase as keyof typeof phaseMessages]}
-      </p>
     </div>
   )
 }

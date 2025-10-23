@@ -371,9 +371,62 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       if (validCategory) {
         setSelectedCategory(categoryParam)
         console.log('Category selected from URL:', categoryParam)
+        
+        // Load any existing draft for this category
+        if (user && visionId) {
+          // Call loadDraftForCategory directly to avoid dependency issues
+          const loadDraft = async () => {
+            try {
+              console.log('Loading draft for category:', categoryParam, 'user:', user.id, 'vision:', visionId)
+              
+              const { data, error } = await supabase
+                .from('refinements')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('vision_id', visionId)
+                .eq('category', categoryParam)
+                .eq('operation_type', 'refine_vision')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single()
+
+              if (error) {
+                if (error.code === 'PGRST116') {
+                  console.log('No draft found for category:', categoryParam)
+                  // Reset to original vision content if no draft
+                  const categoryValue = getCategoryValue(categoryParam)
+                  setCurrentRefinement(categoryValue)
+                  return
+                }
+                console.error('Supabase error loading draft for category:', error)
+                // Reset to original vision content on error
+                const categoryValue = getCategoryValue(categoryParam)
+                setCurrentRefinement(categoryValue)
+                return
+              }
+
+              console.log('Loaded draft for category:', categoryParam, data)
+              if (data && data.output_text) {
+                setCurrentRefinement(data.output_text)
+                console.log('Auto-populated draft from URL for category:', categoryParam, data.output_text)
+              } else {
+                // Reset to original vision content if no draft text
+                const categoryValue = getCategoryValue(categoryParam)
+                setCurrentRefinement(categoryValue)
+              }
+            } catch (error) {
+              console.error('Error loading draft for category:', error)
+              // Reset to original vision content on error
+              const categoryValue = getCategoryValue(categoryParam)
+              setCurrentRefinement(categoryValue)
+            }
+          }
+          
+          loadDraft()
+        }
       }
     }
-  }, [searchParams])
+  }, [searchParams, user, visionId])
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -867,7 +920,60 @@ Would you like to refine another category, or are you satisfied with this refine
                       key={category.key}
               category={category} 
               selected={selectedCategory === category.key} 
-                      onClick={() => setSelectedCategory(category.key)}
+                      onClick={async () => {
+                        setSelectedCategory(category.key)
+                        // Load any existing draft for this category
+                        if (user && visionId) {
+                          try {
+                            console.log('Loading draft for category:', category.key, 'user:', user.id, 'vision:', visionId)
+                            
+                            const { data, error } = await supabase
+                              .from('refinements')
+                              .select('*')
+                              .eq('user_id', user.id)
+                              .eq('vision_id', visionId)
+                              .eq('category', category.key)
+                              .eq('operation_type', 'refine_vision')
+                              .order('created_at', { ascending: false })
+                              .limit(1)
+                              .single()
+
+                            if (error) {
+                              if (error.code === 'PGRST116') {
+                                console.log('No draft found for category:', category.key)
+                                // Reset to original vision content if no draft
+                                const categoryValue = getCategoryValue(category.key)
+                                setCurrentRefinement(categoryValue)
+                                return
+                              }
+                              console.error('Supabase error loading draft for category:', error)
+                              // Reset to original vision content on error
+                              const categoryValue = getCategoryValue(category.key)
+                              setCurrentRefinement(categoryValue)
+                              return
+                            }
+
+                            console.log('Loaded draft for category:', category.key, data)
+                            if (data && data.output_text) {
+                              setCurrentRefinement(data.output_text)
+                              console.log('Auto-populated draft for category:', category.key, data.output_text)
+                            } else {
+                              // Reset to original vision content if no draft text
+                              const categoryValue = getCategoryValue(category.key)
+                              setCurrentRefinement(categoryValue)
+                            }
+                          } catch (error) {
+                            console.error('Error loading draft for category:', error)
+                            // Reset to original vision content on error
+                            const categoryValue = getCategoryValue(category.key)
+                            setCurrentRefinement(categoryValue)
+                          }
+                        } else {
+                          // Reset to original vision content if no user/visionId
+                          const categoryValue = getCategoryValue(category.key)
+                          setCurrentRefinement(categoryValue)
+                        }
+                      }}
             />
           ))}
         </div>
