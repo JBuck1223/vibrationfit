@@ -39,14 +39,30 @@ export function useStorageData(): UseStorageDataReturn {
       const response = await fetch('/api/storage/usage')
       
       if (!response.ok) {
-        throw new Error('Failed to fetch storage data')
+        // Don't throw error, just set error state and return empty data
+        console.warn('Storage API not available:', response.status, response.statusText)
+        setData({
+          totalFiles: 0,
+          totalSize: 0,
+          storageByType: {},
+          recentFiles: []
+        })
+        setError('Storage service unavailable')
+        return
       }
 
       const storageData = await response.json()
       setData(storageData)
     } catch (err) {
-      console.error('Error fetching storage data:', err)
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      console.warn('Error fetching storage data:', err)
+      // Set empty data instead of throwing error
+      setData({
+        totalFiles: 0,
+        totalSize: 0,
+        storageByType: {},
+        recentFiles: []
+      })
+      setError('Storage service unavailable')
     } finally {
       setLoading(false)
     }
