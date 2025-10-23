@@ -277,7 +277,7 @@ export default function VisionBoardPage() {
         </div>
 
           {/* Stats - 4 Across Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-4 gap-4 mb-8">
             <Card>
               <h3 className="text-neutral-400 text-sm mb-2">Total</h3>
               <p className="text-2xl md:text-3xl font-bold text-primary-500">{totalItems}</p>
