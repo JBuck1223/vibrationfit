@@ -5,6 +5,8 @@ const CDN_URL = 'https://media.vibrationfit.com'
 
 export const USER_FOLDERS = {
   visionBoard: 'vision-board',
+  visionBoardGenerated: 'vision-board/generated',
+  visionBoardUploaded: 'vision-board/uploaded',
   journal: 'journal',
   lifeVision: 'life-vision',
   alignmentPlan: 'alignment-plan',
@@ -127,6 +129,14 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
   const rules = {
     visionBoard: {
       maxSize: 50 * 1024 * 1024, // 50MB for images
+      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'],
+    },
+    visionBoardGenerated: {
+      maxSize: 20 * 1024 * 1024, // 20MB for generated images
+      types: ['image/jpeg', 'image/png', 'image/webp'],
+    },
+    visionBoardUploaded: {
+      maxSize: 50 * 1024 * 1024, // 50MB for uploaded images
       types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'],
     },
     journal: {

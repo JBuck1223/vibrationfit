@@ -52,7 +52,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [vision, setVision] = useState<VisionData | null>(null)
-  const [activeSection, setActiveSection] = useState('forward')
+  const [activeSection, setActiveSection] = useState('fun')
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [completedSections, setCompletedSections] = useState<string[]>([])
   const [versions, setVersions] = useState<any[]>([])
@@ -63,10 +63,11 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [isViewingVersion, setIsViewingVersion] = useState(false)
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<'sidebar' | 'cards'>('sidebar')
+  const [viewMode, setViewMode] = useState<'sidebar' | 'cards'>('cards')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
+  const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false)
 
   // Ref for textarea auto-resize
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -268,6 +269,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         setCompletionPercentage(actualCompletion)
         setCompletedSections(completed)
         setVersions(versionsData || [])
+        
+        // Initialize with all categories selected
+        setSelectedCategories(VISION_SECTIONS.map(cat => cat.key))
       } catch (error) {
         console.error('Error loading vision:', error)
         console.error('Error details:', {
@@ -926,7 +930,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       <Card 
         variant="outlined" 
         hover 
-        className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500 md:ring-2 md:ring-primary-500' : ''} ${className}`}
+        className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500' : ''} ${className}`}
         onClick={onClick}
       >
         <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
@@ -1052,9 +1056,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 )}
               </div>
 
-              {/* Edit Button */}
+              {/* Action Buttons */}
               {content?.trim() && (
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
                   <Button
                     onClick={() => handleEditCategory(category.key)}
                     variant="ghost"
@@ -1063,6 +1067,17 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   >
                     <Edit3 className="w-4 h-4" />
                     Edit
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Link href={`/life-vision/${vision?.id}/refine?category=${category.key}`}>
+                      <Gem className="w-4 h-4" />
+                      Refine
+                    </Link>
                   </Button>
                 </div>
               )}
@@ -1080,7 +1095,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           {/* Title Section */}
           <div className="text-center mb-6">
             <h1 className="text-4xl font-bold text-white">
-              {isEditing ? 'Edit Life Vision' : 'The Life I Choose'}
+              The Life I Choose
             </h1>
           </div>
           
@@ -1130,16 +1145,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* Action Buttons - Responsive Grid 2x2 on mobile */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 justify-center mb-6">
-            <Button
-              onClick={() => setIsEditing(!isEditing)}
-              disabled={saving}
-              variant="primary"
-              className="flex items-center gap-2"
-            >
-              <Icon icon={Edit3} size="sm" />
-              {isEditing ? 'View' : 'Edit'}
-            </Button>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 justify-center mb-6">
             <Button
               onClick={() => router.push(`/life-vision/${vision.id}/audio`)}
               variant="secondary"
@@ -1283,134 +1289,72 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           )}
         </div>
 
-        {/* Mobile Dropdown Navigation */}
-        <div ref={mobileDropdownRef} className="lg:hidden mb-6">
-          <Card className="p-4">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full flex items-center justify-between p-3 rounded-lg bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-colors"
+
+        {/* Compact View Mode Toggle */}
+        <div className="mb-4">
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              onClick={() => setViewMode('cards')}
+              variant={viewMode === 'cards' ? 'primary' : 'outline'}
+              size="sm"
+              className="flex items-center gap-2"
             >
-              <div className="flex items-center gap-3">
-                {(() => {
-                  const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
-                  if (!currentSection) return null
-                  const IconComponent = currentSection.icon
-                  return <IconComponent className="w-5 h-5 text-primary-400" />
-                })()}
-                <span className="font-medium text-white">
-                  {VISION_SECTIONS.find(s => s.key === activeSection)?.label || 'Select Section'}
-                </span>
-              </div>
-              <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {isDropdownOpen && (
-              <div className="mt-3 space-y-1">
-                {VISION_SECTIONS.map((section) => {
-                  const Icon = section.icon
-                  const isActive = activeSection === section.key
-                  const isCompleted = completedSections.includes(section.key)
-
-                  return (
-                    <button
-                      key={section.key}
-                      onClick={() => {
-                        setActiveSection(section.key)
-                        setIsDropdownOpen(false)
-                        setTimeout(() => scrollToMainContent(), 50)
-                      }}
-                      className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
-                        isActive
-                          ? 'bg-primary-500/20 border border-primary-500/50 text-primary-400'
-                          : 'hover:bg-neutral-800 border border-transparent text-neutral-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <Icon className={`w-5 h-5 ${isActive ? 'text-primary-400' : 'text-neutral-500'}`} />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm truncate">
-                              {section.label}
-                            </span>
-                            {isCompleted && (
-                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-xs text-neutral-500 mt-1 truncate">
-                            {section.description}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className="mb-6">
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">View Mode</h3>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setViewMode('sidebar')}
-                  variant={viewMode === 'sidebar' ? 'primary' : 'outline'}
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  Sidebar
-                </Button>
-                <Button
-                  onClick={() => setViewMode('cards')}
-                  variant={viewMode === 'cards' ? 'primary' : 'outline'}
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Layers className="w-4 h-4" />
-                  Cards
-                </Button>
-              </div>
-            </div>
-          </Card>
+              <Layers className="w-4 h-4" />
+              Cards
+            </Button>
+            <Button
+              onClick={() => setViewMode('sidebar')}
+              variant={viewMode === 'sidebar' ? 'primary' : 'outline'}
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              Sidebar
+            </Button>
+          </div>
         </div>
 
         {/* Card-based View */}
         {viewMode === 'cards' ? (
           <div className="space-y-6">
-            {/* Category Selection */}
-            <Card className="p-4 md:p-6">
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-white mb-2">Select Life Areas</h3>
-                <p className="text-sm text-neutral-400">Choose which life vision categories to display and edit</p>
-              </div>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                <CategoryCard
-                  category={{ key: 'all', label: 'Select All', icon: Check }}
-                  selected={selectedCategories.length === VISION_SECTIONS.length}
-                  onClick={handleSelectAll}
-                />
-                {VISION_SECTIONS.map((category) => (
-                  <CategoryCard
-                    key={category.key}
-                    category={category}
-                    selected={selectedCategories.includes(category.key)}
-                    onClick={() => handleCategoryToggle(category.key)}
-                  />
-                ))}
-              </div>
-            </Card>
+            {/* Compact Category Selection */}
+            <div className="mb-4">
+              <Card className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Select Life Areas</h3>
+                    <p className="text-sm text-neutral-400">
+                      Showing {selectedCategories.length} of {VISION_SECTIONS.length} areas
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleSelectAll}
+                    variant={selectedCategories.length === VISION_SECTIONS.length ? "primary" : "outline"}
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    {selectedCategories.length === VISION_SECTIONS.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                </div>
+
+                {/* Category Grid */}
+                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+                  {VISION_SECTIONS.map((category) => (
+                    <CategoryCard 
+                      key={category.key} 
+                      category={category} 
+                      selected={selectedCategories.includes(category.key)} 
+                      onClick={() => handleCategoryToggle(category.key)}
+                    />
+                  ))}
+                </div>
+              </Card>
+            </div>
 
             {/* Vision Cards */}
             {selectedCategories.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 {selectedCategories.map((categoryKey) => {
                   const category = VISION_SECTIONS.find(cat => cat.key === categoryKey)
                   if (!category) return null
@@ -1455,108 +1399,225 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               />
             </div>
 
-            {/* Main Content Area - Full width on mobile */}
-            <div className="col-span-1 lg:col-span-3">
-            <Card className="p-4 md:p-8">
-              {isEditing ? (
-                <div className="space-y-6">
-                  {/* Section Content */}
-                  {renderSection()}
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Current Section View */}
-                  {(() => {
-                    const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
-                    if (!currentSection) return null
+            {/* Mobile Dropdown Navigation */}
+            <div className="lg:hidden mb-4">
+              <Card className="p-4">
+                <button
+                  onClick={() => setIsMobileDropdownOpen(!isMobileDropdownOpen)}
+                  className="w-full flex items-center justify-between p-3 rounded-lg bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
+                      if (!currentSection) return null
+                      const IconComponent = currentSection.icon
+                      return <IconComponent className="w-5 h-5 text-primary-400" />
+                    })()}
+                    <span className="font-medium text-white">
+                      {VISION_SECTIONS.find(s => s.key === activeSection)?.label || 'Select Section'}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isMobileDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isMobileDropdownOpen && (
+                  <div className="mt-3 space-y-1">
+                    {VISION_SECTIONS.map((section) => {
+                      const Icon = section.icon
+                      const isActive = activeSection === section.key
+                      const isCompleted = completedSections.includes(section.key)
 
-                    const IconComponent = currentSection.icon
-                    const value = vision[currentSection.key as keyof VisionData] as string
-
-                    return (
-                      <div>
-                        {/* Section Header */}
-                        <div className="mb-4 md:mb-6">
-                          <div className="flex items-center gap-3 mb-2">
-                            <IconComponent className="w-6 h-6 md:w-8 md:h-8 text-primary-500" />
-                            <h2 className="text-2xl md:text-3xl font-bold text-white">{currentSection.label}</h2>
-                          </div>
-                          <p className="text-neutral-400 text-xs md:text-sm">
-                            {currentSection.description}
-                          </p>
-                        </div>
-
-                        {/* Section Content */}
-                        {value?.trim() ? (
-                          <div className="prose prose-invert max-w-none">
-                            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-3 md:p-6">
-                              <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
-                                {value}
-                              </p>
+                      return (
+                        <button
+                          key={section.key}
+                          onClick={() => {
+                            setActiveSection(section.key)
+                            setIsMobileDropdownOpen(false)
+                            setTimeout(() => scrollToMainContent(), 50)
+                          }}
+                          className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
+                            isActive 
+                              ? 'bg-primary-500/20 border border-primary-500' 
+                              : 'hover:bg-neutral-700'
+                          }`}
+                        >
+                          <Icon className={`w-4 h-4 ${isActive ? 'text-primary-400' : 'text-neutral-400'}`} />
+                          <span className={`font-medium ${isActive ? 'text-white' : 'text-neutral-300'}`}>
+                            {section.label}
+                          </span>
+                          {isCompleted && (
+                            <div className="ml-auto">
+                              <div className="w-2 h-2 bg-primary-500 rounded-full" />
                             </div>
-                          </div>
-                        ) : (
-                          <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg p-12 text-center">
-                            <p className="text-neutral-500 mb-4">
-                              No content for this section yet
-                            </p>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </Card>
+            </div>
+
+          {/* Main Content Area - Full width on mobile */}
+          <div className="col-span-1 lg:col-span-3">
+            <Card className="p-4 md:p-8">
+              <div className="space-y-6">
+                {/* Current Section View */}
+                {(() => {
+                  const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
+                  if (!currentSection) return null
+
+                  const IconComponent = currentSection.icon
+                  const value = vision[currentSection.key as keyof VisionData] as string
+                  const isEditing = editingCategory === activeSection
+
+                  return (
+                    <div>
+                      {/* Section Header */}
+                      <div className="mb-4 md:mb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                          <IconComponent className="w-6 h-6 md:w-8 md:h-8 text-primary-500" />
+                          <h2 className="text-2xl md:text-3xl font-bold text-white">{currentSection.label}</h2>
+                        </div>
+                        <p className="text-neutral-400 text-xs md:text-sm">
+                          {currentSection.description}
+                        </p>
+                      </div>
+
+                      {/* Section Content or Edit Mode */}
+                      {isEditing ? (
+                        <div className="space-y-4">
+                          <textarea
+                            value={editingContent || ''}
+                            onChange={(e) => {
+                              handleUpdateContent(e.target.value)
+                              if (textareaRef.current) {
+                                autoResizeTextarea(textareaRef.current)
+                              }
+                            }}
+                            placeholder={`Describe your vision for ${currentSection.label.toLowerCase()}...`}
+                            ref={textareaRef}
+                            className="w-full min-h-[200px] px-1 py-3 md:p-4 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none resize-none"
+                            style={{ overflow: 'hidden' }}
+                          />
+                          <div className="flex justify-end gap-3">
                             <Button
-                              onClick={() => setIsEditing(true)}
-                              variant="primary"
-                              size="sm"
-                              className="flex items-center gap-2 mx-auto"
+                              onClick={handleCancelEdit}
+                              variant="outline"
+                              disabled={saving}
                             >
-                              <Edit3 className="w-4 h-4" />
-                              Add Content
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={handleSaveEdit}
+                              variant="primary"
+                              disabled={saving}
+                              className="flex items-center gap-2"
+                            >
+                              {saving ? 'Saving...' : 'Save Changes'}
                             </Button>
                           </div>
-                        )}
-
-                        {/* Section Navigation */}
-                        <div className="mt-8 flex items-center justify-between pt-6 border-t border-neutral-700">
-                          <Button
-                            onClick={() => {
-                              const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
-                              if (currentIndex > 0) {
-                                setActiveSection(VISION_SECTIONS[currentIndex - 1].key)
-                                setTimeout(() => scrollToMainContent(), 50)
-                              }
-                            }}
-                            variant="ghost"
-                            size="sm"
-                            disabled={VISION_SECTIONS.findIndex(s => s.key === activeSection) === 0}
-                            className="flex items-center gap-2"
-                          >
-                            <ArrowLeft className="w-4 h-4" />
-                            Previous
-                          </Button>
-                          
-                          <div className="text-sm text-neutral-400">
-                            {VISION_SECTIONS.findIndex(s => s.key === activeSection) + 1} of {VISION_SECTIONS.length}
-                          </div>
-
-                          <Button
-                            onClick={() => {
-                              const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
-                              if (currentIndex < VISION_SECTIONS.length - 1) {
-                                setActiveSection(VISION_SECTIONS[currentIndex + 1].key)
-                                setTimeout(() => scrollToMainContent(), 50)
-                              }
-                            }}
-                            variant="ghost"
-                            size="sm"
-                            disabled={VISION_SECTIONS.findIndex(s => s.key === activeSection) === VISION_SECTIONS.length - 1}
-                            className="flex items-center gap-2"
-                          >
-                            Next
-                            <ArrowLeft className="w-4 h-4 rotate-180" />
-                          </Button>
                         </div>
+                      ) : (
+                        <>
+                          {/* Section Content */}
+                          {value?.trim() ? (
+                            <div className="prose prose-invert max-w-none">
+                              <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-3 md:p-6">
+                                <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
+                                  {value}
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg p-12 text-center">
+                              <p className="text-neutral-500 mb-4">
+                                No content for this section yet
+                              </p>
+                              <Button
+                                onClick={() => handleEditCategory(activeSection)}
+                                variant="primary"
+                                size="sm"
+                                className="flex items-center gap-2 mx-auto"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                                Add Content
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Edit Button */}
+                          {value?.trim() && (
+                            <div className="flex justify-end gap-2 mt-4">
+                              <Button
+                                onClick={() => handleEditCategory(activeSection)}
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center gap-2"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                                Edit
+                              </Button>
+                              <Button
+                                asChild
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-2"
+                              >
+                                <Link href={`/life-vision/${vision?.id}/refine?category=${activeSection}`}>
+                                  <Gem className="w-4 h-4" />
+                                  Refine
+                                </Link>
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Section Navigation */}
+                      <div className="mt-8 flex items-center justify-between pt-6 border-t border-neutral-700">
+                        <Button
+                          onClick={() => {
+                            const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
+                            if (currentIndex > 0) {
+                              setActiveSection(VISION_SECTIONS[currentIndex - 1].key)
+                              setTimeout(() => scrollToMainContent(), 50)
+                            }
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          disabled={VISION_SECTIONS.findIndex(s => s.key === activeSection) === 0}
+                          className="flex items-center gap-2"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          Previous
+                        </Button>
+                        
+                        <div className="text-sm text-neutral-400">
+                          {VISION_SECTIONS.findIndex(s => s.key === activeSection) + 1} of {VISION_SECTIONS.length}
+                        </div>
+
+                        <Button
+                          onClick={() => {
+                            const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
+                            if (currentIndex < VISION_SECTIONS.length - 1) {
+                              setActiveSection(VISION_SECTIONS[currentIndex + 1].key)
+                              setTimeout(() => scrollToMainContent(), 50)
+                            }
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          disabled={VISION_SECTIONS.findIndex(s => s.key === activeSection) === VISION_SECTIONS.length - 1}
+                          className="flex items-center gap-2"
+                        >
+                          Next
+                          <ArrowLeft className="w-4 h-4 rotate-180" />
+                        </Button>
                       </div>
-                    )
-                  })()}
-                </div>
-              )}
+                    </div>
+                  )
+                })()}
+              </div>
             </Card>
           </div>
             </div>

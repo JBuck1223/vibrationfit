@@ -209,8 +209,11 @@ async function multipartUpload(
 }
 
 export async function DELETE(request: NextRequest) {
+  let s3Key: string | undefined
+  
   try {
-    const { s3Key } = await request.json()
+    const body = await request.json()
+    s3Key = body.s3Key
 
     if (!s3Key) {
       return NextResponse.json({ error: 'Missing s3Key' }, { status: 400 })
@@ -231,7 +234,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('❌ S3 delete error:', error)
-    console.error(`Failed to delete: ${BUCKET_NAME}/${s3Key}`)
+    console.error(`Failed to delete: ${BUCKET_NAME}/${s3Key || 'unknown'}`)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Delete failed' },
       { status: 500 }

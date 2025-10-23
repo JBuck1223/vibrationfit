@@ -144,7 +144,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
         if (file) {
           // Upload new file
           try {
-            const uploadResult = await uploadUserFile('visionBoard', file, user.id)
+            const uploadResult = await uploadUserFile('visionBoardUploaded', file, user.id)
             imageUrl = uploadResult.url
           } catch (error) {
             alert(`Upload failed: ${error}`)
