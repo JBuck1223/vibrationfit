@@ -12,7 +12,8 @@ import {
   Layout, PanelTop, Square, Monitor, Smartphone, Grid as GridIcon,
   Palette, FileText, Tag, TrendingUp, RotateCcw, Mouse, CreditCard,
   AlignLeft, AlignCenter, AlignRight, Loader2, AlertCircle, Info,
-  ArrowRight, Play, Download, Share, Settings, MousePointer, Check, List, Image
+  ArrowRight, Play, Download, Share, Settings, MousePointer, Check, List, Image,
+  Brain, Mic, Calendar, BookOpen, Headphones, Clock, BarChart3, CalendarDays
 } from 'lucide-react'
 import {
   Stack,
@@ -41,6 +42,7 @@ import {
   BulletedList,
   ListItem,
   OrderedList,
+  OfferStack,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -194,6 +196,18 @@ export default function DesignSystemExperiment() {
                       Pricing
                     </Button>
                   </a>
+                  <a href="#offer-stack" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Package} size="sm" className="mr-2" />
+                      Offer Stack
+                    </Button>
+                  </a>
+                  <a href="#list-components" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={List} size="sm" className="mr-2" />
+                      Lists
+                    </Button>
+                  </a>
                   <a href="#categories" className="block">
                     <Button variant="ghost" size="sm" className="w-full justify-start">
                       <Icon icon={Users} size="sm" className="mr-2" />
@@ -204,6 +218,18 @@ export default function DesignSystemExperiment() {
                     <Button variant="ghost" size="sm" className="w-full justify-start">
                       <Icon icon={TrendingUp} size="sm" className="mr-2" />
                       Stats
+                    </Button>
+                  </a>
+                  <a href="#interactive-demo" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Settings} size="sm" className="mr-2" />
+                      Interactive
+                    </Button>
+                  </a>
+                  <a href="#responsive-behavior" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Smartphone} size="sm" className="mr-2" />
+                      Responsive
                     </Button>
                   </a>
                   <a href="#guidelines" className="block">
@@ -1144,8 +1170,124 @@ export default function DesignSystemExperiment() {
                 </Stack>
                 </Card>
 
+              {/* Offer Stack Accordion */}
+              <Card id="offer-stack">
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={Package} size="md" color="#39FF14" />
+                    Offer Stack Accordion
+                  </h3>
+                  
+                  {/* Offer Stack Example */}
+                  <Card variant="default" className="p-4">
+                    <Stack gap="sm">
+                      <h4 className="text-lg font-medium mb-2 text-white">OfferStack - Individual Accordion Items</h4>
+                      <p className="text-sm text-neutral-400 mb-4">
+                        Each item is its own accordion that can be clicked to expand and show detailed descriptions.
+                        Perfect for pricing pages and feature breakdowns.
+                      </p>
+                      
+                      {/* Component Usage */}
+                      <OfferStack
+                        title="What's Included in Your 72-Hour Intensive"
+                        subtitle="Everything you need to activate your Life Vision"
+                        items={[
+                          {
+                            id: 'assessment',
+                            title: 'Vibration Assessment',
+                            description: 'Complete 84-question assessment to identify your current vibration level and areas for growth.',
+                            icon: Brain,
+                            included: true
+                          },
+                          {
+                            id: 'viva-vision',
+                            title: 'VIVA Vision Creation',
+                            description: 'AI-powered Life Vision creation across all 12 life categories with personalized guidance.',
+                            icon: Sparkles,
+                            included: true
+                          },
+                          {
+                            id: 'vision-audio',
+                            title: 'Vision Audio Generation',
+                            description: 'Custom AM/PM audio tracks generated from your Life Vision for daily activation.',
+                            icon: Headphones,
+                            included: true
+                          },
+                          {
+                            id: 'vision-board',
+                            title: 'Vision Board Creation',
+                            description: 'AI-generated vision board with 12 images (1 per category) to visualize your goals.',
+                            icon: Image,
+                            included: true
+                          },
+                          {
+                            id: 'journal',
+                            title: 'Journal System',
+                            description: 'Three journal entry types: Gratitude, Connect-the-Dots, and Progress tracking.',
+                            icon: BookOpen,
+                            included: true
+                          },
+                          {
+                            id: 'calibration-call',
+                            title: '30-Min Calibration Call',
+                            description: 'Live 1:1 session to refine your vision and ensure alignment with your goals.',
+                            icon: CalendarDays,
+                            included: true
+                          },
+                          {
+                            id: 'activation-protocol',
+                            title: 'Activation Protocol',
+                            description: 'Daily rituals and completion ceremony to maintain momentum and track progress.',
+                            icon: Zap,
+                            included: true
+                          },
+                          {
+                            id: '8-weeks-included',
+                            title: '8 Weeks Vision Pro Included',
+                            description: 'Full Vision Pro access for 8 weeks, automatically transitions to your selected plan on Day 56.',
+                            icon: Crown,
+                            included: true
+                          }
+                        ]}
+                        defaultExpanded={['assessment', 'viva-vision']}
+                        allowMultiple={true}
+                      />
+                      
+                      {/* Code Example */}
+                      <div className="bg-black/20 p-4 rounded-lg border border-[#333] mt-4">
+                        <pre className="text-xs text-neutral-300 overflow-x-auto">
+{`<OfferStack
+  title="What's Included in Your 72-Hour Intensive"
+  subtitle="Everything you need to activate your Life Vision"
+  items={[
+    {
+      id: 'assessment',
+      title: 'Vibration Assessment',
+      description: 'Complete 84-question assessment...',
+      icon: Brain,
+      included: true
+    },
+    {
+      id: 'viva-vision',
+      title: 'VIVA Vision Creation',
+      description: 'AI-powered Life Vision creation...',
+      icon: Sparkles,
+      included: true
+    },
+    // ... more items
+  ]}
+  defaultExpanded={['assessment', 'viva-vision']}
+  allowMultiple={true}
+/>`}
+                        </pre>
+                      </div>
+                    </Stack>
+                  </Card>
+                </Stack>
+              </Card>
+
               {/* List Components */}
-              <Card>
+              <Card id="list-components">
                 <Stack gap="md">
                   <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                     <Icon icon={List} size="md" color="#39FF14" />
@@ -1679,7 +1821,7 @@ export default function DesignSystemExperiment() {
           </section>
 
           {/* Interactive Demo Section */}
-          <section>
+          <section id="interactive-demo">
             <Stack gap="lg">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">Interactive Demo</h2>
@@ -1758,7 +1900,7 @@ export default function DesignSystemExperiment() {
           </section>
 
           {/* Responsive Demo */}
-          <section>
+          <section id="responsive-behavior">
             <Stack gap="lg">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">Responsive Behavior: Switcher</h2>

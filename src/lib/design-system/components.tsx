@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useStorageData } from '@/hooks/useStorageData'
-import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket } from 'lucide-react'
+import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock } from 'lucide-react'
 
 // ============================================================================
 // UTILITY FUNCTION
@@ -2345,3 +2345,153 @@ export const SidebarLayout = React.forwardRef<HTMLDivElement, SidebarLayoutProps
   }
 )
 SidebarLayout.displayName = 'SidebarLayout'
+
+// ============================================================================
+// OFFER STACK ACCORDION COMPONENT
+// ============================================================================
+
+interface OfferStackItem {
+  id: string
+  title: string
+  description?: string
+  icon?: LucideIcon
+  included?: boolean
+  locked?: boolean
+}
+
+interface OfferStackProps extends React.HTMLAttributes<HTMLDivElement> {
+  title?: string
+  subtitle?: string
+  items: OfferStackItem[]
+  defaultExpanded?: string[]
+  allowMultiple?: boolean
+  className?: string
+}
+
+export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
+  ({ 
+    title, 
+    subtitle, 
+    items, 
+    defaultExpanded = [],
+    allowMultiple = true,
+    className,
+    ...props 
+  }, ref) => {
+    const [expandedItems, setExpandedItems] = useState<string[]>(defaultExpanded)
+
+    const toggleItem = (itemId: string) => {
+      setExpandedItems(prev => {
+        const newItems = allowMultiple
+          ? (prev.includes(itemId) 
+              ? prev.filter(id => id !== itemId)
+              : [...prev, itemId])
+          : (prev.includes(itemId) ? [] : [itemId])
+        return newItems
+      })
+    }
+
+    return (
+      <div 
+        ref={ref}
+        className={cn('w-full', className)}
+        {...props}
+      >
+        {/* Header */}
+        {(title || subtitle) && (
+          <div className="text-center mb-6">
+            {title && (
+              <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                {title}
+              </h3>
+            )}
+            {subtitle && (
+              <p className="text-neutral-400 text-base md:text-lg">
+                {subtitle}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Individual Accordion Items */}
+        <div className="space-y-2">
+          {items.map((item, index) => {
+            const isExpanded = expandedItems.includes(item.id)
+            const IconComponent = item.icon
+
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  'bg-[#1F1F1F] border-2 border-[#333] rounded-xl overflow-hidden transition-all duration-300',
+                  'hover:border-[#39FF14]/50 hover:-translate-y-0.5',
+                  isExpanded && 'border-[#39FF14]'
+                )}
+              >
+                {/* Item Header - Clickable */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    toggleItem(item.id)
+                  }}
+                  className="w-full px-6 py-4 flex items-center justify-between text-left transition-colors duration-200 hover:bg-[#39FF14]/5 cursor-pointer"
+                  type="button"
+                  tabIndex={0}
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Icon */}
+                    {IconComponent && (
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[#39FF14]/20">
+                        <IconComponent className="w-4 h-4 text-[#39FF14]" />
+                      </div>
+                    )}
+                    
+                    {/* Title and Status */}
+                    <div className="flex-1">
+                      <h4 className="text-lg font-semibold text-white">
+                        {item.title}
+                      </h4>
+                      {item.locked && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Lock className="w-3 h-3 text-neutral-500" />
+                          <span className="text-xs text-neutral-500">
+                            Locked until you complete Profile & Assessment
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Chevron */}
+                  <ChevronDown className={cn(
+                    'w-5 h-5 transition-transform duration-200 text-neutral-400',
+                    isExpanded && 'rotate-180'
+                  )} />
+                </button>
+
+                {/* Item Content - Expandable */}
+                {isExpanded && item.description && (
+                  <div className="px-6 pb-4 border-t border-[#333]">
+                    <div className="pt-4">
+                      {item.description.split('\n').map((line, index) => (
+                        <div key={index} className="flex items-start gap-2 mb-2 last:mb-0">
+                          <span className="text-[#39FF14] text-sm mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-neutral-300 text-sm leading-relaxed">
+                            {line.replace(/^•\s*/, '')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+)
+
+OfferStack.displayName = 'OfferStack'
