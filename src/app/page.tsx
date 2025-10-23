@@ -19,7 +19,6 @@ import {
   VIVAButton,
   Icon,
   Badge,
-  PageLayout,
   Video,
 } from '@/lib/design-system'
 
@@ -45,8 +44,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   return (
-    <PageLayout containerSize="xl">
-      <Stack gap="xl">
+    <Stack gap="xl">
         
         {/* Hero Section */}
         <section>
@@ -621,6 +619,5 @@ export default function HomePage() {
         </section>
 
       </Stack>
-    </PageLayout>
   )
 }
