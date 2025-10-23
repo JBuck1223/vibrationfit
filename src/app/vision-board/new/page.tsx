@@ -372,17 +372,48 @@ export default function NewVisionBoardItemPage() {
                 )}
 
                 {imageSource === 'ai' && (
-                  <AIImageGenerator
-                    type="vision_board"
-                    onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
-                    title={formData.name}
-                    description={formData.description}
-                    visionText={
-                      formData.name && formData.description
-                        ? `${formData.name}. ${formData.description}`
-                        : formData.description || formData.name || ''
-                    }
-                  />
+                  <>
+                    <AIImageGenerator
+                      type="vision_board"
+                      onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
+                      title={formData.name}
+                      description={formData.description}
+                      visionText={
+                        formData.name && formData.description
+                          ? `${formData.name}. ${formData.description}`
+                          : formData.description || formData.name || ''
+                      }
+                    />
+                    
+                    {/* Show AI-generated image preview */}
+                    {aiGeneratedImageUrl && (
+                      <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                          <img
+                            src={aiGeneratedImageUrl}
+                            alt="AI Generated Preview"
+                            className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                          />
+                          <div className="flex-1 text-center sm:text-left">
+                            <p className="text-sm font-medium text-white">AI Generated Image</p>
+                            <p className="text-xs text-neutral-400">
+                              Generated with VIVA
+                              <span className="ml-2 text-purple-400">• AI Created</span>
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAiGeneratedImageUrl(null)}
+                            className="w-full sm:w-auto"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
