@@ -266,7 +266,7 @@ export function AIImageGenerator({
             <label className="block text-sm font-medium text-neutral-200 mb-3">
               Choose Style ({styleOptions.find(s => s.id === selectedStyle)?.icon} {styleOptions.find(s => s.id === selectedStyle)?.name})
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {styleOptions.map((style) => (
                 <button
                   key={style.id}
