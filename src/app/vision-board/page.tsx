@@ -53,36 +53,14 @@ export default function VisionBoardPage() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
-  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['all'])
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
-  const [masonryColumns, setMasonryColumns] = useState(4)
-  const [masonryHeights, setMasonryHeights] = useState<number[]>([])
-  const [containerHeight, setContainerHeight] = useState(0)
 
   useEffect(() => {
     fetchItems()
   }, [])
 
-  // Handle responsive masonry columns
-  useEffect(() => {
-    const updateColumns = () => {
-      const width = window.innerWidth
-      if (width < 768) {
-        setMasonryColumns(1)
-      } else if (width < 1024) {
-        setMasonryColumns(2)
-      } else if (width < 1280) {
-        setMasonryColumns(3)
-      } else {
-        setMasonryColumns(4)
-      }
-    }
-
-    updateColumns()
-    window.addEventListener('resize', updateColumns)
-    return () => window.removeEventListener('resize', updateColumns)
-  }, [])
 
 
   const fetchItems = async () => {
@@ -112,56 +90,32 @@ export default function VisionBoardPage() {
   const filteredItems = items.filter(item => {
     const categoryMatch = selectedCategories.includes('all') || selectedCategories.length === 0 || 
       (item.categories && item.categories.some((cat: string) => selectedCategories.includes(cat)))
-    const statusMatch = selectedStatus === 'all' || item.status === selectedStatus
+    const statusMatch = selectedStatuses.includes('all') || selectedStatuses.length === 0 || selectedStatuses.includes(item.status)
     return categoryMatch && statusMatch
   })
 
-  // Calculate masonry positions for horizontal flow
-  const calculateMasonryPositions = () => {
-    if (filteredItems.length === 0) return []
-    
-    const positions: { top: number; left: number; width: number }[] = []
-    const columnHeights = new Array(masonryColumns).fill(0)
-    const gap = 24 // 1.5rem in pixels
-    const containerWidth = typeof window !== 'undefined' ? window.innerWidth - 48 : 1200 // Account for padding
-    const itemWidth = (containerWidth - (gap * (masonryColumns - 1))) / masonryColumns
-
-    filteredItems.forEach((item, index) => {
-      // Find the shortest column
-      const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights))
-      
-      // Calculate position
-      const left = shortestColumnIndex * (itemWidth + gap)
-      const top = columnHeights[shortestColumnIndex]
-      
-      positions.push({
-        top,
-        left,
-        width: itemWidth
-      })
-      
-      // Estimate height based on typical image aspect ratios
-      const estimatedHeight = 250 // More realistic height estimate
-      columnHeights[shortestColumnIndex] += estimatedHeight + gap
-    })
-
-    return positions
-  }
-
-  const masonryPositions = calculateMasonryPositions()
-
-  // Update container height when positions change
-  useEffect(() => {
-    if (masonryPositions.length > 0) {
-      const maxHeight = Math.max(...masonryPositions.map(p => p.top + 300)) + 300 // Extra padding for footer
-      setContainerHeight(maxHeight)
-    }
-  }, [masonryPositions])
 
   const totalItems = items?.length || 0
   const actualizedItems = items?.filter(item => item.status === 'actualized').length || 0
   const activeItems = items?.filter(item => item.status === 'active').length || 0
   const inactiveItems = items?.filter(item => item.status === 'inactive').length || 0
+
+  const toggleStatus = (status: string) => {
+    if (status === 'all') {
+      setSelectedStatuses(['all'])
+    } else {
+      if (selectedStatuses.includes(status)) {
+        // Remove status from selection
+        const newSelection = selectedStatuses.filter(s => s !== status)
+        // If no statuses left, select 'all'
+        setSelectedStatuses(newSelection.length === 0 ? ['all'] : newSelection)
+      } else {
+        // Add status to selection (remove 'all' if it exists)
+        const filtered = selectedStatuses.filter(s => s !== 'all')
+        setSelectedStatuses([...filtered, status])
+      }
+    }
+  }
 
   const openLightbox = (index: number) => {
     setLightboxIndex(index)
@@ -371,11 +325,11 @@ export default function VisionBoardPage() {
               {/* All Status Button - Full Width */}
               <div 
                 className={`cursor-pointer rounded-2xl border-2 transition-all hover:-translate-y-1 w-full ${
-                  selectedStatus === 'all'
+                  selectedStatuses.includes('all') || selectedStatuses.length === 0
                     ? 'bg-[#1F1F1F] border-[#39FF14] ring-2 ring-[#39FF14]' 
                     : 'bg-[#1F1F1F] border-[#333] hover:border-[#39FF14]'
                 }`}
-                onClick={() => setSelectedStatus('all')}
+                onClick={() => toggleStatus('all')}
               >
                 <div className="flex items-center justify-center gap-3 px-4 py-2">
                   <CheckCircle className="w-4 h-4 text-[#39FF14]" />
@@ -388,9 +342,9 @@ export default function VisionBoardPage() {
                 {STATUS_OPTIONS.map((status) => (
                   <button
                     key={status.value}
-                    onClick={() => setSelectedStatus(status.value)}
+                    onClick={() => toggleStatus(status.value)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
-                      selectedStatus === status.value
+                      selectedStatuses.includes(status.value)
                         ? status.value === 'active' 
                           ? 'bg-green-600 text-white shadow-lg'
                           : status.value === 'actualized'
@@ -410,46 +364,26 @@ export default function VisionBoardPage() {
           </div>
         </div>
 
-        {/* Vision Board Masonry Grid */}
+        {/* Vision Board Grid */}
         {loading ? (
           <div className="text-center py-16">
-            <div className="text-neutral-400">Loading your vision board...</div>
+            <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-neutral-400">Loading your vision board...</p>
           </div>
         ) : filteredItems && filteredItems.length > 0 ? (
-          <div 
-            className="masonry-container relative pb-16"
-            style={{
-              minHeight: containerHeight > 0 ? containerHeight : 'auto'
-            }}
-          >
-            {filteredItems.map((item, index) => {
-              const position = masonryPositions[index]
-              if (!position) return null
-              
-              return (
-                <div 
-                  key={item.id} 
-                  className="group absolute cursor-pointer"
-                  onClick={() => openLightbox(index)}
-                  style={{
-                    top: `${position.top}px`,
-                    left: `${position.left}px`,
-                    width: `${position.width}px`
-                  }}
-                >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredItems.map((item, index) => (
+              <div 
+                key={item.id} 
+                className="group cursor-pointer"
+                onClick={() => openLightbox(index)}
+              >
                   <div className="relative overflow-hidden rounded-lg bg-neutral-800 shadow-lg hover:shadow-xl transition-all duration-300">
                     {item.image_url ? (
                       <img
                         src={item.image_url}
                         alt={item.name}
                         className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                        onLoad={(e) => {
-                          // Update height after image loads for better positioning
-                          const img = e.target as HTMLImageElement
-                          const aspectRatio = img.naturalHeight / img.naturalWidth
-                          const newHeight = position.width * aspectRatio
-                          // Could trigger a re-layout here if needed
-                        }}
                       />
                     ) : (
                       <div className="w-full h-64 bg-neutral-800 rounded-lg flex items-center justify-center">
@@ -532,39 +466,24 @@ export default function VisionBoardPage() {
                       </Button>
                     </div>
                   </div>
-                  </div>
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-16">
-            <Card className="max-w-md mx-auto">
-              <div className="text-6xl mb-4">🎯</div>
-              <h3 className="text-2xl font-bold text-white mb-4">No creations yet</h3>
-              <p className="text-neutral-400 mb-8">
-                Start building your vision board by adding your first creation. 
-                Visualize what you want to manifest in your life.
-              </p>
-              <Button asChild size="lg">
-                <Link href="/vision-board/new">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Add Your First Creation
-                </Link>
-              </Button>
-            </Card>
+            <Grid3X3 className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No items found</h3>
+            <p className="text-neutral-400 mb-6">Try adjusting your filters or create your first vision item.</p>
+            <Button asChild>
+              <Link href="/vision-board/new">
+                <Plus className="w-5 h-5 mr-2" />
+                Add Your First Creation
+              </Link>
+            </Button>
           </div>
         )}
 
-        {/* Navigation */}
-        <div className="mt-8 text-center">
-          <Link 
-            href="/dashboard" 
-            className="text-neutral-400 hover:text-white transition-colors"
-          >
-            ← Back to Dashboard
-          </Link>
-        </div>
 
         {/* Lightbox */}
         {lightboxOpen && filteredItems.length > 0 && (
