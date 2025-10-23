@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button, Badge } from '@/lib/design-system'
+import { PageLayout, Card, Button, Badge, Stack, Icon } from '@/lib/design-system'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, Trash2, X, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { VisionBoardDeleteButton } from '@/components/VisionBoardDeleteButton'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 const LIFE_CATEGORIES = [
   'Fun / Recreation',
@@ -22,6 +23,24 @@ const LIFE_CATEGORIES = [
   'Things / Belongings / Stuff',
   'Expansion / Spirituality',
 ]
+
+// CategoryCard component from design system
+const CategoryCard = ({ category, selected = false, onClick }: any) => {
+  const IconComponent = category.icon
+  return (
+    <Card 
+      variant={selected ? 'elevated' : 'default'} 
+      hover 
+      className={`cursor-pointer aspect-square ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''}`}
+      onClick={onClick}
+    >
+      <Stack align="center" gap="xs" className="text-center px-2 justify-center h-full">
+        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} className="opacity-80" />
+        <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
+      </Stack>
+    </Card>
+  )
+}
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active', color: 'primary' },
@@ -318,18 +337,17 @@ export default function VisionBoardPage() {
               >
                 All Categories
               </button>
-              {LIFE_CATEGORIES.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    selectedCategory === category
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-                  }`}
-                >
-                  {category.split(' / ')[0]}
-                </button>
+            </div>
+
+            {/* Category Cards Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mt-4">
+              {VISION_CATEGORIES.map((category) => (
+                <CategoryCard 
+                  key={category.key} 
+                  category={category} 
+                  selected={selectedCategory === category.key} 
+                  onClick={() => setSelectedCategory(selectedCategory === category.key ? 'all' : category.key)} 
+                />
               ))}
             </div>
           </div>
