@@ -7,7 +7,35 @@ import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Sparkles, Upload } from 'lucide-react'
+import { Sparkles, Upload, CheckCircle, XCircle, Filter } from 'lucide-react'
+import { Icon } from '@/lib/design-system'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+
+// CategoryCard component from design system
+const CategoryCard = ({ category, selected = false, onClick, className = '' }: any) => {
+  const IconComponent = category.icon
+  return (
+    <Card 
+      variant={selected ? 'elevated' : 'default'} 
+      hover 
+      className={`cursor-pointer transition-all duration-300 ${className}`}
+      onClick={onClick}
+    >
+      <div className="flex flex-col items-center gap-2 p-2">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+          selected ? 'bg-primary-500' : 'bg-neutral-700'
+        }`}>
+          <IconComponent className={`w-4 h-4 ${selected ? 'text-white' : 'text-neutral-400'}`} />
+        </div>
+        <span className={`text-xs font-medium text-center leading-tight ${
+          selected ? 'text-primary-500' : 'text-neutral-300'
+        }`}>
+          {category.label}
+        </span>
+      </div>
+    </Card>
+  )
+}
 
 const LIFE_CATEGORIES = [
   'Fun / Recreation',
@@ -352,67 +380,56 @@ export default function NewVisionBoardItemPage() {
 
               {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3">
-                  Status
-                </label>
-                <div className="space-y-2">
+                <p className="text-sm text-neutral-400 mb-3 text-center">
+                  Select the status for your vision item
+                </p>
+                {/* Status Buttons - Single Line, Equal Width */}
+                <div className="flex gap-2">
                   {STATUS_OPTIONS.map((status) => (
-                    <label
+                    <button
                       key={status.value}
-                      className="flex items-center gap-3 p-3 bg-neutral-800 rounded-lg cursor-pointer hover:bg-neutral-700 transition-colors"
+                      onClick={() => setFormData({ ...formData, status: status.value })}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
+                        formData.status === status.value
+                          ? status.value === 'active' 
+                            ? 'bg-green-600 text-white shadow-lg'
+                            : status.value === 'actualized'
+                            ? 'bg-purple-500 text-white shadow-lg'
+                            : 'bg-gray-600 text-white shadow-lg'
+                          : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                      }`}
                     >
-                      <input
-                        type="radio"
-                        name="status"
-                        value={status.value}
-                        checked={formData.status === status.value}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-4 h-4 text-primary-500 bg-neutral-700 border-neutral-600 focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-neutral-200">{status.label}</span>
-                    </label>
+                      {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
+                      {status.value === 'actualized' && <CheckCircle className="w-3 h-3 text-white" />}
+                      {status.value === 'inactive' && <XCircle className="w-3 h-3 text-white" />}
+                      {status.label}
+                    </button>
                   ))}
                 </div>
               </div>
 
               {/* Life Categories */}
               <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3">
-                  Life Category (Select all that apply)
-                  {isIntensiveMode && categoriesNeeded.length > 0 && (
-                    <Badge variant="warning" className="ml-3">
-                      {categoriesNeeded.length} {categoriesNeeded.length === 1 ? 'category' : 'categories'} needed
-                    </Badge>
-                  )}
-                </label>
+                <p className="text-sm text-neutral-400 mb-3 text-center">
+                  Select categories for your vision item
+                </p>
+
                 {isIntensiveMode && categoriesNeeded.length > 0 && (
-                  <p className="text-sm text-neutral-400 mb-3">
+                  <p className="text-sm text-neutral-400 mb-3 text-center">
                     ✨ Intensive: Add at least one image for each life area. Still need: <strong className="text-primary-500">{categoriesNeeded.join(', ')}</strong>
                   </p>
                 )}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {LIFE_CATEGORIES.map((category) => {
-                    const isNeeded = isIntensiveMode && categoriesNeeded.includes(category)
+                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+                  {VISION_CATEGORIES.map((category) => {
+                    const isNeeded = isIntensiveMode && categoriesNeeded.includes(category.label)
                     return (
-                      <label
-                        key={category}
-                        className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
-                          isNeeded 
-                            ? 'bg-primary-500/10 border-2 border-primary-500 hover:bg-primary-500/20' 
-                            : 'bg-neutral-800 hover:bg-neutral-700'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.categories.includes(category)}
-                          onChange={() => handleCategoryToggle(category)}
-                          className="w-4 h-4 text-primary-500 bg-neutral-700 border-neutral-600 rounded focus:ring-primary-500"
-                        />
-                        <span className={`text-sm ${isNeeded ? 'text-primary-500 font-semibold' : 'text-neutral-200'}`}>
-                          {category}
-                          {isNeeded && ' ⭐'}
-                        </span>
-                      </label>
+                      <CategoryCard 
+                        key={category.key} 
+                        category={category} 
+                        selected={formData.categories.includes(category.label)} 
+                        onClick={() => handleCategoryToggle(category.label)}
+                        className={isNeeded ? 'ring-2 ring-primary-500 bg-primary-500/10' : ''}
+                      />
                     )
                   })}
                 </div>

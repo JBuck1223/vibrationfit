@@ -398,62 +398,63 @@ export default function VisionBoardPage() {
                     )}
 
                   {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-4">
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-2">
+                    <div className="flex flex-col items-center gap-2 w-full max-w-full">
                       {/* Quick Status Controls */}
-                      <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 space-y-2">
-                        <div className="text-white text-xs font-medium mb-2 text-center">Quick Status</div>
-                        <div className="flex gap-2">
+                      <div className="bg-black/80 backdrop-blur-sm rounded-lg p-2 space-y-2 w-full max-w-full">
+                        <div className="text-white text-xs font-medium mb-1 text-center">Quick Status</div>
+                        <div className="flex gap-1 flex-wrap justify-center">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               updateItemStatus(item.id, 'active')
                             }}
-                            className={`px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
+                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1 flex-shrink-0 ${
                               item.status === 'active'
                                 ? 'bg-green-600 text-white'
                                 : 'bg-neutral-700 text-neutral-300 hover:bg-green-600 hover:text-white'
                             }`}
                           >
-                            <div className="w-2 h-2 bg-current rounded-full"></div>
-                            Active
+                            <div className="w-1.5 h-1.5 bg-current rounded-full"></div>
+                            <span className="hidden sm:inline">Active</span>
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               updateItemStatus(item.id, 'actualized')
                             }}
-                            className={`px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
+                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1 flex-shrink-0 ${
                               item.status === 'actualized'
                                 ? 'bg-purple-500 text-white'
                                 : 'bg-neutral-700 text-neutral-300 hover:bg-purple-500 hover:text-white'
                             }`}
                           >
                             <CheckCircle className="w-3 h-3" />
-                            Actualized
+                            <span className="hidden sm:inline">Actualized</span>
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               updateItemStatus(item.id, 'inactive')
                             }}
-                            className={`px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
+                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1 flex-shrink-0 ${
                               item.status === 'inactive'
                                 ? 'bg-gray-600 text-white'
                                 : 'bg-neutral-700 text-neutral-300 hover:bg-gray-600 hover:text-white'
                             }`}
                           >
                             <XCircle className="w-3 h-3" />
-                            Inactive
+                            <span className="hidden sm:inline">Inactive</span>
                           </button>
                         </div>
                       </div>
                       
                       {/* View Item Details Button */}
-                      <Button asChild size="sm" variant="secondary">
+                      <Button asChild size="sm" variant="secondary" className="text-xs px-3 py-1">
                         <Link href={`/vision-board/${item.id}`} onClick={(e) => e.stopPropagation()}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Item Details
+                          <Eye className="w-3 h-3 mr-1" />
+                          <span className="hidden sm:inline">View Details</span>
+                          <span className="sm:hidden">View</span>
                         </Link>
                       </Button>
                     </div>
