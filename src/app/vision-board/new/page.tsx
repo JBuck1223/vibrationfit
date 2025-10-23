@@ -213,12 +213,12 @@ export default function NewVisionBoardItemPage() {
   return (
     <>
         <div className="pb-8">
-          <div className="mb-8">
+          <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-white mb-2">
               Add to Vision Board
             </h1>
             <p className="text-neutral-400">
-              Create a visual representation of what you want to manifest
+              Create a visual representation of your vision.
             </p>
           </div>
 
