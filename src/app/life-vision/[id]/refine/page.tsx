@@ -17,7 +17,7 @@ import {
   Zap
 } from 'lucide-react'
 import { 
-  PageLayout, 
+  PageLayout,
   Card, 
   Button, 
   Badge, 
@@ -465,78 +465,76 @@ Would you like to refine another category, or are you satisfied with this refine
   }
 
   return (
-    <PageLayout>
-      <div className="py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              onClick={() => router.back()}
-              variant="ghost"
-              className="text-neutral-400 hover:text-white"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back
-            </Button>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <Brain className="w-8 h-8 text-purple-400" />
-                <h1 className="text-3xl font-bold text-white">Intelligent Refinement</h1>
-                <Badge variant="premium" className="flex items-center gap-1">
-                  <Zap className="w-4 h-4" />
-                  VIVA AI
-                </Badge>
-              </div>
-              <p className="text-neutral-400">
-                Select a category and let VIVA help you refine your vision through intelligent conversation
-              </p>
+    <div className="py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            onClick={() => router.back()}
+            variant="ghost"
+            className="text-neutral-400 hover:text-white"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back
+          </Button>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <Brain className="w-8 h-8 text-purple-400" />
+              <h1 className="text-3xl font-bold text-white">Intelligent Refinement</h1>
+              <Badge variant="premium" className="flex items-center gap-1">
+                <Zap className="w-4 h-4" />
+                VIVA AI
+              </Badge>
             </div>
+            <p className="text-neutral-400">
+              Select a category and let VIVA help you refine your vision through intelligent conversation
+            </p>
           </div>
         </div>
-
-        {/* Category Selection */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-6">Choose a Category to Refine</h2>
-          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
-            {VISION_CATEGORIES.map((category) => (
-              <CategoryCard 
-                key={category.key} 
-                category={category} 
-                selected={selectedCategory === category.key} 
-                onClick={() => setSelectedCategory(category.key)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Chat Interface */}
-        {selectedCategory && (
-          <div className="space-y-6">
-            {chatMessages.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MessageCircle className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Ready to Start?</h3>
-                <p className="text-neutral-400 mb-6">
-                  VIVA will help you refine your {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label.toLowerCase()} vision through intelligent conversation.
-                </p>
-                <Button
-                  onClick={startConversation}
-                  variant="primary"
-                  size="lg"
-                  className="flex items-center gap-2"
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  Start Conversation with VIVA
-                </Button>
-              </div>
-            ) : (
-              <ChatInterface />
-            )}
-          </div>
-        )}
       </div>
-    </PageLayout>
+
+      {/* Category Selection */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-white mb-6">Choose a Category to Refine</h2>
+        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+          {VISION_CATEGORIES.map((category) => (
+            <CategoryCard 
+              key={category.key} 
+              category={category} 
+              selected={selectedCategory === category.key} 
+              onClick={() => setSelectedCategory(category.key)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Chat Interface */}
+      {selectedCategory && (
+        <div className="space-y-6">
+          {chatMessages.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MessageCircle className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Ready to Start?</h3>
+              <p className="text-neutral-400 mb-6">
+                VIVA will help you refine your {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label.toLowerCase()} vision through intelligent conversation.
+              </p>
+              <Button
+                onClick={startConversation}
+                variant="primary"
+                size="lg"
+                className="flex items-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Start Conversation with VIVA
+              </Button>
+            </div>
+          ) : (
+            <ChatInterface />
+          )}
+        </div>
+      )}
+    </div>
   )
 }
