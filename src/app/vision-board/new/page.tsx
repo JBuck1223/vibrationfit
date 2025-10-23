@@ -212,7 +212,7 @@ export default function NewVisionBoardItemPage() {
 
   return (
     <>
-        <div className="py-8">
+        <div className="pb-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
               Add to Vision Board
