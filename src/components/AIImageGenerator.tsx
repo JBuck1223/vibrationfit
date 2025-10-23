@@ -3,7 +3,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button, Textarea, Card } from '@/lib/design-system/components'
 import { Sparkles, Image as ImageIcon, Loader2, X, Download } from 'lucide-react'
 import { toast } from 'sonner'
@@ -38,6 +38,17 @@ export function AIImageGenerator({
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = useState<string>('photorealistic')
+  const [customDescription, setCustomDescription] = useState<string>('')
+
+  // Auto-populate custom description for vision board
+  useEffect(() => {
+    if (type === 'vision_board' && (title || description || visionText)) {
+      const autoDescription = title && description 
+        ? `${title}. ${description}`
+        : visionText || title || description || ''
+      setCustomDescription(autoDescription)
+    }
+  }, [type, title, description, visionText])
 
   // VIVA Style Options - Practical for Vision Boards
   const styleOptions = [
@@ -108,8 +119,8 @@ export function AIImageGenerator({
 
   const handleGenerate = async () => {
     if (type === 'vision_board') {
-      if (!visionText) {
-        toast.error('Vision text is required for vision board generation')
+      if (!customDescription.trim()) {
+        toast.error('Image description is required for vision board generation')
         return
       }
     } else if (type === 'journal') {
@@ -133,7 +144,7 @@ export function AIImageGenerator({
       let enhancedPrompt = ''
       
       if (type === 'vision_board') {
-        const content = title && description ? `${title}. ${description}` : visionText || ''
+        const content = customDescription || (title && description ? `${title}. ${description}` : visionText || '')
         enhancedPrompt = `${content}. ${selectedStyleOption?.prompt || ''}`
       } else if (type === 'journal') {
         enhancedPrompt = `${journalText}. ${selectedStyleOption?.prompt || ''}`
@@ -217,25 +228,41 @@ export function AIImageGenerator({
         <>
           {/* Content Preview */}
           {type === 'vision_board' ? (
-            <div className="mb-4 p-4 bg-primary-500/10 rounded-lg border border-primary-500/20">
-              <p className="text-sm text-primary-400 mb-2">
-                <strong>Vision Board Generation:</strong>
-              </p>
-              {title && (
-                <p className="text-sm text-neutral-300 mb-1">
-                  <strong>Title:</strong> {title}
+            <div className="mb-4">
+              <div className="mb-4 p-4 bg-primary-500/10 rounded-lg border border-primary-500/20">
+                <p className="text-sm text-primary-400 mb-2">
+                  <strong>Vision Board Generation:</strong>
                 </p>
-              )}
-              {description && (
-                <p className="text-sm text-neutral-300 mb-2">
-                  <strong>Description:</strong> {description}
-                </p>
-              )}
-              {visionText && !title && !description && (
-                <p className="text-sm text-neutral-300">
-                  <strong>Vision Text:</strong> {visionText}
-                </p>
-              )}
+                {title && (
+                  <p className="text-sm text-neutral-300 mb-1">
+                    <strong>Title:</strong> {title}
+                  </p>
+                )}
+                {description && (
+                  <p className="text-sm text-neutral-300 mb-2">
+                    <strong>Description:</strong> {description}
+                  </p>
+                )}
+                {visionText && !title && !description && (
+                  <p className="text-sm text-neutral-300">
+                    <strong>Vision Text:</strong> {visionText}
+                  </p>
+                )}
+              </div>
+              
+              {/* Editable Description Field */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-neutral-200 mb-2">
+                  Image Description (Auto-filled, but editable)
+                </label>
+                <Textarea
+                  value={customDescription}
+                  onChange={(e) => setCustomDescription(e.target.value)}
+                  placeholder="Describe the image you want to create... (e.g., 'A peaceful mountain landscape at sunrise with vibrant colors, inspiring and uplifting')"
+                  className="min-h-[100px]"
+                  disabled={generating}
+                />
+              </div>
             </div>
           ) : type === 'journal' ? (
             <div className="mb-4 p-4 bg-secondary-500/10 rounded-lg border border-secondary-500/20">
@@ -293,7 +320,7 @@ export function AIImageGenerator({
               onClick={handleGenerate}
               disabled={
                 generating ||
-                (type === 'vision_board' && !visionText) ||
+                (type === 'vision_board' && !customDescription.trim()) ||
                 (type === 'journal' && !journalText)
               }
               className="flex-1"
