@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   Sparkles, 
@@ -77,14 +77,135 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [draftStatus, setDraftStatus] = useState<'none' | 'draft' | 'committed'>('none')
   const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [allDrafts, setAllDrafts] = useState<any[]>([])
+  const [showAllDrafts, setShowAllDrafts] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [visionId, setVisionId] = useState<string | null>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const supabase = createClient()
+
+  // Load all drafts for this vision
+  const loadAllDrafts = useCallback(async () => {
+    if (!user || !visionId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('refinements')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('vision_id', visionId)
+        .eq('status', 'draft')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setAllDrafts(data || [])
+    } catch (error) {
+      console.error('Error loading drafts:', error)
+    }
+  }, [user, visionId, supabase])
+
+  // Load vision by ID function
+  const loadVisionById = async () => {
+    try {
+      const resolvedParams = await params
+      const { data: { user } } = await supabase.auth.getUser()
+        
+      if (!user) {
+        setError('Please log in to access this page')
+        return
+      }
+
+      setUser(user)
+      setVisionId(resolvedParams.id)
+
+      // Get the vision data by ID
+      const { data: visionData, error: visionError } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('id', resolvedParams.id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (visionError || !visionData) {
+        setError('Vision not found or access denied')
+        return
+      }
+
+      setVision(visionData)
+      console.log('Vision loaded successfully:', visionData.id)
+    } catch (error) {
+      console.error('Error loading vision:', error)
+      setError('Failed to load vision data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Commit all drafts to new vision
+  const commitAllDrafts = useCallback(async () => {
+    if (!user || !visionId || !vision || allDrafts.length === 0) return
+
+    try {
+      setIsDraftSaving(true)
+
+      // Create new vision version with all draft refinements
+      const updatedVision = { ...vision } as any
+      allDrafts.forEach((draft: any) => {
+        if (draft.category && draft.refinement_text) {
+          updatedVision[draft.category] = draft.refinement_text
+        }
+      })
+
+      // Create new vision version
+      const { data: newVersion, error: versionError } = await supabase
+        .from('vision_versions')
+        .insert({
+          user_id: user.id,
+          vision: updatedVision,
+          version_number: (vision.version_number || 0) + 1,
+          status: 'complete'
+        })
+        .select()
+        .single()
+
+      if (versionError) throw versionError
+
+      // Update all drafts to committed status
+      const { error: updateError } = await supabase
+        .from('refinements')
+        .update({ status: 'committed' })
+        .eq('user_id', user.id)
+        .eq('vision_id', visionId)
+        .eq('status', 'draft')
+
+      if (updateError) throw updateError
+
+      // Reload vision and drafts
+      await loadVisionById()
+      await loadAllDrafts()
+      
+      setDraftStatus('committed')
+      setTimeout(() => setDraftStatus('none'), 2000)
+
+    } catch (error) {
+      console.error('Error committing all drafts:', error)
+    } finally {
+      setIsDraftSaving(false)
+    }
+  }, [user, visionId, vision, allDrafts, supabase, loadVisionById])
 
   // Load vision by ID when component mounts
   useEffect(() => {
     loadVisionById()
   }, [params])
+
+  // Load all drafts when vision loads
+  useEffect(() => {
+    if (visionId) {
+      loadAllDrafts()
+    }
+  }, [visionId, loadAllDrafts])
 
   // Read category from URL parameters
   useEffect(() => {
@@ -128,39 +249,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       return () => clearTimeout(timeoutId)
     }
   }, [currentRefinement, draftStatus])
-
-  const loadVisionById = async () => {
-      try {
-        const resolvedParams = await params
-      const { data: { user } } = await supabase.auth.getUser()
-        
-        if (!user) {
-          setError('Please log in to access this page')
-          return
-        }
-
-      // Get the vision data by ID
-        const { data: visionData, error: visionError } = await supabase
-          .from('vision_versions')
-          .select('*')
-          .eq('id', resolvedParams.id)
-          .eq('user_id', user.id)
-          .single()
-
-        if (visionError || !visionData) {
-          setError('Vision not found or access denied')
-          return
-        }
-
-        setVision(visionData)
-      console.log('Vision loaded successfully:', visionData.id)
-    } catch (error) {
-      console.error('Error loading vision:', error)
-        setError('Failed to load vision data')
-      } finally {
-        setLoading(false)
-      }
-    }
     
   const getCategoryValue = (category: string) => {
     if (!vision) return ''
@@ -588,8 +676,76 @@ Would you like to refine another category, or are you satisfied with this refine
                       onClick={() => setSelectedCategory(category.key)}
             />
           ))}
-                        </div>
-          </div>
+        </div>
+      </div>
+
+      {/* All Drafts Dropdown */}
+      {allDrafts.length > 0 && (
+        <div className="mb-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                  <span className="text-yellow-500 text-sm font-bold">{allDrafts.length}</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">All Drafts</h3>
+                  <p className="text-sm text-neutral-400">
+                    {allDrafts.length} draft{allDrafts.length !== 1 ? 's' : ''} ready to commit
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setShowAllDrafts(!showAllDrafts)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1"
+                >
+                  {showAllDrafts ? 'Hide' : 'Show'} Drafts
+                </Button>
+                <Button
+                  onClick={commitAllDrafts}
+                  disabled={isDraftSaving}
+                  variant="primary"
+                  size="sm"
+                  className="flex items-center gap-1"
+                >
+                  {isDraftSaving ? (
+                    <Spinner variant="primary" size="sm" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  Commit All Drafts
+                </Button>
+              </div>
+            </div>
+            
+            {showAllDrafts && (
+              <div className="space-y-3">
+                {allDrafts.map((draft) => {
+                  const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === draft.category)
+                  return (
+                    <div key={draft.id} className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
+                      <div className="flex items-center gap-3 mb-2">
+                        {categoryInfo && <categoryInfo.icon className="w-5 h-5 text-primary-500" />}
+                        <span className="font-medium text-white">{categoryInfo?.label}</span>
+                        <Badge variant="warning" className="text-xs">Draft</Badge>
+                      </div>
+                      <p className="text-sm text-neutral-300 line-clamp-2">
+                        {draft.refinement_text}
+                      </p>
+                      <p className="text-xs text-neutral-500 mt-2">
+                        Created {new Date(draft.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
 
       {/* Current Vision & Refinement Display */}
       {selectedCategory && (
@@ -611,18 +767,29 @@ Would you like to refine another category, or are you satisfied with this refine
                 </div>
               </div>
               <div className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
-                <p className="text-neutral-300 text-sm leading-relaxed">
+                <div className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">
                   {getCategoryValue(selectedCategory) || "No vision content available for this category."}
-              </p>
-            </div>
+                </div>
+                <div className="mt-3 flex justify-end">
+                  <Button
+                    onClick={() => setCurrentRefinement(getCategoryValue(selectedCategory!))}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copy to Refinement
+                  </Button>
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <Wand2 className="w-8 h-8 text-purple-400" />
                 <div>
-                  <h3 className="text-lg font-semibold text-white">
-                    My Current Refinement - {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label}
+                <h3 className="text-lg font-semibold text-white">
+                  Refinement - {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label}
                 </h3>
                   <p className="text-sm text-neutral-400">
                     Your refined version of this vision
