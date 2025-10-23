@@ -1,0 +1,20 @@
+# VibrationFit S3 Backup Cron Job Setup
+# Add this to your crontab for automated daily backups
+
+# Edit crontab
+crontab -e
+
+# Add this line for daily backups at 2 AM
+0 2 * * * /Users/jordanbuckingham/Desktop/vibrationfit/s3-backup/automated-backup.sh
+
+# Alternative: Every 6 hours
+# 0 */6 * * * /Users/jordanbuckingham/Desktop/vibrationfit/s3-backup/automated-backup.sh
+
+# Alternative: Every 12 hours
+# 0 */12 * * * /Users/jordanbuckingham/Desktop/vibrationfit/s3-backup/automated-backup.sh
+
+# View current crontab
+crontab -l
+
+# Test the cron job manually
+/Users/jordanbuckingham/Desktop/vibrationfit/s3-backup/automated-backup.sh

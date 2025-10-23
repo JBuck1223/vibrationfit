@@ -957,6 +957,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     saving: boolean 
   }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const isCompleted = content?.trim().length > 0
     
     const autoResizeTextarea = useCallback(() => {
       if (textareaRef.current) {
@@ -978,79 +979,96 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     }, [content, isEditing, autoResizeTextarea])
 
     return (
-      <Card variant="elevated" className="px-1 py-4 md:p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-primary-500/20 rounded-xl flex items-center justify-center">
-            <Icon icon={category.icon} size="sm" color="#199D67" />
-          </div>
-          <h3 className="text-lg font-semibold text-white">{category.label}</h3>
-        </div>
-        
-        {isEditing ? (
-          <div className="space-y-4">
-            <Textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => {
-                onUpdate(e.target.value)
-                autoResizeTextarea()
-              }}
-              placeholder={`Describe your vision for ${category.label.toLowerCase()}...`}
-              className="w-full min-h-[200px] px-1 py-3 md:p-4 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 resize-none"
-            />
-            <div className="flex gap-2">
-              <Button 
-                onClick={onSave} 
-                disabled={saving}
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                {saving ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
-                {saving ? 'Saving...' : 'Save'}
-              </Button>
-              <Button 
-                onClick={onCancel} 
-                variant="outline" 
-                size="sm"
-                disabled={saving}
-              >
-                Cancel
-              </Button>
+      <Card className="transition-all duration-300 hover:shadow-lg">
+        <div className="px-1 py-4 md:p-6">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCompleted ? 'bg-primary-500' : 'bg-neutral-700'}`}>
+              <Icon icon={category.icon} size="sm" color={isCompleted ? '#FFFFFF' : '#14B8A6'} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white">{category.label}</h3>
+              <p className="text-sm text-neutral-400">{category.description}</p>
             </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {content ? (
-              <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg px-1 py-3 md:p-4">
-                <p className="text-neutral-300 whitespace-pre-wrap">{content}</p>
-              </div>
-            ) : (
-              <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg px-2 py-4 md:p-8 text-center">
-                <p className="text-neutral-400 mb-4">No content yet</p>
-                <Button 
-                  onClick={() => handleEditCategory(category.key)}
-                  variant="ghost" 
-                  size="sm"
+
+          {/* Content or Edit Mode */}
+          {isEditing ? (
+            <div className="space-y-4">
+              <textarea
+                ref={textareaRef}
+                value={content || ''}
+                onChange={(e) => {
+                  onUpdate(e.target.value)
+                  if (textareaRef.current) {
+                    autoResizeTextarea()
+                  }
+                }}
+                placeholder={`Describe your vision for ${category.label.toLowerCase()}...`}
+                className="w-full min-h-[200px] px-1 py-3 md:p-4 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none resize-none"
+                style={{ overflow: 'hidden' }}
+              />
+              <div className="flex justify-end gap-3">
+                <Button
+                  onClick={onCancel}
+                  variant="outline"
+                  disabled={saving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={onSave}
+                  variant="primary"
+                  disabled={saving}
                   className="flex items-center gap-2"
                 >
-                  <Edit3 className="w-4 h-4" />
-                  Add Content
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
-            )}
-            {content && (
-              <Button 
-                onClick={() => handleEditCategory(category.key)}
-                variant="ghost" 
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Edit3 className="w-4 h-4" />
-                Edit
-              </Button>
-            )}
-          </div>
-        )}
+            </div>
+          ) : (
+            <>
+              {/* Content Display */}
+              <div className="mb-4">
+                {content?.trim() ? (
+                  <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg px-1 py-3 md:p-4">
+                    <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
+                      {content}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg px-2 py-4 md:p-8 text-center">
+                    <p className="text-neutral-500 mb-3">No content for this section yet</p>
+                    <Button
+                      onClick={() => handleEditCategory(category.key)}
+                      variant="primary"
+                      size="sm"
+                      className="flex items-center gap-2 mx-auto"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Add Content
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Edit Button */}
+              {content?.trim() && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => handleEditCategory(category.key)}
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Edit
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </Card>
     )
   }
@@ -1368,12 +1386,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           <div className="space-y-6">
             {/* Category Selection */}
             <Card className="p-4 md:p-6">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-white mb-2">Select Categories</h3>
-                <p className="text-sm text-neutral-400">Choose which life vision categories to display</p>
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-white mb-2">Select Life Areas</h3>
+                <p className="text-sm text-neutral-400">Choose which life vision categories to display and edit</p>
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 <CategoryCard
                   category={{ key: 'all', label: 'Select All', icon: Check }}
                   selected={selectedCategories.length === VISION_SECTIONS.length}
