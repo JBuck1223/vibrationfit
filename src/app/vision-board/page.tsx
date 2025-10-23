@@ -409,42 +409,42 @@ export default function VisionBoardPage() {
                               e.stopPropagation()
                               updateItemStatus(item.id, 'active')
                             }}
-                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1 flex-shrink-0 ${
+                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
                               item.status === 'active'
                                 ? 'bg-green-600 text-white'
                                 : 'bg-neutral-700 text-neutral-300 hover:bg-green-600 hover:text-white'
                             }`}
                           >
-                            <div className="w-1.5 h-1.5 bg-current rounded-full"></div>
                             <span className="hidden sm:inline">Active</span>
+                            <span className="sm:hidden">A</span>
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               updateItemStatus(item.id, 'actualized')
                             }}
-                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1 flex-shrink-0 ${
+                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
                               item.status === 'actualized'
                                 ? 'bg-purple-500 text-white'
                                 : 'bg-neutral-700 text-neutral-300 hover:bg-purple-500 hover:text-white'
                             }`}
                           >
-                            <CheckCircle className="w-3 h-3" />
                             <span className="hidden sm:inline">Actualized</span>
+                            <span className="sm:hidden">✓</span>
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               updateItemStatus(item.id, 'inactive')
                             }}
-                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1 flex-shrink-0 ${
+                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
                               item.status === 'inactive'
                                 ? 'bg-gray-600 text-white'
                                 : 'bg-neutral-700 text-neutral-300 hover:bg-gray-600 hover:text-white'
                             }`}
                           >
-                            <XCircle className="w-3 h-3" />
                             <span className="hidden sm:inline">Inactive</span>
+                            <span className="sm:hidden">×</span>
                           </button>
                         </div>
                       </div>
