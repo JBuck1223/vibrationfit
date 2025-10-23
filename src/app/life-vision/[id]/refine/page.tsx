@@ -812,12 +812,6 @@ Would you like to refine another category, or are you satisfied with this refine
             onChange={(e) => setCurrentMessage(e.target.value)}
             placeholder="Type your response..."
             className="flex-1 bg-neutral-800/50 border-neutral-600"
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                sendMessage()
-              }
-            }}
           />
           <Button
             onClick={sendMessage}
