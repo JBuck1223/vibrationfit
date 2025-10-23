@@ -19,7 +19,7 @@ import { PossessionsLifestyleSection } from '../components/PossessionsLifestyleS
 import { SpiritualityGrowthSection } from '../components/SpiritualityGrowthSection'
 import { GivingLegacySection } from '../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3 } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -37,6 +37,47 @@ export default function ProfilePage() {
   const [versions, setVersions] = useState<any[]>([])
   const [showVersions, setShowVersions] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
+  // Profile sections for mobile dropdown (matching ProfileSidebar)
+  const profileSections = [
+    { id: 'personal', title: 'Personal Info', description: 'Basic information about you' },
+    { id: 'fun-recreation', title: 'Fun', description: 'Hobbies and joyful activities' },
+    { id: 'health', title: 'Health', description: 'Physical and mental well-being' },
+    { id: 'travel-adventure', title: 'Travel', description: 'Places to explore and adventures' },
+    { id: 'relationship', title: 'Love', description: 'Romantic relationships' },
+    { id: 'family', title: 'Family', description: 'Family relationships and life' },
+    { id: 'social-friends', title: 'Social', description: 'Social connections and friendships' },
+    { id: 'location', title: 'Home', description: 'Living space and environment' },
+    { id: 'career', title: 'Work', description: 'Work and career aspirations' },
+    { id: 'financial', title: 'Money', description: 'Financial goals and wealth' },
+    { id: 'possessions-lifestyle', title: 'Possessions', description: 'Material belongings and things' },
+    { id: 'giving-legacy', title: 'Giving', description: 'Contribution and legacy' },
+    { id: 'spirituality-growth', title: 'Spirituality', description: 'Spiritual growth and expansion' },
+    { id: 'photos-notes', title: 'Photos & Notes', description: 'Media and additional notes' }
+  ]
+
+  // Navigation functions for previous/next buttons
+  const getCurrentSectionIndex = () => {
+    return profileSections.findIndex(section => section.id === activeSection)
+  }
+
+  const goToPreviousSection = () => {
+    const currentIndex = getCurrentSectionIndex()
+    if (currentIndex > 0) {
+      setActiveSection(profileSections[currentIndex - 1].id)
+    }
+  }
+
+  const goToNextSection = () => {
+    const currentIndex = getCurrentSectionIndex()
+    if (currentIndex < profileSections.length - 1) {
+      setActiveSection(profileSections[currentIndex + 1].id)
+    }
+  }
+
+  const isFirstSection = () => getCurrentSectionIndex() === 0
+  const isLastSection = () => getCurrentSectionIndex() === profileSections.length - 1
 
   // Manual save only - no auto-save timeout needed
 
@@ -678,10 +719,67 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Mobile Dropdown Navigation */}
+        <div className="lg:hidden mb-6">
+          <Card className="p-4">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="w-full flex items-center justify-between p-3 rounded-lg bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="font-medium text-white">
+                  {profileSections.find(s => s.id === activeSection)?.title || 'Select Section'}
+                </span>
+              </div>
+              <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isDropdownOpen && (
+              <div className="mt-3 space-y-1">
+                {profileSections.map((section) => {
+                  const isActive = activeSection === section.id
+                  const isCompleted = completedSections.includes(section.id)
+
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => {
+                        setActiveSection(section.id)
+                        setIsDropdownOpen(false)
+                      }}
+                      className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
+                        isActive
+                          ? 'bg-primary-500/20 border border-primary-500/50 text-primary-400'
+                          : 'hover:bg-neutral-800 border border-transparent text-neutral-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm truncate">
+                              {section.title}
+                            </span>
+                            {isCompleted && (
+                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-xs text-neutral-500 mt-1 truncate">
+                            {section.description}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
+          {/* Sidebar - Hidden on mobile, visible on desktop */}
+          <div className="hidden lg:block lg:col-span-1">
             <ProfileSidebar
               activeSection={activeSection}
               onSectionChange={setActiveSection}
@@ -689,8 +787,8 @@ export default function ProfilePage() {
             />
           </div>
 
-          {/* Content */}
-          <div className="lg:col-span-3">
+          {/* Content - Full width on mobile, 3/4 width on desktop */}
+          <div className="col-span-1 lg:col-span-3">
             {renderSection()}
           </div>
         </div>

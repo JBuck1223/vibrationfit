@@ -64,10 +64,10 @@ export default function PricingPage() {
               <Clock className="w-4 h-4 inline mr-2" />
               72-Hour Activation
           </span>
-          <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-[#39FF14] via-[#14B8A6] to-[#8B5CF6] bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-[#39FF14] via-[#14B8A6] to-[#8B5CF6] bg-clip-text text-transparent">
               Vision Activation Intensive
             </h1>
-            <p className="text-2xl text-neutral-300 max-w-3xl mx-auto">
+            <p className="text-lg md:text-xl lg:text-2xl text-neutral-300 max-w-3xl mx-auto">
             Go from blank slate to fully activated in 72 hours. Vision drafted, board built, audios recorded, conscious creation system live.
             </p>
           </div>
@@ -78,7 +78,7 @@ export default function PricingPage() {
             
             {/* DYNAMIC PRICE */}
             <div className="text-center">
-              <div className="text-6xl md:text-8xl font-bold text-[#39FF14] mb-4">
+              <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-[#39FF14] mb-4">
                 ${getPaymentAmount()}
                       </div>
               <div className="text-xl text-white mb-2 text-center">

@@ -254,7 +254,7 @@ export default function VisionBoardPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-4xl font-bold mb-2">🎯 Vision Board</h1>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">🎯 Vision Board</h1>
               <p className="text-secondary-500">Visualize and track your conscious creations</p>
             </div>
             <div className="flex gap-3">
@@ -277,22 +277,22 @@ export default function VisionBoardPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card>
               <h3 className="text-neutral-400 text-sm mb-2">Total Creations</h3>
-              <p className="text-3xl font-bold text-primary-500">{totalItems}</p>
+              <p className="text-2xl md:text-3xl font-bold text-primary-500">{totalItems}</p>
             </Card>
             
             <Card>
               <h3 className="text-neutral-400 text-sm mb-2">Active</h3>
-              <p className="text-3xl font-bold text-primary-500">{activeItems}</p>
+              <p className="text-2xl md:text-3xl font-bold text-primary-500">{activeItems}</p>
             </Card>
             
             <Card>
               <h3 className="text-neutral-400 text-sm mb-2">Actualized</h3>
-              <p className="text-3xl font-bold text-warning-500">{actualizedItems}</p>
+              <p className="text-2xl md:text-3xl font-bold text-warning-500">{actualizedItems}</p>
             </Card>
             
             <Card>
               <h3 className="text-neutral-400 text-sm mb-2">Success Rate</h3>
-              <p className="text-3xl font-bold text-secondary-500">
+              <p className="text-2xl md:text-3xl font-bold text-secondary-500">
                 {totalItems > 0 ? Math.round((actualizedItems / totalItems) * 100) : 0}%
               </p>
             </Card>

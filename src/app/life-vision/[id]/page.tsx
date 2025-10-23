@@ -145,11 +145,14 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
+          console.error('No authenticated user found')
           router.push('/auth/login')
           return
         }
 
         const resolvedParams = await params
+        console.log('Loading vision with ID:', resolvedParams.id)
+        console.log('User ID:', user.id)
         
         // Load main vision data
         const { data: vision, error } = await supabase
@@ -159,7 +162,15 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           .eq('user_id', user.id)
           .single()
 
-        if (error) throw error
+        if (error) {
+          console.error('Supabase query error:', error)
+          throw error
+        }
+
+        if (!vision) {
+          console.error('No vision found with ID:', resolvedParams.id)
+          throw new Error(`Vision with ID ${resolvedParams.id} not found`)
+        }
 
         // Load versions
         const { data: versionsData } = await supabase
@@ -197,6 +208,19 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         setVersions(versionsData || [])
       } catch (error) {
         console.error('Error loading vision:', error)
+        console.error('Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          name: error instanceof Error ? error.name : 'Unknown',
+          stack: error instanceof Error ? error.stack : 'No stack trace',
+          error: error
+        })
+        
+        // Check if it's a Supabase error
+        if (error && typeof error === 'object' && 'code' in error) {
+          console.error('Supabase error code:', error.code)
+          console.error('Supabase error message:', (error as any).message)
+        }
+        
         router.push('/life-vision')
       } finally {
         setLoading(false)

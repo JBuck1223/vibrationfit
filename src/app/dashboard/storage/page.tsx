@@ -82,7 +82,7 @@ export default function StoragePage() {
     <>
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Storage Usage</h1>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Storage Usage</h1>
           <p className="text-neutral-400">
             Track your file storage across all features
           </p>
@@ -104,7 +104,7 @@ export default function StoragePage() {
                       <HardDrive className="w-6 h-6 text-primary-500" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">Storage Overview</h2>
+                      <h2 className="text-xl md:text-2xl font-bold text-white">Storage Overview</h2>
                       <p className="text-sm text-neutral-400">Your file usage summary</p>
                     </div>
                   </div>
