@@ -398,7 +398,7 @@ export default function NewVisionBoardItemPage() {
                             <p className="text-sm font-medium text-white">AI Generated Image</p>
                             <p className="text-xs text-neutral-400">
                               Generated with VIVA
-                              <span className="ml-2 text-purple-400">• AI Created</span>
+                              <span className="ml-2 text-green-400">• Auto-Selected</span>
                             </p>
                           </div>
                           <Button

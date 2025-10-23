@@ -197,7 +197,13 @@ export function AIImageGenerator({
       setGeneratedImage(data.imageUrl)
       setRevisedPrompt(data.revisedPrompt)
       
-      toast.success('Image generated! Click "Use This Image" to add it.')
+      // Automatically use the generated image for vision board items
+      if (type === 'vision_board') {
+        onImageGenerated(data.imageUrl)
+        toast.success('Image generated and automatically selected!')
+      } else {
+        toast.success('Image generated! Click "Use This Image" to add it.')
+      }
 
     } catch (error: any) {
       console.error('Image generation error:', error)
