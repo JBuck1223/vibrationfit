@@ -64,10 +64,24 @@ export function AIImageGenerator({
     },
     {
       id: 'minimalist_clean',
-      name: 'Minimalist Clean',
+      name: 'Clean Icons',
       description: 'Simple, clean design - great for icons and concepts',
       prompt: 'Minimalist design, clean lines, simple composition, white or neutral background, modern aesthetic.',
       icon: '🧩'
+    },
+    {
+      id: 'minimalist',
+      name: 'Minimalist',
+      description: 'Ultra-clean, focused designs with maximum impact',
+      prompt: 'Ultra-minimalist design, single focal point, clean composition, negative space, modern simplicity.',
+      icon: '⚪'
+    },
+    {
+      id: 'vibrant',
+      name: 'Vibrant',
+      description: 'Bold, energetic, high-contrast images for ambitious goals',
+      prompt: 'Vibrant colors, high contrast, bold composition, energetic atmosphere, dynamic lighting.',
+      icon: '🌈'
     },
     {
       id: 'symbolic_collage',
@@ -305,6 +319,9 @@ export function AIImageGenerator({
               <br />• <strong>Photorealistic</strong> - For travel destinations, real places, specific objects
               <br />• <strong>Cosmic Realism</strong> - For spiritual goals, transformation, energy work
               <br />• <strong>Cinematic</strong> - For emotional scenes, lifestyle goals, relationships
+              <br />• <strong>Clean Icons</strong> - For simple concepts, icons, and clean designs
+              <br />• <strong>Minimalist</strong> - For ultra-clean, focused designs with maximum impact
+              <br />• <strong>Vibrant</strong> - For bold, energetic goals with high contrast
               <br />• <strong>Symbolic Collage</strong> - For multi-element goals, career, wealth
               {type === 'vision_board' 
                 ? ' Images will be landscape-oriented (1600x1200, 4:3).'
