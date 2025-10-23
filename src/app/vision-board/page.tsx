@@ -274,12 +274,8 @@ export default function VisionBoardPage() {
 
         {/* Filters */}
         <div className="mb-8 space-y-6">
-          {/* Categories Filter */}
+          {/* Category Filter */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-              <Filter className="w-5 h-5" />
-              Categories
-            </h3>
             <div 
               className={`cursor-pointer rounded-2xl border-2 transition-all hover:-translate-y-1 w-full mb-4 ${
                 selectedCategories.includes('all') || selectedCategories.length === 0 
@@ -295,7 +291,7 @@ export default function VisionBoardPage() {
             </div>
 
             {/* Category Cards Grid */}
-            <div className="grid grid-cols-4 md:grid-cols-12 gap-3 mt-4">
+            <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
               {VISION_CATEGORIES.map((category) => (
                 <CategoryCard 
                   key={category.key} 
@@ -320,25 +316,22 @@ export default function VisionBoardPage() {
 
           {/* Status Filter */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-3">Status</h3>
-            <div className="space-y-2">
-              {/* All Status Button - Full Width */}
-              <div 
-                className={`cursor-pointer rounded-2xl border-2 transition-all hover:-translate-y-1 w-full ${
-                  selectedStatuses.includes('all') || selectedStatuses.length === 0
-                    ? 'bg-[#1F1F1F] border-[#39FF14] ring-2 ring-[#39FF14]' 
-                    : 'bg-[#1F1F1F] border-[#333] hover:border-[#39FF14]'
-                }`}
-                onClick={() => toggleStatus('all')}
-              >
-                <div className="flex items-center justify-center gap-3 px-4 py-2">
-                  <CheckCircle className="w-4 h-4 text-[#39FF14]" />
-                  <h4 className="text-sm font-medium text-neutral-300">All Status</h4>
-                </div>
+            <div 
+              className={`cursor-pointer rounded-2xl border-2 transition-all hover:-translate-y-1 w-full mb-4 ${
+                selectedStatuses.includes('all') || selectedStatuses.length === 0
+                  ? 'bg-[#1F1F1F] border-[#39FF14] ring-2 ring-[#39FF14]' 
+                  : 'bg-[#1F1F1F] border-[#333] hover:border-[#39FF14]'
+              }`}
+              onClick={() => toggleStatus('all')}
+            >
+              <div className="flex items-center justify-center gap-3 px-4 py-2">
+                <CheckCircle className="w-4 h-4 text-[#39FF14]" />
+                <h4 className="text-sm font-medium text-neutral-300">All Status</h4>
               </div>
-              
-              {/* Status Buttons - Single Line, Equal Width */}
-              <div className="flex gap-2">
+            </div>
+            
+            {/* Status Buttons - Single Line, Equal Width */}
+            <div className="flex gap-2">
                 {STATUS_OPTIONS.map((status) => (
                   <button
                     key={status.value}
@@ -360,7 +353,6 @@ export default function VisionBoardPage() {
                   </button>
                 ))}
               </div>
-            </div>
           </div>
         </div>
 
