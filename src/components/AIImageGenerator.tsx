@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button, Textarea, Card, Spinner } from '@/lib/design-system/components'
-import { Sparkles, Image as ImageIcon, Loader2, X, Download } from 'lucide-react'
+import { Sparkles, Image as ImageIcon, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface AIImageGeneratorProps {
@@ -215,17 +215,6 @@ export function AIImageGenerator({
     }
   }
 
-  const handleDownload = () => {
-    if (generatedImage) {
-      const link = document.createElement('a')
-      link.href = generatedImage
-      link.download = `generated-image-${Date.now()}.png`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      toast.success('Image downloaded!')
-    }
-  }
 
   const handleClear = () => {
     setGeneratedImage(null)
@@ -428,13 +417,6 @@ export function AIImageGenerator({
             >
               <ImageIcon className="w-4 h-4 mr-2" />
               Use This Image
-            </Button>
-            
-            <Button
-              onClick={handleDownload}
-              variant="secondary"
-            >
-              <Download className="w-4 h-4" />
             </Button>
             
             <Button
