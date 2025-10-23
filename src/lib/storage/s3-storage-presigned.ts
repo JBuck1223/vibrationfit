@@ -173,7 +173,7 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
   const rules = {
     visionBoard: {
       maxSize: 100 * 1024 * 1024, // 100MB for images
-      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'],
     },
     journal: {
       maxSize: 1024 * 1024 * 1024, // 1GB for videos/audio

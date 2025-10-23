@@ -289,7 +289,7 @@ export default function NewVisionBoardItemPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
                   onChange={(e) => {
                     const selectedFile = e.target.files?.[0]
                     if (selectedFile) {
@@ -326,7 +326,7 @@ export default function NewVisionBoardItemPage() {
                       Click to upload or drag and drop
                     </p>
                     <p className="text-xs text-neutral-500">
-                      PNG, JPG, or WEBP (max 10MB)
+                      PNG, JPG, WEBP, or HEIC (max 10MB)
                     </p>
                   </div>
                 )}
