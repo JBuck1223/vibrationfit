@@ -309,6 +309,11 @@ export function ProfileField({
       )
     }
 
+    if (type === 'select' && selectOptions && value) {
+      const selectedOption = selectOptions.find(option => option.value === value)
+      return selectedOption ? selectedOption.label : value
+    }
+
     return value || emptyText
   }
 
