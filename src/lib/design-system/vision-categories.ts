@@ -31,102 +31,88 @@ export interface VisionCategory {
 
 export const VISION_CATEGORIES: VisionCategory[] = [
   {
-    key: 'forward',
-    label: 'Forward',
-    description: 'Opening statement and intention',
-    icon: Sparkles,
-    order: 1
-  },
-  {
     key: 'fun',
     label: 'Fun',
     description: 'Hobbies and joyful activities',
     icon: PartyPopper,
-    order: 2
+    order: 1
   },
   {
     key: 'health',
     label: 'Health',
     description: 'Physical and mental well-being',
     icon: Activity,
-    order: 3
+    order: 2
   },
   {
     key: 'travel',
     label: 'Travel',
     description: 'Places to explore and adventures',
     icon: Plane,
-    order: 4
+    order: 3
   },
   {
     key: 'romance',
     label: 'Love',
     description: 'Romantic relationships',
     icon: Heart,
-    order: 5
+    order: 4
   },
   {
     key: 'family',
     label: 'Family',
     description: 'Family relationships and life',
     icon: Users,
-    order: 6
+    order: 5
   },
   {
     key: 'social',
     label: 'Social',
     description: 'Social connections and friendships',
     icon: UserPlus,
-    order: 7
+    order: 6
   },
   {
     key: 'home',
     label: 'Home',
     description: 'Living space and environment',
     icon: Home,
-    order: 8
+    order: 7
   },
   {
     key: 'business',
     label: 'Work',
     description: 'Work and career aspirations',
     icon: Briefcase,
-    order: 9
+    order: 8
   },
   {
     key: 'money',
     label: 'Money',
     description: 'Financial goals and wealth',
     icon: DollarSign,
-    order: 10
+    order: 9
   },
   {
     key: 'possessions',
     label: 'Possessions',
     description: 'Material belongings and things',
     icon: Package,
-    order: 11
+    order: 10
   },
   {
     key: 'giving',
     label: 'Giving',
     description: 'Contribution and legacy',
     icon: Gift,
-    order: 12
+    order: 11
   },
   {
     key: 'spirituality',
     label: 'Spirituality',
     description: 'Spiritual growth and expansion',
     icon: Star,
-    order: 13
-  },
-  {
-    key: 'conclusion',
-    label: 'Conclusion',
-    description: 'Closing thoughts and commitment',
-    icon: CheckCircle,
-    order: 14
+    order: 12
   }
 ]
 
