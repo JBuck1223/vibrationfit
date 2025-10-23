@@ -430,7 +430,7 @@ export default function NewVisionBoardItemPage() {
               </div>
 
               {/* Submit */}
-              <div className="flex gap-4">
+              <div className="flex gap-4 justify-center">
                 <Button
                   type="submit"
                   size="lg"
