@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button, Textarea, Card } from '@/lib/design-system/components'
+import { Button, Textarea, Card, Spinner } from '@/lib/design-system/components'
 import { Sparkles, Image as ImageIcon, Loader2, X, Download } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -39,6 +39,27 @@ export function AIImageGenerator({
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = useState<string>('photorealistic')
   const [customDescription, setCustomDescription] = useState<string>('')
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
+
+  // VIVA loading messages with animation
+  const loadingMessages = [
+    "VIVA is bringing your vision to life...",
+    "Crafting your perfect image...",
+    "Channeling creative energy...",
+    "Manifesting your vision...",
+    "Weaving magic into pixels...",
+    "Almost ready to actualize..."
+  ]
+
+  // Cycle through loading messages every 3 seconds
+  useEffect(() => {
+    if (generating) {
+      const interval = setInterval(() => {
+        setLoadingMessageIndex((prev) => (prev + 1) % loadingMessages.length)
+      }, 3000)
+      return () => clearInterval(interval)
+    }
+  }, [generating, loadingMessages.length])
 
   // Auto-populate custom description for vision board
   useEffect(() => {
@@ -213,7 +234,40 @@ export function AIImageGenerator({
   }
 
   return (
-    <Card className={`p-6 ${className}`}>
+    <Card className={`p-6 ${className} relative`}>
+      {/* VIVA Loading Overlay */}
+      {generating && (
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-50">
+          <div className="text-center space-y-6">
+            {/* VIVA Logo Spinner */}
+            <div className="flex justify-center">
+              <Spinner size="lg" variant="branded" />
+            </div>
+            
+            {/* Animated Loading Message */}
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-white">
+                {loadingMessages[loadingMessageIndex]}
+              </h3>
+              <div className="flex justify-center space-x-1">
+                <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-secondary-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-accent-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
+            
+            {/* Progress Indicator */}
+            <div className="w-64 bg-neutral-800 rounded-full h-2 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-full animate-pulse"></div>
+            </div>
+            
+            <p className="text-sm text-neutral-400">
+              This usually takes 15-30 seconds
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-gradient-to-br from-accent-500 to-secondary-500 rounded-xl">
           <Sparkles className="w-5 h-5 text-white" />
