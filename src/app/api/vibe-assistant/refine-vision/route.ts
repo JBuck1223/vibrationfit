@@ -155,7 +155,7 @@ async function buildUserPrompt(
 
   // Get refinement history for this category
   const { data: refinementHistory } = await supabase
-    .from('vibe_assistant_logs')
+    .from('refinements')
     .select('*')
     .eq('user_id', userId)
     .eq('vision_id', request.visionId)

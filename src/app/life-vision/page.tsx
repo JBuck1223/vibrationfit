@@ -210,7 +210,7 @@ export default function VisionListPage() {
       // Fetch refinements count
       const refinementsResult = await withTimeout(
         async () => await supabase
-          .from('vibe_assistant_logs')
+          .from('refinements')
           .select('id', { count: 'exact' })
           .eq('user_id', user.id)
           .eq('action_type', 'vision_refinement'),

@@ -306,7 +306,7 @@ export async function logVibeAssistantUsage(usage: {
     const supabase = await createServerClient()
     
     const { error } = await supabase
-      .from('vibe_assistant_logs')
+      .from('refinements')
       .insert({
         user_id: usage.userId,
         vision_id: usage.visionId,
@@ -356,7 +356,7 @@ export async function getVibeAssistantUsageHistory(limit: number = 10): Promise<
     }
 
     const { data, error } = await supabase
-      .from('vibe_assistant_logs')
+      .from('refinements')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
@@ -405,7 +405,7 @@ export async function getVibeAssistantMonthlyStats(): Promise<{
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
     const { data, error } = await supabase
-      .from('vibe_assistant_logs')
+      .from('refinements')
       .select('*')
       .eq('user_id', user.id)
       .gte('created_at', monthStart.toISOString())
