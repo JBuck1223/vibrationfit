@@ -240,28 +240,28 @@ export default function VisionBoardPage() {
   const getStatusBadge = (status: string) => {
     if (status === 'active') {
       return (
-        <div className="bg-green-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
+        <Badge variant="primary" className="flex items-center gap-2">
           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-          <span className="text-white text-sm font-semibold">Active</span>
-        </div>
+          <span>Active</span>
+        </Badge>
       )
     }
 
     if (status === 'actualized') {
       return (
-        <div className="bg-purple-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
-          <CheckCircle className="w-4 h-4 text-white" />
-          <span className="text-white text-sm font-semibold">Actualized</span>
-        </div>
+        <Badge variant="secondary" className="flex items-center gap-2">
+          <CheckCircle className="w-4 h-4" />
+          <span>Actualized</span>
+        </Badge>
       )
     }
 
     if (status === 'inactive') {
       return (
-        <div className="bg-gray-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
-          <XCircle className="w-4 h-4 text-white" />
-          <span className="text-white text-sm font-semibold">Inactive</span>
-        </div>
+        <Badge variant="neutral" className="flex items-center gap-2">
+          <XCircle className="w-4 h-4" />
+          <span>Inactive</span>
+        </Badge>
       )
     }
 
@@ -326,22 +326,22 @@ export default function VisionBoardPage() {
               <Filter className="w-5 h-5" />
               Categories
             </h3>
-            <div className="w-full mb-4">
-              <button
-                onClick={() => setSelectedCategories(['all'])}
-                className={`w-full px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                  selectedCategories.includes('all') || selectedCategories.length === 0
-                    ? 'bg-primary-500 text-white shadow-lg'
-                    : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-                }`}
-              >
-                <Filter className="w-4 h-4" />
-                All Categories
-              </button>
+            <div 
+              className={`cursor-pointer rounded-2xl border-2 transition-all hover:-translate-y-1 w-full mb-4 ${
+                selectedCategories.includes('all') || selectedCategories.length === 0 
+                  ? 'bg-[#1F1F1F] border-[#39FF14] ring-2 ring-[#39FF14]' 
+                  : 'bg-[#1F1F1F] border-[#333] hover:border-[#39FF14]'
+              }`}
+              onClick={() => setSelectedCategories(['all'])}
+            >
+              <div className="flex items-center justify-center gap-3 px-4 py-2">
+                <Icon icon={Filter} size="sm" color={selectedCategories.includes('all') || selectedCategories.length === 0 ? '#39FF14' : '#00FFFF'} className="opacity-80" />
+                <h4 className="text-sm font-medium text-neutral-300">All Categories</h4>
+              </div>
             </div>
 
             {/* Category Cards Grid */}
-            <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-3 mt-4">
+            <div className="grid grid-cols-4 md:grid-cols-12 gap-3 mt-4">
               {VISION_CATEGORIES.map((category) => (
                 <CategoryCard 
                   key={category.key} 
@@ -384,11 +384,7 @@ export default function VisionBoardPage() {
                   onClick={() => setSelectedStatus(status.value)}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
                     selectedStatus === status.value
-                      ? status.value === 'active' 
-                        ? 'bg-green-500 text-white shadow-lg'
-                        : status.value === 'actualized'
-                        ? 'bg-purple-500 text-white shadow-lg'
-                        : 'bg-gray-500 text-white shadow-lg'
+                      ? 'bg-primary-500 text-white shadow-lg'
                       : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                   }`}
                 >
@@ -457,9 +453,9 @@ export default function VisionBoardPage() {
                     {/* Actualized Indicator */}
                     {item.status === 'actualized' && (
                       <div className="absolute top-3 left-3">
-                        <div className="bg-warning-500 text-black p-1 rounded-full">
+                        <Badge variant="secondary" className="p-1">
                           <CheckCircle className="w-4 h-4" />
-                        </div>
+                        </Badge>
                       </div>
                     )}
 
@@ -477,8 +473,8 @@ export default function VisionBoardPage() {
                             }}
                             className={`px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
                               item.status === 'active'
-                                ? 'bg-green-500 text-white'
-                                : 'bg-neutral-700 text-neutral-300 hover:bg-green-500 hover:text-white'
+                                ? 'bg-primary-500 text-white'
+                                : 'bg-neutral-700 text-neutral-300 hover:bg-primary-500 hover:text-white'
                             }`}
                           >
                             <div className="w-2 h-2 bg-current rounded-full"></div>
@@ -491,8 +487,8 @@ export default function VisionBoardPage() {
                             }}
                             className={`px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
                               item.status === 'actualized'
-                                ? 'bg-purple-500 text-white'
-                                : 'bg-neutral-700 text-neutral-300 hover:bg-purple-500 hover:text-white'
+                                ? 'bg-secondary-500 text-white'
+                                : 'bg-neutral-700 text-neutral-300 hover:bg-secondary-500 hover:text-white'
                             }`}
                           >
                             <CheckCircle className="w-3 h-3" />
@@ -505,8 +501,8 @@ export default function VisionBoardPage() {
                             }}
                             className={`px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
                               item.status === 'inactive'
-                                ? 'bg-gray-500 text-white'
-                                : 'bg-neutral-700 text-neutral-300 hover:bg-gray-500 hover:text-white'
+                                ? 'bg-neutral-500 text-white'
+                                : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-500 hover:text-white'
                             }`}
                           >
                             <XCircle className="w-3 h-3" />
