@@ -5,7 +5,7 @@ import {
   Sparkles, PartyPopper, Plane, Home, Users, Heart, 
   Activity, DollarSign, Briefcase, UserPlus, Package, 
   Gift, Zap, CheckCircle, ArrowRight, Star, Target,
-  Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check
+  Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check, Clock, User
 } from 'lucide-react'
 import {
   Stack,
@@ -143,6 +143,460 @@ export default function HomePage() {
                     <Icon icon={CheckCircle} size="sm" color="#39FF14" />
                     <span className="text-sm text-neutral-300">Calibration call booked</span>
                   </div>
+                </div>
+              </Stack>
+            </Card>
+          </div>
+        </section>
+
+        {/* Train → Tune → Track Mechanism */}
+        <section>
+          <div className="w-full">
+            <Card variant="elevated" className="bg-neutral-900 border-neutral-700 !mx-0 !w-full">
+              <Stack gap="md" className="px-4">
+                <h3 className="text-xl font-bold text-white text-center">
+                  Train → Tune → Track
+                </h3>
+                <div className="space-y-4">
+                  {/* Train */}
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-[#39FF14] mb-1">Train</div>
+                    <div className="text-sm text-neutral-300 hidden md:block">
+                      Complete profile + 84‑Q assessment + first Life Vision draft (with VIVA)
+                    </div>
+                    <div className="text-sm text-neutral-300 md:hidden">
+                      Profile + 84‑Q + first Life Vision (VIVA)
+                    </div>
+                  </div>
+                  
+                  {/* Tune */}
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-[#39FF14] mb-1">Tune</div>
+                    <div className="text-sm text-neutral-300 hidden md:block">
+                      Refine your vision, build your Vision Board, start the Activation Protocol
+                    </div>
+                    <div className="text-sm text-neutral-300 md:hidden">
+                      Refine vision, build board, Activation Protocol
+                    </div>
+                  </div>
+                  
+                  {/* Track */}
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-[#39FF14] mb-1">Track</div>
+                    <div className="text-sm text-neutral-300 hidden md:block">
+                      Journal daily, log iterations, watch streaks and wins grow
+                    </div>
+                    <div className="text-sm text-neutral-300 md:hidden">
+                      Journal, iterations, streaks & wins
+                    </div>
+                  </div>
+                </div>
+              </Stack>
+            </Card>
+          </div>
+        </section>
+
+        {/* 72-Hour Activation Path */}
+        <section>
+          <div className="w-full">
+            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
+              <Stack gap="sm" className="px-0 md:px-4 -mx-4 md:mx-0">
+                <h3 className="text-xl font-bold text-white text-center mb-6">
+                  Your 72‑Hour Activation Path
+                </h3>
+                
+                
+                {/* Desktop Layout */}
+                <div className="hidden md:flex md:gap-8">
+                  {/* Left Side - Bulleted List (50%) */}
+                  <div className="w-1/2">
+                    <div className="relative">
+                      {/* Gradient Connecting Line */}
+                      <div className="absolute left-[10px] w-0.5 h-full bg-gradient-to-b from-[#39FF14] via-[#00FFFF] via-[#BF00FF] to-[#FFFF00] top-[10px]"></div>
+                      
+                      <div className="space-y-6">
+                        <div className="flex items-start gap-4">
+                          <div className="w-5 h-5 border-2 border-[#39FF14] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
+                          <div>
+                            <p className="text-base font-semibold text-white">Phase 1 — Foundation (Hours 0–24)</p>
+                            <div className="space-y-1 mt-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0"></div>
+                                <p className="text-sm text-neutral-400">Complete Profile — 70%+ completion</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0"></div>
+                                <p className="text-sm text-neutral-400">Vibration Assessment — 84 questions submitted</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0"></div>
+                                <p className="text-sm text-neutral-400">Book Calibration — 1:1 call scheduled</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-4">
+                          <div className="w-5 h-5 border-2 border-[#00FFFF] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
+                          <div>
+                            <p className="text-base font-semibold text-white">Phase 2 — Vision Creation (Hours 24–48)</p>
+                            <div className="space-y-1 mt-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0"></div>
+                                <p className="text-sm text-neutral-400">Build Life Vision — All 12 categories drafted with VIVA</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0"></div>
+                                <p className="text-sm text-neutral-400">Refine Vision — Polished with VIVA + refinement tool</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-4">
+                          <div className="w-5 h-5 border-2 border-[#BF00FF] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
+                          <div>
+                            <p className="text-base font-semibold text-white">Phase 3 — Activation Tools (Hours 48–72)</p>
+                            <div className="space-y-1 mt-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0"></div>
+                                <p className="text-sm text-neutral-400">Generate Vision Audio — AM + PM tracks created</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0"></div>
+                                <p className="text-sm text-neutral-400">Create Vision Board — 12 images (1 per category) added</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0"></div>
+                                <p className="text-sm text-neutral-400">Journal x3 — Gratitude, Connect‑the‑Dots, Progress entries logged</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-4">
+                          <div className="w-5 h-5 border-2 border-[#FFFF00] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
+                          <div>
+                            <p className="text-base font-semibold text-white">Phase 4 — Calibration & Launch</p>
+                            <div className="space-y-1 mt-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0"></div>
+                                <p className="text-sm text-neutral-400">Attend Calibration — Live 30‑minute session completed</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0"></div>
+                                <p className="text-sm text-neutral-400">Start Activation Protocol — Daily rituals scheduled + completion ceremony done</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Right Side - 2x2 Grid (50%) */}
+                  <div className="w-1/2">
+                    <div className="grid grid-cols-2 gap-4 h-full">
+                      {/* Phase 1 - Electric Green */}
+                      <div className="bg-gradient-to-br from-[#39FF14]/10 to-[#39FF14]/5 border-[#39FF14]/30 rounded-xl p-6 flex flex-col items-center justify-center min-h-[160px]">
+                        <div className="w-10 h-10 bg-[#39FF14] rounded-full flex items-center justify-center mb-3">
+                          <span className="text-black font-bold text-lg">1</span>
+                        </div>
+                        <h4 className="text-base font-semibold text-[#39FF14] mb-2 text-center">Foundation</h4>
+                        <p className="text-sm text-neutral-400 text-center">Hours 0–24</p>
+                      </div>
+                      
+                      {/* Phase 2 - Neon Cyan */}
+                      <div className="bg-gradient-to-br from-[#00FFFF]/10 to-[#00FFFF]/5 border-[#00FFFF]/30 rounded-xl p-6 flex flex-col items-center justify-center min-h-[160px]">
+                        <div className="w-10 h-10 bg-[#00FFFF] rounded-full flex items-center justify-center mb-3">
+                          <span className="text-black font-bold text-lg">2</span>
+                        </div>
+                        <h4 className="text-base font-semibold text-[#00FFFF] mb-2 text-center">Vision Creation</h4>
+                        <p className="text-sm text-neutral-400 text-center">Hours 24–48</p>
+                      </div>
+                      
+                      {/* Phase 3 - Neon Purple */}
+                      <div className="bg-gradient-to-br from-[#BF00FF]/10 to-[#BF00FF]/5 border-[#BF00FF]/30 rounded-xl p-6 flex flex-col items-center justify-center min-h-[160px]">
+                        <div className="w-10 h-10 bg-[#BF00FF] rounded-full flex items-center justify-center mb-3">
+                          <span className="text-white font-bold text-lg">3</span>
+                        </div>
+                        <h4 className="text-base font-semibold text-[#BF00FF] mb-2 text-center">Activation Tools</h4>
+                        <p className="text-sm text-neutral-400 text-center">Hours 48–72</p>
+                      </div>
+                      
+                      {/* Phase 4 - Energy Yellow */}
+                      <div className="bg-gradient-to-br from-[#FFFF00]/10 to-[#FFFF00]/5 border-[#FFFF00]/30 rounded-xl p-6 flex flex-col items-center justify-center min-h-[160px]">
+                        <div className="w-10 h-10 bg-[#FFFF00] rounded-full flex items-center justify-center mb-3">
+                          <span className="text-black font-bold text-lg">4</span>
+                        </div>
+                        <h4 className="text-base font-semibold text-[#FFFF00] mb-2 text-center">Calibration & Launch</h4>
+                        <p className="text-sm text-neutral-400 text-center">Hours 72+</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* CTA Button */}
+                <div className="text-center mt-8">
+                  <Button variant="primary" size="xl">
+                    Start the 72‑Hour Activation Intensive
+                  </Button>
+                </div>
+                
+                {/* Dashboard Preview Box */}
+                <div className="mt-8">
+                  <div className="text-center mb-6">
+                    <h3 className="text-xl font-bold text-white mb-2">What you'll see on your dashboard:</h3>
+                    <p className="text-sm text-neutral-400">Your personalized activation journey</p>
+                  </div>
+                  
+                  {/* Dashboard Preview Container */}
+                  <div className="bg-gradient-to-br from-[#1F1F1F] to-[#0F0F0F] rounded-2xl border-2 border-[#39FF14]/20 p-6 space-y-6">
+                    
+                    {/* Header Section */}
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-2 bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-full px-4 py-2 mb-4">
+                        <Clock className="w-4 h-4 text-[#39FF14]" />
+                        <span className="text-sm font-semibold text-[#39FF14]">Activation Intensive</span>
+                      </div>
+                      <h4 className="text-2xl font-bold text-white mb-2">Your Activation Journey</h4>
+                      <p className="text-sm text-neutral-400">Current Phase: <span className="text-[#39FF14]">Foundation</span></p>
+                    </div>
+                    
+                    {/* Countdown & Progress Card */}
+                    <div className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border border-[#39FF14]/30 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h5 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            Time Remaining
+                          </h5>
+                          <p className="text-xl font-bold text-[#39FF14]">68h 23m 45s</p>
+                          <p className="text-xs text-neutral-400 mt-1">Deadline: Dec 15, 2024 11:59 PM</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-neutral-400 mb-1">Overall Progress</p>
+                          <p className="text-2xl font-bold text-[#14B8A6]">25%</p>
+                          <p className="text-xs text-neutral-400 mt-1">3 of 12 steps</p>
+                        </div>
+                      </div>
+                      <div className="w-full bg-neutral-700 rounded-full h-2">
+                        <div className="h-2 rounded-full bg-gradient-to-r from-[#39FF14] to-[#14B8A6]" style={{ width: '25%' }}></div>
+                      </div>
+                    </div>
+                    
+                    {/* Next Step Card */}
+                    <div className="bg-gradient-to-br from-[#BF00FF]/10 to-purple-500/10 border border-[#BF00FF]/30 rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#BF00FF] rounded-xl flex items-center justify-center">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="inline-flex items-center gap-1 bg-[#BF00FF]/20 rounded-full px-2 py-1 mb-1">
+                            <span className="text-xs font-semibold text-[#BF00FF]">Next Step</span>
+                          </div>
+                          <h5 className="text-sm font-bold text-white">Complete Your Profile</h5>
+                          <p className="text-xs text-neutral-400">Set up your personal info, goals, and values</p>
+                        </div>
+                        <button className="text-xs bg-[#39FF14] text-black px-3 py-1 rounded-full font-semibold hover:bg-[#39FF14]/80 transition-colors">
+                          Continue
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Phase Progress Cards */}
+                    <div className="space-y-4">
+                      {/* Phase 1 - Foundation */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h6 className="text-sm font-semibold text-[#39FF14]">Foundation</h6>
+                          <span className="text-xs bg-[#39FF14]/20 text-[#39FF14] px-2 py-1 rounded-full">1/3 Complete</span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between bg-[#39FF14]/5 border border-[#39FF14]/20 rounded-lg p-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-[#39FF14] rounded-lg flex items-center justify-center">
+                                <CheckCircle className="w-4 h-4 text-black" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold text-white">Complete Your Profile</p>
+                                <p className="text-xs text-neutral-400">Set up your personal info, goals, and values</p>
+                              </div>
+                            </div>
+                            <CheckCircle className="w-4 h-4 text-[#39FF14]" />
+                          </div>
+                          
+                          <div className="flex items-center justify-between bg-neutral-800/30 border border-neutral-600/30 rounded-lg p-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-[#14B8A6] rounded-lg flex items-center justify-center">
+                                <Target className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold text-white">Take Vibration Assessment</p>
+                                <p className="text-xs text-neutral-400">Discover your current vibration score</p>
+                              </div>
+                            </div>
+                            <button className="text-xs bg-[#39FF14] text-black px-2 py-1 rounded-full font-semibold">
+                              Start
+                            </button>
+                          </div>
+                          
+                          <div className="flex items-center justify-between bg-neutral-800/30 border border-neutral-600/30 rounded-lg p-2 opacity-50">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-neutral-600 rounded-lg flex items-center justify-center">
+                                <Clock className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold text-neutral-400">Book Your Calibration Call</p>
+                                <p className="text-xs text-neutral-500">Schedule your 1-on-1 session</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 text-neutral-500">
+                              <span className="text-xs">Locked</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Phase 2 - Vision Creation */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h6 className="text-sm font-semibold text-[#00FFFF]">Vision Creation</h6>
+                          <span className="text-xs bg-[#00FFFF]/20 text-[#00FFFF] px-2 py-1 rounded-full">0/2 Complete</span>
+                        </div>
+                        <div className="space-y-2 opacity-60">
+                          <div className="flex items-center justify-between bg-neutral-800/30 border border-neutral-600/30 rounded-lg p-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-neutral-600 rounded-lg flex items-center justify-center">
+                                <Sparkles className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold text-neutral-400">Build Your Life Vision</p>
+                                <p className="text-xs text-neutral-500">Create your 12-category vision with VIVA</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 text-neutral-500">
+                              <span className="text-xs">Locked</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between bg-neutral-800/30 border border-neutral-600/30 rounded-lg p-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-neutral-600 rounded-lg flex items-center justify-center">
+                                <Brain className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold text-neutral-400">Refine Your Vision</p>
+                                <p className="text-xs text-neutral-500">Polish with VIVA + refinement tool</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 text-neutral-500">
+                              <span className="text-xs">Locked</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Completion Message */}
+                    <div className="text-center bg-gradient-to-r from-[#39FF14]/5 to-[#14B8A6]/5 border border-[#39FF14]/20 rounded-xl p-4">
+                      <p className="text-xs text-neutral-300 mb-2">
+                        <strong className="text-[#39FF14]">Complete all phases</strong> to unlock your membership and continue your journey
+                      </p>
+                      <p className="text-xs text-neutral-400">
+                        Your membership will automatically activate on Day 56
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Mobile Layout */}
+                <div className="md:hidden">
+                  <div className="relative">
+                    {/* Vertical Progress Line */}
+                    <div className="absolute left-[7px] w-0.5 h-[400px] bg-[#39FF14] top-2"></div>
+                    
+                    <div className="space-y-6">
+                      {/* Phase 1 */}
+                      <div className="flex items-start gap-3">
+                        <div className="w-4 h-4 border-2 border-[#39FF14] rounded-full bg-black mt-1.5 flex-shrink-0 relative z-10"></div>
+                        <div className="text-lg font-semibold text-[#39FF14]">Phase 1 — Foundation (0–24h)</div>
+                      </div>
+                      <div className="space-y-1 ml-7 -mt-1">
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-neutral-500 rounded mt-0.5 flex-shrink-0"></div>
+                          <div className="text-sm text-neutral-300">Profile — 70%+ complete</div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-neutral-500 rounded mt-0.5 flex-shrink-0"></div>
+                          <div className="text-sm text-neutral-300">Assessment — 84 Qs submitted</div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-neutral-500 rounded mt-0.5 flex-shrink-0"></div>
+                          <div className="text-sm text-neutral-300">Calibration — 1:1 call scheduled</div>
+                        </div>
+                      </div>
+                      
+                      {/* Phase 2 */}
+                      <div className="flex items-start gap-3">
+                        <div className="w-4 h-4 border-2 border-[#39FF14] rounded-full bg-black mt-1.5 flex-shrink-0 relative z-10"></div>
+                        <div className="text-lg font-semibold text-[#39FF14]">Phase 2 — Vision Creation (24–48h)</div>
+                      </div>
+                      <div className="space-y-1 ml-7 -mt-1">
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-neutral-500 rounded mt-0.5 flex-shrink-0"></div>
+                          <div className="text-sm text-neutral-300">Life Vision — 12 categories drafted (with VIVA)</div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-neutral-500 rounded mt-0.5 flex-shrink-0"></div>
+                          <div className="text-sm text-neutral-300">Refine — polished with VIVA + tool</div>
+                        </div>
+                      </div>
+                      
+                      {/* Phase 3 */}
+                      <div className="flex items-start gap-3">
+                        <div className="w-4 h-4 border-2 border-[#39FF14] rounded-full bg-black mt-1.5 flex-shrink-0 relative z-10"></div>
+                        <div className="text-lg font-semibold text-[#39FF14]">Phase 3 — Activation Tools (48–72h)</div>
+                      </div>
+                      <div className="space-y-1 ml-7 -mt-1">
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-neutral-500 rounded mt-0.5 flex-shrink-0"></div>
+                          <div className="text-sm text-neutral-300">Vision Audio — AM + PM tracks created</div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-neutral-500 rounded mt-0.5 flex-shrink-0"></div>
+                          <div className="text-sm text-neutral-300">Vision Board — 12 images added</div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-neutral-500 rounded mt-0.5 flex-shrink-0"></div>
+                          <div className="text-sm text-neutral-300">Journal x3 — Gratitude, Dots, Progress</div>
+                        </div>
+                      </div>
+                      
+                      {/* Phase 4 */}
+                      <div className="flex items-start gap-3">
+                        <div className="w-4 h-4 border-2 border-[#39FF14] rounded-full bg-black mt-1.5 flex-shrink-0 relative z-10"></div>
+                        <div className="text-lg font-semibold text-[#39FF14]">Phase 4 — Calibration & Launch</div>
+                      </div>
+                      <div className="space-y-1 ml-7 -mt-1">
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-neutral-500 rounded mt-0.5 flex-shrink-0"></div>
+                          <div className="text-sm text-neutral-300">Attend Calibration — 30‑min session done</div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-neutral-500 rounded mt-0.5 flex-shrink-0"></div>
+                          <div className="text-sm text-neutral-300">Activation Protocol — daily rituals scheduled + ceremony complete</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Mobile CTA Button */}
+                <div className="text-center pt-4 md:hidden">
+                  <Button variant="primary" size="xl">
+                    Start the 72‑Hour Activation Intensive
+                  </Button>
                 </div>
               </Stack>
             </Card>
