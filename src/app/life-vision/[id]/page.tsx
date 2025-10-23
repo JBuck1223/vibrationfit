@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles, Trash2, Download, VolumeX, Gem, ChevronDown } from 'lucide-react'
+import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles, Trash2, Download, VolumeX, Gem, ChevronDown, Check, Layers } from 'lucide-react'
 import { 
   Button, 
   Card, 
@@ -63,6 +63,10 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [isViewingVersion, setIsViewingVersion] = useState(false)
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<'sidebar' | 'cards'>('sidebar')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [editingCategory, setEditingCategory] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState('')
 
   // Ref for textarea auto-resize
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -103,6 +107,64 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     textarea.style.height = 'auto'
     textarea.style.height = textarea.scrollHeight + 'px'
   }, [])
+
+  // Card-based view functions
+  const handleCategoryToggle = (categoryKey: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(categoryKey) 
+        ? prev.filter(key => key !== categoryKey)
+        : [...prev, categoryKey]
+    )
+  }
+
+  const handleSelectAll = () => {
+    if (selectedCategories.length === VISION_SECTIONS.length) {
+      setSelectedCategories([])
+    } else {
+      setSelectedCategories(VISION_SECTIONS.map(cat => cat.key))
+    }
+  }
+
+  const handleEditCategory = (categoryKey: string) => {
+    const content = vision?.[categoryKey as keyof VisionData] as string || ''
+    setEditingCategory(categoryKey)
+    setEditingContent(content)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingCategory(null)
+    setEditingContent('')
+  }
+
+  const handleSaveEdit = async () => {
+    if (!vision || !editingCategory) return
+
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from('vision_versions')
+        .update({ 
+          [editingCategory]: editingContent,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', vision.id)
+
+      if (error) throw error
+
+      setVision(prev => prev ? { ...prev, [editingCategory]: editingContent } : null)
+      setLastSaved(new Date())
+      setEditingCategory(null)
+      setEditingContent('')
+    } catch (error) {
+      console.error('Error saving vision:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUpdateContent = (content: string) => {
+    setEditingContent(content)
+  }
 
   // Calculate completion percentage
   const calculateCompletion = useCallback((data: VisionData) => {
@@ -852,6 +914,147 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     )
   }
 
+  // Card-based view components
+  const CategoryCard = ({ category, selected, onClick, className = '' }: { 
+    category: any, 
+    selected: boolean, 
+    onClick: () => void, 
+    className?: string 
+  }) => {
+    const IconComponent = category.icon
+    return (
+      <Card 
+        variant="outlined" 
+        hover 
+        className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500 md:ring-2 md:ring-primary-500' : ''} ${className}`}
+        onClick={onClick}
+      >
+        <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+          <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#14B8A6'} />
+          <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
+            {category.label}
+          </span>
+        </div>
+      </Card>
+    )
+  }
+
+  const VisionCard = ({ 
+    category, 
+    content, 
+    isEditing, 
+    onSave, 
+    onCancel, 
+    onUpdate, 
+    saving 
+  }: { 
+    category: any, 
+    content: string, 
+    isEditing: boolean, 
+    onSave: () => void, 
+    onCancel: () => void, 
+    onUpdate: (content: string) => void, 
+    saving: boolean 
+  }) => {
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
+    
+    const autoResizeTextarea = useCallback(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+      }
+    }, [])
+
+    useEffect(() => {
+      if (isEditing) {
+        autoResizeTextarea()
+      }
+    }, [isEditing, autoResizeTextarea])
+
+    useEffect(() => {
+      if (isEditing && content) {
+        autoResizeTextarea()
+      }
+    }, [content, isEditing, autoResizeTextarea])
+
+    return (
+      <Card variant="elevated" className="px-1 py-4 md:p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-primary-500/20 rounded-xl flex items-center justify-center">
+            <Icon icon={category.icon} size="sm" color="#199D67" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">{category.label}</h3>
+        </div>
+        
+        {isEditing ? (
+          <div className="space-y-4">
+            <Textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => {
+                onUpdate(e.target.value)
+                autoResizeTextarea()
+              }}
+              placeholder={`Describe your vision for ${category.label.toLowerCase()}...`}
+              className="w-full min-h-[200px] px-1 py-3 md:p-4 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 resize-none"
+            />
+            <div className="flex gap-2">
+              <Button 
+                onClick={onSave} 
+                disabled={saving}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                {saving ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+              <Button 
+                onClick={onCancel} 
+                variant="outline" 
+                size="sm"
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {content ? (
+              <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg px-1 py-3 md:p-4">
+                <p className="text-neutral-300 whitespace-pre-wrap">{content}</p>
+              </div>
+            ) : (
+              <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg px-2 py-4 md:p-8 text-center">
+                <p className="text-neutral-400 mb-4">No content yet</p>
+                <Button 
+                  onClick={() => handleEditCategory(category.key)}
+                  variant="ghost" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Add Content
+                </Button>
+              </div>
+            )}
+            {content && (
+              <Button 
+                onClick={() => handleEditCategory(category.key)}
+                variant="ghost" 
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                Edit
+              </Button>
+            )}
+          </div>
+        )}
+      </Card>
+    )
+  }
+
   return (
     <>
         {/* Header */}
@@ -1131,21 +1334,111 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           </Card>
         </div>
 
-        {/* Main Content */}
-        <div ref={mainContentRef}>
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar - Hidden on mobile */}
-          <div className="hidden lg:block lg:col-span-1">
-            <LifeVisionSidebar
-              activeSection={activeSection}
-              onSectionChange={setActiveSection}
-              completedSections={completedSections}
-              onScrollToContent={scrollToMainContent}
-            />
-          </div>
+        {/* View Mode Toggle */}
+        <div className="mb-6">
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">View Mode</h3>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setViewMode('sidebar')}
+                  variant={viewMode === 'sidebar' ? 'primary' : 'outline'}
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  Sidebar
+                </Button>
+                <Button
+                  onClick={() => setViewMode('cards')}
+                  variant={viewMode === 'cards' ? 'primary' : 'outline'}
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Layers className="w-4 h-4" />
+                  Cards
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
 
-          {/* Main Content Area - Full width on mobile */}
-          <div className="col-span-1 lg:col-span-3">
+        {/* Card-based View */}
+        {viewMode === 'cards' ? (
+          <div className="space-y-6">
+            {/* Category Selection */}
+            <Card className="p-4 md:p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-white mb-2">Select Categories</h3>
+                <p className="text-sm text-neutral-400">Choose which life vision categories to display</p>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
+                <CategoryCard
+                  category={{ key: 'all', label: 'Select All', icon: Check }}
+                  selected={selectedCategories.length === VISION_SECTIONS.length}
+                  onClick={handleSelectAll}
+                />
+                {VISION_SECTIONS.map((category) => (
+                  <CategoryCard
+                    key={category.key}
+                    category={category}
+                    selected={selectedCategories.includes(category.key)}
+                    onClick={() => handleCategoryToggle(category.key)}
+                  />
+                ))}
+              </div>
+            </Card>
+
+            {/* Vision Cards */}
+            {selectedCategories.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {selectedCategories.map((categoryKey) => {
+                  const category = VISION_SECTIONS.find(cat => cat.key === categoryKey)
+                  if (!category) return null
+                  
+                  const content = vision?.[categoryKey as keyof VisionData] as string || ''
+                  const isEditing = editingCategory === categoryKey
+                  
+                  return (
+                    <VisionCard
+                      key={categoryKey}
+                      category={category}
+                      content={content}
+                      isEditing={isEditing}
+                      onSave={handleSaveEdit}
+                      onCancel={handleCancelEdit}
+                      onUpdate={handleUpdateContent}
+                      saving={saving}
+                    />
+                  )
+                })}
+              </div>
+            ) : (
+              <Card className="p-8 text-center">
+                <p className="text-neutral-400 mb-4">Select categories above to view your life vision</p>
+                <Button onClick={handleSelectAll} variant="primary">
+                  Select All Categories
+                </Button>
+              </Card>
+            )}
+          </div>
+        ) : (
+          /* Original Sidebar Layout */
+          <div ref={mainContentRef}>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Sidebar - Hidden on mobile */}
+            <div className="hidden lg:block lg:col-span-1">
+              <LifeVisionSidebar
+                activeSection={activeSection}
+                onSectionChange={setActiveSection}
+                completedSections={completedSections}
+                onScrollToContent={scrollToMainContent}
+              />
+            </div>
+
+            {/* Main Content Area - Full width on mobile */}
+            <div className="col-span-1 lg:col-span-3">
             <Card className="p-4 md:p-8">
               {isEditing ? (
                 <div className="space-y-6">
@@ -1248,7 +1541,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               )}
             </Card>
           </div>
-        </div>
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <div className="mt-8 text-center">
@@ -1258,7 +1553,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           >
             ← Back to Life Visions
           </Link>
-        </div>
         </div>
     </>
   )

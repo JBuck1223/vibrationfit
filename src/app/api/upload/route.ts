@@ -216,16 +216,22 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing s3Key' }, { status: 400 })
     }
 
+    console.log(`🗑️ S3 DELETE REQUEST: ${s3Key}`)
+    console.log(`📁 Bucket: ${BUCKET_NAME}`)
+    console.log(`🔑 Full S3 Key: ${BUCKET_NAME}/${s3Key}`)
+
     const command = new DeleteObjectCommand({
       Bucket: BUCKET_NAME,
       Key: s3Key,
     })
 
     await s3Client.send(command)
+    console.log(`✅ Successfully deleted: ${s3Key}`)
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('S3 delete error:', error)
+    console.error('❌ S3 delete error:', error)
+    console.error(`Failed to delete: ${BUCKET_NAME}/${s3Key}`)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Delete failed' },
       { status: 500 }

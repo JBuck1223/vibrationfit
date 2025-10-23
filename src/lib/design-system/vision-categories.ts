@@ -95,7 +95,7 @@ export const VISION_CATEGORIES: VisionCategory[] = [
   },
   {
     key: 'possessions',
-    label: 'Possessions',
+    label: 'Stuff',
     description: 'Material belongings and things',
     icon: Package,
     order: 10

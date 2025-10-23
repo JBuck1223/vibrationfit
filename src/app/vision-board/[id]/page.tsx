@@ -129,8 +129,16 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
       if (file || aiGeneratedImageUrl) {
         // Delete old image if it exists
         if (item.image_url) {
-          const oldPath = item.image_url.split('/').slice(-3).join('/') // Extract path from URL
-          await deleteUserFile(oldPath)
+          try {
+            // Extract S3 key from CDN URL more safely
+            const url = new URL(item.image_url)
+            const oldPath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+            console.log('Replacing old S3 file:', oldPath)
+            await deleteUserFile(oldPath)
+          } catch (error) {
+            console.warn('Failed to delete old image file:', error)
+            // Continue with replacement even if old image deletion fails
+          }
         }
 
         if (file) {
@@ -201,7 +209,10 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
       // Delete image file if it exists
       if (item.image_url) {
         try {
-          const imagePath = item.image_url.split('/').slice(-3).join('/') // Extract path from URL
+          // Extract S3 key from CDN URL more safely
+          const url = new URL(item.image_url)
+          const imagePath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+          console.log('Deleting S3 file:', imagePath)
           await deleteUserFile(imagePath)
         } catch (error) {
           console.warn('Failed to delete image file:', error)

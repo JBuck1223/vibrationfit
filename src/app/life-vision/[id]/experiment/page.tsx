@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles, Trash2, Download, VolumeX, Gem, ChevronDown, Check } from 'lucide-react'
@@ -48,11 +48,11 @@ const CategoryCard = ({ category, selected = false, onClick, className = '' }: a
     <Card 
       variant={selected ? 'elevated' : 'default'} 
       hover 
-      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'ring-2 ring-primary-500 border-primary-500' : ''} ${className}`}
+      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500 md:ring-2 md:ring-primary-500' : ''} ${className}`}
       onClick={onClick}
     >
       <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
-        <Icon icon={IconComponent} size="sm" color={selected ? '#199D67' : '#14B8A6'} />
+        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#14B8A6'} />
         <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
           {category.label}
         </span>
@@ -62,12 +62,31 @@ const CategoryCard = ({ category, selected = false, onClick, className = '' }: a
 }
 
 // VisionCard component for displaying vision content
-const VisionCard = ({ category, content, isCompleted, onEdit }: any) => {
+const VisionCard = ({ category, content, isCompleted, isEditing, onEdit, onSave, onCancel, onUpdate, saving }: any) => {
   const IconComponent = category.icon
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  
+  // Auto-resize textarea function
+  const autoResizeTextarea = useCallback((textarea: HTMLTextAreaElement) => {
+    textarea.style.height = 'auto'
+    textarea.style.height = textarea.scrollHeight + 'px'
+  }, [])
+
+  // Auto-resize textarea when content or editing state changes
+  useEffect(() => {
+    if (textareaRef.current && isEditing) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        if (textareaRef.current) {
+          autoResizeTextarea(textareaRef.current)
+        }
+      }, 50)
+    }
+  }, [content, isEditing, autoResizeTextarea])
   
   return (
     <Card className="transition-all duration-300 hover:shadow-lg">
-      <div className="p-6">
+      <div className="px-1 py-4 md:p-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCompleted ? 'bg-primary-500' : 'bg-neutral-700'}`}>
@@ -77,53 +96,85 @@ const VisionCard = ({ category, content, isCompleted, onEdit }: any) => {
             <h3 className="text-lg font-semibold text-white">{category.label}</h3>
             <p className="text-sm text-neutral-400">{category.description}</p>
           </div>
-          {isCompleted && (
-            <Badge variant="success" className="flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" />
-              Complete
-            </Badge>
-          )}
         </div>
 
-        {/* Content */}
-        <div className="mb-4">
-          {content?.trim() ? (
-            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
-              <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
-                {content}
-              </p>
-            </div>
-          ) : (
-            <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg p-8 text-center">
-              <p className="text-neutral-500 mb-3">No content for this section yet</p>
+        {/* Content or Edit Mode */}
+        {isEditing ? (
+          <div className="space-y-4">
+            <textarea
+              ref={textareaRef}
+              value={content || ''}
+              onChange={(e) => {
+                onUpdate(e.target.value)
+                if (textareaRef.current) {
+                  autoResizeTextarea(textareaRef.current)
+                }
+              }}
+              placeholder={`Describe your vision for ${category.label.toLowerCase()}...`}
+              className="w-full min-h-[200px] px-1 py-3 md:p-4 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none resize-none"
+              style={{ overflow: 'hidden' }}
+            />
+            <div className="flex justify-end gap-3">
               <Button
-                onClick={() => onEdit(category.key)}
-                variant="primary"
-                size="sm"
-                className="flex items-center gap-2 mx-auto"
+                onClick={onCancel}
+                variant="outline"
+                disabled={saving}
               >
-                <Edit3 className="w-4 h-4" />
-                Add Content
+                Cancel
+              </Button>
+              <Button
+                onClick={onSave}
+                variant="primary"
+                disabled={saving}
+                className="flex items-center gap-2"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-neutral-700">
-          <div className="text-xs text-neutral-500">
-            {isCompleted ? 'Completed' : 'In Progress'}
           </div>
-          <Button
-            onClick={() => onEdit(category.key)}
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Edit3 className="w-4 h-4" />
-            {content?.trim() ? 'Edit' : 'Add'}
-          </Button>
-        </div>
+        ) : (
+          <>
+            {/* Content Display */}
+            <div className="mb-4">
+              {content?.trim() ? (
+                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg px-1 py-3 md:p-4">
+                  <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
+                    {content}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg px-2 py-4 md:p-8 text-center">
+                  <p className="text-neutral-500 mb-3">No content for this section yet</p>
+                  <Button
+                    onClick={() => onEdit(category.key)}
+                    variant="primary"
+                    size="sm"
+                    className="flex items-center gap-2 mx-auto"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Add Content
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-4 border-t border-neutral-700">
+              <div className="text-xs text-neutral-500">
+                {isCompleted ? 'Completed' : 'In Progress'}
+              </div>
+              <Button
+                onClick={() => onEdit(category.key)}
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                {content?.trim() ? 'Edit' : 'Add'}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </Card>
   )
@@ -249,6 +300,22 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
   const handleEditCategory = (categoryKey: string) => {
     setEditingCategory(categoryKey)
     setIsEditing(true)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditingCategory(null)
+  }
+
+  const handleSaveEdit = async () => {
+    await saveVision()
+    setIsEditing(false)
+    setEditingCategory(null)
+  }
+
+  const handleUpdateContent = (value: string) => {
+    if (!vision || !editingCategory) return
+    updateVision({ [editingCategory]: value })
   }
 
   // Save vision
@@ -443,6 +510,7 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
         {filteredCategories.map((category) => {
           const content = vision[category.key as keyof VisionData] as string
           const isCompleted = completedSections.includes(category.key)
+          const isCurrentlyEditing = isEditing && editingCategory === category.key
           
           return (
             <VisionCard
@@ -450,65 +518,17 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
               category={category}
               content={content}
               isCompleted={isCompleted}
+              isEditing={isCurrentlyEditing}
               onEdit={handleEditCategory}
+              onSave={handleSaveEdit}
+              onCancel={handleCancelEdit}
+              onUpdate={handleUpdateContent}
+              saving={saving}
             />
           )
         })}
       </div>
 
-      {/* Editing Modal */}
-      {isEditing && editingCategory && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-white">
-                  Edit {VISION_CATEGORIES.find(c => c.key === editingCategory)?.label}
-                </h3>
-                <Button
-                  onClick={() => {
-                    setIsEditing(false)
-                    setEditingCategory(null)
-                  }}
-                  variant="ghost"
-                  size="sm"
-                >
-                  ×
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                <Textarea
-                  value={vision[editingCategory as keyof VisionData] as string || ''}
-                  onChange={(e) => updateVision({ [editingCategory]: e.target.value })}
-                  placeholder={`Describe your vision for ${VISION_CATEGORIES.find(c => c.key === editingCategory)?.label.toLowerCase()}...`}
-                  rows={8}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
-                <Button
-                  onClick={() => {
-                    setIsEditing(false)
-                    setEditingCategory(null)
-                  }}
-                  variant="outline"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={saveVision}
-                  variant="primary"
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
 
       {/* Navigation */}
       <div className="mt-8 text-center">
