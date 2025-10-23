@@ -155,7 +155,7 @@ export function AIImageGenerator({
       const requestBody: any = {
         type,
         quality: 'standard',
-        size: type === 'vision_board' ? '1600x1200' : '1024x1024',
+        size: type === 'vision_board' ? '1792x1024' : '1024x1024',
         style: 'vivid',
         prompt: enhancedPrompt
       }
