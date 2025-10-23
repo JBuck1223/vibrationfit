@@ -86,9 +86,13 @@ export default function ExperimentPage() {
   const loadUserVision = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        console.log('No authenticated user found')
+        return
+      }
 
-      const { data, error } = await supabase
+      // First try to get a complete vision
+      let { data, error } = await supabase
         .from('life_visions')
         .select('*')
         .eq('user_id', user.id)
@@ -97,14 +101,37 @@ export default function ExperimentPage() {
         .limit(1)
         .single()
 
+      // If no complete vision, try to get any vision (including draft)
+      if (error && error.code === 'PGRST116') {
+        console.log('No complete vision found, trying to get any vision...')
+        const { data: draftData, error: draftError } = await supabase
+          .from('life_visions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (draftError) {
+          console.log('No vision found at all:', draftError.message)
+          return
+        }
+        
+        data = draftData
+        error = null
+      }
+
       if (error) {
-        console.error('Error loading vision:', error)
+        console.log('Error loading vision:', error.message)
         return
       }
 
-      setVision(data)
+      if (data) {
+        setVision(data)
+        console.log('Vision loaded successfully')
+      }
     } catch (error) {
-      console.error('Error loading vision:', error)
+      console.log('Unexpected error loading vision:', error)
     }
   }
 
@@ -441,15 +468,38 @@ Would you like to refine another category, or are you satisfied with this refine
         {/* Category Selection */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-white mb-6">Choose a Category to Refine</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {VISION_CATEGORIES.map((category) => (
-              <CategoryCard key={category.key} category={category} />
-            ))}
-          </div>
+          
+          {!vision ? (
+            <Card className="p-8 text-center">
+              <div className="w-16 h-16 bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Target className="w-8 h-8 text-neutral-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">No Vision Found</h3>
+              <p className="text-neutral-400 mb-6">
+                You need to create a life vision first before you can refine it. 
+                VIVA can help you create a powerful vision from scratch.
+              </p>
+              <Button
+                onClick={() => router.push('/life-vision/new')}
+                variant="primary"
+                size="lg"
+                className="flex items-center gap-2"
+              >
+                <Sparkles className="w-5 h-5" />
+                Create Your Life Vision
+              </Button>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {VISION_CATEGORIES.map((category) => (
+                <CategoryCard key={category.key} category={category} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Chat Interface */}
-        {selectedCategory && (
+        {selectedCategory && vision && (
           <div className="space-y-6">
             {chatMessages.length === 0 ? (
               <div className="text-center py-12">
