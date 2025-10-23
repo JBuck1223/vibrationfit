@@ -238,89 +238,79 @@ Would you like to refine another category, or are you satisfied with this refine
     setShowCopyPrompt(false)
   }
 
-  const CategoryCard = ({ category }: { category: any }) => {
-    const isSelected = selectedCategory === category.key
-    const categoryValue = getCategoryValue(category.key)
-    
+  const CategoryCard = ({ category, selected, onClick, className = '' }: { 
+    category: any, 
+    selected: boolean, 
+    onClick: () => void, 
+    className?: string 
+  }) => {
+    const IconComponent = category.icon
     return (
       <Card 
-        variant="outlined"
-        hover
-        className={`cursor-pointer transition-all duration-300 ${
-          isSelected 
-            ? 'border-primary-500 bg-primary-500/10 shadow-lg' 
-            : 'hover:border-primary-500/50'
-        }`}
-        onClick={() => setSelectedCategory(category.key)}
+        variant="outlined" 
+        hover 
+        className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500' : ''} ${className}`}
+        onClick={onClick}
       >
-        <div className="p-6">
-          <div className="flex items-center gap-4 mb-3">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              isSelected ? 'bg-primary-500' : 'bg-neutral-700'
-            }`}>
-              <category.icon className={`w-6 h-6 ${
-                isSelected ? 'text-white' : 'text-neutral-400'
-              }`} />
-            </div>
-            <div className="flex-1">
-              <h3 className={`text-lg font-semibold ${
-                isSelected ? 'text-primary-300' : 'text-white'
-              }`}>
-                {category.label}
-              </h3>
-              <p className="text-sm text-neutral-400">
-                {category.description}
-              </p>
-            </div>
-            {isSelected && (
-              <Badge variant="success" className="flex items-center gap-1">
-                <Check className="w-3 h-3" />
-                Selected
-              </Badge>
-            )}
-          </div>
-          
-          {categoryValue && (
-            <div className="mt-3 p-3 bg-neutral-800/50 rounded-lg">
-              <p className="text-sm text-neutral-300 line-clamp-2">
-                "{categoryValue}"
-              </p>
-            </div>
-          )}
+        <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+          <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#14B8A6'} />
+          <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
+            {category.label}
+          </span>
         </div>
       </Card>
     )
   }
 
-  const ChatInterface = () => (
-    <div className="space-y-6">
-      {/* Current Vision & Refinement Display */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary-400" />
-            Current Vision
-          </h3>
-          <div className="bg-neutral-800/50 p-4 rounded-lg">
-            <p className="text-neutral-300 text-sm">
-              "{getCategoryValue(selectedCategory!)}"
-            </p>
-          </div>
-        </Card>
+  const ChatInterface = () => {
+    const selectedCategoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
+    const categoryValue = getCategoryValue(selectedCategory!)
+    
+    return (
+      <div className="space-y-6">
+        {/* Current Vision & Refinement Display */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              {selectedCategoryInfo && (
+                <selectedCategoryInfo.icon className="w-8 h-8 text-primary-500" />
+              )}
+              <div>
+                <h3 className="text-lg font-semibold text-white">
+                  Current Vision - {selectedCategoryInfo?.label}
+                </h3>
+                <p className="text-sm text-neutral-400">
+                  Your existing vision for this category
+                </p>
+              </div>
+            </div>
+            <div className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
+              <p className="text-neutral-300 text-sm leading-relaxed">
+                {categoryValue || "No vision content available for this category."}
+              </p>
+            </div>
+          </Card>
 
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Wand2 className="w-5 h-5 text-purple-400" />
-            Current Refinement
-          </h3>
-          <Textarea
-            value={currentRefinement}
-            onChange={(e) => setCurrentRefinement(e.target.value)}
-            placeholder="Your refined vision will appear here..."
-            className="min-h-[100px] bg-neutral-800/50 border-neutral-600"
-          />
-        </Card>
-      </div>
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Wand2 className="w-8 h-8 text-purple-400" />
+              <div>
+                <h3 className="text-lg font-semibold text-white">
+                  My Current Refinement - {selectedCategoryInfo?.label}
+                </h3>
+                <p className="text-sm text-neutral-400">
+                  Your refined version of this vision
+                </p>
+              </div>
+            </div>
+            <Textarea
+              value={currentRefinement}
+              onChange={(e) => setCurrentRefinement(e.target.value)}
+              placeholder="Start refining your vision here, or let VIVA help you through conversation..."
+              className="min-h-[120px] bg-neutral-800/50 border-neutral-600"
+            />
+          </Card>
+        </div>
 
       {/* Chat Interface */}
       <Card className="p-6">
@@ -441,8 +431,9 @@ Would you like to refine another category, or are you satisfied with this refine
           </div>
         )}
       </Card>
-    </div>
-  )
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -506,9 +497,14 @@ Would you like to refine another category, or are you satisfied with this refine
         {/* Category Selection */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-white mb-6">Choose a Category to Refine</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
             {VISION_CATEGORIES.map((category) => (
-              <CategoryCard key={category.key} category={category} />
+              <CategoryCard 
+                key={category.key} 
+                category={category} 
+                selected={selectedCategory === category.key} 
+                onClick={() => setSelectedCategory(category.key)}
+              />
             ))}
           </div>
         </div>
