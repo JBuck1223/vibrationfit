@@ -15,7 +15,9 @@ import {
   Brain,
   Target,
   Zap,
-  Save
+  Save,
+  Edit,
+  Trash2
 } from 'lucide-react'
 import { 
   PageLayout, 
@@ -81,6 +83,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [showAllDrafts, setShowAllDrafts] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [visionId, setVisionId] = useState<string | null>(null)
+  const [editingDraft, setEditingDraft] = useState<string | null>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const supabase = createClient()
@@ -218,6 +221,43 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setIsDraftSaving(false)
     }
   }, [user, visionId, vision, allDrafts, supabase, loadVisionById])
+
+  // Edit a draft
+  const editDraft = (draft: any) => {
+    setSelectedCategory(draft.category)
+    setCurrentRefinement(draft.refinement_text || draft.current_refinement || '')
+    setEditingDraft(draft.id)
+    // Scroll to refinement section
+    setTimeout(() => {
+      const refinementSection = document.querySelector('[data-refinement-section]')
+      if (refinementSection) {
+        refinementSection.scrollIntoView({ behavior: 'smooth' })
+      }
+    }, 100)
+  }
+
+  // Delete a draft
+  const deleteDraft = async (draftId: string) => {
+    if (!confirm('Are you sure you want to delete this draft?')) return
+
+    try {
+      const { error } = await supabase
+        .from('refinements')
+        .delete()
+        .eq('id', draftId)
+
+      if (error) {
+        console.error('Error deleting draft:', error)
+        return
+      }
+
+      // Reload drafts
+      await loadAllDrafts()
+      console.log('Draft deleted successfully')
+    } catch (error) {
+      console.error('Error in deleteDraft:', error)
+    }
+  }
 
   // Load vision by ID when component mounts
   useEffect(() => {
@@ -766,13 +806,35 @@ Would you like to refine another category, or are you satisfied with this refine
                   const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === draft.category)
                   return (
                     <div key={draft.id} className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
-                      <div className="flex items-center gap-3 mb-2">
-                        {categoryInfo && <categoryInfo.icon className="w-5 h-5 text-primary-500" />}
-                        <span className="font-medium text-white">{categoryInfo?.label}</span>
-                        <Badge variant="warning" className="text-xs">Draft</Badge>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          {categoryInfo && <categoryInfo.icon className="w-5 h-5 text-primary-500" />}
+                          <span className="font-medium text-white">{categoryInfo?.label}</span>
+                          <Badge variant="warning" className="text-xs">Draft</Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={() => editDraft(draft)}
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-1 text-neutral-400 hover:text-white"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Edit
+                          </Button>
+                          <Button
+                            onClick={() => deleteDraft(draft.id)}
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-1 text-neutral-400 hover:text-red-400"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                       <p className="text-sm text-neutral-300 line-clamp-2">
-                        {draft.refinement_text}
+                        {draft.refinement_text || draft.current_refinement || 'No content'}
                       </p>
                       <p className="text-xs text-neutral-500 mt-2">
                         Created {new Date(draft.created_at).toLocaleDateString()}
@@ -823,7 +885,7 @@ Would you like to refine another category, or are you satisfied with this refine
               </div>
             </Card>
 
-            <Card className="p-6">
+            <Card className="p-6" data-refinement-section>
               <div className="flex items-center gap-3 mb-4">
                 <Wand2 className="w-8 h-8 text-purple-400" />
                 <div>
