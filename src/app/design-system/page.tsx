@@ -1625,9 +1625,9 @@ export default function DesignSystemExperiment() {
             <Stack gap="lg">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">All Life Categories</h2>
-                <p className="text-[#9CA3AF] text-sm md:text-base">Responsive grid - click to select (14 across on desktop, 2 across on mobile)</p>
+                <p className="text-[#9CA3AF] text-sm md:text-base">Responsive grid - click to select (14 across on desktop, 4 across on mobile)</p>
             </div>
-              <div className="grid grid-cols-2 md:grid-cols-14 gap-2 md:gap-3">
+              <div className="grid grid-cols-4 md:grid-cols-14 gap-2 md:gap-3">
                 {VISION_CATEGORIES.map((category) => (
                   <CategoryCard 
                     key={category.key} 

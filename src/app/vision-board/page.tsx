@@ -340,7 +340,7 @@ export default function VisionBoardPage() {
             </div>
 
             {/* Category Cards Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mt-4">
+            <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-3 mt-4">
               {VISION_CATEGORIES.map((category) => (
                 <CategoryCard 
                   key={category.key} 
