@@ -21,9 +21,9 @@ const CategoryCard = ({ category, selected = false, onClick, className = '' }: a
       className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''} ${className}`}
       onClick={onClick}
     >
-      <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+      <div className="flex flex-col items-center gap-1 p-1 justify-center h-full">
         <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} />
-        <span className="text-xs font-medium text-center leading-tight text-neutral-300">
+        <span className="text-[10px] font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
           {category.label}
         </span>
       </div>
@@ -472,12 +472,13 @@ export default function NewVisionBoardItemPage() {
               </div>
 
               {/* Submit */}
-              <div className="flex gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button
                   type="submit"
                   size="lg"
                   loading={loading}
                   disabled={loading}
+                  className="w-full sm:w-auto"
                 >
                   {loading ? 'Creating...' : 'Add to Vision Board'}
                 </Button>
@@ -486,6 +487,7 @@ export default function NewVisionBoardItemPage() {
                   variant="ghost"
                   size="lg"
                   onClick={() => router.back()}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>

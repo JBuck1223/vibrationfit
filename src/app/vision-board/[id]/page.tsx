@@ -26,9 +26,9 @@ const CategoryCard = ({ category, selected = false, onClick, className = '' }: a
       className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''} ${className}`}
       onClick={onClick}
     >
-      <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+      <div className="flex flex-col items-center gap-1 p-1 justify-center h-full">
         <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} />
-        <span className="text-xs font-medium text-center leading-tight text-neutral-300">
+        <span className="text-[10px] font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
           {category.label}
         </span>
       </div>
@@ -558,12 +558,13 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
               </div>
 
               {/* Actions */}
-              <div className="flex gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button
                   type="submit"
                   size="lg"
                   loading={saving}
                   disabled={saving}
+                  className="w-full sm:w-auto"
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
@@ -572,6 +573,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   variant="ghost"
                   size="lg"
                   onClick={() => setIsEditing(false)}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
@@ -580,7 +582,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   variant="ghost"
                   size="lg"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  className="w-full sm:w-auto text-red-400 hover:text-red-300 hover:bg-red-500/10"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete
