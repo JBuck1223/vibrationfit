@@ -1,34 +1,40 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Input, Button, Textarea } from '@/lib/design-system'
-import { FileUpload } from '@/components/FileUpload'
+import { PageLayout, Card, Input, Button, Textarea, Icon } from '@/lib/design-system'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2 } from 'lucide-react'
+import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter } from 'lucide-react'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { AIImageGenerator } from '@/components/AIImageGenerator'
 import Link from 'next/link'
-
-const LIFE_CATEGORIES = [
-  'Fun / Recreation',
-  'Variety / Travel / Adventure',
-  'Home / Environment',
-  'Family / Parenting',
-  'Love / Romance / Partner',
-  'Health / Body / Vitality',
-  'Money / Wealth / Investments',
-  'Business / Career / Work',
-  'Social / Friends',
-  'Giving / Contribution / Legacy',
-  'Things / Belongings / Stuff',
-  'Expansion / Spirituality',
-]
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
   { value: 'actualized', label: 'Actualized' },
   { value: 'inactive', label: 'Inactive' },
 ]
+
+// CategoryCard component (copied from main form)
+const CategoryCard = ({ category, selected = false, onClick, className = '' }: any) => {
+  const IconComponent = category.icon
+  return (
+    <Card 
+      variant={selected ? 'elevated' : 'default'} 
+      hover 
+      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''} ${className}`}
+      onClick={onClick}
+    >
+      <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} />
+        <span className="text-xs font-medium text-center leading-tight text-neutral-300">
+          {category.label}
+        </span>
+      </div>
+    </Card>
+  )
+}
 
 interface VisionBoardItem {
   id: string
@@ -59,6 +65,9 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
     status: 'active',
     categories: [] as string[]
   })
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [imageSource, setImageSource] = useState<'upload' | 'ai'>('upload')
+  const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
     fetchItem()
@@ -91,12 +100,12 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
     }
   }
 
-  const handleCategoryToggle = (category: string) => {
+  const handleCategoryToggle = (categoryLabel: string) => {
     setFormData(prev => ({
       ...prev,
-      categories: prev.categories.includes(category)
-        ? prev.categories.filter(c => c !== category)
-        : [...prev.categories, category]
+      categories: prev.categories.includes(categoryLabel)
+        ? prev.categories.filter(c => c !== categoryLabel)
+        : [...prev.categories, categoryLabel]
     }))
   }
 
@@ -116,20 +125,26 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
       const resolvedParams = await params
       let imageUrl = item.image_url
 
-      // Upload new image if provided
-      if (file) {
+      // Handle new image (uploaded file or AI-generated)
+      if (file || aiGeneratedImageUrl) {
         // Delete old image if it exists
         if (item.image_url) {
           const oldPath = item.image_url.split('/').slice(-3).join('/') // Extract path from URL
           await deleteUserFile(oldPath)
         }
 
-        try {
-          const uploadResult = await uploadUserFile('visionBoard', file, user.id)
-          imageUrl = uploadResult.url
-        } catch (error) {
-          alert(`Upload failed: ${error}`)
-          return
+        if (file) {
+          // Upload new file
+          try {
+            const uploadResult = await uploadUserFile('visionBoard', file, user.id)
+            imageUrl = uploadResult.url
+          } catch (error) {
+            alert(`Upload failed: ${error}`)
+            return
+          }
+        } else if (aiGeneratedImageUrl) {
+          // Use AI-generated image URL
+          imageUrl = aiGeneratedImageUrl
         }
       }
 
@@ -300,99 +315,250 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
 
         <Card>
           {isEditing ? (
-            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-8">
               {/* Name */}
-              <Input
-                label="Creation Name"
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
+              <div>
+                <Input
+                  label="Creation Name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="What do you want to create?"
+                  required
+                />
+              </div>
 
               {/* Description */}
-              <Textarea
-                label="Description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
-              />
+              <div>
+                <Textarea
+                  label="Description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe this creation."
+                  rows={4}
+                />
+              </div>
+
+              {/* Image Section */}
+              <div>
+                <p className="text-sm text-neutral-400 mb-3 text-center">
+                  Update your vision image
+                </p>
+                
+                {/* Upload/Generate Buttons */}
+                <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                  <Button
+                    type="button"
+                    variant={imageSource === 'upload' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      if (imageSource === 'upload') {
+                        fileInputRef.current?.click()
+                      } else {
+                        setImageSource('upload')
+                        setAiGeneratedImageUrl(null)
+                      }
+                    }}
+                    className="w-full sm:flex-1"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Image
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={imageSource === 'ai' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setImageSource('ai')
+                      setFile(null)
+                    }}
+                    className="w-full sm:flex-1"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate with VIVA
+                  </Button>
+                </div>
+
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                  onChange={(e) => {
+                    const selectedFile = e.target.files?.[0]
+                    if (selectedFile) {
+                      setFile(selectedFile)
+                      setImageSource('upload')
+                    }
+                  }}
+                  className="hidden"
+                />
+
+                {/* Show current image */}
+                {item.image_url && (
+                  <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mb-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      <img
+                        src={item.image_url}
+                        alt="Current Image"
+                        className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                      />
+                      <div className="flex-1 text-center sm:text-left">
+                        <p className="text-sm font-medium text-white">Current Image</p>
+                        <p className="text-xs text-neutral-400">Will be replaced when you upload/generate new image</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show drag-drop zone or selected file */}
+                {imageSource === 'upload' && !file && (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-neutral-600 rounded-xl p-8 text-center cursor-pointer hover:border-neutral-500 transition-colors"
+                  >
+                    <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                    <p className="text-neutral-300 font-medium mb-1">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      PNG, JPG, WEBP, or HEIC (max 10MB)
+                    </p>
+                  </div>
+                )}
+
+                {imageSource === 'upload' && file && (
+                  <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      {/* Show image preview for supported formats, custom icon for HEIC */}
+                      {file.type === 'image/heic' || file.type === 'image/heif' ? (
+                        <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mx-auto sm:mx-0">
+                          <div className="text-white text-center">
+                            <div className="text-2xl font-bold">HEIC</div>
+                            <div className="text-xs opacity-80">Apple</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                        />
+                      )}
+                      <div className="flex-1 text-center sm:text-left">
+                        <p className="text-sm font-medium text-white break-words">{file.name}</p>
+                        <p className="text-xs text-neutral-400">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                          {(file.type === 'image/heic' || file.type === 'image/heif') && (
+                            <span className="ml-2 text-purple-400">• HEIC Format</span>
+                          )}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFile(null)}
+                        className="w-full sm:w-auto"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {imageSource === 'ai' && (
+                  <>
+                    <AIImageGenerator
+                      type="vision_board"
+                      onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
+                      title={formData.name}
+                      description={formData.description}
+                      visionText={
+                        formData.name && formData.description
+                          ? `${formData.name}. ${formData.description}`
+                          : formData.description || formData.name || ''
+                      }
+                    />
+                    
+                    {/* Show AI-generated image preview */}
+                    {aiGeneratedImageUrl && (
+                      <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                          <img
+                            src={aiGeneratedImageUrl}
+                            alt="AI Generated Preview"
+                            className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                          />
+                          <div className="flex-1 text-center sm:text-left">
+                            <p className="text-sm font-medium text-white">AI Generated Image</p>
+                            <p className="text-xs text-neutral-400">
+                              Generated with VIVA
+                              <span className="ml-2 text-purple-400">• AI Created</span>
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAiGeneratedImageUrl(null)}
+                            className="w-full sm:w-auto"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
 
               {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3">
-                  Status
-                </label>
-                <div className="space-y-2">
+                <p className="text-sm text-neutral-400 mb-3 text-center">
+                  Select the status for your vision item
+                </p>
+                {/* Status Buttons - Single Line, Equal Width */}
+                <div className="flex gap-1">
                   {STATUS_OPTIONS.map((status) => (
-                    <label
+                    <button
                       key={status.value}
-                      className="flex items-center gap-3 p-3 bg-neutral-800 rounded-lg cursor-pointer hover:bg-neutral-700 transition-colors"
+                      onClick={() => setFormData({ ...formData, status: status.value })}
+                      className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-1 ${
+                        formData.status === status.value
+                          ? status.value === 'active' 
+                            ? 'bg-green-600 text-white shadow-lg'
+                            : status.value === 'actualized'
+                            ? 'bg-purple-500 text-white shadow-lg'
+                            : 'bg-gray-600 text-white shadow-lg'
+                          : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                      }`}
                     >
-                      <input
-                        type="radio"
-                        name="status"
-                        value={status.value}
-                        checked={formData.status === status.value}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-4 h-4 text-primary-500 bg-neutral-700 border-neutral-600 focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-neutral-200">{status.label}</span>
-                    </label>
+                      {status.label}
+                    </button>
                   ))}
                 </div>
               </div>
 
               {/* Life Categories */}
               <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3">
-                  Life Category (Select all that apply)
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {LIFE_CATEGORIES.map((category) => (
-                    <label
-                      key={category}
-                      className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg cursor-pointer hover:bg-neutral-700 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.categories.includes(category)}
-                        onChange={() => handleCategoryToggle(category)}
-                        className="w-4 h-4 text-primary-500 bg-neutral-700 border-neutral-600 rounded focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-neutral-200">{category}</span>
-                    </label>
+                <p className="text-sm text-neutral-400 mb-3 text-center">
+                  Select categories for your vision item
+                </p>
+                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+                  {VISION_CATEGORIES.map((category) => (
+                    <CategoryCard
+                      key={category.key}
+                      category={category}
+                      selected={formData.categories.includes(category.label)}
+                      onClick={() => handleCategoryToggle(category.label)}
+                    />
                   ))}
                 </div>
               </div>
 
-              {/* Image Upload */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3">
-                  Vision Image
-                </label>
-                {item.image_url && (
-                  <div className="mb-4">
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="w-32 h-32 object-cover rounded-lg"
-                    />
-                    <p className="text-xs text-neutral-400 mt-1">Current image</p>
-                  </div>
-                )}
-                <FileUpload
-                  accept="image/*"
-                  multiple={false}
-                  maxFiles={1}
-                  maxSize={10}
-                  onUpload={(files) => setFile(files[0] || null)}
-                  label="Update Image"
-                />
-              </div>
-
               {/* Actions */}
-              <div className="flex gap-4">
+              <div className="flex gap-4 justify-center">
                 <Button
                   type="submit"
                   size="lg"
