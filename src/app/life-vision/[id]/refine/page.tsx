@@ -17,7 +17,8 @@ import {
   TrendingUp,
   Target,
   Palette,
-  Volume2
+  Volume2,
+  Check
 } from 'lucide-react'
 import { 
   PageLayout, 
@@ -27,7 +28,8 @@ import {
   ProgressBar, 
   Spinner,
   Input,
-  Textarea
+  Textarea,
+  Icon
 } from '@/lib/design-system'
 import { 
   checkVibeAssistantAllowance,
@@ -87,6 +89,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [error, setError] = useState<string | null>(null)
   const [allowance, setAllowance] = useState<VibeAssistantAllowance | null>(null)
   
+  // Card filtering state
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  
   // Refinement state
   const [selectedCategory, setSelectedCategory] = useState('forward')
   const [activeVision, setActiveVision] = useState('')
@@ -133,6 +138,23 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     console.log('✅ Resized to:', newHeight)
   }
 
+  // Card filtering functions
+  const handleCategoryToggle = (categoryKey: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(categoryKey) 
+        ? prev.filter(key => key !== categoryKey)
+        : [...prev, categoryKey]
+    )
+  }
+
+  const handleSelectAll = () => {
+    if (selectedCategories.length === VISION_CATEGORIES.length) {
+      setSelectedCategories([])
+    } else {
+      setSelectedCategories(VISION_CATEGORIES.map(cat => cat.key))
+    }
+  }
+
   // Load vision data
   useEffect(() => {
     const loadData = async () => {
@@ -170,6 +192,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         }
 
         setVision(visionData)
+        
+        // Initialize with all categories selected
+        setSelectedCategories(VISION_CATEGORIES.map(cat => cat.key))
         
         // Load allowance info
         const allowanceData = await checkVibeAssistantAllowance()
@@ -482,6 +507,31 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   const selectedCategoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
 
+  // CategoryCard component for filtering
+  const CategoryCard = ({ category, selected, onClick, className = '' }: { 
+    category: any, 
+    selected: boolean, 
+    onClick: () => void, 
+    className?: string 
+  }) => {
+    const IconComponent = category.icon
+    return (
+      <Card 
+        variant="outlined" 
+        hover 
+        className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500' : ''} ${className}`}
+        onClick={onClick}
+      >
+        <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+          <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#14B8A6'} />
+          <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
+            {category.label}
+          </span>
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <>
       {/* Header */}
@@ -552,6 +602,41 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           )}
         </div>
 
+        {/* Category Selection Filter */}
+        <div className="mb-6">
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Select Life Areas to Refine</h3>
+                <p className="text-sm text-neutral-400">
+                  Showing {selectedCategories.length} of {VISION_CATEGORIES.length} areas
+                </p>
+              </div>
+              <Button
+                onClick={handleSelectAll}
+                variant={selectedCategories.length === VISION_CATEGORIES.length ? "primary" : "outline"}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                {selectedCategories.length === VISION_CATEGORIES.length ? 'Deselect All' : 'Select All'}
+              </Button>
+            </div>
+
+            {/* Category Grid */}
+            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+              {VISION_CATEGORIES.map((category) => (
+                <CategoryCard 
+                  key={category.key} 
+                  category={category} 
+                  selected={selectedCategories.includes(category.key)} 
+                  onClick={() => handleCategoryToggle(category.key)}
+                />
+              ))}
+            </div>
+          </Card>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Category Selector - Sidebar */}
           <div className="lg:col-span-1">
@@ -561,7 +646,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 Vision Categories
               </h3>
               <div className="space-y-2">
-                {VISION_CATEGORIES.map((category) => {
+                {VISION_CATEGORIES.filter(category => selectedCategories.includes(category.key)).map((category) => {
                   const IconComponent = category.icon
                   return (
                     <button
@@ -583,6 +668,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     </button>
                   )
                 })}
+                {selectedCategories.length === 0 && (
+                  <div className="text-center py-8 text-neutral-500">
+                    <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Select categories above to refine</p>
+                  </div>
+                )}
               </div>
             </Card>
           </div>
