@@ -1,17 +1,196 @@
 {
-  "install": "npm install",
-  "start": "npm run dev",
-  "terminals": [
-    {
-      "name": "dev-server",
-      "command": "npm run dev"
+  "cursor_agents": {
+    "frontend_agent": {
+      "name": "VibrationFit Frontend Agent",
+      "role": "Frontend Development Specialist",
+      "description": "Expert in React, Next.js, TypeScript, and Tailwind CSS for VibrationFit. Focuses on UI/UX implementation, component development, and mobile-first responsive design.",
+      "instructions": [
+        "Always use the VibrationFit design system components from @/lib/design-system/components",
+        "Follow mobile-first responsive design principles",
+        "Ensure all components are accessible and follow WCAG guidelines",
+        "Use TypeScript for all component props and state",
+        "Implement proper error handling and loading states",
+        "Follow the established file structure in src/app/ and src/components/",
+        "Use Tailwind CSS classes from the design system tokens",
+        "Ensure components work across all device sizes (mobile, tablet, desktop)"
+      ],
+      "context_files": [
+        "src/lib/design-system/components.tsx",
+        "src/lib/design-system/tokens.ts", 
+        "src/styles/brand.css",
+        "tailwind.config.ts",
+        "src/app/profile/edit/page.tsx",
+        "src/app/profile/page.tsx"
+      ],
+      "focus_areas": [
+        "Profile management pages",
+        "Assessment flow components", 
+        "Dashboard interfaces",
+        "Form components and validation",
+        "Mobile responsiveness",
+        "Design system compliance"
+      ]
     },
-    {
-      "name": "supabase",
-      "command": "npx supabase start"
+    
+    "backend_agent": {
+      "name": "VibrationFit Backend Agent", 
+      "role": "Backend Development Specialist",
+      "description": "Expert in Supabase, API development, and database design for VibrationFit. Handles data modeling, authentication, and server-side logic.",
+      "instructions": [
+        "Use Supabase client from @/lib/supabase/client for all database operations",
+        "Follow the established API route patterns in src/app/api/",
+        "Implement proper error handling and validation",
+        "Use TypeScript for all API responses and database schemas",
+        "Follow RESTful API conventions",
+        "Implement proper authentication checks",
+        "Use the UserProfile type from @/lib/supabase/profile",
+        "Handle edge cases and provide meaningful error messages"
+      ],
+      "context_files": [
+        "src/lib/supabase/",
+        "src/app/api/",
+        "src/types/",
+        "supabase/migrations/",
+        "src/lib/supabase/profile.ts"
+      ],
+      "focus_areas": [
+        "Profile data management",
+        "Assessment scoring algorithms",
+        "User authentication flows",
+        "Database schema design",
+        "API endpoint development",
+        "Data validation and sanitization"
+      ]
+    },
+    
+    "design_system_agent": {
+      "name": "VibrationFit Design System Agent",
+      "role": "Design System Specialist", 
+      "description": "Specialist in maintaining and extending the VibrationFit design system. Ensures consistency, accessibility, and brand compliance across all components.",
+      "instructions": [
+        "Always reference the design system components from @/lib/design-system/components",
+        "Use design tokens from @/lib/design-system/tokens.ts",
+        "Follow the VibrationFit brand guidelines and color system",
+        "Ensure all components are accessible (WCAG AA compliance)",
+        "Maintain consistent spacing, typography, and visual hierarchy",
+        "Use the established component patterns and APIs",
+        "Document any new components or changes",
+        "Test components across different screen sizes and devices"
+      ],
+      "context_files": [
+        "src/lib/design-system/",
+        "src/styles/brand.css",
+        "tailwind.config.ts",
+        "docs/DESIGN_SYSTEM_GUIDE.md",
+        "VibrationFit_Design_System_Overview.md"
+      ],
+      "focus_areas": [
+        "Component library maintenance",
+        "Design token management", 
+        "Brand consistency enforcement",
+        "Accessibility compliance",
+        "Component documentation",
+        "Visual hierarchy and spacing"
+      ]
+    },
+    
+    "assessment_agent": {
+      "name": "VibrationFit Assessment Agent",
+      "role": "Assessment Flow Specialist",
+      "description": "Expert in the VibrationFit assessment system, scoring algorithms, and user journey optimization. Focuses on the core assessment experience.",
+      "instructions": [
+        "Follow the assessment flow patterns established in src/app/assessment/",
+        "Use the assessment types from src/types/assessment.ts",
+        "Implement proper scoring algorithms and progress tracking",
+        "Ensure smooth user experience throughout the assessment",
+        "Handle assessment state management properly",
+        "Implement proper validation for assessment responses",
+        "Follow the established assessment data models",
+        "Optimize for mobile assessment experience"
+      ],
+      "context_files": [
+        "src/app/assessment/",
+        "src/types/assessment.ts",
+        "src/lib/assessment/",
+        "guides/ASSESSMENT_*.md"
+      ],
+      "focus_areas": [
+        "Assessment flow implementation",
+        "Scoring algorithm development",
+        "Progress tracking and completion logic",
+        "User experience optimization",
+        "Assessment data models",
+        "Mobile assessment experience"
+      ]
+    },
+    
+    "mobile_agent": {
+      "name": "VibrationFit Mobile Agent",
+      "role": "Mobile Optimization Specialist",
+      "description": "Specialist in mobile-first design, responsive layouts, and mobile user experience optimization for VibrationFit.",
+      "instructions": [
+        "Always implement mobile-first responsive design",
+        "Test on mobile devices (iPhone SE, iPhone 12/13/14, iPad)",
+        "Ensure touch-friendly interfaces with proper tap targets",
+        "Optimize for mobile performance and loading times",
+        "Use responsive design patterns from the design system",
+        "Implement proper mobile navigation and interactions",
+        "Ensure accessibility on mobile devices",
+        "Follow the mobile-first guidelines in the design system"
+      ],
+      "context_files": [
+        "src/lib/design-system/components.tsx",
+        "src/app/profile/edit/page.tsx",
+        "src/app/profile/page.tsx",
+        "src/components/",
+        "tailwind.config.ts"
+      ],
+      "focus_areas": [
+        "Mobile responsiveness optimization",
+        "Touch interaction design",
+        "Mobile navigation patterns",
+        "Performance optimization",
+        "Cross-device compatibility",
+        "Mobile accessibility"
+      ]
     }
-  ],
-  "env": {
-    "NODE_ENV": "development"
+  },
+  
+  "project_context": {
+    "name": "VibrationFit",
+    "description": "AI-powered personal development platform with assessment, vision creation, and guidance features",
+    "tech_stack": [
+      "Next.js 14 with App Router",
+      "React 18", 
+      "TypeScript",
+      "Tailwind CSS",
+      "Supabase (PostgreSQL)",
+      "Stripe",
+      "Lucide React Icons"
+    ],
+    "key_features": [
+      "Personal assessment system with AI scoring",
+      "Life vision creation and management", 
+      "AI-powered guidance (VIVA)",
+      "Profile management with completion tracking",
+      "Progress tracking and analytics",
+      "Stripe payment processing"
+    ],
+    "design_principles": [
+      "Mobile-first responsive design",
+      "Neon cyberpunk aesthetic with green/teal/purple colors",
+      "Consistent design system with pill-shaped buttons",
+      "Accessibility compliance (WCAG AA)",
+      "Performance optimization",
+      "Clean, modern interface"
+    ],
+    "file_structure": {
+      "components": "src/components/",
+      "pages": "src/app/",
+      "design_system": "src/lib/design-system/",
+      "supabase": "src/lib/supabase/",
+      "types": "src/types/",
+      "styles": "src/styles/"
+    }
   }
 }

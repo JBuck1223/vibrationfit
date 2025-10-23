@@ -498,7 +498,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="mb-8">
         {/* Mobile Header */}
-        <div className="md:hidden space-y-4 mb-6">
+        <div className="md:hidden space-y-4 mb-4">
           {/* Title and Badge */}
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -511,7 +511,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Desktop Header */}
-        <div className="hidden md:flex items-center gap-4 mb-6">
+        <div className="hidden md:flex items-center gap-4 mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-white">Complete Your Profile</h1>
@@ -523,8 +523,8 @@ export default function ProfilePage() {
         </div>
       </div>
 
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               {saveStatus === 'saving' && (
                 <>

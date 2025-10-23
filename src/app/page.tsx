@@ -45,7 +45,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   return (
-    <PageLayout containerSize="xl" className="!-mt-6">
+    <PageLayout containerSize="xl">
       <Stack gap="xl">
         
         {/* Hero Section */}
@@ -53,7 +53,7 @@ export default function HomePage() {
           <Cover minHeight="500px" className="!p-0">
             <div className="w-full">
               {/* Headline at top */}
-              <div className="text-center mb-4 md:mb-6 -mt-8 md:-mt-6 px-2 md:px-0">
+              <div className="text-center mb-4 md:mb-6 px-2 md:px-0">
                 <h1 className="text-2xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
                   Thoughts become things…
                   <br />
