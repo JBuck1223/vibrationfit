@@ -240,7 +240,7 @@ export default function NewVisionBoardItemPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
-                placeholder="Describe this creation in detail. What does it look like? How does it feel? What will it bring to your life?"
+                placeholder="Describe this creation."
               />
 
               {/* Image Source Toggle */}
@@ -379,12 +379,12 @@ export default function NewVisionBoardItemPage() {
                   Select the status for your vision item
                 </p>
                 {/* Status Buttons - Single Line, Equal Width */}
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex gap-1">
                   {STATUS_OPTIONS.map((status) => (
                     <button
                       key={status.value}
                       onClick={() => setFormData({ ...formData, status: status.value })}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 w-full sm:flex-1 ${
+                      className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-1 ${
                         formData.status === status.value
                           ? status.value === 'active' 
                             ? 'bg-green-600 text-white shadow-lg'
@@ -394,9 +394,6 @@ export default function NewVisionBoardItemPage() {
                           : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                       }`}
                     >
-                      {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
-                      {status.value === 'actualized' && <CheckCircle className="w-3 h-3 text-white" />}
-                      {status.value === 'inactive' && <XCircle className="w-3 h-3 text-white" />}
                       {status.label}
                     </button>
                   ))}
