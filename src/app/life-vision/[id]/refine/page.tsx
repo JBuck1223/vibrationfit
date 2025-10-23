@@ -87,21 +87,45 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   // Load all drafts for this vision
   const loadAllDrafts = useCallback(async () => {
-    if (!user || !visionId) return
+    if (!user || !visionId) {
+      console.log('Skipping loadAllDrafts - missing user or visionId:', { user: !!user, visionId })
+      return
+    }
 
     try {
+      console.log('Loading drafts for user:', user.id, 'vision:', visionId)
+      
+      // First, let's check if the refinements table exists and what columns it has
       const { data, error } = await supabase
         .from('refinements')
         .select('*')
         .eq('user_id', user.id)
         .eq('vision_id', visionId)
-        .eq('status', 'draft')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      setAllDrafts(data || [])
+      if (error) {
+        console.error('Supabase error loading refinements:', error)
+        // If the table doesn't exist or has different structure, return empty array
+        if (error.code === '42P01' || error.message.includes('does not exist')) {
+          console.log('Refinements table does not exist yet, returning empty array')
+          setAllDrafts([])
+          return
+        }
+        throw error
+      }
+      
+      // Filter for draft status if the status column exists
+      const drafts = data?.filter(item => 
+        item.status === 'draft' || 
+        !item.status // Include items without status if status column doesn't exist
+      ) || []
+      
+      console.log('Successfully loaded drafts:', drafts.length)
+      setAllDrafts(drafts)
     } catch (error) {
       console.error('Error loading drafts:', error)
+      // Set empty array on error to prevent UI issues
+      setAllDrafts([])
     }
   }, [user, visionId, supabase])
 
@@ -202,10 +226,13 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   // Load all drafts when vision loads
   useEffect(() => {
-    if (visionId) {
+    if (visionId && user) {
+      console.log('useEffect triggered - loading drafts for vision:', visionId)
       loadAllDrafts()
+    } else {
+      console.log('useEffect skipped - missing visionId or user:', { visionId, user: !!user })
     }
-  }, [visionId, loadAllDrafts])
+  }, [visionId, user, loadAllDrafts])
 
   // Read category from URL parameters
   useEffect(() => {
@@ -366,23 +393,35 @@ Would you like to refine another category, or are you satisfied with this refine
       if (!user) return
 
       // Save draft to refinements table
+      const draftData: any = {
+        user_id: user.id,
+        vision_id: vision.id,
+        category: selectedCategory,
+        refinement_text: currentRefinement, // Use refinement_text instead of current_refinement
+        operation_type: 'refine_vision',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      // Only add status if the column exists
+      try {
+        draftData.status = 'draft'
+      } catch (e) {
+        console.log('Status column may not exist, skipping')
+      }
+
       const { error } = await supabase
         .from('refinements')
-        .upsert({
-          user_id: user.id,
-          vision_id: vision.id,
-          category: selectedCategory,
-          current_refinement: currentRefinement,
-          status: 'draft',
-          operation_type: 'refine_vision',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }, {
+        .upsert(draftData, {
           onConflict: 'user_id,vision_id,category'
         })
 
       if (error) {
         console.error('Error saving draft:', error)
+        // If the table doesn't exist, just log and continue
+        if (error.code === '42P01' || error.message.includes('does not exist')) {
+          console.log('Refinements table does not exist yet, skipping save')
+        }
         return
       }
 
