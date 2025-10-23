@@ -396,7 +396,6 @@ Would you like to refine another category, or are you satisfied with this refine
 
   const ChatInterface = () => (
     <div className="space-y-6">
-
       {/* Chat Interface */}
       <Card className="p-6">
         <div className="flex items-center gap-3 mb-6">
@@ -421,7 +420,7 @@ Would you like to refine another category, or are you satisfied with this refine
               {message.role === 'assistant' && (
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
                   <Bot className="w-4 h-4 text-white" />
-              </div>
+                </div>
               )}
               
               <div
@@ -434,8 +433,8 @@ Would you like to refine another category, or are you satisfied with this refine
                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 <p className="text-xs opacity-70 mt-2">
                   {message.timestamp.toLocaleTimeString()}
-              </p>
-            </div>
+                </p>
+              </div>
 
               {message.role === 'user' && (
                 <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -476,14 +475,14 @@ Would you like to refine another category, or are you satisfied with this refine
               }
             }}
           />
-            <Button
+          <Button
             onClick={sendMessage}
             disabled={!currentMessage.trim() || isTyping}
             className="px-4"
           >
             <Send className="w-4 h-4" />
-            </Button>
-          </div>
+          </Button>
+        </div>
 
         {/* Copy Prompt */}
         {showCopyPrompt && (
@@ -495,45 +494,72 @@ Would you like to refine another category, or are you satisfied with this refine
                 </p>
               </div>
               <div className="flex gap-2">
-              <Button
+                <Button
                   variant="outline"
-                size="sm"
+                  size="sm"
                   onClick={() => setShowCopyPrompt(false)}
-              >
+                >
                   Cancel
-              </Button>
-              <Button
+                </Button>
+                <Button
                   variant="primary"
-                size="sm"
+                  size="sm"
                   onClick={copyToRefinement}
-                className="flex items-center gap-2"
-              >
+                  className="flex items-center gap-2"
+                >
                   <Copy className="w-4 h-4" />
                   Copy to Refinement
-              </Button>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
         )}
       </Card>
-      </div>
+    </div>
+  )
+
+  if (loading) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center py-16">
+          <Spinner variant="primary" size="lg" />
+        </div>
+      </PageLayout>
     )
   }
 
-                  
-                  return (
+  if (error || !vision) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center py-16">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <Sparkles className="w-16 h-16 mx-auto" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Vision Error</h2>
+            <p className="text-neutral-400 mb-6">{error || 'Vision not found'}</p>
+            <Button onClick={() => router.back()} variant="primary">
+              Go Back
+            </Button>
+          </div>
+        </div>
+      </PageLayout>
+    )
+  }
+
+  return (
     <div className="py-8">
-                        {/* Header */}
+      {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
-                          <Button
+          <Button
             onClick={() => router.back()}
             variant="ghost"
             className="text-neutral-400 hover:text-white"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back
-                          </Button>
+          </Button>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <Brain className="w-8 h-8 text-purple-400" />
