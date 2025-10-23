@@ -6,7 +6,7 @@ import {
   Sparkles, 
   MessageCircle, 
   Send,
-  Copy,
+  Copy, 
   Check,
   ArrowLeft,
   Bot,
@@ -14,10 +14,11 @@ import {
   Wand2,
   Brain,
   Target,
-  Zap
+  Zap,
+  Save
 } from 'lucide-react'
 import { 
-  PageLayout,
+  PageLayout, 
   Card, 
   Button, 
   Badge, 
@@ -47,6 +48,7 @@ interface VisionData {
   conclusion: string
   status: 'draft' | 'complete' | string
   completion_percent: number
+  version_number: number
   created_at: string
   updated_at: string
 }
@@ -72,6 +74,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [showCopyPrompt, setShowCopyPrompt] = useState(false)
   const [lastVivaResponse, setLastVivaResponse] = useState('')
   const [conversationPhase, setConversationPhase] = useState<'initial' | 'exploring' | 'refining' | 'finalizing'>('initial')
+  const [draftStatus, setDraftStatus] = useState<'none' | 'draft' | 'committed'>('none')
+  const [isDraftSaving, setIsDraftSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const supabase = createClient()
@@ -99,39 +104,64 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
 
-  const loadVisionById = async () => {
-    try {
-      const resolvedParams = await params
-      const { data: { user } } = await supabase.auth.getUser()
+  // Check if refinement is different from current vision (draft detection)
+  useEffect(() => {
+    if (!selectedCategory || !vision) return
+    
+    const categoryValue = getCategoryValue(selectedCategory)
+    const isDifferent = currentRefinement.trim() !== categoryValue.trim() && currentRefinement.trim() !== ''
+    
+    if (isDifferent && draftStatus === 'none') {
+      setDraftStatus('draft')
+    } else if (!isDifferent && draftStatus === 'draft') {
+      setDraftStatus('none')
+    }
+  }, [currentRefinement, selectedCategory, vision, draftStatus])
+
+  // Auto-save draft when refinement changes
+  useEffect(() => {
+    if (draftStatus === 'draft' && currentRefinement.trim() !== '') {
+      const timeoutId = setTimeout(() => {
+        saveDraft()
+      }, 2000) // Auto-save after 2 seconds of no changes
       
-      if (!user) {
-        setError('Please log in to access this page')
-        return
-      }
+      return () => clearTimeout(timeoutId)
+    }
+  }, [currentRefinement, draftStatus])
+
+  const loadVisionById = async () => {
+      try {
+        const resolvedParams = await params
+      const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) {
+          setError('Please log in to access this page')
+          return
+        }
 
       // Get the vision data by ID
-      const { data: visionData, error: visionError } = await supabase
-        .from('vision_versions')
-        .select('*')
-        .eq('id', resolvedParams.id)
-        .eq('user_id', user.id)
-        .single()
+        const { data: visionData, error: visionError } = await supabase
+          .from('vision_versions')
+          .select('*')
+          .eq('id', resolvedParams.id)
+          .eq('user_id', user.id)
+          .single()
 
-      if (visionError || !visionData) {
-        setError('Vision not found or access denied')
-        return
-      }
+        if (visionError || !visionData) {
+          setError('Vision not found or access denied')
+          return
+        }
 
-      setVision(visionData)
+        setVision(visionData)
       console.log('Vision loaded successfully:', visionData.id)
     } catch (error) {
       console.error('Error loading vision:', error)
-      setError('Failed to load vision data')
-    } finally {
-      setLoading(false)
+        setError('Failed to load vision data')
+      } finally {
+        setLoading(false)
+      }
     }
-  }
-
+    
   const getCategoryValue = (category: string) => {
     if (!vision) return ''
     return vision[category as keyof VisionData] as string || ''
@@ -176,7 +206,7 @@ What aspects of your ${categoryInfo?.label.toLowerCase()} vision feel most impor
     setIsTyping(true)
 
     // Simulate AI response (in real implementation, this would call your AI API)
-    setTimeout(() => {
+        setTimeout(() => {
       const aiResponse = generateAIResponse(currentMessage, conversationPhase)
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -238,6 +268,108 @@ Would you like to refine another category, or are you satisfied with this refine
     setShowCopyPrompt(false)
   }
 
+  // Draft management functions
+  const saveDraft = async () => {
+    if (!vision || !selectedCategory || !currentRefinement.trim()) return
+    
+    setIsDraftSaving(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Save draft to refinements table
+      const { error } = await supabase
+        .from('refinements')
+        .upsert({
+          user_id: user.id,
+          vision_id: vision.id,
+          category: selectedCategory,
+          current_refinement: currentRefinement,
+          status: 'draft',
+          operation_type: 'refine_vision',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,vision_id,category'
+        })
+
+      if (error) {
+        console.error('Error saving draft:', error)
+        return
+      }
+
+      setLastSaved(new Date())
+      console.log('Draft saved successfully')
+    } catch (error) {
+      console.error('Error saving draft:', error)
+    } finally {
+      setIsDraftSaving(false)
+    }
+  }
+
+  const commitDraftToVision = async () => {
+    if (!vision || !selectedCategory || !currentRefinement.trim()) return
+    
+    setIsDraftSaving(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Create new vision version with updated category
+      const updatedVision = {
+        ...vision,
+        [selectedCategory]: currentRefinement,
+        version_number: vision.version_number + 1,
+        updated_at: new Date().toISOString()
+      }
+
+      // Insert new version
+      const { data: newVersion, error: versionError } = await supabase
+        .from('vision_versions')
+        .insert(updatedVision)
+        .select()
+        .single()
+
+      if (versionError) {
+        console.error('Error creating new version:', versionError)
+      return
+    }
+
+      // Update refinements table to mark as committed
+      const { error: refinementError } = await supabase
+        .from('refinements')
+        .update({
+          status: 'committed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .eq('vision_id', vision.id)
+        .eq('category', selectedCategory)
+
+      if (refinementError) {
+        console.error('Error updating refinement status:', refinementError)
+        return
+      }
+
+      // Update local state
+      setVision(newVersion)
+      setDraftStatus('committed')
+      setLastSaved(new Date())
+      
+      // Reset refinement to match new vision
+      setTimeout(() => {
+        setCurrentRefinement(currentRefinement)
+        setDraftStatus('none')
+      }, 1000)
+
+      console.log('Draft committed successfully')
+    } catch (error) {
+      console.error('Error committing draft:', error)
+    } finally {
+      setIsDraftSaving(false)
+    }
+  }
+
   const CategoryCard = ({ category, selected, onClick, className = '' }: { 
     category: any, 
     selected: boolean, 
@@ -262,55 +394,8 @@ Would you like to refine another category, or are you satisfied with this refine
     )
   }
 
-  const ChatInterface = () => {
-    const selectedCategoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
-    const categoryValue = getCategoryValue(selectedCategory!)
-    
-    return (
-      <div className="space-y-6">
-        {/* Current Vision & Refinement Display */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              {selectedCategoryInfo && (
-                <selectedCategoryInfo.icon className="w-8 h-8 text-primary-500" />
-              )}
-              <div>
-                <h3 className="text-lg font-semibold text-white">
-                  Current Vision - {selectedCategoryInfo?.label}
-                </h3>
-                <p className="text-sm text-neutral-400">
-                  Your existing vision for this category
-                </p>
-              </div>
-            </div>
-            <div className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
-              <p className="text-neutral-300 text-sm leading-relaxed">
-                {categoryValue || "No vision content available for this category."}
-              </p>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Wand2 className="w-8 h-8 text-purple-400" />
-              <div>
-                <h3 className="text-lg font-semibold text-white">
-                  My Current Refinement - {selectedCategoryInfo?.label}
-                </h3>
-                <p className="text-sm text-neutral-400">
-                  Your refined version of this vision
-                </p>
-              </div>
-            </div>
-            <Textarea
-              value={currentRefinement}
-              onChange={(e) => setCurrentRefinement(e.target.value)}
-              placeholder="Start refining your vision here, or let VIVA help you through conversation..."
-              className="min-h-[120px] bg-neutral-800/50 border-neutral-600"
-            />
-          </Card>
-        </div>
+  const ChatInterface = () => (
+    <div className="space-y-6">
 
       {/* Chat Interface */}
       <Card className="p-6">
@@ -336,7 +421,7 @@ Would you like to refine another category, or are you satisfied with this refine
               {message.role === 'assistant' && (
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
                   <Bot className="w-4 h-4 text-white" />
-                </div>
+              </div>
               )}
               
               <div
@@ -349,8 +434,8 @@ Would you like to refine another category, or are you satisfied with this refine
                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 <p className="text-xs opacity-70 mt-2">
                   {message.timestamp.toLocaleTimeString()}
-                </p>
-              </div>
+              </p>
+            </div>
 
               {message.role === 'user' && (
                 <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -391,14 +476,14 @@ Would you like to refine another category, or are you satisfied with this refine
               }
             }}
           />
-          <Button
+            <Button
             onClick={sendMessage}
             disabled={!currentMessage.trim() || isTyping}
             className="px-4"
           >
             <Send className="w-4 h-4" />
-          </Button>
-        </div>
+            </Button>
+          </div>
 
         {/* Copy Prompt */}
         {showCopyPrompt && (
@@ -410,73 +495,45 @@ Would you like to refine another category, or are you satisfied with this refine
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button
+              <Button
                   variant="outline"
-                  size="sm"
+                size="sm"
                   onClick={() => setShowCopyPrompt(false)}
-                >
+              >
                   Cancel
-                </Button>
-                <Button
+              </Button>
+              <Button
                   variant="primary"
-                  size="sm"
+                size="sm"
                   onClick={copyToRefinement}
-                  className="flex items-center gap-2"
-                >
+                className="flex items-center gap-2"
+              >
                   <Copy className="w-4 h-4" />
                   Copy to Refinement
-                </Button>
-              </div>
+              </Button>
             </div>
           </div>
+        </div>
         )}
       </Card>
       </div>
     )
   }
 
-  if (loading) {
-    return (
-      <PageLayout>
-        <div className="flex items-center justify-center py-16">
-          <Spinner variant="primary" size="lg" />
-        </div>
-      </PageLayout>
-    )
-  }
-
-  if (error || !vision) {
-    return (
-      <PageLayout>
-        <div className="flex items-center justify-center py-16">
-          <div className="text-center">
-            <div className="text-red-500 mb-4">
-              <Sparkles className="w-16 h-16 mx-auto" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Vision Error</h2>
-            <p className="text-neutral-400 mb-6">{error || 'Vision not found'}</p>
-            <Button onClick={() => router.back()} variant="primary">
-              Go Back
-            </Button>
-          </div>
-        </div>
-      </PageLayout>
-    )
-  }
-
-  return (
+                  
+                  return (
     <div className="py-8">
-      {/* Header */}
+                        {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
-          <Button
+                          <Button
             onClick={() => router.back()}
             variant="ghost"
             className="text-neutral-400 hover:text-white"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back
-          </Button>
+                          </Button>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <Brain className="w-8 h-8 text-purple-400" />
@@ -485,13 +542,13 @@ Would you like to refine another category, or are you satisfied with this refine
                 <Zap className="w-4 h-4" />
                 VIVA AI
               </Badge>
-            </div>
+                        </div>
             <p className="text-neutral-400">
               Select a category and let VIVA help you refine your vision through intelligent conversation
-            </p>
-          </div>
-        </div>
-      </div>
+                            </p>
+                          </div>
+                          </div>
+                      </div>
 
       {/* Category Selection */}
       <div className="mb-8">
@@ -499,14 +556,121 @@ Would you like to refine another category, or are you satisfied with this refine
         <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
           {VISION_CATEGORIES.map((category) => (
             <CategoryCard 
-              key={category.key} 
+                      key={category.key}
               category={category} 
               selected={selectedCategory === category.key} 
-              onClick={() => setSelectedCategory(category.key)}
+                      onClick={() => setSelectedCategory(category.key)}
             />
           ))}
-        </div>
-      </div>
+                        </div>
+          </div>
+
+      {/* Current Vision & Refinement Display */}
+      {selectedCategory && (
+            <div className="mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                {(() => {
+                  const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
+                  return categoryInfo && <categoryInfo.icon className="w-8 h-8 text-primary-500" />
+                })()}
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    Current Vision - {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label}
+                  </h3>
+                  <p className="text-sm text-neutral-400">
+                    Your existing vision for this category
+                  </p>
+                </div>
+              </div>
+              <div className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
+                <p className="text-neutral-300 text-sm leading-relaxed">
+                  {getCategoryValue(selectedCategory) || "No vision content available for this category."}
+              </p>
+            </div>
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Wand2 className="w-8 h-8 text-purple-400" />
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    My Current Refinement - {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label}
+                </h3>
+                  <p className="text-sm text-neutral-400">
+                    Your refined version of this vision
+                  </p>
+                </div>
+              </div>
+              <Textarea
+                value={currentRefinement}
+                onChange={(e) => setCurrentRefinement(e.target.value)}
+                placeholder="Start refining your vision here, or let VIVA help you through conversation..."
+                className="min-h-[120px] bg-neutral-800/50 border-neutral-600"
+              />
+              
+              {/* Draft Status & Actions */}
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {draftStatus === 'draft' && (
+                    <Badge variant="warning" className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                      Draft
+                    </Badge>
+                  )}
+                  {draftStatus === 'committed' && (
+                    <Badge variant="success" className="flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      Committed
+                    </Badge>
+                  )}
+                  {lastSaved && (
+                    <span className="text-xs text-neutral-500">
+                      Saved {lastSaved.toLocaleTimeString()}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {draftStatus === 'draft' && (
+                    <>
+                  <Button
+                        onClick={saveDraft}
+                        disabled={isDraftSaving}
+                        variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                  >
+                        {isDraftSaving ? (
+                      <Spinner variant="primary" size="sm" />
+                  ) : (
+                          <Save className="w-4 h-4" />
+                  )}
+                        Save Draft
+                </Button>
+                  <Button
+                        onClick={commitDraftToVision}
+                        disabled={isDraftSaving}
+                        variant="primary"
+                    size="sm"
+                    className="flex items-center gap-1"
+                      >
+                        {isDraftSaving ? (
+                          <Spinner variant="primary" size="sm" />
+                        ) : (
+                          <Check className="w-4 h-4" />
+                        )}
+                        Commit Draft to Life Vision
+                    </Button>
+                    </>
+                  )}
+                  </div>
+                </div>
+              </Card>
+                    </div>
+                    </div>
+      )}
 
       {/* Chat Interface */}
       {selectedCategory && (
@@ -515,7 +679,7 @@ Would you like to refine another category, or are you satisfied with this refine
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MessageCircle className="w-8 h-8 text-white" />
-              </div>
+                      </div>
               <h3 className="text-xl font-semibold text-white mb-2">Ready to Start?</h3>
               <p className="text-neutral-400 mb-6">
                 VIVA will help you refine your {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label.toLowerCase()} vision through intelligent conversation.
@@ -529,7 +693,7 @@ Would you like to refine another category, or are you satisfied with this refine
                 <MessageCircle className="w-5 h-5" />
                 Start Conversation with VIVA
               </Button>
-            </div>
+                  </div>
           ) : (
             <ChatInterface />
           )}
