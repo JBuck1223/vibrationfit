@@ -363,11 +363,11 @@ export default function VisionBoardPage() {
             <p className="text-neutral-400">Loading your vision board...</p>
           </div>
         ) : filteredItems && filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
             {filteredItems.map((item, index) => (
               <div 
                 key={item.id} 
-                className="group cursor-pointer"
+                className="group cursor-pointer break-inside-avoid mb-6"
                 onClick={() => openLightbox(index)}
               >
                   <div className="relative overflow-hidden rounded-lg bg-neutral-800 shadow-lg hover:shadow-xl transition-all duration-300">
@@ -376,6 +376,7 @@ export default function VisionBoardPage() {
                         src={item.image_url}
                         alt={item.name}
                         className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-64 bg-neutral-800 rounded-lg flex items-center justify-center">
