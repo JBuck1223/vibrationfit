@@ -278,22 +278,22 @@ export default function VisionBoardPage() {
 
           {/* Stats - Responsive Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card>
+            <Card className="text-center">
               <h3 className="text-neutral-400 text-sm mb-2">Total</h3>
               <p className="text-2xl md:text-3xl font-bold text-primary-500">{totalItems}</p>
             </Card>
             
-            <Card>
+            <Card className="text-center">
               <h3 className="text-neutral-400 text-sm mb-2">Active</h3>
               <p className="text-2xl md:text-3xl font-bold text-primary-500">{activeItems}</p>
             </Card>
             
-            <Card>
+            <Card className="text-center">
               <h3 className="text-neutral-400 text-sm mb-2">Actualized</h3>
               <p className="text-2xl md:text-3xl font-bold text-warning-500">{actualizedItems}</p>
             </Card>
             
-            <Card>
+            <Card className="text-center">
               <h3 className="text-neutral-400 text-sm mb-2">Inactive</h3>
               <p className="text-2xl md:text-3xl font-bold text-neutral-500">{inactiveItems}</p>
             </Card>
