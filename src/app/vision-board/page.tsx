@@ -35,7 +35,7 @@ const CategoryCard = ({ category, selected = false, onClick }: any) => {
       onClick={onClick}
     >
       <Stack align="center" gap="xs" className="text-center px-2 justify-center h-full">
-        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} className="opacity-80" />
+        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} />
         <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
       </Stack>
     </Card>

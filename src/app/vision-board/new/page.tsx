@@ -18,18 +18,12 @@ const CategoryCard = ({ category, selected = false, onClick, className = '' }: a
     <Card 
       variant={selected ? 'elevated' : 'default'} 
       hover 
-      className={`cursor-pointer transition-all duration-300 ${className}`}
+      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''} ${className}`}
       onClick={onClick}
     >
-      <div className="flex flex-col items-center gap-2 p-2">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-          selected ? 'bg-primary-500' : 'bg-neutral-700'
-        }`}>
-          <IconComponent className={`w-4 h-4 ${selected ? 'text-white' : 'text-neutral-400'}`} />
-        </div>
-        <span className={`text-xs font-medium text-center leading-tight ${
-          selected ? 'text-primary-500' : 'text-neutral-300'
-        }`}>
+      <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} />
+        <span className="text-xs font-medium text-center leading-tight text-neutral-300">
           {category.label}
         </span>
       </div>
