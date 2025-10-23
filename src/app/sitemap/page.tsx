@@ -81,6 +81,7 @@ export default function SitemapPage() {
         { href: '/life-vision/[id]', label: 'Vision Details', icon: Eye, description: 'Individual vision page', isDynamic: true },
         { href: '/life-vision/[id]/audio', label: 'Vision Audio', icon: MessageCircle, description: 'Audio version of vision', isDynamic: true },
         { href: '/life-vision/[id]/refine', label: 'Refine Vision', icon: Settings, description: 'Edit and refine vision', isDynamic: true },
+        { href: '/life-vision/[id]/experiment', label: 'Vision Experiment', icon: Layers, description: 'Experimental card-based view', isDynamic: true },
 
         // Vision Board
         { href: '/vision-board', label: 'Vision Board', icon: Star, description: 'Visual vision board' },
