@@ -32,7 +32,6 @@ import {
   Badge,
   Input,
   Textarea,
-  PageLayout,
   Spinner,
   ProgressBar,
   Video,
@@ -118,7 +117,7 @@ export default function DesignSystemExperiment() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Stack gap="xl">
           
           {/* Hero */}
@@ -2216,6 +2215,6 @@ export default function DesignSystemExperiment() {
         </Stack>
       </section>
 
-    </PageLayout>
+    </>
   )
 }

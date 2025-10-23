@@ -5,7 +5,6 @@
 
 import { useState } from 'react'
 import { 
-  PageLayout, 
   Container, 
   Card, 
   Button, 
@@ -55,8 +54,7 @@ export default function PricingPage() {
   }
 
   return (
-    <PageLayout containerSize="lg">
-      
+    <>
       {/* MAIN OFFER */}
       <Stack gap="xl">
         
@@ -662,6 +660,6 @@ export default function PricingPage() {
         </Card>
 
       </Stack>
-    </PageLayout>
+    </>
   )
 }
