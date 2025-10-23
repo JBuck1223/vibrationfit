@@ -52,7 +52,7 @@ export default function VisionBoardPage() {
   const router = useRouter()
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
@@ -110,8 +110,8 @@ export default function VisionBoardPage() {
   }
 
   const filteredItems = items.filter(item => {
-    const categoryMatch = selectedCategory === 'all' || 
-      (item.categories && item.categories.includes(selectedCategory))
+    const categoryMatch = selectedCategories.includes('all') || selectedCategories.length === 0 || 
+      (item.categories && item.categories.some((cat: string) => selectedCategories.includes(cat)))
     const statusMatch = selectedStatus === 'all' || item.status === selectedStatus
     return categoryMatch && statusMatch
   })
@@ -326,15 +326,16 @@ export default function VisionBoardPage() {
               <Filter className="w-5 h-5" />
               Categories
             </h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="w-full mb-4">
               <button
-                onClick={() => setSelectedCategory('all')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  selectedCategory === 'all'
-                    ? 'bg-primary-500 text-white'
+                onClick={() => setSelectedCategories(['all'])}
+                className={`w-full px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                  selectedCategories.includes('all') || selectedCategories.length === 0
+                    ? 'bg-primary-500 text-white shadow-lg'
                     : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                 }`}
               >
+                <Filter className="w-4 h-4" />
                 All Categories
               </button>
             </div>
@@ -345,8 +346,19 @@ export default function VisionBoardPage() {
                 <CategoryCard 
                   key={category.key} 
                   category={category} 
-                  selected={selectedCategory === category.key} 
-                  onClick={() => setSelectedCategory(selectedCategory === category.key ? 'all' : category.key)} 
+                  selected={selectedCategories.includes(category.key)} 
+                  onClick={() => {
+                    if (selectedCategories.includes(category.key)) {
+                      // Remove category from selection
+                      setSelectedCategories(prev => prev.filter(cat => cat !== category.key))
+                    } else {
+                      // Add category to selection (remove 'all' if it exists)
+                      setSelectedCategories(prev => {
+                        const filtered = prev.filter(cat => cat !== 'all')
+                        return [...filtered, category.key]
+                      })
+                    }
+                  }} 
                 />
               ))}
             </div>
