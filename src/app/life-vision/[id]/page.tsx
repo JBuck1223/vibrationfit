@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, ArrowLeft, Edit3, Eye, Plus, History, Sparkles, Trash2, Download, VolumeX, Gem, ChevronDown, Check, Layers } from 'lucide-react'
+import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye } from 'lucide-react'
 import { 
   Button, 
   Card, 
@@ -15,7 +15,6 @@ import {
   Textarea,
   Icon
 } from '@/lib/design-system/components'
-import { LifeVisionSidebar } from '../components/LifeVisionSidebar'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 interface VisionData {
@@ -52,7 +51,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [vision, setVision] = useState<VisionData | null>(null)
-  const [activeSection, setActiveSection] = useState('fun')
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [completedSections, setCompletedSections] = useState<string[]>([])
   const [versions, setVersions] = useState<any[]>([])
@@ -62,46 +60,13 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [isViewingVersion, setIsViewingVersion] = useState(false)
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<'sidebar' | 'cards'>('cards')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
-  const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false)
 
   // Ref for textarea auto-resize
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  // Ref for main content section to scroll to
-  const mainContentRef = useRef<HTMLDivElement>(null)
-  // Ref for mobile dropdown to scroll above it
-  const mobileDropdownRef = useRef<HTMLDivElement>(null)
 
-  // Scroll to appropriate section based on screen size (responsive)
-  const scrollToMainContent = useCallback(() => {
-    const isMobile = window.innerWidth < 1024 // lg breakpoint
-    
-    if (isMobile && mobileDropdownRef.current) {
-      // Mobile: scroll above the dropdown
-      const headerHeight = 80 // Approximate header height
-      const elementTop = mobileDropdownRef.current.offsetTop
-      const scrollPosition = elementTop - headerHeight - 10 // Header height + padding
-      
-      window.scrollTo({
-        top: scrollPosition,
-        behavior: 'smooth'
-      })
-    } else if (mainContentRef.current) {
-      // Desktop: scroll to main content section
-      const headerHeight = 80 // Approximate header height
-      const elementTop = mainContentRef.current.offsetTop
-      const scrollPosition = elementTop - headerHeight - 10 // Header height + padding
-      
-      window.scrollTo({
-        top: scrollPosition,
-        behavior: 'smooth'
-      })
-    }
-  }, [])
 
   // Auto-resize textarea function
   const autoResizeTextarea = useCallback((textarea: HTMLTextAreaElement) => {
@@ -600,7 +565,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     if (!pdfWindow) return
 
     // Get the current section content or all sections
-    const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
+    const currentSection = VISION_SECTIONS.find(s => s.key === 'fun')
     const currentContent = currentSection ? vision[currentSection.key as keyof VisionData] as string : ''
 
     // Create HTML content for PDF
@@ -823,7 +788,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     setTimeout(() => {
       pdfWindow.print()
     }, 500)
-  }, [vision, activeSection, completionPercentage])
+  }, [vision, completionPercentage])
 
   // Auto-resize textarea when content or section changes
   useEffect(() => {
@@ -835,64 +800,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         }
       }, 50)
     }
-  }, [vision, activeSection, isEditing, autoResizeTextarea])
+  }, [vision, isEditing, autoResizeTextarea])
 
-  // Render section content
-  const renderSection = () => {
-    if (!vision) return null
-
-    const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
-    if (!currentSection) return null
-
-    const value = vision[currentSection.key as keyof VisionData] as string || ''
-
-    return (
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-2xl font-bold text-white mb-2">{currentSection.label}</h3>
-          <p className="text-neutral-400 mb-6">{currentSection.description}</p>
-          
-          <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => {
-              updateVision({ [currentSection.key]: e.target.value })
-              if (textareaRef.current) {
-                autoResizeTextarea(textareaRef.current)
-              }
-            }}
-            placeholder={`Describe your vision for ${currentSection.label.toLowerCase()}...`}
-            className="w-full min-h-[200px] p-4 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none resize-none"
-            style={{ overflow: 'hidden' }}
-          />
-        </div>
-        
-        {/* Section Save Button Container */}
-        <div className="bg-neutral-800/30 border border-neutral-700 rounded-lg p-6">
-          <div className="flex justify-center gap-3">
-            <Button
-              onClick={saveVision}
-              variant="primary"
-              disabled={saving}
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-            <Button
-              onClick={() => saveAsVersion(true)}
-              variant="secondary"
-              disabled={saving}
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save as Draft'}
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   if (loading) {
     return (
@@ -1290,33 +1199,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         </div>
 
 
-        {/* Compact View Mode Toggle */}
-        <div className="mb-4">
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              onClick={() => setViewMode('cards')}
-              variant={viewMode === 'cards' ? 'primary' : 'outline'}
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Layers className="w-4 h-4" />
-              Cards
-            </Button>
-            <Button
-              onClick={() => setViewMode('sidebar')}
-              variant={viewMode === 'sidebar' ? 'primary' : 'outline'}
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              Sidebar
-            </Button>
-          </div>
-        </div>
 
-        {/* Card-based View */}
-        {viewMode === 'cards' ? (
-          <div className="space-y-6">
+        {/* Vision Cards */}
+        <div className="space-y-6">
             {/* Compact Category Selection */}
             <div className="mb-4">
               <Card className="p-4">
@@ -1384,245 +1269,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 </Button>
               </Card>
             )}
-          </div>
-        ) : (
-          /* Original Sidebar Layout */
-          <div ref={mainContentRef}>
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar - Hidden on mobile */}
-            <div className="hidden lg:block lg:col-span-1">
-              <LifeVisionSidebar
-                activeSection={activeSection}
-                onSectionChange={setActiveSection}
-                completedSections={completedSections}
-                onScrollToContent={scrollToMainContent}
-              />
-            </div>
-
-            {/* Mobile Dropdown Navigation */}
-            <div className="lg:hidden mb-4">
-              <Card className="p-4">
-                <button
-                  onClick={() => setIsMobileDropdownOpen(!isMobileDropdownOpen)}
-                  className="w-full flex items-center justify-between p-3 rounded-lg bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    {(() => {
-                      const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
-                      if (!currentSection) return null
-                      const IconComponent = currentSection.icon
-                      return <IconComponent className="w-5 h-5 text-primary-400" />
-                    })()}
-                    <span className="font-medium text-white">
-                      {VISION_SECTIONS.find(s => s.key === activeSection)?.label || 'Select Section'}
-                    </span>
-                  </div>
-                  <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isMobileDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {isMobileDropdownOpen && (
-                  <div className="mt-3 space-y-1">
-                    {VISION_SECTIONS.map((section) => {
-                      const Icon = section.icon
-                      const isActive = activeSection === section.key
-                      const isCompleted = completedSections.includes(section.key)
-
-                      return (
-                        <button
-                          key={section.key}
-                          onClick={() => {
-                            setActiveSection(section.key)
-                            setIsMobileDropdownOpen(false)
-                            setTimeout(() => scrollToMainContent(), 50)
-                          }}
-                          className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
-                            isActive 
-                              ? 'bg-primary-500/20 border border-primary-500' 
-                              : 'hover:bg-neutral-700'
-                          }`}
-                        >
-                          <Icon className={`w-4 h-4 ${isActive ? 'text-primary-400' : 'text-neutral-400'}`} />
-                          <span className={`font-medium ${isActive ? 'text-white' : 'text-neutral-300'}`}>
-                            {section.label}
-                          </span>
-                          {isCompleted && (
-                            <div className="ml-auto">
-                              <div className="w-2 h-2 bg-primary-500 rounded-full" />
-                            </div>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </Card>
-            </div>
-
-          {/* Main Content Area - Full width on mobile */}
-          <div className="col-span-1 lg:col-span-3">
-            <Card className="p-4 md:p-8">
-              <div className="space-y-6">
-                {/* Current Section View */}
-                {(() => {
-                  const currentSection = VISION_SECTIONS.find(s => s.key === activeSection)
-                  if (!currentSection) return null
-
-                  const IconComponent = currentSection.icon
-                  const value = vision[currentSection.key as keyof VisionData] as string
-                  const isEditing = editingCategory === activeSection
-
-                  return (
-                    <div>
-                      {/* Section Header */}
-                      <div className="mb-4 md:mb-6">
-                        <div className="flex items-center gap-3 mb-2">
-                          <IconComponent className="w-6 h-6 md:w-8 md:h-8 text-primary-500" />
-                          <h2 className="text-2xl md:text-3xl font-bold text-white">{currentSection.label}</h2>
-                        </div>
-                        <p className="text-neutral-400 text-xs md:text-sm">
-                          {currentSection.description}
-                        </p>
-                      </div>
-
-                      {/* Section Content or Edit Mode */}
-                      {isEditing ? (
-                        <div className="space-y-4">
-                          <textarea
-                            value={editingContent || ''}
-                            onChange={(e) => {
-                              handleUpdateContent(e.target.value)
-                              if (textareaRef.current) {
-                                autoResizeTextarea(textareaRef.current)
-                              }
-                            }}
-                            placeholder={`Describe your vision for ${currentSection.label.toLowerCase()}...`}
-                            ref={textareaRef}
-                            className="w-full min-h-[200px] px-1 py-3 md:p-4 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none resize-none"
-                            style={{ overflow: 'hidden' }}
-                          />
-                          <div className="flex justify-end gap-3">
-                            <Button
-                              onClick={handleCancelEdit}
-                              variant="outline"
-                              disabled={saving}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              onClick={handleSaveEdit}
-                              variant="primary"
-                              disabled={saving}
-                              className="flex items-center gap-2"
-                            >
-                              {saving ? 'Saving...' : 'Save Changes'}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {/* Section Content */}
-                          {value?.trim() ? (
-                            <div className="prose prose-invert max-w-none">
-                              <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-3 md:p-6">
-                                <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
-                                  {value}
-                                </p>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg p-12 text-center">
-                              <p className="text-neutral-500 mb-4">
-                                No content for this section yet
-                              </p>
-                              <Button
-                                onClick={() => handleEditCategory(activeSection)}
-                                variant="primary"
-                                size="sm"
-                                className="flex items-center gap-2 mx-auto"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                                Add Content
-                              </Button>
-                            </div>
-                          )}
-
-                          {/* Edit Button */}
-                          {value?.trim() && (
-                            <div className="flex justify-end gap-2 mt-4">
-                              <Button
-                                onClick={() => handleEditCategory(activeSection)}
-                                variant="ghost"
-                                size="sm"
-                                className="flex items-center gap-2"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                                Edit
-                              </Button>
-                              <Button
-                                asChild
-                                variant="outline"
-                                size="sm"
-                                className="flex items-center gap-2"
-                              >
-                                <Link href={`/life-vision/${vision?.id}/refine?category=${activeSection}`}>
-                                  <Gem className="w-4 h-4" />
-                                  Refine
-                                </Link>
-                              </Button>
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* Section Navigation */}
-                      <div className="mt-8 flex items-center justify-between pt-6 border-t border-neutral-700">
-                        <Button
-                          onClick={() => {
-                            const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
-                            if (currentIndex > 0) {
-                              setActiveSection(VISION_SECTIONS[currentIndex - 1].key)
-                              setTimeout(() => scrollToMainContent(), 50)
-                            }
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          disabled={VISION_SECTIONS.findIndex(s => s.key === activeSection) === 0}
-                          className="flex items-center gap-2"
-                        >
-                          <ArrowLeft className="w-4 h-4" />
-                          Previous
-                        </Button>
-                        
-                        <div className="text-sm text-neutral-400">
-                          {VISION_SECTIONS.findIndex(s => s.key === activeSection) + 1} of {VISION_SECTIONS.length}
-                        </div>
-
-                        <Button
-                          onClick={() => {
-                            const currentIndex = VISION_SECTIONS.findIndex(s => s.key === activeSection)
-                            if (currentIndex < VISION_SECTIONS.length - 1) {
-                              setActiveSection(VISION_SECTIONS[currentIndex + 1].key)
-                              setTimeout(() => scrollToMainContent(), 50)
-                            }
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          disabled={VISION_SECTIONS.findIndex(s => s.key === activeSection) === VISION_SECTIONS.length - 1}
-                          className="flex items-center gap-2"
-                        >
-                          Next
-                          <ArrowLeft className="w-4 h-4 rotate-180" />
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </div>
-            </Card>
-          </div>
-            </div>
-          </div>
-        )}
+        </div>
 
         {/* Navigation */}
         <div className="mt-8 text-center">
