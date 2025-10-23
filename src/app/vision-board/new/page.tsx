@@ -334,15 +334,28 @@ export default function NewVisionBoardItemPage() {
                 {imageSource === 'upload' && file && (
                   <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt="Preview"
-                        className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
-                      />
+                      {/* Show image preview for supported formats, custom icon for HEIC */}
+                      {file.type === 'image/heic' || file.type === 'image/heif' ? (
+                        <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mx-auto sm:mx-0">
+                          <div className="text-white text-center">
+                            <div className="text-2xl font-bold">HEIC</div>
+                            <div className="text-xs opacity-80">Apple</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                        />
+                      )}
                       <div className="flex-1 text-center sm:text-left">
                         <p className="text-sm font-medium text-white break-words">{file.name}</p>
                         <p className="text-xs text-neutral-400">
                           {(file.size / 1024 / 1024).toFixed(2)} MB
+                          {(file.type === 'image/heic' || file.type === 'image/heif') && (
+                            <span className="ml-2 text-purple-400">• HEIC Format</span>
+                          )}
                         </p>
                       </div>
                       <Button
