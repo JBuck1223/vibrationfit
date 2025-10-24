@@ -1163,6 +1163,7 @@ export default function HomePage() {
                       )}
                     </Button>
                       </Stack>
+                    </Card>
                   </Stack>
               </Stack>
             </Card>
