@@ -268,14 +268,9 @@ export function Header() {
                 )}
               </div>
             ) : (
-              <>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/auth/login">Sign In</Link>
-                </Button>
-                <Button asChild variant="primary" size="sm">
-                  <Link href="/auth/signup">Join Now</Link>
-                </Button>
-              </>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/auth/login">Sign In</Link>
+              </Button>
             )}
           </div>
 
@@ -288,14 +283,9 @@ export function Header() {
                 Logout
               </Button>
             ) : (
-              <>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/auth/login">Sign In</Link>
-                </Button>
-                <Button asChild variant="primary" size="sm">
-                  <Link href="/auth/signup">Join Now</Link>
-                </Button>
-              </>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/auth/login">Sign In</Link>
+              </Button>
             )}
           </div>
         </div>
