@@ -2564,7 +2564,7 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
 
                   {/* Lock Status - Under the main content */}
                   {item.locked && (
-                    <div className="flex items-center gap-2 mt-2 ml-10 md:ml-12">
+                    <div className="flex items-center gap-2 mt-2 ml-0">
                       <Lock className="w-3 h-3 text-neutral-500" />
                       <span className="text-xs text-neutral-500">
                         Locked until you complete Profile & Assessment
