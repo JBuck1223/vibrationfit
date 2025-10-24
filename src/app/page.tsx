@@ -8,6 +8,7 @@ import {
   Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check, Clock, User,
   Headphones, Image, BookOpen, CalendarDays, Lock
 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   Stack,
   Inline,
@@ -44,6 +45,29 @@ const VISION_CATEGORIES = [
 
 export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [billingPeriod, setBillingPeriod] = useState<'annual' | '28day'>('annual')
+  const [isLoading, setIsLoading] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+
+  const handleIntensivePurchase = async () => {
+    if (!agreedToTerms) {
+      toast.error('Please agree to the renewal terms before proceeding.')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const params = new URLSearchParams({
+        intensivePaymentPlan: 'full',
+        continuityPlan: billingPeriod,
+      })
+      window.location.href = `/checkout?${params.toString()}`
+    } catch (error) {
+      console.error('Checkout error:', error)
+      toast.error('Failed to start checkout. Please try again.')
+      setIsLoading(false)
+    }
+  }
 
   return (
       <Stack gap="xl">
@@ -716,6 +740,370 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Pricing Section */}
+        <section id="pricing">
+          <div className="w-full">
+            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
+              <Stack gap="xl" className="p-2 md:p-8">
+                
+                {/* ACTIVATION INTENSIVE TITLE - ENHANCED */}
+                <div className="text-center">
+                  <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-gradient-to-r from-[#BF00FF]/20 to-[#8B5CF6]/20 text-[#BF00FF] border-[#BF00FF]/30 mb-4">
+                      <Clock className="w-4 h-4 inline mr-2" />
+                      72-Hour Activation
+                  </span>
+                  <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-[#39FF14] via-[#14B8A6] to-[#8B5CF6] bg-clip-text text-transparent">
+                      Vision Activation Intensive
+                    </h2>
+                    <p className="text-lg md:text-xl lg:text-2xl text-neutral-300 max-w-3xl mx-auto">
+                    Go from blank slate to fully activated in 72 hours. Vision drafted, board built, audios recorded, conscious creation system live.
+                    </p>
+                  </div>
+
+                {/* MAIN PRICING CARD */}
+                <Card variant="elevated" className="border-2 border-[#39FF14]">
+                  <Stack align="center" gap="lg">
+                    
+                    {/* DYNAMIC PRICE */}
+                    <div className="text-center">
+                      <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-[#39FF14] mb-4">
+                        $499
+                              </div>
+                      <div className="text-xl text-white mb-2 text-center">
+                        Today
+                      </div>
+                      <div className="text-lg text-neutral-300 text-center">
+                        Includes 8 weeks of Vision Pro access
+                            </div>
+                    </div>
+
+                    {/* SEPARATOR */}
+                    <div className="w-full h-px bg-neutral-600"></div>
+
+                    <p className="text-lg text-neutral-300 text-center max-w-2xl">
+                      Then continue at your choice below starting Day 56. Cancel anytime before Day 56 to avoid renewal.
+                    </p>
+
+                    {/* Billing Toggle */}
+                    <div className="inline-flex items-center gap-2 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700 mx-auto mb-8">
+                      <button
+                        onClick={() => setBillingPeriod('annual')}
+                        className={`px-4 py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                          billingPeriod === 'annual'
+                            ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30 scale-105'
+                            : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          Annual
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFB701] text-black shadow-md">
+                            Save 22%
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setBillingPeriod('28day')}
+                        className={`px-4 py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                          billingPeriod === '28day'
+                            ? 'bg-[#00FFFF] text-black shadow-lg shadow-[#00FFFF]/30 scale-105'
+                            : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
+                        }`}
+                      >
+                        28-Day
+                      </button>
+                  </div>
+
+                    {/* VISION PRO MEMBERSHIP CARDS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-6 gap-y-12 max-w-5xl mx-auto mb-8">
+                      
+                      {/* Annual Plan - Show first on mobile if selected */}
+                      {billingPeriod === 'annual' && (
+                        <Card 
+                          className={`p-10 transition-all relative cursor-pointer md:order-1 order-1 ${
+                            billingPeriod === 'annual'
+                              ? 'border-2 border-[#39FF14] bg-gradient-to-br from-primary-500/5 to-secondary-500/5 scale-105 ring-2 ring-[#39FF14]'
+                              : 'border border-neutral-700 opacity-60 hover:opacity-80'
+                          }`}
+                          onClick={() => setBillingPeriod('annual')}
+                        >
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                            <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg">
+                            Best Value
+                            </div>
+                        </div>
+
+                      <div className="text-center mb-8">
+                        <Crown className="w-12 h-12 text-primary-500 mx-auto mb-4" />
+                        <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Annual</h3>
+                        <p className="text-neutral-400 mb-6">Full year, full power</p>
+                        
+                        <div className="inline-flex items-baseline gap-2 mb-2">
+                              <span className="text-5xl font-bold text-white">$999</span>
+                              <span className="text-xl text-neutral-400">/year</span>
+                        </div>
+                        <div className="text-neutral-500 text-sm mb-1">
+                              $76.85/28 days, billed annually
+                        </div>
+                        <div className="text-primary-500 text-sm font-semibold">
+                              Save 22% vs $99 every 28 days
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 mb-8">
+                        {[
+                              'VibrationFit platform access',
+                              'Life Vision Builder and Assistant (12 Categories)',
+                              'Vision Boards, Vision Audio, Immersion Tracks',
+                              'VIVA AI assistant (5M tokens)',
+                              'Journal, community access',
+                              'Activation history & progress tracking',
+                              'Library access & future features',
+                              'Transparent renewal timing (starts Day 56)',
+                              'Priority response queue',
+                              '60-day satisfaction guarantee',
+                              'Price locked for 12 months',
+                              '4 bonus calibration check-ins per year',
+                        ].map((feature, idx) => (
+                          <div key={idx} className="flex items-start gap-3">
+                            <Check className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-neutral-200 text-sm">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="text-xs text-neutral-500 text-center mb-4">
+                        Tokens reset annually at renewal
+                      </div>
+                    </Card>
+                      )}
+
+                      {/* 28-Day Plan - Show first on mobile if selected */}
+                      {billingPeriod === '28day' && (
+                    <Card
+                          className={`p-10 transition-all cursor-pointer md:order-2 order-1 ${
+                        billingPeriod === '28day'
+                              ? 'border-2 border-[#00FFFF] bg-gradient-to-br from-[#00FFFF]/10 to-[#00FFFF]/5 scale-105 ring-2 ring-[#00FFFF]'
+                              : 'border border-neutral-700 opacity-60 hover:opacity-80'
+                      }`}
+                          onClick={() => setBillingPeriod('28day')}
+                    >
+                      <div className="text-center mb-8">
+                        <Zap className="w-12 h-12 text-secondary-500 mx-auto mb-4" />
+                        <h3 className="text-3xl font-bold text-white mb-2">Vision Pro 28-Day</h3>
+                        <p className="text-neutral-400 mb-6">Flexible billing cycle</p>
+                        
+                        <div className="inline-flex items-baseline gap-2 mb-2">
+                          <span className="text-5xl font-bold text-white">$99</span>
+                          <span className="text-xl text-neutral-400">/28 days</span>
+                        </div>
+                        <div className="text-neutral-500 text-sm mb-1">
+                              Billed every 4 weeks
+                        </div>
+                        <div className="text-neutral-400 text-sm">
+                          $1,287 per year (13 cycles)
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 mb-8">
+                        {[
+                              'VibrationFit platform access',
+                              'Life Vision Builder and Assistant (12 Categories)',
+                              'Vision Boards, Vision Audio, Immersion Tracks',
+                              'VIVA AI assistant (375k tokens per 28 days)',
+                              'Journal, community access',
+                              'Activation history & progress tracking',
+                              'Library access & future features',
+                              'Transparent renewal timing (starts Day 56)',
+                              '25GB storage',
+                              'Standard support queue',
+                              '30-day satisfaction guarantee',
+                              'Flexible - cancel any cycle',
+                        ].map((feature, idx) => (
+                          <div key={idx} className="flex items-start gap-3">
+                            <Check className="w-5 h-5 text-secondary-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-neutral-200 text-sm">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="text-xs text-neutral-500 text-center mb-4">
+                        Unused tokens roll over (max 3 cycles)
+                      </div>
+                    </Card>
+                      )}
+
+                      {/* Show unselected cards */}
+                      {billingPeriod !== 'annual' && (
+                        <Card 
+                          className={`p-10 transition-all relative cursor-pointer md:order-1 order-2 ${
+                            'border border-neutral-700 opacity-60 hover:opacity-80'
+                          }`}
+                          onClick={() => setBillingPeriod('annual')}
+                        >
+                          <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                            <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg">
+                              Best Value
+                            </div>
+                </div>
+
+                          <div className="text-center mb-8">
+                            <Crown className="w-12 h-12 text-primary-500 mx-auto mb-4" />
+                            <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Annual</h3>
+                            <p className="text-neutral-400 mb-6">Full year, full power</p>
+                            
+                            <div className="inline-flex items-baseline gap-2 mb-2">
+                              <span className="text-5xl font-bold text-white">$999</span>
+                              <span className="text-xl text-neutral-400">/year</span>
+                            </div>
+                            <div className="text-neutral-500 text-sm mb-1">
+                              $76.85/28 days, billed annually
+                            </div>
+                            <div className="text-primary-500 text-sm font-semibold">
+                              Save 22% vs $99 every 28 days
+            </div>
+          </div>
+
+                          <div className="space-y-3 mb-8">
+                            {[
+                              'VibrationFit platform access',
+                              'Life Vision Builder and Assistant (12 Categories)',
+                              'Vision Boards, Vision Audio, Immersion Tracks',
+                              'VIVA AI assistant (5M tokens)',
+                              'Journal, community access',
+                              'Activation history & progress tracking',
+                              'Library access & future features',
+                              'Transparent renewal timing (starts Day 56)',
+                              '100GB storage',
+                              'Priority response queue',
+                              '60-day satisfaction guarantee',
+                              'Price locked for 12 months',
+                              '4 bonus calibration check-ins per year',
+                            ].map((feature, idx) => (
+                              <div key={idx} className="flex items-start gap-3">
+                                <Check className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
+                                <span className="text-neutral-200 text-sm">{feature}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="text-xs text-neutral-500 text-center mb-4">
+                            Tokens reset annually at renewal
+                          </div>
+                        </Card>
+                      )}
+
+                      {billingPeriod !== '28day' && (
+                        <Card 
+                          className={`p-10 transition-all cursor-pointer md:order-2 order-2 ${
+                            'border border-neutral-700 opacity-60 hover:opacity-80'
+                          }`}
+                          onClick={() => setBillingPeriod('28day')}
+                        >
+                          <div className="text-center mb-8">
+                            <Zap className="w-12 h-12 text-secondary-500 mx-auto mb-4" />
+                            <h3 className="text-3xl font-bold text-white mb-2">Vision Pro 28-Day</h3>
+                            <p className="text-neutral-400 mb-6">Flexible billing cycle</p>
+                            
+                            <div className="inline-flex items-baseline gap-2 mb-2">
+                              <span className="text-5xl font-bold text-white">$99</span>
+                              <span className="text-xl text-neutral-400">/28 days</span>
+                            </div>
+                            <div className="text-neutral-500 text-sm mb-1">
+                              Billed every 4 weeks
+                            </div>
+                            <div className="text-neutral-400 text-sm">
+                              $1,287 per year (13 cycles)
+                            </div>
+                          </div>
+
+                          <div className="space-y-3 mb-8">
+                            {[
+                              'VibrationFit platform access',
+                              'Life Vision Builder and Assistant (12 Categories)',
+                              'Vision Boards, Vision Audio, Immersion Tracks',
+                              'VIVA AI assistant (375k tokens per 28 days)',
+                              'Journal, community access',
+                              'Activation history & progress tracking',
+                              'Library access & future features',
+                              'Transparent renewal timing (starts Day 56)',
+                              '25GB storage',
+                              'Standard support queue',
+                              '30-day satisfaction guarantee',
+                              'Flexible - cancel any cycle',
+                            ].map((feature, idx) => (
+                              <div key={idx} className="flex items-start gap-3">
+                                <Check className="w-5 h-5 text-secondary-500 flex-shrink-0 mt-0.5" />
+                                <span className="text-neutral-200 text-sm">{feature}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="text-xs text-neutral-500 text-center mb-4">
+                            Unused tokens roll over (max 3 cycles)
+                          </div>
+                        </Card>
+                      )}
+                    </div>
+
+                    {/* RENEWAL TERMS & ORDER SUMMARY COMBINED */}
+                    <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30">
+                      <Stack gap="md">
+                        <h4 className="text-lg font-bold text-[#39FF14] text-center">Order Summary & Renewal Terms</h4>
+                        
+                        {/* Order Summary */}
+                        <Stack gap="sm" align="center">
+                          <div className="text-white text-center">
+                            <strong>Today:</strong> $499 for the 72‑Hour Intensive + 8 weeks included.
+                          </div>
+                          <div className="text-white text-center">
+                            <strong>Day 56:</strong> {billingPeriod === 'annual' 
+                              ? '$999 Payment (=$76.85/28 days). Renews annually.'
+                              : '$99 Payment. Renews every 28 days.'
+                            }
+                          </div>
+                          <div className="text-white text-center">
+                            <strong>You can switch or cancel any time before Day 56.</strong>
+                          </div>
+                        </Stack>
+
+                        {/* Required Checkbox */}
+                        <label className="flex items-center justify-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={agreedToTerms}
+                            onChange={(e) => setAgreedToTerms(e.target.checked)}
+                            className="w-5 h-5 text-[#39FF14] bg-neutral-800 border-neutral-600 rounded focus:ring-[#39FF14] focus:ring-2"
+                          />
+                          <span className="text-sm text-neutral-300">
+                            <span className="text-[#39FF14] font-semibold">I agree to the renewal terms above.</span>
+                          </span>
+                        </label>
+
+                        {/* CTA BUTTON */}
+                    <Button
+                      variant="primary"
+                      size="xl"
+                          className="w-full"
+                      onClick={handleIntensivePurchase}
+                          disabled={isLoading || !agreedToTerms}
+                    >
+                      {isLoading ? 'Processing...' : (
+                        <>
+                          <span className="hidden md:inline">Pay $499 Today & Start My Journey</span>
+                          <span className="md:hidden">Pay $499 & Start</span>
+                          <ArrowRight className="w-6 h-6" />
+                        </>
+                      )}
+                    </Button>
+                      </Stack>
+                    </Card>
+                  </Stack>
+                  </Card>
+              </Stack>
+            </Card>
+          </div>
+        </section>
+
         {/* Video Section */}
         <section id="video">
             <Card variant="elevated" className="overflow-hidden">
@@ -1167,7 +1555,7 @@ export default function HomePage() {
                     </a>
                   </Button>
                   <Button variant="secondary" size="xl" asChild>
-                    <a href="/pricing">
+                    <a href="#pricing">
                       View Pricing
                     </a>
                   </Button>
