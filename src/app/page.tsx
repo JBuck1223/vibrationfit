@@ -635,7 +635,7 @@ export default function HomePage() {
                   </div>
                   
                   {/* CTA Button Inside Dashboard */}
-                  <div className="text-center pt-4 pb-2 md:pt-4 md:pb-0">
+                  <div className="text-center pt-4">
                     <Button variant="primary" size="xl" asChild>
                       <a href="#pricing">
                         Start the 72‑Hour Activation Intensive
@@ -746,7 +746,7 @@ export default function HomePage() {
                   allowMultiple={true}
                 />
                 
-                <div className="text-center py-2 md:py-4">
+                <div className="text-center pt-2 md:pt-4">
                   <Button variant="primary" size="xl" asChild>
                     <a href="#pricing">
                       Start the 72‑Hour Activation Intensive
