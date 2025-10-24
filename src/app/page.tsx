@@ -1101,7 +1101,7 @@ export default function HomePage() {
                     </div>
 
                     {/* RENEWAL TERMS & ORDER SUMMARY COMBINED */}
-                    <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30 pb-8 md:pb-12">
+                    <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30 pb-8 md:pb-12 px-4 md:px-8">
                       <Stack gap="md">
                         <h4 className="text-lg font-bold text-[#39FF14] text-center">Order Summary & Renewal Terms</h4>
                         
@@ -1150,15 +1150,15 @@ export default function HomePage() {
                         {/* CTA BUTTON */}
                     <Button
                       variant="primary"
-                      size="xl"
-                          className="w-full"
+                      size="lg"
+                          className="w-full text-sm md:text-base py-2 md:py-4"
                       onClick={handleIntensivePurchase}
                           disabled={isLoading || !agreedToTerms}
                     >
                       {isLoading ? 'Processing...' : (
                         <>
                           <span className="hidden md:inline">Start the 72‑Hour Activation Intensive - ${getPaymentAmount()} Today</span>
-                          <span className="md:hidden">Start Intensive - ${getPaymentAmount()}</span>
+                          <span className="md:hidden">Start the 72‑Hour Activation Intensive - ${getPaymentAmount()} Today</span>
                           <ArrowRight className="w-6 h-6" />
                         </>
                       )}
