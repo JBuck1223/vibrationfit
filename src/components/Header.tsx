@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { Button } from '@/lib/design-system/components'
 import { Container } from '@/lib/design-system/components'
@@ -20,7 +20,53 @@ export function Header() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
+
+  // Page classification logic (same as GlobalLayout)
+  const pageClassifications = {
+    USER: [
+      '/dashboard', '/dashboard/activity', '/dashboard/add-tokens', '/dashboard/storage', '/dashboard/token-history', '/dashboard/tokens', '/dashboard/vibe-assistant-usage',
+      '/life-vision', '/life-vision/new', '/life-vision/create-with-viva', '/life-vision/[id]', '/life-vision/[id]/audio', '/life-vision/[id]/refine',
+      '/vision-board', '/vision-board/new', '/vision-board/gallery', '/vision-board/[id]',
+      '/journal', '/journal/new', '/journal/[id]', '/journal/[id]/edit',
+      '/profile', '/profile/edit', '/profile/new',
+      '/assessment', '/assessment/in-progress', '/assessment/results',
+      '/actualization-blueprints', '/actualization-blueprints/[id]',
+      '/intensive', '/intensive/activate', '/intensive/activation-protocol', '/intensive/builder', '/intensive/calibration', '/intensive/call-prep', '/intensive/check-email', '/intensive/dashboard', '/intensive/intake', '/intensive/refine-vision', '/intensive/schedule-call',
+      '/billing', '/account/settings',
+    ],
+    ADMIN: [
+      '/admin/ai-models', '/admin/token-usage', '/admin/users', '/sitemap',
+    ],
+    PUBLIC: [
+      '/', '/pricing', '/pricing-hormozi', '/design-system',
+      '/auth/login', '/auth/signup', '/auth/verify', '/auth/setup-password', '/auth/logout', '/auth/callback', '/auth/auto-login',
+      '/checkout', '/billing/success', '/debug/email', '/test-recording', '/vision/build',
+      '/support',
+    ]
+  }
+
+  const getPageType = (pathname: string): 'USER' | 'ADMIN' | 'PUBLIC' => {
+    if (pageClassifications.USER.some(page => 
+      pathname === page || pathname.startsWith(page + '/')
+    )) {
+      return 'USER'
+    }
+    if (pageClassifications.ADMIN.some(page => 
+      pathname === page || pathname.startsWith(page + '/')
+    )) {
+      return 'ADMIN'
+    }
+    return 'PUBLIC'
+  }
+
+  const pageType = getPageType(pathname)
+
+  // Only show header on PUBLIC pages
+  if (pageType !== 'PUBLIC') {
+    return null
+  }
 
   useEffect(() => {
     const getUser = async () => {
