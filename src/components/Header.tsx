@@ -77,7 +77,7 @@ export function Header() {
 
   const directLinks = [
     { name: 'Dashboard', href: '/dashboard', icon: Layout },
-    { name: 'Pricing', href: '/pricing', icon: Target },
+    { name: 'Pricing', href: '/#pricing', icon: Target },
   ]
 
   const navigationGroups = {
