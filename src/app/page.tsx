@@ -46,8 +46,18 @@ const VISION_CATEGORIES = [
 export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [billingPeriod, setBillingPeriod] = useState<'annual' | '28day'>('annual')
+  const [paymentPlan, setPaymentPlan] = useState<'full' | '2pay' | '3pay'>('full')
   const [isLoading, setIsLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+
+  const getPaymentAmount = () => {
+    switch (paymentPlan) {
+      case 'full': return '499'
+      case '2pay': return '249.50'
+      case '3pay': return '166.33'
+      default: return '499'
+    }
+  }
 
   const handleIntensivePurchase = async () => {
     if (!agreedToTerms) {
@@ -58,7 +68,7 @@ export default function HomePage() {
     setIsLoading(true)
     try {
       const params = new URLSearchParams({
-        intensivePaymentPlan: 'full',
+        intensivePaymentPlan: paymentPlan,
         continuityPlan: billingPeriod,
       })
       window.location.href = `/checkout?${params.toString()}`
@@ -768,15 +778,51 @@ export default function HomePage() {
                     {/* DYNAMIC PRICE */}
                     <div className="text-center">
                       <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-[#39FF14] mb-4">
-                        $499
+                        ${getPaymentAmount()}
                               </div>
                       <div className="text-xl text-white mb-2 text-center">
-                        Today
+                        {paymentPlan === 'full' ? 'Today' : paymentPlan === '2pay' ? '× 2 Payments' : '× 3 Payments'}
                       </div>
                       <div className="text-lg text-neutral-300 text-center">
                         Includes 8 weeks of Vision Pro access
                             </div>
+                      {paymentPlan !== 'full' && (
+                        <div className="text-sm text-neutral-400 mt-2 text-center">
+                          Total: $499 • {paymentPlan === '2pay' ? '2 payments' : '3 payments'}
+                        </div>
+                      )}
                     </div>
+
+                    {/* PAYMENT OPTIONS INSIDE CARD */}
+                    <Stack align="center" gap="md">
+                      <h3 className="text-lg font-bold text-white">Payment Options</h3>
+                      <div className="flex flex-row gap-2 justify-center flex-wrap">
+                        <Button
+                          variant={paymentPlan === 'full' ? 'primary' : 'outline'}
+                          size="md"
+                          className="px-2 py-2 text-xs flex-shrink-0"
+                          onClick={() => setPaymentPlan('full')}
+                        >
+                          Pay in Full
+                        </Button>
+                        <Button
+                          variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
+                          size="md"
+                          className="px-2 py-2 text-xs flex-shrink-0"
+                          onClick={() => setPaymentPlan('2pay')}
+                        >
+                          2 Payments
+                        </Button>
+                        <Button
+                          variant={paymentPlan === '3pay' ? 'primary' : 'outline'}
+                          size="md"
+                          className="px-2 py-2 text-xs flex-shrink-0"
+                          onClick={() => setPaymentPlan('3pay')}
+                        >
+                          3 Payments
+                        </Button>
+                      </div>
+                    </Stack>
 
                     {/* SEPARATOR */}
                     <div className="w-full h-px bg-neutral-600"></div>
@@ -1054,7 +1100,20 @@ export default function HomePage() {
                         {/* Order Summary */}
                         <Stack gap="sm" align="center">
                           <div className="text-white text-center">
-                            <strong>Today:</strong> $499 for the 72‑Hour Intensive + 8 weeks included.
+                            {paymentPlan === 'full' ? (
+                              <><strong>Today:</strong> $499 for the 72‑Hour Intensive + 8 weeks included.</>
+                            ) : paymentPlan === '2pay' ? (
+                              <>
+                                <strong>Today:</strong> $249.50 for the 72‑Hour Intensive + 8 weeks included.<br />
+                                <strong>In 4 weeks:</strong> $249.50 (final payment)
+                              </>
+                            ) : (
+                              <>
+                                <strong>Today:</strong> $166.33 for the 72‑Hour Intensive + 8 weeks included.<br />
+                                <strong>In 4 weeks:</strong> $166.33<br />
+                                <strong>In 8 weeks:</strong> $166.33 (final payment)
+                              </>
+                            )}
                           </div>
                           <div className="text-white text-center">
                             <strong>Day 56:</strong> {billingPeriod === 'annual' 
@@ -1090,8 +1149,8 @@ export default function HomePage() {
                     >
                       {isLoading ? 'Processing...' : (
                         <>
-                          <span className="hidden md:inline">Pay $499 Today & Start My Journey</span>
-                          <span className="md:hidden">Pay $499 & Start</span>
+                          <span className="hidden md:inline">Pay ${getPaymentAmount()} {paymentPlan === 'full' ? 'Today' : paymentPlan === '2pay' ? '× 2' : '× 3'} & Start My Journey</span>
+                          <span className="md:hidden">Pay ${getPaymentAmount()} & Start</span>
                           <ArrowRight className="w-6 h-6" />
                         </>
                       )}
