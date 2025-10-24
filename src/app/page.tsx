@@ -1101,13 +1101,13 @@ export default function HomePage() {
                     </div>
 
                     {/* RENEWAL TERMS & ORDER SUMMARY COMBINED */}
-                    <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30">
+                    <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30 pb-8 md:pb-12">
                       <Stack gap="md">
                         <h4 className="text-lg font-bold text-[#39FF14] text-center">Order Summary & Renewal Terms</h4>
                         
                         {/* Order Summary */}
                         <Stack gap="sm" align="center">
-                          <div className="text-white text-center">
+                          <div className="text-white text-center text-sm md:text-base px-2">
                             {paymentPlan === 'full' ? (
                               <><strong>Today:</strong> $499 for the 72‑Hour Intensive + 8 weeks included.</>
                             ) : paymentPlan === '2pay' ? (
@@ -1123,13 +1123,13 @@ export default function HomePage() {
                               </>
                             )}
                           </div>
-                          <div className="text-white text-center">
+                          <div className="text-white text-center text-sm md:text-base px-2">
                             <strong>Day 56:</strong> {billingPeriod === 'annual' 
                               ? '$999 Payment (=$76.85/28 days). Renews annually.'
                               : '$99 Payment. Renews every 28 days.'
                             }
                           </div>
-                          <div className="text-white text-center">
+                          <div className="text-white text-center text-sm md:text-base px-2">
                             <strong>You can switch or cancel any time before Day 56.</strong>
                           </div>
                         </Stack>
