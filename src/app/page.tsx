@@ -706,7 +706,7 @@ export default function HomePage() {
                   allowMultiple={true}
                 />
                 
-                <div className="text-center pt-4 pb-0 md:pt-8 md:pb-0">
+                <div className="text-center py-4 md:py-8">
                   <Button variant="primary" size="xl">
                     Start the 72‑Hour Activation Intensive
                   </Button>
