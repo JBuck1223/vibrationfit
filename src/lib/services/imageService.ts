@@ -120,8 +120,9 @@ export async function generateImage({
 
     // Save to gallery (S3 + database)
     let galleryId: string | undefined
+    let permanentImageUrl = imageUrl // Fallback to original URL if S3 upload fails
     try {
-      galleryId = await saveImageToGallery({
+      const galleryResult = await saveImageToGallery({
         userId,
         imageUrl,
         prompt,
@@ -131,6 +132,8 @@ export async function generateImage({
         style,
         context,
       })
+      galleryId = galleryResult.galleryId
+      permanentImageUrl = galleryResult.cdnUrl
       console.log('✅ Image saved to gallery:', galleryId)
     } catch (error) {
       console.error('⚠️ Failed to save image to gallery:', error)
@@ -139,7 +142,7 @@ export async function generateImage({
 
     return {
       success: true,
-      imageUrl: cdnUrl, // Use permanent S3 URL instead of temporary OpenAI URL
+      imageUrl: permanentImageUrl, // Use permanent S3 URL if available, fallback to original
       revisedPrompt,
       tokensUsed: 1, // 1 image = 1 token equivalent
       galleryId,
@@ -262,7 +265,7 @@ async function saveImageToGallery({
   quality,
   style,
   context,
-}: SaveImageToGalleryParams): Promise<string> {
+}: SaveImageToGalleryParams): Promise<{ galleryId: string; cdnUrl: string }> {
   try {
     // Download the image from provider
     const imageResponse = await fetch(imageUrl)
@@ -319,7 +322,10 @@ async function saveImageToGallery({
       throw new Error(`Database error: ${error.message}`)
     }
     
-    return data.id
+    return {
+      galleryId: data.id,
+      cdnUrl,
+    }
     
   } catch (error) {
     console.error('❌ Failed to save image to gallery:', error)
