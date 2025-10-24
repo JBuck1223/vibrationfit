@@ -116,8 +116,6 @@ export function Header() {
                 {/* Account Dropdown */}
                 {openDropdown === 'account' && (
                   <div
-                    onMouseEnter={() => handleMouseEnter('account')}
-                    onMouseLeave={handleMouseLeave}
                     className="absolute right-0 top-full mt-2 w-72 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl py-2 z-[9999]"
                   >
                     {/* Token Balance */}
