@@ -2567,7 +2567,8 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                     <div className="flex items-center gap-2 mt-2 ml-0">
                       <Lock className="w-3 h-3 text-neutral-500" />
                       <span className="text-xs text-neutral-500">
-                        Locked until you complete Profile & Assessment
+                        <span className="md:hidden">Locked until Profile & Assessment complete</span>
+                        <span className="hidden md:inline">Locked until you complete Profile & Assessment</span>
                       </span>
                     </div>
                   )}
