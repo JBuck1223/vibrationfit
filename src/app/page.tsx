@@ -1149,8 +1149,8 @@ export default function HomePage() {
                     >
                       {isLoading ? 'Processing...' : (
                         <>
-                          <span className="hidden md:inline">Pay ${getPaymentAmount()} {paymentPlan === 'full' ? 'Today' : paymentPlan === '2pay' ? '× 2' : '× 3'} & Start My Journey</span>
-                          <span className="md:hidden">Pay ${getPaymentAmount()} & Start</span>
+                          <span className="hidden md:inline">Start the 72‑Hour Activation Intensive - ${getPaymentAmount()} Today</span>
+                          <span className="md:hidden">Start the 72‑Hour Activation Intensive - ${getPaymentAmount()} Today</span>
                           <ArrowRight className="w-6 h-6" />
                         </>
                       )}
