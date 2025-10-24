@@ -611,7 +611,7 @@ export default function HomePage() {
         {/* Offer Stack Section */}
         <section>
           <div className="w-full">
-            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
+            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full !p-0">
               <Stack gap="md" className="p-2 md:p-8">
                 <div className="text-center">
                   <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
