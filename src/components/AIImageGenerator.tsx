@@ -3,7 +3,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button, Textarea, Card, Spinner } from '@/lib/design-system/components'
 import { Sparkles, Image as ImageIcon, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -41,6 +41,10 @@ export function AIImageGenerator({
   const [customDescription, setCustomDescription] = useState<string>('')
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
 
+  // Refs for scrolling
+  const containerRef = useRef<HTMLDivElement>(null)
+  const loadingRef = useRef<HTMLDivElement>(null)
+
   // VIVA loading messages with animation
   const loadingMessages = [
     "VIVA is bringing your vision to life...",
@@ -50,6 +54,30 @@ export function AIImageGenerator({
     "Weaving magic into pixels...",
     "Almost ready to actualize..."
   ]
+
+  // Scroll to loading section when generating starts
+  useEffect(() => {
+    if (generating && loadingRef.current) {
+      setTimeout(() => {
+        loadingRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        })
+      }, 100)
+    }
+  }, [generating])
+
+  // Scroll to top of container when image is generated
+  useEffect(() => {
+    if (generatedImage && containerRef.current) {
+      setTimeout(() => {
+        containerRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        })
+      }, 100)
+    }
+  }, [generatedImage])
 
   // Cycle through loading messages every 3 seconds
   useEffect(() => {
@@ -229,10 +257,10 @@ export function AIImageGenerator({
   }
 
   return (
-    <Card className={`p-6 ${className} relative`}>
+    <Card ref={containerRef} className={`p-6 ${className} relative`}>
       {/* VIVA Loading Overlay */}
       {generating && (
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-50">
+        <div ref={loadingRef} className="absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-50">
           <div className="text-center space-y-6">
             {/* VIVA Logo Spinner */}
             <div className="flex justify-center">
@@ -241,7 +269,7 @@ export function AIImageGenerator({
             
             {/* Animated Loading Message */}
             <div className="space-y-2">
-              <h3 className="text-xl font-bold text-white">
+              <h3 className="text-xl font-bold text-white text-center">
                 {loadingMessages[loadingMessageIndex]}
               </h3>
               <div className="flex justify-center space-x-1">
@@ -251,8 +279,8 @@ export function AIImageGenerator({
               </div>
             </div>
             
-            {/* Progress Indicator */}
-            <div className="w-64 bg-neutral-800 rounded-full h-2 overflow-hidden">
+            {/* Progress Indicator - matches text width */}
+            <div className="w-full max-w-md mx-auto bg-neutral-800 rounded-full h-2 overflow-hidden">
               <div className="h-full bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-full animate-pulse"></div>
             </div>
             
