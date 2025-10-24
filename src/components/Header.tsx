@@ -167,7 +167,7 @@ export function Header() {
                 
                 {/* Dropdown Menu */}
                 {openDropdown === key && (
-                  <div className="absolute top-full left-0 mt-2 w-56 bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl py-2 animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl py-2 animate-in fade-in slide-in-from-top-2 duration-200 z-[9999]">
                     {group.items.map((item) => (
                       <Link
                         key={item.href}
@@ -226,7 +226,7 @@ export function Header() {
                   <div
                     onMouseEnter={() => handleMouseEnter('account')}
                     onMouseLeave={handleMouseLeave}
-                    className="absolute right-0 top-full mt-2 w-72 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl py-2 z-50"
+                    className="absolute right-0 top-full mt-2 w-72 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl py-2 z-[9999]"
                   >
                     {/* Token Balance */}
                     <div className="px-4 py-3 border-b border-neutral-800">
