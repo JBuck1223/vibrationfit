@@ -4,10 +4,22 @@
 import OpenAI from 'openai'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { createClient } from '@/lib/supabase/server'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null
+
+// S3 client for server-side uploads
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-2',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+})
+
+const BUCKET_NAME = 'vibration-fit-client-storage'
 
 // ============================================================================
 // IMAGE GENERATION
@@ -127,7 +139,7 @@ export async function generateImage({
 
     return {
       success: true,
-      imageUrl,
+      imageUrl: cdnUrl, // Use permanent S3 URL instead of temporary OpenAI URL
       revisedPrompt,
       tokensUsed: 1, // 1 image = 1 token equivalent
       galleryId,
@@ -261,21 +273,26 @@ async function saveImageToGallery({
     const imageBuffer = await imageResponse.arrayBuffer()
     const imageData = new Uint8Array(imageBuffer)
     
-    // Generate S3 key
+    // Generate filename and S3 key
     const timestamp = Date.now()
     const randomId = Math.random().toString(36).substring(2, 8)
     const fileName = `${timestamp}-${randomId}-generated.png`
-    const s3Key = `user-uploads/${userId}/vision-board/generated/${fileName}`
+    const s3Key = `user-uploads/${userId}/vision-board/generated/${timestamp}-${randomId}-${fileName}`
     
-    // Upload to S3 using the existing storage service
-    const { uploadUserFile } = await import('@/lib/storage/s3-storage-presigned')
+    // Upload directly to S3 (server-side)
+    const command = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+      Body: Buffer.from(imageData),
+      ContentType: 'image/png',
+      CacheControl: 'max-age=31536000',
+    })
     
-    const file = new File([imageData], fileName, { type: 'image/png' })
-    const uploadResult = await uploadUserFile('visionBoardGenerated', file, userId)
+    await s3Client.send(command)
+    console.log(`✅ Image uploaded to S3: ${s3Key}`)
     
-    if (!uploadResult.url) {
-      throw new Error('Failed to upload image to S3')
-    }
+    // Generate CDN URL
+    const cdnUrl = `https://media.vibrationfit.com/${s3Key}`
     
     // Save to database
     const supabase = await createClient()
@@ -283,7 +300,7 @@ async function saveImageToGallery({
       .from('generated_images')
       .insert({
         user_id: userId,
-        image_url: uploadResult.url,
+        image_url: cdnUrl,
         s3_key: s3Key,
         file_name: fileName,
         file_size: imageData.length,
