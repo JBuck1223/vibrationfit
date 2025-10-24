@@ -2548,7 +2548,7 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                     
                     {/* Title and Status */}
                     <div className="flex-1">
-                      <h4 className="text-lg font-semibold text-white">
+                      <h4 className="text-base md:text-lg font-semibold text-white">
                         {item.title}
                       </h4>
                       {item.locked && (
