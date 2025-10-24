@@ -2534,39 +2534,43 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                     e.stopPropagation()
                     toggleItem(item.id)
                   }}
-                  className="w-full px-2 md:px-6 py-2 md:py-4 flex items-center justify-between text-left transition-colors duration-200 hover:bg-[#39FF14]/5 cursor-pointer"
+                  className="w-full px-2 md:px-6 py-2 md:py-4 flex flex-col text-left transition-colors duration-200 hover:bg-[#39FF14]/5 cursor-pointer"
                   type="button"
                   tabIndex={0}
                 >
-                  <div className="flex items-center gap-2 md:gap-4">
-                    {/* Icon */}
-                    {IconComponent && (
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[#39FF14]/20">
-                        <IconComponent className="w-4 h-4 text-[#39FF14]" />
-                      </div>
-                    )}
-                    
-                    {/* Title and Status */}
-                    <div className="flex-1">
-                      <h4 className="text-base md:text-lg font-semibold text-white">
-                        {item.title}
-                      </h4>
-                      {item.locked && (
-                        <div className="flex items-center gap-2 mt-1">
-                          <Lock className="w-3 h-3 text-neutral-500" />
-                          <span className="text-xs text-neutral-500">
-                            Locked until you complete Profile & Assessment
-                          </span>
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2 md:gap-4">
+                      {/* Icon */}
+                      {IconComponent && (
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[#39FF14]/20">
+                          <IconComponent className="w-4 h-4 text-[#39FF14]" />
                         </div>
                       )}
+                      
+                      {/* Title */}
+                      <div className="flex-1">
+                        <h4 className="text-base md:text-lg font-semibold text-white">
+                          {item.title}
+                        </h4>
+                      </div>
                     </div>
+
+                    {/* Chevron */}
+                    <ChevronDown className={cn(
+                      'w-5 h-5 transition-transform duration-200 text-neutral-400',
+                      isExpanded && 'rotate-180'
+                    )} />
                   </div>
 
-                  {/* Chevron */}
-                  <ChevronDown className={cn(
-                    'w-5 h-5 transition-transform duration-200 text-neutral-400',
-                    isExpanded && 'rotate-180'
-                  )} />
+                  {/* Lock Status - Under the main content */}
+                  {item.locked && (
+                    <div className="flex items-center gap-2 mt-2 ml-10 md:ml-12">
+                      <Lock className="w-3 h-3 text-neutral-500" />
+                      <span className="text-xs text-neutral-500">
+                        Locked until you complete Profile & Assessment
+                      </span>
+                    </div>
+                  )}
                 </button>
 
                 {/* Item Content - Expandable */}
