@@ -114,7 +114,7 @@ export function Header() {
 
   return (
     <header className={cn(
-      "sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-neutral-800",
+      "z-50 bg-black/95 backdrop-blur-sm border-b border-neutral-800",
       // Hide header on mobile for logged-in users
       user ? "hidden md:block" : "block"
     )}>
