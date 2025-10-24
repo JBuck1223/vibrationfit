@@ -16,6 +16,7 @@ export function Header() {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -89,8 +90,6 @@ export function Header() {
                     e.stopPropagation()
                     setOpenDropdown(openDropdown === 'account' ? null : 'account')
                   }}
-                  onMouseEnter={() => handleMouseEnter('account')}
-                  onMouseLeave={handleMouseLeave}
                   className="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-neutral-800 transition-colors"
                 >
                   {/* Profile Picture */}
