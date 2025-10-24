@@ -116,7 +116,7 @@ export function Header() {
                 {/* Account Dropdown */}
                 {openDropdown === 'account' && (
                   <div
-                    className="absolute right-0 top-full mt-2 w-72 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl py-2 z-[99999]"
+                    className="fixed right-4 top-20 w-72 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl py-2"
                   >
                     {/* Token Balance */}
                     <div className="px-4 py-3 border-b border-neutral-800">
