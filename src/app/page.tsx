@@ -763,7 +763,7 @@ export default function HomePage() {
         <section>
           <div className="w-full">
             <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
-              <Stack gap="xl" className="p-2 md:p-8">
+              <Stack gap="xl" className="p-2 pb-8 md:p-8 md:pb-12">
                 
                 {/* ACTIVATION INTENSIVE TITLE - ENHANCED */}
                 <div className="text-center">
