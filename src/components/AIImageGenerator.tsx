@@ -268,8 +268,8 @@ export function AIImageGenerator({
             </div>
             
             {/* Animated Loading Message */}
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-white text-center">
+            <div className="space-y-2 px-4">
+              <h3 className="text-lg sm:text-xl font-bold text-white text-center break-words hyphens-auto">
                 {loadingMessages[loadingMessageIndex]}
               </h3>
               <div className="flex justify-center space-x-1">
@@ -280,11 +280,13 @@ export function AIImageGenerator({
             </div>
             
             {/* Progress Indicator - matches text width */}
-            <div className="w-full max-w-md mx-auto bg-neutral-800 rounded-full h-2 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-full animate-pulse"></div>
+            <div className="w-full max-w-md mx-auto px-4">
+              <div className="bg-neutral-800 rounded-full h-2 overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-full animate-pulse"></div>
+              </div>
             </div>
             
-            <p className="text-sm text-neutral-400">
+            <p className="text-sm text-neutral-400 px-4">
               This usually takes 15-30 seconds
             </p>
           </div>
