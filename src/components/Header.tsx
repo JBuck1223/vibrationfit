@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { createPortal } from 'react-dom'
 import { Button } from '@/lib/design-system/components'
 import { Container } from '@/lib/design-system/components'
 import { cn } from '@/lib/utils'
@@ -17,6 +18,7 @@ export function Header() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [buttonRect, setButtonRect] = useState<DOMRect | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -88,6 +90,8 @@ export function Header() {
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    setButtonRect(rect)
                     setOpenDropdown(openDropdown === 'account' ? null : 'account')
                   }}
                   className="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-neutral-800 transition-colors"
@@ -114,9 +118,14 @@ export function Header() {
                 </button>
 
                 {/* Account Dropdown */}
-                {openDropdown === 'account' && (
+                {openDropdown === 'account' && buttonRect && typeof window !== 'undefined' && createPortal(
                   <div
-                    className="fixed right-4 top-20 w-72 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl py-2"
+                    className="fixed bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl py-2 w-72"
+                    style={{
+                      top: buttonRect.bottom + 8,
+                      right: window.innerWidth - buttonRect.right,
+                      zIndex: 999999
+                    }}
                   >
                     {/* Token Balance */}
                     <div className="px-4 py-3 border-b border-neutral-800">
@@ -210,7 +219,8 @@ export function Header() {
                         <span className="font-medium">Logout</span>
                       </button>
                     </div>
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
             ) : (
