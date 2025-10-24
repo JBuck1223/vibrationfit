@@ -404,7 +404,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     return (
       <div 
         ref={ref}
-        className={cn('rounded-2xl', variants[variant], hoverEffect, className)}
+        className={cn('rounded-2xl p-2 md:p-4', variants[variant], hoverEffect, className)}
         {...props}
       >
         {children}
