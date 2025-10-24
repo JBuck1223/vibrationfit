@@ -10,10 +10,9 @@ import { cn } from '@/lib/utils'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
-import { ChevronDown, Target, Sparkles, BarChart3, BookOpen, Layout, User as UserIcon, Home as HomeIcon, Settings, CreditCard, Zap, LogOut, HardDrive, Activity } from 'lucide-react'
+import { ChevronDown, User as UserIcon, Settings, CreditCard, Zap, LogOut, HardDrive, Activity } from 'lucide-react'
 
 export function Header() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -57,61 +56,6 @@ export function Header() {
     router.refresh()
   }
 
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [closeTimeout, setCloseTimeout] = useState<NodeJS.Timeout | null>(null)
-
-  const handleMouseEnter = (key: string) => {
-    if (closeTimeout) {
-      clearTimeout(closeTimeout)
-      setCloseTimeout(null)
-    }
-    setOpenDropdown(key)
-  }
-
-  const handleMouseLeave = () => {
-    const timeout = setTimeout(() => {
-      setOpenDropdown(null)
-    }, 200) // 200ms delay before closing
-    setCloseTimeout(timeout)
-  }
-
-  const directLinks = [
-    { name: 'Dashboard', href: '/dashboard', icon: Layout },
-    { name: 'Pricing', href: '/#pricing', icon: Target },
-  ]
-
-  const navigationGroups = {
-    vision: {
-      label: 'Life Vision',
-      icon: Target,
-      items: [
-        { name: 'My Life Visions', href: '/life-vision' },
-        { name: 'Create New Vision', href: '/life-vision/new' },
-        { name: 'Build with VIVA', href: '/vision/build' },
-        { name: 'Take Assessment', href: '/assessment' },
-        { name: 'Vision Board', href: '/vision-board' },
-      ]
-    },
-    tools: {
-      label: 'Tools',
-      icon: Sparkles,
-      items: [
-        { name: 'Journal', href: '/journal' },
-        { name: 'Blueprints', href: '/actualization-blueprints' },
-        { name: 'Intensive', href: '/intensive/dashboard' },
-      ]
-    },
-    profile: {
-      label: 'Profile',
-      icon: UserIcon,
-      items: [
-        { name: 'My Profile', href: '/profile' },
-        { name: 'Edit Profile', href: '/profile/edit' },
-        { name: 'Account Settings', href: '/account/settings' },
-      ]
-    }
-  }
-
   return (
     <header className={cn(
       "z-50 bg-black/95 backdrop-blur-sm border-b border-neutral-800",
@@ -132,57 +76,6 @@ export function Header() {
             />
           </Link>
 
-          {/* Desktop Navigation - Absolutely Centered */}
-          <nav className="hidden md:flex items-center space-x-6 absolute left-1/2 transform -translate-x-1/2">
-            {/* Direct Links First */}
-            {directLinks.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="text-neutral-300 hover:text-white transition-colors duration-200 font-medium"
-              >
-                {item.name}
-              </Link>
-            ))}
-
-            {/* Dropdown Groups */}
-            {Object.entries(navigationGroups).map(([key, group]) => (
-              <div
-                key={key}
-                className="relative"
-                onMouseEnter={() => handleMouseEnter(key)}
-                onMouseLeave={handleMouseLeave}
-              >
-                <button 
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setOpenDropdown(openDropdown === key ? null : key)
-                  }}
-                  className="flex items-center gap-1 text-neutral-300 hover:text-white transition-colors duration-200 font-medium"
-                >
-                  {group.label}
-                  <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === key ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {/* Dropdown Menu */}
-                {openDropdown === key && (
-                  <div className="absolute top-full left-0 mt-2 w-56 bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl py-2 animate-in fade-in slide-in-from-top-2 duration-200 z-[9999]">
-                    {group.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className="block px-4 py-2.5 text-sm text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors"
-                        onClick={() => setOpenDropdown(null)}
-                      >
-                        {item.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </nav>
 
           {/* Desktop Auth / Account */}
           <div className="hidden md:flex items-center space-x-4">
@@ -329,140 +222,32 @@ export function Header() {
                   <Link href="/auth/login">Sign In</Link>
                 </Button>
                 <Button asChild variant="primary" size="sm">
-                  <Link href="/auth/signup">Get Started</Link>
+                  <Link href="/auth/signup">Join Now</Link>
                 </Button>
               </>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 text-neutral-300 hover:text-white transition-colors"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle mobile menu"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              {isMobileMenuOpen ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              )}
-            </svg>
-          </button>
-        </div>
-
-        {/* Mobile Navigation Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-neutral-800 py-4">
-            <nav className="flex flex-col space-y-2">
-              {/* Life Vision Section */}
-              <div className="border-b border-neutral-800 pb-3 mb-3">
-                <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider px-4 mb-2">
-                  Life Vision
-                </div>
-                {navigationGroups.vision.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="block px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-900 transition-colors font-medium"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-
-              {/* Tools Section */}
-              <div className="border-b border-neutral-800 pb-3 mb-3">
-                <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider px-4 mb-2">
-                  Tools
-                </div>
-                {navigationGroups.tools.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="block px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-900 transition-colors font-medium"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-
-              {/* Profile Section */}
-              <div className="border-b border-neutral-800 pb-3 mb-3">
-                <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider px-4 mb-2">
-                  Profile
-                </div>
-                {navigationGroups.profile.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="block px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-900 transition-colors font-medium"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-
-              {/* Direct Links */}
-              {directLinks.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="block px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-900 transition-colors font-medium"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
-
-              <div className="flex flex-col space-y-3 pt-4 border-t border-neutral-800">
-                {loading ? (
-                  <div className="w-full h-8 bg-neutral-800 rounded animate-pulse" />
-                ) : user ? (
-                  <>
-                    <div className="text-neutral-300 text-sm text-center py-2">
-                      {user.email}
-                    </div>
-                    <Button onClick={handleLogout} variant="ghost" size="sm" className="w-full">
-                      Logout
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button asChild variant="ghost" size="sm" className="w-full">
-                      <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
-                        Sign In
-                      </Link>
-                    </Button>
-                    <Button asChild variant="primary" size="sm" className="w-full">
-                      <Link href="/auth/signup" onClick={() => setIsMobileMenuOpen(false)}>
-                        Get Started
-                      </Link>
-                    </Button>
-                  </>
-                )}
-              </div>
-            </nav>
+          {/* Mobile Auth */}
+          <div className="md:hidden flex items-center space-x-2">
+            {loading ? (
+              <div className="w-16 h-6 bg-neutral-800 rounded animate-pulse" />
+            ) : user ? (
+              <Button onClick={handleLogout} variant="ghost" size="sm">
+                Logout
+              </Button>
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/auth/login">Sign In</Link>
+                </Button>
+                <Button asChild variant="primary" size="sm">
+                  <Link href="/auth/signup">Join Now</Link>
+                </Button>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </Container>
     </header>
   )
