@@ -779,9 +779,8 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                {/* MAIN PRICING CARD */}
-                <Card variant="elevated" className="border-2 border-[#39FF14]">
-                  <Stack align="center" gap="lg">
+                {/* MAIN PRICING CONTENT */}
+                <Stack align="center" gap="lg">
                     
                     {/* DYNAMIC PRICE */}
                     <div className="text-center">
@@ -1164,9 +1163,7 @@ export default function HomePage() {
                       )}
                     </Button>
                       </Stack>
-                    </Card>
                   </Stack>
-                  </Card>
               </Stack>
             </Card>
           </div>
