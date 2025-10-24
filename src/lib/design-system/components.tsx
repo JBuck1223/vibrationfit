@@ -2513,7 +2513,7 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
         )}
 
         {/* Individual Accordion Items */}
-        <div className="space-y-2">
+        <div className="space-y-1 md:space-y-2">
           {items.map((item, index) => {
             const isExpanded = expandedItems.includes(item.id)
             const IconComponent = item.icon
@@ -2534,11 +2534,11 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                     e.stopPropagation()
                     toggleItem(item.id)
                   }}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left transition-colors duration-200 hover:bg-[#39FF14]/5 cursor-pointer"
+                  className="w-full px-3 md:px-6 py-3 md:py-4 flex items-center justify-between text-left transition-colors duration-200 hover:bg-[#39FF14]/5 cursor-pointer"
                   type="button"
                   tabIndex={0}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 md:gap-4">
                     {/* Icon */}
                     {IconComponent && (
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[#39FF14]/20">
@@ -2571,7 +2571,7 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
 
                 {/* Item Content - Expandable */}
                 {isExpanded && item.description && (
-                  <div className="px-6 pb-4 border-t border-[#333]">
+                  <div className="px-3 md:px-6 pb-3 md:pb-4 border-t border-[#333]">
                     <div className="pt-4">
                       {item.description.split('\n').map((line, index) => (
                         <div key={index} className="flex items-start gap-2 mb-2 last:mb-0">
