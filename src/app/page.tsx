@@ -597,7 +597,7 @@ export default function HomePage() {
                   </div>
                   
                   {/* CTA Button Inside Dashboard */}
-                  <div className="text-center pt-4 pb-2 md:pt-8 md:pb-0">
+                  <div className="text-center pt-6 pb-2 md:pt-8 md:pb-0">
                     <Button variant="primary" size="xl">
                       Start the 72‑Hour Activation Intensive
                     </Button>
