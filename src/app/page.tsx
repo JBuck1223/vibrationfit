@@ -1158,7 +1158,7 @@ export default function HomePage() {
                       {isLoading ? 'Processing...' : (
                         <>
                           <span className="hidden md:inline">Start the 72‑Hour Activation Intensive - ${getPaymentAmount()} Today</span>
-                          <span className="md:hidden">Start the 72‑Hour Activation Intensive - ${getPaymentAmount()} Today</span>
+                          <span className="md:hidden">Start Intensive - ${getPaymentAmount()}</span>
                           <ArrowRight className="w-6 h-6" />
                         </>
                       )}
