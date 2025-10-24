@@ -127,8 +127,10 @@ export default function HomePage() {
                   </div>
                   
                   <div className="flex justify-center md:justify-center">
-                    <Button variant="primary" size="xl" className="mt-1 mb-4 md:mt-2">
-                      Start the 72‑Hour Activation Intensive
+                    <Button variant="primary" size="xl" className="mt-1 mb-4 md:mt-2" asChild>
+                      <a href="#pricing">
+                        Start the 72‑Hour Activation Intensive
+                      </a>
                   </Button>
                   </div>
                 </div>
@@ -459,8 +461,10 @@ export default function HomePage() {
                 
                 {/* CTA Button */}
                 <div className="text-center my-4 md:mt-8 md:mb-4">
-                  <Button variant="primary" size="xl">
-                    Start the 72‑Hour Activation Intensive
+                  <Button variant="primary" size="xl" asChild>
+                    <a href="#pricing">
+                      Start the 72‑Hour Activation Intensive
+                    </a>
                   </Button>
                 </div>
                 
@@ -632,8 +636,10 @@ export default function HomePage() {
                   
                   {/* CTA Button Inside Dashboard */}
                   <div className="text-center pt-8 pb-2 md:pt-8 md:pb-0">
-                    <Button variant="primary" size="xl">
-                      Start the 72‑Hour Activation Intensive
+                    <Button variant="primary" size="xl" asChild>
+                      <a href="#pricing">
+                        Start the 72‑Hour Activation Intensive
+                      </a>
                     </Button>
                   </div>
                 </div>
@@ -741,8 +747,10 @@ export default function HomePage() {
                 />
                 
                 <div className="text-center py-2 md:py-8">
-                  <Button variant="primary" size="xl">
-                    Start the 72‑Hour Activation Intensive
+                  <Button variant="primary" size="xl" asChild>
+                    <a href="#pricing">
+                      Start the 72‑Hour Activation Intensive
+                    </a>
                   </Button>
                 </div>
               </Stack>
