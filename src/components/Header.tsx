@@ -167,7 +167,7 @@ export function Header() {
                 
                 {/* Dropdown Menu */}
                 {openDropdown === key && (
-                  <div className="absolute top-full left-0 mt-2 w-56 bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl py-2 animate-in fade-in slide-in-from-top-2 duration-200 z-50">
                     {group.items.map((item) => (
                       <Link
                         key={item.href}
