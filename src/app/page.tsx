@@ -612,7 +612,7 @@ export default function HomePage() {
         <section>
           <div className="w-full">
             <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
-              <Stack gap="md" className="p-4 md:p-8">
+              <Stack gap="md" className="p-2 md:p-8">
                 <div className="text-center">
                   <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                     Exactly What You Get Today
@@ -706,13 +706,9 @@ export default function HomePage() {
                   allowMultiple={true}
                 />
                 
-                <div className="text-center mt-4 md:mt-8">
-                  <Button 
-                    variant="primary" 
-                    size="lg"
-                    className="text-lg px-8 py-4"
-                  >
-                    Start the 72‑Hour Activation Intensive — $499 today.
+                <div className="text-center pt-4 pb-0 md:pt-8 md:pb-0">
+                  <Button variant="primary" size="xl">
+                    Start the 72‑Hour Activation Intensive
                   </Button>
                 </div>
               </Stack>
