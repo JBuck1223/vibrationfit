@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { PageLayout, Card, Input, Button, Icon } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
-import { SavedRecordings } from '@/components/SavedRecordings'
+import { UploadProgress } from '@/components/UploadProgress'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
@@ -39,6 +39,13 @@ export default function NewJournalEntryPage() {
   const supabase = createClient()
   
   const [loading, setLoading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({
+    progress: 0,
+    status: '',
+    fileName: '',
+    fileSize: 0,
+    isVisible: false
+  })
   const [files, setFiles] = useState<File[]>([])
   const [aiGeneratedImageUrls, setAiGeneratedImageUrls] = useState<string[]>([])
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
@@ -108,7 +115,22 @@ export default function NewJournalEntryPage() {
       if (imageSource === 'ai' && aiGeneratedImageUrls.length > 0) {
         imageUrls = aiGeneratedImageUrls
       } else if (imageSource === 'upload' && files.length > 0) {
-        const uploadResults = await uploadMultipleUserFiles('journal', files, user.id)
+        // Show upload progress
+        setUploadProgress({
+          progress: 0,
+          status: 'Preparing files for upload...',
+          fileName: files.length > 1 ? `${files.length} files` : files[0]?.name || '',
+          fileSize: files.reduce((total, file) => total + file.size, 0),
+          isVisible: true
+        })
+
+        const uploadResults = await uploadMultipleUserFiles('journal', files, user.id, (progress) => {
+          setUploadProgress(prev => ({
+            ...prev,
+            progress: Math.round(progress),
+            status: progress < 100 ? 'Uploading files...' : 'Processing files...'
+          }))
+        })
         imageUrls = uploadResults.map((result: { url: string; key: string; error?: string }) => result.url)
         
         // Check for upload errors
@@ -137,6 +159,9 @@ export default function NewJournalEntryPage() {
       // Update user stats
       await supabase.rpc('increment_journal_stats', { p_user_id: user.id })
 
+      // Hide progress bar
+      setUploadProgress(prev => ({ ...prev, isVisible: false }))
+
       // If in intensive mode, mark first journal entry as complete
       if (isIntensiveMode) {
         const { markIntensiveStep } = await import('@/lib/intensive/checklist')
@@ -148,6 +173,8 @@ export default function NewJournalEntryPage() {
     } catch (error) {
       console.error('Error creating journal entry:', error)
       alert('Failed to create journal entry')
+      // Hide progress bar on error
+      setUploadProgress(prev => ({ ...prev, isVisible: false }))
     } finally {
       setLoading(false)
     }
@@ -373,6 +400,15 @@ export default function NewJournalEntryPage() {
                   />
                 )}
               </div>
+
+              {/* Upload Progress */}
+              <UploadProgress
+                progress={uploadProgress.progress}
+                status={uploadProgress.status}
+                fileName={uploadProgress.fileName}
+                fileSize={uploadProgress.fileSize}
+                isVisible={uploadProgress.isVisible}
+              />
 
               {/* Submit */}
               <div className="flex gap-4">
