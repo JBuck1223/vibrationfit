@@ -24,18 +24,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // List all files in user's folder using AWS SDK
-    // Files are organized: user-uploads/userId/folder/filename
-    const prefix = `user-uploads/${user.id}/`
+    // List files in both user-uploads and journal/uploads
+    const userPrefix = `user-uploads/${user.id}/`
+    const journalPrefix = `journal/uploads/`
     
-    const command = new ListObjectsV2Command({
+    // Get user files
+    const userCommand = new ListObjectsV2Command({
       Bucket: BUCKET_NAME,
-      Prefix: prefix,
+      Prefix: userPrefix,
       MaxKeys: 1000,
     })
-
-    const response = await s3Client.send(command)
-    const allFiles = response.Contents || []
+    
+    // Get journal files
+    const journalCommand = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+      Prefix: journalPrefix,
+      MaxKeys: 1000,
+    })
+    
+    const [userResponse, journalResponse] = await Promise.all([
+      s3Client.send(userCommand),
+      s3Client.send(journalCommand)
+    ])
+    
+    const allFiles = [
+      ...(userResponse.Contents || []),
+      ...(journalResponse.Contents || [])
+    ]
 
     console.log(`📁 S3 Storage: Found ${allFiles.length} files for user ${user.id}`)
 
@@ -43,9 +58,15 @@ export async function GET(request: NextRequest) {
     const storageByType = allFiles.reduce((acc: any, file: any) => {
       if (!file.Key) return acc
       
-      // Extract folder from path (user-uploads/userId/folder/file.ext)
+      // Extract folder from path
       const pathParts = file.Key.split('/')
-      const folder = pathParts[2] || 'other' // Index 2 for folder after user-uploads/userId
+      let folder = 'other'
+      
+      if (file.Key.startsWith('journal/uploads/')) {
+        folder = 'journal'
+      } else if (file.Key.startsWith('user-uploads/')) {
+        folder = pathParts[2] || 'other' // Index 2 for folder after user-uploads/userId
+      }
       
       if (!acc[folder]) {
         acc[folder] = {

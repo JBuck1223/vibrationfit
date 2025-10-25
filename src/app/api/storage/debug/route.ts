@@ -26,20 +26,37 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 STORAGE DEBUG: Fetching files for user:', userId)
 
-    // List all files in user's folder using AWS SDK
-    const prefix = `user-uploads/${userId}/`
+    // List files in both user-uploads and journal/uploads
+    const userPrefix = `user-uploads/${userId}/`
+    const journalPrefix = `journal/uploads/`
     
     console.log(`📂 S3 Bucket: ${BUCKET_NAME}`)
-    console.log(`📂 Prefix: ${prefix}`)
+    console.log(`📂 User Prefix: ${userPrefix}`)
+    console.log(`📂 Journal Prefix: ${journalPrefix}`)
     
-    const command = new ListObjectsV2Command({
+    // Get user files
+    const userCommand = new ListObjectsV2Command({
       Bucket: BUCKET_NAME,
-      Prefix: prefix,
+      Prefix: userPrefix,
       MaxKeys: 1000,
     })
-
-    const response = await s3Client.send(command)
-    const allFiles = response.Contents || []
+    
+    // Get journal files
+    const journalCommand = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+      Prefix: journalPrefix,
+      MaxKeys: 1000,
+    })
+    
+    const [userResponse, journalResponse] = await Promise.all([
+      s3Client.send(userCommand),
+      s3Client.send(journalCommand)
+    ])
+    
+    const allFiles = [
+      ...(userResponse.Contents || []),
+      ...(journalResponse.Contents || [])
+    ]
 
     console.log(`📁 Found ${allFiles.length} files in S3`)
     
@@ -54,9 +71,15 @@ export async function GET(request: NextRequest) {
     const storageByType = allFiles.reduce((acc: any, file: any) => {
       if (!file.Key) return acc
       
-      // Extract folder from path (user-uploads/userId/folder/file.ext)
+      // Extract folder from path
       const pathParts = file.Key.split('/')
-      const folder = pathParts[2] || 'root' // Index 2 for folder after user-uploads/userId
+      let folder = 'root'
+      
+      if (file.Key.startsWith('journal/uploads/')) {
+        folder = 'journal'
+      } else if (file.Key.startsWith('user-uploads/')) {
+        folder = pathParts[2] || 'root' // Index 2 for folder after user-uploads/userId
+      }
       
       if (!acc[folder]) {
         acc[folder] = {
