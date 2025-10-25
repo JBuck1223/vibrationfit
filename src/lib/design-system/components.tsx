@@ -4,12 +4,12 @@
 // Mobile-First, Neon Cyberpunk Aesthetic
 // Path: /src/lib/design-system/components.tsx
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useStorageData } from '@/hooks/useStorageData'
-import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2, Save, AlertTriangle } from 'lucide-react'
+import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2, Save, AlertTriangle, Volume2, Play, File, Mic, Video as VideoIcon, Loader2 } from 'lucide-react'
 
 // ============================================================================
 // UTILITY FUNCTION
@@ -3082,3 +3082,274 @@ export const WarningConfirmationDialog = ({
     </div>
   )
 }
+
+// ============================================================================
+// RECORDING TEXTAREA COMPONENT
+// ============================================================================
+
+export interface RecordingTextareaProps {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  rows?: number
+  label?: string
+  allowVideo?: boolean
+  className?: string
+  disabled?: boolean
+  onRecordingSaved?: (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => Promise<void>
+  storageFolder?: 'evidence' | 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'avatar' | 'customTracks'
+  variant?: 'default' | 'minimal' | 'enhanced'
+  size?: 'sm' | 'md' | 'lg'
+}
+
+export const RecordingTextarea = React.forwardRef<HTMLTextAreaElement, RecordingTextareaProps>(
+  ({
+    value,
+    onChange,
+    placeholder = 'Start writing or recording...',
+    rows = 4,
+    label,
+    allowVideo = false,
+    className = '',
+    disabled = false,
+    onRecordingSaved,
+    storageFolder = 'evidence',
+    variant = 'default',
+    size = 'md',
+    ...props
+  }, ref) => {
+    const [showRecorder, setShowRecorder] = useState(false)
+    const [recordingMode, setRecordingMode] = useState<'audio' | 'video'>('audio')
+    const [isUploading, setIsUploading] = useState(false)
+    const [uploadError, setUploadError] = useState<string | null>(null)
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+    // Auto-resize textarea function
+    const autoResizeTextarea = () => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
+        textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px'
+      }
+    }
+
+    // Auto-resize when value changes
+    useEffect(() => {
+      autoResizeTextarea()
+    }, [value])
+
+    const handleRecordingComplete = async (blob: Blob, transcript?: string, shouldSaveFile?: boolean) => {
+      if (!transcript) {
+        console.warn('No transcript provided, skipping save')
+        return
+      }
+
+      setIsUploading(true)
+      setUploadError(null)
+
+      try {
+        let recordingUrl: string | undefined
+
+        // Prepare the updated text value with transcript
+        const recordingNote = shouldSaveFile 
+          ? `\n\n--- Recorded on ${new Date().toLocaleDateString()} (${recordingMode === 'video' ? 'Video' : 'Audio'} saved) ---\n`
+          : `\n\n--- Recorded on ${new Date().toLocaleDateString()} ---\n`
+        
+        const newValue = value 
+          ? `${value}${recordingNote}${transcript}`
+          : transcript
+
+        // Upload the recording file to S3 if requested
+        if (shouldSaveFile) {
+          const { uploadAndTranscribeRecording } = await import('@/lib/services/recordingService')
+          const result = await uploadAndTranscribeRecording(blob, storageFolder)
+          recordingUrl = result.url
+          
+          // Notify parent component about the saved recording
+          if (onRecordingSaved) {
+            await onRecordingSaved(recordingUrl, transcript, recordingMode, newValue)
+          } else {
+            onChange(newValue)
+          }
+        } else {
+          onChange(newValue)
+        }
+        
+        setShowRecorder(false)
+      } catch (error) {
+        console.error('Failed to process recording:', error)
+        setUploadError('Failed to save recording. Please try again.')
+      } finally {
+        setIsUploading(false)
+      }
+    }
+
+    // Size configurations
+    const sizeConfig = {
+      sm: {
+        textarea: 'min-h-[80px] text-sm',
+        button: 'p-1.5',
+        icon: 'w-3 h-3',
+        helper: 'text-xs'
+      },
+      md: {
+        textarea: 'min-h-[100px] text-base',
+        button: 'p-2',
+        icon: 'w-4 h-4',
+        helper: 'text-xs'
+      },
+      lg: {
+        textarea: 'min-h-[120px] text-lg',
+        button: 'p-2.5',
+        icon: 'w-5 h-5',
+        helper: 'text-sm'
+      }
+    }
+
+    // Variant configurations
+    const variantConfig = {
+      default: {
+        container: 'space-y-3',
+        textarea: 'border-neutral-700 focus:border-primary-500',
+        buttons: 'bg-primary-500 hover:bg-primary-600',
+        videoButton: 'bg-secondary-500 hover:bg-secondary-600',
+        helper: 'text-neutral-400'
+      },
+      minimal: {
+        container: 'space-y-2',
+        textarea: 'border-neutral-800 focus:border-neutral-600',
+        buttons: 'bg-neutral-700 hover:bg-neutral-600',
+        videoButton: 'bg-neutral-700 hover:bg-neutral-600',
+        helper: 'text-neutral-500'
+      },
+      enhanced: {
+        container: 'space-y-4',
+        textarea: 'border-neutral-600 focus:border-primary-500 shadow-lg focus:shadow-primary-500/20',
+        buttons: 'bg-primary-500 hover:bg-primary-600 shadow-lg hover:shadow-primary-500/30',
+        videoButton: 'bg-secondary-500 hover:bg-secondary-600 shadow-lg hover:shadow-secondary-500/30',
+        helper: 'text-neutral-300'
+      }
+    }
+
+    const currentSize = sizeConfig[size]
+    const currentVariant = variantConfig[variant]
+
+    return (
+      <div className={cn(currentVariant.container, className)}>
+        {label && (
+          <label className="block text-sm font-medium text-neutral-200">
+            {label}
+          </label>
+        )}
+
+        {/* Text Input */}
+        <div className="relative">
+          <Textarea
+            ref={ref || textareaRef}
+            value={value}
+            onChange={(e) => {
+              onChange(e.target.value)
+              autoResizeTextarea()
+            }}
+            placeholder={placeholder}
+            rows={rows}
+            disabled={disabled || isUploading}
+            className={cn(
+              'w-full resize-none overflow-hidden',
+              currentSize.textarea,
+              currentVariant.textarea
+            )}
+            {...props}
+          />
+          
+          {/* Recording Buttons */}
+          {!showRecorder && (
+            <div className="absolute bottom-3 right-3 flex gap-2">
+              <button
+                onClick={() => {
+                  setRecordingMode('audio')
+                  setShowRecorder(true)
+                }}
+                disabled={disabled || isUploading}
+                className={cn(
+                  'text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
+                  currentSize.button,
+                  currentVariant.buttons
+                )}
+                title="Record audio"
+              >
+                <Mic className={currentSize.icon} />
+              </button>
+              {allowVideo && (
+                <button
+                  onClick={() => {
+                    setRecordingMode('video')
+                    setShowRecorder(true)
+                  }}
+                  disabled={disabled || isUploading}
+                  className={cn(
+                    'text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
+                    currentSize.button,
+                    currentVariant.videoButton
+                  )}
+                  title="Record video"
+                >
+                  <VideoIcon className={currentSize.icon} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Upload Status */}
+        {isUploading && (
+          <div className="flex items-center gap-2 text-primary-500 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Saving recording and transcript...</span>
+          </div>
+        )}
+
+        {/* Upload Error */}
+        {uploadError && (
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+            {uploadError}
+          </div>
+        )}
+
+        {/* Recording Interface */}
+        {showRecorder && (
+          <div className="relative">
+            <button
+              onClick={() => setShowRecorder(false)}
+              className="absolute top-2 right-2 z-10 p-1 bg-neutral-800 hover:bg-neutral-700 rounded-full transition-colors"
+              title="Close recorder"
+            >
+              <X className="w-4 h-4 text-white" />
+            </button>
+            
+            {/* Import MediaRecorderComponent dynamically to avoid circular dependencies */}
+            {React.createElement(
+              React.lazy(() => import('@/components/MediaRecorder').then(module => ({ default: module.MediaRecorderComponent }))),
+              {
+                mode: recordingMode,
+                onRecordingComplete: handleRecordingComplete,
+                onTranscriptComplete: () => {},
+                autoTranscribe: true,
+                maxDuration: 600,
+                showSaveOption: true
+              }
+            )}
+          </div>
+        )}
+
+        {/* Helper Text */}
+        <p className={cn(currentSize.helper, currentVariant.helper)}>
+          {allowVideo 
+            ? 'Type your story or click the microphone/video icon to record.'
+            : 'Type your story or click the microphone icon to record audio.'}
+        </p>
+      </div>
+    )
+  }
+)
+
+RecordingTextarea.displayName = 'RecordingTextarea'

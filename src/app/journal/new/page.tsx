@@ -2,9 +2,8 @@
 
 import React, { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { PageLayout, Card, Input, Button, Icon } from '@/lib/design-system'
+import { PageLayout, Card, Input, Button, Icon, RecordingTextarea } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
-import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
@@ -178,6 +177,8 @@ export default function NewJournalEntryPage() {
                 placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
                 allowVideo={true}
                 storageFolder="journal"
+                variant="enhanced"
+                size="lg"
               />
 
               {/* Evidence / Images */}

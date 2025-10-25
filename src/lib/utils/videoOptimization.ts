@@ -22,8 +22,8 @@ export interface CompressionResult {
  * Check if video should be compressed based on size and format
  */
 export function shouldCompressVideo(file: File): boolean {
-  const maxSize = 50 * 1024 * 1024 // 50MB
-  const supportedFormats = ['video/mp4', 'video/mov', 'video/avi', 'video/webm']
+  const maxSize = 20 * 1024 * 1024 // 20MB - Lower threshold for compression
+  const supportedFormats = ['video/mp4', 'video/mov', 'video/avi', 'video/webm', 'video/mkv']
   
   return file.size > maxSize && supportedFormats.includes(file.type)
 }
@@ -34,33 +34,63 @@ export function shouldCompressVideo(file: File): boolean {
 export function getCompressionOptions(file: File): VideoCompressionOptions {
   const sizeMB = file.size / (1024 * 1024)
   
-  if (sizeMB > 100) {
-    // Large files - aggressive compression
+  if (sizeMB > 500) {
+    // 4K+ videos - aggressive compression for web delivery
     return {
-      quality: 60,
-      maxWidth: 1280,
-      maxHeight: 720,
-      bitrate: '1M',
-      fps: 30,
-      preset: 'fast'
-    }
-  } else if (sizeMB > 50) {
-    // Medium files - balanced compression
-    return {
-      quality: 75,
+      quality: 50,
       maxWidth: 1920,
       maxHeight: 1080,
       bitrate: '2M',
       fps: 30,
+      preset: 'fast'
+    }
+  } else if (sizeMB > 200) {
+    // Large 4K videos - balanced compression
+    return {
+      quality: 60,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      bitrate: '3M',
+      fps: 30,
       preset: 'medium'
     }
+  } else if (sizeMB > 100) {
+    // Medium 4K videos - moderate compression
+    return {
+      quality: 70,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      bitrate: '4M',
+      fps: 30,
+      preset: 'medium'
+    }
+  } else if (sizeMB > 50) {
+    // Large HD videos - light compression
+    return {
+      quality: 75,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      bitrate: '5M',
+      fps: 30,
+      preset: 'slow'
+    }
+  } else if (sizeMB > 20) {
+    // Medium HD videos - minimal compression
+    return {
+      quality: 80,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      bitrate: '6M',
+      fps: 30,
+      preset: 'slow'
+    }
   } else {
-    // Small files - light compression
+    // Small videos - no compression needed
     return {
       quality: 85,
       maxWidth: 1920,
       maxHeight: 1080,
-      bitrate: '3M',
+      bitrate: '8M',
       fps: 30,
       preset: 'slow'
     }

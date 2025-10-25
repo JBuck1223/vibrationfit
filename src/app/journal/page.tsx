@@ -2,10 +2,12 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button, ActionButtons, DeleteConfirmationDialog, Video, NextImage } from '@/lib/design-system'
+import { PageLayout, Card, Button, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Plus, Calendar, FileText, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { OptimizedImage } from '@/components/OptimizedImage'
+import { useEffect, useState } from 'react'
 
 interface JournalEntry {
   id: string
@@ -257,14 +259,13 @@ export default function JournalPage() {
                         return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
                       }).map((url: string, index: number) => (
                         <div key={`video-${index}`} className="relative group">
-                          <Video
+                          <OptimizedVideo
                             src={url}
                             trackingId={`journal-${entry.id}-video-${index}`}
                             quality="auto"
                             saveProgress={false}
                             className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors"
                             preload="metadata"
-                            poster={url}
                           />
                         </div>
                       ))}
@@ -280,7 +281,7 @@ export default function JournalPage() {
                             return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
                           }).slice(0, 4).map((url: string, index: number) => (
                             <div key={`image-${index}`} className="relative group aspect-square">
-                              <OptimizedImage
+                              <Image
                                 src={url}
                                 alt={`Entry image ${index + 1}`}
                                 width={200}
@@ -312,7 +313,7 @@ export default function JournalPage() {
                           <div key={`other-${index}`} className="relative group aspect-square">
                             <div className="w-full h-full bg-neutral-700 flex items-center justify-center rounded-lg border border-neutral-600">
                               {fileType === 'audio' ? (
-                                <Volume2 className="w-8 h-8 text-white" />
+                                <Volume2 className="w-8 h-8" style={{ color: 'white' }} />
                               ) : (
                                 <FileText className="w-8 h-8 text-white" />
                               )}

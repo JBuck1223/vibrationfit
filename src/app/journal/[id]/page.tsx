@@ -247,7 +247,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                       <div key={`other-${index}`} className="relative group aspect-square">
                         <div className="w-full h-full bg-neutral-700 flex items-center justify-center rounded-lg border border-neutral-600">
                           {fileType === 'audio' ? (
-                            <Volume2 className="w-8 h-8 text-white" />
+                            <Volume2 className="w-8 h-8" style={{ color: 'white' }} />
                           ) : (
                             <FileText className="w-8 h-8 text-white" />
                           )}
@@ -313,7 +313,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
               {lightboxMedia.type === 'audio' && (
                 <div className="bg-neutral-800 rounded-xl p-8 max-w-md mx-auto">
                   <div className="text-center mb-6">
-                    <Volume2 className="w-16 h-16 text-primary-500 mx-auto mb-4" />
+                    <Volume2 className="w-16 h-16 mx-auto mb-4" style={{ color: 'white' }} />
                     <h3 className="text-xl font-semibold text-white mb-2">Audio File</h3>
                     <p className="text-neutral-400">Attachment {lightboxMedia.index + 1}</p>
                   </div>
