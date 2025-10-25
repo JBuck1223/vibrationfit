@@ -129,7 +129,7 @@ export default function HomePage() {
                   <div className="flex justify-center md:justify-center">
                     <Button variant="primary" size="xl" className="mt-1 mb-4 md:mt-2" asChild>
                       <a href="#pricing">
-                        Start the Activation Intensive
+                        Start the 72‑Hour Activation Intensive
                       </a>
                   </Button>
                   </div>
@@ -463,7 +463,7 @@ export default function HomePage() {
                 <div className="text-center my-4 md:mt-8 md:mb-4">
                   <Button variant="primary" size="xl" asChild>
                     <a href="#pricing">
-                      Start the Activation Intensive
+                      Start the 72‑Hour Activation Intensive
                     </a>
                   </Button>
                 </div>
@@ -638,7 +638,7 @@ export default function HomePage() {
                   <div className="text-center pt-4">
                     <Button variant="primary" size="xl" asChild>
                       <a href="#pricing">
-                        Start the Activation Intensive
+                        Start the 72‑Hour Activation Intensive
                       </a>
                     </Button>
                   </div>
@@ -749,7 +749,7 @@ export default function HomePage() {
                 <div className="text-center pt-2 md:pt-4">
                   <Button variant="primary" size="xl" asChild>
                     <a href="#pricing">
-                      Start the Activation Intensive
+                      Start the 72‑Hour Activation Intensive
                     </a>
                   </Button>
                 </div>
@@ -1154,7 +1154,13 @@ export default function HomePage() {
                       onClick={handleIntensivePurchase}
                           disabled={isLoading || !agreedToTerms}
                     >
-                      {isLoading ? 'Processing...' : 'Start the Activation Intensive'}
+                      {isLoading ? 'Processing...' : (
+                        <>
+                          <span className="hidden md:inline">Start the 72‑Hour Activation Intensive - ${getPaymentAmount()} Today</span>
+                          <span className="md:hidden">Start the 72‑Hour Activation Intensive - ${getPaymentAmount()} Today</span>
+                          <ArrowRight className="w-6 h-6" />
+                        </>
+                      )}
                     </Button>
                       </Stack>
                     </Card>
@@ -1162,6 +1168,25 @@ export default function HomePage() {
               </Stack>
             </Card>
           </div>
+        </section>
+
+        {/* Video Section */}
+        <section id="video">
+            <Card variant="elevated" className="overflow-hidden">
+              <Stack gap="md" className="p-8">
+                <div className="text-center">
+                  <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                    Meet Your AI Alignment Coach
+                  </h2>
+                  <p className="text-lg text-neutral-400 max-w-2xl mx-auto">
+                    Watch this introduction to understand how VibrationFit transforms conscious creators 
+                    into manifestation masters.
+                  </p>
+                </div>
+                
+              
+              </Stack>
+            </Card>
         </section>
 
         {/* The Problem: Vibrational Chaos */}
@@ -1265,6 +1290,22 @@ export default function HomePage() {
                 </Card>
               </Grid>
 
+              {/* The Formula */}
+              <Card variant="glass" className="text-center max-w-2xl">
+                <Stack gap="md" className="p-8">
+                  <h3 className="text-2xl font-bold text-white">The Formula</h3>
+                  <div className="text-xl md:text-4xl font-bold">
+                    <span className="text-[#39FF14]">Desire</span>
+                    <span className="text-white mx-2 md:mx-4">+</span>
+                    <span className="text-[#00FFFF]">Vibrational Harmony</span>
+                    <span className="text-white mx-2 md:mx-4">=</span>
+                    <span className="text-[#BF00FF]">Actualization</span>
+                  </div>
+                  <p className="text-neutral-400">
+                    "Conscious creation simply comes down to two things: desire and vibrational harmony with the desire."
+                  </p>
+                </Stack>
+              </Card>
             </Stack>
         </section>
 
@@ -1286,6 +1327,187 @@ export default function HomePage() {
                   <Icon icon={Sparkles} size="md" className="mr-2" />
                   Decades of Trial & Error → Instant Access
                 </Badge>
+              </Stack>
+            </Cover>
+        </section>
+
+        {/* Life Categories Grid */}
+        <section>
+            <Stack gap="lg">
+              <div className="text-center max-w-3xl mx-auto">
+                <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+                  Your Complete
+                  <span className="text-[#39FF14]"> Life Vision</span>
+                </h2>
+                <p className="text-xl text-neutral-300">
+                  Craft your vision across 14 comprehensive life categories. Nothing gets left behind 
+                  in your journey to actualization.
+                </p>
+              </div>
+
+              <Grid minWidth="250px" gap="md">
+                {VISION_CATEGORIES.map((category) => (
+                  <Card 
+                    key={category.key} 
+                    variant="default" 
+                    className={`cursor-pointer transition-all duration-300 hover:scale-105 ${
+                      selectedCategory === category.key ? 'ring-2 ring-[#39FF14] bg-[#39FF14]/5' : ''
+                    }`}
+                    onClick={() => setSelectedCategory(selectedCategory === category.key ? null : category.key)}
+                  >
+                    <Stack align="center" gap="sm" className="text-center p-6">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                        selectedCategory === category.key 
+                          ? 'bg-[#39FF14]/20 border-2 border-[#39FF14]' 
+                          : 'bg-[#00FFFF]/20 border-2 border-[#00FFFF]'
+                      }`}>
+                        <Icon icon={category.icon} size="md" color={selectedCategory === category.key ? '#39FF14' : '#00FFFF'} />
+                      </div>
+                      <h4 className="font-semibold text-white">{category.label}</h4>
+                      <p className="text-xs text-neutral-500">{category.description}</p>
+                      {selectedCategory === category.key && <Badge variant="success">Selected</Badge>}
+                    </Stack>
+                  </Card>
+                ))}
+              </Grid>
+            </Stack>
+        </section>
+
+        {/* Transformation Story */}
+        <section id="story">
+            <Stack gap="lg">
+              <div className="text-center max-w-4xl mx-auto">
+                <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+                  From <span className="text-[#FF0040]">$0.43</span> to 
+                  <span className="text-[#39FF14]"> $1M+</span>
+                </h2>
+                <p className="text-xl text-neutral-300">
+                  Our real transformation story - from rock bottom to living our dream life
+                </p>
+              </div>
+
+              {/* Before & After Comparison */}
+              <Grid minWidth="300px" gap="lg">
+                {/* Before */}
+                <Card variant="elevated" className="border-[#FF0040]/30 bg-[#FF0040]/5">
+                  <Stack gap="md" className="p-8">
+                    <div className="text-center">
+                      <h3 className="text-2xl font-bold text-[#FF0040] mb-4">Before: Rock Bottom</h3>
+                      <p className="text-neutral-400 mb-6">
+                        "At one point, it got so bad that I transferred 43 cents from one bank account to another to avoid an overdraft fee."
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-4 bg-black/20 rounded-lg">
+                        <span className="text-neutral-300">Bank Account</span>
+                        <span className="text-[#FF0040] font-bold">$0.43</span>
+                      </div>
+                      <div className="flex justify-between items-center p-4 bg-black/20 rounded-lg">
+                        <span className="text-neutral-300">Total Debt</span>
+                        <span className="text-[#FF0040] font-bold">$100K+</span>
+                      </div>
+                      <div className="flex justify-between items-center p-4 bg-black/20 rounded-lg">
+                        <span className="text-neutral-300">Living Situation</span>
+                        <span className="text-[#FF0040] font-bold">With In-Laws</span>
+                      </div>
+                      <div className="flex justify-between items-center p-4 bg-black/20 rounded-lg">
+                        <span className="text-neutral-300">Income</span>
+                        <span className="text-[#FF0040] font-bold">Basically None</span>
+                      </div>
+                    </div>
+
+                    <Badge variant="danger" className="mx-auto">Vibrational Chaos</Badge>
+                  </Stack>
+                </Card>
+
+                {/* After */}
+                <Card variant="elevated" className="border-[#39FF14]/30 bg-[#39FF14]/5">
+                  <Stack gap="md" className="p-8">
+                    <div className="text-center">
+                      <h3 className="text-2xl font-bold text-[#39FF14] mb-4">After: Living the Dream</h3>
+                      <p className="text-neutral-400 mb-6">
+                        "We went from being six figures in the hole to being completely debt free with multiple six figures in the bank, and ultimately went on to make our first million dollars in business."
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-4 bg-black/20 rounded-lg">
+                        <span className="text-neutral-300">Business Revenue</span>
+                        <span className="text-[#39FF14] font-bold">$1M+</span>
+                      </div>
+                      <div className="flex justify-between items-center p-4 bg-black/20 rounded-lg">
+                        <span className="text-neutral-300">Savings</span>
+                        <span className="text-[#39FF14] font-bold">Multiple 6-Figures</span>
+                      </div>
+                      <div className="flex justify-between items-center p-4 bg-black/20 rounded-lg">
+                        <span className="text-neutral-300">Dream Home</span>
+                        <span className="text-[#39FF14] font-bold">Paid Cash</span>
+                      </div>
+                      <div className="flex justify-between items-center p-4 bg-black/20 rounded-lg">
+                        <span className="text-neutral-300">Lifestyle</span>
+                        <span className="text-[#39FF14] font-bold">Complete Freedom</span>
+                      </div>
+                    </div>
+
+                    <Badge variant="success" className="mx-auto">Above the Green Line</Badge>
+                  </Stack>
+                </Card>
+              </Grid>
+
+              {/* The Turning Point */}
+              <Card variant="glass" className="text-center">
+                <Stack gap="md" className="p-8">
+                  <Icon icon={Zap} size="xl" color="#39FF14" className="mx-auto" />
+                  <h3 className="text-2xl font-bold text-white">The Turning Point</h3>
+                  <p className="text-lg text-neutral-300 max-w-3xl mx-auto">
+                    "At an especially low moment—like can't afford milk and bread kind of moment—we finally decided to 
+                    <span className="text-[#39FF14] font-semibold"> fully commit to the principles</span> that we knew to be true, 
+                    but had never before fully committed to."
+                  </p>
+                  <p className="text-xl font-bold text-[#39FF14]">
+                    And man, oh man, did things change. And fast.
+                  </p>
+                </Stack>
+              </Card>
+            </Stack>
+        </section>
+
+        {/* Stats Section */}
+        <section>
+            <Cover minHeight="300px" className="bg-gradient-to-r from-[#39FF14]/10 via-[#00FFFF]/5 to-[#BF00FF]/10 rounded-3xl border border-[#333]">
+              <Stack align="center" gap="lg">
+                <div className="text-center">
+                  <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                    Join the Movement
+                  </h2>
+                  <p className="text-lg text-neutral-300">
+                    Thousands of conscious creators are already actualizing their dreams
+                  </p>
+                </div>
+
+                <Grid minWidth="200px" gap="lg">
+                  <Card variant="glass" className="text-center p-6">
+                    <Icon icon={Users} size="lg" color="#39FF14" className="mx-auto mb-3" />
+                    <div className="text-3xl font-bold text-white mb-2">10,247</div>
+                    <div className="text-sm text-neutral-400">Active Creators</div>
+                  </Card>
+                  <Card variant="glass" className="text-center p-6">
+                    <Icon icon={Target} size="lg" color="#00FFFF" className="mx-auto mb-3" />
+                    <div className="text-3xl font-bold text-white mb-2">5,891</div>
+                    <div className="text-sm text-neutral-400">Visions Completed</div>
+                  </Card>
+                  <Card variant="glass" className="text-center p-6">
+                    <Icon icon={TrendingUp} size="lg" color="#BF00FF" className="mx-auto mb-3" />
+                    <div className="text-3xl font-bold text-white mb-2">94%</div>
+                    <div className="text-sm text-neutral-400">Success Rate</div>
+                  </Card>
+                  <Card variant="glass" className="text-center p-6">
+                    <Icon icon={Award} size="lg" color="#39FF14" className="mx-auto mb-3" />
+                    <div className="text-3xl font-bold text-white mb-2">87%</div>
+                    <div className="text-sm text-neutral-400">Avg. Alignment</div>
+                  </Card>
+                </Grid>
               </Stack>
             </Cover>
         </section>

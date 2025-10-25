@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { PageLayout, Card, Button, Badge, Stack, Icon } from '@/lib/design-system'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, Trash2, X, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, Trash2, X, ChevronLeft, ChevronRight, Eye, List, Grid, CheckSquare, Square } from 'lucide-react'
 import { VisionBoardDeleteButton } from '@/components/VisionBoardDeleteButton'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -56,6 +56,9 @@ export default function VisionBoardPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['all'])
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [bulkActionMode, setBulkActionMode] = useState(false)
 
   useEffect(() => {
     fetchItems()
@@ -191,6 +194,88 @@ export default function VisionBoardPage() {
     }
   }
 
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    )
+  }
+
+  const selectAllItems = () => {
+    setSelectedItems(filteredItems.map(item => item.id))
+  }
+
+  const clearSelection = () => {
+    setSelectedItems([])
+  }
+
+  const bulkUpdateStatus = async (newStatus: string) => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { error } = await supabase
+        .from('vision_board_items')
+        .update({
+          status: newStatus,
+          actualized_at: newStatus === 'actualized' ? new Date().toISOString() : null
+        })
+        .in('id', selectedItems)
+
+      if (error) throw error
+
+      // Update local state
+      setItems(prevItems => 
+        prevItems.map(item => 
+          selectedItems.includes(item.id)
+            ? { 
+                ...item, 
+                status: newStatus,
+                actualized_at: newStatus === 'actualized' ? new Date().toISOString() : item.actualized_at
+              }
+            : item
+        )
+      )
+
+      // Update user stats for each item
+      for (const itemId of selectedItems) {
+        await supabase.rpc('increment_vision_board_stats', { 
+          p_user_id: user.id,
+          p_status: newStatus 
+        })
+      }
+
+      clearSelection()
+    } catch (error) {
+      console.error('Error bulk updating status:', error)
+    }
+  }
+
+  const bulkDeleteItems = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedItems.length} item(s)?`)) return
+
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { error } = await supabase
+        .from('vision_board_items')
+        .delete()
+        .in('id', selectedItems)
+
+      if (error) throw error
+
+      // Update local state
+      setItems(prevItems => prevItems.filter(item => !selectedItems.includes(item.id)))
+      clearSelection()
+    } catch (error) {
+      console.error('Error bulk deleting items:', error)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     if (status === 'active') {
       return (
@@ -247,6 +332,101 @@ export default function VisionBoardPage() {
               </Link>
             </Button>
           </div>
+        </div>
+
+        {/* View Toggle and Bulk Actions */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          {/* View Toggle */}
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="flex items-center gap-2"
+            >
+              <Grid className="w-4 h-4" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="flex items-center gap-2"
+            >
+              <List className="w-4 h-4" />
+              List
+            </Button>
+          </div>
+
+          {/* Bulk Actions */}
+          {viewMode === 'list' && (
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setBulkActionMode(!bulkActionMode)}
+                className="flex items-center gap-2"
+              >
+                {bulkActionMode ? <X className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
+                {bulkActionMode ? 'Cancel' : 'Select'}
+              </Button>
+              
+              {bulkActionMode && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={selectedItems.length === filteredItems.length ? clearSelection : selectAllItems}
+                    className="flex items-center gap-2"
+                  >
+                    {selectedItems.length === filteredItems.length ? <Square className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
+                    {selectedItems.length === filteredItems.length ? 'None' : 'All'}
+                  </Button>
+                  
+                  {selectedItems.length > 0 && (
+                    <>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => bulkUpdateStatus('active')}
+                        className="flex items-center gap-2"
+                      >
+                        <Circle className="w-4 h-4" />
+                        Mark Active
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => bulkUpdateStatus('actualized')}
+                        className="flex items-center gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Mark Actualized
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => bulkUpdateStatus('inactive')}
+                        className="flex items-center gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Mark Inactive
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={bulkDeleteItems}
+                        className="flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete ({selectedItems.length})
+                      </Button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
           {/* Stats - Responsive Grid */}
@@ -356,114 +536,228 @@ export default function VisionBoardPage() {
           </div>
         </div>
 
-        {/* Vision Board Grid */}
+        {/* Vision Board Content */}
         {loading ? (
           <div className="text-center py-16">
             <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
             <p className="text-neutral-400">Loading your vision board...</p>
           </div>
         ) : filteredItems && filteredItems.length > 0 ? (
-          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
-            {filteredItems.map((item, index) => (
-              <div 
-                key={item.id} 
-                className="group cursor-pointer break-inside-avoid mb-6"
-                onClick={() => openLightbox(index)}
-              >
-                  <div className="relative overflow-hidden rounded-lg bg-neutral-800 shadow-lg hover:shadow-xl transition-all duration-300">
-                    {item.image_url ? (
-                      <img
-                        src={item.image_url}
-                        alt={item.name}
-                        className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-64 bg-neutral-800 rounded-lg flex items-center justify-center">
-                        <Grid3X3 className="w-12 h-12 text-neutral-600" />
-                      </div>
-                    )}
-                    
-                    {/* Status Badge */}
-                    <div className="absolute top-3 right-3">
-                      {getStatusBadge(item.status)}
-                    </div>
-
-                    {/* Actualized Indicator */}
-                    {item.status === 'actualized' && (
-                      <div className="absolute top-3 left-3">
-                        <div className="bg-purple-500 text-white p-1 rounded-full">
-                          <CheckCircle className="w-4 h-4" />
+          <>
+            {viewMode === 'grid' ? (
+              /* Grid View */
+              <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
+                {filteredItems.map((item, index) => (
+                  <div 
+                    key={item.id} 
+                    className="group cursor-pointer break-inside-avoid mb-6"
+                    onClick={() => openLightbox(index)}
+                  >
+                    <div className="relative overflow-hidden rounded-lg bg-neutral-800 shadow-lg hover:shadow-xl transition-all duration-300">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-64 bg-neutral-800 rounded-lg flex items-center justify-center">
+                          <Grid3X3 className="w-12 h-12 text-neutral-600" />
                         </div>
-                      </div>
-                    )}
-
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-2">
-                    <div className="flex flex-col items-center gap-2 w-full max-w-full">
-                      {/* Quick Status Controls */}
-                      <div className="bg-black/80 backdrop-blur-sm rounded-lg p-2 space-y-2 w-full max-w-full">
-                        <div className="text-white text-xs font-medium mb-1 text-center">Quick Status</div>
-                        <div className="flex gap-1 flex-wrap justify-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              updateItemStatus(item.id, 'active')
-                            }}
-                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
-                              item.status === 'active'
-                                ? 'bg-green-600 text-white'
-                                : 'bg-neutral-700 text-neutral-300 hover:bg-green-600 hover:text-white'
-                            }`}
-                          >
-                            <span className="hidden sm:inline">Active</span>
-                            <span className="sm:hidden">A</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              updateItemStatus(item.id, 'actualized')
-                            }}
-                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
-                              item.status === 'actualized'
-                                ? 'bg-purple-500 text-white'
-                                : 'bg-neutral-700 text-neutral-300 hover:bg-purple-500 hover:text-white'
-                            }`}
-                          >
-                            <span className="hidden sm:inline">Actualized</span>
-                            <span className="sm:hidden">✓</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              updateItemStatus(item.id, 'inactive')
-                            }}
-                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
-                              item.status === 'inactive'
-                                ? 'bg-gray-600 text-white'
-                                : 'bg-neutral-700 text-neutral-300 hover:bg-gray-600 hover:text-white'
-                            }`}
-                          >
-                            <span className="hidden sm:inline">Inactive</span>
-                            <span className="sm:hidden">×</span>
-                          </button>
-                        </div>
-                      </div>
+                      )}
                       
-                      {/* View Item Details Button */}
-                      <Button asChild size="sm" variant="secondary" className="text-xs px-3 py-1">
-                        <Link href={`/vision-board/${item.id}`} onClick={(e) => e.stopPropagation()}>
-                          <Eye className="w-3 h-3 mr-1" />
-                          <span className="hidden sm:inline">View Details</span>
-                          <span className="sm:hidden">View</span>
-                        </Link>
-                      </Button>
+                      {/* Status Badge */}
+                      <div className="absolute top-3 right-3">
+                        {getStatusBadge(item.status)}
+                      </div>
+
+                      {/* Actualized Indicator */}
+                      {item.status === 'actualized' && (
+                        <div className="absolute top-3 left-3">
+                          <div className="bg-purple-500 text-white p-1 rounded-full">
+                            <CheckCircle className="w-4 h-4" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Hover Overlay */}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-2">
+                        <div className="flex flex-col items-center gap-2 w-full max-w-full">
+                          {/* Quick Status Controls */}
+                          <div className="bg-black/80 backdrop-blur-sm rounded-lg p-2 space-y-2 w-full max-w-full">
+                            <div className="text-white text-xs font-medium mb-1 text-center">Quick Status</div>
+                            <div className="flex gap-1 flex-wrap justify-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateItemStatus(item.id, 'active')
+                                }}
+                                className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
+                                  item.status === 'active'
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-neutral-700 text-neutral-300 hover:bg-green-600 hover:text-white'
+                                }`}
+                              >
+                                <span className="hidden sm:inline">Active</span>
+                                <span className="sm:hidden">A</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateItemStatus(item.id, 'actualized')
+                                }}
+                                className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
+                                  item.status === 'actualized'
+                                    ? 'bg-purple-500 text-white'
+                                    : 'bg-neutral-700 text-neutral-300 hover:bg-purple-500 hover:text-white'
+                                }`}
+                              >
+                                <span className="hidden sm:inline">Actualized</span>
+                                <span className="sm:hidden">✓</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateItemStatus(item.id, 'inactive')
+                                }}
+                                className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
+                                  item.status === 'inactive'
+                                    ? 'bg-gray-600 text-white'
+                                    : 'bg-neutral-700 text-neutral-300 hover:bg-gray-600 hover:text-white'
+                                }`}
+                              >
+                                <span className="hidden sm:inline">Inactive</span>
+                                <span className="sm:hidden">×</span>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {/* View Item Details Button */}
+                          <Button asChild size="sm" variant="secondary" className="text-xs px-3 py-1">
+                            <Link href={`/vision-board/${item.id}`} onClick={(e) => e.stopPropagation()}>
+                              <Eye className="w-3 h-3 mr-1" />
+                              <span className="hidden sm:inline">View Details</span>
+                              <span className="sm:hidden">View</span>
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            ) : (
+              /* List View */
+              <div className="space-y-4">
+                {filteredItems.map((item) => (
+                  <Card key={item.id} className="hover:border-primary-500 transition-all duration-200">
+                    <div className="flex items-center gap-4">
+                      {/* Checkbox for bulk selection */}
+                      {bulkActionMode && (
+                        <button
+                          onClick={() => toggleItemSelection(item.id)}
+                          className="flex-shrink-0 p-1"
+                        >
+                          {selectedItems.includes(item.id) ? (
+                            <CheckSquare className="w-5 h-5 text-primary-500" />
+                          ) : (
+                            <Square className="w-5 h-5 text-neutral-400" />
+                          )}
+                        </button>
+                      )}
+
+                      {/* Image Thumbnail */}
+                      <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-neutral-800">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Grid3X3 className="w-6 h-6 text-neutral-600" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Item Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-lg font-semibold text-white truncate">{item.name}</h3>
+                            {item.description && (
+                              <p className="text-sm text-neutral-400 mt-1 line-clamp-2">{item.description}</p>
+                            )}
+                            {item.categories && item.categories.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {item.categories.slice(0, 3).map((category: string) => (
+                                  <Badge key={category} variant="secondary" className="text-xs">
+                                    {category}
+                                  </Badge>
+                                ))}
+                                {item.categories.length > 3 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    +{item.categories.length - 3} more
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Status and Actions */}
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            {/* Status Badge */}
+                            {getStatusBadge(item.status)}
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-2">
+                              <Button asChild size="sm" variant="ghost">
+                                <Link href={`/vision-board/${item.id}`}>
+                                  <Eye className="w-4 h-4" />
+                                </Link>
+                              </Button>
+                              
+                              {!bulkActionMode && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => updateItemStatus(item.id, 'active')}
+                                    className={item.status === 'active' ? 'text-green-500' : 'text-neutral-400'}
+                                  >
+                                    <Circle className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => updateItemStatus(item.id, 'actualized')}
+                                    className={item.status === 'actualized' ? 'text-purple-500' : 'text-neutral-400'}
+                                  >
+                                    <CheckCircle className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => updateItemStatus(item.id, 'inactive')}
+                                    className={item.status === 'inactive' ? 'text-gray-500' : 'text-neutral-400'}
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-16">
             <Grid3X3 className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
