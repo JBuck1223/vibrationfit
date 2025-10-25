@@ -7,7 +7,7 @@ export const USER_FOLDERS = {
   visionBoard: 'vision-board',
   visionBoardGenerated: 'vision-board/generated',
   visionBoardUploaded: 'vision-board/uploaded',
-  journal: 'journal',
+  journal: 'journal/uploads',
   journalAudioRecordings: 'journal/audio-recordings',
   journalVideoRecordings: 'journal/video-recordings',
   lifeVision: 'life-vision',
