@@ -45,9 +45,7 @@ export async function getPresignedUploadUrl(
     const timestamp = Date.now()
     const randomStr = Math.random().toString(36).substring(2, 15)
     const sanitizedName = fileName.replace(/[^a-zA-Z0-9.]/g, '-').toLowerCase()
-    const key = folder === 'journal'
-      ? `journal/uploads/${timestamp}-${randomStr}-${sanitizedName}`
-      : `user-uploads/${userId}/${USER_FOLDERS[folder]}/${timestamp}-${randomStr}-${sanitizedName}`
+    const key = `uploads/${userId}/${USER_FOLDERS[folder]}/${timestamp}-${randomStr}-${sanitizedName}`
 
     const response = await fetch('/api/upload/presigned', {
       method: 'POST',
@@ -115,11 +113,22 @@ export async function uploadUserFile(
   userId?: string,
   onProgress?: (progress: number) => void
 ): Promise<{ url: string; key: string }> {
+  console.log('📤 uploadUserFile called:', { 
+    folder, 
+    fileName: file.name, 
+    fileSize: file.size, 
+    fileType: file.type,
+    userId 
+  })
+
   // Validate file first
   const validation = validateFile(file, folder)
   if (!validation.valid) {
+    console.error('❌ File validation failed:', validation.error)
     throw new Error(validation.error)
   }
+
+  console.log('✅ File validation passed')
 
   // Use presigned URL for large files
   if (file.size > PRESIGNED_THRESHOLD) {

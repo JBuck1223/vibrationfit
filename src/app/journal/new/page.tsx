@@ -128,6 +128,13 @@ export default function NewJournalEntryPage() {
           isVisible: true
         })
 
+        console.log('📤 Starting file upload:', { 
+          fileCount: files.length, 
+          files: files.map(f => ({ name: f.name, size: f.size, type: f.type })),
+          userId: user.id,
+          folder: 'journal'
+        })
+
         const uploadResults = await uploadMultipleUserFiles('journal', files, user.id, (progress) => {
           setUploadProgress(prev => ({
             ...prev,
@@ -135,14 +142,19 @@ export default function NewJournalEntryPage() {
             status: progress < 100 ? 'Uploading files...' : 'Processing files...'
           }))
         })
+        
+        console.log('📤 Upload results:', uploadResults)
         imageUrls = uploadResults.map((result: { url: string; key: string; error?: string }) => result.url)
         
         // Check for upload errors
         const errors = uploadResults.filter((result: { url: string; key: string; error?: string }) => result.error)
         if (errors.length > 0) {
+          console.error('❌ Upload errors:', errors)
           alert(`Some uploads failed: ${errors.map((e: { error?: string }) => e.error).join(', ')}`)
           return
         }
+
+        console.log('✅ Upload successful, image URLs:', imageUrls)
       }
 
       // Create journal entry
