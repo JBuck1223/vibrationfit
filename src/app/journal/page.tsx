@@ -181,22 +181,38 @@ export default function JournalPage() {
       const s3Key = urlParts.slice(userUploadsIndex).join('/')
       console.log('📁 Extracted S3 key:', s3Key)
       
-      // Check if there's a processed version
-      const processedKey = s3Key.replace('/uploads/', '/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4')
-      const processedUrl = `https://media.vibrationfit.com/${processedKey}`
+      // Try multiple processed URL patterns
+      const processedPatterns = [
+        // Pattern 1: /uploads/ -> /uploads/processed/
+        s3Key.replace('/uploads/', '/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4'),
+        // Pattern 2: /journal/ -> /journal/uploads/processed/
+        s3Key.replace('/journal/', '/journal/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4'),
+        // Pattern 3: Direct processed path
+        s3Key.replace(/\.[^/.]+$/, '-720p.mp4'),
+        // Pattern 4: For files already in /journal/, try /journal/uploads/processed/
+        s3Key.includes('/journal/') && !s3Key.includes('/uploads/') 
+          ? s3Key.replace('/journal/', '/journal/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4')
+          : null
+      ].filter(Boolean) // Remove null values
       
-      console.log('🔗 Checking processed URL:', processedUrl)
-      
-      // Test if the processed URL exists
-      const response = await fetch(processedUrl, { method: 'HEAD' })
-      console.log('📡 Response status:', response.status, response.ok)
-      
-      if (response.ok) {
-        console.log('✅ Using processed video:', processedUrl)
-        return processedUrl
-      } else {
-        console.log('❌ Processed video not found, using original')
+      for (const processedKey of processedPatterns) {
+        const processedUrl = `https://media.vibrationfit.com/${processedKey}`
+        console.log('🔗 Checking processed URL:', processedUrl)
+        
+        try {
+          const response = await fetch(processedUrl, { method: 'HEAD' })
+          console.log('📡 Response status:', response.status, response.ok)
+          
+          if (response.ok) {
+            console.log('✅ Using processed video:', processedUrl)
+            return processedUrl
+          }
+        } catch (fetchError) {
+          console.log('❌ Fetch error for:', processedUrl, fetchError)
+        }
       }
+      
+      console.log('❌ No processed video found in any pattern, using original')
     } catch (error) {
       console.log('❌ Error checking processed video:', error, 'Using original:', originalUrl)
     }
