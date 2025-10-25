@@ -186,7 +186,7 @@ interface GridProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const Grid = React.forwardRef<HTMLDivElement, GridProps>(
-  ({ children, cols, minWidth = '300px', gap = 'md', className = '', ...props }, ref) => {
+  ({ children, cols, minWidth = '280px', gap = 'md', className = '', ...props }, ref) => {
     const gaps = {
       xs: 'gap-2',
       sm: 'gap-4',
@@ -479,10 +479,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
     
     const sizes = {
-      sm: 'px-3 py-2 text-xs md:text-sm md:px-5 gap-1.5',
-      md: 'px-3 py-2.5 text-xs md:text-sm md:px-7 md:py-3 gap-2',
-      lg: 'px-4 py-3 text-sm md:text-base md:px-10 md:py-4 gap-2.5',
-      xl: 'px-4 py-3.5 text-sm md:text-base md:px-6 md:py-4 gap-3',
+      sm: 'px-4 py-3 text-sm md:text-sm md:px-5 gap-1.5', // Increased mobile padding for 44px+ touch target
+      md: 'px-4 py-3 text-sm md:text-sm md:px-7 md:py-3 gap-2', // Increased mobile padding
+      lg: 'px-5 py-4 text-sm md:text-base md:px-10 md:py-4 gap-2.5', // Increased mobile padding
+      xl: 'px-5 py-4 text-sm md:text-base md:px-6 md:py-4 gap-3', // Increased mobile padding
     }
     
     const buttonClasses = cn(
@@ -1010,10 +1010,10 @@ interface VIVAButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 export const VIVAButton = React.forwardRef<HTMLButtonElement, VIVAButtonProps>(
   ({ size = 'md', children, asChild = false, className = '', ...props }, ref) => {
     const sizes = {
-      sm: 'px-4 py-2 text-xs md:text-sm',
-      md: 'px-6 py-3 text-sm md:text-base',
-      lg: 'px-8 py-4 text-sm md:text-base', // Reduced from text-base/text-lg to text-sm/text-base
-      xl: 'px-12 py-6 text-base md:text-lg' // Reduced from text-lg/text-xl to text-base/text-lg
+      sm: 'px-4 py-3 text-sm md:text-sm', // Increased mobile padding for 44px+ touch target
+      md: 'px-6 py-4 text-sm md:text-base', // Increased mobile padding
+      lg: 'px-8 py-5 text-sm md:text-base', // Increased mobile padding
+      xl: 'px-12 py-6 text-base md:text-lg' // Increased mobile padding
     }
     
     const buttonClasses = cn(
