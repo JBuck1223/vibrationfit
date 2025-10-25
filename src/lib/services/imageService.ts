@@ -276,11 +276,25 @@ async function saveImageToGallery({
     const imageBuffer = await imageResponse.arrayBuffer()
     const imageData = new Uint8Array(imageBuffer)
     
-    // Generate filename and S3 key
+    // Generate filename and S3 key based on context
     const timestamp = Date.now()
     const randomId = Math.random().toString(36).substring(2, 8)
     const fileName = `${timestamp}-${randomId}-generated.png`
-    const s3Key = `user-uploads/${userId}/vision-board/generated/${timestamp}-${randomId}-${fileName}`
+    
+    // Determine S3 path based on context
+    let s3Path: string
+    switch (context) {
+      case 'journal':
+        s3Path = `user-uploads/${userId}/journal/generated/${timestamp}-${randomId}-${fileName}`
+        break
+      case 'vision_board':
+        s3Path = `user-uploads/${userId}/vision-board/generated/${timestamp}-${randomId}-${fileName}`
+        break
+      default:
+        s3Path = `user-uploads/${userId}/generated/${timestamp}-${randomId}-${fileName}`
+    }
+    
+    const s3Key = s3Path
     
     // Upload directly to S3 (server-side)
     const command = new PutObjectCommand({
