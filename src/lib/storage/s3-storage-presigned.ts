@@ -177,7 +177,7 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     journal: {
       maxSize: 1024 * 1024 * 1024, // 1GB for videos/audio
-      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'audio/mpeg', 'audio/wav', 'audio/mp3'],
+      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi', 'audio/mpeg', 'audio/wav', 'audio/mp3'],
     },
     lifeVision: {
       maxSize: 500 * 1024 * 1024, // 500MB for audio/docs
@@ -189,7 +189,7 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     evidence: {
       maxSize: 1024 * 1024 * 1024, // 1GB for evidence videos/audio
-      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'audio/webm', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/ogg'],
+      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi', 'audio/webm', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/ogg'],
     },
     avatar: {
       maxSize: 20 * 1024 * 1024, // 20MB for avatars
@@ -216,6 +216,13 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
   }
 
   if (!types.includes(file.type)) {
+    console.log('File validation failed:', {
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      folder: folder,
+      allowedTypes: types
+    })
     return { valid: false, error: `Invalid type. Allowed: ${types.join(', ')}` }
   }
 
