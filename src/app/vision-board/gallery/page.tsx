@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { PageLayout, Container, Card, Button, Badge } from '@/lib/design-system'
+import { PageLayout, Container, Card, Button, Badge, Stack, Icon } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { Image as ImageIcon, ArrowLeft } from 'lucide-react'
+import { Image as ImageIcon, ArrowLeft, Trash2, Plus } from 'lucide-react'
 import Link from 'next/link'
 
 interface GeneratedImage {
@@ -40,69 +40,131 @@ export default function GeneratedGalleryPage() {
   }
 
   return (
-    <>
+    <PageLayout>
       <Container size="xl" className="py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/vision-board" className="text-neutral-400 hover:text-white flex items-center gap-2">
-              <ArrowLeft className="w-4 h-4" /> Back to Vision Board
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <Link href="/vision-board" className="text-neutral-400 hover:text-white flex items-center gap-2 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> 
+              Back to Vision Board
             </Link>
-          </div>
-          <div>
             <Badge variant="info">VIVA Gallery</Badge>
           </div>
+
+          <div className="text-center mb-6">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">My Vision Board Library</h1>
+            <p className="text-neutral-400">Browse and manage your generated and uploaded images</p>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex justify-center gap-2 mb-8">
+            <Button 
+              variant={tab === 'generated' ? 'primary' : 'secondary'} 
+              onClick={() => setTab('generated')}
+              className="flex items-center gap-2"
+            >
+              <Icon icon={ImageIcon} size="sm" />
+              Generated
+            </Button>
+            <Button 
+              variant={tab === 'uploaded' ? 'primary' : 'secondary'} 
+              onClick={() => setTab('uploaded')}
+              className="flex items-center gap-2"
+            >
+              <Icon icon={ImageIcon} size="sm" />
+              Uploaded
+            </Button>
+          </div>
         </div>
 
-        <h1 className="text-3xl font-bold text-white mb-2">My Vision Board Library</h1>
-        <div className="mb-6 flex items-center gap-2">
-          <Button variant={tab === 'generated' ? 'primary' : 'secondary'} onClick={() => setTab('generated')}>Generated</Button>
-          <Button variant={tab === 'uploaded' ? 'primary' : 'secondary'} onClick={() => setTab('uploaded')}>Uploaded</Button>
-        </div>
-
+        {/* Content */}
         {loading ? (
-          <p className="text-neutral-400">Loading...</p>
+          <Card className="p-8 text-center">
+            <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-neutral-400">Loading your gallery...</p>
+          </Card>
         ) : images.length === 0 ? (
           <Card className="p-8 text-center">
-            <ImageIcon className="w-8 h-8 mx-auto mb-3 text-neutral-500" />
-            <p className="text-neutral-300">No {tab} images yet.</p>
+            <Icon icon={ImageIcon} size="xl" color="#666" className="mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No {tab} images yet</h3>
+            <p className="text-neutral-400 mb-6">Start creating your vision board by generating or uploading images.</p>
+            <Button asChild>
+              <Link href="/vision-board/new">
+                <Icon icon={Plus} size="sm" />
+                Create New Item
+              </Link>
+            </Button>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {images.map((img) => (
-              <Card key={img.id} className="p-3">
-                <img src={img.image_url} alt="Generated" className="w-full rounded-xl mb-3" />
-                <div className="flex items-center justify-between text-xs text-neutral-400">
-                  <span>{img.style_used || '—'}</span>
-                  <span>{new Date(img.generated_at).toLocaleDateString()}</span>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <Link href={`/vision-board/new?from=gallery&id=${img.id}`}>
-                    <Button variant="primary">Use</Button>
-                  </Link>
-                  <a href={img.image_url} target="_blank" rel="noopener noreferrer">
-                    <Button variant="secondary">Open</Button>
-                  </a>
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      try {
-                        const res = await fetch(`/api/gallery/generated?id=${img.id}`, { method: 'DELETE', credentials: 'include' })
-                        if (!res.ok) throw new Error('Failed to delete')
-                        setImages(prev => prev.filter(i => i.id !== img.id))
-                      } catch (e) {
-                        console.error('Delete failed', e)
-                      }
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </div>
+              <Card key={img.id} hover className="overflow-hidden">
+                <Stack gap="sm">
+                  {/* Image */}
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-neutral-800">
+                    <img 
+                      src={img.image_url} 
+                      alt={img.prompt || 'Generated image'} 
+                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" 
+                    />
+                  </div>
+
+                  {/* Image Info */}
+                  <div className="px-2">
+                    <div className="flex items-center justify-between text-xs text-neutral-400 mb-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {img.style_used || 'Default'}
+                      </Badge>
+                      <span>{new Date(img.generated_at).toLocaleDateString()}</span>
+                    </div>
+                    
+                    {/* Prompt Preview */}
+                    {img.prompt && (
+                      <p className="text-xs text-neutral-300 line-clamp-2 mb-3">
+                        {img.prompt}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="px-2 pb-2">
+                    <div className="flex gap-2">
+                      <Button asChild size="sm" className="flex-1">
+                        <Link href={`/vision-board/new?from=gallery&id=${img.id}`}>
+                          <Icon icon={Plus} size="sm" />
+                          Use
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={async () => {
+                          if (!confirm('Are you sure you want to delete this image?')) return
+                          try {
+                            const res = await fetch(`/api/gallery/generated?id=${img.id}`, { 
+                              method: 'DELETE', 
+                              credentials: 'include' 
+                            })
+                            if (!res.ok) throw new Error('Failed to delete')
+                            setImages(prev => prev.filter(i => i.id !== img.id))
+                          } catch (e) {
+                            console.error('Delete failed', e)
+                          }
+                        }}
+                        className="px-3"
+                      >
+                        <Icon icon={Trash2} size="sm" />
+                      </Button>
+                    </div>
+                  </div>
+                </Stack>
               </Card>
             ))}
           </div>
         )}
       </Container>
-    </>
+    </PageLayout>
   )
 }
 
