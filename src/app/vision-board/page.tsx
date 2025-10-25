@@ -334,100 +334,6 @@ export default function VisionBoardPage() {
           </div>
         </div>
 
-        {/* View Toggle and Bulk Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          {/* View Toggle */}
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === 'grid' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="flex items-center gap-2"
-            >
-              <Grid className="w-4 h-4" />
-              Grid
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="flex items-center gap-2"
-            >
-              <List className="w-4 h-4" />
-              List
-            </Button>
-          </div>
-
-          {/* Bulk Actions */}
-          {viewMode === 'list' && (
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setBulkActionMode(!bulkActionMode)}
-                className="flex items-center gap-2"
-              >
-                {bulkActionMode ? <X className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
-                {bulkActionMode ? 'Cancel' : 'Select'}
-              </Button>
-              
-              {bulkActionMode && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={selectedItems.length === filteredItems.length ? clearSelection : selectAllItems}
-                    className="flex items-center gap-2"
-                  >
-                    {selectedItems.length === filteredItems.length ? <Square className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
-                    {selectedItems.length === filteredItems.length ? 'None' : 'All'}
-                  </Button>
-                  
-                  {selectedItems.length > 0 && (
-                    <>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => bulkUpdateStatus('active')}
-                        className="flex items-center gap-2"
-                      >
-                        <Circle className="w-4 h-4" />
-                        Mark Active
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => bulkUpdateStatus('actualized')}
-                        className="flex items-center gap-2"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Mark Actualized
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => bulkUpdateStatus('inactive')}
-                        className="flex items-center gap-2"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Mark Inactive
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={bulkDeleteItems}
-                        className="flex items-center gap-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete ({selectedItems.length})
-                      </Button>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-        </div>
 
           {/* Stats - Responsive Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -534,6 +440,101 @@ export default function VisionBoardPage() {
                 ))}
               </div>
           </div>
+        </div>
+
+        {/* View Toggle and Bulk Actions */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          {/* View Toggle */}
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="flex items-center gap-2"
+            >
+              <Grid className="w-4 h-4" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="flex items-center gap-2"
+            >
+              <List className="w-4 h-4" />
+              List
+            </Button>
+          </div>
+
+          {/* Bulk Actions */}
+          {viewMode === 'list' && (
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setBulkActionMode(!bulkActionMode)}
+                className="flex items-center gap-2"
+              >
+                {bulkActionMode ? <X className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
+                {bulkActionMode ? 'Cancel' : 'Select'}
+              </Button>
+              
+              {bulkActionMode && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={selectedItems.length === filteredItems.length ? clearSelection : selectAllItems}
+                    className="flex items-center gap-2"
+                  >
+                    {selectedItems.length === filteredItems.length ? <Square className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
+                    {selectedItems.length === filteredItems.length ? 'None' : 'All'}
+                  </Button>
+                  
+                  {selectedItems.length > 0 && (
+                    <>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => bulkUpdateStatus('active')}
+                        className="flex items-center gap-2"
+                      >
+                        <Circle className="w-4 h-4" />
+                        Mark Active
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => bulkUpdateStatus('actualized')}
+                        className="flex items-center gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Mark Actualized
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => bulkUpdateStatus('inactive')}
+                        className="flex items-center gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Mark Inactive
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={bulkDeleteItems}
+                        className="flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete ({selectedItems.length})
+                      </Button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Vision Board Content */}
