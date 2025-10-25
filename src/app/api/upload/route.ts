@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
     // Check if file needs optimization
     const needsImageOptimization = file.type.startsWith('image/') && shouldOptimizeImage(file)
     const needsVideoProcessing = file.type.startsWith('video/') && file.size > 20 * 1024 * 1024 // 20MB
+    const isAudioFile = file.type.startsWith('audio/')
 
     if (needsImageOptimization) {
       console.log(`Optimizing image: ${file.name}`)
@@ -149,14 +150,52 @@ export async function POST(request: NextRequest) {
       // Return immediate success with original URL
       const originalUrl = `https://media.vibrationfit.com/${s3Key}`
       
-      return NextResponse.json({ 
-        url: originalUrl, 
-        key: s3Key,
-        status: 'uploaded',
-        processing: 'pending',
-        message: 'Video uploaded successfully! Processing in progress...'
-      })
-    }
+       return NextResponse.json({ 
+         url: originalUrl, 
+         key: s3Key,
+         status: 'uploaded',
+         processing: 'pending',
+         message: 'Video uploaded successfully! Processing in progress...'
+       })
+     }
+
+     // Handle audio files - upload directly without processing
+     if (isAudioFile) {
+       console.log(`Uploading audio file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+       
+       // Update S3 key with final filename for audio
+       const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
+       
+       const audioCommand = new PutObjectCommand({
+         Bucket: BUCKET_NAME,
+         Key: finalS3Key,
+         Body: buffer,
+         ContentType: contentType,
+         CacheControl: 'public, max-age=31536000', // 1 year cache for audio
+         Metadata: {
+           'original-filename': file.name,
+           'upload-timestamp': timestamp.toString(),
+           'processed': 'false',
+           'original-size': file.size.toString(),
+           'final-size': buffer.length.toString(),
+           'file-type': contentType
+         }
+       })
+
+       await s3Client.send(audioCommand)
+       console.log(`Audio file uploaded successfully: ${finalS3Key}`)
+
+       const audioUrl = `https://media.vibrationfit.com/${finalS3Key}`
+       
+       return NextResponse.json({ 
+         url: audioUrl, 
+         key: finalS3Key,
+         status: 'completed',
+         processing: 'none',
+         originalSize: file.size,
+         finalSize: buffer.length
+       })
+     }
 
     // Update S3 key with final filename
     const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
@@ -170,15 +209,16 @@ export async function POST(request: NextRequest) {
       ContentType: contentType,
       CacheControl: 'public, max-age=31536000, immutable', // 1 year cache
       ContentEncoding: contentType.includes('image') ? 'gzip' : undefined, // Enable gzip for images
-      Metadata: {
-        'original-filename': file.name,
-        'upload-timestamp': timestamp.toString(),
-        'optimized': needsImageOptimization ? 'true' : 'false',
-        'processed': 'false',
-        'original-size': file.size.toString(),
-        'final-size': buffer.length.toString(),
-        'file-type': contentType
-      }
+         Metadata: {
+           'original-filename': file.name,
+           'upload-timestamp': timestamp.toString(),
+           'optimized': needsImageOptimization ? 'true' : 'false',
+           'processed': 'false',
+           'original-size': file.size.toString(),
+           'final-size': buffer.length.toString(),
+           'file-type': contentType,
+           'is-audio': isAudioFile ? 'true' : 'false'
+         }
     })
 
     try {
