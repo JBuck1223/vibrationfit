@@ -35,6 +35,7 @@ export default function JournalPage() {
   const [lightboxImages, setLightboxImages] = useState<string[]>([])
   const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({})
   const [videoLoading, setVideoLoading] = useState<Record<string, boolean>>({})
+  const [processedVideoUrls, setProcessedVideoUrls] = useState<Record<string, string>>({})
 
   useEffect(() => {
     async function fetchData() {
@@ -60,6 +61,32 @@ export default function JournalPage() {
 
     fetchData()
   }, [router])
+
+  // Check for processed video URLs after entries are loaded
+  useEffect(() => {
+    if (entries.length === 0) return
+
+    async function checkProcessedVideos() {
+      const processedUrls: Record<string, string> = {}
+      
+      for (const entry of entries) {
+        if (entry.image_urls) {
+          for (const url of entry.image_urls) {
+            if (isVideo(url)) {
+              const processedUrl = await getProcessedVideoUrl(url)
+              if (processedUrl !== url) {
+                processedUrls[url] = processedUrl
+              }
+            }
+          }
+        }
+      }
+      
+      setProcessedVideoUrls(processedUrls)
+    }
+
+    checkProcessedVideos()
+  }, [entries])
 
   const handleDeleteClick = (entry: JournalEntry) => {
     setItemToDelete(entry)
@@ -126,6 +153,30 @@ export default function JournalPage() {
 
   const isVideo = (url: string) => {
     return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
+  }
+
+  // Check for processed video URLs
+  const getProcessedVideoUrl = async (originalUrl: string) => {
+    try {
+      // Extract the S3 key from the original URL
+      const urlParts = originalUrl.split('/')
+      const s3Key = urlParts.slice(urlParts.indexOf('user-uploads')).join('/')
+      
+      // Check if there's a processed version
+      const processedKey = s3Key.replace('/uploads/', '/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4')
+      const processedUrl = `https://media.vibrationfit.com/${processedKey}`
+      
+      // Test if the processed URL exists
+      const response = await fetch(processedUrl, { method: 'HEAD' })
+      if (response.ok) {
+        console.log('✅ Using processed video:', processedUrl)
+        return processedUrl
+      }
+    } catch (error) {
+      console.log('No processed video found, using original:', originalUrl)
+    }
+    
+    return originalUrl
   }
 
   // Keyboard navigation for lightbox
@@ -277,7 +328,7 @@ export default function JournalPage() {
                           <div key={`video-${index}`} className="relative group">
                             {!hasError ? (
                               <video
-                                src={url}
+                                src={processedVideoUrls[url] || url}
                                 className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors"
                                 controls
                                 preload="metadata"
@@ -286,18 +337,19 @@ export default function JournalPage() {
                                     error: e,
                                     errorType: e.type,
                                     errorTarget: e.target,
-                                    url: url,
+                                    url: processedVideoUrls[url] || url,
+                                    originalUrl: url,
                                     videoElement: e.target
                                   })
                                   setVideoErrors(prev => ({ ...prev, [videoKey]: true }))
                                   setVideoLoading(prev => ({ ...prev, [videoKey]: false }))
                                 }}
                                 onLoadStart={() => {
-                                  console.log('Video loading started:', url)
+                                  console.log('Video loading started:', processedVideoUrls[url] || url)
                                   setVideoLoading(prev => ({ ...prev, [videoKey]: false }))
                                 }}
                                 onLoadedMetadata={() => {
-                                  console.log('Video metadata loaded:', url)
+                                  console.log('Video metadata loaded:', processedVideoUrls[url] || url)
                                 }}
                               >
                                 Your browser does not support the video tag.
@@ -310,7 +362,7 @@ export default function JournalPage() {
                                     This video format (.mov) may not be supported by your browser.
                                   </div>
                                   <a
-                                    href={url}
+                                    href={processedVideoUrls[url] || url}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"

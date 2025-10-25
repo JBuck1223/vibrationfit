@@ -28,6 +28,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: string; index: number } | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [processedVideoUrls, setProcessedVideoUrls] = useState<Record<string, string>>({})
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
@@ -60,12 +61,60 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
     fetchData()
   }, [params, router])
 
+  // Check for processed video URLs after entry is loaded
+  useEffect(() => {
+    if (!entry) return
+
+    async function checkProcessedVideos() {
+      const processedUrls: Record<string, string> = {}
+      
+      if (entry.image_urls) {
+        for (const url of entry.image_urls) {
+          if (getFileType(url) === 'video') {
+            const processedUrl = await getProcessedVideoUrl(url)
+            if (processedUrl !== url) {
+              processedUrls[url] = processedUrl
+            }
+          }
+        }
+      }
+      
+      setProcessedVideoUrls(processedUrls)
+    }
+
+    checkProcessedVideos()
+  }, [entry])
+
   const getFileType = (url: string): 'image' | 'video' | 'audio' | 'unknown' => {
     const ext = url.split('.').pop()?.toLowerCase()
     if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) return 'image'
     if (['mp4', 'mov', 'webm', 'avi'].includes(ext || '')) return 'video'
     if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext || '')) return 'audio'
     return 'unknown'
+  }
+
+  // Check for processed video URLs
+  const getProcessedVideoUrl = async (originalUrl: string) => {
+    try {
+      // Extract the S3 key from the original URL
+      const urlParts = originalUrl.split('/')
+      const s3Key = urlParts.slice(urlParts.indexOf('user-uploads')).join('/')
+      
+      // Check if there's a processed version
+      const processedKey = s3Key.replace('/uploads/', '/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4')
+      const processedUrl = `https://media.vibrationfit.com/${processedKey}`
+      
+      // Test if the processed URL exists
+      const response = await fetch(processedUrl, { method: 'HEAD' })
+      if (response.ok) {
+        console.log('✅ Using processed video:', processedUrl)
+        return processedUrl
+      }
+    } catch (error) {
+      console.log('No processed video found, using original:', originalUrl)
+    }
+    
+    return originalUrl
   }
 
   const openLightbox = (url: string, index: number) => {
@@ -195,18 +244,18 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                   }).map((url: string, index: number) => (
                     <div key={`video-${index}`} className="relative group">
                       <video
-                        src={url}
+                        src={processedVideoUrls[url] || url}
                         className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
                         controls
                         preload="metadata"
                         onError={(e) => {
-                          console.error('Video load error:', e, 'URL:', url)
+                          console.error('Video load error:', e, 'URL:', processedVideoUrls[url] || url, 'Original:', url)
                         }}
                         onLoadStart={() => {
-                          console.log('Video loading started:', url)
+                          console.log('Video loading started:', processedVideoUrls[url] || url)
                         }}
                         onLoadedMetadata={() => {
-                          console.log('Video metadata loaded:', url)
+                          console.log('Video metadata loaded:', processedVideoUrls[url] || url)
                         }}
                         onClick={() => openLightbox(url, entry.image_urls.indexOf(url))}
                       >
@@ -349,7 +398,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
               )}
               {lightboxMedia.type === 'video' && (
                 <video
-                  src={lightboxMedia.url}
+                  src={processedVideoUrls[lightboxMedia.url] || lightboxMedia.url}
                   controls
                   autoPlay
                   className="max-w-full max-h-full"
