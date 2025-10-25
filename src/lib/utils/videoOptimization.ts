@@ -236,7 +236,7 @@ export async function getVideoMetadata(inputBuffer: Buffer): Promise<{
           duration: metadata.format.duration || 0,
           width: videoStream.width || 0,
           height: videoStream.height || 0,
-          bitrate: parseInt(metadata.format.bit_rate || '0'),
+          bitrate: parseInt(String(metadata.format.bit_rate || '0')),
           fps: eval(videoStream.r_frame_rate || '0')
         })
       })
