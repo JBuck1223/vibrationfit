@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert'
 import { optimizeImage, shouldOptimizeImage, getOptimalDimensions } from '@/lib/utils/imageOptimization'
+import { compressVideo, shouldCompressVideo, getCompressionOptions } from '@/lib/utils/videoOptimization'
 
 // Configure runtime for large file uploads
 export const runtime = 'nodejs'
@@ -114,6 +115,26 @@ export async function POST(request: NextRequest) {
       console.log(`Image optimization completed. Original: ${(optimizedResult.originalSize / 1024 / 1024).toFixed(2)}MB, Optimized: ${(optimizedResult.optimizedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${optimizedResult.compressionRatio.toFixed(1)}%`)
     }
 
+    // Compress videos (smaller than MediaConvert threshold)
+    if (shouldCompressVideo(file) && !needsVideoProcessing) {
+      console.log(`Compressing video: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+      try {
+        const compressionOptions = getCompressionOptions(file)
+        const compressionResult = await compressVideo(buffer, compressionOptions)
+        
+        buffer = Buffer.from(compressionResult.buffer)
+        contentType = 'video/mp4' // Always output MP4 for better compatibility
+        
+        const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
+        finalFilename = `${nameWithoutExt}-compressed.mp4`
+        
+        console.log(`Video compression completed. Original: ${(compressionResult.originalSize / 1024 / 1024).toFixed(2)}MB, Compressed: ${(compressionResult.compressedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${compressionResult.compressionRatio.toFixed(1)}%`)
+      } catch (compressionError) {
+        console.error('Video compression failed:', compressionError)
+        // Continue with original file if compression fails
+      }
+    }
+
     // For large videos, upload original and trigger MediaConvert job
     if (needsVideoProcessing) {
       console.log(`Large video detected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
@@ -213,11 +234,13 @@ export async function POST(request: NextRequest) {
            'original-filename': file.name,
            'upload-timestamp': timestamp.toString(),
            'optimized': needsImageOptimization ? 'true' : 'false',
+           'compressed': (shouldCompressVideo(file) && !needsVideoProcessing) ? 'true' : 'false',
            'processed': 'false',
            'original-size': file.size.toString(),
            'final-size': buffer.length.toString(),
            'file-type': contentType,
-           'is-audio': isAudioFile ? 'true' : 'false'
+           'is-audio': isAudioFile ? 'true' : 'false',
+           'is-video': file.type.startsWith('video/') ? 'true' : 'false'
          }
     })
 
