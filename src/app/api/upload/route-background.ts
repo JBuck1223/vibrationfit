@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { compressVideo, shouldCompressVideo, getCompressionOptions } from '@/lib/video-compression'
-import { CompressionResult } from '@/lib/utils/videoOptimization'
 import { optimizeImage, shouldOptimizeImage, getOptimalDimensions } from '@/lib/utils/imageOptimization'
 
 // Configure runtime for large file uploads
@@ -106,29 +105,54 @@ export async function POST(request: NextRequest) {
       console.log(`Image optimization completed. Original: ${(optimizedResult.originalSize / 1024 / 1024).toFixed(2)}MB, Optimized: ${(optimizedResult.optimizedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${optimizedResult.compressionRatio.toFixed(1)}%`)
     }
 
-    // Compress videos BEFORE uploading to S3
+    // For videos, upload original immediately and compress in background
     if (needsVideoCompression) {
-      console.log(`Compressing video before upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+      console.log(`Large video detected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
       
-      const compressionOptions = getCompressionOptions(file)
-      const compressionResult = await compressVideo(buffer as Buffer, file.name, compressionOptions)
+      // Upload original video immediately
+      const originalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${sanitizedName}`
+      const originalCommand = new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: originalS3Key,
+        Body: buffer,
+        ContentType: contentType,
+        CacheControl: 'public, max-age=3600', // Short cache for original
+        Metadata: {
+          'original-filename': file.name,
+          'upload-timestamp': timestamp.toString(),
+          'compressed': 'false',
+          'original-size': file.size.toString(),
+          'file-type': file.type,
+          'status': 'pending-compression'
+        }
+      })
+
+      await s3Client.send(originalCommand)
+      console.log(`Original video uploaded: ${originalS3Key}`)
+
+      // Return immediate success with original URL
+      const originalUrl = `https://media.vibrationfit.com/${originalS3Key}`
       
-      // Use compressed version for upload
-      buffer = Buffer.from(compressionResult.buffer as ArrayBuffer)
-      contentType = 'video/mp4'
-      
-      // Update filename to indicate compression
-      const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
-      finalFilename = `${nameWithoutExt}-compressed.mp4`
-      
-      console.log(`Video compression completed. Compressed size: ${(buffer.length / 1024 / 1024).toFixed(2)}MB`)
+      // Start background compression (don't await)
+      compressVideoInBackground(buffer, file.name, originalS3Key, userId, folder, timestamp, randomStr)
+        .catch(error => {
+          console.error('Background compression failed:', error)
+        })
+
+      return NextResponse.json({ 
+        url: originalUrl, 
+        key: originalS3Key,
+        status: 'uploaded',
+        compression: 'pending',
+        message: 'Video uploaded successfully! Compression in progress...'
+      })
     }
 
     // Update S3 key with final filename
     const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
 
-    // Upload optimized/compressed file to S3
-    console.log(`Uploading optimized file to S3: ${BUCKET_NAME}/${finalS3Key}`)
+    // Upload to S3
+    console.log(`Attempting to upload to S3: ${BUCKET_NAME}/${finalS3Key}`)
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: finalS3Key,
@@ -140,12 +164,9 @@ export async function POST(request: NextRequest) {
         'original-filename': file.name,
         'upload-timestamp': timestamp.toString(),
         'optimized': needsImageOptimization ? 'true' : 'false',
-        'compressed': needsVideoCompression ? 'true' : 'false',
+        'compressed': 'false',
         'original-size': file.size.toString(),
-        'final-size': buffer.length.toString(),
-        'compression-ratio': needsVideoCompression ? 
-          (((file.size - buffer.length) / file.size) * 100).toString() : '0',
-        'file-type': contentType
+        'file-type': file.type
       }
     })
 
@@ -164,11 +185,7 @@ export async function POST(request: NextRequest) {
       url, 
       key: finalS3Key,
       status: 'completed',
-      compression: needsVideoCompression ? 'completed' : 'none',
-      originalSize: file.size,
-      finalSize: buffer.length,
-      compressionRatio: needsVideoCompression ? 
-        ((file.size - buffer.length) / file.size) * 100 : 0
+      compression: 'none'
     })
   } catch (error) {
     console.error('S3 upload error:', error)
@@ -176,6 +193,106 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : 'Upload failed' },
       { status: 500 }
     )
+  }
+}
+
+// Background video compression function
+async function compressVideoInBackground(
+  inputBuffer: Buffer,
+  filename: string,
+  originalS3Key: string,
+  userId: string,
+  folder: string,
+  timestamp: number,
+  randomStr: string
+) {
+  try {
+    console.log(`Starting background compression for: ${filename}`)
+    
+    const compressionOptions = getCompressionOptions({ 
+      name: filename, 
+      size: inputBuffer.length, 
+      type: 'video/mp4' 
+    } as File)
+    
+    const compressionResult = await compressVideo(inputBuffer, filename, compressionOptions)
+    
+    // Since compressVideo currently just returns the original buffer, we need to handle this
+    const compressedBuffer = compressionResult
+    const originalSize = inputBuffer.length
+    const compressedSize = compressedBuffer.length
+    const compressionRatio = originalSize > 0 ? (compressedSize / originalSize) * 100 : 100
+    
+    // Upload compressed version
+    const compressedS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${filename.split('.').slice(0, -1).join('.')}-compressed.mp4`
+    
+    const compressedCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: compressedS3Key,
+      Body: Buffer.from(compressedBuffer),
+      ContentType: 'video/mp4',
+      CacheControl: 'public, max-age=31536000, immutable', // Long cache for compressed
+      Metadata: {
+        'original-filename': filename,
+        'upload-timestamp': timestamp.toString(),
+        'compressed': 'true',
+        'original-size': originalSize.toString(),
+        'compressed-size': compressedSize.toString(),
+        'compression-ratio': compressionRatio.toString(),
+        'file-type': 'video/mp4',
+        'status': 'compressed'
+      }
+    })
+
+    await s3Client.send(compressedCommand)
+    console.log(`Compressed video uploaded: ${compressedS3Key}`)
+
+    // Update original file metadata to point to compressed version
+    const updateCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: originalS3Key,
+      Body: inputBuffer, // Keep original body
+      ContentType: 'video/mp4',
+      CacheControl: 'public, max-age=3600', // Short cache for original
+      Metadata: {
+        'original-filename': filename,
+        'upload-timestamp': timestamp.toString(),
+        'compressed': 'true',
+        'compressed-key': compressedS3Key,
+        'compressed-url': `https://media.vibrationfit.com/${compressedS3Key}`,
+        'original-size': originalSize.toString(),
+        'compressed-size': compressedSize.toString(),
+        'compression-ratio': compressionRatio.toString(),
+        'file-type': 'video/mp4',
+        'status': 'compressed'
+      }
+    })
+
+    await s3Client.send(updateCommand)
+    console.log(`Background compression completed for: ${filename}. Compression ratio: ${compressionRatio.toFixed(1)}%`)
+
+  } catch (error) {
+    console.error(`Background compression failed for ${filename}:`, error)
+    
+    // Update metadata to indicate compression failed
+    const errorCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: originalS3Key,
+      Body: inputBuffer,
+      ContentType: 'video/mp4',
+      CacheControl: 'public, max-age=3600',
+      Metadata: {
+        'original-filename': filename,
+        'upload-timestamp': timestamp.toString(),
+        'compressed': 'false',
+        'original-size': inputBuffer.length.toString(),
+        'file-type': 'video/mp4',
+        'status': 'compression-failed',
+        'error': error instanceof Error ? error.message : 'Unknown error'
+      }
+    })
+
+    await s3Client.send(errorCommand)
   }
 }
 

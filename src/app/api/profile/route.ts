@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     if (versionId) {
       try {
         const { data: version, error: versionError } = await supabase
-          .from('profile_versions')
+          .from('user_profiles')
           .select('*')
           .eq('id', versionId)
           .eq('user_id', user.id)
@@ -58,12 +58,15 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json({
-          profile: version.profile_data,
-          completionPercentage: version.completion_percentage,
+          profile: version,
+          completionPercentage: version.completion_percentage || calculateCompletionManually(version),
           version: {
             id: version.id,
             version_number: version.version_number,
             is_draft: version.is_draft,
+            is_active: version.is_active,
+            version_notes: version.version_notes,
+            parent_version_id: version.parent_version_id,
             created_at: version.created_at,
             updated_at: version.updated_at
           }
@@ -74,85 +77,52 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get current profile (use most recent data from either table)
+    // Get current active profile
     try {
       let profile = null
       let completionPercentage = 0
       let versions: any[] = []
 
-      // Get latest profile version
-      const { data: latestVersion, error: versionError } = await supabase
-        .from('profile_versions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('version_number', { ascending: false })
-        .limit(1)
-        .single()
-
-      // Get current user profile
-      const { data: userProfile, error: profileError } = await supabase
+      // Get the active profile (non-draft)
+      const { data: activeProfile, error: activeError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('is_draft', false)
         .single()
 
-      // Use whichever has the most recent updated_at timestamp
-      if (userProfile && latestVersion) {
-        const userProfileDate = new Date(userProfile.updated_at)
-        const versionDate = new Date(latestVersion.updated_at)
-        
-        console.log('Profile API: userProfile updated_at:', userProfile.updated_at)
-        console.log('Profile API: latestVersion updated_at:', latestVersion.updated_at)
-        console.log('Profile API: userProfileDate > versionDate:', userProfileDate > versionDate)
-        
-        if (userProfileDate > versionDate) {
-          // User profile is more recent
-          profile = userProfile
-          completionPercentage = calculateCompletionManually(userProfile)
-          console.log('Profile API: Using userProfile, completion:', completionPercentage)
-          console.log('Profile API: Manual calculation details:', {
-            totalFormFields: 25,
-            completedFormFields: ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
-              'relationship_status', 'partner_name', 'number_of_children', 'children_ages',
-              'units', 'height', 'weight', 'exercise_frequency', 'living_situation',
-              'time_at_location', 'city', 'state', 'postal_code', 'country',
-              'employment_type', 'occupation', 'company', 'time_in_role', 'household_income',
-              'profile_picture_url'].filter(field =>
-                userProfile[field] !== null && 
-                userProfile[field] !== undefined && 
-                userProfile[field] !== ''
-              ).length,
-            allProfileKeys: Object.keys(userProfile)
-          })
-        } else {
-          // Version is more recent
-          profile = latestVersion.profile_data
-          completionPercentage = latestVersion.completion_percentage
-          console.log('Profile API: Using latestVersion, completion:', completionPercentage)
-        }
-      } else if (userProfile) {
-        // Only user profile exists
-        profile = userProfile
-        completionPercentage = calculateCompletionManually(userProfile)
-        console.log('Profile API: Only userProfile exists, completion:', completionPercentage)
-      } else if (latestVersion) {
-        // Only version exists
-        profile = latestVersion.profile_data
-        completionPercentage = latestVersion.completion_percentage
-        console.log('Profile API: Only latestVersion exists, completion:', completionPercentage)
+      if (activeProfile) {
+        profile = activeProfile
+        completionPercentage = activeProfile.completion_percentage || calculateCompletionManually(activeProfile)
+        console.log('Profile API: Using active profile, completion:', completionPercentage)
       } else {
-        // Neither exists
-        profile = {}
-        completionPercentage = 0
-        console.log('Profile API: No profile data exists')
+        // Fallback to any profile if no active one exists
+        const { data: fallbackProfile, error: fallbackError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (fallbackProfile) {
+          profile = fallbackProfile
+          completionPercentage = fallbackProfile.completion_percentage || calculateCompletionManually(fallbackProfile)
+          console.log('Profile API: Using fallback profile, completion:', completionPercentage)
+        } else {
+          profile = {}
+          completionPercentage = 0
+          console.log('Profile API: No profile data exists')
+        }
       }
 
       // Get all versions if requested
       if (includeVersions) {
         console.log('🔍 PROFILE API: Fetching versions for user:', user.id)
         const { data: allVersions, error: versionsError } = await supabase
-          .from('profile_versions')
-          .select('id, version_number, completion_percentage, is_draft, created_at, updated_at')
+          .from('user_profiles')
+          .select('id, version_number, completion_percentage, is_draft, is_active, version_notes, created_at, updated_at')
           .eq('user_id', user.id)
           .order('version_number', { ascending: false })
 
@@ -208,9 +178,26 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Version ID is required' }, { status: 400 })
     }
 
-    // Delete the version
+    // Verify the profile belongs to the user
+    const { data: existingProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id, user_id, is_draft, is_active')
+      .eq('id', versionId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (profileError || !existingProfile) {
+      return NextResponse.json({ error: 'Profile not found or access denied' }, { status: 404 })
+    }
+
+    // Prevent deletion of active version
+    if (existingProfile.is_active) {
+      return NextResponse.json({ error: 'Cannot delete active version. Please set another version as active first.' }, { status: 400 })
+    }
+
+    // Delete the profile version
     const { error: deleteError } = await supabase
-      .from('profile_versions')
+      .from('user_profiles')
       .delete()
       .eq('id', versionId)
       .eq('user_id', user.id)
@@ -239,7 +226,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { profileData, saveAsVersion = false, isDraft = true } = await request.json()
+    const { profileData, saveAsVersion = false, isDraft = true, sourceProfileId } = await request.json()
 
     if (!profileData) {
       return NextResponse.json({ error: 'Profile data is required' }, { status: 400 })
@@ -253,7 +240,7 @@ export async function POST(request: NextRequest) {
         // Check for existing draft if trying to create a new draft
         if (isDraft) {
           const { data: existingDraft, error: draftError } = await supabase
-            .from('profile_versions')
+            .from('user_profiles')
             .select('id')
             .eq('user_id', user.id)
             .eq('is_draft', true)
@@ -262,11 +249,12 @@ export async function POST(request: NextRequest) {
           if (existingDraft) {
             console.log('Found existing draft, updating it instead of creating new one')
             // Update existing draft instead of creating new one
+            const completionPercentage = calculateCompletionManually(profileData)
             const { data: updatedDraft, error: updateError } = await supabase
-              .from('profile_versions')
+              .from('user_profiles')
               .update({
-                profile_data: profileData,
-                completion_percentage: await calculateProfileCompletion(profileData),
+                ...profileData,
+                completion_percentage: completionPercentage,
                 updated_at: new Date().toISOString()
               })
               .eq('id', existingDraft.id)
@@ -280,18 +268,29 @@ export async function POST(request: NextRequest) {
 
             return NextResponse.json({
               success: true,
-              version: updatedDraft,
+              profile: updatedDraft,
+              completionPercentage,
+              version: {
+                id: updatedDraft.id,
+                version_number: updatedDraft.version_number,
+                is_draft: updatedDraft.is_draft,
+                is_active: updatedDraft.is_active,
+                version_notes: updatedDraft.version_notes,
+                parent_version_id: updatedDraft.parent_version_id,
+                created_at: updatedDraft.created_at,
+                updated_at: updatedDraft.updated_at
+              },
               message: 'Draft updated successfully'
             })
           }
         }
 
-        // Create a new profile version (for commits or if no existing draft)
-        const { data: versionId, error: versionError } = await supabase
-          .rpc('create_profile_version', {
-            user_uuid: user.id,
-            profile_data: profileData,
-            is_draft: isDraft
+        // Create a new profile version using our database function
+        const { data: newDraftId, error: versionError } = await supabase
+          .rpc('create_draft_from_version', {
+            p_source_profile_id: sourceProfileId,
+            p_user_id: user.id,
+            p_version_notes: isDraft ? 'Draft version' : 'Committed version'
           })
 
         if (versionError) {
@@ -299,41 +298,88 @@ export async function POST(request: NextRequest) {
           throw versionError
         }
 
-        // Get the created version
-        const { data: version, error: fetchError } = await supabase
-          .from('profile_versions')
-          .select('*')
-          .eq('id', versionId)
+        // Update the new draft with the provided data
+        const completionPercentage = calculateCompletionManually(profileData)
+        const { data: updatedVersion, error: updateError } = await supabase
+          .from('user_profiles')
+          .update({
+            ...profileData,
+            completion_percentage: completionPercentage,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', newDraftId)
+          .select()
           .single()
 
-        if (fetchError) {
-          console.error('Version fetch error:', fetchError)
-          throw fetchError
+        if (updateError) {
+          console.error('Version update error:', updateError)
+          throw updateError
         }
 
-        // Update user stats if not a draft
+        // If committing (not draft), make it active
         if (!isDraft) {
-          await supabase.rpc('update_profile_stats', { user_uuid: user.id })
+          const { error: commitError } = await supabase
+            .rpc('commit_draft_as_active', {
+              p_draft_profile_id: newDraftId,
+              p_user_id: user.id
+            })
+
+          if (commitError) {
+            console.error('Commit error:', commitError)
+            throw commitError
+          }
+
+          // Fetch the updated version
+          const { data: committedVersion, error: fetchError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', newDraftId)
+            .single()
+
+          if (fetchError) {
+            console.error('Version fetch error:', fetchError)
+            throw fetchError
+          }
+
+          return NextResponse.json({
+            profile: committedVersion,
+            completionPercentage: committedVersion.completion_percentage,
+            version: {
+              id: committedVersion.id,
+              version_number: committedVersion.version_number,
+              is_draft: committedVersion.is_draft,
+              is_active: committedVersion.is_active,
+              version_notes: committedVersion.version_notes,
+              parent_version_id: committedVersion.parent_version_id,
+              created_at: committedVersion.created_at,
+              updated_at: committedVersion.updated_at
+            }
+          })
         }
 
         return NextResponse.json({
-          profile: version.profile_data,
-          completionPercentage: version.completion_percentage,
+          profile: updatedVersion,
+          completionPercentage: updatedVersion.completion_percentage,
           version: {
-            id: version.id,
-            version_number: version.version_number,
-            is_draft: version.is_draft,
-            created_at: version.created_at,
-            updated_at: version.updated_at
+            id: updatedVersion.id,
+            version_number: updatedVersion.version_number,
+            is_draft: updatedVersion.is_draft,
+            is_active: updatedVersion.is_active,
+            version_notes: updatedVersion.version_notes,
+            parent_version_id: updatedVersion.parent_version_id,
+            created_at: updatedVersion.created_at,
+            updated_at: updatedVersion.updated_at
           }
         })
       } else {
         // Regular profile update (user_profiles table)
+        const completionPercentage = calculateCompletionManually(profileData)
         const { data: profile, error: profileError } = await supabase
           .from('user_profiles')
           .upsert({
             user_id: user.id,
             ...profileData,
+            completion_percentage: completionPercentage,
             updated_at: new Date().toISOString()
           }, {
             onConflict: 'user_id'
@@ -344,20 +390,6 @@ export async function POST(request: NextRequest) {
         if (profileError) {
           console.error('Profile save error:', profileError)
           throw profileError
-        }
-
-        // Calculate completion percentage
-        let completionPercentage = 0
-        try {
-          const { data: completionData, error: completionError } = await supabase
-            .rpc('calculate_profile_completion', { profile_data: profile })
-          
-          if (!completionError && completionData) {
-            completionPercentage = completionData
-          }
-        } catch (rpcError) {
-          console.log('RPC not available, using manual calculation')
-          completionPercentage = calculateCompletionManually(profile)
         }
 
         return NextResponse.json({

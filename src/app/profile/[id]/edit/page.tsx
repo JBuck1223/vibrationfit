@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { PageLayout, Button, Badge, Card, WarningConfirmationDialog } from '@/lib/design-system/components'
+import ProfileVersionManager from '@/components/ProfileVersionManager'
+import VersionStatusIndicator from '@/components/VersionStatusIndicator'
+import VersionActionToolbar from '@/components/VersionActionToolbar'
 import { ProfileSidebar } from '../../components/ProfileSidebar'
 import { PersonalInfoSection } from '../../components/PersonalInfoSection'
 import { RelationshipSection } from '../../components/RelationshipSection'
@@ -39,8 +42,10 @@ export default function ProfileEditPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [versionStatus, setVersionStatus] = useState({
     isDraft: false,
-    isActive: false
+    isActive: false,
+    versionNumber: 1
   })
+  const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [showDraftWarning, setShowDraftWarning] = useState(false)
   const [showCommitWarning, setShowCommitWarning] = useState(false)
 
@@ -203,39 +208,34 @@ export default function ProfileEditPage() {
           if (targetVersion) {
             setProfile(targetVersion)
             setCompletionPercentage(targetVersion.completion_percentage || 0)
+            setCurrentVersionId(targetVersion.id)
             
-            // Life-vision approach: active = highest version number, not draft
-            const isDraft = targetVersion.is_draft === true
-            
-            // Find the highest version number (most recent commit)
-            const sortedVersions = data.versions.sort((a: any, b: any) => 
-              (b.version_number || 0) - (a.version_number || 0)
-            )
-            const highestVersion = sortedVersions.find((v: any) => v.is_draft !== true)
-            const isActive = highestVersion && targetVersion.id === highestVersion.id && !isDraft
+            setVersionStatus({ 
+              isDraft: targetVersion.is_draft || false, 
+              isActive: targetVersion.is_active || false,
+              versionNumber: targetVersion.version_number || 1
+            })
+            setVersions(data.versions || [])
             
             console.log('Profile version loaded:', {
               id: targetVersion.id,
               is_draft: targetVersion.is_draft,
+              is_active: targetVersion.is_active,
               version_number: targetVersion.version_number,
-              created_at: targetVersion.created_at,
-              isActive,
-              highestVersionId: highestVersion?.id,
-              highestVersionNumber: highestVersion?.version_number
+              created_at: targetVersion.created_at
             })
-            
-            setVersionStatus({ isDraft, isActive })
-            setVersions(data.versions || [])
           } else {
             setProfile(data.profile || {})
             setCompletionPercentage(data.completionPercentage || 0)
-            setVersionStatus({ isDraft: false, isActive: false })
+            setCurrentVersionId(null)
+            setVersionStatus({ isDraft: false, isActive: false, versionNumber: 1 })
             setVersions(data.versions || [])
           }
         } else {
           setProfile(data.profile || {})
           setCompletionPercentage(data.completionPercentage || 0)
-          setVersionStatus({ isDraft: false, isActive: false })
+          setCurrentVersionId(null)
+          setVersionStatus({ isDraft: false, isActive: false, versionNumber: 1 })
           setVersions(data.versions || [])
         }
       } catch (error) {
@@ -284,7 +284,8 @@ export default function ProfileEditPage() {
         body: JSON.stringify({ 
           profileData: profile, 
           saveAsVersion: true, 
-          isDraft 
+          isDraft,
+          sourceProfileId: currentVersionId
         }),
       })
 
@@ -296,6 +297,16 @@ export default function ProfileEditPage() {
 
       const data = await response.json()
       console.log('Version save response:', data)
+      
+      // Update current version info
+      if (data.version) {
+        setCurrentVersionId(data.version.id)
+        setVersionStatus({
+          isDraft: data.version.is_draft,
+          isActive: data.version.is_active,
+          versionNumber: data.version.version_number
+        })
+      }
       
       setSaveStatus('saved')
       setLastSaved(new Date())
@@ -380,6 +391,53 @@ export default function ProfileEditPage() {
     setProfile(newProfile)
     // No auto-save - user must click "Save Edits" button
   }, [profile])
+
+  // Version management handlers
+  const handleVersionSelect = (versionId: string) => {
+    router.push(`/profile/${versionId}/edit`)
+  }
+
+  const handleVersionCreate = async (sourceVersionId: string, isDraft: boolean) => {
+    await saveAsVersion(isDraft)
+  }
+
+  const handleVersionCommit = async (draftId: string) => {
+    try {
+      const response = await fetch('/api/profile/versions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftProfileId: draftId })
+      })
+
+      if (!response.ok) throw new Error('Failed to commit draft')
+      
+      await fetchVersions()
+      // Refresh current page
+      window.location.reload()
+    } catch (error) {
+      console.error('Error committing draft:', error)
+      setError('Failed to commit draft')
+    }
+  }
+
+  const handleVersionDelete = async (versionId: string) => {
+    try {
+      const response = await fetch(`/api/profile/versions/${versionId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) throw new Error('Failed to delete version')
+      
+      await fetchVersions()
+      // If we deleted the current version, redirect to main profile
+      if (versionId === currentVersionId) {
+        router.push('/profile')
+      }
+    } catch (error) {
+      console.error('Error deleting version:', error)
+      setError('Failed to delete version')
+    }
+  }
 
   // Reload profile from database
   const reloadProfile = useCallback(async () => {
@@ -649,16 +707,25 @@ export default function ProfileEditPage() {
       <div className="mb-8">
         {/* Mobile Header */}
         <div className="md:hidden space-y-4 mb-4">
-          {/* Title and Badge */}
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-2xl font-bold text-white">Edit Profile</h1>
+              {currentVersionId && (
+                <VersionStatusIndicator
+                  isActive={versionStatus.isActive}
+                  isDraft={versionStatus.isDraft}
+                  versionNumber={versionStatus.versionNumber}
+                  completionPercentage={completionPercentage}
+                  showIcon={true}
+                  showCompletion={true}
+                />
+              )}
             </div>
             <p className="text-neutral-400 text-sm">
               {profileId ? (
                 versionStatus.isActive ? 'Editing active profile version' :
                 versionStatus.isDraft ? 'Editing draft version' :
-                `Editing version ${versions.find(v => v.id === profileId)?.version_number || ''}`
+                `Editing version ${versionStatus.versionNumber}`
               ) : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
             </p>
           </div>
@@ -669,12 +736,22 @@ export default function ProfileEditPage() {
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-white">Edit Profile</h1>
+              {currentVersionId && (
+                <VersionStatusIndicator
+                  isActive={versionStatus.isActive}
+                  isDraft={versionStatus.isDraft}
+                  versionNumber={versionStatus.versionNumber}
+                  completionPercentage={completionPercentage}
+                  showIcon={true}
+                  showCompletion={true}
+                />
+              )}
             </div>
             <p className="text-neutral-400">
               {profileId ? (
                 versionStatus.isActive ? 'Editing active profile version' :
                 versionStatus.isDraft ? 'Editing draft version' :
-                `Editing version ${versions.find(v => v.id === profileId)?.version_number || ''}`
+                `Editing version ${versionStatus.versionNumber}`
               ) : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
             </p>
           </div>
@@ -747,29 +824,32 @@ export default function ProfileEditPage() {
                 {isSaving ? 'Saving...' : 'Save'}
               </Button>
               
-              {versionStatus.isDraft ? (
-                <Button
-                  onClick={handleCommitClick}
-                  disabled={isSaving}
-                  variant="primary"
-                  size="sm"
-                  className="flex items-center gap-2 font-semibold w-full sm:w-auto"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Commit as Active Version
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleDraftClick}
-                  disabled={isSaving}
-                  variant="secondary"
-                  size="sm"
-                  className="flex items-center gap-2 font-semibold w-full sm:w-auto"
-                >
-                  <FileText className="w-4 h-4" />
-                  Save as Draft
-                </Button>
+              {currentVersionId && (
+                <VersionActionToolbar
+                  versionId={currentVersionId}
+                  versionNumber={versionStatus.versionNumber}
+                  isActive={versionStatus.isActive}
+                  isDraft={versionStatus.isDraft}
+                  onSaveAsDraft={() => saveAsVersion(true)}
+                  onCommitAsActive={() => saveAsVersion(false)}
+                  onCreateDraft={() => saveAsVersion(true)}
+                  onSetActive={() => {
+                    // This would be handled by the toolbar
+                  }}
+                  onDelete={() => handleVersionDelete(currentVersionId)}
+                  isLoading={isSaving}
+                />
               )}
+              
+              <Button
+                onClick={() => setShowVersions(!showVersions)}
+                variant="secondary"
+                size="sm"
+                className="flex items-center gap-2 font-semibold w-full sm:w-auto"
+              >
+                <History className="w-4 h-4" />
+                Versions
+              </Button>
             </div>
           </div>
         </div>
@@ -786,69 +866,14 @@ export default function ProfileEditPage() {
 
         {/* Versions List */}
         {showVersions && (
-          <div className="mb-6 p-6 bg-neutral-800/50 border border-neutral-700 rounded-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Profile Versions</h3>
-              <Button
-                onClick={fetchVersions}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <History className="w-4 h-4" />
-                Refresh
-              </Button>
-            </div>
-            {versions.length > 0 ? (
-              <div className="space-y-3">
-                {versions.map((version) => (
-                  <div
-                    key={version.id}
-                    className="flex items-center justify-between p-4 bg-neutral-700/50 rounded-lg border border-neutral-600"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">
-                            Version {version.version_number}
-                          </span>
-                          {version.is_draft && (
-                            <Badge variant="neutral">Draft</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-neutral-400">
-                          {new Date(version.created_at).toLocaleDateString()} at{' '}
-                          {new Date(version.created_at).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="info">
-                        {version.completion_percentage}% Complete
-                      </Badge>
-                      <Button
-                        onClick={() => router.push(`/profile/${version.id}`)}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <History className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
-                <p className="text-neutral-400 mb-4">No versions saved yet</p>
-                <p className="text-sm text-neutral-500">
-                  Save a version to track your profile changes over time
-                </p>
-              </div>
-            )}
-          </div>
+          <ProfileVersionManager
+            userId={profileId}
+            onVersionSelect={handleVersionSelect}
+            onVersionCreate={handleVersionCreate}
+            onVersionCommit={handleVersionCommit}
+            onVersionDelete={handleVersionDelete}
+            className="mb-6"
+          />
         )}
 
         {/* Mobile Dropdown Navigation */}
