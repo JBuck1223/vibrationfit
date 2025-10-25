@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { compressVideo, shouldCompressVideo, getCompressionOptions } from '@/lib/video-compression'
+import { optimizeImage, shouldOptimizeImage, getOptimalDimensions } from '@/lib/utils/imageOptimization'
 
 // Configure runtime for large file uploads
 export const runtime = 'nodejs'
@@ -85,6 +86,22 @@ export async function POST(request: NextRequest) {
     let contentType = file.type
     let finalFilename = sanitizedName
 
+    // Optimize images for web delivery
+    if (file.type.startsWith('image/') && shouldOptimizeImage(file)) {
+      console.log(`Optimizing image: ${file.name}`)
+      const optimizationOptions = getOptimalDimensions('card') // Default to card size
+      const optimizedResult = await optimizeImage(buffer, optimizationOptions)
+      
+      buffer = optimizedResult.buffer
+      contentType = optimizedResult.contentType
+      
+      // Update filename to indicate optimization
+      const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
+      finalFilename = `${nameWithoutExt}-optimized.webp`
+      
+      console.log(`Image optimization completed. Original: ${(optimizedResult.originalSize / 1024 / 1024).toFixed(2)}MB, Optimized: ${(optimizedResult.optimizedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${optimizedResult.compressionRatio.toFixed(1)}%`)
+    }
+
     // Skip video compression for now to avoid build issues
     // if (shouldCompressVideo(file)) {
     //   console.log(`Compressing video: ${file.name}`)
@@ -109,7 +126,13 @@ export async function POST(request: NextRequest) {
       Key: finalS3Key,
       Body: buffer,
       ContentType: contentType,
-      CacheControl: 'max-age=31536000',
+      CacheControl: 'public, max-age=31536000, immutable', // 1 year cache
+      ContentEncoding: contentType.includes('image') ? 'gzip' : undefined, // Enable gzip for images
+      Metadata: {
+        'original-filename': file.name,
+        'upload-timestamp': timestamp.toString(),
+        'optimized': file.type.startsWith('image/') ? 'true' : 'false'
+      }
     })
 
     try {

@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     // Get Journal Entries
     const { data: journals } = await supabase
       .from('journal_entries')
-      .select('id, title, entry_type, created_at, categories, image_urls')
+      .select('id, title, created_at, categories, image_urls')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(20)
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
         id: `journal-${entry.id}`,
         type: 'journal',
         title: entry.title || 'Journal Entry',
-        description: `Logged ${entry.entry_type || 'entry'} in ${entry.categories?.[0] || 'journal'}`,
+        description: `Logged entry in ${entry.categories?.[0] || 'journal'}`,
         timestamp: entry.created_at,
         icon: 'BookOpen',
         color: 'text-energy-500',

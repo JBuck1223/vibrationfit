@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+// Helper function to calculate profile completion percentage
+async function calculateProfileCompletion(profileData: any): Promise<number> {
+  const sections = [
+    'personal_info', 'fun_recreation', 'travel_adventure', 'home_location',
+    'family_parenting', 'health_vitality', 'romance_partnership', 'career_business',
+    'financial_wealth', 'social_friends', 'possessions_lifestyle', 
+    'spirituality_growth', 'giving_legacy'
+  ]
+  
+  let completedSections = 0
+  
+  for (const section of sections) {
+    const sectionData = profileData[section]
+    if (sectionData && typeof sectionData === 'object') {
+      // Check if section has meaningful content
+      const hasContent = Object.values(sectionData).some(value => 
+        value && typeof value === 'string' && value.trim().length > 0
+      )
+      if (hasContent) completedSections++
+    }
+  }
+  
+  return Math.round((completedSections / sections.length) * 100)
+}
+
 export async function GET(request: NextRequest) {
   console.log('🚀 PROFILE API GET REQUEST STARTED')
   try {
@@ -225,7 +250,43 @@ export async function POST(request: NextRequest) {
 
     try {
       if (saveAsVersion) {
-        // Create a new profile version
+        // Check for existing draft if trying to create a new draft
+        if (isDraft) {
+          const { data: existingDraft, error: draftError } = await supabase
+            .from('profile_versions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('is_draft', true)
+            .single()
+
+          if (existingDraft) {
+            console.log('Found existing draft, updating it instead of creating new one')
+            // Update existing draft instead of creating new one
+            const { data: updatedDraft, error: updateError } = await supabase
+              .from('profile_versions')
+              .update({
+                profile_data: profileData,
+                completion_percentage: await calculateProfileCompletion(profileData),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingDraft.id)
+              .select()
+              .single()
+
+            if (updateError) {
+              console.error('Draft update error:', updateError)
+              throw updateError
+            }
+
+            return NextResponse.json({
+              success: true,
+              version: updatedDraft,
+              message: 'Draft updated successfully'
+            })
+          }
+        }
+
+        // Create a new profile version (for commits or if no existing draft)
         const { data: versionId, error: versionError } = await supabase
           .rpc('create_profile_version', {
             user_uuid: user.id,

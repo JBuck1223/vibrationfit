@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { PageLayout, Button, Badge, Card } from '@/lib/design-system/components'
+import { PageLayout, Button, Badge, Card, WarningConfirmationDialog } from '@/lib/design-system/components'
 import { ProfileSidebar } from '../../components/ProfileSidebar'
 import { PersonalInfoSection } from '../../components/PersonalInfoSection'
 import { RelationshipSection } from '../../components/RelationshipSection'
@@ -19,7 +19,7 @@ import { PossessionsLifestyleSection } from '../../components/PossessionsLifesty
 import { SpiritualityGrowthSection } from '../../components/SpiritualityGrowthSection'
 import { GivingLegacySection } from '../../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, FileText } from 'lucide-react'
 
 export default function ProfileEditPage() {
   const router = useRouter()
@@ -37,7 +37,12 @@ export default function ProfileEditPage() {
   const [versions, setVersions] = useState<any[]>([])
   const [showVersions, setShowVersions] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [isCurrentVersionDraft, setIsCurrentVersionDraft] = useState(false)
+  const [versionStatus, setVersionStatus] = useState({
+    isDraft: false,
+    isActive: false
+  })
+  const [showDraftWarning, setShowDraftWarning] = useState(false)
+  const [showCommitWarning, setShowCommitWarning] = useState(false)
 
   // Profile sections for mobile dropdown (matching ProfileSidebar)
   const profileSections = [
@@ -198,19 +203,41 @@ export default function ProfileEditPage() {
           if (targetVersion) {
             setProfile(targetVersion)
             setCompletionPercentage(targetVersion.completion_percentage || 0)
-            setIsCurrentVersionDraft(targetVersion.is_draft || false)
+            
+            // Life-vision approach: active = highest version number, not draft
+            const isDraft = targetVersion.is_draft === true
+            
+            // Find the highest version number (most recent commit)
+            const sortedVersions = data.versions.sort((a: any, b: any) => 
+              (b.version_number || 0) - (a.version_number || 0)
+            )
+            const highestVersion = sortedVersions.find((v: any) => v.is_draft !== true)
+            const isActive = highestVersion && targetVersion.id === highestVersion.id && !isDraft
+            
+            console.log('Profile version loaded:', {
+              id: targetVersion.id,
+              is_draft: targetVersion.is_draft,
+              version_number: targetVersion.version_number,
+              created_at: targetVersion.created_at,
+              isActive,
+              highestVersionId: highestVersion?.id,
+              highestVersionNumber: highestVersion?.version_number
+            })
+            
+            setVersionStatus({ isDraft, isActive })
+            setVersions(data.versions || [])
           } else {
             setProfile(data.profile || {})
             setCompletionPercentage(data.completionPercentage || 0)
-            setIsCurrentVersionDraft(false)
+            setVersionStatus({ isDraft: false, isActive: false })
+            setVersions(data.versions || [])
           }
         } else {
           setProfile(data.profile || {})
           setCompletionPercentage(data.completionPercentage || 0)
-          setIsCurrentVersionDraft(false)
+          setVersionStatus({ isDraft: false, isActive: false })
+          setVersions(data.versions || [])
         }
-        
-        setVersions(data.versions || [])
       } catch (error) {
         console.error('Error fetching profile:', error)
         setError('Failed to load profile data')
@@ -383,9 +410,37 @@ export default function ProfileEditPage() {
     } catch (error) {
       console.error('Failed to reload profile:', error)
     }
-  }, [profileId])
+  }, [profileId, router])
 
   // Manual save function
+  const handleSaveClick = () => {
+    handleManualSave()
+  }
+
+  const handleDraftClick = () => {
+    setShowDraftWarning(true)
+  }
+
+  const handleCommitClick = () => {
+    console.log('Commit button clicked, versionStatus:', versionStatus)
+    setShowCommitWarning(true)
+  }
+
+  const confirmSave = () => {
+    handleManualSave()
+  }
+
+  const confirmDraft = () => {
+    setShowDraftWarning(false)
+    saveAsVersion(true)
+  }
+
+  const confirmCommit = () => {
+    console.log('Confirming commit, versionStatus:', versionStatus)
+    setShowCommitWarning(false)
+    saveAsVersion(false)
+  }
+
   const handleManualSave = async () => {
     await saveProfile(profile)
   }
@@ -600,7 +655,11 @@ export default function ProfileEditPage() {
               <h1 className="text-2xl font-bold text-white">Edit Profile</h1>
             </div>
             <p className="text-neutral-400 text-sm">
-              {profileId ? `Editing version ${versions.find(v => v.id === profileId)?.version_number || ''}` : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
+              {profileId ? (
+                versionStatus.isActive ? 'Editing active profile version' :
+                versionStatus.isDraft ? 'Editing draft version' :
+                `Editing version ${versions.find(v => v.id === profileId)?.version_number || ''}`
+              ) : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
             </p>
           </div>
         </div>
@@ -612,7 +671,11 @@ export default function ProfileEditPage() {
               <h1 className="text-3xl font-bold text-white">Edit Profile</h1>
             </div>
             <p className="text-neutral-400">
-              {profileId ? `Editing version ${versions.find(v => v.id === profileId)?.version_number || ''}` : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
+              {profileId ? (
+                versionStatus.isActive ? 'Editing active profile version' :
+                versionStatus.isDraft ? 'Editing draft version' :
+                `Editing version ${versions.find(v => v.id === profileId)?.version_number || ''}`
+              ) : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
             </p>
           </div>
         </div>
@@ -665,33 +728,48 @@ export default function ProfileEditPage() {
             {/* Action Buttons */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
               <Button
-                onClick={() => router.push('/profile')}
+                onClick={() => router.push(`/profile/${profileId}`)}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2 font-semibold w-full sm:w-auto"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Profile
+                <Eye className="w-4 h-4" />
+                View
               </Button>
+              
               <Button
-                onClick={handleManualSave}
+                onClick={handleSaveClick}
                 disabled={isSaving}
                 size="sm"
                 className="flex items-center gap-2 font-semibold w-full sm:w-auto"
               >
                 <Save className="w-4 h-4" />
-                {isSaving ? 'Saving...' : 'Save Edits'}
+                {isSaving ? 'Saving...' : 'Save'}
               </Button>
-              <Button
-                onClick={() => saveAsVersion(false)}
-                disabled={isSaving}
-                variant="primary"
-                size="sm"
-                className="flex items-center gap-2 font-semibold w-full sm:w-auto"
-              >
-                <Plus className="w-4 h-4" />
-                {isCurrentVersionDraft ? 'Commit as Active Version' : 'Save As New Version'}
-              </Button>
+              
+              {versionStatus.isDraft ? (
+                <Button
+                  onClick={handleCommitClick}
+                  disabled={isSaving}
+                  variant="primary"
+                  size="sm"
+                  className="flex items-center gap-2 font-semibold w-full sm:w-auto"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Commit as Active Version
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleDraftClick}
+                  disabled={isSaving}
+                  variant="secondary"
+                  size="sm"
+                  className="flex items-center gap-2 font-semibold w-full sm:w-auto"
+                >
+                  <FileText className="w-4 h-4" />
+                  Save as Draft
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -858,6 +936,29 @@ export default function ProfileEditPage() {
             </p>
           </div>
         )}
+        
+        {/* Warning Dialogs */}
+        <WarningConfirmationDialog
+          isOpen={showDraftWarning}
+          onClose={() => setShowDraftWarning(false)}
+          onConfirm={confirmDraft}
+          title="Save as Draft?"
+          message="Only one draft at a time. This will override any other draft."
+          confirmText="Save as Draft"
+          type="draft"
+          isLoading={isSaving}
+        />
+        
+        <WarningConfirmationDialog
+          isOpen={showCommitWarning}
+          onClose={() => setShowCommitWarning(false)}
+          onConfirm={confirmCommit}
+          title="Commit as Active Version?"
+          message="This will become your active profile version."
+          confirmText="Commit as Active"
+          type="commit"
+          isLoading={isSaving}
+        />
       </>
     )
   }

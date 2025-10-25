@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useStorageData } from '@/hooks/useStorageData'
-import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2 } from 'lucide-react'
+import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2, Save, AlertTriangle } from 'lucide-react'
 
 // ============================================================================
 // UTILITY FUNCTION
@@ -2950,6 +2950,135 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         <X className="w-4 h-4" />
         {showLabels && <span className="ml-1">Delete</span>}
       </Button>
+    </div>
+  )
+}
+
+/**
+ * WarningConfirmationDialog - Reusable warning confirmation dialog for edit actions
+ * 
+ * Features:
+ * - Customizable title, message, and button text
+ * - Different warning types (save, commit, etc.)
+ * - Consistent styling with DeleteConfirmationDialog
+ * - Accessible with proper ARIA attributes
+ * 
+ * Usage:
+ * <WarningConfirmationDialog
+ *   isOpen={showWarning}
+ *   onClose={() => setShowWarning(false)}
+ *   onConfirm={handleConfirm}
+ *   title="Save Changes?"
+ *   message="This will update your current profile version."
+ *   confirmText="Save"
+ *   type="save"
+ * />
+ */
+interface WarningConfirmationDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  title: string
+  message: string
+  confirmText: string
+  type: 'save' | 'commit' | 'draft'
+  isLoading?: boolean
+}
+
+export const WarningConfirmationDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText,
+  type,
+  isLoading = false
+}: WarningConfirmationDialogProps) => {
+  if (!isOpen) return null
+
+  const getIcon = () => {
+    switch (type) {
+      case 'save':
+        return <Save className="w-6 h-6 text-blue-500" />
+      case 'commit':
+        return <CheckCircle2 className="w-6 h-6 text-green-500" />
+      case 'draft':
+        return <FileText className="w-6 h-6 text-yellow-500" />
+      default:
+        return <AlertTriangle className="w-6 h-6 text-yellow-500" />
+    }
+  }
+
+  const getButtonVariant = () => {
+    switch (type) {
+      case 'save':
+        return 'primary'
+      case 'commit':
+        return 'primary'
+      case 'draft':
+        return 'secondary'
+      default:
+        return 'primary'
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* Dialog */}
+      <div 
+        className="relative bg-[#1F1F1F] border-2 border-[#333] rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="warning-title"
+        aria-describedby="warning-message"
+      >
+        {/* Icon and Title */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex-shrink-0">
+            {getIcon()}
+          </div>
+          <div>
+            <h3 id="warning-title" className="text-xl font-bold text-white">
+              {title}
+            </h3>
+          </div>
+        </div>
+
+        {/* Message */}
+        <p id="warning-message" className="text-neutral-300 mb-8 leading-relaxed">
+          {message}
+        </p>
+
+        {/* Actions */}
+        <div className="flex gap-3 justify-end">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+            className="px-6"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant={getButtonVariant()}
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="px-6"
+          >
+            {isLoading ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+            ) : null}
+            {confirmText}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

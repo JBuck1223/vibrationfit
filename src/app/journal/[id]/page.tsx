@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { PageLayout, Card, Button, Badge, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system'
+import { OptimizedImage } from '@/components/OptimizedImage'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, FileText, Tag, X, Download, Play, Volume2, Edit, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -13,7 +14,6 @@ interface JournalEntry {
   date: string
   title: string
   content: string
-  entry_type: string
   categories: string[]
   image_urls: string[]
   created_at: string
@@ -152,10 +152,6 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
               <Calendar className="w-4 h-4" />
               {new Date(entry.date).toLocaleDateString()}
             </div>
-            <div className="flex items-center gap-1">
-              <Tag className="w-4 h-4" />
-              {entry.entry_type}
-            </div>
           </div>
         </div>
 
@@ -219,11 +215,15 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                         return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
                       }).slice(0, 4).map((url: string, index: number) => (
                         <div key={`image-${index}`} className="relative group aspect-square">
-                          <img
+                          <OptimizedImage
                             src={url}
                             alt={`Entry image ${index + 1}`}
+                            width={300}
+                            height={300}
                             className="w-full h-full object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
                             onClick={() => openLightbox(url, entry.image_urls.indexOf(url))}
+                            quality={90}
+                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 50vw, 50vw"
                           />
                         </div>
                       ))}
@@ -245,11 +245,11 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                     
                     return (
                       <div key={`other-${index}`} className="relative group aspect-square">
-                        <div className="w-full h-full bg-gradient-to-br from-primary-500/20 to-primary-600/20 flex items-center justify-center rounded-lg border border-neutral-700">
+                        <div className="w-full h-full bg-neutral-700 flex items-center justify-center rounded-lg border border-neutral-600">
                           {fileType === 'audio' ? (
-                            <Volume2 className="w-8 h-8 text-primary-500" />
+                            <Volume2 className="w-8 h-8 text-white" />
                           ) : (
-                            <FileText className="w-8 h-8 text-neutral-400" />
+                            <FileText className="w-8 h-8 text-white" />
                           )}
                         </div>
                       </div>

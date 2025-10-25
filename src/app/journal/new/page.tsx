@@ -2,36 +2,34 @@
 
 import React, { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { PageLayout, Card, Input, Button } from '@/lib/design-system'
+import { PageLayout, Card, Input, Button, Icon } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload } from 'lucide-react'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
-const LIFE_CATEGORIES = [
-  'Fun / Recreation',
-  'Variety / Travel / Adventure',
-  'Home / Environment',
-  'Family / Parenting',
-  'Love / Romance / Partner',
-  'Health / Body / Vitality',
-  'Money / Wealth / Investments',
-  'Business / Career / Work',
-  'Social / Friends',
-  'Giving / Contribution / Legacy',
-  'Things / Belongings / Stuff',
-  'Expansion / Spirituality',
-  'Other'
-]
-
-const ENTRY_TYPES = [
-  { value: 'evidence', label: 'Connecting the Dots (evidence)' },
-  { value: 'contrast', label: 'Contrast (I know what I don\'t want)' },
-  { value: 'clarity', label: 'Clarity (I know what I want)' },
-  { value: 'other', label: 'Other' }
-]
+// CategoryCard component from design system
+const CategoryCard = ({ category, selected = false, onClick, className = '' }: any) => {
+  const IconComponent = category.icon
+  return (
+    <Card 
+      variant={selected ? 'elevated' : 'default'} 
+      hover 
+      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''} ${className}`}
+      onClick={onClick}
+    >
+      <div className="flex flex-col items-center gap-1 p-1 justify-center h-full">
+        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} />
+        <span className="text-[10px] font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
+          {category.label}
+        </span>
+      </div>
+    </Card>
+  )
+}
 
 export default function NewJournalEntryPage() {
   const router = useRouter()
@@ -47,7 +45,6 @@ export default function NewJournalEntryPage() {
     date: new Date().toISOString().split('T')[0],
     title: '',
     content: '',
-    entryType: '',
     categories: [] as string[]
   })
   
@@ -98,7 +95,6 @@ export default function NewJournalEntryPage() {
           date: formData.date,
           title: formData.title,
           content: formData.content,
-          entry_type: formData.entryType,
           categories: formData.categories,
           image_urls: imageUrls
         })
@@ -151,55 +147,24 @@ export default function NewJournalEntryPage() {
               <Input
                 label="Entry Title"
                 type="text"
-                placeholder="If this were an email, what would the subject line be?"
+                placeholder="What's on your mind today?"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               />
 
               {/* Life Categories */}
               <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3">
-                  Life Category (Select all that apply)
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {LIFE_CATEGORIES.map((category) => (
-                    <label
-                      key={category}
-                      className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg cursor-pointer hover:bg-neutral-700 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.categories.includes(category)}
-                        onChange={() => handleCategoryToggle(category)}
-                        className="w-4 h-4 text-primary-500 bg-neutral-700 border-neutral-600 rounded focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-neutral-200">{category}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Entry Type */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3">
-                  Entry Type
-                </label>
-                <div className="space-y-2">
-                  {ENTRY_TYPES.map((type) => (
-                    <label
-                      key={type.value}
-                      className="flex items-center gap-3 p-3 bg-neutral-800 rounded-lg cursor-pointer hover:bg-neutral-700 transition-colors"
-                    >
-                      <input
-                        type="radio"
-                        name="entryType"
-                        value={type.value}
-                        checked={formData.entryType === type.value}
-                        onChange={(e) => setFormData({ ...formData, entryType: e.target.value })}
-                        className="w-4 h-4 text-primary-500 bg-neutral-700 border-neutral-600 focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-neutral-200">{type.label}</span>
-                    </label>
+                <p className="text-sm text-neutral-400 mb-3 text-center">
+                  Select categories for your journal entry
+                </p>
+                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+                  {VISION_CATEGORIES.map((category) => (
+                    <CategoryCard 
+                      key={category.key} 
+                      category={category} 
+                      selected={formData.categories.includes(category.label)} 
+                      onClick={() => handleCategoryToggle(category.label)}
+                    />
                   ))}
                 </div>
               </div>
@@ -362,7 +327,6 @@ export default function NewJournalEntryPage() {
                         ? `${formData.title}. ${formData.content}`
                         : formData.content || formData.title || ''
                     }
-                    mood={formData.entryType} // Use entry type as mood
                   />
                 )}
               </div>

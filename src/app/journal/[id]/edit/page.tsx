@@ -14,25 +14,11 @@ interface JournalEntry {
   date: string
   title: string
   content: string
-  entry_type: string
   categories: string[]
   image_urls: string[]
   created_at: string
   updated_at: string
 }
-
-const ENTRY_TYPES = [
-  'Evidence',
-  'Insight',
-  'Gratitude',
-  'Reflection',
-  'Goal',
-  'Achievement',
-  'Challenge',
-  'Learning',
-  'Connection',
-  'Inspiration'
-]
 
 const LIFE_CATEGORIES = [
   'Forward',
@@ -59,7 +45,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
   // Form state
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [entryType, setEntryType] = useState('Evidence')
   const [categories, setCategories] = useState<string[]>([])
   const [existingFiles, setExistingFiles] = useState<string[]>([])
 
@@ -90,7 +75,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
       setEntry(entryData)
       setTitle(entryData.title || '')
       setContent(entryData.content || '')
-      setEntryType(entryData.entry_type || 'Evidence')
       setCategories(entryData.categories || [])
       setExistingFiles(entryData.image_urls || [])
       setLoading(false)
@@ -120,7 +104,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
         .update({
           title: title || null,
           content: content || null,
-          entry_type: entryType,
           categories: categories,
           updated_at: new Date().toISOString()
         })
@@ -205,22 +188,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
               className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none"
               placeholder="Enter a title for your entry..."
             />
-          </div>
-
-          {/* Entry Type */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-200 mb-2">
-              Entry Type
-            </label>
-            <select
-              value={entryType}
-              onChange={(e) => setEntryType(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none"
-            >
-              {ENTRY_TYPES.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
           </div>
 
           {/* Categories */}

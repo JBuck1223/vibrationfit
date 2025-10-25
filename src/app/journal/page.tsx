@@ -2,10 +2,10 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button, ActionButtons, DeleteConfirmationDialog, Video } from '@/lib/design-system'
+import { PageLayout, Card, Button, ActionButtons, DeleteConfirmationDialog, Video, NextImage } from '@/lib/design-system'
 import Link from 'next/link'
 import { Plus, Calendar, FileText, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { OptimizedImage } from '@/components/OptimizedImage'
 
 interface JournalEntry {
   id: string
@@ -13,7 +13,6 @@ interface JournalEntry {
   date: string
   title: string
   content: string
-  entry_type: string
   categories: string[]
   image_urls: string[]
   created_at: string
@@ -239,11 +238,8 @@ export default function JournalPage() {
                     </div>
                   </div>
                   
-                  {/* Tags and Categories */}
+                  {/* Categories */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="bg-primary-500/20 text-primary-500 px-2 py-1 rounded-full text-xs font-medium">
-                      {entry.entry_type}
-                    </span>
                     {entry.categories && entry.categories.length > 0 && (
                       <span className="text-xs text-neutral-400 break-words">
                         {entry.categories.slice(0, 2).join(', ')}
@@ -261,14 +257,15 @@ export default function JournalPage() {
                         return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
                       }).map((url: string, index: number) => (
                         <div key={`video-${index}`} className="relative group">
-                          <video
+                          <Video
                             src={url}
-                            className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                            onClick={() => openLightbox(entry.image_urls, entry.image_urls.indexOf(url))}
+                            trackingId={`journal-${entry.id}-video-${index}`}
+                            quality="auto"
+                            saveProgress={false}
+                            className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors"
+                            preload="metadata"
+                            poster={url}
                           />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
-                            <Play className="w-8 h-8 text-white" />
-                          </div>
                         </div>
                       ))}
                       
@@ -283,11 +280,15 @@ export default function JournalPage() {
                             return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
                           }).slice(0, 4).map((url: string, index: number) => (
                             <div key={`image-${index}`} className="relative group aspect-square">
-                              <img
+                              <OptimizedImage
                                 src={url}
                                 alt={`Entry image ${index + 1}`}
+                                width={200}
+                                height={200}
                                 className="w-full h-full object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
                                 onClick={() => openLightbox(entry.image_urls, entry.image_urls.indexOf(url))}
+                                quality={85}
+                                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                               />
                             </div>
                           ))}
@@ -309,11 +310,11 @@ export default function JournalPage() {
                         
                         return (
                           <div key={`other-${index}`} className="relative group aspect-square">
-                            <div className="w-full h-full bg-gradient-to-br from-primary-500/20 to-primary-600/20 flex items-center justify-center rounded-lg border border-neutral-700">
+                            <div className="w-full h-full bg-neutral-700 flex items-center justify-center rounded-lg border border-neutral-600">
                               {fileType === 'audio' ? (
-                                <Volume2 className="w-8 h-8 text-primary-500" />
+                                <Volume2 className="w-8 h-8 text-white" />
                               ) : (
-                                <FileText className="w-8 h-8 text-neutral-400" />
+                                <FileText className="w-8 h-8 text-white" />
                               )}
                             </div>
                           </div>
