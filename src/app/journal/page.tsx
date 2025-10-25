@@ -17,6 +17,7 @@ interface JournalEntry {
   content: string
   categories: string[]
   image_urls: string[]
+  audio_recordings: any[]
   created_at: string
   updated_at: string
 }

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { PageLayout, Card, Input, Button, Icon } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
@@ -41,6 +42,7 @@ export default function NewJournalEntryPage() {
   const [files, setFiles] = useState<File[]>([])
   const [aiGeneratedImageUrls, setAiGeneratedImageUrls] = useState<string[]>([])
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
+  const [audioRecordings, setAudioRecordings] = useState<any[]>([])
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     title: '',
@@ -57,6 +59,36 @@ export default function NewJournalEntryPage() {
         ? prev.categories.filter(c => c !== category)
         : [...prev.categories, category]
     }))
+  }
+
+  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
+    console.log('🎯 Journal: handleRecordingSaved called', { 
+      url, 
+      type, 
+      transcript: transcript.substring(0, 50) + '...',
+      updatedTextLength: updatedText.length
+    })
+    
+    // Add the recording to the audioRecordings array
+    const newRecording = {
+      url,
+      transcript,
+      type,
+      category: 'journal',
+      created_at: new Date().toISOString()
+    }
+
+    setAudioRecordings(prev => [...prev, newRecording])
+    
+    // Update the content with the new text (which includes the transcript)
+    setFormData(prev => ({
+      ...prev,
+      content: updatedText
+    }))
+  }
+
+  const handleDeleteRecording = (index: number) => {
+    setAudioRecordings(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,7 +128,8 @@ export default function NewJournalEntryPage() {
           title: formData.title,
           content: formData.content,
           categories: formData.categories,
-          image_urls: imageUrls
+          image_urls: imageUrls,
+          audio_recordings: audioRecordings
         })
 
       if (error) throw error
@@ -177,7 +210,18 @@ export default function NewJournalEntryPage() {
                 placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
                 allowVideo={true}
                 storageFolder="journal"
+                onRecordingSaved={handleRecordingSaved}
               />
+
+              {/* Display Saved Audio Recordings */}
+              {audioRecordings.length > 0 && (
+                <SavedRecordings
+                  key={`journal-recordings-${audioRecordings.length}`}
+                  recordings={audioRecordings}
+                  categoryFilter="journal"
+                  onDelete={handleDeleteRecording}
+                />
+              )}
 
               {/* Evidence / Images */}
               <div>
