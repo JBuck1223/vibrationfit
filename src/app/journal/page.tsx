@@ -33,6 +33,8 @@ export default function JournalPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [lightboxImages, setLightboxImages] = useState<string[]>([])
+  const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({})
+  const [videoLoading, setVideoLoading] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     async function fetchData() {
@@ -267,12 +269,13 @@ export default function JournalPage() {
                         const ext = url.split('.').pop()?.toLowerCase()
                         return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
                       }).map((url: string, index: number) => {
-                        const [videoError, setVideoError] = useState(false)
-                        const [isLoading, setIsLoading] = useState(true)
+                        const videoKey = `${entry.id}-${index}`
+                        const hasError = videoErrors[videoKey] || false
+                        const isLoading = videoLoading[videoKey] !== false
                         
                         return (
                           <div key={`video-${index}`} className="relative group">
-                            {!videoError ? (
+                            {!hasError ? (
                               <video
                                 src={url}
                                 className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors"
@@ -286,12 +289,12 @@ export default function JournalPage() {
                                     url: url,
                                     videoElement: e.target
                                   })
-                                  setVideoError(true)
-                                  setIsLoading(false)
+                                  setVideoErrors(prev => ({ ...prev, [videoKey]: true }))
+                                  setVideoLoading(prev => ({ ...prev, [videoKey]: false }))
                                 }}
                                 onLoadStart={() => {
                                   console.log('Video loading started:', url)
-                                  setIsLoading(false)
+                                  setVideoLoading(prev => ({ ...prev, [videoKey]: false }))
                                 }}
                                 onLoadedMetadata={() => {
                                   console.log('Video metadata loaded:', url)
