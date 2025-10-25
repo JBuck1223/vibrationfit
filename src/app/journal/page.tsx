@@ -325,6 +325,43 @@ export default function JournalPage() {
                     </div>
                   )}
 
+                  {/* Audio/Video Recordings */}
+                  {entry.audio_recordings && entry.audio_recordings.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-neutral-300 flex items-center gap-2">
+                        <Volume2 className="w-4 h-4" />
+                        Recordings ({entry.audio_recordings.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {entry.audio_recordings.map((recording: any, index: number) => (
+                          <div key={`recording-${index}`} className="flex items-center gap-3 p-3 bg-neutral-800 rounded-lg border border-neutral-700">
+                            <div className="flex-shrink-0">
+                              {recording.type === 'video' ? (
+                                <Play className="w-5 h-5 text-primary-500" />
+                              ) : (
+                                <Volume2 className="w-5 h-5 text-secondary-500" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-neutral-200 truncate">
+                                {recording.transcript ? recording.transcript.substring(0, 100) + '...' : 'Recording'}
+                              </p>
+                              <p className="text-xs text-neutral-400">
+                                {recording.type === 'video' ? 'Video' : 'Audio'} • {recording.duration ? `${Math.round(recording.duration)}s` : 'Unknown duration'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => window.open(recording.url, '_blank')}
+                              className="flex-shrink-0 p-2 bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors"
+                            >
+                              <Play className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Content Preview */}
                   {entry.content && (
                     <p className="text-neutral-200 text-sm line-clamp-3 break-words">

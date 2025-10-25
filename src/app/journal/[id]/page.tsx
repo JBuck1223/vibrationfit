@@ -260,6 +260,43 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
               </div>
             )}
 
+            {/* Audio/Video Recordings */}
+            {entry.audio_recordings && entry.audio_recordings.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-neutral-200 flex items-center gap-2">
+                  <Volume2 className="w-5 h-5" />
+                  Recordings ({entry.audio_recordings.length})
+                </h3>
+                <div className="space-y-3">
+                  {entry.audio_recordings.map((recording: any, index: number) => (
+                    <div key={`recording-${index}`} className="flex items-center gap-4 p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+                      <div className="flex-shrink-0">
+                        {recording.type === 'video' ? (
+                          <Play className="w-6 h-6 text-primary-500" />
+                        ) : (
+                          <Volume2 className="w-6 h-6 text-secondary-500" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-neutral-200 mb-1">
+                          {recording.transcript ? recording.transcript : 'Recording'}
+                        </p>
+                        <p className="text-sm text-neutral-400">
+                          {recording.type === 'video' ? 'Video' : 'Audio'} • {recording.duration ? `${Math.round(recording.duration)}s` : 'Unknown duration'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => window.open(recording.url, '_blank')}
+                        className="flex-shrink-0 p-3 bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors"
+                      >
+                        <Play className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Metadata */}
             <div className="pt-4 border-t border-neutral-800">
               <div className="text-xs text-neutral-500">
