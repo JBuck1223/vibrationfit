@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
-import { compressVideo, getCompressionOptions } from '@/lib/utils/videoOptimization'
+import { compressVideo, getCompressionOptions, generateMultipleQualities } from '@/lib/utils/videoOptimization'
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-east-2',
@@ -59,22 +59,50 @@ export async function POST(request: NextRequest) {
     let outputFilename = filename
     let contentType = response.ContentType || 'video/quicktime'
     let compressionRatio = 0
+    let qualityVersions: Record<string, string> = {}
 
     if (mockFile.type.startsWith('video/')) {
-      console.log('🗜️ Compressing video...')
+      console.log('🗜️ Generating multiple quality versions...')
       try {
-        const compressionOptions = getCompressionOptions(mockFile)
-        const compressionResult = await compressVideo(buffer, compressionOptions)
+        const qualities = await generateMultipleQualities(buffer, filename)
         
-        processedBuffer = Buffer.from(compressionResult.buffer)
+        // Upload each quality version
+        for (const [quality, result] of Object.entries(qualities)) {
+          const qualityFilename = filename.replace(/\.[^/.]+$/, '') + `-${quality}.mp4`
+          const qualityKey = `user-uploads/${userId}/${folder}/processed/${qualityFilename}`
+          
+          console.log(`📤 Uploading ${quality} version: ${(result.compressedSize / 1024 / 1024).toFixed(2)}MB`)
+          
+          const putCommand = new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: qualityKey,
+            Body: result.buffer,
+            ContentType: 'video/mp4',
+            CacheControl: 'public, max-age=31536000, immutable',
+            Metadata: {
+              'original-filename': filename,
+              'quality': quality,
+              'compression-ratio': result.compressionRatio.toString(),
+              'original-size': result.originalSize.toString(),
+              'compressed-size': result.compressedSize.toString(),
+              'file-type': 'video/mp4'
+            }
+          })
+          
+          await s3Client.send(putCommand)
+          qualityVersions[quality] = `https://media.vibrationfit.com/${qualityKey}`
+        }
+        
+        // Use 720p as the default processed version
+        processedBuffer = Buffer.from(qualities['720p'].buffer)
         contentType = 'video/mp4'
-        outputFilename = filename.replace(/\.[^/.]+$/, '') + '-compressed.mp4'
-        compressionRatio = compressionResult.compressionRatio
+        outputFilename = filename.replace(/\.[^/.]+$/, '') + '-720p.mp4'
+        compressionRatio = qualities['720p'].compressionRatio
         
-        console.log(`✅ Video compression completed:`)
-        console.log(`   Original: ${(compressionResult.originalSize / 1024 / 1024).toFixed(2)}MB`)
-        console.log(`   Compressed: ${(compressionResult.compressedSize / 1024 / 1024).toFixed(2)}MB`)
-        console.log(`   Ratio: ${compressionResult.compressionRatio.toFixed(1)}%`)
+        console.log(`✅ Multiple quality versions generated:`)
+        console.log(`   1080p: ${(qualities['1080p'].compressedSize / 1024 / 1024).toFixed(2)}MB`)
+        console.log(`   720p: ${(qualities['720p'].compressedSize / 1024 / 1024).toFixed(2)}MB`)
+        console.log(`   480p: ${(qualities['480p'].compressedSize / 1024 / 1024).toFixed(2)}MB`)
       } catch (compressionError) {
         console.error('⚠️ Video compression failed, using original:', compressionError)
         // Continue with original file
@@ -115,7 +143,8 @@ export async function POST(request: NextRequest) {
       processedSize: processedBuffer.length,
       compressionRatio,
       contentType,
-      filename: outputFilename
+      filename: outputFilename,
+      qualityVersions
     })
 
   } catch (error) {

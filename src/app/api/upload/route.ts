@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       console.log(`Compressing video: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
       try {
         const compressionOptions = getCompressionOptions(file)
-        const compressionResult = await compressVideo(buffer, compressionOptions)
+        const compressionResult = await compressVideo(buffer, file.name, compressionOptions)
         
         buffer = Buffer.from(compressionResult.buffer)
         contentType = 'video/mp4' // Always output MP4 for better compatibility

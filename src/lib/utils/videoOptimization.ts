@@ -1,5 +1,8 @@
 import ffmpeg from 'fluent-ffmpeg'
 import { PassThrough } from 'stream'
+import fs from 'fs'
+import path from 'path'
+import os from 'os'
 
 export interface VideoCompressionOptions {
   quality: number // 0-100
@@ -134,9 +137,15 @@ export async function compressVideo(
     inputStream.write(inputBuffer)
     inputStream.end()
     
+    // Determine input format from filename
+    const inputFormat = filename.toLowerCase().endsWith('.mov') ? 'mov' : 
+                       filename.toLowerCase().endsWith('.mp4') ? 'mp4' : 
+                       filename.toLowerCase().endsWith('.avi') ? 'avi' : 'mov'
+    
     // Configure FFmpeg
     const command = ffmpeg()
       .input(inputStream)
+      .inputFormat(inputFormat)
       .outputOptions([
         '-c:v libx264',
         '-preset', options.preset || 'medium',
@@ -241,4 +250,39 @@ export async function getVideoMetadata(inputBuffer: Buffer): Promise<{
         })
       })
   })
+}
+
+/**
+ * Generate multiple quality versions of a video
+ */
+export async function generateMultipleQualities(
+  inputBuffer: Buffer,
+  filename: string
+): Promise<{
+  '1080p': CompressionResult
+  '720p': CompressionResult
+  '480p': CompressionResult
+}> {
+  const qualities = {
+    '1080p': { maxWidth: 1920, maxHeight: 1080, bitrate: '3M', quality: 60 },
+    '720p': { maxWidth: 1280, maxHeight: 720, bitrate: '2M', quality: 50 },
+    '480p': { maxWidth: 854, maxHeight: 480, bitrate: '1M', quality: 40 }
+  }
+
+  const results = await Promise.all(
+    Object.entries(qualities).map(async ([quality, options]) => {
+      const result = await compressVideo(inputBuffer, filename, {
+        ...options,
+        preset: 'fast',
+        fps: 30
+      })
+      return [quality, result] as [string, CompressionResult]
+    })
+  )
+
+  return {
+    '1080p': results[0][1],
+    '720p': results[1][1],
+    '480p': results[2][1]
+  }
 }
