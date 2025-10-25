@@ -177,15 +177,15 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     journal: {
       maxSize: 1024 * 1024 * 1024, // 1GB for videos/audio
-      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi', 'audio/mpeg', 'audio/wav', 'audio/mp3'],
+      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },
     lifeVision: {
       maxSize: 500 * 1024 * 1024, // 500MB for audio/docs
-      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'application/pdf', 'text/plain'],
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg', 'application/pdf', 'text/plain'],
     },
     alignmentPlan: {
       maxSize: 500 * 1024 * 1024, // 500MB for media/docs
-      types: ['image/jpeg', 'image/png', 'audio/mpeg', 'audio/wav', 'application/pdf'],
+      types: ['image/jpeg', 'image/png', 'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg', 'application/pdf'],
     },
     evidence: {
       maxSize: 1024 * 1024 * 1024, // 1GB for evidence videos/audio
