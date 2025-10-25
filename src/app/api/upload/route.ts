@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
       Body: buffer,
       ContentType: contentType,
       CacheControl: 'public, max-age=31536000, immutable', // 1 year cache
-      ContentEncoding: contentType.includes('image') ? 'gzip' : undefined, // Enable gzip for images
+      ContentEncoding: undefined, // Don't add gzip compression - images are already compressed
          Metadata: {
            'original-filename': file.name,
            'upload-timestamp': timestamp.toString(),
