@@ -268,14 +268,26 @@ export default function JournalPage() {
                         return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
                       }).map((url: string, index: number) => (
                         <div key={`video-${index}`} className="relative group">
-                          <OptimizedVideo
+                          <video
                             src={url}
-                            trackingId={`journal-${entry.id}-video-${index}`}
-                            quality="auto"
-                            saveProgress={false}
                             className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors"
+                            controls
                             preload="metadata"
-                          />
+                            onError={(e) => {
+                              console.error('Video load error:', e, 'URL:', url)
+                            }}
+                            onLoadStart={() => {
+                              console.log('Video loading started:', url)
+                            }}
+                            onLoadedMetadata={() => {
+                              console.log('Video metadata loaded:', url)
+                            }}
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Play className="w-8 h-8 text-white" />
+                          </div>
                         </div>
                       ))}
                       

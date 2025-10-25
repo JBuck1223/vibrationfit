@@ -197,8 +197,21 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                       <video
                         src={url}
                         className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                        controls
+                        preload="metadata"
+                        onError={(e) => {
+                          console.error('Video load error:', e, 'URL:', url)
+                        }}
+                        onLoadStart={() => {
+                          console.log('Video loading started:', url)
+                        }}
+                        onLoadedMetadata={() => {
+                          console.log('Video metadata loaded:', url)
+                        }}
                         onClick={() => openLightbox(url, entry.image_urls.indexOf(url))}
-                      />
+                      >
+                        Your browser does not support the video tag.
+                      </video>
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
                         <Play className="w-8 h-8 text-white" />
                       </div>
