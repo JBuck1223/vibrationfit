@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       const optimizationOptions = getOptimalDimensions('card') // Default to card size
       const optimizedResult = await optimizeImage(buffer, optimizationOptions)
       
-      buffer = optimizedResult.buffer
+      buffer = Buffer.from(optimizedResult.buffer)
       contentType = optimizedResult.contentType
       
       // Update filename to indicate optimization
@@ -108,14 +108,18 @@ export async function POST(request: NextRequest) {
       const compressionOptions = getCompressionOptions(file)
       const compressionResult = await compressVideo(buffer as Buffer, file.name, compressionOptions)
       
-      buffer = compressionResult.buffer
+      buffer = Buffer.from(compressionResult)
       contentType = 'video/mp4'
       
       // Update filename to indicate compression
       const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
       finalFilename = `${nameWithoutExt}-compressed.mp4`
       
-      console.log(`Video compression completed. Original: ${(compressionResult.originalSize / 1024 / 1024).toFixed(2)}MB, Compressed: ${(compressionResult.compressedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${compressionResult.compressionRatio.toFixed(1)}%`)
+      const originalSize = buffer.length
+      const compressedSize = compressionResult.length
+      const compressionRatio = originalSize > 0 ? (compressedSize / originalSize) * 100 : 100
+      
+      console.log(`Video compression completed. Original: ${(originalSize / 1024 / 1024).toFixed(2)}MB, Compressed: ${(compressedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${compressionRatio.toFixed(1)}%`)
     }
 
     // Update S3 key with final filename

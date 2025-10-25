@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, Button, ProgressBar, Badge } from '@/lib/design-system'
-import { Upload, CheckCircle, Clock, AlertCircle, Compress } from 'lucide-react'
+import { Upload, CheckCircle, Clock, AlertCircle, Minimize2 } from 'lucide-react'
 
 interface UploadProgressProps {
   file: File
@@ -183,7 +183,7 @@ export function UploadProgress({ file, onComplete, onError }: UploadProgressProp
       case 'pending':
         return <Clock className="w-4 h-4 text-neutral-400" />
       case 'in-progress':
-        return <Compress className="w-4 h-4 text-blue-500 animate-pulse" />
+        return <Minimize2 className="w-4 h-4 text-blue-500 animate-pulse" />
       case 'completed':
         return <CheckCircle className="w-4 h-4 text-green-500" />
       case 'failed':

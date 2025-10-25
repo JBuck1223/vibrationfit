@@ -489,16 +489,7 @@ export function MediaRecorderComponent({
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button
-              onClick={discardRecording}
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Discard
-            </Button>
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
             <Button
               onClick={() => {
                 if (onRecordingComplete) {
@@ -507,10 +498,19 @@ export function MediaRecorderComponent({
               }}
               variant="primary"
               size="sm"
-              className="gap-2 flex-1"
+              className="gap-2 w-full sm:w-auto"
             >
               <Upload className="w-4 h-4" />
               {saveRecording ? 'Save Recording & Transcript' : 'Use Transcript Only'}
+            </Button>
+            <Button
+              onClick={discardRecording}
+              variant="ghost"
+              size="sm"
+              className="gap-2 w-full sm:w-auto"
+            >
+              <Trash2 className="w-4 h-4" />
+              Discard
             </Button>
           </div>
         </div>

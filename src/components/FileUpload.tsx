@@ -2,7 +2,6 @@
 
 import React, { useState, useRef } from 'react'
 import { Button } from '@/lib/design-system'
-import { compressVideoClientSide, shouldCompressVideoClientSide } from '@/lib/client-video-compression'
 
 interface FileUploadProps {
   accept?: string
@@ -37,38 +36,15 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       return
     }
 
-    // Process files (compress videos if needed)
-    const processedFiles: File[] = []
-    
-    for (const file of files) {
-      if (shouldCompressVideoClientSide(file)) {
-        try {
-          console.log(`Compressing video: ${file.name}`)
-          const compressedFile = await compressVideoClientSide(file, {
-            maxWidth: 1920,
-            maxHeight: 1080,
-            quality: 0.8,
-            maxSizeMB: 50
-          })
-          processedFiles.push(compressedFile)
-        } catch (error) {
-          console.warn('Video compression failed, using original:', error)
-          processedFiles.push(file)
-        }
-      } else {
-        processedFiles.push(file)
-      }
-    }
-
-    // Validate file sizes after compression
-    const oversizedFiles = processedFiles.filter(file => file.size > maxSize * 1024 * 1024)
+    // Validate file sizes (server will handle compression)
+    const oversizedFiles = files.filter(file => file.size > maxSize * 1024 * 1024)
     if (oversizedFiles.length > 0) {
       setError(`Files must be under ${maxSize}MB`)
       return
     }
 
-    setSelectedFiles(processedFiles)
-    onUpload(processedFiles)
+    setSelectedFiles(files)
+    onUpload(files)
   }
 
   const handleRemoveFile = (index: number) => {

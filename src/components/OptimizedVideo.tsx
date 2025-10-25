@@ -28,6 +28,7 @@ export function OptimizedVideo({
   })
 
   const [isLoading, setIsLoading] = useState(true)
+  const [generatedPoster, setGeneratedPoster] = useState<string | null>(null)
   const [showPoster, setShowPoster] = useState(true)
 
   // Generate poster from video if not provided
@@ -50,7 +51,7 @@ export function OptimizedVideo({
         if (ctx) {
           ctx.drawImage(video, 0, 0)
           const posterUrl = canvas.toDataURL('image/jpeg', 0.8)
-          setPoster(posterUrl)
+          setGeneratedPoster(posterUrl)
         }
       }
       
@@ -62,7 +63,7 @@ export function OptimizedVideo({
   if (!shouldLoad || (!videoLoaded && !videoError)) {
     return (
       <div
-        ref={elementRef}
+        ref={elementRef as React.RefObject<HTMLDivElement>}
         className={`bg-neutral-800 animate-pulse rounded-lg flex items-center justify-center ${className}`}
       >
         <div className="text-center text-neutral-500">
@@ -96,7 +97,7 @@ export function OptimizedVideo({
         quality={quality}
         saveProgress={saveProgress}
         preload={preload}
-        poster={poster}
+        poster={poster || generatedPoster || undefined}
         className="w-full h-full"
         onLoadStart={() => setIsLoading(false)}
         onError={() => setIsLoading(false)}

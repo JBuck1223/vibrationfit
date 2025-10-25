@@ -1,4 +1,4 @@
-import { NextImage } from '@/lib/design-system'
+import Image from 'next/image'
 import { useLazyImage } from '@/hooks/useLazyLoading'
 import { useState } from 'react'
 
@@ -37,7 +37,7 @@ export function OptimizedImage({
   if (!shouldLoad || (!imageLoaded && !imageError)) {
     return (
       <div
-        ref={elementRef}
+        ref={elementRef as React.RefObject<HTMLDivElement>}
         className={`bg-neutral-800 animate-pulse rounded-lg ${className}`}
         style={{ width, height }}
       >
@@ -61,7 +61,7 @@ export function OptimizedImage({
   }
 
   return (
-    <NextImage
+    <Image
       src={src}
       alt={alt}
       width={width}

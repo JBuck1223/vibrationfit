@@ -46,7 +46,6 @@ export async function optimizeImage(
       case 'webp':
         pipeline = pipeline.webp({
           quality,
-          progressive,
           effort: 6 // Higher effort for better compression
         })
         break

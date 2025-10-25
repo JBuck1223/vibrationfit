@@ -145,6 +145,7 @@ export function RecordingTextarea({
         {!showRecorder && (
           <div className="absolute bottom-3 right-3 flex gap-2">
             <button
+              type="button"
               onClick={() => {
                 setRecordingMode('audio')
                 setShowRecorder(true)
@@ -157,6 +158,7 @@ export function RecordingTextarea({
             </button>
             {allowVideo && (
               <button
+                type="button"
                 onClick={() => {
                   setRecordingMode('video')
                   setShowRecorder(true)
@@ -191,6 +193,7 @@ export function RecordingTextarea({
       {showRecorder && (
         <div className="relative">
           <button
+            type="button"
             onClick={() => setShowRecorder(false)}
             className="absolute top-2 right-2 z-10 p-1 bg-neutral-800 hover:bg-neutral-700 rounded-full transition-colors"
             title="Close recorder"

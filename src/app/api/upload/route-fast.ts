@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { compressVideo, shouldCompressVideo, getCompressionOptions } from '@/lib/video-compression'
+import { CompressionResult } from '@/lib/utils/videoOptimization'
 import { optimizeImage, shouldOptimizeImage, getOptimalDimensions } from '@/lib/utils/imageOptimization'
 
 // Configure runtime for large file uploads

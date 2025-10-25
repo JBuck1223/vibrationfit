@@ -122,7 +122,6 @@ export default function NewJournalEntryPage() {
 
   return (
     <>
-        <div className="py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
               New Journal Entry
@@ -352,7 +351,6 @@ export default function NewJournalEntryPage() {
               </div>
             </form>
           </Card>
-        </div>
     </>
   )
 }
