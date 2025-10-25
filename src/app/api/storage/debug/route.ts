@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     console.log('🔍 STORAGE DEBUG: Fetching files for user:', userId)
 
     // List all files in user's folder using AWS SDK
-    const prefix = `uploads/${userId}/`
+    const prefix = `user-uploads/${userId}/`
     
     console.log(`📂 S3 Bucket: ${BUCKET_NAME}`)
     console.log(`📂 Prefix: ${prefix}`)
@@ -54,9 +54,9 @@ export async function GET(request: NextRequest) {
     const storageByType = allFiles.reduce((acc: any, file: any) => {
       if (!file.Key) return acc
       
-      // Extract folder from path (uploads/userId/folder/file.ext)
+      // Extract folder from path (user-uploads/userId/folder/file.ext)
       const pathParts = file.Key.split('/')
-      const folder = pathParts[2] || 'root' // Index 2 for folder after uploads/userId
+      const folder = pathParts[2] || 'root' // Index 2 for folder after user-uploads/userId
       
       if (!acc[folder]) {
         acc[folder] = {

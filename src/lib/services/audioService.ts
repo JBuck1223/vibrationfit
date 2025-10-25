@@ -235,7 +235,7 @@ export async function generateAudioTracks(params: {
       if (!audioBuffer) throw lastError || new Error('OpenAI TTS failed')
       const ext = format === 'wav' ? 'wav' : 'mp3'
       const fileName = `${section.sectionKey}-${contentHash.slice(0, 12)}.${ext}`
-      const s3Key = `uploads/${userId}/life-vision/audio/${visionId}/${fileName}`
+      const s3Key = `user-uploads/${userId}/life-vision/audio/${visionId}/${fileName}`
 
       const put = new PutObjectCommand({
         Bucket: BUCKET_NAME,
