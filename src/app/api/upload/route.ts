@@ -78,9 +78,7 @@ export async function POST(request: NextRequest) {
     const extension = file.name.split('.').pop()
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.]/g, '-').toLowerCase()
     
-    const s3Key = folder === 'journal' 
-      ? `journal/uploads/${timestamp}-${randomStr}-${sanitizedName}`
-      : `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${sanitizedName}`
+    const s3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${sanitizedName}`
 
     console.log(`Starting upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
 
@@ -166,9 +164,7 @@ export async function POST(request: NextRequest) {
        console.log(`Uploading audio file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
        
        // Update S3 key with final filename for audio
-       const finalS3Key = folder === 'journal'
-        ? `journal/uploads/${timestamp}-${randomStr}-${finalFilename}`
-        : `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
+       const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
        
        const audioCommand = new PutObjectCommand({
          Bucket: BUCKET_NAME,
@@ -202,9 +198,7 @@ export async function POST(request: NextRequest) {
      }
 
     // Update S3 key with final filename
-    const finalS3Key = folder === 'journal'
-      ? `journal/uploads/${timestamp}-${randomStr}-${finalFilename}`
-      : `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
+    const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
 
     // Upload optimized file to S3
     console.log(`Uploading optimized file to S3: ${BUCKET_NAME}/${finalS3Key}`)
@@ -279,9 +273,7 @@ async function triggerMediaConvertJob(
         OutputGroupSettings: {
           Type: 'FILE_GROUP_SETTINGS',
           FileGroupSettings: {
-            Destination: folder === 'journal'
-              ? `s3://${BUCKET_NAME}/journal/uploads/processed/`
-              : `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
+            Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
           }
         },
         Outputs: [{
