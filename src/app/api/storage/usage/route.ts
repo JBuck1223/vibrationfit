@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
     }
 
     // List all files in user's folder using AWS SDK
-    // Files are organized: user-uploads/userId/folder/filename
-    const prefix = `user-uploads/${user.id}/`
+    // Files are organized: uploads/userId/folder/filename
+    const prefix = `uploads/${user.id}/`
     
     const command = new ListObjectsV2Command({
       Bucket: BUCKET_NAME,
@@ -43,9 +43,9 @@ export async function GET(request: NextRequest) {
     const storageByType = allFiles.reduce((acc: any, file: any) => {
       if (!file.Key) return acc
       
-      // Extract folder from path (user-uploads/userId/folder/file.ext)
+      // Extract folder from path (uploads/userId/folder/file.ext)
       const pathParts = file.Key.split('/')
-      const folder = pathParts[2] || 'other' // Index 2 for folder after user-uploads/userId
+      const folder = pathParts[2] || 'other' // Index 2 for folder after uploads/userId
       
       if (!acc[folder]) {
         acc[folder] = {

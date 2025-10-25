@@ -280,7 +280,7 @@ async function saveImageToGallery({
     const timestamp = Date.now()
     const randomId = Math.random().toString(36).substring(2, 8)
     const fileName = `${timestamp}-${randomId}-generated.png`
-    const s3Key = `user-uploads/${userId}/vision-board/generated/${timestamp}-${randomId}-${fileName}`
+    const s3Key = `generated/${userId}/vision-board/${timestamp}-${randomId}-${fileName}`
     
     // Upload directly to S3 (server-side)
     const command = new PutObjectCommand({
