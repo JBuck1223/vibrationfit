@@ -266,30 +266,64 @@ export default function JournalPage() {
                       {entry.image_urls.filter(url => {
                         const ext = url.split('.').pop()?.toLowerCase()
                         return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
-                      }).map((url: string, index: number) => (
-                        <div key={`video-${index}`} className="relative group">
-                          <video
-                            src={url}
-                            className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors"
-                            controls
-                            preload="metadata"
-                            onError={(e) => {
-                              console.error('Video load error:', e, 'URL:', url)
-                            }}
-                            onLoadStart={() => {
-                              console.log('Video loading started:', url)
-                            }}
-                            onLoadedMetadata={() => {
-                              console.log('Video metadata loaded:', url)
-                            }}
-                          >
-                            Your browser does not support the video tag.
-                          </video>
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Play className="w-8 h-8 text-white" />
+                      }).map((url: string, index: number) => {
+                        const [videoError, setVideoError] = useState(false)
+                        const [isLoading, setIsLoading] = useState(true)
+                        
+                        return (
+                          <div key={`video-${index}`} className="relative group">
+                            {!videoError ? (
+                              <video
+                                src={url}
+                                className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors"
+                                controls
+                                preload="metadata"
+                                onError={(e) => {
+                                  console.error('Video load error:', {
+                                    error: e,
+                                    errorType: e.type,
+                                    errorTarget: e.target,
+                                    url: url,
+                                    videoElement: e.target
+                                  })
+                                  setVideoError(true)
+                                  setIsLoading(false)
+                                }}
+                                onLoadStart={() => {
+                                  console.log('Video loading started:', url)
+                                  setIsLoading(false)
+                                }}
+                                onLoadedMetadata={() => {
+                                  console.log('Video metadata loaded:', url)
+                                }}
+                              >
+                                Your browser does not support the video tag.
+                              </video>
+                            ) : (
+                              <div className="w-full aspect-video bg-neutral-800 rounded-lg border border-neutral-700 flex items-center justify-center">
+                                <div className="text-center text-neutral-400 p-6">
+                                  <div className="text-lg mb-2">📹 Video Format Not Supported</div>
+                                  <div className="text-sm mb-4">
+                                    This video format (.mov) may not be supported by your browser.
+                                  </div>
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
+                                  >
+                                    <Play className="w-4 h-4" />
+                                    Download Video
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              <Play className="w-8 h-8 text-white" />
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                       
                       {/* Images - 2x2 Grid */}
                       {entry.image_urls.filter(url => {
