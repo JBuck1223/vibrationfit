@@ -57,7 +57,6 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File
     const folder = formData.get('folder') as string
     const userId = formData.get('userId') as string
-
     const useMultipart = formData.get('multipart') === 'true'
 
     if (!file || !folder || !userId) {
@@ -87,65 +86,36 @@ export async function POST(request: NextRequest) {
     let contentType = file.type
     let finalFilename = sanitizedName
 
-    // Check if file needs compression/optimization
-    const needsImageOptimization = file.type.startsWith('image/') && shouldOptimizeImage(file)
-    const needsVideoCompression = file.type.startsWith('video/') && shouldCompressVideo(file)
-
-    if (needsImageOptimization) {
+    // Optimize images for web delivery
+    if (file.type.startsWith('image/') && shouldOptimizeImage(file)) {
       console.log(`Optimizing image: ${file.name}`)
-      const optimizationOptions = getOptimalDimensions('card')
+      const optimizationOptions = getOptimalDimensions('card') // Default to card size
       const optimizedResult = await optimizeImage(buffer, optimizationOptions)
       
       buffer = optimizedResult.buffer
       contentType = optimizedResult.contentType
       
+      // Update filename to indicate optimization
       const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
       finalFilename = `${nameWithoutExt}-optimized.webp`
       
       console.log(`Image optimization completed. Original: ${(optimizedResult.originalSize / 1024 / 1024).toFixed(2)}MB, Optimized: ${(optimizedResult.optimizedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${optimizedResult.compressionRatio.toFixed(1)}%`)
     }
 
-    // For videos, upload original immediately and compress in background
-    if (needsVideoCompression) {
-      console.log(`Large video detected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+    // Compress videos for web delivery
+    if (file.type.startsWith('video/') && shouldCompressVideo(file)) {
+      console.log(`Compressing video: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+      const compressionOptions = getCompressionOptions(file)
+      const compressionResult = await compressVideo(buffer as Buffer, file.name, compressionOptions)
       
-      // Upload original video immediately
-      const originalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${sanitizedName}`
-      const originalCommand = new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: originalS3Key,
-        Body: buffer,
-        ContentType: contentType,
-        CacheControl: 'public, max-age=3600', // Short cache for original
-        Metadata: {
-          'original-filename': file.name,
-          'upload-timestamp': timestamp.toString(),
-          'compressed': 'false',
-          'original-size': file.size.toString(),
-          'file-type': file.type,
-          'status': 'pending-compression'
-        }
-      })
-
-      await s3Client.send(originalCommand)
-      console.log(`Original video uploaded: ${originalS3Key}`)
-
-      // Return immediate success with original URL
-      const originalUrl = `https://media.vibrationfit.com/${originalS3Key}`
+      buffer = compressionResult.buffer
+      contentType = 'video/mp4'
       
-      // Start background compression (don't await)
-      compressVideoInBackground(buffer, file.name, originalS3Key, userId, folder, timestamp, randomStr)
-        .catch(error => {
-          console.error('Background compression failed:', error)
-        })
-
-      return NextResponse.json({ 
-        url: originalUrl, 
-        key: originalS3Key,
-        status: 'uploaded',
-        compression: 'pending',
-        message: 'Video uploaded successfully! Compression in progress...'
-      })
+      // Update filename to indicate compression
+      const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
+      finalFilename = `${nameWithoutExt}-compressed.mp4`
+      
+      console.log(`Video compression completed. Original: ${(compressionResult.originalSize / 1024 / 1024).toFixed(2)}MB, Compressed: ${(compressionResult.compressedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${compressionResult.compressionRatio.toFixed(1)}%`)
     }
 
     // Update S3 key with final filename
@@ -163,8 +133,8 @@ export async function POST(request: NextRequest) {
       Metadata: {
         'original-filename': file.name,
         'upload-timestamp': timestamp.toString(),
-        'optimized': needsImageOptimization ? 'true' : 'false',
-        'compressed': 'false',
+        'optimized': file.type.startsWith('image/') ? 'true' : 'false',
+        'compressed': file.type.startsWith('video/') && shouldCompressVideo(file) ? 'true' : 'false',
         'original-size': file.size.toString(),
         'file-type': file.type
       }
@@ -181,12 +151,7 @@ export async function POST(request: NextRequest) {
     // Return CDN URL
     const url = `https://media.vibrationfit.com/${finalS3Key}`
 
-    return NextResponse.json({ 
-      url, 
-      key: finalS3Key,
-      status: 'completed',
-      compression: 'none'
-    })
+    return NextResponse.json({ url, key: finalS3Key })
   } catch (error) {
     console.error('S3 upload error:', error)
     return NextResponse.json(
@@ -196,106 +161,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Background video compression function
-async function compressVideoInBackground(
-  inputBuffer: Buffer,
-  filename: string,
-  originalS3Key: string,
-  userId: string,
-  folder: string,
-  timestamp: number,
-  randomStr: string
-) {
-  try {
-    console.log(`Starting background compression for: ${filename}`)
-    
-    const compressionOptions = getCompressionOptions({ 
-      name: filename, 
-      size: inputBuffer.length, 
-      type: 'video/mp4' 
-    } as File)
-    
-    const compressionResult = await compressVideo(inputBuffer, filename, compressionOptions)
-    
-    // Upload compressed version
-    const compressedS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${filename.split('.').slice(0, -1).join('.')}-compressed.mp4`
-    
-    const compressedCommand = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: compressedS3Key,
-      Body: compressionResult.buffer,
-      ContentType: 'video/mp4',
-      CacheControl: 'public, max-age=31536000, immutable', // Long cache for compressed
-      Metadata: {
-        'original-filename': filename,
-        'upload-timestamp': timestamp.toString(),
-        'compressed': 'true',
-        'original-size': compressionResult.originalSize.toString(),
-        'compressed-size': compressionResult.compressedSize.toString(),
-        'compression-ratio': compressionResult.compressionRatio.toString(),
-        'file-type': 'video/mp4',
-        'status': 'compressed'
-      }
-    })
-
-    await s3Client.send(compressedCommand)
-    console.log(`Compressed video uploaded: ${compressedS3Key}`)
-
-    // Update original file metadata to point to compressed version
-    const updateCommand = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: originalS3Key,
-      Body: inputBuffer, // Keep original body
-      ContentType: 'video/mp4',
-      CacheControl: 'public, max-age=3600', // Short cache for original
-      Metadata: {
-        'original-filename': filename,
-        'upload-timestamp': timestamp.toString(),
-        'compressed': 'true',
-        'compressed-key': compressedS3Key,
-        'compressed-url': `https://media.vibrationfit.com/${compressedS3Key}`,
-        'original-size': compressionResult.originalSize.toString(),
-        'compressed-size': compressionResult.compressedSize.toString(),
-        'compression-ratio': compressionResult.compressionRatio.toString(),
-        'file-type': 'video/mp4',
-        'status': 'compressed'
-      }
-    })
-
-    await s3Client.send(updateCommand)
-    console.log(`Background compression completed for: ${filename}. Compression ratio: ${compressionResult.compressionRatio.toFixed(1)}%`)
-
-  } catch (error) {
-    console.error(`Background compression failed for ${filename}:`, error)
-    
-    // Update metadata to indicate compression failed
-    const errorCommand = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: originalS3Key,
-      Body: inputBuffer,
-      ContentType: 'video/mp4',
-      CacheControl: 'public, max-age=3600',
-      Metadata: {
-        'original-filename': filename,
-        'upload-timestamp': timestamp.toString(),
-        'compressed': 'false',
-        'original-size': inputBuffer.length.toString(),
-        'file-type': 'video/mp4',
-        'status': 'compression-failed',
-        'error': error instanceof Error ? error.message : 'Unknown error'
-      }
-    })
-
-    await s3Client.send(errorCommand)
-  }
-}
-
 // Multipart upload implementation
 async function multipartUpload(
   s3Key: string,
   file: File
 ): Promise<{ url: string; key: string }> {
-  
+  // Initiate multipart upload
   const createCommand = new CreateMultipartUploadCommand({
     Bucket: BUCKET_NAME,
     Key: s3Key,
@@ -360,8 +231,41 @@ async function multipartUpload(
       Key: s3Key,
       UploadId: UploadId,
     })
-
     await s3Client.send(abortCommand)
     throw error
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  let s3Key: string | undefined
+  
+  try {
+    const body = await request.json()
+    s3Key = body.s3Key
+
+    if (!s3Key) {
+      return NextResponse.json({ error: 'Missing s3Key' }, { status: 400 })
+    }
+
+    console.log(`🗑️ S3 DELETE REQUEST: ${s3Key}`)
+    console.log(`📁 Bucket: ${BUCKET_NAME}`)
+    console.log(`🔑 Full S3 Key: ${BUCKET_NAME}/${s3Key}`)
+
+    const command = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+    })
+
+    await s3Client.send(command)
+    console.log(`✅ Successfully deleted: ${s3Key}`)
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('❌ S3 delete error:', error)
+    console.error(`Failed to delete: ${BUCKET_NAME}/${s3Key || 'unknown'}`)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Delete failed' },
+      { status: 500 }
+    )
   }
 }

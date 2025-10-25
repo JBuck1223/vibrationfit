@@ -2,7 +2,8 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button, RecordingTextarea } from '@/lib/design-system'
+import { PageLayout, Card, Button } from '@/lib/design-system'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Save, X } from 'lucide-react'
@@ -218,8 +219,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
             placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
             allowVideo={true}
             storageFolder="journal"
-            variant="enhanced"
-            size="lg"
           />
 
           {/* Existing Files */}
