@@ -69,19 +69,28 @@ export default function JournalPage() {
     async function checkProcessedVideos() {
       const processedUrls: Record<string, string> = {}
       
+      console.log('🔍 Checking for processed videos in', entries.length, 'entries')
+      
       for (const entry of entries) {
         if (entry.image_urls) {
+          console.log('📹 Entry', entry.id, 'has', entry.image_urls.length, 'media URLs')
           for (const url of entry.image_urls) {
             if (isVideo(url)) {
+              console.log('🎬 Found video URL:', url)
               const processedUrl = await getProcessedVideoUrl(url)
+              console.log('🔗 Processed URL result:', processedUrl)
               if (processedUrl !== url) {
                 processedUrls[url] = processedUrl
+                console.log('✅ Using processed video:', processedUrl)
+              } else {
+                console.log('⚠️ No processed version found, using original')
               }
             }
           }
         }
       }
       
+      console.log('📊 Final processed URLs:', processedUrls)
       setProcessedVideoUrls(processedUrls)
     }
 
@@ -158,22 +167,38 @@ export default function JournalPage() {
   // Check for processed video URLs
   const getProcessedVideoUrl = async (originalUrl: string) => {
     try {
+      console.log('🔍 Checking for processed video for:', originalUrl)
+      
       // Extract the S3 key from the original URL
       const urlParts = originalUrl.split('/')
-      const s3Key = urlParts.slice(urlParts.indexOf('user-uploads')).join('/')
+      const userUploadsIndex = urlParts.indexOf('user-uploads')
+      
+      if (userUploadsIndex === -1) {
+        console.log('⚠️ No user-uploads found in URL, using original')
+        return originalUrl
+      }
+      
+      const s3Key = urlParts.slice(userUploadsIndex).join('/')
+      console.log('📁 Extracted S3 key:', s3Key)
       
       // Check if there's a processed version
       const processedKey = s3Key.replace('/uploads/', '/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4')
       const processedUrl = `https://media.vibrationfit.com/${processedKey}`
       
+      console.log('🔗 Checking processed URL:', processedUrl)
+      
       // Test if the processed URL exists
       const response = await fetch(processedUrl, { method: 'HEAD' })
+      console.log('📡 Response status:', response.status, response.ok)
+      
       if (response.ok) {
         console.log('✅ Using processed video:', processedUrl)
         return processedUrl
+      } else {
+        console.log('❌ Processed video not found, using original')
       }
     } catch (error) {
-      console.log('No processed video found, using original:', originalUrl)
+      console.log('❌ Error checking processed video:', error, 'Using original:', originalUrl)
     }
     
     return originalUrl
@@ -333,23 +358,28 @@ export default function JournalPage() {
                                 controls
                                 preload="metadata"
                                 onError={(e) => {
+                                  const videoUrl = processedVideoUrls[url] || url
                                   console.error('Video load error:', {
                                     error: e,
                                     errorType: e.type,
                                     errorTarget: e.target,
-                                    url: processedVideoUrls[url] || url,
+                                    url: videoUrl,
                                     originalUrl: url,
-                                    videoElement: e.target
+                                    processedUrl: processedVideoUrls[url],
+                                    videoElement: e.target,
+                                    processedUrlsState: processedVideoUrls
                                   })
                                   setVideoErrors(prev => ({ ...prev, [videoKey]: true }))
                                   setVideoLoading(prev => ({ ...prev, [videoKey]: false }))
                                 }}
                                 onLoadStart={() => {
-                                  console.log('Video loading started:', processedVideoUrls[url] || url)
+                                  const videoUrl = processedVideoUrls[url] || url
+                                  console.log('Video loading started:', videoUrl, 'Original:', url)
                                   setVideoLoading(prev => ({ ...prev, [videoKey]: false }))
                                 }}
                                 onLoadedMetadata={() => {
-                                  console.log('Video metadata loaded:', processedVideoUrls[url] || url)
+                                  const videoUrl = processedVideoUrls[url] || url
+                                  console.log('Video metadata loaded:', videoUrl)
                                 }}
                               >
                                 Your browser does not support the video tag.
