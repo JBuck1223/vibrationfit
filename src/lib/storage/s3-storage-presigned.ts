@@ -45,7 +45,7 @@ export async function getPresignedUploadUrl(
     const timestamp = Date.now()
     const randomStr = Math.random().toString(36).substring(2, 15)
     const sanitizedName = fileName.replace(/[^a-zA-Z0-9.]/g, '-').toLowerCase()
-    const key = `uploads/${userId}/${USER_FOLDERS[folder]}/${timestamp}-${randomStr}-${sanitizedName}`
+    const key = `user-uploads/${userId}/${USER_FOLDERS[folder]}/${timestamp}-${randomStr}-${sanitizedName}`
 
     const response = await fetch('/api/upload/presigned', {
       method: 'POST',
