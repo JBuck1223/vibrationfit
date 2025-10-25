@@ -17,7 +17,8 @@ export interface RecordingUploadResult {
 export async function uploadRecording(
   blob: Blob,
   folder: keyof typeof USER_FOLDERS = 'evidence',
-  fileName?: string
+  fileName?: string,
+  onProgress?: (progress: number) => void
 ): Promise<RecordingUploadResult> {
   try {
     // Generate file name if not provided
@@ -29,7 +30,7 @@ export async function uploadRecording(
     const file = new File([blob], name, { type: blob.type })
 
     // Upload to S3
-    const result = await uploadUserFile(folder, file)
+    const result = await uploadUserFile(folder, file, undefined, onProgress)
     const url = result.url
 
     return {
@@ -52,10 +53,12 @@ export async function uploadRecording(
 export async function uploadAndTranscribeRecording(
   blob: Blob,
   folder: keyof typeof USER_FOLDERS = 'evidence',
-  fileName?: string
+  fileName?: string,
+  onProgress?: (progress: number, status: string) => void
 ): Promise<RecordingUploadResult> {
   try {
     // First, transcribe the audio
+    onProgress?.(10, 'Transcribing audio...')
     const formData = new FormData()
     formData.append('audio', blob, fileName || 'recording.webm')
 
@@ -69,9 +72,14 @@ export async function uploadAndTranscribeRecording(
     }
 
     const { transcript, duration } = await transcribeResponse.json()
+    onProgress?.(50, 'Transcription complete, uploading...')
 
     // Then upload to S3
-    const uploadResult = await uploadRecording(blob, folder, fileName)
+    const uploadResult = await uploadRecording(blob, folder, fileName, (progress) => {
+      // Map upload progress from 50-100%
+      const mappedProgress = 50 + (progress * 0.5)
+      onProgress?.(mappedProgress, 'Uploading recording...')
+    })
 
     return {
       ...uploadResult,

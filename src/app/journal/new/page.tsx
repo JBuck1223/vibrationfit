@@ -93,6 +93,9 @@ export default function NewJournalEntryPage() {
       ...prev,
       content: updatedText
     }))
+
+    // Hide progress bar after recording is saved
+    setUploadProgress(prev => ({ ...prev, isVisible: false }))
   }
 
   const handleDeleteRecording = (index: number) => {
@@ -239,6 +242,15 @@ export default function NewJournalEntryPage() {
                 allowVideo={true}
                 storageFolder="journal"
                 onRecordingSaved={handleRecordingSaved}
+                onUploadProgress={(progress, status, fileName, fileSize) => {
+                  setUploadProgress({
+                    progress,
+                    status,
+                    fileName,
+                    fileSize,
+                    isVisible: true
+                  })
+                }}
               />
 
               {/* Display Saved Audio Recordings */}

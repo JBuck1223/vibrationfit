@@ -17,6 +17,7 @@ interface RecordingTextareaProps {
   disabled?: boolean
   onRecordingSaved?: (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => Promise<void>
   storageFolder?: 'evidence' | 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'avatar' | 'customTracks'
+  onUploadProgress?: (progress: number, status: string, fileName: string, fileSize: number) => void
 }
 
 export function RecordingTextarea({
@@ -29,7 +30,8 @@ export function RecordingTextarea({
   className = '',
   disabled = false,
   onRecordingSaved,
-  storageFolder = 'evidence'
+  storageFolder = 'evidence',
+  onUploadProgress
 }: RecordingTextareaProps) {
   const [showRecorder, setShowRecorder] = useState(false)
   const [recordingMode, setRecordingMode] = useState<'audio' | 'video'>('audio')
@@ -86,7 +88,18 @@ export function RecordingTextarea({
         // Determine the specific subfolder based on recording type
         const specificFolder = recordingMode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings'
         
-        const result = await uploadAndTranscribeRecording(blob, specificFolder as any)
+        // Generate file info for progress tracking
+        const fileName = `recording-${Date.now()}.${recordingMode === 'video' ? 'webm' : 'webm'}`
+        const fileSize = blob.size
+        
+        const result = await uploadAndTranscribeRecording(
+          blob, 
+          specificFolder as any, 
+          fileName,
+          (progress, status) => {
+            onUploadProgress?.(progress, status, fileName, fileSize)
+          }
+        )
         recordingUrl = result.url
         console.log('✅ Recording uploaded:', recordingUrl)
         
