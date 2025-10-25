@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
-import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert'
+import { compressVideo, shouldCompressVideo, getCompressionOptions } from '@/lib/video-compression'
+import { CompressionResult } from '@/lib/utils/videoOptimization'
 import { optimizeImage, shouldOptimizeImage, getOptimalDimensions } from '@/lib/utils/imageOptimization'
 
 // Configure runtime for large file uploads
@@ -22,14 +23,6 @@ const s3Client = new S3Client({
   requestHandler: {
     requestTimeout: 30000, // 30 seconds
     connectionTimeout: 10000, // 10 seconds
-  },
-})
-
-const mediaConvertClient = new MediaConvertClient({
-  region: process.env.AWS_REGION || 'us-east-2',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 })
 
@@ -95,9 +88,9 @@ export async function POST(request: NextRequest) {
     let contentType = file.type
     let finalFilename = sanitizedName
 
-    // Check if file needs optimization
+    // Check if file needs compression/optimization
     const needsImageOptimization = file.type.startsWith('image/') && shouldOptimizeImage(file)
-    const needsVideoProcessing = file.type.startsWith('video/') && file.size > 20 * 1024 * 1024 // 20MB
+    const needsVideoCompression = file.type.startsWith('video/') && shouldCompressVideo(file)
 
     if (needsImageOptimization) {
       console.log(`Optimizing image: ${file.name}`)
@@ -113,55 +106,28 @@ export async function POST(request: NextRequest) {
       console.log(`Image optimization completed. Original: ${(optimizedResult.originalSize / 1024 / 1024).toFixed(2)}MB, Optimized: ${(optimizedResult.optimizedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${optimizedResult.compressionRatio.toFixed(1)}%`)
     }
 
-    // For large videos, upload original and trigger MediaConvert job
-    if (needsVideoProcessing) {
-      console.log(`Large video detected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+    // Compress videos BEFORE uploading to S3
+    if (needsVideoCompression) {
+      console.log(`Compressing video before upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
       
-      // Upload original video immediately
-      const originalCommand = new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: s3Key,
-        Body: buffer,
-        ContentType: contentType,
-        CacheControl: 'public, max-age=3600', // Short cache for original
-        Metadata: {
-          'original-filename': file.name,
-          'upload-timestamp': timestamp.toString(),
-          'processed': 'false',
-          'original-size': file.size.toString(),
-          'file-type': file.type,
-          'status': 'pending-processing'
-        }
-      })
-
-      await s3Client.send(originalCommand)
-      console.log(`Original video uploaded: ${s3Key}`)
-
-      // Trigger MediaConvert job
-      try {
-        await triggerMediaConvertJob(s3Key, file.name, userId, folder)
-        console.log(`MediaConvert job triggered for: ${file.name}`)
-      } catch (mediaConvertError) {
-        console.error('MediaConvert job failed:', mediaConvertError)
-        // Continue with original file if MediaConvert fails
-      }
-
-      // Return immediate success with original URL
-      const originalUrl = `https://media.vibrationfit.com/${s3Key}`
+      const compressionOptions = getCompressionOptions(file)
+      const compressionResult = await compressVideo(buffer as Buffer, file.name, compressionOptions)
       
-      return NextResponse.json({ 
-        url: originalUrl, 
-        key: s3Key,
-        status: 'uploaded',
-        processing: 'pending',
-        message: 'Video uploaded successfully! Processing in progress...'
-      })
+      // Use compressed version for upload
+      buffer = Buffer.from(compressionResult.buffer as ArrayBuffer)
+      contentType = 'video/mp4'
+      
+      // Update filename to indicate compression
+      const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
+      finalFilename = `${nameWithoutExt}-compressed.mp4`
+      
+      console.log(`Video compression completed. Compressed size: ${(buffer.length / 1024 / 1024).toFixed(2)}MB`)
     }
 
     // Update S3 key with final filename
     const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
 
-    // Upload optimized file to S3
+    // Upload optimized/compressed file to S3
     console.log(`Uploading optimized file to S3: ${BUCKET_NAME}/${finalS3Key}`)
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
@@ -174,9 +140,11 @@ export async function POST(request: NextRequest) {
         'original-filename': file.name,
         'upload-timestamp': timestamp.toString(),
         'optimized': needsImageOptimization ? 'true' : 'false',
-        'processed': 'false',
+        'compressed': needsVideoCompression ? 'true' : 'false',
         'original-size': file.size.toString(),
         'final-size': buffer.length.toString(),
+        'compression-ratio': needsVideoCompression ? 
+          (((file.size - buffer.length) / file.size) * 100).toString() : '0',
         'file-type': contentType
       }
     })
@@ -196,9 +164,11 @@ export async function POST(request: NextRequest) {
       url, 
       key: finalS3Key,
       status: 'completed',
-      processing: 'none',
+      compression: needsVideoCompression ? 'completed' : 'none',
       originalSize: file.size,
-      finalSize: buffer.length
+      finalSize: buffer.length,
+      compressionRatio: needsVideoCompression ? 
+        ((file.size - buffer.length) / file.size) * 100 : 0
     })
   } catch (error) {
     console.error('S3 upload error:', error)
@@ -207,85 +177,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-// Trigger MediaConvert job for video processing
-async function triggerMediaConvertJob(
-  inputKey: string,
-  filename: string,
-  userId: string,
-  folder: string
-) {
-  const jobSettings = {
-    Role: process.env.MEDIACONVERT_ROLE_ARN!, // You'll need to set this
-    Settings: {
-      Inputs: [{
-        FileInput: `s3://${BUCKET_NAME}/${inputKey}`,
-        VideoSelector: {},
-        AudioSelectors: {
-          'Audio Selector 1': {
-            DefaultSelection: 'DEFAULT'
-          }
-        }
-      }],
-      OutputGroups: [{
-        Name: 'File Group',
-        OutputGroupSettings: {
-          Type: 'FILE_GROUP_SETTINGS',
-          FileGroupSettings: {
-            Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
-          }
-        },
-        Outputs: [{
-          NameModifier: '-compressed',
-          VideoDescription: {
-            Width: 1920,
-            Height: 1080,
-            CodecSettings: {
-              Codec: 'H_264',
-              H264Settings: {
-                Bitrate: 2000000, // 2Mbps
-                RateControlMode: 'CBR',
-                CodecProfile: 'MAIN',
-                CodecLevel: 'LEVEL_4_1',
-                MaxBitrate: 2500000,
-                BufSize: 3000000
-              }
-            }
-          },
-          AudioDescriptions: [{
-            CodecSettings: {
-              Codec: 'AAC',
-              AacSettings: {
-                Bitrate: 128000,
-                SampleRate: 48000,
-                CodingMode: 'CODING_MODE_2_0'
-              }
-            }
-          }],
-          ContainerSettings: {
-            Container: 'MP4',
-            Mp4Settings: {
-              CslgAtom: 'INCLUDE',
-              FreeSpaceBox: 'EXCLUDE',
-              MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
-            }
-          }
-        }]
-      }]
-    },
-    Tags: {
-      'user-id': userId,
-      'folder': folder,
-      'original-filename': filename
-    }
-  }
-
-  const command = new CreateJobCommand(jobSettings as any)
-  const response = await mediaConvertClient.send(command)
-  
-  console.log(`MediaConvert job created: ${response.Job?.Id}`)
-  return response.Job?.Id
 }
 
 // Multipart upload implementation
