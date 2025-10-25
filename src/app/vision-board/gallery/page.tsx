@@ -97,11 +97,11 @@ export default function GeneratedGalleryPage() {
             </Button>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {images.map((img) => (
               <Card key={img.id} hover className="overflow-hidden">
-                <Stack gap="sm">
-                  {/* Image */}
+                <Stack gap="xs">
+                  {/* Image - Mobile-first responsive */}
                   <div className="relative aspect-square overflow-hidden rounded-lg bg-neutral-800">
                     <img 
                       src={img.image_url} 
@@ -110,30 +110,33 @@ export default function GeneratedGalleryPage() {
                     />
                   </div>
 
-                  {/* Image Info */}
+                  {/* Image Info - Mobile optimized */}
                   <div className="px-2">
-                    <div className="flex items-center justify-between text-xs text-neutral-400 mb-2">
-                      <Badge variant="secondary" className="text-xs">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">
                         {img.style_used || 'Default'}
                       </Badge>
-                      <span>{new Date(img.generated_at).toLocaleDateString()}</span>
+                      <span className="text-xs text-neutral-400 flex-shrink-0">
+                        {new Date(img.generated_at).toLocaleDateString()}
+                      </span>
                     </div>
                     
-                    {/* Prompt Preview */}
+                    {/* Prompt Preview - Mobile text */}
                     {img.prompt && (
-                      <p className="text-xs text-neutral-300 line-clamp-2 mb-3">
+                      <p className="text-xs text-neutral-300 line-clamp-2 mb-2">
                         {img.prompt}
                       </p>
                     )}
                   </div>
 
-                  {/* Actions */}
+                  {/* Actions - Mobile-first buttons */}
                   <div className="px-2 pb-2">
                     <div className="flex gap-2">
-                      <Button asChild size="sm" className="flex-1">
+                      <Button asChild size="sm" className="flex-1 text-xs">
                         <Link href={`/vision-board/new?from=gallery&id=${img.id}`}>
                           <Icon icon={Plus} size="sm" />
-                          Use
+                          <span className="hidden sm:inline">Use</span>
+                          <span className="sm:hidden">Use</span>
                         </Link>
                       </Button>
                       <Button
@@ -152,9 +155,10 @@ export default function GeneratedGalleryPage() {
                             console.error('Delete failed', e)
                           }
                         }}
-                        className="px-3"
+                        className="px-2 sm:px-3"
                       >
                         <Icon icon={Trash2} size="sm" />
+                        <span className="hidden sm:inline ml-1">Delete</span>
                       </Button>
                     </div>
                   </div>
