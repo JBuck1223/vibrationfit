@@ -82,7 +82,11 @@ export function RecordingTextarea({
       // Upload the recording file to S3 if requested
       if (shouldSaveFile) {
         console.log('📤 Uploading recording to S3...')
-        const result = await uploadAndTranscribeRecording(blob, storageFolder)
+        
+        // Determine the specific subfolder based on recording type
+        const specificFolder = recordingMode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings'
+        
+        const result = await uploadAndTranscribeRecording(blob, specificFolder as any)
         recordingUrl = result.url
         console.log('✅ Recording uploaded:', recordingUrl)
         

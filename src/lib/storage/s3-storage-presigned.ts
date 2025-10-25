@@ -8,6 +8,8 @@ export const USER_FOLDERS = {
   visionBoardGenerated: 'vision-board/generated',
   visionBoardUploaded: 'vision-board/uploaded',
   journal: 'journal',
+  journalAudioRecordings: 'journal/audio-recordings',
+  journalVideoRecordings: 'journal/video-recordings',
   lifeVision: 'life-vision',
   alignmentPlan: 'alignment-plan',
   evidence: 'evidence',
@@ -178,8 +180,16 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'],
     },
     journal: {
-      maxSize: 1024 * 1024 * 1024, // 1GB for videos/audio
+      maxSize: 1024 * 1024 * 1024, // 1GB for videos/audio/images
       types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    journalAudioRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    journalVideoRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for video recordings
+      types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
     },
     lifeVision: {
       maxSize: 500 * 1024 * 1024, // 500MB for audio/docs
