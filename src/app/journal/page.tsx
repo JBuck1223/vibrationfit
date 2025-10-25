@@ -251,6 +251,14 @@ export default function JournalPage() {
                     )}
                   </div>
 
+                  {/* Debug: Log image URLs */}
+                  {console.log('🔍 Journal Entry Images:', {
+                    entryId: entry.id,
+                    title: entry.title,
+                    imageUrls: entry.image_urls,
+                    imageCount: entry.image_urls?.length || 0
+                  })}
+
                   {/* Media Preview - Videos Full Width, Images 2x2 Grid */}
                   {entry.image_urls && entry.image_urls.length > 0 && (
                     <div className="space-y-4">
