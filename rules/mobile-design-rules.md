@@ -1,5 +1,25 @@
 # Mobile-First Design Rules for VibrationFit
 
+## 🚨 CRITICAL MOBILE RULES - NEVER VIOLATE THESE 🚨
+
+### **RULE #1: NO OFF-SCREEN FLOW**
+- **NEVER** allow any component or element to flow off-screen on mobile
+- **ALWAYS** ensure all content fits within mobile viewport (320px+)
+- **ALWAYS** use `overflow-hidden` or `truncate` to prevent overflow
+- **ALWAYS** test on smallest mobile screens
+
+### **RULE #2: MOBILE-FIRST USER EXPERIENCE**
+- **ALWAYS** prioritize mobile user experience over desktop
+- **ALWAYS** use mobile-optimized button sizes (`size="sm"`)
+- **ALWAYS** use mobile-friendly text sizes (`text-sm`, `text-xs`)
+- **ALWAYS** ensure touch targets are at least 44px (iOS) / 48px (Android)
+
+### **RULE #3: INTELLIGENT RESPONSIVE GRIDS**
+- **ALWAYS** use responsive grids: `grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`
+- **ALWAYS** start with single column on mobile
+- **ALWAYS** use proper gap spacing: `gap-4 md:gap-6`
+- **ALWAYS** ensure cards stack vertically on mobile
+
 ## MANDATORY RULES - Follow These ALWAYS
 
 ### 1. Card Layout Rules
@@ -36,6 +56,9 @@
 
 ## MOBILE TESTING CHECKLIST
 Before considering any component "complete":
+- [ ] **CRITICAL: No elements flow off-screen on mobile**
+- [ ] **CRITICAL: Mobile user experience is optimized (buttons, text)**
+- [ ] **CRITICAL: Intelligent responsive grid implemented**
 - [ ] Cards stack vertically on mobile
 - [ ] Buttons fit within their containers
 - [ ] Text doesn't overflow
@@ -43,6 +66,7 @@ Before considering any component "complete":
 - [ ] Content has proper margins/padding
 - [ ] Grid layouts work on small screens
 - [ ] No horizontal scrolling
+- [ ] Touch targets are at least 44px
 
 ## COMMON MOBILE ANTI-PATTERNS TO AVOID
 - ❌ Fixed widths without responsive variants
