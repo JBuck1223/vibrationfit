@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button, Badge, Stack, Icon } from '@/lib/design-system'
-import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, Trash2, X, ChevronLeft, ChevronRight, Eye, List, Grid, CheckSquare, Square } from 'lucide-react'
-import { VisionBoardDeleteButton } from '@/components/VisionBoardDeleteButton'
+import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
+import { PageLayout, Card, Button, Badge, Stack, Icon, DeleteConfirmationDialog, ActionButtons } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, CheckSquare, Square } from 'lucide-react'
+import { useDeleteItem } from '@/hooks/useDeleteItem'
 
 const LIFE_CATEGORIES = [
   'Fun / Recreation',
@@ -57,8 +58,25 @@ export default function VisionBoardPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [selectedItems, setSelectedItems] = useState<string[]>([])
-  const [bulkActionMode, setBulkActionMode] = useState(false)
+  
+  // Use standardized delete functionality
+  const {
+    showDeleteConfirm,
+    deleting,
+    itemToDelete,
+    initiateDelete,
+    confirmDelete,
+    cancelDelete
+  } = useDeleteItem({
+    onSuccess: () => {
+      // Update local state to remove deleted item
+      setItems(prevItems => prevItems.filter(i => i.id !== itemToDelete?.id))
+    },
+    onError: (error) => {
+      alert(`Failed to delete vision board item: ${error.message}`)
+    },
+    itemType: 'Creation'
+  })
 
   useEffect(() => {
     fetchItems()
@@ -194,27 +212,20 @@ export default function VisionBoardPage() {
     }
   }
 
-  const toggleItemSelection = (itemId: string) => {
-    setSelectedItems(prev => 
-      prev.includes(itemId) 
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    )
-  }
-
-  const selectAllItems = () => {
-    setSelectedItems(filteredItems.map(item => item.id))
-  }
-
-  const clearSelection = () => {
-    setSelectedItems([])
-  }
-
-  const bulkUpdateStatus = async (newStatus: string) => {
+  const cycleItemStatus = async (itemId: string) => {
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+
+      const currentItem = items.find(item => item.id === itemId)
+      if (!currentItem) return
+
+      // Cycle through statuses: active -> actualized -> inactive -> active
+      const statusCycle = ['active', 'actualized', 'inactive']
+      const currentIndex = statusCycle.indexOf(currentItem.status)
+      const nextIndex = (currentIndex + 1) % statusCycle.length
+      const newStatus = statusCycle[nextIndex]
 
       const { error } = await supabase
         .from('vision_board_items')
@@ -222,14 +233,14 @@ export default function VisionBoardPage() {
           status: newStatus,
           actualized_at: newStatus === 'actualized' ? new Date().toISOString() : null
         })
-        .in('id', selectedItems)
+        .eq('id', itemId)
 
       if (error) throw error
 
       // Update local state
       setItems(prevItems => 
         prevItems.map(item => 
-          selectedItems.includes(item.id)
+          item.id === itemId 
             ? { 
                 ...item, 
                 status: newStatus,
@@ -239,42 +250,26 @@ export default function VisionBoardPage() {
         )
       )
 
-      // Update user stats for each item
-      for (const itemId of selectedItems) {
-        await supabase.rpc('increment_vision_board_stats', { 
-          p_user_id: user.id,
-          p_status: newStatus 
-        })
-      }
-
-      clearSelection()
+      // Update user stats
+      await supabase.rpc('increment_vision_board_stats', { 
+        p_user_id: user.id,
+        p_status: newStatus 
+      })
     } catch (error) {
-      console.error('Error bulk updating status:', error)
+      console.error('Error updating item status:', error)
     }
   }
 
-  const bulkDeleteItems = async () => {
-    if (!confirm(`Are you sure you want to delete ${selectedItems.length} item(s)?`)) return
-
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { error } = await supabase
-        .from('vision_board_items')
-        .delete()
-        .in('id', selectedItems)
-
-      if (error) throw error
-
-      // Update local state
-      setItems(prevItems => prevItems.filter(item => !selectedItems.includes(item.id)))
-      clearSelection()
-    } catch (error) {
-      console.error('Error bulk deleting items:', error)
+  const handleDeleteItem = (itemId: string) => {
+    const item = items.find(i => i.id === itemId)
+    if (item) {
+      initiateDelete(item)
     }
   }
+
+
+
+
 
   const getStatusBadge = (status: string) => {
     if (status === 'active') {
@@ -334,9 +329,46 @@ export default function VisionBoardPage() {
           </div>
         </div>
 
+        {/* Anchor Navigation */}
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2 justify-center">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => document.getElementById('stats')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-xs"
+            >
+              📊 Stats
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => document.getElementById('filters')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-xs"
+            >
+              🔍 Filters
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => document.getElementById('view-toggle')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-xs"
+            >
+              👁️ View Options
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => document.getElementById('content')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-xs"
+            >
+              🎯 Vision Board
+            </Button>
+          </div>
+        </div>
 
           {/* Stats - Responsive Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div id="stats" className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <Card className="text-center">
               <h3 className="text-neutral-400 text-sm mb-2">Total</h3>
               <p className="text-2xl md:text-3xl font-bold text-primary-500">{totalItems}</p>
@@ -359,7 +391,7 @@ export default function VisionBoardPage() {
           </div>
 
         {/* Filters */}
-        <div className="mb-8 space-y-6">
+        <div id="filters" className="mb-8 space-y-6">
           {/* Category Filter */}
           <div>
             <div 
@@ -412,7 +444,7 @@ export default function VisionBoardPage() {
             >
               <div className="flex items-center justify-center gap-3 px-4 py-2">
                 <CheckCircle className="w-4 h-4 text-[#39FF14]" />
-                <h4 className="text-sm font-medium text-neutral-300">All Status</h4>
+                <h4 className="text-sm font-medium text-neutral-300">All Statuses</h4>
               </div>
             </div>
             
@@ -442,15 +474,15 @@ export default function VisionBoardPage() {
           </div>
         </div>
 
-        {/* View Toggle and Bulk Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          {/* View Toggle */}
-          <div className="flex gap-2">
+
+        {/* View Toggle - Full Width */}
+        <div id="view-toggle" className="w-full mb-6">
+          <div className="flex gap-2 w-full">
             <Button
               variant={viewMode === 'grid' ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('grid')}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-1"
             >
               <Grid className="w-4 h-4" />
               Grid
@@ -459,85 +491,16 @@ export default function VisionBoardPage() {
               variant={viewMode === 'list' ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('list')}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-1"
             >
               <List className="w-4 h-4" />
               List
             </Button>
           </div>
-
-          {/* Bulk Actions */}
-          {viewMode === 'list' && (
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setBulkActionMode(!bulkActionMode)}
-                className="flex items-center gap-2"
-              >
-                {bulkActionMode ? <X className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
-                {bulkActionMode ? 'Cancel' : 'Select'}
-              </Button>
-              
-              {bulkActionMode && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={selectedItems.length === filteredItems.length ? clearSelection : selectAllItems}
-                    className="flex items-center gap-2"
-                  >
-                    {selectedItems.length === filteredItems.length ? <Square className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
-                    {selectedItems.length === filteredItems.length ? 'None' : 'All'}
-                  </Button>
-                  
-                  {selectedItems.length > 0 && (
-                    <>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => bulkUpdateStatus('active')}
-                        className="flex items-center gap-2"
-                      >
-                        <Circle className="w-4 h-4" />
-                        Mark Active
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => bulkUpdateStatus('actualized')}
-                        className="flex items-center gap-2"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Mark Actualized
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => bulkUpdateStatus('inactive')}
-                        className="flex items-center gap-2"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Mark Inactive
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={bulkDeleteItems}
-                        className="flex items-center gap-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete ({selectedItems.length})
-                      </Button>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Vision Board Content */}
+        <div id="content">
         {loading ? (
           <div className="text-center py-16">
             <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -585,6 +548,18 @@ export default function VisionBoardPage() {
                       {/* Hover Overlay */}
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-2">
                         <div className="flex flex-col items-center gap-2 w-full max-w-full">
+                          {/* Item Info */}
+                          <div className="bg-black/80 backdrop-blur-sm rounded-lg p-2 w-full max-w-full text-center">
+                            <h3 className="text-white text-sm font-semibold mb-1 truncate">{item.name}</h3>
+                            <div className="text-neutral-300 text-xs">
+                              Created {new Date(item.created_at).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </div>
+                          </div>
+                          
                           {/* Quick Status Controls */}
                           <div className="bg-black/80 backdrop-blur-sm rounded-lg p-2 space-y-2 w-full max-w-full">
                             <div className="text-white text-xs font-medium mb-1 text-center">Quick Status</div>
@@ -649,27 +624,14 @@ export default function VisionBoardPage() {
                 ))}
               </div>
             ) : (
-              /* List View */
-              <div className="space-y-4">
+              /* List View - Mobile-First Design */
+              <div className="space-y-3 md:space-y-4">
                 {filteredItems.map((item) => (
                   <Card key={item.id} className="hover:border-primary-500 transition-all duration-200">
-                    <div className="flex items-center gap-4">
-                      {/* Checkbox for bulk selection */}
-                      {bulkActionMode && (
-                        <button
-                          onClick={() => toggleItemSelection(item.id)}
-                          className="flex-shrink-0 p-1"
-                        >
-                          {selectedItems.includes(item.id) ? (
-                            <CheckSquare className="w-5 h-5 text-primary-500" />
-                          ) : (
-                            <Square className="w-5 h-5 text-neutral-400" />
-                          )}
-                        </button>
-                      )}
+                    <div className="flex flex-col md:flex-row gap-3 md:gap-4">
 
-                      {/* Image Thumbnail */}
-                      <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-neutral-800">
+                      {/* Image - Consistent 4:3 aspect ratio */}
+                      <div className="flex-shrink-0 w-full md:w-40 aspect-[4/3] rounded-lg overflow-hidden bg-neutral-800">
                         {item.image_url ? (
                           <img
                             src={item.image_url}
@@ -679,79 +641,65 @@ export default function VisionBoardPage() {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Grid3X3 className="w-6 h-6 text-neutral-600" />
+                            <Grid3X3 className="w-8 h-8 md:w-6 md:h-6 text-neutral-600" />
                           </div>
                         )}
                       </div>
 
-                      {/* Item Details */}
+                      {/* Item Details - Mobile-first layout */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0 flex-1">
-                            <h3 className="text-lg font-semibold text-white truncate">{item.name}</h3>
-                            {item.description && (
-                              <p className="text-sm text-neutral-400 mt-1 line-clamp-2">{item.description}</p>
-                            )}
-                            {item.categories && item.categories.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {item.categories.slice(0, 3).map((category: string) => (
-                                  <Badge key={category} variant="secondary" className="text-xs">
-                                    {category}
-                                  </Badge>
-                                ))}
-                                {item.categories.length > 3 && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    +{item.categories.length - 3} more
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Status and Actions */}
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            {/* Status Badge */}
-                            {getStatusBadge(item.status)}
-
-                            {/* Action Buttons */}
-                            <div className="flex gap-2">
-                              <Button asChild size="sm" variant="ghost">
-                                <Link href={`/vision-board/${item.id}`}>
-                                  <Eye className="w-4 h-4" />
-                                </Link>
-                              </Button>
-                              
-                              {!bulkActionMode && (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => updateItemStatus(item.id, 'active')}
-                                    className={item.status === 'active' ? 'text-green-500' : 'text-neutral-400'}
-                                  >
-                                    <Circle className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => updateItemStatus(item.id, 'actualized')}
-                                    className={item.status === 'actualized' ? 'text-purple-500' : 'text-neutral-400'}
-                                  >
-                                    <CheckCircle className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => updateItemStatus(item.id, 'inactive')}
-                                    className={item.status === 'inactive' ? 'text-gray-500' : 'text-neutral-400'}
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                  </Button>
-                                </>
-                              )}
+                        <div className="flex flex-col gap-3">
+                          {/* Title with Status Badge */}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-base md:text-lg font-semibold text-white truncate">{item.name}</h3>
+                              {/* Clickable Status Badge - Next to title */}
+                              <button
+                                onClick={() => cycleItemStatus(item.id)}
+                                className="cursor-pointer hover:opacity-80 transition-opacity"
+                                title="Click to cycle status: Active → Actualized → Inactive"
+                              >
+                                {getStatusBadge(item.status)}
+                              </button>
                             </div>
+                          {item.description && (
+                            <p className="text-sm text-neutral-400 line-clamp-2">{item.description}</p>
+                          )}
+                          
+                          {/* Created Date */}
+                          <div className="text-xs text-neutral-500 mt-1">
+                            Created {new Date(item.created_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
                           </div>
+                          </div>
+
+                          {/* Categories - Show all, responsive */}
+                          {item.categories && item.categories.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {item.categories.map((category: string) => (
+                                <Badge key={category} variant="secondary" className="text-xs flex-shrink-0">
+                                  {category}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </div>
+                      </div>
+
+                      {/* Action Buttons - Right side */}
+                      <div className="flex-shrink-0 md:flex-shrink-0 w-full md:w-auto">
+                        <ActionButtons
+                          versionType="completed"
+                          viewHref={`/vision-board/${item.id}`}
+                          onDelete={() => handleDeleteItem(item.id)}
+                          size="sm"
+                          variant="ghost"
+                          deleteVariant="danger"
+                          className="w-full md:w-auto"
+                        />
                       </div>
                     </div>
                   </Card>
@@ -861,6 +809,19 @@ export default function VisionBoardPage() {
             </div>
           </div>
         )}
+
+        </div>
+
+        {/* Delete Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteConfirm}
+          onClose={cancelDelete}
+          onConfirm={confirmDelete}
+          itemName={itemToDelete?.name || ''}
+          itemType="Creation"
+          isLoading={deleting}
+          loadingText="Deleting..."
+        />
     </>
   )
 }

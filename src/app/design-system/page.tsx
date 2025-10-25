@@ -43,6 +43,8 @@ import {
   ListItem,
   OrderedList,
   OfferStack,
+  ActionButtons,
+  DeleteConfirmationDialog,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -112,6 +114,7 @@ export default function DesignSystemExperiment() {
   const [modalSize, setModalSize] = useState<'sm' | 'md' | 'lg' | 'xl' | 'full'>('md')
   const [videoModalOpen, setVideoModalOpen] = useState(false)
   const [billingPeriod, setBillingPeriod] = useState<'annual' | '28day'>('annual')
+  const [showDeleteDemo, setShowDeleteDemo] = useState(false)
 
   const handleLoadingToggle = () => {
     setIsLoading(true)
@@ -820,6 +823,91 @@ export default function DesignSystemExperiment() {
                       </Inline>
                     </Stack>
                   </Card>
+                </Stack>
+              </Card>
+
+              {/* Standardized Action Components */}
+              <Card>
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={CheckCircle} size="md" color="#39FF14" />
+                    Standardized Action Components
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* ActionButtons */}
+                    <Card variant="default" className="p-6">
+                      <Stack gap="md">
+                        <h4 className="text-lg font-medium text-white">ActionButtons</h4>
+                        <p className="text-sm text-[#9CA3AF] mb-4">Standardized View/Delete button pair for list cards</p>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm text-neutral-300 mb-2">Default (with labels):</p>
+                            <ActionButtons
+                              versionType="completed"
+                              viewHref="/vision-board/example"
+                              onDelete={() => console.log('Delete clicked')}
+                            />
+                          </div>
+                          
+                          <div>
+                            <p className="text-sm text-neutral-300 mb-2">Icon-only (compact):</p>
+                            <ActionButtons
+                              versionType="completed"
+                              viewHref="/vision-board/example"
+                              onDelete={() => console.log('Delete clicked')}
+                              showLabels={false}
+                              size="sm"
+                            />
+                          </div>
+                          
+                          <div>
+                            <p className="text-sm text-neutral-300 mb-2">Custom variants:</p>
+                            <ActionButtons
+                              versionType="completed"
+                              viewHref="/vision-board/example"
+                              onDelete={() => console.log('Delete clicked')}
+                              variant="secondary"
+                              deleteVariant="danger"
+                              size="md"
+                            />
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+
+                    {/* DeleteConfirmationDialog */}
+                    <Card variant="default" className="p-6">
+                      <Stack gap="md">
+                        <h4 className="text-lg font-medium text-white">DeleteConfirmationDialog</h4>
+                        <p className="text-sm text-[#9CA3AF] mb-4">Beautiful delete confirmation popup</p>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm text-neutral-300 mb-2">Click to see the dialog:</p>
+                            <Button 
+                              variant="danger" 
+                              onClick={() => setShowDeleteDemo(true)}
+                            >
+                              Show Delete Dialog
+                            </Button>
+                          </div>
+                          
+                          <div className="text-xs text-neutral-400">
+                            <p className="mb-2">Features:</p>
+                            <ul className="list-disc list-inside space-y-1">
+                              <li>Beautiful red trash icon</li>
+                              <li>Customizable item type</li>
+                              <li>Loading states</li>
+                              <li>Mobile responsive</li>
+                              <li>Accessibility built-in</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+                  </div>
                 </Stack>
               </Card>
 
@@ -2354,9 +2442,22 @@ export default function DesignSystemExperiment() {
             </div>
           </div>
 
-        </Stack>
-      </section>
+    </Stack>
+  </section>
 
-    </>
-  )
+  {/* Delete Confirmation Dialog Demo */}
+  <DeleteConfirmationDialog
+    isOpen={showDeleteDemo}
+    onClose={() => setShowDeleteDemo(false)}
+    onConfirm={() => {
+      console.log('Delete confirmed!')
+      setShowDeleteDemo(false)
+    }}
+    itemName="Design System Demo Item"
+    itemType="Example"
+    isLoading={false}
+  />
+
+</>
+)
 }

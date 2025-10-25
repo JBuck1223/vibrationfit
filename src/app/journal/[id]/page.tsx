@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button, Badge } from '@/lib/design-system'
+import { PageLayout, Card, Button, Badge, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, FileText, Tag, X, Download, Play, Volume2, Edit, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -136,21 +136,13 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                 Back to Journal
               </Link>
             </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" asChild>
-                <Link href={`/journal/${entry.id}/edit`}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Link>
-              </Button>
-              <Button 
-                variant="danger" 
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={deleting}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                {deleting ? 'Deleting...' : 'Delete'}
-              </Button>
+            <div className="flex justify-end">
+              <ActionButtons
+                versionType="completed"
+                viewHref={`/journal/${entry.id}/edit`}
+                onDelete={() => setShowDeleteConfirm(true)}
+                showLabels={true}
+              />
             </div>
           </div>
           
@@ -194,87 +186,71 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
 
-            {/* Attachments */}
+            {/* Media - Videos Full Width, Images 2x2 Grid */}
             {entry.image_urls && entry.image_urls.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-neutral-200 mb-4">Attachments ({entry.image_urls.length})</h3>
-                      <div className="grid grid-cols-1 gap-6">
-                  {entry.image_urls.map((url: string, index: number) => {
+                <div className="space-y-4">
+                  {/* Videos - Full Width */}
+                  {entry.image_urls.filter(url => {
+                    const ext = url.split('.').pop()?.toLowerCase()
+                    return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
+                  }).map((url: string, index: number) => (
+                    <div key={`video-${index}`} className="relative group">
+                      <video
+                        src={url}
+                        className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                        onClick={() => openLightbox(url, entry.image_urls.indexOf(url))}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+                        <Play className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Images - 2x2 Grid */}
+                  {entry.image_urls.filter(url => {
+                    const ext = url.split('.').pop()?.toLowerCase()
+                    return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
+                  }).length > 0 && (
+                    <div className="grid grid-cols-2 gap-4">
+                      {entry.image_urls.filter(url => {
+                        const ext = url.split('.').pop()?.toLowerCase()
+                        return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
+                      }).slice(0, 4).map((url: string, index: number) => (
+                        <div key={`image-${index}`} className="relative group aspect-square">
+                          <img
+                            src={url}
+                            alt={`Entry image ${index + 1}`}
+                            className="w-full h-full object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                            onClick={() => openLightbox(url, entry.image_urls.indexOf(url))}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Other Media Types */}
+                  {entry.image_urls.filter(url => {
+                    const ext = url.split('.').pop()?.toLowerCase()
+                    return !['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'webm', 'avi'].includes(ext || '')
+                  }).map((url: string, index: number) => {
+                    const getFileType = (url: string): 'audio' | 'unknown' => {
+                      const ext = url.split('.').pop()?.toLowerCase()
+                      if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext || '')) return 'audio'
+                      return 'unknown'
+                    }
+                    
                     const fileType = getFileType(url)
                     
                     return (
-                      <div key={index} className="group relative">
-                        <div 
-                          className="relative bg-neutral-800 rounded-xl overflow-hidden border border-neutral-700 hover:border-primary-500/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/10 cursor-pointer"
-                          onClick={() => openLightbox(url, index)}
-                        >
-                          {fileType === 'image' && (
-                            <img
-                              src={url}
-                              alt={`Entry attachment ${index + 1}`}
-                              className="w-full h-96 object-cover group-hover:scale-105 transition-transform duration-200"
-                            />
+                      <div key={`other-${index}`} className="relative group aspect-square">
+                        <div className="w-full h-full bg-gradient-to-br from-primary-500/20 to-primary-600/20 flex items-center justify-center rounded-lg border border-neutral-700">
+                          {fileType === 'audio' ? (
+                            <Volume2 className="w-8 h-8 text-primary-500" />
+                          ) : (
+                            <FileText className="w-8 h-8 text-neutral-400" />
                           )}
-                          {fileType === 'video' && (
-                            <div className="relative">
-                              {/* Video thumbnail - extract first frame */}
-                              <video
-                                src={url}
-                                className="w-full h-96 object-cover"
-                                muted
-                                preload="metadata"
-                                onLoadedMetadata={(e) => {
-                                  const video = e.target as HTMLVideoElement
-                                  video.currentTime = 1 // Seek to 1 second for thumbnail
-                                }}
-                                onSeeked={(e) => {
-                                  const video = e.target as HTMLVideoElement
-                                  video.pause() // Pause after seeking
-                                }}
-                                style={{ pointerEvents: 'none' }} // Prevent video interaction
-                              />
-                              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                                <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                                  <Play className="w-8 h-8 text-black ml-1" />
-                                </div>
-                              </div>
-                              <div className="absolute top-3 left-3">
-                                <span className="bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
-                                  VIDEO
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          {fileType === 'audio' && (
-                            <div className="w-full h-96 bg-gradient-to-br from-primary-500/20 to-primary-600/20 rounded-lg flex flex-col items-center justify-center p-6">
-                              <div className="w-16 h-16 bg-primary-500/30 rounded-full flex items-center justify-center mb-4">
-                                <Volume2 className="w-8 h-8 text-primary-500" />
-                              </div>
-                              <div className="mt-2">
-                                <span className="bg-primary-500/20 text-primary-500 px-2 py-1 rounded text-xs font-medium">
-                                  AUDIO FILE
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          {fileType === 'unknown' && (
-                            <div className="w-full h-96 bg-neutral-700 rounded-lg flex items-center justify-center">
-                              <div className="text-center">
-                                <FileText className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
-                                <span className="text-sm text-neutral-400">Unknown file type</span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* File info overlay */}
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                            <div className="text-white text-sm font-medium">
-                              Attachment {index + 1}
-                            </div>
-                            <div className="text-white/70 text-xs">
-                              {fileType.toUpperCase()} • {url.split('/').pop()?.split('-').slice(-1)[0] || 'File'}
-                            </div>
-                          </div>
                         </div>
                       </div>
                     )
@@ -361,32 +337,15 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
       )}
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-neutral-800 rounded-xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-semibold text-white mb-4">Delete Journal Entry</h3>
-            <p className="text-neutral-300 mb-6">
-              Are you sure you want to delete this journal entry? This action cannot be undone.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={deleting}
-              >
-                Cancel
-              </Button>
-              <Button 
-                variant="danger" 
-                onClick={handleDelete}
-                disabled={deleting}
-              >
-                {deleting ? 'Deleting...' : 'Delete'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        itemName={entry?.title || 'journal entry'}
+        itemType="Journal Entry"
+        isLoading={deleting}
+        loadingText="Deleting..."
+      />
     </>
   )
 }

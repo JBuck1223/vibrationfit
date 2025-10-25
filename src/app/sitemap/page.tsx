@@ -137,6 +137,7 @@ export default function SitemapPage() {
         { href: '/admin/users', label: 'User Management', icon: Users, description: 'Manage all users' },
         { href: '/admin/ai-models', label: 'AI Model Management', icon: Zap, description: 'Configure AI models' },
         { href: '/admin/token-usage', label: 'Token Usage Analytics', icon: BarChart3, description: 'Token usage analytics' },
+        { href: '/design-system', label: 'Design System', icon: Palette, description: 'Design system showcase' },
       ]
     },
     {
@@ -150,7 +151,6 @@ export default function SitemapPage() {
         { href: '/', label: 'Home', icon: Home, description: 'Landing page' },
         { href: '/pricing', label: 'Pricing', icon: Star, description: 'Pricing plans' },
         { href: '/pricing-hormozi', label: 'Hormozi Pricing', icon: Rocket, description: 'Special pricing page' },
-        { href: '/design-system', label: 'Design System', icon: Palette, description: 'Design system showcase' },
 
         // Authentication
         { href: '/auth/login', label: 'Login', icon: User, description: 'User login' },

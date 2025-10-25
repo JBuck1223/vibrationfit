@@ -246,7 +246,7 @@ export default function AssessmentHub() {
                   </div>
                   <div className="flex gap-2">
                     <Button 
-                      onClick={() => handleViewResults(assessment.id)}
+                      onClick={() => router.push(`/assessment/${assessment.id}`)}
                       variant="ghost"
                       size="sm"
                     >

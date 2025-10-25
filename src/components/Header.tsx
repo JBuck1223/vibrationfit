@@ -37,10 +37,10 @@ export function Header() {
       '/billing', '/account/settings',
     ],
     ADMIN: [
-      '/admin/ai-models', '/admin/token-usage', '/admin/users', '/sitemap',
+      '/admin/ai-models', '/admin/token-usage', '/admin/users', '/sitemap', '/design-system',
     ],
     PUBLIC: [
-      '/', '/pricing', '/pricing-hormozi', '/design-system',
+      '/', '/pricing', '/pricing-hormozi',
       '/auth/login', '/auth/signup', '/auth/verify', '/auth/setup-password', '/auth/logout', '/auth/callback', '/auth/auto-login',
       '/checkout', '/billing/success', '/debug/email', '/test-recording', '/vision/build',
       '/support',

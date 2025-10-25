@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Card, Button, Badge, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system/components'
 import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
-import { ProfileField } from './components/ProfileField'
+import { ProfileField } from '../components/ProfileField'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { 
   User, 
@@ -110,8 +110,10 @@ const getOrderedProfileCategories = () => {
 
 interface ProfileViewPageProps {}
 
-export default function ProfileViewPage({}: ProfileViewPageProps) {
+export default function ProfileDetailPage() {
   const router = useRouter()
+  const params = useParams()
+  const profileId = params.id as string
   const [profile, setProfile] = useState<Partial<UserProfile>>({})
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -151,44 +153,33 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
-  // Check for version parameter in URL
+  // Load profile version based on ID parameter
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const versionId = urlParams.get('versionId')
-    if (versionId) {
-      setCurrentVersionId(versionId)
-      // We'll determine if this is actually the current version after we fetch versions
-      fetchProfileVersion(versionId)
-    } else {
-      setCurrentVersionId(null)
-      setIsViewingVersion(false)
+    if (profileId) {
+      setCurrentVersionId(profileId)
+      fetchProfileVersion(profileId)
     }
-  }, [])
+  }, [profileId])
 
   // Update version viewing state when versions data is available
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const versionId = urlParams.get('versionId')
-    
-    if (!versionId) {
-      // No versionId in URL = viewing current version
+    if (!profileId) {
       setIsViewingVersion(false)
       setCurrentVersionId(null)
     } else if (versions.length > 0) {
-      // Check if the versionId matches the latest version (which is the current)
+      // Check if the profileId matches the latest version (which is the current)
       const latestVersion = versions[0] // versions are ordered by version_number desc
-      if (versionId === latestVersion?.id) {
-        // This is actually the current version, even though it has a versionId
+      if (profileId === latestVersion?.id) {
+        // This is actually the current version, even though it has a profileId
         setIsViewingVersion(false)
-        setCurrentVersionId(versionId) // Keep the versionId so version info card shows
-        // Don't clean up the URL - let user see version info even for current version
+        setCurrentVersionId(profileId) // Keep the profileId so version info card shows
       } else {
         // This is a historical version
         setIsViewingVersion(true)
-        setCurrentVersionId(versionId)
+        setCurrentVersionId(profileId)
       }
     }
-  }, [versions])
+  }, [versions, profileId])
 
   // Load draft when user is available
   useEffect(() => {
@@ -1306,16 +1297,13 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
               {isViewingVersion && currentVersionId ? (
                 <Button
                   onClick={() => {
-                    setCurrentVersionId(null)
-                    setIsViewingVersion(false)
-                    window.history.pushState({}, '', '/profile')
-                    fetchProfile()
+                    router.push('/profile')
                   }}
                   variant="primary"
                   className="w-full"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Current
+                  Back to Profile Dashboard
                 </Button>
               ) : (
                 <Button
@@ -1382,16 +1370,13 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             {isViewingVersion && currentVersionId ? (
               <Button
                 onClick={() => {
-                  setCurrentVersionId(null)
-                  setIsViewingVersion(false)
-                  window.history.pushState({}, '', '/profile')
-                  fetchProfile()
+                  router.push('/profile')
                 }}
                 variant="primary"
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to Current
+                Back to Profile Dashboard
               </Button>
             ) : (
               <Button
@@ -1466,22 +1451,22 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                           </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex flex-row gap-2 md:w-auto w-full">
-                          <ActionButtons
-                            versionType={version.is_draft ? 'draft' : 'completed'}
-                            editHref={`/profile/${version.id}/edit`}
-                            viewHref={`/profile/${version.id}`}
-                            onCommit={commitDraft}
-                            onDelete={() => handleDeleteVersion(version)}
-                            size="sm"
-                            variant="outline"
-                            deleteVariant="danger"
-                            className="flex-1 md:flex-none"
-                            showLabels={true}
-                            isCommitting={isDraftSaving}
-                          />
-                        </div>
+            {/* Action Buttons */}
+            <div className="flex flex-row gap-2 md:w-auto w-full">
+              <ActionButtons
+                versionType={version.is_draft ? 'draft' : 'completed'}
+                editHref={`/profile/${version.id}/edit`}
+                viewHref={`/profile/${version.id}`}
+                onCommit={commitDraft}
+                onDelete={() => handleDeleteVersion(version)}
+                size="sm"
+                variant="outline"
+                deleteVariant="danger"
+                className="flex-1 md:flex-none"
+                showLabels={true}
+                isCommitting={isDraftSaving}
+              />
+            </div>
                       </div>
                     </Card>
                   ))}
@@ -1492,35 +1477,6 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
         </div>
 
 
-        {/* Version Information */}
-        {(() => {
-          const urlVersionId = new URLSearchParams(window.location.search).get('versionId')
-          return urlVersionId && (getCurrentVersionInfo() || urlVersionId)
-        })() && (
-          <Card className="p-6 mb-8">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <History className="w-5 h-5 text-blue-500" />
-              Version Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-neutral-400">Version ID:</span>
-                <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
-                  {getCurrentVersionInfo()?.id || new URLSearchParams(window.location.search).get('versionId')}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-neutral-400">Submitted:</span>
-                <span className="text-sm text-white">
-                  {getCurrentVersionInfo()?.created_at 
-                    ? `${new Date(getCurrentVersionInfo().created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo().created_at).toLocaleTimeString()}`
-                    : 'Date not available'
-                  }
-                </span>
-              </div>
-            </div>
-          </Card>
-        )}
 
         {/* Profile Picture and Basic Info */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
@@ -1636,18 +1592,18 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
         {/* Detailed Sections */}
         {/* Current Version Information & Profile Completion */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Current Version Information */}
-          {!currentVersionId && versions.length > 0 && (
+          {/* Version Information */}
+          {versions.length > 0 && (
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <History className="w-5 h-5 text-[#39FF14]" />
-                Current Version Information
+                Version Information
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-neutral-400">Version ID:</span>
                   <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
-                    {versions[0]?.id}
+                    {profileId || versions[0]?.id}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1655,7 +1611,9 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
                   <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg">
                     <div className="text-xs md:text-sm">
                       <p className="text-white font-medium">
-                        {versions[0]?.created_at 
+                        {getCurrentVersionInfo()?.created_at 
+                          ? `${new Date(getCurrentVersionInfo()?.created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo()?.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+                          : versions[0]?.created_at 
                           ? `${new Date(versions[0].created_at).toLocaleDateString()} at ${new Date(versions[0].created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
                           : 'Date not available'
                         }

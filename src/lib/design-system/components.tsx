@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useStorageData } from '@/hooks/useStorageData'
-import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock } from 'lucide-react'
+import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2 } from 'lucide-react'
 
 // ============================================================================
 // UTILITY FUNCTION
@@ -515,6 +515,55 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   }
 )
 Button.displayName = 'Button'
+
+/**
+ * ActionButtons - Standardized View/Delete button pair for list cards
+ * 
+ * This component provides a consistent way to display View and Delete actions
+ * across all list cards in your application. It automatically handles responsive
+ * design and follows your design system patterns.
+ * 
+ * Features:
+ * - Consistent styling and behavior across all pages
+ * - Responsive design (full-width on mobile, inline on desktop)
+ * - Customizable variants and sizes
+ * - Optional labels for icon-only buttons
+ * - Built-in accessibility features
+ * 
+ * Usage Examples:
+ * 
+ * Basic usage:
+ * <ActionButtons
+ *   viewHref={`/vision-board/${item.id}`}
+ *   onDelete={() => handleDelete(item.id)}
+ * />
+ * 
+ * Custom styling:
+ * <ActionButtons
+ *   viewHref={`/item/${item.id}`}
+ *   onDelete={() => handleDelete(item.id)}
+ *   size="md"
+ *   variant="secondary"
+ *   deleteVariant="danger"
+ * />
+ * 
+ * Icon-only buttons (compact layout):
+ * <ActionButtons
+ *   viewHref={`/item/${item.id}`}
+ *   onDelete={() => handleDelete(item.id)}
+ *   showLabels={false}
+ *   size="sm"
+ * />
+ * 
+ * Props:
+ * - viewHref: string - Link destination for the View button
+ * - onDelete: () => void - Function to call when Delete is clicked
+ * - size?: 'sm' | 'md' | 'lg' - Button size (default: 'sm')
+ * - variant?: Button variant for View button (default: 'ghost')
+ * - deleteVariant?: Button variant for Delete button (default: 'danger')
+ * - className?: string - Additional CSS classes
+ * - showLabels?: boolean - Show text labels (default: true)
+ */
 
 // Icon Component Wrapper
 interface IconProps {
@@ -1395,6 +1444,87 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
   }
 )
 Modal.displayName = 'Modal'
+
+/**
+ * DeleteConfirmationDialog - Beautiful, reusable delete confirmation popup
+ * 
+ * This component provides a consistent and beautiful way to confirm delete actions
+ * across your entire application. It features a prominent red trash icon, clear
+ * messaging, and proper loading states.
+ * 
+ * Features:
+ * - Consistent visual design across all pages
+ * - Customizable item type ("Creation", "Item", "Entry", etc.)
+ * - Loading states with disabled buttons during deletion
+ * - Proper accessibility and keyboard navigation
+ * - Beautiful red trash icon with backdrop
+ * - Mobile-responsive design
+ * 
+ * Usage Examples:
+ * 
+ * Basic usage:
+ * <DeleteConfirmationDialog
+ *   isOpen={showDeleteConfirm}
+ *   onClose={cancelDelete}
+ *   onConfirm={confirmDelete}
+ *   itemName={itemToDelete?.name || ''}
+ * />
+ * 
+ * With custom item type:
+ * <DeleteConfirmationDialog
+ *   isOpen={showDeleteConfirm}
+ *   onClose={cancelDelete}
+ *   onConfirm={confirmDelete}
+ *   itemName="My Vision Board Item"
+ *   itemType="Creation"
+ *   isLoading={deleting}
+ *   loadingText="Removing..."
+ * />
+ * 
+ * With loading state:
+ * <DeleteConfirmationDialog
+ *   isOpen={showDeleteConfirm}
+ *   onClose={cancelDelete}
+ *   onConfirm={confirmDelete}
+ *   itemName={itemToDelete?.name || ''}
+ *   itemType="Journal Entry"
+ *   isLoading={deleting}
+ *   loadingText="Deleting..."
+ * />
+ * 
+ * Props:
+ * - isOpen: boolean - Controls dialog visibility
+ * - onClose: () => void - Function to call when dialog should close
+ * - onConfirm: () => void - Function to call when delete is confirmed
+ * - itemName: string - Name of the item being deleted (shown in message)
+ * - itemType?: string - Type of item ("Creation", "Item", "Entry", etc.)
+ * - isLoading?: boolean - Shows loading state and disables buttons
+ * - loadingText?: string - Text to show during loading (default: "Deleting...")
+ * 
+ * Integration with useDeleteItem hook:
+ * The DeleteConfirmationDialog works perfectly with the useDeleteItem hook:
+ * 
+ * const {
+ *   showDeleteConfirm,
+ *   deleting,
+ *   itemToDelete,
+ *   initiateDelete,
+ *   confirmDelete,
+ *   cancelDelete
+ * } = useDeleteItem({
+ *   onSuccess: () => setItems(prev => prev.filter(i => i.id !== itemToDelete?.id)),
+ *   onError: (error) => alert(`Failed to delete: ${error.message}`)
+ * })
+ * 
+ * <DeleteConfirmationDialog
+ *   isOpen={showDeleteConfirm}
+ *   onClose={cancelDelete}
+ *   onConfirm={confirmDelete}
+ *   itemName={itemToDelete?.name || ''}
+ *   itemType="Creation"
+ *   isLoading={deleting}
+ * />
+ */
 
 // ============================================================================
 // ITEM LIST CARD COMPONENT
@@ -2599,3 +2729,227 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
 )
 
 OfferStack.displayName = 'OfferStack'
+
+// ============================================================================
+// STANDARDIZED ACTION COMPONENTS
+// ============================================================================
+
+/**
+ * DeleteConfirmationDialog - Beautiful, reusable delete confirmation popup
+ * 
+ * Features:
+ * - Consistent visual design across all pages
+ * - Customizable item type ("Creation", "Item", "Entry", etc.)
+ * - Loading states with disabled buttons
+ * - Proper accessibility and keyboard navigation
+ * 
+ * Usage:
+ * <DeleteConfirmationDialog
+ *   isOpen={showDeleteConfirm}
+ *   onClose={cancelDelete}
+ *   onConfirm={confirmDelete}
+ *   itemName={itemToDelete?.name || ''}
+ *   itemType="Creation"
+ *   isLoading={deleting}
+ *   loadingText="Deleting..."
+ * />
+ */
+interface DeleteConfirmationDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  itemName: string
+  itemType?: string // e.g., "Creation", "Item", "Entry"
+  isLoading?: boolean
+  loadingText?: string
+}
+
+export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  itemName,
+  itemType = "Item",
+  isLoading = false,
+  loadingText = "Deleting..."
+}) => {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <Card className="max-w-md mx-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <X className="w-8 h-8 text-red-400" />
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2">Delete {itemType}</h3>
+          <p className="text-neutral-300 mb-6">
+            Are you sure you want to delete "{itemName}"? This action cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="ghost"
+              onClick={onClose}
+              className="flex-1"
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={onConfirm}
+              loading={isLoading}
+              disabled={isLoading}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+            >
+              {isLoading ? loadingText : 'Delete'}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+/**
+ * ActionButtons - Smart button component that handles both draft and completed versions
+ * 
+ * Features:
+ * - Automatically shows appropriate buttons based on versionType
+ * - Draft versions: Edit | View | Commit
+ * - Completed versions: Edit | View | Delete
+ * - Consistent styling and behavior
+ * - Responsive design (full-width on mobile, inline on desktop)
+ * - Customizable variants and sizes
+ * - Optional labels for icon-only buttons
+ * 
+ * Usage:
+ * <ActionButtons
+ *   versionType="draft"
+ *   editHref={`/item/${item.id}/edit`}
+ *   viewHref={`/item/${item.id}`}
+ *   onCommit={() => handleCommit(item.id)}
+ *   onDelete={() => handleDeleteItem(item.id)}
+ *   size="sm"
+ *   variant="outline"
+ *   deleteVariant="danger"
+ * />
+ */
+interface ActionButtonsProps {
+  versionType: 'draft' | 'completed'
+  editHref?: string
+  viewHref: string
+  onCommit?: () => void
+  onDelete: () => void
+  size?: 'sm' | 'md' | 'lg'
+  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'danger'
+  className?: string
+  showLabels?: boolean
+  deleteVariant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'danger'
+  commitVariant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'danger'
+  isCommitting?: boolean
+}
+
+export const ActionButtons: React.FC<ActionButtonsProps> = ({
+  versionType,
+  editHref,
+  viewHref,
+  onCommit,
+  onDelete,
+  size = 'sm',
+  variant = 'ghost',
+  className = '',
+  showLabels = true,
+  deleteVariant = 'danger',
+  commitVariant = 'primary',
+  isCommitting = false
+}) => {
+  if (versionType === 'draft') {
+    return (
+      <div className={cn('flex flex-row gap-2 w-full md:w-auto', className)}>
+        {/* Edit Button */}
+        <Button 
+          asChild 
+          size={size} 
+          variant={variant} 
+          className="text-xs md:text-sm flex-1 md:flex-none"
+        >
+          <Link href={editHref || viewHref}>
+            <Edit className="w-4 h-4" />
+            {showLabels && <span className="ml-1">Edit</span>}
+          </Link>
+        </Button>
+        
+        {/* View Button */}
+        <Button 
+          asChild 
+          size={size} 
+          variant={variant} 
+          className="text-xs md:text-sm flex-1 md:flex-none"
+        >
+          <Link href={viewHref}>
+            <Eye className="w-4 h-4" />
+            {showLabels && <span className="ml-1">View</span>}
+          </Link>
+        </Button>
+        
+        {/* Commit Button */}
+        <Button
+          size={size}
+          variant={commitVariant}
+          onClick={onCommit}
+          disabled={isCommitting}
+          className="text-xs md:text-sm flex-1 md:flex-none"
+        >
+          {isCommitting ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4" />
+          )}
+          {showLabels && <span className="ml-1">Commit</span>}
+        </Button>
+      </div>
+    )
+  }
+
+  // Completed version - show Edit, View and Delete
+  return (
+    <div className={cn('flex flex-row gap-2 w-full md:w-auto', className)}>
+      {/* Edit Button */}
+      <Button 
+        asChild 
+        size={size} 
+        variant={variant} 
+        className="text-xs md:text-sm flex-1 md:flex-none"
+      >
+        <Link href={editHref || viewHref}>
+          <Edit className="w-4 h-4" />
+          {showLabels && <span className="ml-1">Edit</span>}
+        </Link>
+      </Button>
+      
+      {/* View Button */}
+      <Button 
+        asChild 
+        size={size} 
+        variant={variant} 
+        className="text-xs md:text-sm flex-1 md:flex-none"
+      >
+        <Link href={viewHref}>
+          <Eye className="w-4 h-4" />
+          {showLabels && <span className="ml-1">View</span>}
+        </Link>
+      </Button>
+      
+      {/* Delete Button */}
+      <Button
+        size={size}
+        variant={deleteVariant}
+        onClick={onDelete}
+        className="text-xs md:text-sm flex-1 md:flex-none"
+      >
+        <X className="w-4 h-4" />
+        {showLabels && <span className="ml-1">Delete</span>}
+      </Button>
+    </div>
+  )
+}

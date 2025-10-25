@@ -2,9 +2,9 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button } from '@/lib/design-system'
+import { PageLayout, Card, Button, ActionButtons, DeleteConfirmationDialog, Video } from '@/lib/design-system'
 import Link from 'next/link'
-import { Plus, Calendar, FileText, Play, Volume2, Edit, Trash2 } from 'lucide-react'
+import { Plus, Calendar, FileText, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface JournalEntry {
@@ -26,6 +26,11 @@ export default function JournalPage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<JournalEntry | null>(null)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [lightboxImages, setLightboxImages] = useState<string[]>([])
 
   useEffect(() => {
     async function fetchData() {
@@ -52,24 +57,22 @@ export default function JournalPage() {
     fetchData()
   }, [router])
 
-  const handleDelete = async (entryId: string) => {
-    if (!confirm('Are you sure you want to delete this journal entry? This action cannot be undone.')) {
-      return
-    }
+  const handleDeleteClick = (entry: JournalEntry) => {
+    setItemToDelete(entry)
+    setShowDeleteConfirm(true)
+  }
 
-    if (!user) {
-      alert('User not authenticated')
-      return
-    }
+  const confirmDelete = async () => {
+    if (!itemToDelete || !user) return
 
-    setDeletingId(entryId)
+    setDeletingId(itemToDelete.id)
     try {
       const supabase = createClient()
       
       const { error } = await supabase
         .from('journal_entries')
         .delete()
-        .eq('id', entryId)
+        .eq('id', itemToDelete.id)
         .eq('user_id', user.id)
 
       if (error) {
@@ -79,14 +82,69 @@ export default function JournalPage() {
       }
 
       // Remove from local state
-      setEntries(prev => prev.filter(entry => entry.id !== entryId))
+      setEntries(prev => prev.filter(entry => entry.id !== itemToDelete.id))
     } catch (error) {
       console.error('Error deleting journal entry:', error)
       alert('Failed to delete journal entry. Please try again.')
     } finally {
       setDeletingId(null)
+      setShowDeleteConfirm(false)
+      setItemToDelete(null)
     }
   }
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false)
+    setItemToDelete(null)
+  }
+
+  const openLightbox = (images: string[], index: number) => {
+    setLightboxImages(images)
+    setLightboxIndex(index)
+    setLightboxOpen(true)
+  }
+
+  const closeLightbox = () => {
+    setLightboxOpen(false)
+  }
+
+  const nextMedia = () => {
+    if (lightboxImages.length > 0) {
+      setLightboxIndex((prev) => (prev + 1) % lightboxImages.length)
+    }
+  }
+
+  const prevMedia = () => {
+    if (lightboxImages.length > 0) {
+      setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length)
+    }
+  }
+
+  const isVideo = (url: string) => {
+    return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
+  }
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!lightboxOpen) return
+      
+      switch (e.key) {
+        case 'Escape':
+          closeLightbox()
+          break
+        case 'ArrowLeft':
+          prevMedia()
+          break
+        case 'ArrowRight':
+          nextMedia()
+          break
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [lightboxOpen])
 
   if (loading) {
     return (
@@ -166,233 +224,120 @@ export default function JournalPage() {
 
         {/* Entries List */}
         {entries && entries.length > 0 ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {entries.map((entry) => (
-              <Card key={entry.id} className="hover:border-primary-500/50 transition-all duration-200">
-                <div className="flex gap-6">
-                  {/* Left Side - Media Preview */}
-                  <div className="flex-shrink-0 w-1/2">
-                    {entry.image_urls && entry.image_urls.length > 0 ? (
-                      <div className="space-y-3">
-                        {/* Main Media Display */}
-                        <div className="relative">
-                          {(() => {
-                            const getFileType = (url: string): 'image' | 'video' | 'audio' | 'unknown' => {
-                              const ext = url.split('.').pop()?.toLowerCase()
-                              if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) return 'image'
-                              if (['mp4', 'mov', 'webm', 'avi'].includes(ext || '')) return 'video'
-                              if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext || '')) return 'audio'
-                              return 'unknown'
-                            }
-                            
-                            const fileType = getFileType(entry.image_urls[0])
-                            
-                            return (
-                              <div 
-                                className="relative group cursor-pointer"
-                                onClick={() => router.push(`/journal/${entry.id}`)}
-                              >
-                                <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-500/50 transition-all duration-200 hover:scale-[1.02]">
-                                  {fileType === 'image' && (
-                                    <img
-                                      src={entry.image_urls[0]}
-                                      alt={`Entry image 1`}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  )}
-                                  {fileType === 'video' && (
-                                    <>
-                                      {/* Video thumbnail - extract first frame */}
-                                      <video
-                                        src={entry.image_urls[0]}
-                                        className="w-full h-full object-cover"
-                                        muted
-                                        preload="metadata"
-                                        onLoadedMetadata={(e) => {
-                                          const video = e.target as HTMLVideoElement
-                                          video.currentTime = 1 // Seek to 1 second for thumbnail
-                                        }}
-                                        onSeeked={(e) => {
-                                          const video = e.target as HTMLVideoElement
-                                          video.pause() // Pause after seeking
-                                        }}
-                                        style={{ pointerEvents: 'none' }} // Prevent video interaction
-                                      />
-                                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                                        <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                                          <Play className="w-6 h-6 text-black ml-1" />
-                                        </div>
-                                      </div>
-                                    </>
-                                  )}
-                                  {fileType === 'audio' && (
-                                    <div className="w-full h-full bg-gradient-to-br from-primary-500/20 to-primary-600/20 flex items-center justify-center">
-                                      <Volume2 className="w-16 h-16 text-primary-500" />
-                                    </div>
-                                  )}
-                                  {fileType === 'unknown' && (
-                                    <div className="w-full h-full bg-neutral-700 flex items-center justify-center">
-                                      <FileText className="w-16 h-16 text-neutral-400" />
-                                    </div>
-                                  )}
-                                  
-                                  {/* File type badge */}
-                                  <div className="absolute top-3 right-3">
-                                    <span className="text-xs bg-black/70 text-white px-2 py-1 rounded text-[10px] font-medium">
-                                      {fileType === 'image' ? 'IMG' : 
-                                       fileType === 'video' ? 'VID' : 
-                                       fileType === 'audio' ? 'AUD' : 'FILE'}
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                {/* Hover overlay with file info */}
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl flex items-center justify-center">
-                                  <div className="text-center text-white">
-                                    <div className="text-sm font-medium">
-                                      Click to view entry
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })()}
-                        </div>
-                        
-                        {/* Additional Media Thumbnails */}
-                        {entry.image_urls.length > 1 && (
-                          <div className="flex gap-2">
-                            {entry.image_urls.slice(1, 4).map((url: string, index: number) => {
-                              const getFileType = (url: string): 'image' | 'video' | 'audio' | 'unknown' => {
-                                const ext = url.split('.').pop()?.toLowerCase()
-                                if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) return 'image'
-                                if (['mp4', 'mov', 'webm', 'avi'].includes(ext || '')) return 'video'
-                                if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext || '')) return 'audio'
-                                return 'unknown'
-                              }
-                              
-                              const fileType = getFileType(url)
-                              
-                              return (
-                                <div key={index} className="relative group">
-                                  <div className="relative w-16 aspect-video rounded-lg overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-500/50 transition-all duration-200">
-                                    {fileType === 'image' && (
-                                      <img
-                                        src={url}
-                                        alt={`Entry image ${index + 2}`}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    )}
-                                    {fileType === 'video' && (
-                                      <video
-                                        src={url}
-                                        className="w-full h-full object-cover"
-                                        muted
-                                        preload="metadata"
-                                        onLoadedMetadata={(e) => {
-                                          const video = e.target as HTMLVideoElement
-                                          video.currentTime = 1 // Seek to 1 second for thumbnail
-                                        }}
-                                        onSeeked={(e) => {
-                                          const video = e.target as HTMLVideoElement
-                                          video.pause() // Pause after seeking
-                                        }}
-                                        style={{ pointerEvents: 'none' }} // Prevent video interaction
-                                      />
-                                    )}
-                                    {fileType === 'audio' && (
-                                      <div className="w-full h-full bg-gradient-to-br from-primary-500/20 to-primary-600/20 flex items-center justify-center">
-                                        <Volume2 className="w-6 h-6 text-primary-500" />
-                                      </div>
-                                    )}
-                                    {fileType === 'unknown' && (
-                                      <div className="w-full h-full bg-neutral-700 flex items-center justify-center">
-                                        <FileText className="w-6 h-6 text-neutral-400" />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )
-                            })}
-                            {entry.image_urls.length > 4 && (
-                              <div className="w-16 aspect-video bg-gradient-to-br from-neutral-700 to-neutral-800 rounded-lg border border-neutral-600 flex items-center justify-center">
-                                <div className="text-center">
-                                  <div className="text-sm font-bold text-primary-500">
-                                    +{entry.image_urls.length - 4}
-                                  </div>
-                                  <div className="text-xs text-neutral-400">
-                                    more
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="w-full h-48 bg-neutral-800 rounded-xl border border-neutral-700 flex items-center justify-center">
-                        <div className="text-center text-neutral-500">
-                          <FileText className="w-12 h-12 mx-auto mb-2" />
-                          <div className="text-sm">No media</div>
-                        </div>
-                      </div>
+              <Card key={entry.id} className="hover:border-primary-500/50 transition-all duration-200 hover:-translate-y-1">
+                <div className="space-y-4">
+                  {/* Header - Title and Date */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <h3 className="text-lg sm:text-xl font-semibold text-white break-words">
+                      {entry.title || 'Untitled Entry'}
+                    </h3>
+                    <div className="flex items-center text-neutral-400 text-sm">
+                      <Calendar className="w-4 h-4 mr-1 flex-shrink-0" />
+                      <span className="whitespace-nowrap">{new Date(entry.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Tags and Categories */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="bg-primary-500/20 text-primary-500 px-2 py-1 rounded-full text-xs font-medium">
+                      {entry.entry_type}
+                    </span>
+                    {entry.categories && entry.categories.length > 0 && (
+                      <span className="text-xs text-neutral-400 break-words">
+                        {entry.categories.slice(0, 2).join(', ')}
+                        {entry.categories.length > 2 && ` +${entry.categories.length - 2} more`}
+                      </span>
                     )}
                   </div>
 
-                  {/* Right Side - Content */}
-                  <div className="flex-1 w-1/2">
-                    <div className="flex items-center mb-3">
-                      <h3 className="text-xl font-semibold text-white mr-3">
-                        {entry.title || 'Untitled Entry'}
-                      </h3>
-                      <div className="flex items-center text-neutral-400 text-sm">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {new Date(entry.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center text-neutral-400 text-sm mb-4">
-                      <span className="bg-primary-500/20 text-primary-500 px-2 py-1 rounded text-xs mr-2">
-                        {entry.entry_type}
-                      </span>
-                      {entry.categories && entry.categories.length > 0 && (
-                        <span className="text-xs">
-                          {entry.categories.slice(0, 2).join(', ')}
-                          {entry.categories.length > 2 && ` +${entry.categories.length - 2} more`}
-                        </span>
+                  {/* Media Preview - Videos Full Width, Images 2x2 Grid */}
+                  {entry.image_urls && entry.image_urls.length > 0 && (
+                    <div className="space-y-4">
+                      {/* Videos - Full Width */}
+                      {entry.image_urls.filter(url => {
+                        const ext = url.split('.').pop()?.toLowerCase()
+                        return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
+                      }).map((url: string, index: number) => (
+                        <div key={`video-${index}`} className="relative group">
+                          <video
+                            src={url}
+                            className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                            onClick={() => openLightbox(entry.image_urls, entry.image_urls.indexOf(url))}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+                            <Play className="w-8 h-8 text-white" />
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* Images - 2x2 Grid */}
+                      {entry.image_urls.filter(url => {
+                        const ext = url.split('.').pop()?.toLowerCase()
+                        return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
+                      }).length > 0 && (
+                        <div className="grid grid-cols-2 gap-4">
+                          {entry.image_urls.filter(url => {
+                            const ext = url.split('.').pop()?.toLowerCase()
+                            return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
+                          }).slice(0, 4).map((url: string, index: number) => (
+                            <div key={`image-${index}`} className="relative group aspect-square">
+                              <img
+                                src={url}
+                                alt={`Entry image ${index + 1}`}
+                                className="w-full h-full object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                                onClick={() => openLightbox(entry.image_urls, entry.image_urls.indexOf(url))}
+                              />
+                            </div>
+                          ))}
+                        </div>
                       )}
+                      
+                      {/* Other Media Types */}
+                      {entry.image_urls.filter(url => {
+                        const ext = url.split('.').pop()?.toLowerCase()
+                        return !['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'webm', 'avi'].includes(ext || '')
+                      }).map((url: string, index: number) => {
+                        const getFileType = (url: string): 'audio' | 'unknown' => {
+                          const ext = url.split('.').pop()?.toLowerCase()
+                          if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext || '')) return 'audio'
+                          return 'unknown'
+                        }
+                        
+                        const fileType = getFileType(url)
+                        
+                        return (
+                          <div key={`other-${index}`} className="relative group aspect-square">
+                            <div className="w-full h-full bg-gradient-to-br from-primary-500/20 to-primary-600/20 flex items-center justify-center rounded-lg border border-neutral-700">
+                              {fileType === 'audio' ? (
+                                <Volume2 className="w-8 h-8 text-primary-500" />
+                              ) : (
+                                <FileText className="w-8 h-8 text-neutral-400" />
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
+                  )}
 
-                    {entry.content && (
-                      <p className="text-neutral-200 text-sm line-clamp-4 mb-4">
-                        {entry.content.substring(0, 300)}...
-                      </p>
-                    )}
+                  {/* Content Preview */}
+                  {entry.content && (
+                    <p className="text-neutral-200 text-sm line-clamp-3 break-words">
+                      {entry.content.substring(0, 200)}
+                      {entry.content.length > 200 && '...'}
+                    </p>
+                  )}
 
-                    <div className="flex justify-center gap-2 mt-6">
-                      <Button asChild size="sm" className="px-4">
-                        <Link href={`/journal/${entry.id}`}>
-                          <FileText className="w-4 h-4 mr-2" />
-                          View
-                        </Link>
-                      </Button>
-                      <Button asChild variant="outline" size="sm" className="px-4">
-                        <Link href={`/journal/${entry.id}/edit`}>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit
-                        </Link>
-                      </Button>
-                      <Button 
-                        variant="danger" 
-                        size="sm" 
-                        className="px-4"
-                        onClick={() => handleDelete(entry.id)}
-                        disabled={deletingId === entry.id}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        {deletingId === entry.id ? 'Deleting...' : 'Delete'}
-                      </Button>
-                    </div>
+                  {/* Action Buttons - Under All Content, Right Aligned */}
+                  <div className="pt-2 flex justify-end">
+                    <ActionButtons
+                      versionType="completed"
+                      viewHref={`/journal/${entry.id}`}
+                      onDelete={() => handleDeleteClick(entry)}
+                      showLabels={true}
+                    />
                   </div>
                 </div>
               </Card>
@@ -426,6 +371,114 @@ export default function JournalPage() {
             ← Back to Dashboard
           </Link>
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteConfirm}
+          onClose={cancelDelete}
+          onConfirm={confirmDelete}
+          itemName={itemToDelete?.title || 'journal entry'}
+          itemType="Journal Entry"
+          isLoading={deletingId === itemToDelete?.id}
+          loadingText="Deleting..."
+        />
+
+        {/* Lightbox */}
+        {lightboxOpen && lightboxImages.length > 0 && (
+          <div 
+            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
+            onClick={closeLightbox}
+          >
+            <div 
+              className="relative w-full h-full flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={closeLightbox}
+                className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Navigation Buttons */}
+              {lightboxImages.length > 1 && (
+                <>
+                  <button
+                    onClick={prevMedia}
+                    className="absolute left-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button
+                    onClick={nextMedia}
+                    className="absolute right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+
+              {/* Media Content */}
+              <div className="max-w-4xl max-h-full w-full h-full flex items-center justify-center">
+                {isVideo(lightboxImages[lightboxIndex]) ? (
+                  <video
+                    src={lightboxImages[lightboxIndex]}
+                    controls
+                    autoPlay
+                    className="max-w-full max-h-full object-contain"
+                  />
+                ) : (
+                  <img
+                    src={lightboxImages[lightboxIndex]}
+                    alt={`Media ${lightboxIndex + 1}`}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                )}
+              </div>
+
+              {/* Media Counter */}
+              {lightboxImages.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                  {lightboxIndex + 1} of {lightboxImages.length}
+                </div>
+              )}
+
+              {/* Thumbnail Strip */}
+              {lightboxImages.length > 1 && (
+                <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4">
+                  {lightboxImages.map((media, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setLightboxIndex(index)}
+                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                        index === lightboxIndex ? 'border-primary-500' : 'border-neutral-600'
+                      }`}
+                    >
+                      {isVideo(media) ? (
+                        <div className="relative w-full h-full">
+                          <video
+                            src={media}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <Play className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                      ) : (
+                        <img
+                          src={media}
+                          alt={`Thumbnail ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
     </>
   )
 }
