@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import { Transform } from 'stream'
 import { generateThumbnail } from '@/lib/utils/imageOptimization'
 import { generateVideoThumbnail } from '@/lib/utils/videoOptimization'
 
@@ -35,15 +36,12 @@ export async function POST(request: NextRequest) {
       throw new Error('No body in S3 response')
     }
 
-    // Handle streaming body
+    // Handle streaming body from S3
     const chunks: Uint8Array[] = []
-    const body = response.Body as ReadableStream
-    const reader = body.getReader()
+    const stream = response.Body as NodeJS.ReadableStream
     
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      chunks.push(value)
+    for await (const chunk of stream as any) {
+      chunks.push(chunk)
     }
     
     const buffer = Buffer.concat(chunks)
