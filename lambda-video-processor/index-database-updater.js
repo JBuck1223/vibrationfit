@@ -11,7 +11,7 @@ function makeRequest(url, options) {
     const reqOptions = {
       hostname: urlObj.hostname,
       port: urlObj.port || 443,
-      path: urlObj.pathname,
+      path: urlObj.pathname + (urlObj.search || ''),
       method: options.method || 'GET',
       headers: options.headers || {}
     };
@@ -80,13 +80,19 @@ exports.handler = async (event) => {
       const processedFolder = pathParts[3] // uploads
       
       const processedUrl = `https://media.vibrationfit.com/${objectKey}`
-      const originalUrl = `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${processedFolder}/${baseFilename}`
       
-      console.log('🔍 Searching for entry with URL:', originalUrl)
+      // Try to find URLs with common video extensions (.mov, .mp4, etc.)
+      // The database might have the original .mov file URL
+      const possibleExtensions = ['', '.mov', '.mp4', '.avi', '.mkv', '.webm']
+      const originalUrls = possibleExtensions.map(ext => 
+        `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${processedFolder}/${baseFilename}${ext}`
+      )
+      
+      console.log('🔍 Searching for entries with URLs:', originalUrls)
       console.log('🔍 Will update to:', processedUrl)
       
       // Query Supabase REST API for journal entries
-      const searchUrl = `${SUPABASE_URL}/rest/v1/journal?user_id=eq.${userId}&select=id,image_urls`
+      const searchUrl = `${SUPABASE_URL}/rest/v1/journal_entries?user_id=eq.${userId}&select=id,image_urls`
       
       const searchResponse = await makeRequest(searchUrl, {
         method: 'GET',
@@ -105,20 +111,26 @@ exports.handler = async (event) => {
       const entries = searchResponse.data
       console.log(`📝 Found ${entries.length} journal entries`)
       
-      // Find entries containing the original URL and update them
+      // Find entries containing any of the possible original URLs and update them
       for (const entry of entries) {
         if (!entry.image_urls || !Array.isArray(entry.image_urls)) continue
         
-        const hasOriginalUrl = entry.image_urls.includes(originalUrl)
-        if (!hasOriginalUrl) continue
+        // Check if any of the possible URLs exist in the entry
+        const matchingUrl = originalUrls.find(url => entry.image_urls.includes(url))
+        if (!matchingUrl) {
+          console.log('   No matching URL found in entry:', entry.id)
+          continue
+        }
         
-        // Replace original URL with processed URL
+        console.log(`   Found matching URL in entry ${entry.id}: ${matchingUrl}`)
+        
+        // Replace matching URL with processed URL
         const updatedUrls = entry.image_urls.map(url => 
-          url === originalUrl ? processedUrl : url
+          url === matchingUrl ? processedUrl : url
         )
         
         // Update via Supabase REST API
-        const updateUrl = `${SUPABASE_URL}/rest/v1/journal?id=eq.${entry.id}`
+        const updateUrl = `${SUPABASE_URL}/rest/v1/journal_entries?id=eq.${entry.id}`
         
         const updateResponse = await makeRequest(updateUrl, {
           method: 'PATCH',
