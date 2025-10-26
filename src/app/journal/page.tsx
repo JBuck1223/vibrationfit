@@ -95,6 +95,11 @@ export default function JournalPage() {
     }
 
     checkProcessedVideos()
+    
+    // Re-check every 30 seconds for newly processed videos
+    const interval = setInterval(checkProcessedVideos, 30000)
+    
+    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries])
 
