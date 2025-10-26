@@ -196,17 +196,15 @@ export default function JournalPage() {
       const filenameWithoutExt = baseFilename.replace(/\.[^/.]+$/, '')
       
       // Try multiple processed URL patterns
+      // MediaConvert outputs with "-720p.mp4" suffix in the processed/ folder
       const processedPatterns = [
-        // Pattern 1: Insert /processed/ folder and add -compressed suffix
-        // user-uploads/userId/journal/uploads/1761405465483-66ln81qwd0a-img-8801.mov
-        // -> user-uploads/userId/journal/uploads/processed/1761405465483-66ln81qwd0a-img-8801-compressed.mp4
-        s3Key.replace(/\.[^/.]+$/, '').replace(/\/uploads\/(.+)$/, '/uploads/processed/$1-compressed.mp4'),
-        // Pattern 2: Direct processed path with just the filename
-        s3Key.replace(/\.[^/.]+$/, '').replace(/\/uploads\//, '/uploads/processed/') + '-compressed.mp4',
-        // Pattern 3: For subfolder structure like journal/uploads
+        // Pattern 1: Insert /processed/ folder and add -720p suffix (new MediaConvert output)
+        // user-uploads/userId/journal/uploads/file.mov -> user-uploads/userId/journal/uploads/processed/file-720p.mp4
+        `${s3KeyParts.slice(0, -1).join('/')}/processed/${filenameWithoutExt}-720p.mp4`,
+        // Pattern 2: Legacy -compressed suffix
         `${s3KeyParts.slice(0, -1).join('/')}/processed/${filenameWithoutExt}-compressed.mp4`,
-        // Pattern 4: Direct processed path with full structure
-        `user-uploads/${userId}/${folder}/processed/${filenameWithoutExt}-compressed.mp4`
+        // Pattern 3: Try in parent folder processed/
+        `${s3KeyParts.slice(0, -2).join('/')}/processed/${filenameWithoutExt}-720p.mp4`
       ].filter(Boolean) // Remove null values
       
       console.log('🔍 Trying processed patterns:', processedPatterns)
