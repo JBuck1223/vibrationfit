@@ -24,9 +24,9 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [previewProgress, setPreviewProgress] = useState<number>(0)
   const previewAudioRef = React.useRef<HTMLAudioElement | null>(null)
   const PREVIEW_TEXT = "This is a sample of the voice you will hear for your life vision audio. This voice will read your vision and create audio tracks for you to listen to for multi-layered vision activation!"
-  const [audioSets, setAudioSets] = useState<Array<{id: string; name: string; variant: string; trackCount: number}>>([])
+  const [audioSets, setAudioSets] = useState<Array<{id: string; name: string; variant: string; trackCount: number; isReady: boolean; isMixing: boolean}>>([])
   const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null)
-  const [variant, setVariant] = useState<string>('standard')
+  const [selectedVariants, setSelectedVariants] = useState<string[]>(['standard']) // Multi-select for variants to generate
 
   useEffect(() => {
     ;(async () => {
@@ -99,20 +99,45 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     const supabase = createClient()
     const { data: sets } = await supabase
       .from('audio_sets')
-      .select('id, name, variant, audio_tracks(count)')
+      .select(`
+        id, 
+        name, 
+        variant, 
+        audio_tracks(count)
+      `)
       .eq('vision_id', visionId)
       .order('created_at', { ascending: false })
     
-    setAudioSets((sets || []).map((set: any) => ({
-      id: set.id,
-      name: set.name,
-      variant: set.variant,
-      trackCount: set.audio_tracks?.[0]?.count || 0
-    })))
+    // Check mix status for each set
+    const setsWithStatus = await Promise.all((sets || []).map(async (set: any) => {
+      const { data: tracks } = await supabase
+        .from('audio_tracks')
+        .select('mix_status, status')
+        .eq('audio_set_id', set.id)
+        .limit(1)
+      
+      const hasCompletedVoice = tracks?.some((t: any) => t.status === 'completed')
+      const hasCompletedMixing = tracks?.some((t: any) => t.mix_status === 'completed')
+      const isMixing = tracks?.some((t: any) => t.mix_status === 'mixing' || t.mix_status === 'pending')
+      
+      return {
+        id: set.id,
+        name: set.name,
+        variant: set.variant,
+        trackCount: set.audio_tracks?.[0]?.count || 0,
+        isReady: !!(hasCompletedVoice && (set.variant === 'standard' || hasCompletedMixing)),
+        isMixing: !!isMixing
+      }
+    }))
     
-    // Set selected to most recent
-    if (sets && sets.length > 0) {
-      setSelectedAudioSetId(sets[0].id)
+    setAudioSets(setsWithStatus)
+    
+    // Set selected to first ready set, or most recent
+    const readySet = setsWithStatus.find((s: any) => s.isReady)
+    if (readySet) {
+      setSelectedAudioSetId(readySet.id)
+    } else if (setsWithStatus.length > 0) {
+      setSelectedAudioSetId(setsWithStatus[0].id)
     }
   }
 
@@ -220,25 +245,28 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
 
       const sections = buildFourteenSectionsFromVision(vv)
 
-      const variantName = variant === 'standard' ? 'Standard Version' :
-                         variant === 'sleep' ? 'Sleep Edition' :
-                         variant === 'energy' ? 'Energy Mix' :
-                         variant === 'meditation' ? 'Meditation' :
-                         'Audio Version'
+      // Generate for each selected variant
+      for (const variant of selectedVariants) {
+        const variantName = variant === 'standard' ? 'Standard Version' :
+                           variant === 'sleep' ? 'Sleep Edition' :
+                           variant === 'energy' ? 'Energy Mix' :
+                           variant === 'meditation' ? 'Meditation' :
+                           'Audio Version'
 
-      const resp = await fetch('/api/audio/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          visionId, 
-          sections, 
-          voice, 
-          variant,
-          audioSetName: variantName,
-          force: false 
-        }),
-      })
-      const data = await resp.json()
+        await fetch('/api/audio/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            visionId, 
+            sections, 
+            voice, 
+            variant,
+            audioSetName: variantName,
+            force: false 
+          }),
+        })
+      }
+      
       await loadAudioSets()
       await refreshStatus()
     } catch (e) {
@@ -298,6 +326,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                 >
                   {audioSets.map(set => (
                     <option key={set.id} value={set.id}>
+                      {set.isReady ? '✓ ' : set.isMixing ? '⏳ ' : '○ '}
                       {set.name} ({set.trackCount} tracks) - {set.variant}
                     </option>
                   ))}
@@ -346,21 +375,49 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
               </Card>
             )}
 
-            {/* Variant Selection */}
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-white">Audio Variant</label>
-              <select
-                value={variant}
-                onChange={(e) => setVariant(e.target.value)}
-                className="px-4 py-3 rounded-lg bg-black/30 text-white text-sm border-2 border-white/30 h-[48px]"
-              >
-                <option value="standard">Voice Only</option>
-                <option value="sleep">Ocean Waves (30% Voice)</option>
-                <option value="meditation">Ocean Waves (50% Voice)</option>
-                <option value="energy">Ocean Waves (80% Voice)</option>
-              </select>
+            {/* Variant Selection - Multi-Select */}
+            <div className="flex flex-col gap-3">
+              <label className="text-sm font-medium text-white">Which audio versions would you like?</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[
+                  { id: 'standard', label: 'Voice Only', desc: 'Pure voice narration' },
+                  { id: 'sleep', label: 'Ocean Waves (Sleep)', desc: '30% voice, 70% ocean' },
+                  { id: 'meditation', label: 'Ocean Waves (Meditation)', desc: '50% voice, 50% ocean' },
+                  { id: 'energy', label: 'Ocean Waves (Energy)', desc: '80% voice, 20% ocean' },
+                ].map(v => (
+                  <label
+                    key={v.id}
+                    className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      selectedVariants.includes(v.id)
+                        ? 'border-[#39FF14] bg-[#39FF14]/10'
+                        : 'border-neutral-700 bg-black/30 hover:border-neutral-600'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedVariants.includes(v.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedVariants([...selectedVariants, v.id])
+                        } else {
+                          // Don't allow unchecking if it's the last one
+                          if (selectedVariants.length > 1) {
+                            setSelectedVariants(selectedVariants.filter(vid => vid !== v.id))
+                          }
+                        }
+                      }}
+                      disabled={selectedVariants.length === 1 && selectedVariants.includes(v.id)}
+                      className="mt-1 w-5 h-5 rounded border-2 border-neutral-600 bg-transparent text-[#39FF14] focus:ring-[#39FF14] disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-white">{v.label}</div>
+                      <div className="text-xs text-neutral-400">{v.desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
               <p className="text-xs text-neutral-400">
-                Select a variant and click "Generate" to create a new audio version with ocean waves background. Playback will automatically include background mixing!
+                Voice tracks generate first, then background mixing happens automatically. Selected versions will appear as separate playlists.
               </p>
             </div>
             
@@ -428,7 +485,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                   size="sm"
                   className="flex-1 md:flex-none"
                 >
-                  {generating ? 'Generating…' : 'Generate'}
+                  {generating ? 'Generating…' : `Generate ${selectedVariants.length} Version${selectedVariants.length > 1 ? 's' : ''}`}
                 </Button>
               </div>
             </div>
