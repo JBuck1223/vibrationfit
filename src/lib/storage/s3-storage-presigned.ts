@@ -99,24 +99,44 @@ export async function uploadFileWithPresignedUrl(
 
     if (onProgress) onProgress(100)
 
-    // For large videos (>20MB), trigger MediaConvert processing
-    if (file.type.startsWith('video/') && file.size > 20 * 1024 * 1024) {
-      console.log('🎬 Triggering MediaConvert for presigned upload:', key)
-      try {
-        await fetch('/api/mediaconvert/trigger', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            inputKey: key,
-            filename: file.name,
-            userId: userId || '',
-            folder: USER_FOLDERS[folder]
+    // For videos, either compress (smaller) or trigger MediaConvert (larger)
+    if (file.type.startsWith('video/')) {
+      if (file.size > 20 * 1024 * 1024) {
+        // Large videos: trigger MediaConvert
+        console.log('🎬 Triggering MediaConvert for presigned upload:', key)
+        try {
+          await fetch('/api/mediaconvert/trigger', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              inputKey: key,
+              filename: file.name,
+              userId: userId || '',
+              folder: USER_FOLDERS[folder]
+            })
           })
-        })
-        console.log('✅ MediaConvert job triggered')
-      } catch (error) {
-        console.error('⚠️ Failed to trigger MediaConvert:', error)
-        // Continue - file is uploaded, processing can happen later
+          console.log('✅ MediaConvert job triggered')
+        } catch (error) {
+          console.error('⚠️ Failed to trigger MediaConvert:', error)
+          // Continue - file is uploaded, processing can happen later
+        }
+      } else {
+        // Small videos: Trigger compression to convert .mov to .mp4
+        console.log('🎬 Triggering compression for .mov file:', file.name)
+        try {
+          await fetch('/api/upload/process-existing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              inputKey: key,
+              userId: userId || '',
+              folder: USER_FOLDERS[folder]
+            })
+          })
+          console.log('✅ Compression job triggered')
+        } catch (error) {
+          console.error('⚠️ Failed to trigger compression:', error)
+        }
       }
     }
 
