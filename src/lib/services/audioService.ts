@@ -252,12 +252,13 @@ export async function generateAudioTracks(params: {
     // Use specified audio set
     targetAudioSetId = audioSetId
   } else {
-    // Create or get default audio set
+    // Create or get audio set - match by variant AND voice_id to allow multiple voice versions
     const { data: existingSet } = await supabase
       .from('audio_sets')
       .select('id')
       .eq('vision_id', visionId)
       .eq('variant', variant || 'standard')
+      .eq('voice_id', voice)
       .maybeSingle()
     
     if (existingSet) {

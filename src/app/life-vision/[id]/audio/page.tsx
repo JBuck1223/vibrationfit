@@ -24,7 +24,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [previewProgress, setPreviewProgress] = useState<number>(0)
   const previewAudioRef = React.useRef<HTMLAudioElement | null>(null)
   const PREVIEW_TEXT = "This is a sample of the voice you will hear for your life vision audio. This voice will read your vision and create audio tracks for you to listen to for multi-layered vision activation!"
-  const [audioSets, setAudioSets] = useState<Array<{id: string; name: string; variant: string; trackCount: number; isReady: boolean; isMixing: boolean}>>([])
+  const [audioSets, setAudioSets] = useState<Array<{id: string; name: string; variant: string; voiceId?: string; trackCount: number; isReady: boolean; isMixing: boolean}>>([])
   const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null)
   const [selectedVariants, setSelectedVariants] = useState<string[]>(['standard']) // Multi-select for variants to generate
 
@@ -102,7 +102,8 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       .select(`
         id, 
         name, 
-        variant, 
+        variant,
+        voice_id,
         audio_tracks(count)
       `)
       .eq('vision_id', visionId)
@@ -124,6 +125,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         id: set.id,
         name: set.name,
         variant: set.variant,
+        voiceId: set.voice_id,
         trackCount: set.audio_tracks?.[0]?.count || 0,
         isReady: !!(hasCompletedVoice && (set.variant === 'standard' || hasCompletedMixing)),
         isMixing: !!isMixing
@@ -337,7 +339,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                   {audioSets.map(set => (
                     <option key={set.id} value={set.id}>
                       {set.isReady ? '✓ ' : set.isMixing ? '⏳ ' : '○ '}
-                      {set.name} ({set.trackCount} tracks) - {set.variant}
+                      {set.name} ({set.trackCount} tracks) - {set.variant} {set.voiceId ? `- ${set.voiceId}` : ''}
                     </option>
                   ))}
                 </select>
@@ -364,12 +366,41 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
           </Card>
         )}
 
+        {/* Quick Generate Another Version */}
+        {audioSets.length > 0 && audioSets.some(s => s.isReady) && (
+          <Card variant="elevated" className="border-[#8B5CF6]/30">
+            <div className="p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white mb-1">Want a different version?</h3>
+                  <p className="text-sm text-neutral-400">
+                    Generate additional audio versions with different voices or background mixes
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    // Scroll to generation section
+                    document.getElementById('generate-section')?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                  size="md"
+                  className="whitespace-nowrap"
+                >
+                  Create New Version
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
             {/* Hero Card */}
-        <Card variant="elevated" className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30">
+        <Card id="generate-section" variant="elevated" className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30">
           <Stack gap="md" className="text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
               <Headphones className="w-6 h-6 md:w-8 md:h-8 text-[#39FF14]" />
-              <h2 className="text-xl md:text-3xl font-bold text-white">Generate Your Vision Audio</h2>
+              <h2 className="text-xl md:text-3xl font-bold text-white">
+                {audioSets.length > 0 ? 'Generate New Audio Version' : 'Generate Your Vision Audio'}
+              </h2>
             </div>
             <p className="text-sm md:text-lg text-neutral-300">
               Transform your written vision into immersive audio tracks for daily activation
@@ -605,9 +636,9 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                 <Stack gap="sm">
                   <h3 className="text-lg font-semibold text-white mb-2">Track Status</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {tracks.map((track) => (
+                    {tracks.map((track, index) => (
                       <div
-                        key={track.sectionKey}
+                        key={`track-status-${index}`}
                         className="p-3 rounded-lg border-2 border-neutral-800 bg-neutral-900/50"
                       >
                         <div className="flex items-center justify-between mb-1">

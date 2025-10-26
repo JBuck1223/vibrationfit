@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Container, Stack, Badge, Spinner } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, Play, Plus, ArrowLeft, Moon, Zap, Sparkles } from 'lucide-react'
+import { Headphones, Play, Plus, ArrowLeft, Moon, Zap, Sparkles, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 interface AudioSet {
@@ -22,6 +22,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
   const [visionId, setVisionId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [audioSets, setAudioSets] = useState<AudioSet[]>([])
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -66,6 +67,36 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
 
     setAudioSets(formatted)
     setLoading(false)
+  }
+
+  const handleDelete = async (setId: string, setName: string) => {
+    if (!confirm(`Are you sure you want to delete "${setName}"? This will delete all audio tracks in this version. This action cannot be undone.`)) {
+      return
+    }
+
+    setDeleting(setId)
+    const supabase = createClient()
+
+    try {
+      // Delete the audio_set (CASCADE will handle audio_tracks deletion)
+      const { error } = await supabase
+        .from('audio_sets')
+        .delete()
+        .eq('id', setId)
+
+      if (error) {
+        console.error('Error deleting audio set:', error)
+        alert('Failed to delete audio version. Please try again.')
+      } else {
+        // Remove from local state
+        setAudioSets(audioSets.filter(s => s.id !== setId))
+      }
+    } catch (error) {
+      console.error('Error deleting audio set:', error)
+      alert('Failed to delete audio version. Please try again.')
+    } finally {
+      setDeleting(null)
+    }
   }
 
   const getVariantIcon = (variant: string) => {
@@ -212,6 +243,21 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                         >
                           <Play className="w-4 h-4 mr-2" />
                           Play Audio
+                        </Button>
+                        <Button 
+                          variant="danger" 
+                          size="sm"
+                          disabled={deleting === set.id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(set.id, set.name)
+                          }}
+                        >
+                          {deleting === set.id ? (
+                            <Spinner variant="danger" size="sm" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </Stack>
