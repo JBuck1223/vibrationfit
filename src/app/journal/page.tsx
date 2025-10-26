@@ -2,12 +2,12 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system'
+import { PageLayout, Card, Button } from '@/lib/design-system'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Calendar, FileText, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Plus, Calendar, FileText, Play, Volume2, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
 
 interface JournalEntry {
   id: string
@@ -95,6 +95,7 @@ export default function JournalPage() {
     }
 
     checkProcessedVideos()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries])
 
   const handleDeleteClick = (entry: JournalEntry) => {
@@ -165,7 +166,7 @@ export default function JournalPage() {
   }
 
   // Check for processed video URLs
-  const getProcessedVideoUrl = async (originalUrl: string) => {
+  const getProcessedVideoUrl = useCallback(async (originalUrl: string) => {
     try {
       console.log('🔍 Checking for processed video for:', originalUrl)
       
@@ -181,19 +182,34 @@ export default function JournalPage() {
       const s3Key = urlParts.slice(userUploadsIndex).join('/')
       console.log('📁 Extracted S3 key:', s3Key)
       
+      // MediaConvert outputs with "-compressed" suffix in the processed/ folder
+      // Example: user-uploads/userId/journal/uploads/file.mov -> user-uploads/userId/journal/uploads/processed/file-compressed.mp4
+      
+      // Extract the folder structure to determine where processed files should be
+      const s3KeyParts = s3Key.split('/')
+      const userId = s3KeyParts[1] // user-uploads/[userId]/...
+      const folder = s3KeyParts[2] // user-uploads/[userId]/[folder]/...
+      const filename = s3KeyParts.slice(3).join('/') // The rest after userId/folder
+      
+      // Get just the base filename without path
+      const baseFilename = s3KeyParts[s3KeyParts.length - 1]
+      const filenameWithoutExt = baseFilename.replace(/\.[^/.]+$/, '')
+      
       // Try multiple processed URL patterns
       const processedPatterns = [
-        // Pattern 1: /uploads/ -> /uploads/processed/
-        s3Key.replace('/uploads/', '/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4'),
-        // Pattern 2: /journal/ -> /journal/uploads/processed/
-        s3Key.replace('/journal/', '/journal/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4'),
-        // Pattern 3: Direct processed path
-        s3Key.replace(/\.[^/.]+$/, '-720p.mp4'),
-        // Pattern 4: For files already in /journal/, try /journal/uploads/processed/
-        s3Key.includes('/journal/') && !s3Key.includes('/uploads/') 
-          ? s3Key.replace('/journal/', '/journal/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4')
-          : null
+        // Pattern 1: Insert /processed/ folder and add -compressed suffix
+        // user-uploads/userId/journal/uploads/1761405465483-66ln81qwd0a-img-8801.mov
+        // -> user-uploads/userId/journal/uploads/processed/1761405465483-66ln81qwd0a-img-8801-compressed.mp4
+        s3Key.replace(/\.[^/.]+$/, '').replace(/\/uploads\/(.+)$/, '/uploads/processed/$1-compressed.mp4'),
+        // Pattern 2: Direct processed path with just the filename
+        s3Key.replace(/\.[^/.]+$/, '').replace(/\/uploads\//, '/uploads/processed/') + '-compressed.mp4',
+        // Pattern 3: For subfolder structure like journal/uploads
+        `${s3KeyParts.slice(0, -1).join('/')}/processed/${filenameWithoutExt}-compressed.mp4`,
+        // Pattern 4: Direct processed path with full structure
+        `user-uploads/${userId}/${folder}/processed/${filenameWithoutExt}-compressed.mp4`
       ].filter(Boolean) // Remove null values
+      
+      console.log('🔍 Trying processed patterns:', processedPatterns)
       
       for (const processedKey of processedPatterns) {
         const processedUrl = `https://media.vibrationfit.com/${processedKey}`
@@ -218,7 +234,7 @@ export default function JournalPage() {
     }
     
     return originalUrl
-  }
+  }, [])
 
   // Keyboard navigation for lightbox
   useEffect(() => {
@@ -375,16 +391,10 @@ export default function JournalPage() {
                                 preload="metadata"
                                 onError={(e) => {
                                   const videoUrl = processedVideoUrls[url] || url
-                                  console.error('Video load error:', {
-                                    error: e,
-                                    errorType: e.type,
-                                    errorTarget: e.target,
-                                    url: videoUrl,
-                                    originalUrl: url,
-                                    processedUrl: processedVideoUrls[url],
-                                    videoElement: e.target,
-                                    processedUrlsState: processedVideoUrls
-                                  })
+                                  console.error('Video load error for:', videoUrl)
+                                  console.error('Error type:', (e.nativeEvent as any)?.type || 'unknown')
+                                  console.error('Using original URL:', url)
+                                  console.error('Processed URL:', processedVideoUrls[url])
                                   setVideoErrors(prev => ({ ...prev, [videoKey]: true }))
                                   setVideoLoading(prev => ({ ...prev, [videoKey]: false }))
                                 }}
@@ -526,13 +536,25 @@ export default function JournalPage() {
                   )}
 
                   {/* Action Buttons - Under All Content, Right Aligned */}
-                  <div className="pt-2 flex justify-end">
-                    <ActionButtons
-                      versionType="completed"
-                      viewHref={`/journal/${entry.id}`}
-                      onDelete={() => handleDeleteClick(entry)}
-                      showLabels={true}
-                    />
+                  <div className="pt-2 flex justify-end gap-2">
+                    <Button
+                      asChild
+                      variant="primary"
+                      size="sm"
+                    >
+                      <Link href={`/journal/${entry.id}`}>
+                        View
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                    >
+                      <Link href={`/journal/${entry.id}/edit`}>
+                        Edit
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               </Card>
@@ -567,16 +589,6 @@ export default function JournalPage() {
           </Link>
         </div>
 
-        {/* Delete Confirmation Dialog */}
-        <DeleteConfirmationDialog
-          isOpen={showDeleteConfirm}
-          onClose={cancelDelete}
-          onConfirm={confirmDelete}
-          itemName={itemToDelete?.title || 'journal entry'}
-          itemType="Journal Entry"
-          isLoading={deletingId === itemToDelete?.id}
-          loadingText="Deleting..."
-        />
 
         {/* Lightbox */}
         {lightboxOpen && lightboxImages.length > 0 && (

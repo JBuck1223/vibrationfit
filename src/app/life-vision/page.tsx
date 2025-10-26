@@ -422,7 +422,7 @@ export default function VisionListPage() {
               </Button>
               <Button
                 onClick={() => router.push(`/life-vision/${activeVision.id}/refine`)}
-                variant="outline"
+                variant="primary"
                 className="flex items-center gap-2"
               >
                 <Gem className="w-4 h-4" />
@@ -517,7 +517,7 @@ export default function VisionListPage() {
                       <div className="flex flex-row gap-2 md:w-auto w-full">
                         <Button
                           onClick={() => router.push(`/life-vision/${version.id}`)}
-                          variant="outline"
+                          variant="primary"
                           size="sm"
                           className="flex items-center gap-2 flex-1 md:flex-none"
                         >

@@ -410,7 +410,7 @@ export default function VisionBoardPage() {
 
             {/* Category Cards Grid */}
             <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-              {VISION_CATEGORIES.map((category) => (
+              {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => (
                 <CategoryCard 
                   key={category.key} 
                   category={category} 
@@ -691,15 +691,16 @@ export default function VisionBoardPage() {
 
                       {/* Action Buttons - Right side */}
                       <div className="flex-shrink-0 md:flex-shrink-0 w-full md:w-auto">
-                        <ActionButtons
-                          versionType="completed"
-                          viewHref={`/vision-board/${item.id}`}
-                          onDelete={() => handleDeleteItem(item.id)}
+                        <Button
+                          asChild
+                          variant="primary"
                           size="sm"
-                          variant="ghost"
-                          deleteVariant="danger"
                           className="w-full md:w-auto"
-                        />
+                        >
+                          <Link href={`/vision-board/${item.id}`}>
+                            View
+                          </Link>
+                        </Button>
                       </div>
                     </div>
                   </Card>

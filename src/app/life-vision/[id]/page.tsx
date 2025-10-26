@@ -96,7 +96,7 @@ const VisionCard = ({
             <div className="flex justify-end gap-3">
               <Button
                 onClick={onCancel}
-                variant="outline"
+                variant="ghost"
                 disabled={saving}
               >
                 Cancel
@@ -151,7 +151,7 @@ const VisionCard = ({
                 </Button>
                 <Button
                   asChild
-                  variant="outline"
+                  variant="primary"
                   size="sm"
                   className="flex items-center gap-2"
                 >
@@ -861,7 +861,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500' : ''} ${className}`}
         onClick={onClick}
       >
-        <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+        <div className="flex flex-col items-center gap-1 justify-center h-full">
           <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#14B8A6'} />
           <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
             {category.label}
@@ -948,7 +948,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             </Button>
             <Button
               asChild
-              variant="outline"
+              variant="primary"
               className="flex items-center gap-2"
             >
               <Link href={`/life-vision/${vision.id}/refine`}>
@@ -1099,7 +1099,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 </div>
 
                 {/* Category Grid */}
-                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+                <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
                   {VISION_SECTIONS.map((category) => (
                     <CategoryCard 
                       key={category.key} 

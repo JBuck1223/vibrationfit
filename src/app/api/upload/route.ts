@@ -32,6 +32,7 @@ const mediaConvertClient = new MediaConvertClient({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
+  endpoint: process.env.MEDIACONVERT_ENDPOINT, // Required for MediaConvert
 })
 
 const BUCKET_NAME = 'vibration-fit-client-storage'
@@ -98,7 +99,14 @@ export async function POST(request: NextRequest) {
 
     // Check if file needs optimization
     const needsImageOptimization = file.type.startsWith('image/') && shouldOptimizeImage(file)
+    // Check if it's a large video that needs MediaConvert processing
     const needsVideoProcessing = file.type.startsWith('video/') && file.size > 20 * 1024 * 1024 // 20MB
+    console.log('📹 Video processing check:', {
+      isVideo: file.type.startsWith('video/'),
+      fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+      needsProcessing: needsVideoProcessing,
+      filename: file.name
+    })
     const isAudioFile = file.type.startsWith('audio/')
 
     if (needsImageOptimization) {
@@ -161,10 +169,18 @@ export async function POST(request: NextRequest) {
 
       // Trigger MediaConvert job
       try {
-        await triggerMediaConvertJob(s3Key, file.name, userId, folder)
-        console.log(`MediaConvert job triggered for: ${file.name}`)
+        console.log('🚀 Attempting to trigger MediaConvert job...')
+        console.log('   Input S3 key:', s3Key)
+        console.log('   User ID:', userId)
+        console.log('   Folder:', folder)
+        console.log('   MediaConvert Role ARN:', process.env.MEDIACONVERT_ROLE_ARN ? 'Set' : '⚠️ NOT SET')
+        console.log('   MediaConvert Endpoint:', process.env.MEDIACONVERT_ENDPOINT ? 'Set' : '⚠️ NOT SET')
+        
+        const jobId = await triggerMediaConvertJob(s3Key, file.name, userId, folder)
+        console.log(`✅ MediaConvert job triggered successfully! Job ID: ${jobId}`)
       } catch (mediaConvertError) {
-        console.error('MediaConvert job failed:', mediaConvertError)
+        console.error('❌ MediaConvert job failed:', mediaConvertError)
+        console.error('   Error details:', mediaConvertError instanceof Error ? mediaConvertError.message : String(mediaConvertError))
         // Continue with original file if MediaConvert fails
       }
 
@@ -279,6 +295,7 @@ async function triggerMediaConvertJob(
   userId: string,
   folder: string
 ) {
+  console.log('🎬 Creating MediaConvert job settings...')
   const jobSettings = {
     Role: process.env.MEDIACONVERT_ROLE_ARN!, // You'll need to set this
     Settings: {
@@ -344,11 +361,22 @@ async function triggerMediaConvertJob(
     }
   }
 
-  const command = new CreateJobCommand(jobSettings as any)
-  const response = await mediaConvertClient.send(command)
+  console.log('🎬 Job settings created, sending to MediaConvert...')
+  console.log('   Destination folder:', `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`)
   
-  console.log(`MediaConvert job created: ${response.Job?.Id}`)
-  return response.Job?.Id
+  try {
+    const command = new CreateJobCommand(jobSettings as any)
+    console.log('🎬 Sending CreateJobCommand to MediaConvert...')
+    const response = await mediaConvertClient.send(command)
+    
+    console.log(`✅ MediaConvert job created successfully! Job ID: ${response.Job?.Id}`)
+    console.log('   Status:', response.Job?.Status)
+    console.log('   Created at:', response.Job?.CreatedAt)
+    return response.Job?.Id
+  } catch (error) {
+    console.error('❌ MediaConvert job creation failed:', error)
+    throw error
+  }
 }
 
 // Multipart upload implementation
