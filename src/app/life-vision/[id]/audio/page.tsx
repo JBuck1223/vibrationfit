@@ -135,7 +135,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       const supabase = createClient()
       const { data: tracks } = await supabase
         .from('audio_tracks')
-        .select('section_key, audio_url, status, voice_id, content_hash, created_at')
+        .select('section_key, audio_url, mixed_audio_url, mix_status, status, voice_id, content_hash, created_at')
         .eq('vision_id', visionId)
         .eq('audio_set_id', selectedAudioSetId)
         .order('section_key')
@@ -143,11 +143,13 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       const mapped = (tracks || []).map((t: any) => ({
         sectionKey: t.section_key,
         title: prettySectionTitle(t.section_key),
-        url: t.audio_url || '',
+        // Use mixed_audio_url if available and completed, otherwise use voice-only audio_url
+        url: t.mixed_audio_url && t.mix_status === 'completed' ? t.mixed_audio_url : (t.audio_url || ''),
         status: t.status,
         createdAt: t.created_at,
         voiceId: t.voice_id,
         contentHash: t.content_hash,
+        mixStatus: t.mix_status,
       }))
       
       const order = canonicalOrder()
@@ -202,7 +204,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
 
   async function handleGenerate() {
     setGenerating(true)
-    setWorkingOn('queueing')
+    setWorkingOn('triggered')
     try {
       // Fetch vision text sections (simplified: get latest version content)
       const supabase = createClient()
@@ -239,11 +241,11 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       const data = await resp.json()
       await loadAudioSets()
       await refreshStatus()
-      setWorkingOn(null)
     } catch (e) {
       console.error(e)
     } finally {
       setGenerating(false)
+      setWorkingOn(null)
     }
   }
 
@@ -441,7 +443,20 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         ) : (
           <Stack gap="md">
             {/* Status Messages */}
-            {workingOn && (
+            {workingOn === 'triggered' && (
+              <Card variant="glass" className="p-4 bg-gradient-to-r from-[#199D67]/20 to-[#8B5CF6]/20 border-[#39FF14]/30">
+                <div className="flex items-center gap-3">
+                  <div className="animate-pulse">
+                    <div className="w-3 h-3 bg-[#39FF14] rounded-full"></div>
+                  </div>
+                  <div>
+                    <h4 className="text-[#39FF14] font-semibold text-sm md:text-base">VIVA is creating your custom audios!</h4>
+                    <p className="text-neutral-300 text-xs md:text-sm">Voice tracks are generating first, then background mixing will happen automatically. They will appear here when complete.</p>
+                  </div>
+                </div>
+              </Card>
+            )}
+            {workingOn && workingOn !== 'triggered' && (
               <Card variant="glass" className="p-4">
                 <div className="flex items-center gap-2 text-center">
                   <Spinner variant="primary" size="sm" />

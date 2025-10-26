@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert'
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
 import crypto from 'crypto'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
 
@@ -32,6 +33,45 @@ function normalizeText(text: string): string {
 export function hashContent(text: string): string {
   const normalized = normalizeText(text)
   return crypto.createHash('sha256').update(normalized).digest('hex')
+}
+
+async function triggerBackgroundMixing(params: {
+  trackId: string
+  voiceUrl: string
+  variant: string
+  outputKey: string
+}): Promise<void> {
+  const lambda = new LambdaClient({ 
+    region: process.env.AWS_REGION || 'us-east-2',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    },
+  })
+
+  const bgUrl = getBackgroundTrackForVariant(params.variant)
+  
+  // Volume levels based on variant
+  const voiceVolume = params.variant === 'sleep' ? 0.3 : params.variant === 'meditation' ? 0.5 : 0.8
+  const bgVolume = params.variant === 'sleep' ? 0.7 : params.variant === 'meditation' ? 0.5 : 0.2
+
+  const command = new InvokeCommand({
+    FunctionName: 'audio-mixer',
+    Payload: JSON.stringify({
+      voiceUrl: params.voiceUrl,
+      bgUrl,
+      outputKey: params.outputKey,
+      variant: params.variant,
+      voiceVolume,
+      bgVolume,
+      trackId: params.trackId,
+    }),
+    InvocationType: 'Event', // Async invocation
+  })
+
+  await lambda.send(command)
+  
+  console.log(`[Mixing] Triggered background mixing for track ${params.trackId} (${params.variant})`)
 }
 
 async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', format: 'mp3' | 'wav' = 'mp3', userId?: string): Promise<Buffer> {
@@ -146,31 +186,9 @@ export function getBackgroundTrackForVariant(variant?: string): string | null {
 // 2. Mix client-side after generation
 // 3. Pre-generate mixed versions
 async function mixWithBackgroundTrack(audioBuffer: Buffer, variant?: string): Promise<Buffer> {
-  const backgroundTrack = getBackgroundTrackForVariant(variant)
-  
-  // If no background track or FFmpeg not available, return original
-  if (!backgroundTrack) {
-    return audioBuffer
-  }
-
-  try {
-    // For now, return original audio
-    // TODO: Implement one of these solutions:
-    // 1. Use Cloudflare Stream API for audio mixing
-    // 2. Call an external audio processing service
-    // 3. Store metadata about background track and mix client-side
-    
-    console.log(`[Audio Mixing] ${variant} variant selected with background: ${backgroundTrack}`)
-    console.log('[Audio Mixing] Using voice-only audio. Background mixing not yet implemented.')
-    
-    // Store variant in metadata for potential client-side mixing
-    // The audio URL can be retrieved and mixed with background tracks in the player
-    
-    return audioBuffer
-  } catch (error) {
-    console.warn('Audio mixing error:', error)
-    return audioBuffer
-  }
+  // For now, just return the voice-only audio
+  // Background mixing will be handled by Lambda function after voice generation completes
+  return audioBuffer
 }
 
 // Helper function to process text for variants
@@ -383,16 +401,33 @@ export async function generateAudioTracks(params: {
 
       const audioUrl = `${CDN_PREFIX}/${s3Key}`
 
-      await supabase
+      // Update with voice-only audio
+      const { data: updated } = await supabase
         .from('audio_tracks')
         .update({
           s3_key: s3Key,
           audio_url: audioUrl,
           status: 'completed',
+          mix_status: variant && variant !== 'standard' ? 'pending' : 'not_required',
         })
         .eq('id', recordId)
+        .select()
+        .single()
 
       results.push({ sectionKey: section.sectionKey, status: 'generated', audioUrl, s3Key })
+
+      // If variant requires mixing, trigger Lambda async
+      if (variant && variant !== 'standard' && updated) {
+        // Mark as pending and trigger mixing in background
+        triggerBackgroundMixing({
+          trackId: updated.id,
+          voiceUrl: audioUrl,
+          variant,
+          outputKey: s3Key.replace('.mp3', '-mixed.mp3'),
+        }).catch((err: Error) => {
+          console.error(`Failed to trigger mixing for track ${updated.id}:`, err)
+        })
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       await supabase

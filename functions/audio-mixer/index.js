@@ -19,7 +19,7 @@ const BUCKET_NAME = process.env.BUCKET_NAME || 'vibration-fit-client-storage'
 export const handler = async (event) => {
   console.log('Event:', JSON.stringify(event, null, 2))
   
-  const { voiceUrl, bgUrl, outputKey, variant, voiceVolume, bgVolume } = event
+  const { voiceUrl, bgUrl, outputKey, variant, voiceVolume, bgVolume, trackId } = event
   
   try {
     // Download voice track
@@ -35,7 +35,12 @@ export const handler = async (event) => {
     await mixAudio(voicePath, bgPath, outputPath, voiceVolume || 0.7, bgVolume || 0.3)
     
     // Upload mixed audio to S3
-    await uploadToS3(outputPath, outputKey)
+    const mixedUrl = await uploadToS3(outputPath, outputKey)
+    
+    // Update Supabase with mixed audio URL
+    if (trackId) {
+      await updateMixStatus(trackId, 'completed', mixedUrl, outputKey)
+    }
     
     // Cleanup
     await Promise.all([
@@ -49,11 +54,18 @@ export const handler = async (event) => {
       body: JSON.stringify({
         success: true,
         outputKey,
+        mixedUrl,
         message: 'Audio mixed successfully'
       })
     }
   } catch (error) {
     console.error('Error:', error)
+    
+    // Update Supabase with error
+    if (event.trackId) {
+      await updateMixStatus(event.trackId, 'failed', null, null, error.message)
+    }
+    
     return {
       statusCode: 500,
       body: JSON.stringify({
@@ -101,6 +113,46 @@ async function uploadToS3(localPath, s3Key) {
   })
   
   await s3Client.send(command)
+  
+  const CDN_PREFIX = 'https://media.vibrationfit.com'
+  return `${CDN_PREFIX}/${s3Key}`
+}
+
+async function updateMixStatus(trackId, status, mixedUrl, mixedS3Key, errorMessage) {
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn('Supabase credentials not configured, skipping status update')
+    return
+  }
+  
+  try {
+    const updateData = {
+      mix_status: status,
+      mixed_audio_url: mixedUrl,
+      mixed_s3_key: mixedS3Key,
+    }
+    
+    if (errorMessage) {
+      updateData.error_message = errorMessage
+    }
+    
+    await fetch(`${supabaseUrl}/rest/v1/audio_tracks?id=eq.${trackId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify(updateData),
+    })
+    
+    console.log(`[Mixing] Updated track ${trackId} with status: ${status}`)
+  } catch (error) {
+    console.error('Failed to update Supabase:', error)
+  }
 }
 
 async function removeFile(path) {
