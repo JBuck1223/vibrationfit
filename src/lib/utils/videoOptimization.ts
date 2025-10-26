@@ -190,45 +190,6 @@ export async function compressVideo(
 }
 
 /**
- * Generate video thumbnail
- */
-export async function generateVideoThumbnail(
-  inputBuffer: Buffer,
-  timestamp: number = 1
-): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const inputStream = new PassThrough()
-    const outputStream = new PassThrough()
-    const chunks: Buffer[] = []
-    
-    outputStream.on('data', (chunk) => {
-      chunks.push(chunk)
-    })
-    
-    outputStream.on('end', () => {
-      resolve(Buffer.concat(chunks))
-    })
-    
-    outputStream.on('error', reject)
-    
-    inputStream.write(inputBuffer)
-    inputStream.end()
-    
-    ffmpeg()
-      .input(inputStream)
-      .seekInput(timestamp)
-      .outputOptions([
-        '-vframes 1',
-        '-q:v 2',
-        '-f image2'
-      ])
-      .output(outputStream)
-      .on('error', reject)
-      .run()
-  })
-}
-
-/**
  * Generate a thumbnail/poster image from video
  */
 export async function generateVideoThumbnail(
