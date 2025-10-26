@@ -145,27 +145,31 @@ export async function POST(request: NextRequest) {
           const originalBuffer = Buffer.from(arrayBuffer)
           const thumbnailBuffer = await generateVideoThumbnail(originalBuffer, file.name)
           
-          const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
-          const finalFilename = `${nameWithoutExt}-compressed.mp4`
-          const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
-          const thumbKey = finalS3Key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
-          const thumbCommand = new PutObjectCommand({
-            Bucket: BUCKET_NAME,
-            Key: thumbKey,
-            Body: thumbnailBuffer,
-            ContentType: 'image/jpeg',
-            CacheControl: 'public, max-age=31536000, immutable',
-            Metadata: {
-              'original-filename': file.name,
-              'upload-timestamp': timestamp.toString(),
-              'is-thumbnail': 'true',
-              'original-s3-key': finalS3Key
-            }
-          })
-          
-          await s3Client.send(thumbCommand)
-          thumbnailUrl = `https://media.vibrationfit.com/${thumbKey}`
-          console.log(`✅ Video thumbnail uploaded: ${thumbKey}`)
+          if (thumbnailBuffer) {
+            const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
+            const finalFilename = `${nameWithoutExt}-compressed.mp4`
+            const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
+            const thumbKey = finalS3Key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
+            const thumbCommand = new PutObjectCommand({
+              Bucket: BUCKET_NAME,
+              Key: thumbKey,
+              Body: thumbnailBuffer,
+              ContentType: 'image/jpeg',
+              CacheControl: 'public, max-age=31536000, immutable',
+              Metadata: {
+                'original-filename': file.name,
+                'upload-timestamp': timestamp.toString(),
+                'is-thumbnail': 'true',
+                'original-s3-key': finalS3Key
+              }
+            })
+            
+            await s3Client.send(thumbCommand)
+            thumbnailUrl = `https://media.vibrationfit.com/${thumbKey}`
+            console.log(`✅ Video thumbnail uploaded: ${thumbKey}`)
+          } else {
+            console.log('⚠️ Thumbnail generation returned null, skipping upload')
+          }
         } catch (thumbError) {
           console.error('⚠️ Video thumbnail generation failed:', thumbError)
         }
@@ -204,24 +208,28 @@ export async function POST(request: NextRequest) {
         console.log('🎬 Generating video thumbnail for large video...')
         const thumbnailBuffer = await generateVideoThumbnail(buffer, file.name)
         
-        const thumbKey = s3Key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
-        const thumbCommand = new PutObjectCommand({
-          Bucket: BUCKET_NAME,
-          Key: thumbKey,
-          Body: thumbnailBuffer,
-          ContentType: 'image/jpeg',
-          CacheControl: 'public, max-age=31536000, immutable',
-          Metadata: {
-            'original-filename': file.name,
-            'upload-timestamp': timestamp.toString(),
-            'is-thumbnail': 'true',
-            'original-s3-key': s3Key
-          }
-        })
-        
-        await s3Client.send(thumbCommand)
-        thumbnailUrl = `https://media.vibrationfit.com/${thumbKey}`
-        console.log(`✅ Video thumbnail uploaded: ${thumbKey}`)
+        if (thumbnailBuffer) {
+          const thumbKey = s3Key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
+          const thumbCommand = new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: thumbKey,
+            Body: thumbnailBuffer,
+            ContentType: 'image/jpeg',
+            CacheControl: 'public, max-age=31536000, immutable',
+            Metadata: {
+              'original-filename': file.name,
+              'upload-timestamp': timestamp.toString(),
+              'is-thumbnail': 'true',
+              'original-s3-key': s3Key
+            }
+          })
+          
+          await s3Client.send(thumbCommand)
+          thumbnailUrl = `https://media.vibrationfit.com/${thumbKey}`
+          console.log(`✅ Video thumbnail uploaded: ${thumbKey}`)
+        } else {
+          console.log('⚠️ Thumbnail generation returned null, skipping upload')
+        }
       } catch (thumbError) {
         console.error('⚠️ Video thumbnail generation failed:', thumbError)
       }

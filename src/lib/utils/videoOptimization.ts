@@ -119,6 +119,10 @@ export async function compressVideo(
       fs.writeFileSync(inputFile, inputBuffer)
       console.log(`📁 Created temp input file: ${inputFile} (${inputBuffer.length} bytes)`)
       
+      // Set timeout for compression (5 minutes max)
+      const TIMEOUT = 5 * 60 * 1000
+      let timeoutId: NodeJS.Timeout | null = null
+      
       // Configure FFmpeg
       const command = ffmpeg()
         .input(inputFile)
@@ -138,11 +142,19 @@ export async function compressVideo(
         .output(outputFile)
         .on('start', (commandLine) => {
           console.log('🎬 FFmpeg started:', commandLine)
+          // Set timeout to prevent hanging
+          timeoutId = setTimeout(() => {
+            console.error('⏱️ Compression timeout after 5 minutes')
+            command.kill('SIGTERM')
+            reject(new Error('Compression timeout'))
+          }, TIMEOUT)
         })
         .on('progress', (progress) => {
           console.log(`📊 FFmpeg progress: ${progress.percent?.toFixed(1)}%`)
         })
         .on('end', () => {
+          if (timeoutId) clearTimeout(timeoutId)
+          
           try {
             // Read compressed file
             const compressedBuffer = fs.readFileSync(outputFile)
@@ -154,8 +166,8 @@ export async function compressVideo(
             console.log(`   Ratio: ${compressionRatio.toFixed(1)}%`)
             
             // Clean up temporary files
-            fs.unlinkSync(inputFile)
-            fs.unlinkSync(outputFile)
+            if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile)
+            if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
             
             resolve({
               buffer: compressedBuffer,
@@ -170,7 +182,12 @@ export async function compressVideo(
           }
         })
         .on('error', (error) => {
+          if (timeoutId) clearTimeout(timeoutId)
+          
           console.error('❌ FFmpeg error:', error)
+          console.error('   This usually means FFmpeg is not installed or not accessible')
+          console.error('   Uploading original file without compression')
+          
           // Clean up temporary files on error
           try {
             if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile)
@@ -178,13 +195,28 @@ export async function compressVideo(
           } catch (cleanupError) {
             console.error('Cleanup error:', cleanupError)
           }
-          reject(error)
+          
+          // Return original buffer if FFmpeg is not available
+          resolve({
+            buffer: inputBuffer,
+            originalSize: inputBuffer.length,
+            compressedSize: inputBuffer.length,
+            compressionRatio: 0,
+            duration: 0
+          })
         })
         .run()
         
     } catch (error) {
       console.error('❌ Error setting up FFmpeg:', error)
-      reject(error)
+      // Return original buffer if setup fails
+      resolve({
+        buffer: inputBuffer,
+        originalSize: inputBuffer.length,
+        compressedSize: inputBuffer.length,
+        compressionRatio: 0,
+        duration: 0
+      })
     }
   })
 }
@@ -196,8 +228,8 @@ export async function generateVideoThumbnail(
   inputBuffer: Buffer,
   filename: string,
   timestamp: number = 1 // Default to 1 second
-): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
+): Promise<Buffer | null> {
+  return new Promise((resolve) => {
     const tempDir = os.tmpdir()
     const inputFile = path.join(tempDir, `input-${Date.now()}-${filename}`)
     const outputFile = path.join(tempDir, `output-${Date.now()}-${filename.replace(/\.[^/.]+$/, '')}.jpg`)
@@ -205,6 +237,10 @@ export async function generateVideoThumbnail(
     try {
       // Write input buffer to temporary file
       fs.writeFileSync(inputFile, inputBuffer)
+      
+      // Set timeout for thumbnail generation (30 seconds max)
+      const TIMEOUT = 30 * 1000
+      let timeoutId: NodeJS.Timeout | null = null
       
       ffmpeg()
         .input(inputFile)
@@ -216,32 +252,46 @@ export async function generateVideoThumbnail(
           '-f image2'
         ])
         .output(outputFile)
+        .on('start', () => {
+          timeoutId = setTimeout(() => {
+            console.error('⏱️ Thumbnail generation timeout')
+            resolve(null)
+          }, TIMEOUT)
+        })
         .on('end', () => {
+          if (timeoutId) clearTimeout(timeoutId)
+          
           try {
             const thumbnailBuffer = fs.readFileSync(outputFile)
             
             // Clean up temporary files
-            fs.unlinkSync(inputFile)
-            fs.unlinkSync(outputFile)
+            if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile)
+            if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
             
             resolve(thumbnailBuffer)
           } catch (error) {
             console.error('Error reading thumbnail:', error)
-            reject(error)
+            resolve(null)
           }
         })
         .on('error', (error) => {
-          console.error('FFmpeg error:', error)
+          if (timeoutId) clearTimeout(timeoutId)
+          
+          console.error('FFmpeg thumbnail generation error:', error)
+          console.error('   Continuing without thumbnail')
+          
           // Clean up on error
           try {
             if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile)
             if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
           } catch {}
-          reject(error)
+          
+          resolve(null)
         })
         .run()
     } catch (error) {
-      reject(error)
+      console.error('Error setting up FFmpeg for thumbnail:', error)
+      resolve(null)
     }
   })
 }
