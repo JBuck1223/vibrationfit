@@ -200,17 +200,17 @@ export default function JournalPage() {
       const baseFilename = s3KeyParts[s3KeyParts.length - 1]
       const filenameWithoutExt = baseFilename.replace(/\.[^/.]+$/, '')
       
-      // Try multiple processed URL patterns
-      // MediaConvert outputs with "-720p.mp4" suffix in the processed/ folder
+      // Build processed URL: same path, add /processed/ folder and -720p suffix
+      // Example: user-uploads/userId/journal/uploads/file.mov 
+      //      -> user-uploads/userId/journal/uploads/processed/file-720p.mp4
+      const processedPath = s3KeyParts.slice(0, -1).join('/')
+      const processedFilename = `${filenameWithoutExt}-720p.mp4`
+      const processedKey = `${processedPath}/processed/${processedFilename}`
+      
       const processedPatterns = [
-        // Pattern 1: Insert /processed/ folder and add -720p suffix (new MediaConvert output)
-        // user-uploads/userId/journal/uploads/file.mov -> user-uploads/userId/journal/uploads/processed/file-720p.mp4
-        `${s3KeyParts.slice(0, -1).join('/')}/processed/${filenameWithoutExt}-720p.mp4`,
-        // Pattern 2: Legacy -compressed suffix
-        `${s3KeyParts.slice(0, -1).join('/')}/processed/${filenameWithoutExt}-compressed.mp4`,
-        // Pattern 3: Try in parent folder processed/
-        `${s3KeyParts.slice(0, -2).join('/')}/processed/${filenameWithoutExt}-720p.mp4`
-      ].filter(Boolean) // Remove null values
+        processedKey,  // Primary pattern
+        s3Key.replace(/\.[^/.]+$/, '').replace(/\/([^/]+)$/, '/processed/$1-720p.mp4')  // Fallback
+      ]
       
       console.log('🔍 Trying processed patterns:', processedPatterns)
       

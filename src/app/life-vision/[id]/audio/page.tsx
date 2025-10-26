@@ -243,12 +243,114 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     setGenerating(true)
     setWorkingOn('triggered')
     try {
-      // Fetch vision text sections (simplified: get latest version content)
       const supabase = createClient()
+      
+      // Check if we have existing voice-only audio sets
+      const { data: existingStandardSets } = await supabase
+        .from('audio_sets')
+        .select('id, name, voice_id')
+        .eq('vision_id', visionId)
+        .eq('variant', 'standard')
+        .order('created_at', { ascending: false })
+        .limit(1)
+      
+      // For mixing-only variants (no voice regeneration needed)
+      // Check if selectedVariants include only non-standard variants
+      const needsVoiceGeneration = selectedVariants.includes('standard')
+      
+      if (needsVoiceGeneration && !voice) {
+        alert('Please select a voice for the standard version')
+        setGenerating(false)
+        setWorkingOn(null)
+        return
+      }
+
+      // If we have existing voice tracks and only mixing variants, reuse them
+      if (!needsVoiceGeneration && existingStandardSets && existingStandardSets.length > 0) {
+        setWorkingOn('creating mixed versions')
+        
+        // Create new audio sets for mixing variants using existing voice tracks
+        for (const variant of selectedVariants.filter(v => v !== 'standard')) {
+          const variantName = variant === 'sleep' ? 'Sleep Edition' :
+                             variant === 'energy' ? 'Energy Mix' :
+                             variant === 'meditation' ? 'Meditation' :
+                             'Audio Version'
+
+          // Get the first existing standard set to copy voice tracks from
+          const sourceSet = existingStandardSets[0]
+          
+          // Create new audio set for this variant
+          const { data: newSet } = await supabase
+            .from('audio_sets')
+            .insert({
+              vision_id: visionId,
+              user_id: (await supabase.auth.getUser()).data.user?.id,
+              name: variantName,
+              description: `Mixed version using existing voice with background`,
+              variant: variant,
+              voice_id: sourceSet.voice_id,
+            })
+            .select()
+            .single()
+
+          if (newSet) {
+            // Copy audio tracks from standard set
+            const { data: sourceTracks } = await supabase
+              .from('audio_tracks')
+              .select('*')
+              .eq('audio_set_id', sourceSet.id)
+
+            if (sourceTracks) {
+              // Insert copies with new audio_set_id and trigger mixing
+              for (const track of sourceTracks) {
+                const { data: newTrack } = await supabase
+                  .from('audio_tracks')
+                  .insert({
+                    user_id: track.user_id,
+                    vision_id: track.vision_id,
+                    audio_set_id: newSet.id,
+                    section_key: track.section_key,
+                    content_hash: track.content_hash,
+                    text_content: track.text_content,
+                    voice_id: track.voice_id,
+                    s3_bucket: track.s3_bucket,
+                    s3_key: track.s3_key,
+                    audio_url: track.audio_url,
+                    status: 'completed',
+                    mix_status: 'pending', // Will trigger Lambda mixing
+                  })
+                  .select()
+                  .single()
+
+                // Trigger Lambda mixing
+                if (newTrack) {
+                  await fetch('/api/audio/mix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      trackId: newTrack.id,
+                      voiceUrl: newTrack.audio_url,
+                      variant: variant,
+                      outputKey: track.s3_key?.replace('.mp3', '-mixed.mp3'),
+                    }),
+                  }).catch(err => console.error('Failed to trigger mixing:', err))
+                }
+              }
+            }
+          }
+        }
+        
+        await loadAudioSets()
+        await refreshStatus()
+        setWorkingOn(null)
+        setGenerating(false)
+        return
+      }
+
+      // Original generation flow for new voice tracks
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Load structure for 14 sections from existing vision record
       const { data: vv } = await supabase
         .from('vision_versions')
         .select('*')
@@ -307,6 +409,10 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
 
   const hasCompletedTracks = audioTracks.length > 0
   const hasIncompleteTracks = tracks.some(t => t.status !== 'completed')
+  
+  // Check if selected variants include standard (which requires voice)
+  const includesStandard = selectedVariants.includes('standard')
+  const needsVoice = includesStandard && !voice
 
   return (
     <Container size="lg">
@@ -463,25 +569,26 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
             </div>
             
             {/* Voice Selection & Generate */}
-            <div className="flex flex-col md:flex-row gap-3 md:items-center">
-              <select
-                value={voice}
-                onChange={(e) => {
-                  if (previewAudioRef.current) {
-                    previewAudioRef.current.pause()
-                    setIsPreviewing(false)
-                    setPreviewProgress(0)
-                  }
-                  setVoice(e.target.value)
-                }}
-                className="px-4 md:px-6 py-3 rounded-full bg-black/30 text-white text-sm border-2 border-white/30 h-[48px] flex-1"
-              >
-                {voices.map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
-              
-              <div className="flex gap-2">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col md:flex-row gap-3 md:items-center">
+                <select
+                  value={voice}
+                  onChange={(e) => {
+                    if (previewAudioRef.current) {
+                      previewAudioRef.current.pause()
+                      setIsPreviewing(false)
+                      setPreviewProgress(0)
+                    }
+                    setVoice(e.target.value)
+                  }}
+                  className="px-4 md:px-6 py-3 rounded-full bg-black/30 text-white text-sm border-2 border-white/30 h-[48px] flex-1"
+                >
+                  {voices.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+                
+                <div className="flex gap-2">
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -522,13 +629,21 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                 <Button 
                   variant="primary" 
                   onClick={handleGenerate} 
-                  disabled={generating}
+                  disabled={generating || needsVoice || selectedVariants.length === 0}
                   size="sm"
                   className="flex-1 md:flex-none"
                 >
                   {generating ? 'Generating…' : `Generate ${selectedVariants.length} Version${selectedVariants.length > 1 ? 's' : ''}`}
                 </Button>
+                </div>
               </div>
+              {/* Help text when disabled */}
+              {(needsVoice || selectedVariants.length === 0) && !generating && (
+                <p className="text-xs text-neutral-400 text-center md:text-left">
+                  {needsVoice && "⚠️ Please select a voice for the standard version"}
+                  {!needsVoice && selectedVariants.length === 0 && "⚠️ Please select at least one version type"}
+                </p>
+              )}
             </div>
           </Stack>
         </Card>

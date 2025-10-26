@@ -17,9 +17,21 @@ const s3Client = new S3Client({
 const BUCKET_NAME = process.env.BUCKET_NAME || 'vibration-fit-client-storage'
 
 export const handler = async (event) => {
-  console.log('Event:', JSON.stringify(event, null, 2))
+  console.log('Raw Event:', JSON.stringify(event, null, 2))
   
-  const { voiceUrl, bgUrl, outputKey, variant, voiceVolume, bgVolume, trackId } = event
+  // Parse event body if it's a string (from API Gateway/Lambda invoke)
+  let eventData = event
+  if (typeof event.body === 'string') {
+    try {
+      eventData = JSON.parse(event.body)
+    } catch (e) {
+      console.log('Event body is not JSON, using as-is')
+    }
+  }
+  
+  console.log('Parsed Event Data:', JSON.stringify(eventData, null, 2))
+  
+  const { voiceUrl, bgUrl, outputKey, variant, voiceVolume, bgVolume, trackId } = eventData
   
   try {
     // Download voice track
@@ -62,8 +74,8 @@ export const handler = async (event) => {
     console.error('Error:', error)
     
     // Update Supabase with error
-    if (event.trackId) {
-      await updateMixStatus(event.trackId, 'failed', null, null, error.message)
+    if (eventData.trackId) {
+      await updateMixStatus(eventData.trackId, 'failed', null, null, error.message)
     }
     
     return {
@@ -92,8 +104,9 @@ async function downloadFromS3(s3Url, localPath) {
 }
 
 async function mixAudio(voicePath, bgPath, outputPath, voiceVolume, bgVolume) {
-  // Use FFmpeg to mix audio
-  const command = `ffmpeg -i ${voicePath} -i ${bgPath} ` +
+  // Use FFmpeg from layer
+  const ffmpegPath = '/opt/ffmpeg-layer/bin/ffmpeg'
+  const command = `${ffmpegPath} -i ${voicePath} -i ${bgPath} ` +
     `-filter_complex "[0:a]volume=${voiceVolume}[a0];[1:a]volume=${bgVolume},aloop=loop=-1:size=2e+09[a1];[a0][a1]amix=inputs=2:duration=first" ` +
     `-codec:a libmp3lame -b:a 192k -y ${outputPath}`
   
