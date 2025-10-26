@@ -195,6 +195,34 @@ export async function POST(request: NextRequest) {
       await s3Client.send(originalCommand)
       console.log(`Original video uploaded: ${s3Key}`)
 
+      // Generate video thumbnail
+      let thumbnailUrl = null
+      try {
+        console.log('🎬 Generating video thumbnail for large video...')
+        const thumbnailBuffer = await generateVideoThumbnail(buffer, file.name)
+        
+        const thumbKey = s3Key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
+        const thumbCommand = new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: thumbKey,
+          Body: thumbnailBuffer,
+          ContentType: 'image/jpeg',
+          CacheControl: 'public, max-age=31536000, immutable',
+          Metadata: {
+            'original-filename': file.name,
+            'upload-timestamp': timestamp.toString(),
+            'is-thumbnail': 'true',
+            'original-s3-key': s3Key
+          }
+        })
+        
+        await s3Client.send(thumbCommand)
+        thumbnailUrl = `https://media.vibrationfit.com/${thumbKey}`
+        console.log(`✅ Video thumbnail uploaded: ${thumbKey}`)
+      } catch (thumbError) {
+        console.error('⚠️ Video thumbnail generation failed:', thumbError)
+      }
+
       // Trigger MediaConvert job
       try {
         console.log('🚀 Attempting to trigger MediaConvert job...')
@@ -216,7 +244,8 @@ export async function POST(request: NextRequest) {
       const originalUrl = `https://media.vibrationfit.com/${s3Key}`
       
        return NextResponse.json({ 
-         url: originalUrl, 
+         url: originalUrl,
+         thumbnailUrl,
          key: s3Key,
          status: 'uploaded',
          processing: 'pending',
