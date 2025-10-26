@@ -39,7 +39,7 @@ exports.handler = async (event) => {
     }
 
     // Extract user ID and folder from path
-    // Expected format: user-uploads/{userId}/{folder}/{filename}
+    // Expected format: user-uploads/{userId}/{folder}/{subfolder}/{filename}
     const pathParts = objectKey.split('/');
     if (pathParts.length < 3 || pathParts[0] !== 'user-uploads') {
       console.log('⚠️  Invalid path format:', objectKey);
@@ -48,11 +48,16 @@ exports.handler = async (event) => {
 
     const userId = pathParts[1];
     const folder = pathParts[2];
+    
+    // Build destination path based on upload path
+    // user-uploads/userId/journal/uploads/file.mov -> user-uploads/userId/journal/uploads/processed/
+    const destinationPath = pathParts.slice(0, -1).join('/') + '/processed/';
 
     console.log(`🎬 Triggering MediaConvert for video:`, {
       userId,
       folder,
-      objectKey
+      objectKey,
+      destinationPath
     });
 
     try {
@@ -74,7 +79,7 @@ exports.handler = async (event) => {
             OutputGroupSettings: {
               Type: OutputGroupType.FILE_GROUP_SETTINGS,
               FileGroupSettings: {
-                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/uploads/processed/`
+                Destination: `s3://${BUCKET_NAME}/${destinationPath}`
               }
             },
             Outputs: [{
