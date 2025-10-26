@@ -99,6 +99,30 @@ export async function uploadFileWithPresignedUrl(
 
     if (onProgress) onProgress(100)
 
+    // Generate thumbnail for images and videos
+    try {
+      console.log('📸 Triggering thumbnail generation...')
+      const thumbResponse = await fetch('/api/upload/generate-thumbnail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          s3Key: key,
+          fileType: file.type,
+          fileName: file.name
+        })
+      })
+      
+      if (thumbResponse.ok) {
+        const result = await thumbResponse.json()
+        console.log('✅ Thumbnail generated:', result.thumbnailUrl)
+      } else {
+        console.error('⚠️ Thumbnail generation failed:', await thumbResponse.text())
+      }
+    } catch (thumbError) {
+      console.error('⚠️ Thumbnail generation error:', thumbError)
+      // Continue - thumbnail is optional
+    }
+
     // For videos, either compress (smaller) or trigger MediaConvert (larger)
     if (file.type.startsWith('video/')) {
       if (file.size > 20 * 1024 * 1024) {
