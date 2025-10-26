@@ -133,22 +133,65 @@ export async function generateAudioTracks(params: {
   voice?: OpenAIVoice
   format?: 'mp3' | 'wav'
   force?: boolean
+  audioSetId?: string // Optional: specify which audio set to generate for
+  audioSetName?: string // Optional: name for new audio set if creating one
+  variant?: string // Optional: variant type (standard, sleep, energy, etc.)
 }): Promise<GeneratedTrackResult[]> {
-  const { userId, visionId, sections, voice = 'alloy', format = 'mp3', force = false } = params
+  const { userId, visionId, sections, voice = 'alloy', format = 'mp3', force = false, audioSetId, audioSetName, variant } = params
   const supabase = await createClient()
   const s3 = getS3Client()
 
   const results: GeneratedTrackResult[] = []
 
+  // Get or create audio_set
+  let targetAudioSetId: string
+  
+  if (audioSetId) {
+    // Use specified audio set
+    targetAudioSetId = audioSetId
+  } else {
+    // Create or get default audio set
+    const { data: existingSet } = await supabase
+      .from('audio_sets')
+      .select('id')
+      .eq('vision_id', visionId)
+      .eq('variant', variant || 'standard')
+      .maybeSingle()
+    
+    if (existingSet) {
+      targetAudioSetId = existingSet.id
+    } else {
+      // Create new audio set
+      const { data: newSet, error: setError } = await supabase
+        .from('audio_sets')
+        .insert({
+          vision_id: visionId,
+          user_id: userId,
+          name: audioSetName || `${variant || 'Standard'} Version`,
+          description: `Audio version for ${variant || 'standard'} playback`,
+          variant: variant || 'standard',
+          voice_id: voice,
+        })
+        .select()
+        .single()
+      
+      if (setError || !newSet) {
+        throw new Error(`Failed to create audio set: ${setError?.message}`)
+      }
+      targetAudioSetId = newSet.id
+    }
+  }
+
   for (const section of sections) {
     const contentHash = hashContent(section.text)
 
-    // Check if an identical track already exists
+    // Check if an identical track already exists in this audio set
     const { data: existing, error: existingError } = await supabase
       .from('audio_tracks')
       .select('*')
       .eq('user_id', userId)
       .eq('vision_id', visionId)
+      .eq('audio_set_id', targetAudioSetId)
       .eq('section_key', section.sectionKey)
       .eq('content_hash', contentHash)
       .maybeSingle()
@@ -182,6 +225,7 @@ export async function generateAudioTracks(params: {
         .insert({
           user_id: userId,
           vision_id: visionId,
+          audio_set_id: targetAudioSetId,
           section_key: section.sectionKey,
           content_hash: contentHash,
           text_content: section.text,

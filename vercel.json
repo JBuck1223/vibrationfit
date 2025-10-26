@@ -10,16 +10,5 @@
       "maxDuration": 300,
       "memory": 3008
     }
-  },
-  "headers": [
-    {
-      "source": "/api/upload",
-      "headers": [
-        {
-          "key": "x-vercel-body-size-limit",
-          "value": "0"
-        }
-      ]
-    }
-  ]
+  }
 }
