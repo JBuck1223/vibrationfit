@@ -90,14 +90,21 @@ export default function AudioSetPlayerPage({
 
     // Format tracks for PlaylistPlayer
     const formattedTracks: AudioTrack[] = tracks
-      .map(track => ({
-        id: track.id,
-        title: sectionMap.get(track.section_key) || track.section_key,
-        artist: 'VibrationFit AI',
-        duration: track.duration_seconds || 180,
-        url: track.audio_url,
-        thumbnail: ''
-      }))
+      .map(track => {
+        // Use mixed_audio_url if completed, otherwise use voice-only audio_url
+        const url = track.mixed_audio_url && track.mix_status === 'completed' 
+          ? track.mixed_audio_url 
+          : track.audio_url
+        
+        return {
+          id: track.id,
+          title: sectionMap.get(track.section_key) || track.section_key,
+          artist: 'VibrationFit AI',
+          duration: track.duration_seconds || 180,
+          url: url || '',
+          thumbnail: ''
+        }
+      })
       .filter(track => track.url && track.url.length > 0)
 
     setAudioTracks(formattedTracks)

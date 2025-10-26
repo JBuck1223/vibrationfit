@@ -26,6 +26,9 @@ export default function JournalPage() {
   const router = useRouter()
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -39,6 +42,12 @@ export default function JournalPage() {
 
   useEffect(() => {
     async function fetchData() {
+      if (page === 1) {
+        setLoading(true)
+      } else {
+        setLoadingMore(true)
+      }
+
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
@@ -49,18 +58,36 @@ export default function JournalPage() {
 
       setUser(user)
 
-      const { data: entries } = await supabase
+      const limit = 20
+      const offset = (page - 1) * limit
+
+      const { data: entries, error } = await supabase
         .from('journal_entries')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
 
-      setEntries(entries || [])
-      setLoading(false)
+      if (error) {
+        console.error('Error fetching entries:', error)
+        setLoading(false)
+        setLoadingMore(false)
+        return
+      }
+
+      if (page === 1) {
+        setEntries(entries || [])
+        setLoading(false)
+      } else {
+        setEntries(prev => [...prev, ...(entries || [])])
+        setLoadingMore(false)
+      }
+
+      setHasMore((entries || []).length === limit)
     }
 
     fetchData()
-  }, [router])
+  }, [router, page])
 
   // Check for processed video URLs after entries are loaded
   useEffect(() => {
@@ -554,6 +581,19 @@ export default function JournalPage() {
                 </div>
               </Card>
             ))}
+
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-center py-8">
+                <Button
+                  onClick={() => setPage(page + 1)}
+                  variant="outline"
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? 'Loading...' : 'Load More'}
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-16">

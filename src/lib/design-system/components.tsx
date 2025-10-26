@@ -3325,68 +3325,10 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   const [originalOrder, setOriginalOrder] = useState<number[]>([])
   
   const audioRef = useRef<HTMLAudioElement>(null)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const voiceSourceRef = useRef<AudioBufferSourceNode | null>(null)
-  const bgSourceRef = useRef<AudioBufferSourceNode | null>(null)
 
   const currentTrack = tracks[currentTrackIndex]
   
-  // Import background mixing when needed
-  useEffect(() => {
-    const initMixing = async () => {
-      if (!currentTrack?.variant || currentTrack.variant === 'standard') {
-        // No mixing needed for standard
-        return
-      }
-      
-      // Don't attempt mixing if URL is empty or invalid
-      if (!currentTrack.url || currentTrack.url.trim() === '') {
-        console.warn('No URL provided for track, skipping mixing:', currentTrack.title)
-        return
-      }
-      
-      try {
-        // Lazy load the mixing utility
-        const { createMixedAudio } = await import('@/lib/audio/backgroundMixing')
-        
-        // Create audio context
-        if (!audioContextRef.current) {
-          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-        }
-        
-        // Stop any existing sources
-        if (voiceSourceRef.current) {
-          try {
-            voiceSourceRef.current.stop()
-          } catch (e) {}
-        }
-        if (bgSourceRef.current) {
-          try {
-            bgSourceRef.current.stop()
-          } catch (e) {}
-        }
-        
-        // Create mixed audio
-        const mixed = await createMixedAudio(
-          currentTrack.url,
-          currentTrack.variant,
-          audioContextRef.current
-        )
-        
-        voiceSourceRef.current = (mixed as any).voice
-        bgSourceRef.current = (mixed as any).background
-        
-        console.log('✅ Background mixing initialized for:', currentTrack.variant)
-      } catch (error) {
-        console.warn('Background mixing failed, using standard playback:', error)
-        // Clear refs to prevent mixing attempts
-        voiceSourceRef.current = null
-        bgSourceRef.current = null
-      }
-    }
-    
-    initMixing()
-  }, [currentTrack])
+  // Audio mixing handled by server-side Lambda
 
   useEffect(() => {
     const audio = audioRef.current
@@ -3422,45 +3364,16 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   }, [currentTrackIndex])
 
   const togglePlayPause = async () => {
-    // If mixing is enabled, use Web Audio API
-    if (currentTrack?.variant && currentTrack.variant !== 'standard' && voiceSourceRef.current && bgSourceRef.current) {
-      if (isPlaying) {
-        // Pause mixing
-        try {
-          voiceSourceRef.current.stop()
-          bgSourceRef.current.stop()
-        } catch (e) {}
-        setIsPlaying(false)
-      } else {
-        // Start mixing
-        try {
-          // Resume audio context if suspended
-          if (audioContextRef.current?.state === 'suspended') {
-            await audioContextRef.current.resume()
-          }
-          
-          voiceSourceRef.current.start(0)
-          bgSourceRef.current.start(0)
-          setIsPlaying(true)
-        } catch (error) {
-          console.warn('Failed to start mixed audio, using fallback:', error)
-          // Fallback to regular audio
-          audioRef.current?.play()
-          setIsPlaying(true)
-        }
-      }
-    } else {
-      // Use standard HTML audio
-      const audio = audioRef.current
-      if (!audio) return
+    // Use standard HTML audio (server-side mixing handles all mixing)
+    const audio = audioRef.current
+    if (!audio) return
 
-      if (isPlaying) {
-        audio.pause()
-      } else {
-        audio.play()
-      }
-      setIsPlaying(!isPlaying)
+    if (isPlaying) {
+      audio.pause()
+    } else {
+      audio.play()
     }
+    setIsPlaying(!isPlaying)
   }
 
   const handlePrevious = () => {

@@ -8,10 +8,7 @@ const execAsync = promisify(exec)
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-east-2',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
+  // Don't specify credentials - use Lambda execution role (audio-mixer-lambda-role)
 })
 
 const BUCKET_NAME = process.env.BUCKET_NAME || 'vibration-fit-client-storage'
@@ -89,8 +86,19 @@ export const handler = async (event) => {
 }
 
 async function downloadFromS3(s3Url, localPath) {
-  // Extract key from S3 URL
-  const key = s3Url.split(BUCKET_NAME + '/')[1]
+  // Extract key from CloudFront URL or S3 URL
+  let key
+  if (s3Url.includes(BUCKET_NAME + '/')) {
+    // S3 URL format
+    key = s3Url.split(BUCKET_NAME + '/')[1]
+  } else if (s3Url.includes('media.vibrationfit.com/')) {
+    // CloudFront URL format - extract path after domain
+    key = s3Url.split('media.vibrationfit.com/')[1]
+  } else {
+    throw new Error(`Invalid URL format: ${s3Url}`)
+  }
+  
+  console.log(`Downloading from S3: bucket=${BUCKET_NAME}, key=${key}`)
   
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,

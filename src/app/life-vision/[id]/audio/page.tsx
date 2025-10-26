@@ -221,6 +221,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     
     // If we have a selected audio set, query its tracks
     if (selectedAudioSetId) {
+      console.log('[refreshStatus] Querying audio_set_id:', selectedAudioSetId)
       const supabase = createClient()
       const { data: tracks } = await supabase
         .from('audio_tracks')
@@ -229,17 +230,26 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         .eq('audio_set_id', selectedAudioSetId)
         .order('section_key')
       
-      const mapped = (tracks || []).map((t: any) => ({
-        sectionKey: t.section_key,
-        title: prettySectionTitle(t.section_key),
-        // Use mixed_audio_url if available and completed, otherwise use voice-only audio_url
-        url: t.mixed_audio_url && t.mix_status === 'completed' ? t.mixed_audio_url : (t.audio_url || ''),
-        status: t.status,
-        createdAt: t.created_at,
-        voiceId: t.voice_id,
-        contentHash: t.content_hash,
-        mixStatus: t.mix_status,
-      }))
+      console.log('[refreshStatus] Found', tracks?.length || 0, 'tracks')
+      
+      const mapped = (tracks || []).map((t: any) => {
+        const url = t.mixed_audio_url && t.mix_status === 'completed' ? t.mixed_audio_url : (t.audio_url || '')
+        // Debug logging
+        if (t.mixed_audio_url) {
+          console.log(`[${t.section_key}] mix_status: ${t.mix_status}, using: ${url === t.mixed_audio_url ? 'MIXED' : 'ORIGINAL'}`)
+        }
+        return {
+          sectionKey: t.section_key,
+          title: prettySectionTitle(t.section_key),
+          // Use mixed_audio_url if available and completed, otherwise use voice-only audio_url
+          url,
+          status: t.status,
+          createdAt: t.created_at,
+          voiceId: t.voice_id,
+          contentHash: t.content_hash,
+          mixStatus: t.mix_status,
+        }
+      })
       
       // Remove duplicates by sectionKey (keep the most recent one)
       const uniqueMap = new Map<string, any>()
@@ -577,22 +587,35 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                         : 'border-neutral-700 bg-black/30 hover:border-neutral-600'
                     }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedVariants.includes(v.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedVariants([...selectedVariants, v.id])
-                        } else {
-                          // Don't allow unchecking if it's the last one
-                          if (selectedVariants.length > 1) {
-                            setSelectedVariants(selectedVariants.filter(vid => vid !== v.id))
+                    <div
+                      className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-all ${
+                        selectedVariants.includes(v.id)
+                          ? 'border-[#39FF14] bg-[#39FF14]'
+                          : 'border-neutral-600 bg-transparent'
+                      } ${selectedVariants.length === 1 && selectedVariants.includes(v.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {selectedVariants.includes(v.id) && (
+                        <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      <input
+                        type="checkbox"
+                        checked={selectedVariants.includes(v.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedVariants([...selectedVariants, v.id])
+                          } else {
+                            // Don't allow unchecking if it's the last one
+                            if (selectedVariants.length > 1) {
+                              setSelectedVariants(selectedVariants.filter(vid => vid !== v.id))
+                            }
                           }
-                        }
-                      }}
-                      disabled={selectedVariants.length === 1 && selectedVariants.includes(v.id)}
-                      className="mt-1 w-5 h-5 rounded border-2 border-neutral-600 bg-transparent text-[#39FF14] focus:ring-[#39FF14] disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
+                        }}
+                        disabled={selectedVariants.length === 1 && selectedVariants.includes(v.id)}
+                        className="absolute opacity-0 w-5 h-5 cursor-pointer"
+                      />
+                    </div>
                     <div className="flex-1">
                       <div className="text-sm font-medium text-white">{v.label}</div>
                       <div className="text-xs text-neutral-400">{v.desc}</div>
@@ -697,6 +720,29 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
           </Stack>
         </Card>
 
+        {/* Status Messages */}
+        {workingOn === 'triggered' && (
+          <Card variant="glass" className="p-4 bg-gradient-to-r from-[#199D67]/20 to-[#8B5CF6]/20 border-[#39FF14]/30">
+            <div className="flex items-center gap-3">
+              <div className="animate-pulse">
+                <div className="w-3 h-3 bg-[#39FF14] rounded-full"></div>
+              </div>
+              <div>
+                <h4 className="text-[#39FF14] font-semibold text-sm md:text-base">VIVA is creating your custom audios!</h4>
+                <p className="text-neutral-300 text-xs md:text-sm">Voice tracks are generating first, then background mixing will happen automatically. They will appear here when complete.</p>
+              </div>
+            </div>
+          </Card>
+        )}
+        {workingOn && workingOn !== 'triggered' && (
+          <Card variant="glass" className="p-4">
+            <div className="flex items-center gap-2 text-center">
+              <Spinner variant="primary" size="sm" />
+              <span className="text-sm text-neutral-300">Working on: <span className="text-[#39FF14]">{workingOn}</span></span>
+            </div>
+          </Card>
+        )}
+
         {/* Job Queue Dropdown */}
         {allJobs.length > 0 && (
           <Card variant="default" className="p-4">
@@ -757,29 +803,6 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
           </div>
         ) : (
           <Stack gap="md">
-            {/* Status Messages */}
-            {workingOn === 'triggered' && (
-              <Card variant="glass" className="p-4 bg-gradient-to-r from-[#199D67]/20 to-[#8B5CF6]/20 border-[#39FF14]/30">
-                <div className="flex items-center gap-3">
-                  <div className="animate-pulse">
-                    <div className="w-3 h-3 bg-[#39FF14] rounded-full"></div>
-                  </div>
-                  <div>
-                    <h4 className="text-[#39FF14] font-semibold text-sm md:text-base">VIVA is creating your custom audios!</h4>
-                    <p className="text-neutral-300 text-xs md:text-sm">Voice tracks are generating first, then background mixing will happen automatically. They will appear here when complete.</p>
-                  </div>
-                </div>
-              </Card>
-            )}
-            {workingOn && workingOn !== 'triggered' && (
-              <Card variant="glass" className="p-4">
-                <div className="flex items-center gap-2 text-center">
-                  <Spinner variant="primary" size="sm" />
-                  <span className="text-sm text-neutral-300">Working on: <span className="text-[#39FF14]">{workingOn}</span></span>
-                </div>
-              </Card>
-            )}
-
             {/* Voice Preview Card */}
             {isPreviewing && (
               <Card variant="default" className="p-4">
