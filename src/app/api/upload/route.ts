@@ -144,6 +144,9 @@ export async function POST(request: NextRequest) {
           const originalBuffer = Buffer.from(arrayBuffer)
           const thumbnailBuffer = await generateVideoThumbnail(originalBuffer, file.name)
           
+          const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
+          const finalFilename = `${nameWithoutExt}-compressed.mp4`
+          const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
           const thumbKey = finalS3Key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
           const thumbCommand = new PutObjectCommand({
             Bucket: BUCKET_NAME,

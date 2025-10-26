@@ -35,10 +35,17 @@ export async function POST(request: NextRequest) {
       throw new Error('No body in S3 response')
     }
 
+    // Handle streaming body
     const chunks: Uint8Array[] = []
-    for await (const chunk of response.Body) {
-      chunks.push(chunk)
+    const body = response.Body as ReadableStream
+    const reader = body.getReader()
+    
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
     }
+    
     const buffer = Buffer.concat(chunks)
 
     let thumbnailBuffer: Buffer | null = null
