@@ -197,17 +197,22 @@ export default function JournalPage() {
     return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
   }
 
-  // Get thumbnail URL for images (with fallback to original)
+  // Get thumbnail URL for images and videos (with fallback to original)
   const getThumbnailUrl = (url: string) => {
     // If already a thumbnail, return as-is
-    if (url.includes('-thumb.webp')) return url
-    // Videos don't have thumbnails yet
-    if (isVideo(url)) return url
-    // Only generate thumbnail URL for images (jpg, jpeg, png, webp)
+    if (url.includes('-thumb.')) return url
+    
+    // Videos now have thumbnails
+    if (isVideo(url)) {
+      return url.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
+    }
+    
+    // Images have WebP thumbnails
     const ext = url.split('.').pop()?.toLowerCase()
     if (ext && ['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
       return url.replace(/\.(jpg|jpeg|png|webp)$/i, '-thumb.webp')
     }
+    
     // For other file types, return original
     return url
   }
@@ -447,15 +452,18 @@ export default function JournalPage() {
                         const videoKey = `${entry.id}-${index}`
                         const hasError = videoErrors[videoKey] || false
                         const isLoading = videoLoading[videoKey] !== false
+                        const thumbUrl = getThumbnailUrl(url)
+                        const hasThumb = thumbnailExists[url] !== false
                         
                         return (
                           <div key={`video-${index}`} className="relative group">
                             {!hasError ? (
                               <video
                                 src={processedVideoUrls[url] || url}
+                                poster={hasThumb ? thumbUrl : undefined}
                                 className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors"
                                 controls
-                                preload="metadata"
+                                preload="none"
                                 onError={(e) => {
                                   const videoUrl = processedVideoUrls[url] || url
                                   console.error('Video load error for:', videoUrl)

@@ -1,4 +1,5 @@
 import ffmpeg from 'fluent-ffmpeg'
+import sharp from 'sharp'
 import { PassThrough } from 'stream'
 import fs from 'fs'
 import path from 'path'
@@ -224,6 +225,63 @@ export async function generateVideoThumbnail(
       .output(outputStream)
       .on('error', reject)
       .run()
+  })
+}
+
+/**
+ * Generate a thumbnail/poster image from video
+ */
+export async function generateVideoThumbnail(
+  inputBuffer: Buffer,
+  filename: string,
+  timestamp: number = 1 // Default to 1 second
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const tempDir = os.tmpdir()
+    const inputFile = path.join(tempDir, `input-${Date.now()}-${filename}`)
+    const outputFile = path.join(tempDir, `output-${Date.now()}-${filename.replace(/\.[^/.]+$/, '')}.jpg`)
+
+    try {
+      // Write input buffer to temporary file
+      fs.writeFileSync(inputFile, inputBuffer)
+      
+      ffmpeg()
+        .input(inputFile)
+        .seekInput(timestamp)
+        .outputOptions([
+          '-vframes 1',
+          '-q:v 2',
+          '-vf', 'scale=400:300:force_original_aspect_ratio=decrease',
+          '-f image2'
+        ])
+        .output(outputFile)
+        .on('end', () => {
+          try {
+            const thumbnailBuffer = fs.readFileSync(outputFile)
+            
+            // Clean up temporary files
+            fs.unlinkSync(inputFile)
+            fs.unlinkSync(outputFile)
+            
+            resolve(thumbnailBuffer)
+          } catch (error) {
+            console.error('Error reading thumbnail:', error)
+            reject(error)
+          }
+        })
+        .on('error', (error) => {
+          console.error('FFmpeg error:', error)
+          // Clean up on error
+          try {
+            if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile)
+            if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
+          } catch {}
+          reject(error)
+        })
+        .run()
+    } catch (error) {
+      reject(error)
+    }
   })
 }
 

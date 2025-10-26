@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { MediaConvertClient, CreateJobCommand, AudioDefaultSelection, OutputGroupType, AacCodingMode } from '@aws-sdk/client-mediaconvert'
 import { optimizeImage, shouldOptimizeImage, getOptimalDimensions, generateThumbnail } from '@/lib/utils/imageOptimization'
-import { compressVideo, shouldCompressVideo, getCompressionOptions } from '@/lib/utils/videoOptimization'
+import { compressVideo, shouldCompressVideo, getCompressionOptions, generateVideoThumbnail } from '@/lib/utils/videoOptimization'
 
 // Configure runtime for large file uploads
 export const runtime = 'nodejs'
@@ -137,6 +137,34 @@ export async function POST(request: NextRequest) {
         finalFilename = `${nameWithoutExt}-compressed.mp4`
         
         console.log(`Video compression completed. Original: ${(compressionResult.originalSize / 1024 / 1024).toFixed(2)}MB, Compressed: ${(compressionResult.compressedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${compressionResult.compressionRatio.toFixed(1)}%`)
+        
+        // Generate video thumbnail (use original buffer before compression)
+        try {
+          console.log('🎬 Generating video thumbnail...')
+          const originalBuffer = Buffer.from(arrayBuffer)
+          const thumbnailBuffer = await generateVideoThumbnail(originalBuffer, file.name)
+          
+          const thumbKey = finalS3Key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
+          const thumbCommand = new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: thumbKey,
+            Body: thumbnailBuffer,
+            ContentType: 'image/jpeg',
+            CacheControl: 'public, max-age=31536000, immutable',
+            Metadata: {
+              'original-filename': file.name,
+              'upload-timestamp': timestamp.toString(),
+              'is-thumbnail': 'true',
+              'original-s3-key': finalS3Key
+            }
+          })
+          
+          await s3Client.send(thumbCommand)
+          thumbnailUrl = `https://media.vibrationfit.com/${thumbKey}`
+          console.log(`✅ Video thumbnail uploaded: ${thumbKey}`)
+        } catch (thumbError) {
+          console.error('⚠️ Video thumbnail generation failed:', thumbError)
+        }
       } catch (compressionError) {
         console.error('Video compression failed:', compressionError)
         // Continue with original file if compression fails
