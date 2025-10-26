@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { MediaConvertClient, CreateJobCommand, AudioDefaultSelection, OutputGroupType, AacCodingMode } from '@aws-sdk/client-mediaconvert'
-import { optimizeImage, shouldOptimizeImage, getOptimalDimensions } from '@/lib/utils/imageOptimization'
+import { optimizeImage, shouldOptimizeImage, getOptimalDimensions, generateThumbnail } from '@/lib/utils/imageOptimization'
 import { compressVideo, shouldCompressVideo, getCompressionOptions } from '@/lib/utils/videoOptimization'
 
 // Configure runtime for large file uploads
@@ -268,11 +268,44 @@ export async function POST(request: NextRequest) {
       throw new Error(`S3 upload failed: ${s3Error instanceof Error ? s3Error.message : 'Unknown error'}`)
     }
 
+    // Generate and upload thumbnail for images
+    let thumbnailUrl = null
+    if (file.type.startsWith('image/')) {
+      try {
+        console.log('📸 Generating thumbnail for image')
+        const originalBuffer = await file.arrayBuffer().then(buf => Buffer.from(buf))
+        const thumbnailBuffer = await generateThumbnail(originalBuffer, 400, 300)
+        
+        const thumbKey = finalS3Key.replace(/\.(jpg|jpeg|png|webp)$/i, '-thumb.webp')
+        const thumbCommand = new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: thumbKey,
+          Body: thumbnailBuffer,
+          ContentType: 'image/webp',
+          CacheControl: 'public, max-age=31536000, immutable',
+          Metadata: {
+            'original-filename': file.name,
+            'upload-timestamp': timestamp.toString(),
+            'is-thumbnail': 'true',
+            'original-s3-key': finalS3Key
+          }
+        })
+        
+        await s3Client.send(thumbCommand)
+        thumbnailUrl = `https://media.vibrationfit.com/${thumbKey}`
+        console.log(`✅ Thumbnail uploaded: ${thumbKey}`)
+      } catch (thumbError) {
+        console.error('⚠️ Thumbnail generation failed:', thumbError)
+        // Continue without thumbnail
+      }
+    }
+
     // Return CDN URL
     const url = `https://media.vibrationfit.com/${finalS3Key}`
 
     return NextResponse.json({ 
       url, 
+      thumbnailUrl,
       key: finalS3Key,
       status: 'completed',
       processing: 'none',

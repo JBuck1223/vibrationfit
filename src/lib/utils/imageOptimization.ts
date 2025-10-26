@@ -139,6 +139,30 @@ export async function generateBlurPlaceholder(inputBuffer: Buffer): Promise<stri
 }
 
 /**
+ * Generate a thumbnail version of an image
+ */
+export async function generateThumbnail(
+  inputBuffer: Buffer,
+  width: number = 400,
+  height: number = 300
+): Promise<Buffer> {
+  try {
+    const thumbnailBuffer = await sharp(inputBuffer)
+      .resize(width, height, {
+        fit: 'cover',
+        position: 'center'
+      })
+      .webp({ quality: 80 })
+      .toBuffer()
+    
+    return thumbnailBuffer
+  } catch (error) {
+    console.error('Thumbnail generation failed:', error)
+    throw error
+  }
+}
+
+/**
  * Check if image should be optimized based on size and format
  */
 export function shouldOptimizeImage(file: File): boolean {

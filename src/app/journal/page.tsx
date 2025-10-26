@@ -197,6 +197,14 @@ export default function JournalPage() {
     return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
   }
 
+  // Get thumbnail URL for images (falls back to original if no thumbnail)
+  const getThumbnailUrl = (url: string) => {
+    if (url.includes('-thumb.webp')) return url
+    if (isVideo(url)) return url // Videos don't have thumbnails yet
+    // Generate thumbnail URL
+    return url.replace(/\.(jpg|jpeg|png)$/i, '-thumb.webp')
+  }
+
   // Check for processed video URLs
   const getProcessedVideoUrl = useCallback(async (originalUrl: string) => {
     try {
@@ -470,7 +478,7 @@ export default function JournalPage() {
                           }).slice(0, 4).map((url: string, index: number) => (
                             <div key={`image-${index}`} className="relative group aspect-square">
                               <Image
-                                src={url}
+                                src={getThumbnailUrl(url)}
                                 alt={`Entry image ${index + 1}`}
                                 width={200}
                                 height={200}
@@ -478,6 +486,7 @@ export default function JournalPage() {
                                 onClick={() => openLightbox(entry.image_urls, entry.image_urls.indexOf(url))}
                                 quality={85}
                                 sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                                loading="lazy"
                               />
                             </div>
                           ))}
