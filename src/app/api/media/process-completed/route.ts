@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
+  console.log('📝 API called: process-completed')
   try {
     const supabase = await createClient()
     const { s3Key, userId } = await request.json()
