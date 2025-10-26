@@ -197,13 +197,50 @@ export default function JournalPage() {
     return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
   }
 
-  // Get thumbnail URL for images (falls back to original if no thumbnail)
+  // Get thumbnail URL for images (with fallback to original)
   const getThumbnailUrl = (url: string) => {
+    // If already a thumbnail, return as-is
     if (url.includes('-thumb.webp')) return url
-    if (isVideo(url)) return url // Videos don't have thumbnails yet
-    // Generate thumbnail URL
-    return url.replace(/\.(jpg|jpeg|png)$/i, '-thumb.webp')
+    // Videos don't have thumbnails yet
+    if (isVideo(url)) return url
+    // Only generate thumbnail URL for images (jpg, jpeg, png, webp)
+    const ext = url.split('.').pop()?.toLowerCase()
+    if (ext && ['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+      return url.replace(/\.(jpg|jpeg|png|webp)$/i, '-thumb.webp')
+    }
+    // For other file types, return original
+    return url
   }
+
+  // Check if thumbnail exists (for existing images without thumbnails)
+  const [thumbnailExists, setThumbnailExists] = useState<Record<string, boolean>>({})
+  
+  useEffect(() => {
+    const checkThumbnails = async () => {
+      const exists: Record<string, boolean> = {}
+      
+      for (const entry of entries) {
+        if (entry.image_urls) {
+          for (const url of entry.image_urls) {
+            if (isVideo(url)) continue
+            const thumbUrl = getThumbnailUrl(url)
+            if (thumbUrl !== url) {
+              try {
+                const response = await fetch(thumbUrl, { method: 'HEAD' })
+                exists[url] = response.ok
+              } catch {
+                exists[url] = false
+              }
+            }
+          }
+        }
+      }
+      
+      setThumbnailExists(exists)
+    }
+    
+    checkThumbnails()
+  }, [entries])
 
   // Check for processed video URLs
   const getProcessedVideoUrl = useCallback(async (originalUrl: string) => {
@@ -475,21 +512,27 @@ export default function JournalPage() {
                           {entry.image_urls.filter(url => {
                             const ext = url.split('.').pop()?.toLowerCase()
                             return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
-                          }).slice(0, 4).map((url: string, index: number) => (
-                            <div key={`image-${index}`} className="relative group aspect-square">
-                              <Image
-                                src={getThumbnailUrl(url)}
-                                alt={`Entry image ${index + 1}`}
-                                width={200}
-                                height={200}
-                                className="w-full h-full object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                                onClick={() => openLightbox(entry.image_urls, entry.image_urls.indexOf(url))}
-                                quality={85}
-                                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                                loading="lazy"
-                              />
-                            </div>
-                          ))}
+                          }).slice(0, 4).map((url: string, index: number) => {
+                            const thumbUrl = getThumbnailUrl(url)
+                            const hasThumb = thumbnailExists[url] !== false // Default to true if not checked yet
+                            const imageUrl = hasThumb ? thumbUrl : url
+                            
+                            return (
+                              <div key={`image-${index}`} className="relative group aspect-square">
+                                <Image
+                                  src={imageUrl}
+                                  alt={`Entry image ${index + 1}`}
+                                  width={200}
+                                  height={200}
+                                  className="w-full h-full object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                                  onClick={() => openLightbox(entry.image_urls, entry.image_urls.indexOf(url))}
+                                  quality={85}
+                                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                                  loading="lazy"
+                                />
+                              </div>
+                            )
+                          })}
                         </div>
                       )}
                       
