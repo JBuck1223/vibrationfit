@@ -120,13 +120,16 @@ export default function DesignSystemExperiment() {
   const [showDeleteDemo, setShowDeleteDemo] = useState(false)
 
   // Sample audio tracks for showcase
+  // Note: These are placeholder URLs. Replace with your actual audio files.
+  // For testing with real audio files from your life vision at:
+  // /life-vision/bd8e6440-a65b-4b01-bca0-28ae8e875b3f/audio
   const sampleTracks: AudioTrack[] = [
     {
       id: '1',
-      title: 'Forward - Your Life Vision',
+      title: 'Life Vision Forward',
       artist: 'VibrationFit AI',
       duration: 180,
-      url: 'https://media.vibrationfit.com/life-vision/bd8e6440-a65b-4b01-bca0-28ae8e875b3f/forward.mp3',
+      url: 'https://commondatastorage.googleapis.com/codeskulptor-assets/Epoq-Lepidoptera.ogg',
       thumbnail: ''
     },
     {
@@ -134,7 +137,7 @@ export default function DesignSystemExperiment() {
       title: 'Health & Vitality',
       artist: 'VibrationFit AI',
       duration: 210,
-      url: 'https://media.vibrationfit.com/life-vision/bd8e6440-a65b-4b01-bca0-28ae8e875b3f/health.mp3',
+      url: 'https://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Sevish_-__nbsp_.mp3',
       thumbnail: ''
     },
     {
@@ -142,7 +145,7 @@ export default function DesignSystemExperiment() {
       title: 'Money & Abundance',
       artist: 'VibrationFit AI',
       duration: 195,
-      url: 'https://media.vibrationfit.com/life-vision/bd8e6440-a65b-4b01-bca0-28ae8e875b3f/money.mp3',
+      url: 'https://commondatastorage.googleapis.com/codeskulptor-assets/week7-brrring.m4a',
       thumbnail: ''
     }
   ]
@@ -1148,6 +1151,19 @@ export default function DesignSystemExperiment() {
                     Audio Players
                   </h3>
                   
+                  {/* Notice about demo audio */}
+                  <Card variant="outlined" className="p-4 bg-amber-500/10 border-amber-500/30">
+                    <Stack gap="sm">
+                      <div className="flex items-center gap-2">
+                        <Icon icon={AlertCircle} size="sm" className="text-amber-500" />
+                        <h4 className="text-sm font-semibold text-amber-500">Demo Audio Files</h4>
+                      </div>
+                      <p className="text-sm text-neutral-300">
+                        The demo audio files used here are sample URLs. In production, replace these with your actual audio file URLs from your media server.
+                      </p>
+                    </Stack>
+                  </Card>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Individual Audio Player */}
                     <Card variant="default" className="p-4">

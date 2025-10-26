@@ -1,10 +1,12 @@
 "use client"
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Spinner, Badge } from '@/lib/design-system/components'
-import { getVisionCategoryKeys, getVisionCategoryLabel } from '@/lib/design-system'
-import { AudioPlayer } from '@/components/AudioPlayer'
+import { Button, Card, Spinner, Badge, Container, Stack } from '@/lib/design-system/components'
+import { getVisionCategoryKeys } from '@/lib/design-system'
+import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
+import { Headphones, Download, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 type Voice = { id: string; name: string }
 
@@ -173,105 +175,247 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  // Convert tracks to AudioTrack format for PlaylistPlayer
+  const audioTracks: AudioTrack[] = tracks
+    .filter(t => t.status === 'completed' && t.url)
+    .map(t => ({
+      id: t.sectionKey,
+      title: t.title,
+      artist: 'VibrationFit AI',
+      duration: 180, // Default duration
+      url: t.url,
+      thumbnail: ''
+    }))
+
+  const hasCompletedTracks = audioTracks.length > 0
+  const hasIncompleteTracks = tracks.some(t => t.status !== 'completed')
+
   return (
-    <>
-      <div className="text-center py-12 bg-gradient-to-br from-[#199D67] to-[#14B8A6] rounded-3xl -mx-6 mb-8">
-          <h1 className="text-5xl font-bold mb-4 text-white">Life Vision Audio</h1>
-          <p className="text-xl text-white/90 mb-6">Generate premium, narrated audio of your vision</p>
-          <div className="flex items-center justify-center gap-3">
-            <select
-              value={voice}
-              onChange={(e) => {
-                // Stop current playback when switching voices
-                if (previewAudioRef.current) {
-                  previewAudioRef.current.pause()
-                  setIsPreviewing(false)
-                  setPreviewProgress(0)
-                }
-                setVoice(e.target.value)
-              }}
-              className="px-6 py-3 rounded-full bg-black/30 text-white border-2 border-white/30 h-[46px]"
-            >
-              {voices.map(v => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-            </select>
-            <Button 
-              variant="outline" 
-              onClick={async () => {
-                try {
-                  const res = await fetch(`/api/audio/voices?preview=${voice}`, { cache: 'no-store' })
-                  const data = await res.json()
-                  if (previewAudioRef.current) {
-                    previewAudioRef.current.pause()
-                    previewAudioRef.current = null
-                  }
-                  const audio = new Audio(data.url)
-                  previewAudioRef.current = audio
-                  setIsPreviewing(true)
-                  setPreviewProgress(0)
-                  setPreviewUrl(data.url)
-                  
-                  audio.addEventListener('timeupdate', () => {
-                    if (!audio.duration) return
-                    setPreviewProgress((audio.currentTime / audio.duration) * 100)
-                  })
-                  audio.addEventListener('ended', () => {
-                    setIsPreviewing(false)
-                    setPreviewProgress(100)
-                  })
-                  audio.addEventListener('error', (e) => {
-                    console.error('Audio playback error:', e)
-                    setIsPreviewing(false)
-                  })
-                  audio.play().catch((error) => {
-                    console.error('Audio play failed:', error)
-                    setIsPreviewing(false)
-                  })
-                } catch (e) {
-                  console.error('Preview failed', e)
-                  setIsPreviewing(false)
-                }
-              }}
-              disabled={isPreviewing}
-            >
-              {isPreviewing ? 'Playing...' : 'Preview Voice'}
-            </Button>
-            <Button variant="primary" onClick={handleGenerate} disabled={generating}>
-              {generating ? 'Generating…' : 'Generate Audio'}
-            </Button>
-          </div>
+    <Container size="lg">
+      <Stack gap="lg">
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4 mb-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            asChild
+          >
+            <Link href={`/life-vision/${visionId}`}>
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </Button>
+          <h1 className="text-2xl md:text-4xl font-bold text-white">Life Vision Audio</h1>
         </div>
 
-        <div className="mt-10">
-          {loading ? (
-            <div className="flex items-center justify-center py-20"><Spinner variant="primary" /></div>
-          ) : (
-            <>
-              {workingOn && (
-                <div className="mb-4 text-center text-neutral-400 text-sm">Working on: {workingOn}</div>
-              )}
-              {isPreviewing && (
-                <Card className="mb-4 p-4">
+        {/* Hero Card */}
+        <Card variant="elevated" className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30">
+          <Stack gap="md" className="text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+              <Headphones className="w-6 h-6 md:w-8 md:h-8 text-[#39FF14]" />
+              <h2 className="text-xl md:text-3xl font-bold text-white">Generate Your Vision Audio</h2>
+            </div>
+            <p className="text-sm md:text-lg text-neutral-300">Transform your written vision into immersive audio tracks for daily activation</p>
+            
+            {/* Voice Selection & Generate */}
+            <div className="flex flex-col md:flex-row gap-3 md:items-center">
+              <select
+                value={voice}
+                onChange={(e) => {
+                  if (previewAudioRef.current) {
+                    previewAudioRef.current.pause()
+                    setIsPreviewing(false)
+                    setPreviewProgress(0)
+                  }
+                  setVoice(e.target.value)
+                }}
+                className="px-4 md:px-6 py-3 rounded-full bg-black/30 text-white text-sm border-2 border-white/30 h-[48px] flex-1"
+              >
+                {voices.map(v => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+              
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`/api/audio/voices?preview=${voice}`, { cache: 'no-store' })
+                      const data = await res.json()
+                      if (previewAudioRef.current) {
+                        previewAudioRef.current.pause()
+                        previewAudioRef.current = null
+                      }
+                      const audio = new Audio(data.url)
+                      previewAudioRef.current = audio
+                      setIsPreviewing(true)
+                      setPreviewProgress(0)
+                      
+                      audio.addEventListener('timeupdate', () => {
+                        if (!audio.duration) return
+                        setPreviewProgress((audio.currentTime / audio.duration) * 100)
+                      })
+                      audio.addEventListener('ended', () => {
+                        setIsPreviewing(false)
+                        setPreviewProgress(100)
+                      })
+                      audio.addEventListener('error', () => {
+                        setIsPreviewing(false)
+                      })
+                      audio.play().catch(() => setIsPreviewing(false))
+                    } catch (e) {
+                      setIsPreviewing(false)
+                    }
+                  }}
+                  disabled={isPreviewing}
+                  className="flex-1 md:flex-none"
+                >
+                  {isPreviewing ? 'Playing...' : 'Preview'}
+                </Button>
+                <Button 
+                  variant="primary" 
+                  onClick={handleGenerate} 
+                  disabled={generating}
+                  size="sm"
+                  className="flex-1 md:flex-none"
+                >
+                  {generating ? 'Generating…' : 'Generate'}
+                </Button>
+              </div>
+            </div>
+          </Stack>
+        </Card>
+
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Spinner variant="primary" size="lg" />
+          </div>
+        ) : (
+          <Stack gap="md">
+            {/* Status Messages */}
+            {workingOn && (
+              <Card variant="glass" className="p-4">
+                <div className="flex items-center gap-2 text-center">
+                  <Spinner variant="primary" size="sm" />
+                  <span className="text-sm text-neutral-300">Working on: <span className="text-[#39FF14]">{workingOn}</span></span>
+                </div>
+              </Card>
+            )}
+
+            {/* Voice Preview Card */}
+            {isPreviewing && (
+              <Card variant="default" className="p-4">
+                <Stack gap="sm">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-white font-medium">Voice Preview</span>
-                    <span className="text-neutral-400 text-sm">{Math.round(previewProgress)}%</span>
+                    <span className="text-white font-medium text-sm">Voice Preview</span>
+                    <span className="text-neutral-400 text-xs">{Math.round(previewProgress)}%</span>
                   </div>
                   <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
                     <div className="h-full bg-[#199D67]" style={{ width: `${previewProgress}%` }} />
                   </div>
                   <p className="text-neutral-300 text-sm mt-3 whitespace-pre-wrap">{PREVIEW_TEXT}</p>
-                </Card>
-              )}
-              <div className="mb-4 flex gap-2">
-                <Button variant="secondary" onClick={() => retryFailed()} disabled={generating}>Retry Failed Only</Button>
-                <Button variant="outline" onClick={() => refreshStatus()} disabled={generating}>Refresh</Button>
-              </div>
-              <AudioPlayer tracks={tracks} />
-            </>
-          )}
-        </div>
-    </>
+                </Stack>
+              </Card>
+            )}
+
+            {/* Controls */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                variant="secondary" 
+                onClick={() => retryFailed()} 
+                disabled={generating || !hasIncompleteTracks}
+                size="sm"
+                className="flex-1"
+              >
+                Retry Failed
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => refreshStatus()} 
+                disabled={generating}
+                size="sm"
+                className="flex-1"
+              >
+                Refresh Status
+              </Button>
+            </div>
+
+            {/* Playlist Player */}
+            {hasCompletedTracks ? (
+              <Card variant="elevated" className="p-4 md:p-6">
+                <PlaylistPlayer tracks={audioTracks} />
+              </Card>
+            ) : (
+              <Card variant="outlined" className="p-8 text-center">
+                <Stack gap="md" align="center">
+                  <Headphones className="w-12 h-12 md:w-16 md:h-16 text-neutral-600" />
+                  <div>
+                    <h3 className="text-lg md:text-xl font-semibold text-white mb-2">No Audio Generated Yet</h3>
+                    <p className="text-sm md:text-base text-neutral-400 mb-4">
+                      Generate your first audio track to start listening to your vision
+                    </p>
+                  </div>
+                  <Button 
+                    variant="primary" 
+                    onClick={handleGenerate} 
+                    disabled={generating}
+                  >
+                    {generating ? 'Generating…' : 'Generate Your First Track'}
+                  </Button>
+                </Stack>
+              </Card>
+            )}
+
+            {/* Track Status List */}
+            {tracks.length > 0 && (
+              <Card variant="default" className="p-4">
+                <Stack gap="sm">
+                  <h3 className="text-lg font-semibold text-white mb-2">Track Status</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {tracks.map((track) => (
+                      <div
+                        key={track.sectionKey}
+                        className="p-3 rounded-lg border-2 border-neutral-800 bg-neutral-900/50"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-white truncate">{track.title}</span>
+                          <Badge 
+                            variant={
+                              track.status === 'completed' ? 'success' : 
+                              track.status === 'failed' ? 'error' : 
+                              'info'
+                            }
+                          >
+                            {track.status}
+                          </Badge>
+                        </div>
+                        {track.status === 'failed' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              window.dispatchEvent(new CustomEvent('audio:retry-track', { 
+                                detail: { sectionKey: track.sectionKey } 
+                              }))
+                            }}
+                            className="mt-2 text-xs"
+                          >
+                            Retry
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Stack>
+              </Card>
+            )}
+          </Stack>
+        )}
+      </Stack>
+    </Container>
   )
 }
 

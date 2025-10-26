@@ -3207,7 +3207,14 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
 
     return (
       <div className={cn('w-full', className)}>
-        <audio ref={audioRef} src={track.url} preload="metadata" />
+        <audio 
+          ref={audioRef} 
+          src={track.url} 
+          preload="metadata"
+          onError={(e) => {
+            console.warn('Audio failed to load:', track.url, e)
+          }}
+        />
         
         {/* Track Info */}
         {showInfo && (
@@ -3472,7 +3479,14 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
 
   return (
     <div className={cn('w-full', className)}>
-      <audio ref={audioRef} src={currentTrack?.url} preload="metadata" />
+      <audio 
+        ref={audioRef} 
+        src={currentTrack?.url} 
+        preload="metadata"
+        onError={(e) => {
+          console.warn('Audio failed to load:', currentTrack?.url, e)
+        }}
+      />
 
       {/* Current Track Info */}
       <Card variant="elevated" className="mb-6">
