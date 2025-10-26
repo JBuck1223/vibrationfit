@@ -140,6 +140,24 @@ export default function JournalPage() {
 
     setDeletingId(itemToDelete.id)
     try {
+      // First, delete media files from S3
+      if (itemToDelete.image_urls && itemToDelete.image_urls.length > 0) {
+        try {
+          const deleteResponse = await fetch('/api/journal/delete-media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls: itemToDelete.image_urls })
+          })
+          
+          const result = await deleteResponse.json()
+          console.log(`🗑️  Deleted ${result.deleted || 0} media files from S3`)
+        } catch (mediaError) {
+          console.error('Failed to delete media files:', mediaError)
+          // Continue with database deletion even if media deletion fails
+        }
+      }
+
+      // Delete from database
       const supabase = createClient()
       
       const { error } = await supabase
