@@ -3,6 +3,42 @@ const https = require('https');
 
 const API_URL = 'https://vibrationfit.com/api/media/process-completed';
 
+// Helper function to make HTTP request
+function makeRequest(url, data) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const options = {
+      hostname: urlObj.hostname,
+      port: urlObj.port || 443,
+      path: urlObj.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let responseData = '';
+      
+      res.on('data', (chunk) => {
+        responseData += chunk;
+      });
+      
+      res.on('end', () => {
+        resolve({ status: res.statusCode, data: responseData });
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    req.write(data);
+    req.end();
+  });
+}
+
 exports.handler = async (event) => {
   console.log('📹 S3 Processed Video Event:', JSON.stringify(event, null, 2));
 
@@ -34,22 +70,19 @@ exports.handler = async (event) => {
       // Call API to update journal entry
       const payload = JSON.stringify({ s3Key: objectKey, userId });
       
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: payload
-      });
+      console.log('📡 Calling API:', API_URL);
+      console.log('📦 Payload:', payload);
 
-      if (response.ok) {
-        console.log('✅ Database updated successfully');
+      const response = await makeRequest(API_URL, payload);
+
+      if (response.status === 200) {
+        console.log('✅ Database updated successfully:', response.data);
       } else {
-        console.error('❌ Failed to update database:', await response.text());
+        console.error('❌ Failed to update database:', response.status, response.data);
       }
 
     } catch (error) {
-      console.error('❌ Failed to update database:', error);
+      console.error('❌ Failed to update database:', error.message, error.stack);
     }
   }
 

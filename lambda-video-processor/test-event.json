@@ -1,0 +1,1 @@
+{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"vibration-fit-client-storage"},"object":{"key":"user-uploads/test/journal/uploads/processed/test-720p.mp4"}}}]}
