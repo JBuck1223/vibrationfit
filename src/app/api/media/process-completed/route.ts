@@ -1,16 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { S3Client, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
-
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-2',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  }
-})
-
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'vibration-fit-client-storage'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,27 +8,23 @@ export async function POST(request: NextRequest) {
 
     console.log('📝 Processing completed video:', { s3Key, userId })
 
-    // Parse the S3 key to determine original and processed URLs
-    // Processed: user-uploads/userId/journal/uploads/processed/filename-720p.mp4
-    // Original:  user-uploads/userId/journal/uploads/filename.mov
+    // Extract the original filename from S3 key
+    // Format: user-uploads/{userId}/journal/uploads/processed/{filename}-720p.mp4
+    const s3Parts = s3Key.split('/')
+    const filename = s3Parts[s3Parts.length - 1]
+    const baseFilename = filename.replace('-720p.mp4', '')
     
-    const s3KeyParts = s3Key.split('/')
-    if (s3KeyParts.length < 4 || s3KeyParts[0] !== 'user-uploads') {
-      return NextResponse.json({ error: 'Invalid S3 key format' }, { status: 400 })
-    }
+    console.log('🔍 Looking for original filename:', baseFilename)
 
-    // Extract original filename from -720p.mp4
-    const filename = s3KeyParts[s3KeyParts.length - 1]
-    const originalFilename = filename.replace('-720p.mp4', '').replace('.mp4', '.mov')
-    
-    // Reconstruct original path
-    const originalKey = s3KeyParts.slice(0, -2).join('/') + '/' + originalFilename
-    const originalUrl = `https://media.vibrationfit.com/${originalKey}`
+    // Build the original URL pattern
+    const folder = s3Parts[2] // journal, vision-board, etc
+    const processedFolder = s3Parts[3] // uploads, generated, etc
     const processedUrl = `https://media.vibrationfit.com/${s3Key}`
+    const originalUrl = `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${processedFolder}/${baseFilename}`
 
-    console.log('🔍 Looking for journal entry with original URL:', originalUrl)
+    console.log('🔍 Searching for entry with URL:', originalUrl)
 
-    // Find journal entry containing this original video URL
+    // Find journal entry containing this URL
     const { data: entries, error: searchError } = await supabase
       .from('journal')
       .select('id, image_urls')
@@ -47,13 +32,13 @@ export async function POST(request: NextRequest) {
       .contains('image_urls', [originalUrl])
 
     if (searchError || !entries || entries.length === 0) {
-      console.log('⚠️ No journal entry found with this video URL')
-      return NextResponse.json({ success: false, message: 'No entry found' })
+      console.log('⚠️ No journal entry found with this URL')
+      return NextResponse.json({ success: false, message: 'Entry not found' }, { status: 404 })
     }
 
-    // Update the entry to use the processed URL
+    // Update each entry that contains this URL
     for (const entry of entries) {
-      const updatedUrls = entry.image_urls.map((url: string) =>
+      const updatedUrls = entry.image_urls.map((url: string) => 
         url === originalUrl ? processedUrl : url
       )
 
@@ -63,16 +48,15 @@ export async function POST(request: NextRequest) {
         .eq('id', entry.id)
 
       if (updateError) {
-        console.error('❌ Failed to update entry:', entry.id, updateError)
+        console.error('❌ Failed to update entry:', updateError)
       } else {
-        console.log('✅ Updated journal entry:', entry.id)
+        console.log('✅ Successfully updated journal entry:', entry.id)
       }
     }
 
-    return NextResponse.json({ success: true, entriesUpdated: entries.length })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('❌ Error processing completed video:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

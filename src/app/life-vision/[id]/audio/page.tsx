@@ -493,59 +493,6 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
           <h1 className="text-2xl md:text-4xl font-bold text-white">Life Vision Audio</h1>
         </div>
 
-        {/* Job Queue Dropdown */}
-        {allJobs.length > 0 && (
-          <Card variant="default" className="p-4">
-            <button
-              onClick={() => setShowJobQueue(!showJobQueue)}
-              className="w-full flex items-center justify-between"
-            >
-              <span className="text-sm font-medium text-white">
-                Job Queue ({allJobs.filter(j => j.status === 'processing' || j.status === 'pending' || j.mixStatus === 'pending' || j.mixStatus === 'mixing').length} in progress)
-              </span>
-              <span className="text-neutral-400">{showJobQueue ? '▲' : '▼'}</span>
-            </button>
-            
-            {showJobQueue && (
-              <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
-                {allJobs.slice(0, 20).map((job) => {
-                  const isProcessing = job.status === 'processing' || job.status === 'pending'
-                  const isMixing = job.mixStatus === 'pending' || job.mixStatus === 'mixing'
-                  const isComplete = job.status === 'completed' && (job.mixStatus === 'completed' || job.mixStatus === 'not_required')
-                  
-                  return (
-                    <div 
-                      key={job.id}
-                      className="p-3 rounded-lg border-2 border-neutral-700 bg-neutral-900/50"
-                    >
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-white">{job.title}</div>
-                          <div className="text-xs text-neutral-400">{job.setName} • {job.variant}</div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          {isProcessing && (
-                            <Badge variant="info" className="text-xs">Voice: {job.status}</Badge>
-                          )}
-                          {isMixing && !isProcessing && (
-                            <Badge variant="info" className="text-xs">Mixing: {job.mixStatus}</Badge>
-                          )}
-                          {isComplete && (
-                            <Badge variant="success" className="text-xs">✓ Ready</Badge>
-                          )}
-                          {job.status === 'failed' && (
-                            <Badge variant="error" className="text-xs">✗ Failed</Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </Card>
-        )}
-
         {/* Audio Version Selector */}
         {audioSets.length > 0 && (
           <Card variant="default" className="p-4">
@@ -586,33 +533,6 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                 </Button>
               </div>
             </Stack>
-          </Card>
-        )}
-
-        {/* Quick Generate Another Version */}
-        {audioSets.length > 0 && audioSets.some(s => s.isReady) && (
-          <Card variant="elevated" className="border-[#8B5CF6]/30">
-            <div className="p-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-white mb-1">Want a different version?</h3>
-                  <p className="text-sm text-neutral-400">
-                    Generate additional audio versions with different voices or background mixes
-                  </p>
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    // Scroll to generation section
-                    document.getElementById('generate-section')?.scrollIntoView({ behavior: 'smooth' })
-                  }}
-                  size="md"
-                  className="whitespace-nowrap"
-                >
-                  Create New Version
-                </Button>
-              </div>
-            </div>
           </Card>
         )}
 
@@ -776,6 +696,59 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
             </div>
           </Stack>
         </Card>
+
+        {/* Job Queue Dropdown */}
+        {allJobs.length > 0 && (
+          <Card variant="default" className="p-4">
+            <button
+              onClick={() => setShowJobQueue(!showJobQueue)}
+              className="w-full flex items-center justify-between"
+            >
+              <span className="text-sm font-medium text-white">
+                Job Queue ({allJobs.filter(j => j.status === 'processing' || j.status === 'pending' || j.mixStatus === 'pending' || j.mixStatus === 'mixing').length} in progress)
+              </span>
+              <span className="text-neutral-400">{showJobQueue ? '▲' : '▼'}</span>
+            </button>
+            
+            {showJobQueue && (
+              <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                {allJobs.slice(0, 20).map((job) => {
+                  const isProcessing = job.status === 'processing' || job.status === 'pending'
+                  const isMixing = job.mixStatus === 'pending' || job.mixStatus === 'mixing'
+                  const isComplete = job.status === 'completed' && (job.mixStatus === 'completed' || job.mixStatus === 'not_required')
+                  
+                  return (
+                    <div 
+                      key={job.id}
+                      className="p-3 rounded-lg border-2 border-neutral-700 bg-neutral-900/50"
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-white">{job.title}</div>
+                          <div className="text-xs text-neutral-400">{job.setName} • {job.variant}</div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {isProcessing && (
+                            <Badge variant="info" className="text-xs">Voice: {job.status}</Badge>
+                          )}
+                          {isMixing && !isProcessing && (
+                            <Badge variant="info" className="text-xs">Mixing: {job.mixStatus}</Badge>
+                          )}
+                          {isComplete && (
+                            <Badge variant="success" className="text-xs">✓ Ready</Badge>
+                          )}
+                          {job.status === 'failed' && (
+                            <Badge variant="error" className="text-xs">✗ Failed</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* Loading State */}
         {loading ? (
