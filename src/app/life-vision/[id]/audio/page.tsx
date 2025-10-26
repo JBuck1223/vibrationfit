@@ -27,6 +27,8 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [audioSets, setAudioSets] = useState<Array<{id: string; name: string; variant: string; voiceId?: string; trackCount: number; isReady: boolean; isMixing: boolean}>>([])
   const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null)
   const [selectedVariants, setSelectedVariants] = useState<string[]>(['standard']) // Multi-select for variants to generate
+  const [showJobQueue, setShowJobQueue] = useState(false)
+  const [allJobs, setAllJobs] = useState<Array<{id: string; sectionKey: string; title: string; variant: string; status: string; mixStatus?: string; setName: string}>>([])
 
   useEffect(() => {
     ;(async () => {
@@ -95,6 +97,29 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     }
   }, [selectedAudioSetId])
 
+  // Auto-uncheck "standard" if voice-only tracks already exist (user wants to generate mixing variants only)
+  useEffect(() => {
+    ;(async () => {
+      if (!visionId || loading) return
+      
+      // Check if we have existing voice-only audio sets
+      const supabase = createClient()
+      const { data: existingStandardSets } = await supabase
+        .from('audio_sets')
+        .select('id')
+        .eq('vision_id', visionId)
+        .eq('variant', 'standard')
+        .limit(1)
+      
+      // If voice-only exists and standard is the only selected variant, uncheck it
+      // so user can generate mixing variants without regenerating voice
+      if (existingStandardSets && existingStandardSets.length > 0 && 
+          selectedVariants.length === 1 && selectedVariants[0] === 'standard') {
+        setSelectedVariants([])
+      }
+    })()
+  }, [visionId, loading]) // Only run when visionId or loading state changes, not on every selectedVariants change
+
   async function loadAudioSets() {
     const supabase = createClient()
     const { data: sets } = await supabase
@@ -141,6 +166,43 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     } else if (setsWithStatus.length > 0) {
       setSelectedAudioSetId(setsWithStatus[0].id)
     }
+
+    // Also load all jobs across all audio sets
+    await loadAllJobs(sets || [])
+  }
+
+  async function loadAllJobs(sets: any[]) {
+    const supabase = createClient()
+    const allTracks = await Promise.all(sets.map(async (set: any) => {
+      const { data: tracks } = await supabase
+        .from('audio_tracks')
+        .select('id, section_key, status, mix_status, created_at')
+        .eq('audio_set_id', set.id)
+        .order('created_at', { ascending: false })
+      
+      return (tracks || []).map((t: any) => ({
+        ...t,
+        setName: set.name,
+        variant: set.variant
+      }))
+    }))
+    
+    // Flatten and deduplicate by section_key per set
+    const jobs = allTracks.flat().map((track: any) => ({
+      id: track.id,
+      sectionKey: track.section_key,
+      title: prettySectionTitle(track.section_key),
+      variant: track.variant,
+      status: track.status,
+      mixStatus: track.mix_status,
+      setName: track.setName,
+      createdAt: track.created_at
+    }))
+    
+    // Sort by creation date, most recent first
+    jobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    
+    setAllJobs(jobs)
   }
 
   // Poll status while there are processing tracks or while generating
@@ -431,11 +493,75 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
           <h1 className="text-2xl md:text-4xl font-bold text-white">Life Vision Audio</h1>
         </div>
 
+        {/* Job Queue Dropdown */}
+        {allJobs.length > 0 && (
+          <Card variant="default" className="p-4">
+            <button
+              onClick={() => setShowJobQueue(!showJobQueue)}
+              className="w-full flex items-center justify-between"
+            >
+              <span className="text-sm font-medium text-white">
+                Job Queue ({allJobs.filter(j => j.status === 'processing' || j.status === 'pending' || j.mixStatus === 'pending' || j.mixStatus === 'mixing').length} in progress)
+              </span>
+              <span className="text-neutral-400">{showJobQueue ? '▲' : '▼'}</span>
+            </button>
+            
+            {showJobQueue && (
+              <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                {allJobs.slice(0, 20).map((job) => {
+                  const isProcessing = job.status === 'processing' || job.status === 'pending'
+                  const isMixing = job.mixStatus === 'pending' || job.mixStatus === 'mixing'
+                  const isComplete = job.status === 'completed' && (job.mixStatus === 'completed' || job.mixStatus === 'not_required')
+                  
+                  return (
+                    <div 
+                      key={job.id}
+                      className="p-3 rounded-lg border-2 border-neutral-700 bg-neutral-900/50"
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-white">{job.title}</div>
+                          <div className="text-xs text-neutral-400">{job.setName} • {job.variant}</div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {isProcessing && (
+                            <Badge variant="info" className="text-xs">Voice: {job.status}</Badge>
+                          )}
+                          {isMixing && !isProcessing && (
+                            <Badge variant="info" className="text-xs">Mixing: {job.mixStatus}</Badge>
+                          )}
+                          {isComplete && (
+                            <Badge variant="success" className="text-xs">✓ Ready</Badge>
+                          )}
+                          {job.status === 'failed' && (
+                            <Badge variant="error" className="text-xs">✗ Failed</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
+        )}
+
         {/* Audio Version Selector */}
         {audioSets.length > 0 && (
           <Card variant="default" className="p-4">
             <Stack gap="sm">
-              <h3 className="text-lg font-semibold text-white mb-2">Audio Versions</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Audio Versions</h3>
+                <Button
+                  variant="outline"
+                  asChild
+                  size="sm"
+                >
+                  <Link href={`/life-vision/${visionId}/audio-sets`}>
+                    Manage All
+                  </Link>
+                </Button>
+              </div>
               <div className="flex flex-col sm:flex-row gap-3">
                 <select
                   value={selectedAudioSetId || ''}
@@ -456,15 +582,6 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                 >
                   <Link href={`/life-vision/${visionId}/audio-sets/${selectedAudioSetId}`}>
                     Play Selected
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  asChild
-                  size="sm"
-                >
-                  <Link href={`/life-vision/${visionId}/audio-sets`}>
-                    Manage All
                   </Link>
                 </Button>
               </div>
@@ -571,77 +688,89 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
             {/* Voice Selection & Generate */}
             <div className="flex flex-col gap-3">
               <div className="flex flex-col md:flex-row gap-3 md:items-center">
-                <select
-                  value={voice}
-                  onChange={(e) => {
-                    if (previewAudioRef.current) {
-                      previewAudioRef.current.pause()
-                      setIsPreviewing(false)
-                      setPreviewProgress(0)
-                    }
-                    setVoice(e.target.value)
-                  }}
-                  className="px-4 md:px-6 py-3 rounded-full bg-black/30 text-white text-sm border-2 border-white/30 h-[48px] flex-1"
-                >
-                  {voices.map(v => (
-                    <option key={v.id} value={v.id}>{v.name}</option>
-                  ))}
-                </select>
-                
-                <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(`/api/audio/voices?preview=${voice}`, { cache: 'no-store' })
-                      const data = await res.json()
+                {/* Only show voice selector if standard variant is selected */}
+                {selectedVariants.includes('standard') && (
+                  <select
+                    value={voice}
+                    onChange={(e) => {
                       if (previewAudioRef.current) {
                         previewAudioRef.current.pause()
-                        previewAudioRef.current = null
+                        setIsPreviewing(false)
+                        setPreviewProgress(0)
                       }
-                      const audio = new Audio(data.url)
-                      previewAudioRef.current = audio
-                      setIsPreviewing(true)
-                      setPreviewProgress(0)
-                      
-                      audio.addEventListener('timeupdate', () => {
-                        if (!audio.duration) return
-                        setPreviewProgress((audio.currentTime / audio.duration) * 100)
-                      })
-                      audio.addEventListener('ended', () => {
-                        setIsPreviewing(false)
-                        setPreviewProgress(100)
-                      })
-                      audio.addEventListener('error', () => {
-                        setIsPreviewing(false)
-                      })
-                      audio.play().catch(() => setIsPreviewing(false))
-                    } catch (e) {
-                      setIsPreviewing(false)
-                    }
-                  }}
-                  disabled={isPreviewing}
-                  className="flex-1 md:flex-none"
-                >
-                  {isPreviewing ? 'Playing...' : 'Preview'}
-                </Button>
-                <Button 
-                  variant="primary" 
-                  onClick={handleGenerate} 
-                  disabled={generating || needsVoice || selectedVariants.length === 0}
-                  size="sm"
-                  className="flex-1 md:flex-none"
-                >
-                  {generating ? 'Generating…' : `Generate ${selectedVariants.length} Version${selectedVariants.length > 1 ? 's' : ''}`}
-                </Button>
+                      setVoice(e.target.value)
+                    }}
+                    className="px-4 md:px-6 py-3 rounded-full bg-black/30 text-white text-sm border-2 border-white/30 h-[48px] flex-1"
+                  >
+                    {voices.map(v => (
+                      <option key={v.id} value={v.id}>{v.name}</option>
+                    ))}
+                  </select>
+                )}
+                
+                <div className="flex gap-2">
+                  {/* Only show preview button when standard variant is selected */}
+                  {selectedVariants.includes('standard') && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`/api/audio/voices?preview=${voice}`, { cache: 'no-store' })
+                          const data = await res.json()
+                          if (previewAudioRef.current) {
+                            previewAudioRef.current.pause()
+                            previewAudioRef.current = null
+                          }
+                          const audio = new Audio(data.url)
+                          previewAudioRef.current = audio
+                          setIsPreviewing(true)
+                          setPreviewProgress(0)
+                          
+                          audio.addEventListener('timeupdate', () => {
+                            if (!audio.duration) return
+                            setPreviewProgress((audio.currentTime / audio.duration) * 100)
+                          })
+                          audio.addEventListener('ended', () => {
+                            setIsPreviewing(false)
+                            setPreviewProgress(100)
+                          })
+                          audio.addEventListener('error', () => {
+                            setIsPreviewing(false)
+                          })
+                          audio.play().catch(() => setIsPreviewing(false))
+                        } catch (e) {
+                          setIsPreviewing(false)
+                        }
+                      }}
+                      disabled={isPreviewing}
+                      className="flex-1 md:flex-none"
+                    >
+                      {isPreviewing ? 'Playing...' : 'Preview'}
+                    </Button>
+                  )}
+                  <Button 
+                    variant="primary" 
+                    onClick={handleGenerate} 
+                    disabled={generating || needsVoice || selectedVariants.length === 0}
+                    size="sm"
+                    className={`${selectedVariants.includes('standard') ? 'flex-1 md:flex-none' : 'w-full'}`}
+                  >
+                    {generating ? 'Generating…' : `Generate ${selectedVariants.length} Version${selectedVariants.length > 1 ? 's' : ''}`}
+                  </Button>
                 </div>
               </div>
               {/* Help text when disabled */}
               {(needsVoice || selectedVariants.length === 0) && !generating && (
                 <p className="text-xs text-neutral-400 text-center md:text-left">
                   {needsVoice && "⚠️ Please select a voice for the standard version"}
-                  {!needsVoice && selectedVariants.length === 0 && "⚠️ Please select at least one version type"}
+                  {!needsVoice && selectedVariants.length === 0 && "⚠️ Please select at least one audio version"}
+                </p>
+              )}
+              {/* Info text when only mixing variants are selected */}
+              {!needsVoice && selectedVariants.length > 0 && !selectedVariants.includes('standard') && (
+                <p className="text-xs text-[#39FF14] text-center md:text-left">
+                  ✓ Using existing voice tracks. Only mixing will be generated.
                 </p>
               )}
             </div>

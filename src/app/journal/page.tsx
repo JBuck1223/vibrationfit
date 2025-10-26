@@ -224,6 +224,35 @@ export default function JournalPage() {
           
           if (response.ok) {
             console.log('✅ Using processed video:', processedUrl)
+            
+            // Update database to use processed video
+            try {
+              // Find which journal entry contains this video
+              const entry = entries.find(e => 
+                e.image_urls?.some((url: string) => url === originalUrl)
+              )
+              
+              if (entry) {
+                const response = await fetch('/api/media/update-processed-url', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    entryId: entry.id,
+                    originalUrl,
+                    processedUrl
+                  })
+                })
+                
+                if (response.ok) {
+                  console.log('✅ Updated journal entry in database')
+                } else {
+                  console.error('Failed to update journal entry')
+                }
+              }
+            } catch (updateError) {
+              console.error('Error updating database:', updateError)
+            }
+            
             return processedUrl
           }
         } catch (fetchError) {
@@ -237,7 +266,7 @@ export default function JournalPage() {
     }
     
     return originalUrl
-  }, [])
+  }, [entries])
 
   // Keyboard navigation for lightbox
   useEffect(() => {
