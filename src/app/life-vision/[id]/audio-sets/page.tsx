@@ -254,7 +254,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                           }}
                         >
                           {deleting === set.id ? (
-                            <Spinner variant="danger" size="sm" />
+                            <Spinner size="sm" />
                           ) : (
                             <Trash2 className="w-4 h-4" />
                           )}

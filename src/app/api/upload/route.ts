@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
     let buffer = Buffer.from(arrayBuffer)
     let contentType = file.type
     let finalFilename = sanitizedName
+    let thumbnailUrl: string | null = null
 
     // Check if file needs optimization
     const needsImageOptimization = file.type.startsWith('image/') && shouldOptimizeImage(file)
@@ -199,7 +200,6 @@ export async function POST(request: NextRequest) {
       console.log(`Original video uploaded: ${s3Key}`)
 
       // Generate video thumbnail
-      let thumbnailUrl = null
       try {
         console.log('🎬 Generating video thumbnail for large video...')
         const thumbnailBuffer = await generateVideoThumbnail(buffer, file.name)
@@ -329,7 +329,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate and upload thumbnail for images
-    let thumbnailUrl = null
     if (file.type.startsWith('image/')) {
       try {
         console.log('📸 Generating thumbnail for image')

@@ -29,6 +29,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [selectedVariants, setSelectedVariants] = useState<string[]>(['standard']) // Multi-select for variants to generate
   const [showJobQueue, setShowJobQueue] = useState(false)
   const [allJobs, setAllJobs] = useState<Array<{id: string; sectionKey: string; title: string; variant: string; status: string; mixStatus?: string; setName: string}>>([])
+  const [audioVariants, setAudioVariants] = useState<Array<{id: string; name: string; voice_volume: number; bg_volume: number; background_track: string | null}>>([])
 
   useEffect(() => {
     ;(async () => {
@@ -45,6 +46,26 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         const data = await resp.json()
         setVoices((data.voices || []).map((v: any) => ({ id: v.id, name: `${v.brandName || v.name} (${v.gender})` })))
       } catch {}
+    })()
+  }, [])
+
+  // Load audio variants from database
+  useEffect(() => {
+    ;(async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('audio_variants')
+        .select('*')
+        .order('id')
+      if (data) {
+        // Reorder to put 'standard' first
+        const sorted = [...data].sort((a, b) => {
+          if (a.id === 'standard') return -1
+          if (b.id === 'standard') return 1
+          return 0
+        })
+        setAudioVariants(sorted)
+      }
     })()
   }, [])
 
@@ -573,12 +594,13 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
             <div className="flex flex-col gap-3">
               <label className="text-sm font-medium text-white">Which audio versions would you like?</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {[
-                  { id: 'standard', label: 'Voice Only', desc: 'Pure voice narration' },
-                  { id: 'sleep', label: 'Ocean Waves (Sleep)', desc: '30% voice, 70% ocean' },
-                  { id: 'meditation', label: 'Ocean Waves (Meditation)', desc: '50% voice, 50% ocean' },
-                  { id: 'energy', label: 'Ocean Waves (Energy)', desc: '80% voice, 20% ocean' },
-                ].map(v => (
+                {audioVariants.map(v => {
+                  const desc = v.id === 'standard' 
+                    ? 'Pure voice narration'
+                    : v.background_track
+                      ? `${v.voice_volume}% voice, ${v.bg_volume}% background`
+                      : `${v.voice_volume}% voice, ${v.bg_volume}% mixed`
+                  return (
                   <label
                     key={v.id}
                     className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
@@ -617,11 +639,12 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                       />
                     </div>
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-white">{v.label}</div>
-                      <div className="text-xs text-neutral-400">{v.desc}</div>
+                      <div className="text-sm font-medium text-white">{v.name}</div>
+                      <div className="text-xs text-neutral-400">{desc}</div>
                     </div>
                   </label>
-                ))}
+                  )
+                })}
               </div>
               <p className="text-xs text-neutral-400">
                 Voice tracks generate first, then background mixing happens automatically. Selected versions will appear as separate playlists.
