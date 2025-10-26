@@ -12,12 +12,15 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const { visionId, sections, voice = 'alloy', format = 'mp3', force = false } = body as {
+    const { visionId, sections, voice = 'alloy', format = 'mp3', force = false, variant, audioSetId, audioSetName } = body as {
       visionId: string
       sections: { sectionKey: string; text: string }[]
       voice?: OpenAIVoice
       format?: 'mp3' | 'wav'
       force?: boolean
+      variant?: string
+      audioSetId?: string
+      audioSetName?: string
     }
 
     if (!visionId || !Array.isArray(sections)) {
@@ -31,6 +34,9 @@ export async function POST(request: NextRequest) {
       voice,
       format,
       force,
+      variant,
+      audioSetId,
+      audioSetName,
     })
 
     return NextResponse.json({ results })

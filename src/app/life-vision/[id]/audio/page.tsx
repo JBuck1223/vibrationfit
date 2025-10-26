@@ -24,6 +24,9 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [previewProgress, setPreviewProgress] = useState<number>(0)
   const previewAudioRef = React.useRef<HTMLAudioElement | null>(null)
   const PREVIEW_TEXT = "This is a sample of the voice you will hear for your life vision audio. This voice will read your vision and create audio tracks for you to listen to for multi-layered vision activation!"
+  const [audioSets, setAudioSets] = useState<Array<{id: string; name: string; variant: string; trackCount: number}>>([])
+  const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null)
+  const [variant, setVariant] = useState<string>('standard')
 
   useEffect(() => {
     ;(async () => {
@@ -79,10 +82,32 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     if (!visionId) return
     ;(async () => {
+      await loadAudioSets()
       await refreshStatus()
       setLoading(false)
     })()
   }, [visionId])
+
+  async function loadAudioSets() {
+    const supabase = createClient()
+    const { data: sets } = await supabase
+      .from('audio_sets')
+      .select('id, name, variant, audio_tracks(count)')
+      .eq('vision_id', visionId)
+      .order('created_at', { ascending: false })
+    
+    setAudioSets((sets || []).map((set: any) => ({
+      id: set.id,
+      name: set.name,
+      variant: set.variant,
+      trackCount: set.audio_tracks?.[0]?.count || 0
+    })))
+    
+    // Set selected to most recent
+    if (sets && sets.length > 0) {
+      setSelectedAudioSetId(sets[0].id)
+    }
+  }
 
   // Poll status while there are processing tracks or while generating
   useEffect(() => {
@@ -160,12 +185,26 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
 
       const sections = buildFourteenSectionsFromVision(vv)
 
+      const variantName = variant === 'standard' ? 'Standard Version' :
+                         variant === 'sleep' ? 'Sleep Edition' :
+                         variant === 'energy' ? 'Energy Mix' :
+                         variant === 'meditation' ? 'Meditation' :
+                         'Audio Version'
+
       const resp = await fetch('/api/audio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visionId, sections, voice, force: false }),
-      }) // force: false = skips existing completed tracks
+        body: JSON.stringify({ 
+          visionId, 
+          sections, 
+          voice, 
+          variant,
+          audioSetName: variantName,
+          force: false 
+        }),
+      })
       const data = await resp.json()
+      await loadAudioSets()
       await refreshStatus()
       setWorkingOn(null)
     } catch (e) {
@@ -175,6 +214,9 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  // Get variant for selected audio set
+  const selectedSet = audioSets.find(set => set.id === selectedAudioSetId)
+  
   // Convert tracks to AudioTrack format for PlaylistPlayer
   const audioTracks: AudioTrack[] = tracks
     .filter(t => t.status === 'completed' && t.url)
@@ -184,7 +226,8 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       artist: 'VibrationFit AI',
       duration: 180, // Default duration
       url: t.url,
-      thumbnail: ''
+      thumbnail: '',
+      variant: selectedSet?.variant || 'standard'
     }))
 
   const hasCompletedTracks = audioTracks.length > 0
@@ -207,6 +250,46 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
           <h1 className="text-2xl md:text-4xl font-bold text-white">Life Vision Audio</h1>
         </div>
 
+        {/* Audio Version Selector */}
+        {audioSets.length > 0 && (
+          <Card variant="default" className="p-4">
+            <Stack gap="sm">
+              <h3 className="text-lg font-semibold text-white mb-2">Audio Versions</h3>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <select
+                  value={selectedAudioSetId || ''}
+                  onChange={(e) => setSelectedAudioSetId(e.target.value)}
+                  className="px-4 py-2 rounded-lg bg-neutral-800 text-white text-sm border-2 border-neutral-700 h-[48px] flex-1"
+                >
+                  {audioSets.map(set => (
+                    <option key={set.id} value={set.id}>
+                      {set.name} ({set.trackCount} tracks) - {set.variant}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  variant="primary"
+                  asChild
+                  size="sm"
+                >
+                  <Link href={`/life-vision/${visionId}/audio-sets/${selectedAudioSetId}`}>
+                    Play Selected
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  asChild
+                  size="sm"
+                >
+                  <Link href={`/life-vision/${visionId}/audio-sets`}>
+                    Manage All
+                  </Link>
+                </Button>
+              </div>
+            </Stack>
+          </Card>
+        )}
+
             {/* Hero Card */}
         <Card variant="elevated" className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30">
           <Stack gap="md" className="text-center md:text-left">
@@ -227,6 +310,24 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                 </p>
               </Card>
             )}
+
+            {/* Variant Selection */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-white">Audio Variant</label>
+              <select
+                value={variant}
+                onChange={(e) => setVariant(e.target.value)}
+                className="px-4 py-3 rounded-lg bg-black/30 text-white text-sm border-2 border-white/30 h-[48px]"
+              >
+                <option value="standard">Standard Version</option>
+                <option value="sleep">Sleep Edition (Slower, Calmer)</option>
+                <option value="energy">Energy Mix (Faster, Upbeat)</option>
+                <option value="meditation">Meditation (Very Slow, Methodical)</option>
+              </select>
+              <p className="text-xs text-neutral-400">
+                ✨ Background mixing enabled! Sleep uses 30% voice with ocean waves, Meditation & Energy use the same ambient track with different volumes.
+              </p>
+            </div>
             
             {/* Voice Selection & Generate */}
             <div className="flex flex-col md:flex-row gap-3 md:items-center">

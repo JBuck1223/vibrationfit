@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert'
 import crypto from 'crypto'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
 
@@ -126,6 +127,89 @@ function getS3Client() {
   })
 }
 
+// Background track URLs for different variants
+export function getBackgroundTrackForVariant(variant?: string): string | null {
+  switch (variant) {
+    case 'sleep':
+    case 'meditation':
+    case 'energy':
+      // Using ocean waves for all variants (until other tracks are available)
+      return 'https://media.vibrationfit.com/site-assets/audio/mixing-tracks/Ocean-Waves-1.mp3'
+    default:
+      return null
+  }
+}
+
+// Mix audio with background track
+// NOTE: FFmpeg doesn't work well on Vercel. Options:
+// 1. Use external service (Cloudflare Stream API, AssemblyAI, etc.)
+// 2. Mix client-side after generation
+// 3. Pre-generate mixed versions
+async function mixWithBackgroundTrack(audioBuffer: Buffer, variant?: string): Promise<Buffer> {
+  const backgroundTrack = getBackgroundTrackForVariant(variant)
+  
+  // If no background track or FFmpeg not available, return original
+  if (!backgroundTrack) {
+    return audioBuffer
+  }
+
+  try {
+    // For now, return original audio
+    // TODO: Implement one of these solutions:
+    // 1. Use Cloudflare Stream API for audio mixing
+    // 2. Call an external audio processing service
+    // 3. Store metadata about background track and mix client-side
+    
+    console.log(`[Audio Mixing] ${variant} variant selected with background: ${backgroundTrack}`)
+    console.log('[Audio Mixing] Using voice-only audio. Background mixing not yet implemented.')
+    
+    // Store variant in metadata for potential client-side mixing
+    // The audio URL can be retrieved and mixed with background tracks in the player
+    
+    return audioBuffer
+  } catch (error) {
+    console.warn('Audio mixing error:', error)
+    return audioBuffer
+  }
+}
+
+// Helper function to process text for variants
+function processTextForVariant(text: string, variant?: string): string {
+  if (!variant || variant === 'standard') return text
+  
+  if (variant === 'sleep') {
+    // Add longer pauses for sleep version (using ellipsis for natural pauses)
+    return text
+      .replace(/\. /g, '. ... ')
+      .replace(/\? /g, '? ... ')
+      .replace(/! /g, '! ... ')
+      .replace(/;/g, '... ')
+      .replace(/, /g, '... ')
+  }
+  
+  if (variant === 'meditation') {
+    // Very slow, methodical speech with elongated pauses
+    return text
+      .replace(/\. /g, '. ........ ')
+      .replace(/\? /g, '? ........ ')
+      .replace(/! /g, '! ........ ')
+      .replace(/;/g, '........ ')
+      .replace(/, /g, '......... ')
+  }
+  
+  if (variant === 'energy') {
+    // Faster pace, more emphasis (using shorter pauses or all caps for key words)
+    return text
+      .replace(/\. /g, '. ')
+      .replace(/\? /g, '? ')
+      .replace(/! /g, '! ')
+      // Keep it moving quickly
+      .replace(/;/g, ', ')
+  }
+  
+  return text
+}
+
 export async function generateAudioTracks(params: {
   userId: string
   visionId: string
@@ -245,6 +329,9 @@ export async function generateAudioTracks(params: {
     }
 
     try {
+      // Process text for variant if specified
+      const processedText = processTextForVariant(section.text, variant)
+      
       // Retry with exponential backoff and optional fallback voice on 429/5xx
       const maxAttempts = 3
       let attempt = 0
@@ -253,7 +340,7 @@ export async function generateAudioTracks(params: {
       let useVoice: OpenAIVoice = voice
       while (attempt < maxAttempts && !audioBuffer) {
         try {
-          const chunks = chunkTextForTTS(section.text)
+          const chunks = chunkTextForTTS(processedText)
           const buffers: Buffer[] = []
           for (const part of chunks) {
             const b = await synthesizeWithOpenAI(part, useVoice, format, userId)
@@ -277,6 +364,10 @@ export async function generateAudioTracks(params: {
         }
       }
       if (!audioBuffer) throw lastError || new Error('OpenAI TTS failed')
+      
+      // Mix with background track if variant is specified
+      const finalAudioBuffer = await mixWithBackgroundTrack(audioBuffer, variant)
+      
       const ext = format === 'wav' ? 'wav' : 'mp3'
       const fileName = `${section.sectionKey}-${contentHash.slice(0, 12)}.${ext}`
       const s3Key = `user-uploads/${userId}/life-vision/audio/${visionId}/${fileName}`
@@ -284,7 +375,7 @@ export async function generateAudioTracks(params: {
       const put = new PutObjectCommand({
         Bucket: BUCKET_NAME,
         Key: s3Key,
-        Body: audioBuffer,
+        Body: finalAudioBuffer,
         ContentType: format === 'wav' ? 'audio/wav' : 'audio/mpeg',
         CacheControl: 'max-age=31536000',
       })
