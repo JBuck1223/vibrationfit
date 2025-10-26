@@ -22,19 +22,19 @@ export async function createMixedAudio(
   audioBuffer: AudioBufferSourceNode
   audioContext: AudioContext
 }> {
+  // Validate voice URL
+  if (!voiceUrl || voiceUrl.trim() === '') {
+    console.warn('No voice URL provided for mixing')
+    throw new Error('No voice URL provided')
+  }
+
   // Get background track URL for variant
   const bgUrl = getBackgroundTrackUrl(variant)
   
   if (!bgUrl) {
-    // No background track, load voice only
-    const response = await fetch(voiceUrl)
-    const arrayBuffer = await response.arrayBuffer()
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-    
-    return {
-      audioBuffer: audioContext.createBufferSource(),
-      audioContext
-    }
+    // No background track, skip mixing
+    console.warn('No background track for variant:', variant)
+    throw new Error('No background track available')
   }
 
   try {
@@ -43,6 +43,14 @@ export async function createMixedAudio(
       fetch(voiceUrl),
       fetch(bgUrl)
     ])
+
+    // Check if responses are ok
+    if (!voiceResponse.ok) {
+      throw new Error(`Failed to fetch voice: ${voiceResponse.status}`)
+    }
+    if (!bgResponse.ok) {
+      throw new Error(`Failed to fetch background: ${bgResponse.status}`)
+    }
 
     const [voiceArrayBuffer, bgArrayBuffer] = await Promise.all([
       voiceResponse.arrayBuffer(),
@@ -111,14 +119,8 @@ export async function createMixedAudio(
   } catch (error) {
     console.error('Audio mixing failed:', error)
     
-    // Fallback: load voice only
-    const response = await fetch(voiceUrl)
-    const arrayBuffer = await response.arrayBuffer()
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-    
-    return {
-      audioBuffer: audioContext.createBufferSource(),
-      audioContext
-    }
+    // Re-throw the error to be handled by caller
+    // Caller should fall back to standard HTML audio playback
+    throw error
   }
 }

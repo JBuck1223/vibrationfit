@@ -3339,6 +3339,12 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
         return
       }
       
+      // Don't attempt mixing if URL is empty or invalid
+      if (!currentTrack.url || currentTrack.url.trim() === '') {
+        console.warn('No URL provided for track, skipping mixing:', currentTrack.title)
+        return
+      }
+      
       try {
         // Lazy load the mixing utility
         const { createMixedAudio } = await import('@/lib/audio/backgroundMixing')
@@ -3373,6 +3379,9 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
         console.log('✅ Background mixing initialized for:', currentTrack.variant)
       } catch (error) {
         console.warn('Background mixing failed, using standard playback:', error)
+        // Clear refs to prevent mixing attempts
+        voiceSourceRef.current = null
+        bgSourceRef.current = null
       }
     }
     
