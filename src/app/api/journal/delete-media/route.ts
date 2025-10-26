@@ -20,16 +20,20 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`🗑️  Deleting ${urls.length} media files from S3...`)
+    console.log('URLs received:', urls)
 
     // Extract S3 keys from URLs
     const keysToDelete: string[] = []
 
     for (const url of urls) {
+      console.log('Processing URL:', url)
+      
       // Extract S3 key from URL
       // Format: https://media.vibrationfit.com/user-uploads/{path}/{filename}
       const match = url.match(/media\.vibrationfit\.com\/(.+)/)
       if (match) {
-        const key = match[1]
+        const key = decodeURIComponent(match[1]) // Decode URL-encoded characters
+        console.log('Extracted key:', key)
         keysToDelete.push(key)
         
         // Also delete thumbnail if it exists
@@ -63,22 +67,32 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    const response = await s3Client.send(command)
-    
-    const deletedCount = response.Deleted?.length || 0
-    const errors = response.Errors || []
-    
-    if (errors.length > 0) {
-      console.error('Some deletions failed:', errors)
+    try {
+      const response = await s3Client.send(command)
+      
+      const deletedCount = response.Deleted?.length || 0
+      const errors = response.Errors || []
+      
+      if (errors.length > 0) {
+        console.error('Some deletions failed:', JSON.stringify(errors, null, 2))
+        errors.forEach(err => {
+          console.error(`Failed to delete ${err.Key}: ${err.Code} - ${err.Message}`)
+        })
+      }
+
+      console.log(`✅ Deleted ${deletedCount}/${keysToDelete.length} files`)
+
+      return NextResponse.json({ 
+        success: true, 
+        deleted: deletedCount,
+        total: keysToDelete.length,
+        errors: errors.length,
+        errorDetails: errors
+      })
+    } catch (deleteError) {
+      console.error('S3 delete error:', deleteError)
+      throw deleteError
     }
-
-    console.log(`✅ Deleted ${deletedCount}/${keysToDelete.length} files`)
-
-    return NextResponse.json({ 
-      success: true, 
-      deleted: deletedCount,
-      errors: errors.length
-    })
   } catch (error) {
     console.error('Error deleting media files:', error)
     return NextResponse.json(
