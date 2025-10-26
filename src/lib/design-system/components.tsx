@@ -3697,7 +3697,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
           <h4 className="text-lg font-semibold text-white mb-2">Playlist</h4>
           {tracks.map((track, index) => (
             <button
-              key={track.id}
+              key={`playlist-item-${index}`}
               onClick={() => handleTrackSelect(index)}
               className={cn(
                 'w-full text-left p-3 rounded-lg transition-all duration-200',

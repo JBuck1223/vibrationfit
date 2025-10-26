@@ -177,9 +177,19 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         mixStatus: t.mix_status,
       }))
       
+      // Remove duplicates by sectionKey (keep the most recent one)
+      const uniqueMap = new Map<string, any>()
+      mapped.forEach((track: any) => {
+        const existing = uniqueMap.get(track.sectionKey)
+        if (!existing || new Date(track.createdAt) > new Date(existing.createdAt)) {
+          uniqueMap.set(track.sectionKey, track)
+        }
+      })
+      const uniqueTracks = Array.from(uniqueMap.values())
+      
       const order = canonicalOrder()
-      mapped.sort((a: any, b: any) => order.indexOf(a.sectionKey) - order.indexOf(b.sectionKey))
-      setTracks(mapped)
+      uniqueTracks.sort((a: any, b: any) => order.indexOf(a.sectionKey) - order.indexOf(b.sectionKey))
+      setTracks(uniqueTracks)
     } else {
       // Fallback: use API endpoint
       const resp = await fetch(`/api/audio/generate?visionId=${visionId}`, { cache: 'no-store' })
@@ -283,8 +293,8 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   // Convert tracks to AudioTrack format for PlaylistPlayer
   const audioTracks: AudioTrack[] = tracks
     .filter(t => t.status === 'completed' && t.url)
-    .map(t => ({
-      id: t.sectionKey,
+    .map((t, index) => ({
+      id: selectedAudioSetId ? `${selectedAudioSetId}-${t.sectionKey}` : `track-${index}`, // Unique ID combining audio set and section
       title: t.title,
       artist: 'VibrationFit AI',
       duration: 180, // Default duration
