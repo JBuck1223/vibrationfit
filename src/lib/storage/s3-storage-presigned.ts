@@ -99,6 +99,27 @@ export async function uploadFileWithPresignedUrl(
 
     if (onProgress) onProgress(100)
 
+    // For large videos (>20MB), trigger MediaConvert processing
+    if (file.type.startsWith('video/') && file.size > 20 * 1024 * 1024) {
+      console.log('🎬 Triggering MediaConvert for presigned upload:', key)
+      try {
+        await fetch('/api/mediaconvert/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inputKey: key,
+            filename: file.name,
+            userId: userId || '',
+            folder: USER_FOLDERS[folder]
+          })
+        })
+        console.log('✅ MediaConvert job triggered')
+      } catch (error) {
+        console.error('⚠️ Failed to trigger MediaConvert:', error)
+        // Continue - file is uploaded, processing can happen later
+      }
+    }
+
     return { url: finalUrl, key }
   } catch (error) {
     console.error('Presigned upload error:', error)

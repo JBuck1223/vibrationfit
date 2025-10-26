@@ -88,6 +88,13 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     })()
   }, [visionId])
 
+  // Reload tracks when selected audio set changes
+  useEffect(() => {
+    if (selectedAudioSetId) {
+      refreshStatus()
+    }
+  }, [selectedAudioSetId])
+
   async function loadAudioSets() {
     const supabase = createClient()
     const { data: sets } = await supabase
@@ -122,21 +129,47 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
 
   async function refreshStatus() {
     if (!visionId) return
-    const resp = await fetch(`/api/audio/generate?visionId=${visionId}`, { cache: 'no-store' })
-    const data = await resp.json()
-  const mapped = (data.tracks || []).map((t: any) => ({
-      sectionKey: t.section_key,
-      title: prettySectionTitle(t.section_key),
-      url: t.audio_url || '',
-      status: t.status,
-      createdAt: t.created_at,
-      voiceId: t.voice_id,
-      contentHash: t.content_hash,
-    }))
-    // Order by canonical life vision order
-    const order = canonicalOrder()
-    mapped.sort((a: any, b: any) => order.indexOf(a.sectionKey) - order.indexOf(b.sectionKey))
-    setTracks(mapped)
+    
+    // If we have a selected audio set, query its tracks
+    if (selectedAudioSetId) {
+      const supabase = createClient()
+      const { data: tracks } = await supabase
+        .from('audio_tracks')
+        .select('section_key, audio_url, status, voice_id, content_hash, created_at')
+        .eq('vision_id', visionId)
+        .eq('audio_set_id', selectedAudioSetId)
+        .order('section_key')
+      
+      const mapped = (tracks || []).map((t: any) => ({
+        sectionKey: t.section_key,
+        title: prettySectionTitle(t.section_key),
+        url: t.audio_url || '',
+        status: t.status,
+        createdAt: t.created_at,
+        voiceId: t.voice_id,
+        contentHash: t.content_hash,
+      }))
+      
+      const order = canonicalOrder()
+      mapped.sort((a: any, b: any) => order.indexOf(a.sectionKey) - order.indexOf(b.sectionKey))
+      setTracks(mapped)
+    } else {
+      // Fallback: use API endpoint
+      const resp = await fetch(`/api/audio/generate?visionId=${visionId}`, { cache: 'no-store' })
+      const data = await resp.json()
+      const mapped = (data.tracks || []).map((t: any) => ({
+        sectionKey: t.section_key,
+        title: prettySectionTitle(t.section_key),
+        url: t.audio_url || '',
+        status: t.status,
+        createdAt: t.created_at,
+        voiceId: t.voice_id,
+        contentHash: t.content_hash,
+      }))
+      const order = canonicalOrder()
+      mapped.sort((a: any, b: any) => order.indexOf(a.sectionKey) - order.indexOf(b.sectionKey))
+      setTracks(mapped)
+    }
   }
 
   async function retryFailed() {
@@ -319,13 +352,13 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                 onChange={(e) => setVariant(e.target.value)}
                 className="px-4 py-3 rounded-lg bg-black/30 text-white text-sm border-2 border-white/30 h-[48px]"
               >
-                <option value="standard">Standard Version</option>
-                <option value="sleep">Sleep Edition (Slower, Calmer)</option>
-                <option value="energy">Energy Mix (Faster, Upbeat)</option>
-                <option value="meditation">Meditation (Very Slow, Methodical)</option>
+                <option value="standard">Voice Only</option>
+                <option value="sleep">Ocean Waves (30% Voice)</option>
+                <option value="meditation">Ocean Waves (50% Voice)</option>
+                <option value="energy">Ocean Waves (80% Voice)</option>
               </select>
               <p className="text-xs text-neutral-400">
-                ✨ Background mixing enabled! Sleep uses 30% voice with ocean waves, Meditation & Energy use the same ambient track with different volumes.
+                Select a variant and click "Generate" to create a new audio version with ocean waves background. Playback will automatically include background mixing!
               </p>
             </div>
             
