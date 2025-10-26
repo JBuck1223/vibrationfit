@@ -233,7 +233,7 @@ export default function NewJournalEntryPage() {
                   Select categories for your journal entry
                 </p>
                 <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                  {VISION_CATEGORIES.map((category) => (
+                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => (
                     <CategoryCard 
                       key={category.key} 
                       category={category} 

@@ -41,6 +41,8 @@ export {
   
   // Media Components
   Video,
+  AudioPlayer,
+  PlaylistPlayer,
   
   // Overlay Components
   Modal,

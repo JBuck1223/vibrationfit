@@ -31,6 +31,13 @@ export interface VisionCategory {
 
 export const VISION_CATEGORIES: VisionCategory[] = [
   {
+    key: 'forward',
+    label: 'Forward',
+    description: 'Opening statement that sets intention and energy',
+    icon: Sparkles,
+    order: 0
+  },
+  {
     key: 'fun',
     label: 'Fun',
     description: 'Hobbies and joyful activities',
@@ -113,6 +120,13 @@ export const VISION_CATEGORIES: VisionCategory[] = [
     description: 'Spiritual growth and expansion',
     icon: Star,
     order: 12
+  },
+  {
+    key: 'conclusion',
+    label: 'Conclusion',
+    description: 'Closing statement that brings vision together',
+    icon: CheckCircle,
+    order: 13
   }
 ]
 

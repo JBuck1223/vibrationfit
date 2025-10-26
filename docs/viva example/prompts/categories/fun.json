@@ -1,0 +1,15 @@
+{
+  "category": "fun",
+  "seed_questions": [
+    "What activities reliably make you smile or laugh?",
+    "When in the week is fun easiest to fit?",
+    "Who do you love having fun with?"
+  ],
+  "constraints": {
+    "present_tense": true,
+    "first_person": true,
+    "positive_frame": true,
+    "include_simple_ritual": true,
+    "max_words": 150
+  }
+}

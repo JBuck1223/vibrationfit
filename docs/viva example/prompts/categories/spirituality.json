@@ -1,0 +1,15 @@
+{
+  "category": "spirituality",
+  "seed_questions": [
+    "How do you experience connection with Source?",
+    "What daily/weekly practice anchors you?",
+    "Where do you feel most spiritually alive?"
+  ],
+  "constraints": {
+    "present_tense": true,
+    "first_person": true,
+    "positive_frame": true,
+    "include_simple_ritual": true,
+    "max_words": 150
+  }
+}

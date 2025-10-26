@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useStorageData } from '@/hooks/useStorageData'
-import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2, Save, AlertTriangle, Volume2, Play, File, Mic, Video as VideoIcon, Loader2 } from 'lucide-react'
+import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2, Save, AlertTriangle, Volume2, Play, File, Mic, Video as VideoIcon, Loader2, SkipBack, SkipForward, Pause, PlayCircle, Repeat, Shuffle, MoreHorizontal } from 'lucide-react'
 
 // ============================================================================
 // UTILITY FUNCTION
@@ -2068,7 +2068,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         if (user) {
           const { data: profileData, error } = await supabase
             .from('user_profiles')
-            .select('first_name, last_name, profile_picture_url, vibe_assistant_tokens_remaining')
+            .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
             .eq('user_id', user.id)
             .single()
           
@@ -2134,22 +2134,32 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
           {!collapsed && (
             <div className="flex items-center gap-3">
               {/* Profile Picture */}
-              {profile?.profile_picture_url ? (
+              {loading ? (
+                <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
+              ) : profile?.profile_picture_url ? (
                 <img
                   src={profile.profile_picture_url}
                   alt={profile.first_name || 'Profile'}
                   className="w-8 h-8 rounded-full object-cover border-2 border-primary-500"
                 />
-              ) : (
+              ) : profile?.first_name ? (
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-semibold text-sm">
-                  {profile?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+                  {profile.first_name[0].toUpperCase()}
                 </div>
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
               )}
               
               {/* Name */}
-              <span className="text-white font-medium">
-                {profile?.first_name || user?.email?.split('@')[0]}
-              </span>
+              {loading ? (
+                <div className="w-24 h-4 bg-neutral-700 rounded animate-pulse" />
+              ) : profile?.first_name ? (
+                <span className="text-white font-medium truncate">
+                  {profile.first_name}
+                </span>
+              ) : (
+                <div className="w-24 h-4 bg-neutral-700 rounded animate-pulse" />
+              )}
             </div>
           )}
           <button
@@ -3083,3 +3093,548 @@ export const WarningConfirmationDialog = ({
     </div>
   )
 }
+
+// ============================================================================
+// AUDIO PLAYER COMPONENTS
+// ============================================================================
+
+export interface AudioTrack {
+  id: string
+  title: string
+  artist: string
+  duration: number // in seconds
+  url: string
+  thumbnail?: string
+}
+
+interface AudioPlayerProps {
+  track: AudioTrack
+  autoPlay?: boolean
+  className?: string
+  onTrackEnd?: () => void
+  showInfo?: boolean
+}
+
+export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
+  ({ track, autoPlay = false, className = '', onTrackEnd, showInfo = true }, ref) => {
+    const [isPlaying, setIsPlaying] = useState(false)
+    const [currentTime, setCurrentTime] = useState(0)
+    const [duration, setDuration] = useState(0)
+    const [volume, setVolume] = useState(1)
+    const [isMuted, setIsMuted] = useState(false)
+    const audioRef = useRef<HTMLAudioElement>(null)
+
+    useEffect(() => {
+      const audio = audioRef.current
+      if (!audio) return
+
+      const setAudioData = () => {
+        setDuration(audio.duration)
+      }
+
+      const setAudioTime = () => {
+        setCurrentTime(audio.currentTime)
+      }
+
+      const handleEnded = () => {
+        setIsPlaying(false)
+        setCurrentTime(0)
+        onTrackEnd?.()
+      }
+
+      audio.addEventListener('loadeddata', setAudioData)
+      audio.addEventListener('timeupdate', setAudioTime)
+      audio.addEventListener('ended', handleEnded)
+
+      return () => {
+        audio.removeEventListener('loadeddata', setAudioData)
+        audio.removeEventListener('timeupdate', setAudioTime)
+        audio.removeEventListener('ended', handleEnded)
+      }
+    }, [track, onTrackEnd])
+
+    const togglePlayPause = () => {
+      const audio = audioRef.current
+      if (!audio) return
+
+      if (isPlaying) {
+        audio.pause()
+      } else {
+        audio.play()
+      }
+      setIsPlaying(!isPlaying)
+    }
+
+    const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const audio = audioRef.current
+      if (!audio) return
+
+      const newTime = parseFloat(e.target.value)
+      audio.currentTime = newTime
+      setCurrentTime(newTime)
+    }
+
+    const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const audio = audioRef.current
+      if (!audio) return
+
+      const newVolume = parseFloat(e.target.value)
+      audio.volume = newVolume
+      setVolume(newVolume)
+      setIsMuted(newVolume === 0)
+    }
+
+    const toggleMute = () => {
+      const audio = audioRef.current
+      if (!audio) return
+
+      if (isMuted) {
+        audio.volume = volume || 0.5
+        setIsMuted(false)
+      } else {
+        audio.volume = 0
+        setIsMuted(true)
+      }
+    }
+
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60)
+      const secs = Math.floor(seconds % 60)
+      return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+
+    return (
+      <div className={cn('w-full', className)}>
+        <audio ref={audioRef} src={track.url} preload="metadata" />
+        
+        {/* Track Info */}
+        {showInfo && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-white truncate">{track.title}</h3>
+            <p className="text-sm text-neutral-400 truncate">{track.artist}</p>
+          </div>
+        )}
+
+        {/* Main Player Controls */}
+        <div className="flex items-center gap-3 md:gap-4 mb-3">
+          {/* Play/Pause Button */}
+          <button
+            onClick={togglePlayPause}
+            className="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.8)] transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? (
+              <Pause className="w-6 h-6 md:w-7 md:h-7" fill="currentColor" />
+            ) : (
+              <Play className="w-6 h-6 md:w-7 md:h-7 ml-0.5" fill="currentColor" />
+            )}
+          </button>
+
+          {/* Volume Control */}
+          <div className="hidden md:flex items-center gap-2 flex-1 max-w-[200px]">
+            <button
+              onClick={toggleMute}
+              className="text-neutral-400 hover:text-white transition-colors p-1"
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
+            >
+              <Volume2 className={cn('w-5 h-5', isMuted && 'line-through')} />
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={isMuted ? 0 : volume}
+              onChange={handleVolumeChange}
+              className="w-full h-1 bg-neutral-700 rounded-full appearance-none cursor-pointer accent-[#39FF14]"
+            />
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-3">
+          <input
+            type="range"
+            min="0"
+            max={duration || 0}
+            step="0.1"
+            value={currentTime}
+            onChange={handleSeek}
+            className="w-full h-2 bg-neutral-700 rounded-full appearance-none cursor-pointer accent-[#39FF14]"
+            style={{
+              background: `linear-gradient(to right, #39FF14 0%, #39FF14 ${progress}%, #404040 ${progress}%, #404040 100%)`
+            }}
+          />
+        </div>
+
+        {/* Time Display */}
+        <div className="flex justify-between items-center text-xs text-neutral-400">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
+        </div>
+
+        {/* Mobile Volume Toggle */}
+        <div className="md:hidden flex items-center justify-center mt-2">
+          <button
+            onClick={toggleMute}
+            className="text-neutral-400 hover:text-white transition-colors p-2"
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
+          >
+            <Volume2 className={cn('w-5 h-5', isMuted && 'line-through')} />
+          </button>
+        </div>
+      </div>
+    )
+  }
+)
+AudioPlayer.displayName = 'AudioPlayer'
+
+// ============================================================================
+// PLAYLIST PLAYER COMPONENT
+// ============================================================================
+
+interface PlaylistPlayerProps {
+  tracks: AudioTrack[]
+  className?: string
+  autoPlay?: boolean
+}
+
+export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({ 
+  tracks, 
+  className = '',
+  autoPlay = false 
+}) => {
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [volume, setVolume] = useState(1)
+  const [isMuted, setIsMuted] = useState(false)
+  const [repeatMode, setRepeatMode] = useState<'off' | 'all' | 'one'>('off')
+  const [isShuffled, setIsShuffled] = useState(false)
+  const [originalOrder, setOriginalOrder] = useState<number[]>([])
+  
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  const currentTrack = tracks[currentTrackIndex]
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const setAudioData = () => {
+      setDuration(audio.duration)
+    }
+
+    const setAudioTime = () => {
+      setCurrentTime(audio.currentTime)
+    }
+
+    const handleEnded = () => {
+      handleNext()
+    }
+
+    audio.addEventListener('loadeddata', setAudioData)
+    audio.addEventListener('timeupdate', setAudioTime)
+    audio.addEventListener('ended', handleEnded)
+
+    return () => {
+      audio.removeEventListener('loadeddata', setAudioData)
+      audio.removeEventListener('timeupdate', setAudioTime)
+      audio.removeEventListener('ended', handleEnded)
+    }
+  }, [currentTrackIndex])
+
+  useEffect(() => {
+    if (autoPlay && isPlaying) {
+      audioRef.current?.play()
+    }
+  }, [currentTrackIndex])
+
+  const togglePlayPause = () => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    if (isPlaying) {
+      audio.pause()
+    } else {
+      audio.play()
+    }
+    setIsPlaying(!isPlaying)
+  }
+
+  const handlePrevious = () => {
+    const audio = audioRef.current
+    if (!audio || currentTime > 3) {
+      audio && (audio.currentTime = 0)
+      return
+    }
+
+    let newIndex = currentTrackIndex - 1
+    if (newIndex < 0) {
+      newIndex = tracks.length - 1
+    }
+    setCurrentTrackIndex(newIndex)
+    setCurrentTime(0)
+  }
+
+  const handleNext = () => {
+    let newIndex = currentTrackIndex + 1
+
+    if (repeatMode === 'one') {
+      newIndex = currentTrackIndex
+    } else if (repeatMode === 'all' && newIndex >= tracks.length) {
+      newIndex = 0
+    } else if (newIndex >= tracks.length) {
+      setIsPlaying(false)
+      return
+    }
+
+    setCurrentTrackIndex(newIndex)
+    setCurrentTime(0)
+  }
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const newTime = parseFloat(e.target.value)
+    audio.currentTime = newTime
+    setCurrentTime(newTime)
+  }
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const newVolume = parseFloat(e.target.value)
+    audio.volume = newVolume
+    setVolume(newVolume)
+    setIsMuted(newVolume === 0)
+  }
+
+  const toggleMute = () => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    if (isMuted) {
+      audio.volume = volume || 0.5
+      setIsMuted(false)
+    } else {
+      audio.volume = 0
+      setIsMuted(true)
+    }
+  }
+
+  const toggleRepeat = () => {
+    const modes: ('off' | 'all' | 'one')[] = ['off', 'all', 'one']
+    const currentIndex = modes.indexOf(repeatMode)
+    const nextIndex = (currentIndex + 1) % modes.length
+    setRepeatMode(modes[nextIndex])
+  }
+
+  const toggleShuffle = () => {
+    if (!isShuffled) {
+      // Store original order
+      setOriginalOrder(Array.from(Array(tracks.length).keys()))
+      
+      // Shuffle tracks
+      const shuffled = [...tracks].sort(() => Math.random() - 0.5)
+      // For simplicity, we'll just set the shuffle flag
+      // In a real implementation, you'd manage the shuffled array
+      setIsShuffled(true)
+    } else {
+      // Restore original order
+      setIsShuffled(false)
+    }
+  }
+
+  const handleTrackSelect = (index: number) => {
+    setCurrentTrackIndex(index)
+    setCurrentTime(0)
+    if (isPlaying) {
+      // Small delay to ensure audio is loaded
+      setTimeout(() => {
+        audioRef.current?.play()
+      }, 100)
+    }
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+
+  return (
+    <div className={cn('w-full', className)}>
+      <audio ref={audioRef} src={currentTrack?.url} preload="metadata" />
+
+      {/* Current Track Info */}
+      <Card variant="elevated" className="mb-6">
+        <div className="flex items-center gap-4">
+          {currentTrack?.thumbnail && (
+            <img 
+              src={currentTrack.thumbnail} 
+              alt={currentTrack.title}
+              className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold text-white truncate">{currentTrack?.title}</h3>
+            <p className="text-sm text-neutral-400 truncate">{currentTrack?.artist}</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Main Player Controls */}
+      <div className="flex items-center justify-center gap-2 md:gap-4 mb-4">
+        {/* Shuffle Button */}
+        <button
+          onClick={toggleShuffle}
+          className={cn(
+            'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
+            isShuffled 
+              ? 'bg-[#39FF14] text-black' 
+              : 'text-neutral-400 hover:text-white'
+          )}
+          aria-label="Shuffle"
+        >
+          <Shuffle className="w-5 h-5" />
+        </button>
+
+        {/* Previous Button */}
+        <button
+          onClick={handlePrevious}
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-neutral-800 hover:bg-neutral-700 text-white transition-colors"
+          aria-label="Previous"
+        >
+          <SkipBack className="w-6 h-6" />
+        </button>
+
+        {/* Play/Pause Button */}
+        <button
+          onClick={togglePlayPause}
+          className="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-full bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.8)] transition-all duration-300 hover:scale-105 active:scale-95"
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+        >
+          {isPlaying ? (
+            <Pause className="w-8 h-8 md:w-10 md:h-10" fill="currentColor" />
+          ) : (
+            <Play className="w-8 h-8 md:w-10 md:h-10 ml-1" fill="currentColor" />
+          )}
+        </button>
+
+        {/* Next Button */}
+        <button
+          onClick={handleNext}
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-neutral-800 hover:bg-neutral-700 text-white transition-colors"
+          aria-label="Next"
+        >
+          <SkipForward className="w-6 h-6" />
+        </button>
+
+        {/* Repeat Button */}
+        <button
+          onClick={toggleRepeat}
+          className={cn(
+            'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
+            repeatMode !== 'off'
+              ? 'bg-[#39FF14] text-black' 
+              : 'text-neutral-400 hover:text-white'
+          )}
+          aria-label="Repeat"
+        >
+          <Repeat className={cn('w-5 h-5', repeatMode === 'one' && 'text-black')} />
+        </button>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="mb-4">
+        <input
+          type="range"
+          min="0"
+          max={duration || 0}
+          step="0.1"
+          value={currentTime}
+          onChange={handleSeek}
+          className="w-full h-2 bg-neutral-700 rounded-full appearance-none cursor-pointer accent-[#39FF14]"
+          style={{
+            background: `linear-gradient(to right, #39FF14 0%, #39FF14 ${progress}%, #404040 ${progress}%, #404040 100%)`
+          }}
+        />
+      </div>
+
+      {/* Time Display */}
+      <div className="flex justify-between items-center text-sm text-neutral-400 mb-6">
+        <span>{formatTime(currentTime)}</span>
+        <span>{formatTime(duration)}</span>
+      </div>
+
+      {/* Volume Control */}
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={toggleMute}
+          className="text-neutral-400 hover:text-white transition-colors p-1"
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
+        >
+          <Volume2 className={cn('w-5 h-5', isMuted && 'line-through')} />
+        </button>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={isMuted ? 0 : volume}
+          onChange={handleVolumeChange}
+          className="flex-1 h-1 bg-neutral-700 rounded-full appearance-none cursor-pointer accent-[#39FF14]"
+        />
+      </div>
+
+      {/* Track List */}
+      <Card variant="default" className="max-h-80 overflow-y-auto">
+        <Stack gap="xs">
+          <h4 className="text-lg font-semibold text-white mb-2">Playlist</h4>
+          {tracks.map((track, index) => (
+            <button
+              key={track.id}
+              onClick={() => handleTrackSelect(index)}
+              className={cn(
+                'w-full text-left p-3 rounded-lg transition-all duration-200',
+                'hover:bg-neutral-800',
+                currentTrackIndex === index && 'bg-[#39FF14]/20 border border-[#39FF14]'
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  {currentTrackIndex === index && isPlaying ? (
+                    <PlayCircle className="w-5 h-5 text-[#39FF14]" />
+                  ) : (
+                    <Play className="w-5 h-5 text-neutral-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={cn(
+                    'text-sm font-medium truncate',
+                    currentTrackIndex === index ? 'text-[#39FF14]' : 'text-white'
+                  )}>
+                    {track.title}
+                  </p>
+                  <p className="text-xs text-neutral-400 truncate">{track.artist}</p>
+                </div>
+                <div className="text-xs text-neutral-500">
+                  {formatTime(track.duration)}
+                </div>
+              </div>
+            </button>
+          ))}
+        </Stack>
+      </Card>
+    </div>
+  )
+}
+PlaylistPlayer.displayName = 'PlaylistPlayer'

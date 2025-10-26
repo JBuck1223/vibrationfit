@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
-import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert'
+import { MediaConvertClient, CreateJobCommand, AudioDefaultSelection } from '@aws-sdk/client-mediaconvert'
 import { optimizeImage, shouldOptimizeImage, getOptimalDimensions } from '@/lib/utils/imageOptimization'
 import { compressVideo, shouldCompressVideo, getCompressionOptions } from '@/lib/utils/videoOptimization'
 
@@ -304,7 +304,7 @@ async function triggerMediaConvertJob(
         VideoSelector: {},
         AudioSelectors: {
           'Audio Selector 1': {
-            DefaultSelection: 'DEFAULT'
+            DefaultSelection: AudioDefaultSelection.DEFAULT
           }
         }
       }],

@@ -1,0 +1,25 @@
+[
+  {
+    "id": "74c61cbe-da93-4165-b104-99f75b1ada63",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "vision_id": "bd8e6440-a65b-4b01-bca0-28ae8e875b3f",
+    "category": "fun",
+    "operation_type": "refine_vision",
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "cost_usd": 0,
+    "refinement_percentage": 0,
+    "tonality": "balanced",
+    "word_count_target": null,
+    "emotional_intensity": "moderate",
+    "instructions": null,
+    "input_text": null,
+    "output_text": "There are many wonderful things we choose to experience with a vigor for life. We are free to enjoy activities that are stimulating to the senses and allow unlimited energy to flow within us.\n\nWe love to travel, boat, cycle, beach, swim, workout, play at parks, play tennis, build businesses, create new things, tinker, scrapbook, golf, fish, hangout with friends, go to concerts, attend shows, have new food experiences, spend time with family, go to zoos and aquariums, go on cruises, get massages, explore fun areas, kite-surf, ski, and much more!\n\nWe love going on family golf cart outings and going fishing and playing at parks!\n\nWe enjoy learning new things like dancing, kitesurfing, grilling, baking, saltwater fishing, Spanish, guitar, Reiki, intuitive readings, tying knots for boating, cool tricks for camping and having fun outdoors with the kids, and creating cool, contemporary music and meditations for kids and adults that assist with being in alignment.\n\nWe love experiencing new types of food and ways of preparing it. We love enjoying fancy, tasty charcuterie boards with an array of new cheeses, different types of meat and unique snacks, protein that is prepared in unique ways that make it taste heavenly, mouthwatering sauces and condiments, and desserts like we’ve never tasted before.\n\nWe love enjoying drinks that are unique to the place we’re at. We love the bonding experience it gives us while hanging out with fun, beautiful people.\n\nWe love having new cultural food experiences in unique places around the world. It’s so much fun eating with locals who prepare food in a way we’ve never tried before. These meals stand out as some of our favorites.\n\nWe have a blast eating delicious meals at places with beautiful views. We overlook oceans, lakes, rivers, waterfalls, rainforests, canyons, mountains, clouds, deserts, and many other spectacular places.",
+    "processing_time_ms": null,
+    "success": true,
+    "error_message": null,
+    "created_at": "2025-10-23T21:57:30.824+00:00",
+    "viva_notes": null
+  }
+]

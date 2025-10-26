@@ -1,0 +1,15 @@
+{
+  "category": "business",
+  "seed_questions": [
+    "Which work lights you up the most?",
+    "What does a focused, calm workday look like?",
+    "What single needle\u2011moving action defines a great week?"
+  ],
+  "constraints": {
+    "present_tense": true,
+    "first_person": true,
+    "positive_frame": true,
+    "include_simple_ritual": true,
+    "max_words": 150
+  }
+}

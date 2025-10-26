@@ -1,0 +1,45 @@
+[
+  {
+    "id": "498e199a-d775-4f86-9e2e-df975d5dbb26",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "profile_version_id": null,
+    "status": "completed",
+    "total_score": 353,
+    "max_possible_score": 420,
+    "overall_percentage": 84,
+    "category_scores": {
+      "fun": 33,
+      "home": 29,
+      "money": 32,
+      "family": 33,
+      "giving": 20,
+      "health": 25,
+      "social": 27,
+      "travel": 32,
+      "romance": 35,
+      "business": 26,
+      "possessions": 28,
+      "spirituality": 33
+    },
+    "green_line_status": {
+      "fun": "above",
+      "home": "above",
+      "money": "above",
+      "family": "above",
+      "giving": "below",
+      "health": "transition",
+      "social": "transition",
+      "travel": "above",
+      "romance": "above",
+      "business": "transition",
+      "possessions": "above",
+      "spirituality": "above"
+    },
+    "started_at": "2025-10-19T17:42:32.115+00:00",
+    "completed_at": "2025-10-19T18:02:27.128189+00:00",
+    "created_at": "2025-10-19T17:42:32.234274+00:00",
+    "updated_at": "2025-10-19T18:25:01.607945+00:00",
+    "assessment_version": 1,
+    "notes": null
+  }
+]

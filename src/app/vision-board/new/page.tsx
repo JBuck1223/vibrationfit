@@ -456,7 +456,7 @@ export default function NewVisionBoardItemPage() {
                   </p>
                 )}
                 <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                  {VISION_CATEGORIES.map((category) => {
+                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
                     const isNeeded = isIntensiveMode && categoriesNeeded.includes(category.label)
                     return (
                       <CategoryCard 

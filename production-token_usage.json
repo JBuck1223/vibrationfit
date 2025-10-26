@@ -1,0 +1,1225 @@
+[
+  {
+    "id": "6147687a-b9f7-4e0e-8de9-bb42441f7449",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 1,
+    "input_tokens": 203,
+    "output_tokens": 0,
+    "cost_estimate": 40,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "Austria. A mountain scene like where The Sound of Music was filmed in Austria. Golden hour in springtime.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colo",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Generate a high-quality, photorealistic image of a mountainous landscape in Austria, reminiscent of scenes from iconic films. It is golden hour in the springtime. The natural lighting seamlessly illum"
+    },
+    "created_at": "2025-10-16T12:32:55.304+00:00"
+  },
+  {
+    "id": "071555a9-d936-4602-8ae6-a0951e9c545a",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 322,
+    "input_tokens": 300,
+    "output_tokens": 50,
+    "cost_estimate": 2.25,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "Someone suggests a spontaneous adventure. What's your gut response?",
+      "estimated_tokens": true,
+      "user_response_length": 85
+    },
+    "created_at": "2025-10-16T15:36:02.516+00:00"
+  },
+  {
+    "id": "ef339ae5-634a-4c8b-bf38-b7dd4d4a8b7e",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 404,
+    "input_tokens": 354,
+    "output_tokens": 50,
+    "cost_estimate": 252,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "You walk into your home after being away. What do you feel?",
+      "estimated_tokens": true,
+      "user_response_length": 306
+    },
+    "created_at": "2025-10-16T18:48:48.459+00:00"
+  },
+  {
+    "id": "627b8927-dedc-4193-a2d0-b29a0b8349be",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 341,
+    "input_tokens": 291,
+    "output_tokens": 50,
+    "cost_estimate": 221,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 65
+    },
+    "created_at": "2025-10-17T17:30:39.715+00:00"
+  },
+  {
+    "id": "2d0540a5-c138-4589-8fbf-6c423141b40a",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 347,
+    "input_tokens": 297,
+    "output_tokens": 50,
+    "cost_estimate": 224,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 88
+    },
+    "created_at": "2025-10-17T17:35:09.674+00:00"
+  },
+  {
+    "id": "3da519b4-8438-4825-946d-912af3eaeecb",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 335,
+    "input_tokens": 285,
+    "output_tokens": 50,
+    "cost_estimate": 217,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "You think about your ideal relationship. What comes up?",
+      "estimated_tokens": true,
+      "user_response_length": 36
+    },
+    "created_at": "2025-10-17T17:36:45.775+00:00"
+  },
+  {
+    "id": "ac1ee0d2-2767-4238-a788-f2695c1cd6e8",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 348,
+    "input_tokens": 298,
+    "output_tokens": 50,
+    "cost_estimate": 224,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 90
+    },
+    "created_at": "2025-10-17T17:37:56.91+00:00"
+  },
+  {
+    "id": "695270f7-4aa9-4653-a3d5-dd8d012a28cb",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 348,
+    "input_tokens": 298,
+    "output_tokens": 50,
+    "cost_estimate": 224,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 90
+    },
+    "created_at": "2025-10-17T17:39:15.049+00:00"
+  },
+  {
+    "id": "33d943d9-cb48-4d3e-bfc5-dee25c195bed",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 348,
+    "input_tokens": 298,
+    "output_tokens": 50,
+    "cost_estimate": 224,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 90
+    },
+    "created_at": "2025-10-17T17:51:02.463+00:00"
+  },
+  {
+    "id": "b929c6f1-19d1-432b-864a-88a86d3e1fec",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 356,
+    "input_tokens": 306,
+    "output_tokens": 50,
+    "cost_estimate": 228,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 124
+    },
+    "created_at": "2025-10-17T17:57:44.984+00:00"
+  },
+  {
+    "id": "46abee33-8440-4f1e-a640-7c975062bcf8",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 425,
+    "input_tokens": 375,
+    "output_tokens": 50,
+    "cost_estimate": 263,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 124
+    },
+    "created_at": "2025-10-17T18:02:11.499+00:00"
+  },
+  {
+    "id": "eaeea078-e6ba-4389-a5d5-ec49edcf0142",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 425,
+    "input_tokens": 375,
+    "output_tokens": 50,
+    "cost_estimate": 263,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 124
+    },
+    "created_at": "2025-10-17T18:03:42.035+00:00"
+  },
+  {
+    "id": "39a99fab-283f-4d6f-9b78-cbb086de0068",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 430,
+    "input_tokens": 380,
+    "output_tokens": 50,
+    "cost_estimate": 265,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "Your young child has a tantrum in public. What's your immediate response?",
+      "estimated_tokens": true,
+      "user_response_length": 124
+    },
+    "created_at": "2025-10-17T18:05:30.973+00:00"
+  },
+  {
+    "id": "441a7cfc-0ec4-45eb-a0b3-e547998f7242",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 425,
+    "input_tokens": 375,
+    "output_tokens": 50,
+    "cost_estimate": 263,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 124
+    },
+    "created_at": "2025-10-17T18:08:17.218+00:00"
+  },
+  {
+    "id": "84f07a74-a176-4aa8-887f-3e292fe3e8bf",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 425,
+    "input_tokens": 375,
+    "output_tokens": 50,
+    "cost_estimate": 263,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 124
+    },
+    "created_at": "2025-10-17T18:14:44.013+00:00"
+  },
+  {
+    "id": "1164a359-0380-4455-b5ef-b7d4faabe803",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 425,
+    "input_tokens": 375,
+    "output_tokens": 50,
+    "cost_estimate": 263,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "How do you keep the romance alive in your marriage?",
+      "estimated_tokens": true,
+      "user_response_length": 124
+    },
+    "created_at": "2025-10-17T18:16:24.518+00:00"
+  },
+  {
+    "id": "8219617f-dd7d-4ebe-a56f-4acffab93090",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 411,
+    "input_tokens": 361,
+    "output_tokens": 50,
+    "cost_estimate": 255,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "You think about your spouse's annoying habits. What's your reaction?",
+      "estimated_tokens": true,
+      "user_response_length": 53
+    },
+    "created_at": "2025-10-17T18:18:00.579+00:00"
+  },
+  {
+    "id": "4e3a1936-7914-4146-9dd1-8433ee83ba5f",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 411,
+    "input_tokens": 361,
+    "output_tokens": 50,
+    "cost_estimate": 255,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "You think about your spouse's annoying habits. What's your reaction?",
+      "estimated_tokens": true,
+      "user_response_length": 53
+    },
+    "created_at": "2025-10-17T18:20:36.108+00:00"
+  },
+  {
+    "id": "1c4bd764-a42a-43c8-abb4-03dd9f821d09",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "assessment_scoring",
+    "model_used": "gpt-5",
+    "tokens_used": 418,
+    "input_tokens": 368,
+    "output_tokens": 50,
+    "cost_estimate": 259,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "question_text": "You think about your spouse's annoying habits. What's your reaction?",
+      "estimated_tokens": true,
+      "user_response_length": 79
+    },
+    "created_at": "2025-10-17T18:22:57.023+00:00"
+  },
+  {
+    "id": "e077ebb9-d65c-407e-a5e2-ceb8039e1a19",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": false,
+    "error_message": "400 Invalid value: '1600x1200'. Supported values are: '1024x1024', '1024x1792', and '1792x1024'.",
+    "metadata": {
+      "size": "1600x1200",
+      "style": "vivid",
+      "prompt": "Magical Mountain Cottage. Beautiful Mountain Cottage to enjoy with the family!. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard"
+    },
+    "created_at": "2025-10-23T03:37:03.313+00:00"
+  },
+  {
+    "id": "ef3838f6-09a7-4a78-b670-02851a8555d3",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 174,
+    "input_tokens": 174,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "Magical Mountain Cottage. Magical Mountain Cottage to enjoy with the family!. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "A magical mountain cottage nestled against a breathtaking mountain backdrop, ideal for a lovely family getaway. The scene should be depicted with high-quality, photorealistic detail, showcasing the pl"
+    },
+    "created_at": "2025-10-23T03:39:41.474+00:00"
+  },
+  {
+    "id": "e0ae0ca1-fbce-481a-962c-3173d5b7647d",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 138,
+    "input_tokens": 138,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV. Fun RV to road trip with the family!. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Create a hyperrealistic image of a fun, family-friendly recreational vehicle (RV) ready for a road trip. The image should depict a sunny day with natural lighting casting realistic shadows, enhancing "
+    },
+    "created_at": "2025-10-23T03:44:22.888+00:00"
+  },
+  {
+    "id": "0957d41a-a3c3-4890-86d5-208826d77f41",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 138,
+    "input_tokens": 138,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV. Fun RV to road trip with the family!. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "A RV in photorealistic style, perfect for a family road trip. The RV should have high-quality detailed textures and realistic colors. The setting should have natural lighting, illuminating the scene. "
+    },
+    "created_at": "2025-10-23T03:53:30.861+00:00"
+  },
+  {
+    "id": "2dad3446-df01-4479-931b-95a33fd07b4e",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 129,
+    "input_tokens": 129,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "Camping. Camping with the kids.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "A high-quality photorealistic depiction of a camping scene with children. The scene is illuminated by natural light, showcasing detailed textures such as the fabric of the tents, the ruggedness of the"
+    },
+    "created_at": "2025-10-23T04:13:36.877+00:00"
+  },
+  {
+    "id": "6cd2f5db-c2e6-4c3c-883c-ba24afa62ae5",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 178,
+    "input_tokens": 178,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "Camping. Camping by a lake single tent and rv o campsite. No people. Only scene.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "An outdoor scenery of a serene camping setting by a peaceful lake. The scene features a single tent and an RV stationed at the campsite without any people in the frame. The image evokes a sense of cal"
+    },
+    "created_at": "2025-10-23T04:17:07.43+00:00"
+  },
+  {
+    "id": "74fd89f4-8508-4985-8ab7-af1d34d69735",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 1416,
+    "input_tokens": 1368,
+    "output_tokens": 48,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 621781,
+      "file_type": "audio/webm",
+      "word_count": 48,
+      "audio_duration": 22.790000915527344
+    },
+    "created_at": "2025-10-23T11:37:19.593+00:00"
+  },
+  {
+    "id": "aee42bc2-1ec7-42c5-b4cf-2188d62b604d",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 1416,
+    "input_tokens": 1368,
+    "output_tokens": 48,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 621781,
+      "file_type": "audio/webm",
+      "word_count": 48,
+      "audio_duration": 22.790000915527344
+    },
+    "created_at": "2025-10-23T11:38:07.591+00:00"
+  },
+  {
+    "id": "9e92f121-f859-43a9-94a0-be0a46349c3a",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 159,
+    "input_tokens": 159,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV . RV Road Trip! This should be a newer model driveable rv.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Picture a newer model of road-ready recreational vehicle (RV) ideal for an adventurous road trip. Visualize this RV in high-end, photorealistic quality with a clean exterior boasting of detailed textu"
+    },
+    "created_at": "2025-10-23T21:49:48.238+00:00"
+  },
+  {
+    "id": "cca6a4c2-e4ab-4dfc-966b-90257428d01a",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 143,
+    "input_tokens": 143,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "Mountain Cottage. Beautiful Mountain Cottage!. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Create a photorealistic image of a beautiful cottage nestled in the heart of the mountains. Emphasize the play of natural lighting on the detailed textures of the cottage and surrounding environment. "
+    },
+    "created_at": "2025-10-23T21:51:19.275+00:00"
+  },
+  {
+    "id": "816f60c1-7f96-42c7-98b6-6f150166c828",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 170,
+    "input_tokens": 170,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "Autumn leaves. Beautiful Autumn scene with colors changing on the trees.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Envision an exquisitely detailed image of a tranquil Autumn scene. The leaves on the trees have morphed into a vibrant kaleidoscope of crimson, gold, and burnt orange hues as they succumb to the seaso"
+    },
+    "created_at": "2025-10-23T21:53:53.226+00:00"
+  },
+  {
+    "id": "ae92ae3e-2647-4765-9d46-c788dfc8a93b",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 170,
+    "input_tokens": 170,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "Autumn leaves. Beautiful Autumn scene with colors changing on the trees.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Envision a captivating autumn scene where the leaves on the trees have beautifully transitioned to varying shades of orange, crimson, and gold. Capture true-to-life details executed with top-notch pre"
+    },
+    "created_at": "2025-10-23T21:54:57.269+00:00"
+  },
+  {
+    "id": "312a056d-a6ca-4e19-aafe-39efdb1c95d3",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 145,
+    "input_tokens": 145,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "Pool in the backyard. Swimming pool in Florida.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Create a detailed representation of a clear blue swimming pool situated in the well-kept backyard of a typical Floridian house under natural lighting. It should appear as high-quality, photorealistic "
+    },
+    "created_at": "2025-10-23T22:01:33.731+00:00"
+  },
+  {
+    "id": "b9f2c97d-097d-4536-aac1-02020a170d85",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 126,
+    "input_tokens": 126,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV at a campsite on a lake! . Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "A high-resolution, photorealistic image of a Recreation Vehicle (RV) parked at a serene campsite near a tranquil lake. The lake should reflect the sky above, capturing the essence of the peaceful surr"
+    },
+    "created_at": "2025-10-24T10:16:31.912+00:00"
+  },
+  {
+    "id": "967ad73a-6426-4483-8b1f-01a2b02eabbd",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 119,
+    "input_tokens": 119,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV Camping on a lake.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Visualize a motorhome parked in the serene tranquility of a lakeside spot. The image should be of high-quality and photorealistic, showcasing the natural lighting of the setting. Include the reflectiv"
+    },
+    "created_at": "2025-10-24T10:25:04.222+00:00"
+  },
+  {
+    "id": "9334880a-d031-461b-9126-231c31ef1e5d",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": false,
+    "error_message": "cdnUrl is not defined",
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV Camping on a lake.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard"
+    },
+    "created_at": "2025-10-24T10:25:06.932+00:00"
+  },
+  {
+    "id": "55d76706-0450-455a-a5f0-2ded5674b07f",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 122,
+    "input_tokens": 122,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV. RV Camping on a Lake. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Photorealistic, high-quality image of an RV parked by a serene lake. The image emphasizes natural lighting, giving the scenery an authentic and magnificent glow. The detailed textures of the landscape"
+    },
+    "created_at": "2025-10-24T10:28:25.626+00:00"
+  },
+  {
+    "id": "aa870c78-1039-4321-b1bd-3542496b63c4",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 123,
+    "input_tokens": 123,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV. RV campsite by a lake. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Generate a photorealistic image with high-quality photography that presents an RV campsite situated beside a serene lake. The lighting should be natural, creating an impactful contrast between light a"
+    },
+    "created_at": "2025-10-24T10:32:37.713+00:00"
+  },
+  {
+    "id": "cd8c2251-7cde-4b48-aa38-27443cdfa265",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 124,
+    "input_tokens": 124,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV. RV Campsite by a lake.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "A photorealistic, high-quality image of an RV campsite. The image depicts an RV parked next to a serene lake with the reflection of surrounding trees in the water. Capture the image with the charm of "
+    },
+    "created_at": "2025-10-24T10:37:09.253+00:00"
+  },
+  {
+    "id": "7e6f2c58-7833-4356-8a1c-671402da2953",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 124,
+    "input_tokens": 124,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV. RV campsite by a lake.. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Generate an image of a motorhome campsite situated next to a tranquil lake. The image should exude the qualities of a high-resolution photograph, showcasing natural sunlight filtering through the tree"
+    },
+    "created_at": "2025-10-24T10:40:38.648+00:00"
+  },
+  {
+    "id": "2027bb07-6dd6-4d09-a4f2-7fa347330012",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 123,
+    "input_tokens": 123,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV. RV Campsite by a lake. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "An RV campsite situated by a serene lake. The scene should be a photorealistic depiction, capturing high-quality aspects of photography, the soft natural lighting subtly illuminating the surroundings,"
+    },
+    "created_at": "2025-10-24T10:42:25.019+00:00"
+  },
+  {
+    "id": "703366f0-8c0e-49eb-8e4f-776d7d5ad1b2",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "image_generation",
+    "model_used": "dall-e-3",
+    "tokens_used": 121,
+    "input_tokens": 121,
+    "output_tokens": 0,
+    "cost_estimate": 4000,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "size": "1792x1024",
+      "style": "vivid",
+      "prompt": "RV. RV campsite on lake. Photorealistic, high-quality photography, natural lighting, detailed textures, realistic colors.",
+      "context": "vision_board",
+      "quality": "standard",
+      "revised_prompt": "Create a photorealistic image capturing a recreational vehicle (RV) parked at a lakeside campsite. The scene should be characterized by high-quality photography, including elements such as fine detail"
+    },
+    "created_at": "2025-10-24T10:50:53.812+00:00"
+  },
+  {
+    "id": "9b0a1564-b6ca-4251-b19a-1f317b8ff0e1",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 137,
+    "input_tokens": 134,
+    "output_tokens": 3,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 35935,
+      "file_type": "audio/webm",
+      "word_count": 3,
+      "audio_duration": 2.2200000286102295
+    },
+    "created_at": "2025-10-25T13:02:05.701+00:00"
+  },
+  {
+    "id": "4da69a3a-ea6a-4471-9798-bb4764336df5",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 318,
+    "input_tokens": 317,
+    "output_tokens": 1,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 85249,
+      "file_type": "audio/webm",
+      "word_count": 1,
+      "audio_duration": 5.28000020980835
+    },
+    "created_at": "2025-10-25T13:03:30.884+00:00"
+  },
+  {
+    "id": "295ed081-27e8-4ca5-a3cb-39ee708d9cc7",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 64,
+    "input_tokens": 62,
+    "output_tokens": 2,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 16583,
+      "file_type": "audio/webm",
+      "word_count": 2,
+      "audio_duration": 1.0199999809265137
+    },
+    "created_at": "2025-10-25T13:09:21.85+00:00"
+  },
+  {
+    "id": "6de830b3-b537-42fb-9504-518301c09f79",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 695,
+    "input_tokens": 674,
+    "output_tokens": 21,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 180963,
+      "file_type": "audio/webm",
+      "word_count": 21,
+      "audio_duration": 11.220000267028809
+    },
+    "created_at": "2025-10-25T13:16:11.563+00:00"
+  },
+  {
+    "id": "3ba91ed0-fbd2-4c99-8aa6-73feb25935d9",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 343,
+    "input_tokens": 335,
+    "output_tokens": 8,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 90079,
+      "file_type": "audio/webm",
+      "word_count": 8,
+      "audio_duration": 5.579999923706055
+    },
+    "created_at": "2025-10-25T13:22:45.302+00:00"
+  },
+  {
+    "id": "d0f90459-accc-4fa6-ba33-109ca51a1535",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 275,
+    "input_tokens": 267,
+    "output_tokens": 8,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 71709,
+      "file_type": "audio/webm",
+      "word_count": 8,
+      "audio_duration": 4.440000057220459
+    },
+    "created_at": "2025-10-25T13:26:17.167+00:00"
+  },
+  {
+    "id": "c5bcb528-6a95-4a09-b2c1-81f2a83569a0",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 813,
+    "input_tokens": 777,
+    "output_tokens": 36,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 357009,
+      "file_type": "audio/webm",
+      "word_count": 36,
+      "audio_duration": 12.9399995803833
+    },
+    "created_at": "2025-10-25T14:51:56.687+00:00"
+  },
+  {
+    "id": "69fec512-22fa-46f3-a6ee-66c2a08e9491",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 813,
+    "input_tokens": 777,
+    "output_tokens": 36,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 357009,
+      "file_type": "audio/webm",
+      "word_count": 36,
+      "audio_duration": 12.9399995803833
+    },
+    "created_at": "2025-10-25T14:52:03.632+00:00"
+  },
+  {
+    "id": "9a073ed3-847b-4eb8-ba86-287cf6f8d45c",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 361,
+    "input_tokens": 353,
+    "output_tokens": 8,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 94909,
+      "file_type": "audio/webm",
+      "word_count": 8,
+      "audio_duration": 5.880000114440918
+    },
+    "created_at": "2025-10-25T15:04:03.001+00:00"
+  },
+  {
+    "id": "7ef74642-701a-4e59-a7c2-61f08a268ac0",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 361,
+    "input_tokens": 353,
+    "output_tokens": 8,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 94909,
+      "file_type": "audio/webm",
+      "word_count": 8,
+      "audio_duration": 5.880000114440918
+    },
+    "created_at": "2025-10-25T15:04:48.762+00:00"
+  },
+  {
+    "id": "d0fa29ad-3e64-46a7-8ac5-9920a1b840a7",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 246,
+    "input_tokens": 235,
+    "output_tokens": 11,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 62999,
+      "file_type": "audio/webm",
+      "word_count": 11,
+      "audio_duration": 3.9000000953674316
+    },
+    "created_at": "2025-10-25T15:10:17.76+00:00"
+  },
+  {
+    "id": "75ed6261-bd93-4ae6-92b9-e4d288250c6b",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 246,
+    "input_tokens": 235,
+    "output_tokens": 11,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 62999,
+      "file_type": "audio/webm",
+      "word_count": 11,
+      "audio_duration": 3.9000000953674316
+    },
+    "created_at": "2025-10-25T15:10:22.016+00:00"
+  },
+  {
+    "id": "57cce889-d58d-4eac-af06-28c0a467cf8f",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 395,
+    "input_tokens": 382,
+    "output_tokens": 13,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 1768163,
+      "file_type": "video/webm",
+      "word_count": 13,
+      "audio_duration": 6.360000133514404
+    },
+    "created_at": "2025-10-25T15:38:48.904+00:00"
+  },
+  {
+    "id": "46018819-90c4-4867-ada4-154821435cc8",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 395,
+    "input_tokens": 382,
+    "output_tokens": 13,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 1768163,
+      "file_type": "video/webm",
+      "word_count": 13,
+      "audio_duration": 6.360000133514404
+    },
+    "created_at": "2025-10-25T15:38:57.018+00:00"
+  },
+  {
+    "id": "6b95baea-2df6-4d1f-ad27-2d1a4a446339",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 315,
+    "input_tokens": 306,
+    "output_tokens": 9,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 82335,
+      "file_type": "audio/webm",
+      "word_count": 9,
+      "audio_duration": 5.099999904632568
+    },
+    "created_at": "2025-10-25T15:44:34.304+00:00"
+  },
+  {
+    "id": "e44452ed-90c9-4e8f-85a4-66d597eda48b",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 315,
+    "input_tokens": 306,
+    "output_tokens": 9,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 82335,
+      "file_type": "audio/webm",
+      "word_count": 9,
+      "audio_duration": 5.099999904632568
+    },
+    "created_at": "2025-10-25T15:44:37.832+00:00"
+  },
+  {
+    "id": "8c0207b3-7ede-4f5b-96f5-70cbb583a867",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 356,
+    "input_tokens": 342,
+    "output_tokens": 14,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 92011,
+      "file_type": "audio/webm",
+      "word_count": 14,
+      "audio_duration": 5.699999809265137
+    },
+    "created_at": "2025-10-25T15:48:49.771+00:00"
+  },
+  {
+    "id": "398aa782-c75f-41d9-909e-102214941ef9",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 356,
+    "input_tokens": 342,
+    "output_tokens": 14,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 92011,
+      "file_type": "audio/webm",
+      "word_count": 14,
+      "audio_duration": 5.699999809265137
+    },
+    "created_at": "2025-10-25T15:48:55.915+00:00"
+  },
+  {
+    "id": "f659ec0b-922b-4d42-a12b-c010386bcec7",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 277,
+    "input_tokens": 267,
+    "output_tokens": 10,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 71709,
+      "file_type": "audio/webm",
+      "word_count": 10,
+      "audio_duration": 4.440000057220459
+    },
+    "created_at": "2025-10-25T15:54:02.355+00:00"
+  },
+  {
+    "id": "fa0739ff-5376-4ac1-b03b-5d9d201a8d52",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 277,
+    "input_tokens": 267,
+    "output_tokens": 10,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 71709,
+      "file_type": "audio/webm",
+      "word_count": 10,
+      "audio_duration": 4.440000057220459
+    },
+    "created_at": "2025-10-25T15:54:07.567+00:00"
+  },
+  {
+    "id": "85192cbd-3511-4bef-bb7c-2c88cba4ab0a",
+    "user_id": "720adebb-e6c0-4f6c-a5fc-164d128e083a",
+    "action_type": "audio_generation",
+    "model_used": "whisper-1",
+    "tokens_used": 2679,
+    "input_tokens": 2610,
+    "output_tokens": 69,
+    "cost_estimate": 0,
+    "success": true,
+    "error_message": null,
+    "metadata": {
+      "language": "english",
+      "file_size": 701183,
+      "file_type": "audio/webm",
+      "word_count": 69,
+      "audio_duration": 43.5
+    },
+    "created_at": "2025-10-25T16:03:17.365+00:00"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "category": "travel",
+  "seed_questions": [
+    "Which kinds of places refill your energy (beach, mountains, cities)?",
+    "How often do you want to explore?",
+    "What\u2019s one sensory detail that says \u2018I\u2019m on an adventure\u2019 to you?"
+  ],
+  "constraints": {
+    "present_tense": true,
+    "first_person": true,
+    "positive_frame": true,
+    "include_simple_ritual": true,
+    "max_words": 150
+  }
+}

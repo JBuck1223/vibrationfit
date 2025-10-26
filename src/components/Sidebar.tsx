@@ -157,6 +157,7 @@ export function Sidebar({ className }: SidebarProps) {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoaded, setProfileLoaded] = useState(false)
   const pathname = usePathname()
   const supabase = createClient()
 
@@ -169,7 +170,7 @@ export function Sidebar({ className }: SidebarProps) {
       if (user) {
         const { data: profileData, error } = await supabase
           .from('user_profiles')
-          .select('first_name, last_name, profile_picture_url, vibe_assistant_tokens_remaining')
+          .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
           .eq('user_id', user.id)
           .single()
         
@@ -188,13 +189,24 @@ export function Sidebar({ className }: SidebarProps) {
             
             if (createError) {
               console.error('Error creating profile:', createError)
-            } else {
+              setProfileLoaded(false)
+            } else if (newProfile) {
               setProfile(newProfile)
+              setProfileLoaded(true)
+            } else {
+              setProfileLoaded(false)
             }
+          } else {
+            setProfileLoaded(false)
           }
-        } else {
+        } else if (profileData) {
           setProfile(profileData)
+          setProfileLoaded(true)
+        } else {
+          setProfileLoaded(false)
         }
+      } else {
+        setProfileLoaded(false)
       }
       
       setLoading(false)
@@ -206,6 +218,7 @@ export function Sidebar({ className }: SidebarProps) {
       setUser(session?.user ?? null)
       if (!session?.user) {
         setProfile(null)
+        setProfileLoaded(false)
       }
     })
 
@@ -229,24 +242,33 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-neutral-800">
         {!collapsed && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Profile Picture */}
-            {profile?.profile_picture_url ? (
+            {loading || !profileLoaded ? (
+              <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
+            ) : profile?.profile_picture_url ? (
               <img
                 src={profile.profile_picture_url}
-                alt={profile.first_name || 'Profile'}
-                className="w-8 h-8 rounded-full object-cover border-2 border-primary-500"
+                alt=""
+                className="w-8 h-8 rounded-full object-cover border-2 border-primary-500 flex-shrink-0"
+                loading="eager"
               />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-semibold text-sm">
-                {profile?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+            ) : profile?.first_name ? (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                {profile.first_name[0].toUpperCase()}
               </div>
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
             )}
             
             {/* Name */}
-            <span className="text-white font-medium">
-              {profile?.first_name || user?.email?.split('@')[0]}
-            </span>
+            {loading || !profileLoaded || !profile || !profile?.first_name ? (
+              <div className="w-24 h-4 bg-neutral-700 rounded animate-pulse" />
+            ) : (
+              <span className="text-white font-medium truncate">
+                {profile.first_name}
+              </span>
+            )}
           </div>
         )}
         <button
@@ -272,10 +294,16 @@ export function Sidebar({ className }: SidebarProps) {
               <Zap className="w-3 h-3 text-[#FFB701]" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold text-white">
-                {(profile?.vibe_assistant_tokens_remaining ?? 0).toLocaleString()}
-              </span>
-              <span className="text-xs text-neutral-500">tokens</span>
+              {!profileLoaded ? (
+                <div className="w-16 h-6 bg-neutral-700 rounded animate-pulse" />
+              ) : (
+                <>
+                  <span className="text-lg font-bold text-white">
+                    {(profile?.vibe_assistant_tokens_remaining ?? 0).toLocaleString()}
+                  </span>
+                  <span className="text-xs text-neutral-500">tokens</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -321,10 +349,16 @@ export function Sidebar({ className }: SidebarProps) {
                             <Zap className="w-3 h-3 text-[#FFB701]" />
                           </div>
                           <div className="flex items-baseline gap-2">
-                            <span className="text-lg font-bold text-white">
-                              {(profile?.vibe_assistant_tokens_remaining ?? 0).toLocaleString()}
-                            </span>
-                            <span className="text-xs text-neutral-500">tokens</span>
+                            {!profileLoaded ? (
+                              <div className="w-16 h-6 bg-neutral-700 rounded animate-pulse" />
+                            ) : (
+                              <>
+                                <span className="text-lg font-bold text-white">
+                                  {(profile?.vibe_assistant_tokens_remaining ?? 0).toLocaleString()}
+                                </span>
+                                <span className="text-xs text-neutral-500">tokens</span>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}

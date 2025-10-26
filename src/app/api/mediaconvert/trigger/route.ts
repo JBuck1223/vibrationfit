@@ -2,7 +2,7 @@
 // API endpoint to manually trigger MediaConvert jobs
 
 import { NextRequest, NextResponse } from 'next/server'
-import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert'
+import { MediaConvertClient, CreateJobCommand, AudioDefaultSelection } from '@aws-sdk/client-mediaconvert'
 
 const mediaConvertClient = new MediaConvertClient({
   region: process.env.AWS_REGION || 'us-east-2',
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
           VideoSelector: {},
           AudioSelectors: {
             'Audio Selector 1': {
-              DefaultSelection: 'DEFAULT'
+              DefaultSelection: AudioDefaultSelection.DEFAULT
             }
           }
         }],

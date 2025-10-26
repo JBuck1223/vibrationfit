@@ -1,0 +1,15 @@
+{
+  "category": "family",
+  "seed_questions": [
+    "How do you want family time to feel?",
+    "What weekly ritual helps everyone feel connected?",
+    "Where do you feel the most love with your family?"
+  ],
+  "constraints": {
+    "present_tense": true,
+    "first_person": true,
+    "positive_frame": true,
+    "include_simple_ritual": true,
+    "max_words": 150
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "category": "health",
+  "seed_questions": [
+    "What does steady energy feel like in your body?",
+    "Which tiny daily habits support your best sleep and focus?",
+    "How do you like to move your body?"
+  ],
+  "constraints": {
+    "present_tense": true,
+    "first_person": true,
+    "positive_frame": true,
+    "include_simple_ritual": true,
+    "max_words": 150
+  }
+}

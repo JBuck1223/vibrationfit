@@ -45,6 +45,9 @@ import {
   OfferStack,
   ActionButtons,
   DeleteConfirmationDialog,
+  AudioPlayer,
+  PlaylistPlayer,
+  type AudioTrack,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -116,6 +119,34 @@ export default function DesignSystemExperiment() {
   const [billingPeriod, setBillingPeriod] = useState<'annual' | '28day'>('annual')
   const [showDeleteDemo, setShowDeleteDemo] = useState(false)
 
+  // Sample audio tracks for showcase
+  const sampleTracks: AudioTrack[] = [
+    {
+      id: '1',
+      title: 'Forward - Your Life Vision',
+      artist: 'VibrationFit AI',
+      duration: 180,
+      url: 'https://media.vibrationfit.com/life-vision/bd8e6440-a65b-4b01-bca0-28ae8e875b3f/forward.mp3',
+      thumbnail: ''
+    },
+    {
+      id: '2',
+      title: 'Health & Vitality',
+      artist: 'VibrationFit AI',
+      duration: 210,
+      url: 'https://media.vibrationfit.com/life-vision/bd8e6440-a65b-4b01-bca0-28ae8e875b3f/health.mp3',
+      thumbnail: ''
+    },
+    {
+      id: '3',
+      title: 'Money & Abundance',
+      artist: 'VibrationFit AI',
+      duration: 195,
+      url: 'https://media.vibrationfit.com/life-vision/bd8e6440-a65b-4b01-bca0-28ae8e875b3f/money.mp3',
+      thumbnail: ''
+    }
+  ]
+
   const handleLoadingToggle = () => {
     setIsLoading(true)
     setTimeout(() => setIsLoading(false), 2000)
@@ -185,6 +216,12 @@ export default function DesignSystemExperiment() {
                     <Button variant="ghost" size="sm" className="w-full justify-start">
                       <Icon icon={Play} size="sm" className="mr-2" />
                       Video
+                    </Button>
+                  </a>
+                  <a href="#audio" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Headphones} size="sm" className="mr-2" />
+                      Audio
                     </Button>
                   </a>
                   <a href="#modals" className="block">
@@ -1102,6 +1139,80 @@ export default function DesignSystemExperiment() {
                   </div>
                 </Stack>
                 </Card>
+
+              {/* Audio Players */}
+              <Card id="audio">
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={Headphones} size="md" color="#39FF14" />
+                    Audio Players
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Individual Audio Player */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-medium mb-2 text-white">Individual Audio Player</h4>
+                        <p className="text-sm text-[#9CA3AF] mb-4">Single track player with progress bar, volume control, and time display</p>
+                        
+                        <AudioPlayer 
+                          track={sampleTracks[0]} 
+                          showInfo={true}
+                        />
+                      </Stack>
+                    </Card>
+
+                    {/* Playlist Player */}
+                    <Card variant="default" className="p-4">
+                      <Stack gap="sm">
+                        <h4 className="text-lg font-medium mb-2 text-white">Playlist Player</h4>
+                        <p className="text-sm text-[#9CA3AF] mb-4">Full-featured player with shuffle, repeat, and queue management</p>
+                        
+                        <PlaylistPlayer 
+                          tracks={sampleTracks} 
+                        />
+                      </Stack>
+                    </Card>
+                  </div>
+
+                  {/* Usage Code Example */}
+                  <Card variant="default" className="p-4 mt-6">
+                    <Stack gap="sm">
+                      <h4 className="text-lg font-medium mb-2 text-white">Audio Player Usage</h4>
+                      <div className="bg-black/20 p-4 rounded-lg border border-[#333]">
+                        <pre className="text-xs text-neutral-300 overflow-x-auto">
+{`// Individual Audio Player
+import { AudioPlayer, type AudioTrack } from '@/lib/design-system'
+
+const track: AudioTrack = {
+  id: '1',
+  title: 'Your Vision Forward',
+  artist: 'VibrationFit AI',
+  duration: 180,
+  url: 'https://media.vibrationfit.com/audio.mp3'
+}
+
+<AudioPlayer 
+  track={track} 
+  showInfo={true}
+  onTrackEnd={() => console.log('Track ended')}
+/>
+
+// Playlist Player
+import { PlaylistPlayer } from '@/lib/design-system'
+
+const tracks: AudioTrack[] = [/* multiple tracks */]
+
+<PlaylistPlayer 
+  tracks={tracks}
+  autoPlay={false}
+/>`}
+                        </pre>
+                      </div>
+                    </Stack>
+                  </Card>
+                </Stack>
+              </Card>
 
               {/* Feedback Components */}
               <Card id="progress">

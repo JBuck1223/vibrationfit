@@ -225,6 +225,9 @@ export function AIImageGenerator({
       setGeneratedImage(data.imageUrl)
       setRevisedPrompt(data.revisedPrompt)
       
+      // Hide overlay immediately when image is ready
+      setGenerating(false)
+      
       // Automatically use the generated image for vision board items
       if (type === 'vision_board') {
         onImageGenerated(data.imageUrl)
@@ -236,7 +239,6 @@ export function AIImageGenerator({
     } catch (error: any) {
       console.error('Image generation error:', error)
       toast.error(error.message || 'Failed to generate image')
-    } finally {
       setGenerating(false)
     }
   }
@@ -376,6 +378,7 @@ export function AIImageGenerator({
               {styleOptions.map((style) => (
                 <button
                   key={style.id}
+                  type="button"
                   onClick={() => setSelectedStyle(style.id)}
                   className={`p-3 rounded-lg border-2 transition-all text-left ${
                     selectedStyle === style.id
@@ -429,6 +432,7 @@ export function AIImageGenerator({
               className="w-full rounded-xl border-2 border-primary-500 shadow-lg"
             />
             <button
+              type="button"
               onClick={handleClear}
               className="absolute top-2 right-2 p-2 bg-black/80 hover:bg-black rounded-full transition-colors opacity-0 group-hover:opacity-100"
             >

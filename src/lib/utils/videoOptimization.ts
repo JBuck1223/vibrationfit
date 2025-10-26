@@ -101,7 +101,7 @@ export function getCompressionOptions(file: File): VideoCompressionOptions {
 }
 
 /**
- * Compress video using FFmpeg
+ * Compress video using FFmpeg with temporary files
  */
 export async function compressVideo(
   inputBuffer: Buffer,
@@ -109,67 +109,82 @@ export async function compressVideo(
   options: VideoCompressionOptions
 ): Promise<CompressionResult> {
   return new Promise((resolve, reject) => {
-    const inputStream = new PassThrough()
-    const outputStream = new PassThrough()
-    const chunks: Buffer[] = []
+    const tempDir = os.tmpdir()
+    const inputFile = path.join(tempDir, `input-${Date.now()}-${filename}`)
+    const outputFile = path.join(tempDir, `output-${Date.now()}-${filename.replace(/\.[^/.]+$/, '')}.mp4`)
     
-    // Collect output chunks
-    outputStream.on('data', (chunk) => {
-      chunks.push(chunk)
-    })
-    
-    outputStream.on('end', () => {
-      const compressedBuffer = Buffer.concat(chunks)
-      const compressionRatio = ((inputBuffer.length - compressedBuffer.length) / inputBuffer.length) * 100
+    try {
+      // Write input buffer to temporary file
+      fs.writeFileSync(inputFile, inputBuffer)
+      console.log(`📁 Created temp input file: ${inputFile} (${inputBuffer.length} bytes)`)
       
-      resolve({
-        buffer: compressedBuffer,
-        originalSize: inputBuffer.length,
-        compressedSize: compressedBuffer.length,
-        compressionRatio,
-        duration: 0 // Duration would need to be extracted separately
-      })
-    })
-    
-    outputStream.on('error', reject)
-    
-    // Write input buffer to stream
-    inputStream.write(inputBuffer)
-    inputStream.end()
-    
-    // Determine input format from filename
-    const inputFormat = filename.toLowerCase().endsWith('.mov') ? 'mov' : 
-                       filename.toLowerCase().endsWith('.mp4') ? 'mp4' : 
-                       filename.toLowerCase().endsWith('.avi') ? 'avi' : 'mov'
-    
-    // Configure FFmpeg
-    const command = ffmpeg()
-      .input(inputStream)
-      .inputFormat(inputFormat)
-      .outputOptions([
-        '-c:v libx264',
-        '-preset', options.preset || 'medium',
-        '-crf', options.quality.toString(),
-        '-maxrate', options.bitrate || '2M',
-        '-bufsize', options.bitrate ? `${parseInt(options.bitrate) * 2}M` : '4M',
-        '-vf', `scale=${options.maxWidth || 1920}:${options.maxHeight || 1080}`,
-        '-r', (options.fps || 30).toString(),
-        '-c:a aac',
-        '-b:a 128k',
-        '-movflags +faststart', // Enable progressive download
-        '-f mp4'
-      ])
-      .output(outputStream)
-      .on('error', (err) => {
-        console.error('FFmpeg error:', err)
-        reject(err)
-      })
-      .on('end', () => {
-        console.log('Video compression completed')
-      })
-    
-    // Start compression
-    command.run()
+      // Configure FFmpeg
+      const command = ffmpeg()
+        .input(inputFile)
+        .outputOptions([
+          '-c:v libx264',
+          '-preset', options.preset || 'medium',
+          '-crf', options.quality.toString(),
+          '-maxrate', options.bitrate || '2M',
+          '-bufsize', options.bitrate ? `${parseInt(options.bitrate) * 2}M` : '4M',
+          '-vf', `scale=${options.maxWidth || 1920}:${options.maxHeight || 1080}`,
+          '-r', (options.fps || 30).toString(),
+          '-c:a aac',
+          '-b:a 128k',
+          '-movflags +faststart', // Enable progressive download
+          '-f mp4'
+        ])
+        .output(outputFile)
+        .on('start', (commandLine) => {
+          console.log('🎬 FFmpeg started:', commandLine)
+        })
+        .on('progress', (progress) => {
+          console.log(`📊 FFmpeg progress: ${progress.percent?.toFixed(1)}%`)
+        })
+        .on('end', () => {
+          try {
+            // Read compressed file
+            const compressedBuffer = fs.readFileSync(outputFile)
+            const compressionRatio = ((inputBuffer.length - compressedBuffer.length) / inputBuffer.length) * 100
+            
+            console.log(`✅ Compression completed:`)
+            console.log(`   Original: ${(inputBuffer.length / 1024 / 1024).toFixed(2)}MB`)
+            console.log(`   Compressed: ${(compressedBuffer.length / 1024 / 1024).toFixed(2)}MB`)
+            console.log(`   Ratio: ${compressionRatio.toFixed(1)}%`)
+            
+            // Clean up temporary files
+            fs.unlinkSync(inputFile)
+            fs.unlinkSync(outputFile)
+            
+            resolve({
+              buffer: compressedBuffer,
+              originalSize: inputBuffer.length,
+              compressedSize: compressedBuffer.length,
+              compressionRatio,
+              duration: 0 // Duration would need to be extracted separately
+            })
+          } catch (error) {
+            console.error('❌ Error reading compressed file:', error)
+            reject(error)
+          }
+        })
+        .on('error', (error) => {
+          console.error('❌ FFmpeg error:', error)
+          // Clean up temporary files on error
+          try {
+            if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile)
+            if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
+          } catch (cleanupError) {
+            console.error('Cleanup error:', cleanupError)
+          }
+          reject(error)
+        })
+        .run()
+        
+    } catch (error) {
+      console.error('❌ Error setting up FFmpeg:', error)
+      reject(error)
+    }
   })
 }
 
