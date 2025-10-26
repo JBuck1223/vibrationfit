@@ -160,6 +160,10 @@ async function uploadViaApiRoute(
     formData.append('file', file)
     formData.append('folder', USER_FOLDERS[folder])
     formData.append('userId', userId)
+    // Use multipart for files larger than 10MB to avoid Vercel body size limit
+    if (file.size > 10 * 1024 * 1024) {
+      formData.append('multipart', 'true')
+    }
 
     const response = await fetch('/api/upload', {
       method: 'POST',

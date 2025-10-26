@@ -164,7 +164,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ visionId, sections, voice, force: false }),
-      })
+      }) // force: false = skips existing completed tracks
       const data = await resp.json()
       await refreshStatus()
       setWorkingOn(null)
@@ -207,14 +207,26 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
           <h1 className="text-2xl md:text-4xl font-bold text-white">Life Vision Audio</h1>
         </div>
 
-        {/* Hero Card */}
+            {/* Hero Card */}
         <Card variant="elevated" className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30">
           <Stack gap="md" className="text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
               <Headphones className="w-6 h-6 md:w-8 md:h-8 text-[#39FF14]" />
               <h2 className="text-xl md:text-3xl font-bold text-white">Generate Your Vision Audio</h2>
             </div>
-            <p className="text-sm md:text-lg text-neutral-300">Transform your written vision into immersive audio tracks for daily activation</p>
+            <p className="text-sm md:text-lg text-neutral-300">
+              Transform your written vision into immersive audio tracks for daily activation
+            </p>
+            
+            {/* Info about regeneration */}
+            {hasCompletedTracks && (
+              <Card variant="glass" className="p-3 bg-[#39FF14]/10 border-[#39FF14]/20">
+                <p className="text-xs md:text-sm text-neutral-300">
+                  <strong className="text-[#39FF14]">Note:</strong> Existing audio tracks with the same content will be skipped. 
+                  Changed sections will be regenerated with the new voice.
+                </p>
+              </Card>
+            )}
             
             {/* Voice Selection & Generate */}
             <div className="flex flex-col md:flex-row gap-3 md:items-center">
@@ -322,15 +334,18 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
 
             {/* Controls */}
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
-                variant="secondary" 
-                onClick={() => retryFailed()} 
-                disabled={generating || !hasIncompleteTracks}
-                size="sm"
-                className="flex-1"
-              >
-                Retry Failed
-              </Button>
+              {/* Only show Retry Failed button when there are failed tracks */}
+              {tracks.some(t => t.status === 'failed') && (
+                <Button 
+                  variant="secondary" 
+                  onClick={() => retryFailed()} 
+                  disabled={generating}
+                  size="sm"
+                  className="flex-1"
+                >
+                  Retry Failed
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 onClick={() => refreshStatus()} 
