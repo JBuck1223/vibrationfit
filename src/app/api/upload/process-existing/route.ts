@@ -42,6 +42,9 @@ export async function POST(request: NextRequest) {
     })
     
     const response = await s3Client.send(getCommand)
+    if (!response.Body) {
+      throw new Error('No body in S3 response')
+    }
     const fileBuffer = await response.Body.transformToByteArray()
     const buffer = Buffer.from(fileBuffer)
     

@@ -2,7 +2,7 @@
 // API endpoint to manually trigger MediaConvert jobs
 
 import { NextRequest, NextResponse } from 'next/server'
-import { MediaConvertClient, CreateJobCommand, AudioDefaultSelection } from '@aws-sdk/client-mediaconvert'
+import { MediaConvertClient, CreateJobCommand, AudioDefaultSelection, OutputGroupType, AacCodingMode } from '@aws-sdk/client-mediaconvert'
 
 const mediaConvertClient = new MediaConvertClient({
   region: process.env.AWS_REGION || 'us-east-2',
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         OutputGroups: [{
           Name: 'File Group',
           OutputGroupSettings: {
-            Type: 'FILE_GROUP_SETTINGS',
+            Type: OutputGroupType.FILE_GROUP_SETTINGS,
             FileGroupSettings: {
               Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
             }
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
                 AacSettings: {
                   Bitrate: 128000,
                   SampleRate: 48000,
-                  CodingMode: 'CODING_MODE_2_0'
+                  CodingMode: AacCodingMode.CODING_MODE_2_0
                 }
               }
             }],
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const command = new CreateJobCommand(jobSettings)
+    const command = new CreateJobCommand(jobSettings as any)
     const response = await mediaConvertClient.send(command)
     
     console.log('✅ MediaConvert job created:', response.Job?.Id)

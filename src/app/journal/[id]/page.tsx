@@ -66,6 +66,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
     if (!entry) return
 
     async function checkProcessedVideos() {
+      if (!entry) return
       const processedUrls: Record<string, string> = {}
       
       if (entry.image_urls) {
