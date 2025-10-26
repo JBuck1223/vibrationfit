@@ -6,7 +6,8 @@
       "Action": [
         "mediaconvert:CreateJob",
         "mediaconvert:GetJob",
-        "mediaconvert:ListJobs"
+        "mediaconvert:ListJobs",
+        "mediaconvert:TagResource"
       ],
       "Resource": "*"
     }

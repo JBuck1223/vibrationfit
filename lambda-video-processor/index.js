@@ -74,7 +74,7 @@ exports.handler = async (event) => {
             OutputGroupSettings: {
               Type: OutputGroupType.FILE_GROUP_SETTINGS,
               FileGroupSettings: {
-                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
+                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/uploads/processed/`
               }
             },
             Outputs: [{
@@ -88,9 +88,7 @@ exports.handler = async (event) => {
                     Bitrate: 2000000, // 2Mbps
                     RateControlMode: 'CBR',
                     CodecProfile: 'MAIN',
-                    CodecLevel: 'LEVEL_4_1',
-                    MaxBitrate: 2500000,
-                    BufSize: 3000000
+                    CodecLevel: 'LEVEL_4_1'
                   }
                 }
               },
