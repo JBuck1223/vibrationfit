@@ -14,7 +14,8 @@ import {
   Input,
   Textarea,
   AutoResizeTextarea,
-  Icon
+  Icon,
+  AudioPlayer
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -55,7 +56,8 @@ const VisionCard = ({
   onUpdate, 
   saving,
   onEditCategory,
-  vision
+  vision,
+  audioTrack
 }: { 
   category: any, 
   content: string, 
@@ -65,7 +67,8 @@ const VisionCard = ({
   onUpdate: (content: string) => void, 
   saving: boolean,
   onEditCategory: (categoryKey: string) => void,
-  vision: any
+  vision: any,
+  audioTrack?: { url: string; title: string }
 }) => {
   const isCompleted = content?.trim().length > 0
   
@@ -137,6 +140,23 @@ const VisionCard = ({
               )}
             </div>
 
+            {/* Audio Player */}
+            {audioTrack?.url && !isEditing && (
+              <div className="mb-4">
+                <AudioPlayer 
+                  track={{
+                    id: category.key,
+                    title: audioTrack.title || category.label,
+                    artist: '',
+                    duration: 180,
+                    url: audioTrack.url,
+                    thumbnail: ''
+                  }}
+                  showInfo={false}
+                />
+              </div>
+            )}
+
             {/* Action Buttons */}
             {content?.trim() && (
               <div className="flex justify-end gap-2">
@@ -189,6 +209,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
+  const [audioTracks, setAudioTracks] = useState<Record<string, { url: string; title: string }>>({})
 
   // Card-based view functions
   const handleCategoryToggle = (categoryKey: string) => {
@@ -283,6 +304,48 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     }
   }, [])
 
+  // Load audio tracks for vision
+  const loadAudioTracks = async (visionId: string) => {
+    try {
+      // Get the latest audio set for this vision
+      const { data: audioSets } = await supabase
+        .from('audio_sets')
+        .select('id, variant')
+        .eq('vision_id', visionId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (!audioSets || audioSets.length === 0) return
+
+      // Get audio tracks for the latest audio set
+      const { data: tracks } = await supabase
+        .from('audio_tracks')
+        .select('section_key, audio_url, mixed_audio_url, mix_status')
+        .eq('audio_set_id', audioSets[0].id)
+        .eq('status', 'completed')
+
+      if (!tracks) return
+
+      // Map tracks by section_key
+      const trackMap: Record<string, { url: string; title: string }> = {}
+      tracks.forEach(track => {
+        const url = track.mixed_audio_url && track.mix_status === 'completed' 
+          ? track.mixed_audio_url 
+          : track.audio_url
+        if (url) {
+          trackMap[track.section_key] = {
+            url,
+            title: VISION_SECTIONS.find(cat => cat.key === track.section_key)?.label || track.section_key
+          }
+        }
+      })
+
+      setAudioTracks(trackMap)
+    } catch (error) {
+      console.error('Error loading audio tracks:', error)
+    }
+  }
+
   // Load vision data
   useEffect(() => {
     const loadData = async () => {
@@ -343,6 +406,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         
         // Initialize with all categories selected
         setSelectedCategories(VISION_SECTIONS.map(cat => cat.key))
+        
+        // Load audio tracks for this vision
+        await loadAudioTracks(vision.id)
       } catch (error) {
         console.error('Error loading vision:', error)
         console.error('Error details:', {
@@ -1135,6 +1201,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       saving={saving}
                       onEditCategory={handleEditCategory}
                       vision={vision}
+                      audioTrack={audioTracks[categoryKey]}
                     />
                   )
                 })}
