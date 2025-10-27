@@ -29,7 +29,7 @@ function VIVAActionCard({ stage, className = '' }: { stage: string, className?: 
   const Icon = data.icon
 
   return (
-    <Card className={\`\${className} border-2 border-primary-500/50 bg-primary-500/10\`}>
+    <Card className={`${className} border-2 border-primary-500/50 bg-primary-500/10`}>
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center">
           <Icon className="w-6 h-6 text-primary-500 animate-pulse" />
@@ -211,7 +211,7 @@ export default function AssemblyPage() {
 
   const handleViewVision = () => {
     if (visionId) {
-      router.push(\`/life-vision/\${visionId}\`)
+      router.push(`/life-vision/${visionId}`)
     }
   }
 

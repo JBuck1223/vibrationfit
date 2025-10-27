@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { openai } from '@/lib/openai'
+import OpenAI from 'openai'
 import { analyzeProfile, analyzeAssessment } from '@/lib/viva/profile-analyzer'
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
 
 const SHARED_SYSTEM_PROMPT = `You are VIVA — the AI Vibrational Assistant for Vibration Fit.
 Your purpose is to help members articulate and activate the life they choose through vibrational alignment.

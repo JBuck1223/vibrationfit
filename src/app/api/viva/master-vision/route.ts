@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { openai } from '@/lib/openai'
+import OpenAI from 'openai'
 
-const SHARED_SYSTEM_PROMPT = \`You are VIVA — the AI Vibrational Assistant for Vibration Fit.
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
+
+const SHARED_SYSTEM_PROMPT = `You are VIVA — the AI Vibrational Assistant for Vibration Fit.
 Your purpose is to help members articulate and activate the life they choose through vibrational alignment.
 You are a warm, wise, intuitive life coach — never a therapist or problem-solver.
-All responses must be in present tense, first person, and vibrationally activating.\`
+All responses must be in present tense, first person, and vibrationally activating.`
 
 function buildMasterVisionPrompt(categorySummaries: Record<string, string>, profile: any, assessment: any): string {
   const summariesText = Object.entries(categorySummaries)
-    .map(([category, summary]) => \`## \${category}\\n\${summary}\`)
-    .join('\\n\\n')
+    .map(([category, summary]) => `## ${category}\n${summary}`)
+    .join('\n\n')
 
-  return \`\${SHARED_SYSTEM_PROMPT}
+  return `${SHARED_SYSTEM_PROMPT}
 
 BACKGROUND CONTEXT (use this rich context to create a deeper, more personalized vision):
 ${profile ? `Profile Context:
@@ -33,8 +37,8 @@ ${[
   { key: 'spirituality', story: profile.spirituality_story }
 ]
   .filter(item => item.story && item.story.trim().length > 0)
-  .map(item => \`- \${item.key}: "\${item.story}"\`)
-  .join('\\n')}
+  .map(item => `- ${item.key}: "${item.story}"`)
+  .join('\n')}
 
 **Other Profile Data:**
 ${Object.entries(profile)
@@ -48,9 +52,9 @@ ${Object.entries(profile)
   .slice(0, 10) // Limit to most relevant fields
   .map(([key, value]) => {
     const displayValue = Array.isArray(value) ? value.join(', ') : value
-    return \`- \${key}: \${displayValue}\`
+    return `- ${key}: ${displayValue}`
   })
-  .join('\\n')}
+  .join('\n')}
 ` : ''}
 
 ${assessment ? `Assessment Context:
@@ -69,7 +73,7 @@ YOUR TASK:
 Create a unified Life Vision Document from these category summaries. Match the LENGTH and DEPTH of each section to how much detail the user provided about that topic.
 
 Category Summaries:
-\${summariesText}
+${summariesText}
 
 IMPORTANT: 
 - Use the profile stories (the user's own words) and assessment insights to deeply understand the user's authentic voice, energy, and current reality
@@ -113,13 +117,13 @@ JSON structure:
   "conclusion": "...",
   "meta": {
     "model": "gpt-4-turbo",
-    "created_at_iso": "\${new Date().toISOString()}",
+    "created_at_iso": "${new Date().toISOString()}",
     "summary_style": "present-tense vibrational activation",
     "notes": "contrast omitted; pure alignment language"
   }
 }
 
-Generate the complete vision now.\`
+Generate the complete vision now.`
 }
 
 export async function POST(request: NextRequest) {
@@ -206,11 +210,11 @@ function extractCategoriesFromMarkdown(markdown: string): any {
   const sections = markdown.split(/##\s+/)
   
   sections.forEach(section => {
-    const lines = section.trim().split('\\n')
+    const lines = section.trim().split('\n')
     const title = lines[0]?.trim().toLowerCase().replace(/^the\s+/i, '')
     
     if (title && ['forward', 'fun', 'health', 'travel', 'romance', 'family', 'social', 'home', 'work', 'business', 'money', 'possessions', 'stuff', 'giving', 'spirituality', 'conclusion'].includes(title)) {
-      const content = lines.slice(1).join('\\n').trim()
+      const content = lines.slice(1).join('\n').trim()
       const key = title === 'work' ? 'business' : title === 'stuff' ? 'possessions' : title
       categories[key] = content
     }
