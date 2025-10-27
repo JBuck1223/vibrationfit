@@ -40,12 +40,23 @@ export async function POST(request: NextRequest) {
           // This is a processed file, need to extract base filename
           const filename = key.split('/').pop() || ''
           
-          // Remove quality suffixes to get base filename
-          const baseFilename = filename
+          // Extract the base filename before any quality suffix
+          // Examples: 
+          // - "myvideo-1080p.mp4" -> "myvideo"
+          // - "myvideo-720p.mp4" -> "myvideo"
+          // - "myvideo-original.mp4" -> "myvideo"
+          // - "myvideo-thumb.0000000.jpg" -> "myvideo"
+          let baseFilename = filename
             .replace(/-1080p\.mp4$/i, '')
             .replace(/-720p\.mp4$/i, '')
             .replace(/-original\.(mp4|mov)$/i, '')
-            .replace(/-thumb.*$/i, '')
+            .replace(/-thumb\.\d+\.(jpg|png|webp)$/i, '')  // Handle -thumb.0000000.jpg
+            .replace(/-thumb$/i, '')
+          
+          // If no suffix was found, try removing extension
+          if (baseFilename === filename) {
+            baseFilename = filename.replace(/\.[^/.]+$/, '')
+          }
           
           // Get path up to the uploads folder
           const pathParts = key.split('/')
@@ -53,6 +64,7 @@ export async function POST(request: NextRequest) {
           const path = pathParts.slice(0, uploadsIndex + 1).join('/')
           
           console.log('🔍 Processing processed file:', key)
+          console.log('🔍 Filename from key:', filename)
           console.log('🔍 Base filename:', baseFilename)
           console.log('🔍 Path:', path)
           
@@ -61,9 +73,10 @@ export async function POST(request: NextRequest) {
             `${path}/processed/${baseFilename}-1080p.mp4`,
             `${path}/processed/${baseFilename}-720p.mp4`,
             `${path}/processed/${baseFilename}-original.mp4`,
-            `${path}/processed/${baseFilename}-thumb`
+            `${path}/processed/${baseFilename}-thumb.0000000.jpg`  // Actual thumbnail file
           ]
           
+          console.log('🔍 Will delete processed versions:', processedVersions)
           keysToDelete.push(...processedVersions)
           
           // Also delete the original file (if it exists)
@@ -72,33 +85,35 @@ export async function POST(request: NextRequest) {
             keysToDelete.push(`${path}/${baseFilename}${ext}`)
           })
           
-          // Delete thumbnail
-          keysToDelete.push(key.replace(/\.(jpg|png|webp)$/i, '-thumb.jpg'))
+          console.log('🔍 Will also try to delete original:', `${path}/${baseFilename}`)
         } else {
-          // This is an original file
+          // This is NOT a processed file
           keysToDelete.push(key)
+          
+          console.log('🔍 Processing original file:', key)
           
           // Also delete thumbnail if it exists
           if (key.includes('.jpg') || key.includes('.png') || key.includes('.webp')) {
             const thumbKey = key.replace(/\.(jpg|jpeg|png|webp)$/i, '-thumb.webp')
             keysToDelete.push(thumbKey)
           } else if (key.includes('.mp4') || key.includes('.mov') || key.includes('.webm') || key.includes('.avi')) {
-            // Delete thumbnail
-            const thumbKey = key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
-            keysToDelete.push(thumbKey)
-            
             // Delete processed video versions (multiple resolutions)
-            const baseFilename = key.split('/').pop()?.replace(/\.[^/.]+$/, '') || ''
+            const filename = key.split('/').pop() || ''
+            const baseFilename = filename.replace(/\.[^/.]+$/, '')  // Remove extension
             const path = key.split('/').slice(0, -1).join('/')
+            
+            console.log('🔍 Video detected, base filename:', baseFilename)
+            console.log('🔍 Path:', path)
             
             // Delete all processed versions: -1080p.mp4, -720p.mp4, -original.mp4
             const processedVersions = [
               `${path}/processed/${baseFilename}-1080p.mp4`,
               `${path}/processed/${baseFilename}-720p.mp4`,
               `${path}/processed/${baseFilename}-original.mp4`,
-              `${path}/processed/${baseFilename}-thumb` // Thumbnail from MediaConvert
+              `${path}/processed/${baseFilename}-thumb.0000000.jpg` // Thumbnail from MediaConvert
             ]
             
+            console.log('🔍 Will delete processed versions:', processedVersions)
             keysToDelete.push(...processedVersions)
           }
         }
@@ -113,8 +128,15 @@ export async function POST(request: NextRequest) {
     // Remove duplicates
     const uniqueKeysToDelete = [...new Set(keysToDelete)]
     
-    console.log(`🗑️  Deleting ${uniqueKeysToDelete.length} unique files:`)
+    console.log('═══════════════════════════════════════')
+    console.log(`🗑️  DELETION SUMMARY`)
+    console.log(`Total URLs received: ${urls.length}`)
+    console.log(`Total keys to delete: ${keysToDelete.length}`)
+    console.log(`Unique keys to delete: ${uniqueKeysToDelete.length}`)
+    console.log('═══════════════════════════════════════')
+    console.log('Files to delete:')
     uniqueKeysToDelete.forEach(key => console.log(`   - ${key}`))
+    console.log('═══════════════════════════════════════')
 
     // Delete all objects in batch (use unique keys)
     const command = new DeleteObjectsCommand({

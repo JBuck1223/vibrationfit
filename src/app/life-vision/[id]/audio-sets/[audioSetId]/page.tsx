@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Container, Stack, Badge, Spinner } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Play } from 'lucide-react'
-import Link from 'next/link'
+import { CheckCircle, Circle, History, Play } from 'lucide-react'
+import { Icon } from '@/lib/design-system'
 import { getVisionCategoryKeys } from '@/lib/design-system'
 
 export default function AudioSetPlayerPage({ 
@@ -19,6 +19,9 @@ export default function AudioSetPlayerPage({
   const [loading, setLoading] = useState(true)
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([])
   const [audioSet, setAudioSet] = useState<any>(null)
+  const [vision, setVision] = useState<any>(null)
+  const [allAudioSets, setAllAudioSets] = useState<any[]>([])
+  const [showAllDropdown, setShowAllDropdown] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -36,6 +39,22 @@ export default function AudioSetPlayerPage({
   const loadAudioSet = async () => {
     const supabase = createClient()
 
+    // Load vision
+    const { data: v } = await supabase
+      .from('vision_versions')
+      .select('*')
+      .eq('id', visionId)
+      .single()
+    setVision(v)
+
+    // Load all audio sets for this vision
+    const { data: allSets } = await supabase
+      .from('audio_sets')
+      .select('*')
+      .eq('vision_id', visionId)
+      .order('created_at', { ascending: false })
+    setAllAudioSets(allSets || [])
+
     // Load audio set metadata
     const { data: set, error: setError } = await supabase
       .from('audio_sets')
@@ -49,19 +68,6 @@ export default function AudioSetPlayerPage({
       return
     }
     setAudioSet(set)
-
-    // Load vision to get section info
-    const { data: vision } = await supabase
-      .from('vision_versions')
-      .select('*')
-      .eq('id', visionId)
-      .single()
-
-    if (!vision) {
-      console.error('Vision not found')
-      setLoading(false)
-      return
-    }
 
     // Load audio tracks for this set
     const { data: tracks, error: tracksError } = await supabase
@@ -84,7 +90,7 @@ export default function AudioSetPlayerPage({
     sectionMap.set('meta_outro', 'Conclusion')
     const categories = getVisionCategoryKeys()
     categories.forEach(key => {
-      const title = vision[key] ? key.charAt(0).toUpperCase() + key.slice(1) : key
+      const title = v[key] ? key.charAt(0).toUpperCase() + key.slice(1) : key
       sectionMap.set(key, title)
     })
 
@@ -114,20 +120,68 @@ export default function AudioSetPlayerPage({
   return (
     <Container size="lg">
       <Stack gap="lg">
+        {/* Vision Version Info */}
+        {vision && (
+          <Card variant="glass" className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+                V{vision.version_number}
+              </span>
+              {vision.status === 'complete' ? (
+                <Badge variant="success">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Active
+                </Badge>
+              ) : (
+                <Badge variant="warning">
+                  <Circle className="w-4 h-4 mr-1" />
+                  Draft
+                </Badge>
+              )}
+              <div className="text-sm text-neutral-400">
+                {new Date(vision.created_at).toLocaleDateString()}
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-white">The Life I Choose</h2>
+          </Card>
+        )}
+
         {/* Header */}
-        <div className="flex items-center gap-4 mb-2">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            asChild
-          >
-            <Link href={`/life-vision/${visionId}/audio-sets`}>
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-          </Button>
+        <div className="flex items-center justify-between">
           <h1 className="text-2xl md:text-4xl font-bold text-white">
             {audioSet?.name || 'Audio Player'}
           </h1>
+          {allAudioSets.length > 1 && (
+            <div className="relative">
+              <Button
+                variant="outline"
+                onClick={() => setShowAllDropdown(!showAllDropdown)}
+              >
+                See All ({allAudioSets.length})
+              </Button>
+              {showAllDropdown && (
+                <div className="absolute right-0 mt-2 w-64 bg-neutral-900 border-2 border-neutral-700 rounded-lg shadow-xl z-10 max-h-96 overflow-y-auto">
+                  {allAudioSets.map((set) => (
+                    <button
+                      key={set.id}
+                      onClick={() => {
+                        router.push(`/life-vision/${visionId}/audio-sets/${set.id}`)
+                        setShowAllDropdown(false)
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-neutral-800 transition-colors border-b border-neutral-800 ${
+                        set.id === audioSetId ? 'bg-primary-500/20' : ''
+                      }`}
+                    >
+                      <div className="font-medium text-white">{set.name}</div>
+                      <div className="text-sm text-neutral-400 capitalize mt-1">
+                        {set.variant} • {set.voice_id}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Audio Set Info */}

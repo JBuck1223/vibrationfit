@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Container, Stack, Badge } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, Play, Clock, CheckCircle, Music } from 'lucide-react'
+import { Headphones, Play, Clock, CheckCircle, Music, Moon, Zap, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
 export default function VisionAudioPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,6 +13,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   const [audioSets, setAudioSets] = useState<Array<{
     id: string
     name: string
+    description: string
     variant: string
     voiceId?: string
     trackCount: number
@@ -51,6 +52,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       .select(`
         id,
         name,
+        description,
         variant,
         voice_id,
         created_at,
@@ -74,6 +76,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       return {
         id: set.id,
         name: set.name,
+        description: set.description || '',
         variant: set.variant,
         voiceId: set.voice_id,
         trackCount: set.audio_tracks?.[0]?.count || 0,
@@ -87,10 +90,35 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     setLoading(false)
   }
 
+  const getVariantIcon = (variant: string) => {
+    switch (variant) {
+      case 'sleep':
+        return <Moon className="w-5 h-5" />
+      case 'energy':
+        return <Zap className="w-5 h-5" />
+      case 'meditation':
+        return <Sparkles className="w-5 h-5" />
+      default:
+        return <Headphones className="w-5 h-5" />
+    }
+  }
+
+  const getVariantColor = (variant: string) => {
+    switch (variant) {
+      case 'sleep':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      case 'energy':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      case 'meditation':
+        return 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+      default:
+        return 'bg-[#39FF14]/20 text-[#39FF14] border-[#39FF14]/30'
+    }
+  }
+
   const totalSets = audioSets.length
   const readySets = audioSets.filter(s => s.isReady).length
   const mixingSets = audioSets.filter(s => s.isMixing).length
-  const uniqueVariants = [...new Set(audioSets.map(s => s.variant))].length
   const totalTracks = audioSets.reduce((sum, s) => sum + s.trackCount, 0)
 
   if (loading) {
@@ -168,11 +196,11 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Generate Button */}
-        <Card variant="glass" className="p-4">
+        <Card variant="elevated" className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white font-medium">Want to create more audio versions?</p>
-              <p className="text-sm text-neutral-400">Generate sleep, meditation, or energy mixes</p>
+              <p className="text-white font-semibold text-lg">Want to create more audio versions?</p>
+              <p className="text-sm text-neutral-300">Generate sleep, meditation, or energy mixes</p>
             </div>
             <Button variant="primary" asChild>
               <Link href={`/life-vision/${visionId}/audio-generate`}>
@@ -200,22 +228,26 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
               {audioSets.map((set) => (
                 <Card
                   key={set.id}
-                  variant="default"
+                  variant="elevated"
                   hover
-                  onClick={() => router.push(`/life-vision/${visionId}/audio-sets/${set.id}`)}
                   className="cursor-pointer"
+                  onClick={() => router.push(`/life-vision/${visionId}/audio-sets/${set.id}`)}
                 >
-                  <div className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">{set.name}</h3>
-                        <p className="text-sm text-neutral-400 capitalize">{set.variant}</p>
+                  <Stack gap="md">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${getVariantColor(set.variant)}`}>
+                          {getVariantIcon(set.variant)}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">{set.name}</h3>
+                          {set.description && (
+                            <p className="text-sm text-neutral-400">{set.description}</p>
+                          )}
+                        </div>
                       </div>
                       {set.isReady ? (
-                        <Badge variant="success">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Ready
-                        </Badge>
+                        <Badge variant="success">Ready</Badge>
                       ) : set.isMixing ? (
                         <Badge variant="info">
                           <Clock className="w-3 h-3 mr-1" />
@@ -229,16 +261,34 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between text-sm text-neutral-400 mb-3">
-                      <span>{set.trackCount} tracks</span>
-                      {set.voiceId && <span className="capitalize">{set.voiceId}</span>}
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex gap-4 text-neutral-400">
+                        <span>Variant: <span className="text-white capitalize">{set.variant}</span></span>
+                        {set.voiceId && (
+                          <>
+                            <span>•</span>
+                            <span>Voice: <span className="text-white capitalize">{set.voiceId}</span></span>
+                          </>
+                        )}
+                      </div>
+                      <div className="text-neutral-400">
+                        {set.trackCount} tracks
+                      </div>
                     </div>
 
-                    <Button variant="ghost" size="sm" className="w-full">
+                    <Button 
+                      variant="primary" 
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/life-vision/${visionId}/audio-sets/${set.id}`)
+                      }}
+                    >
                       <Play className="w-4 h-4 mr-2" />
                       Play Audio
                     </Button>
-                  </div>
+                  </Stack>
                 </Card>
               ))}
             </div>

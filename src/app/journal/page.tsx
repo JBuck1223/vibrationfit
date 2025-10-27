@@ -172,14 +172,19 @@ export default function JournalPage() {
 
     setDeletingId(itemToDelete.id)
     try {
-      // First, delete media files from S3
-      if (itemToDelete.image_urls && itemToDelete.image_urls.length > 0) {
+      // First, delete media files from S3 (including thumbnails)
+      const allMediaUrls = [
+        ...(itemToDelete.image_urls || []),
+        ...(itemToDelete.thumbnail_urls || [])
+      ]
+      
+      if (allMediaUrls.length > 0) {
         try {
-          console.log('🗑️  Deleting media files:', itemToDelete.image_urls)
+          console.log('🗑️  Deleting media files:', allMediaUrls)
           const deleteResponse = await fetch('/api/journal/delete-media', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ urls: itemToDelete.image_urls })
+            body: JSON.stringify({ urls: allMediaUrls })
           })
           
           if (!deleteResponse.ok) {
