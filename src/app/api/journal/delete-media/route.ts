@@ -87,13 +87,18 @@ export async function POST(request: NextRequest) {
           console.log('🔍 Will delete processed versions:', processedVersions)
           keysToDelete.push(...processedVersions)
           
-          // Also delete the original file (if it exists)
-          const possibleExtensions = ['.mp4', '.mov', '.webm', '.avi']
+          // Also add the original key itself (the processed file we received)
+          console.log('🔍 Also adding the key itself:', key)
+          keysToDelete.push(key)
+          
+          // Also delete the original uploaded file (if it exists)
+          // Try multiple possible extensions since we don't know what the original was
+          const possibleExtensions = ['.mp4', '.mov', '.webm', '.avi', '.m4v', '.mkv']
           possibleExtensions.forEach(ext => {
             keysToDelete.push(`${path}/${baseFilename}${ext}`)
           })
           
-          console.log('🔍 Will also try to delete original:', `${path}/${baseFilename}`)
+          console.log('🔍 Will try to delete original with extensions:', possibleExtensions)
         } else {
           // This is NOT a processed file
           console.log('🔍 Processing original file:', key)

@@ -3225,73 +3225,42 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
           </div>
         )}
 
-        {/* Main Player Controls */}
-        <div className="flex items-center gap-3 md:gap-4 mb-3">
+        {/* Play Button + Progress Bar in Line */}
+        <div className="flex items-center gap-3 mb-3">
           {/* Play/Pause Button */}
           <button
             onClick={togglePlayPause}
-            className="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.8)] transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.8)] transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
-              <Pause className="w-6 h-6 md:w-7 md:h-7" fill="currentColor" />
+              <Pause className="w-5 h-5" fill="currentColor" />
             ) : (
-              <Play className="w-6 h-6 md:w-7 md:h-7 ml-0.5" fill="currentColor" />
+              <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
             )}
           </button>
 
-          {/* Volume Control */}
-          <div className="hidden md:flex items-center gap-2 flex-1 max-w-[200px]">
-            <button
-              onClick={toggleMute}
-              className="text-neutral-400 hover:text-white transition-colors p-1"
-              aria-label={isMuted ? 'Unmute' : 'Mute'}
-            >
-              <Volume2 className={cn('w-5 h-5', isMuted && 'line-through')} />
-            </button>
+          {/* Progress Bar */}
+          <div className="flex-1">
             <input
               type="range"
               min="0"
-              max="1"
-              step="0.01"
-              value={isMuted ? 0 : volume}
-              onChange={handleVolumeChange}
-              className="w-full h-1 bg-neutral-700 rounded-full appearance-none cursor-pointer accent-[#39FF14]"
+              max={duration || 0}
+              step="0.1"
+              value={currentTime}
+              onChange={handleSeek}
+              className="w-full h-1.5 bg-neutral-700 rounded-full appearance-none cursor-pointer accent-[#39FF14]"
+              style={{
+                background: `linear-gradient(to right, #39FF14 0%, #39FF14 ${progress}%, #404040 ${progress}%, #404040 100%)`
+              }}
             />
           </div>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mb-3">
-          <input
-            type="range"
-            min="0"
-            max={duration || 0}
-            step="0.1"
-            value={currentTime}
-            onChange={handleSeek}
-            className="w-full h-2 bg-neutral-700 rounded-full appearance-none cursor-pointer accent-[#39FF14]"
-            style={{
-              background: `linear-gradient(to right, #39FF14 0%, #39FF14 ${progress}%, #404040 ${progress}%, #404040 100%)`
-            }}
-          />
         </div>
 
         {/* Time Display */}
         <div className="flex justify-between items-center text-xs text-neutral-400">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
-        </div>
-
-        {/* Mobile Volume Toggle */}
-        <div className="md:hidden flex items-center justify-center mt-2">
-          <button
-            onClick={toggleMute}
-            className="text-neutral-400 hover:text-white transition-colors p-2"
-            aria-label={isMuted ? 'Unmute' : 'Mute'}
-          >
-            <Volume2 className={cn('w-5 h-5', isMuted && 'line-through')} />
-          </button>
         </div>
       </div>
     )

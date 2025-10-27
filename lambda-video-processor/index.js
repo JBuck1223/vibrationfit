@@ -2,12 +2,18 @@
 // Also updates database when processed files are created
 const { MediaConvertClient, CreateJobCommand } = require('@aws-sdk/client-mediaconvert');
 const { AudioDefaultSelection, OutputGroupType, AacCodingMode } = require('@aws-sdk/client-mediaconvert');
+const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const https = require('https');
 
 // Configure MediaConvert client (use Lambda execution role)
 const mediaConvertClient = new MediaConvertClient({
   region: process.env.AWS_REGION || 'us-east-2',
   endpoint: process.env.MEDIACONVERT_ENDPOINT,
+});
+
+// Configure S3 client (use Lambda execution role)
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-2',
 });
 
 const BUCKET_NAME = process.env.BUCKET_NAME || 'vibration-fit-client-storage';
@@ -549,6 +555,40 @@ async function handleProcessedFile(objectKey) {
           console.log(`✅ Successfully updated ${tableName} entry ${entry.id} with ${quality} video`)
         } else {
           console.error(`❌ Failed to update entry ${entry.id}:`, updateResponse.status, updateResponse.data)
+        }
+      }
+    }
+    
+    // After all processing is complete (when -original.mp4 is created), delete the original uploaded file
+    if (quality === 'original') {
+      console.log('🧹 All processing complete, deleting original uploaded file...')
+      
+      // Extract the original file path (remove /processed/ and quality suffix)
+      const originalKey = objectKey.replace('/processed/', '/').replace(/-original\.(mp4|mov)$/i, '')
+      
+      // Try multiple possible extensions since we don't know what the original was
+      const possibleExtensions = ['.mp4', '.mov', '.webm', '.avi', '.m4v', '.mkv', '.flv']
+      
+      for (const ext of possibleExtensions) {
+        const testKey = originalKey + ext
+        
+        try {
+          console.log(`🔍 Checking if original file exists: ${testKey}`)
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: testKey
+          })
+          
+          await s3Client.send(deleteCommand)
+          console.log(`✅ Deleted original file: ${testKey}`)
+          // Only delete one - assume we found the right extension
+          break
+        } catch (error) {
+          // File doesn't exist with this extension, try next
+          if (error.name === 'NotFound' || error.Code === 'NoSuchKey') {
+            continue
+          }
+          console.log(`   File not found with extension ${ext}`)
         }
       }
     }
