@@ -94,6 +94,9 @@ export default function AudioSetPlayerPage({
       sectionMap.set(key, title)
     })
 
+    // Build canonical order for sorting
+    const canonicalOrder = ['meta_intro', ...categories.filter(k => k !== 'forward' && k !== 'conclusion'), 'meta_outro']
+    
     // Format tracks for PlaylistPlayer
     const formattedTracks: AudioTrack[] = tracks
       .map(track => {
@@ -108,10 +111,19 @@ export default function AudioSetPlayerPage({
           artist: '',
           duration: track.duration_seconds || 180,
           url: url || '',
-          thumbnail: ''
+          thumbnail: '',
+          sectionKey: track.section_key
         }
       })
       .filter(track => track.url && track.url.length > 0)
+      .sort((a, b) => {
+        const indexA = canonicalOrder.indexOf(a.sectionKey)
+        const indexB = canonicalOrder.indexOf(b.sectionKey)
+        // If not found, put at end
+        if (indexA === -1) return 1
+        if (indexB === -1) return -1
+        return indexA - indexB
+      })
 
     setAudioTracks(formattedTracks)
     setLoading(false)
