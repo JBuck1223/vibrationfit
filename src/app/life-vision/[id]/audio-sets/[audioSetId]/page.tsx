@@ -148,20 +148,22 @@ export default function AudioSetPlayerPage({
       <Stack gap="lg">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <h1 className="text-2xl md:text-4xl font-bold text-white">
             {audioSet?.name || 'Audio Player'}
           </h1>
           {allAudioSets.length > 1 && (
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => setShowAllDropdown(!showAllDropdown)}
+                className="w-full sm:w-auto"
               >
                 See All ({allAudioSets.length})
               </Button>
               {showAllDropdown && (
-                <div className="absolute right-0 mt-2 w-80 bg-neutral-900 border-2 border-neutral-700 rounded-lg shadow-xl z-10 p-2">
+                <div className="absolute right-0 mt-2 w-full sm:w-80 bg-neutral-900 border-2 border-neutral-700 rounded-lg shadow-xl z-10 p-2 max-h-[60vh] overflow-y-auto">
                   {allAudioSets.map((set) => (
                     <button
                       key={set.id}
@@ -214,7 +216,7 @@ export default function AudioSetPlayerPage({
             </div>
             
             {/* Vision Info Row */}
-            <div className="flex items-center gap-3 mb-3 pb-3 border-b border-neutral-800">
+            <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-3 pb-3 border-b border-neutral-800">
               <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
                 V{vision.version_number}
               </span>
@@ -232,7 +234,7 @@ export default function AudioSetPlayerPage({
               <div className="text-sm text-neutral-400">
                 {new Date(vision.created_at).toLocaleDateString()}
               </div>
-              <div className="text-xs text-neutral-500 font-mono">
+              <div className="text-xs text-neutral-500 font-mono truncate max-w-full">
                 {vision.id}
               </div>
             </div>

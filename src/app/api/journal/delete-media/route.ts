@@ -63,17 +63,17 @@ export async function POST(request: NextRequest) {
           console.log('🔍 Filename from key:', filename)
           console.log('🔍 Extracted base filename:', baseFilename)
           
-          // Get path up to the uploads folder
+          // Get path up to the processed folder (include processed folder in path)
           const pathParts = key.split('/')
-          const uploadsIndex = pathParts.findIndex(part => part === 'uploads')
+          const processedIndex = pathParts.findIndex(part => part === 'processed')
           
-          // Build path: if "uploads" found, use it; otherwise use everything except filename
-          const path = uploadsIndex >= 0 
-            ? pathParts.slice(0, uploadsIndex + 1).join('/')
+          // Build path: include everything up to the processed folder
+          const path = processedIndex >= 0 
+            ? pathParts.slice(0, processedIndex).join('/')
             : pathParts.slice(0, -1).join('/')
           
           console.log('🔍 PathParts:', pathParts)
-          console.log('🔍 UploadsIndex:', uploadsIndex)
+          console.log('🔍 ProcessedIndex:', processedIndex)
           console.log('🔍 Path:', path)
           
           // Delete all processed versions

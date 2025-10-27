@@ -3614,9 +3614,10 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       </div>
 
       {/* Track List */}
-      <Card variant="default" className="max-h-80 overflow-y-auto">
+      <Card variant="default" className="overflow-hidden">
         <Stack gap="xs">
           <h4 className="text-lg font-semibold text-white mb-2">Playlist</h4>
+          <div className="max-h-[60vh] overflow-y-auto">
           {tracks.map((track, index) => (
             <button
               key={`playlist-item-${index}`}
@@ -3650,6 +3651,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
               </div>
             </button>
           ))}
+          </div>
         </Stack>
       </Card>
     </div>
