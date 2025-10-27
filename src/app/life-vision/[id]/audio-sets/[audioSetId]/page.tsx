@@ -105,7 +105,7 @@ export default function AudioSetPlayerPage({
         return {
           id: track.id,
           title: sectionMap.get(track.section_key) || track.section_key,
-          artist: 'VibrationFit AI',
+          artist: '',
           duration: track.duration_seconds || 180,
           url: url || '',
           thumbnail: ''
