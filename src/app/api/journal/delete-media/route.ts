@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     const keysToDelete: string[] = []
 
     for (const url of urls) {
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
       console.log('Processing URL:', url)
       
       // Extract S3 key from URL
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
       const match = url.match(/media\.vibrationfit\.com\/(.+)/)
       if (match) {
         const key = decodeURIComponent(match[1]) // Decode URL-encoded characters
-        console.log('Extracted key:', key)
+        console.log('Extracted S3 key:', key)
         
         // Check if this is already a processed file (in /processed/ folder)
         if (key.includes('/processed/')) {
@@ -61,7 +62,14 @@ export async function POST(request: NextRequest) {
           // Get path up to the uploads folder
           const pathParts = key.split('/')
           const uploadsIndex = pathParts.findIndex(part => part === 'uploads')
-          const path = pathParts.slice(0, uploadsIndex + 1).join('/')
+          
+          // Build path: if "uploads" found, use it; otherwise use everything except filename
+          const path = uploadsIndex >= 0 
+            ? pathParts.slice(0, uploadsIndex + 1).join('/')
+            : pathParts.slice(0, -1).join('/')
+          
+          console.log('🔍 PathParts:', pathParts)
+          console.log('🔍 UploadsIndex:', uploadsIndex)
           
           console.log('🔍 Processing processed file:', key)
           console.log('🔍 Filename from key:', filename)
@@ -117,6 +125,8 @@ export async function POST(request: NextRequest) {
             keysToDelete.push(...processedVersions)
           }
         }
+      } else {
+        console.log('⚠️  URL does not match expected pattern:', url)
       }
     }
 

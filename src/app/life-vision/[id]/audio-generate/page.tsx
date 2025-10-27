@@ -20,6 +20,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   const [workingOn, setWorkingOn] = useState<string | null>(null)
   const [isPreviewing, setIsPreviewing] = useState<boolean>(false)
   const previewAudioRef = React.useRef<HTMLAudioElement | null>(null)
+  const [showJobQueue, setShowJobQueue] = useState(false)
+  const [allJobs, setAllJobs] = useState<Array<{id: string; sectionKey: string; title: string; variant: string; status: string; mixStatus?: string; setName: string}>>([])
 
   useEffect(() => {
     ;(async () => {
@@ -58,6 +60,92 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       setLoading(false)
     })()
   }, [])
+
+  // Poll for job status while generating
+  useEffect(() => {
+    if (!visionId || !generating) return
+    const interval = setInterval(async () => {
+      await loadJobQueue()
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [visionId, generating])
+
+  async function loadJobQueue() {
+    const supabase = createClient()
+    const { data: sets } = await supabase
+      .from('audio_sets')
+      .select('id, name, variant')
+      .eq('vision_id', visionId)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    if (!sets) return
+
+    const allTracks = await Promise.all(sets.map(async (set: any) => {
+      const { data: tracks } = await supabase
+        .from('audio_tracks')
+        .select('id, section_key, status, mix_status, created_at')
+        .eq('audio_set_id', set.id)
+        .order('created_at', { ascending: false })
+      
+      return (tracks || []).map((t: any) => ({
+        ...t,
+        setName: set.name,
+        variant: set.variant
+      }))
+    }))
+
+    const jobs = allTracks.flat().map((track: any) => ({
+      id: track.id,
+      sectionKey: track.section_key,
+      title: prettySectionTitle(track.section_key),
+      variant: track.variant,
+      status: track.status,
+      mixStatus: track.mix_status,
+      setName: track.setName,
+      createdAt: track.created_at
+    }))
+
+    jobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    setAllJobs(jobs)
+
+    // Check if all jobs are complete
+    const allComplete = jobs.every(j => 
+      j.status === 'completed' && (j.mixStatus === 'completed' || j.mixStatus === 'not_required')
+    )
+    
+    if (allComplete && jobs.length > 0 && generating) {
+      // Redirect to the latest audio set
+      const latestSet = sets[0]
+      setGenerating(false)
+      setWorkingOn(null)
+      setTimeout(() => {
+        window.location.href = `/life-vision/${visionId}/audio-sets/${latestSet.id}`
+      }, 2000)
+    }
+  }
+
+  function prettySectionTitle(sectionKey: string): string {
+    if (sectionKey === 'meta_intro') return 'Forward'
+    if (sectionKey === 'meta_outro') return 'Conclusion'
+    const map: Record<string, string> = {
+      forward: 'Forward',
+      fun: 'Fun / Recreation',
+      travel: 'Travel / Adventure',
+      home: 'Home / Environment',
+      family: 'Family / Parenting',
+      romance: 'Love / Romance',
+      health: 'Health / Vitality',
+      money: 'Money / Wealth',
+      business: 'Business / Career',
+      social: 'Social / Friends',
+      possessions: 'Possessions / Stuff',
+      giving: 'Giving / Legacy',
+      spirituality: 'Spirituality',
+      conclusion: 'Conclusion',
+    }
+    return map[sectionKey] || sectionKey.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())
+  }
 
   async function handleGenerate() {
     setGenerating(true)
@@ -151,10 +239,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
           }
         }
         
-        setWorkingOn(null)
-        setGenerating(false)
-        // Redirect to audio page
-        window.location.href = `/life-vision/${visionId}/audio`
+        // Start polling for completion
+        await loadJobQueue()
         return
       }
 
@@ -187,10 +273,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
         })
       }
       
-      setWorkingOn(null)
-      setGenerating(false)
-      // Redirect to audio page
-      window.location.href = `/life-vision/${visionId}/audio`
+      // Start polling for completion
+      await loadJobQueue()
     } catch (error) {
       console.error('Generation error:', error)
       setGenerating(false)
@@ -312,6 +396,59 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                 <p className="text-neutral-300 text-sm">Your custom audios are being created. They will appear in your audio library when complete.</p>
               </div>
             </div>
+          </Card>
+        )}
+
+        {/* Job Queue Dropdown */}
+        {allJobs.length > 0 && generating && (
+          <Card variant="default" className="p-4">
+            <button
+              onClick={() => setShowJobQueue(!showJobQueue)}
+              className="w-full flex items-center justify-between"
+            >
+              <span className="text-sm font-medium text-white">
+                Job Queue ({allJobs.filter(j => j.status === 'processing' || j.status === 'pending' || j.mixStatus === 'pending' || j.mixStatus === 'mixing').length} in progress)
+              </span>
+              <span className="text-neutral-400">{showJobQueue ? '▲' : '▼'}</span>
+            </button>
+            
+            {showJobQueue && (
+              <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                {allJobs.slice(0, 20).map((job) => {
+                  const isProcessing = job.status === 'processing' || job.status === 'pending'
+                  const isMixing = job.mixStatus === 'pending' || job.mixStatus === 'mixing'
+                  const isComplete = job.status === 'completed' && (job.mixStatus === 'completed' || job.mixStatus === 'not_required')
+                  
+                  return (
+                    <div 
+                      key={job.id}
+                      className="p-3 rounded-lg border-2 border-neutral-700 bg-neutral-900/50"
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-white">{job.title}</div>
+                          <div className="text-xs text-neutral-400">{job.setName} • {job.variant}</div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {isProcessing && (
+                            <Badge variant="info" className="text-xs">Voice: {job.status}</Badge>
+                          )}
+                          {isMixing && !isProcessing && (
+                            <Badge variant="info" className="text-xs">Mixing: {job.mixStatus}</Badge>
+                          )}
+                          {isComplete && (
+                            <Badge variant="success" className="text-xs">✓ Ready</Badge>
+                          )}
+                          {job.status === 'failed' && (
+                            <Badge variant="error" className="text-xs">✗ Failed</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </Card>
         )}
 
