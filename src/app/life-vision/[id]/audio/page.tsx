@@ -5,7 +5,7 @@ import { Button, Card, Spinner, Badge, Container, Stack } from '@/lib/design-sys
 import { getVisionCategoryKeys } from '@/lib/design-system'
 import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, Download, ArrowLeft } from 'lucide-react'
+import { Headphones, Download } from 'lucide-react'
 import Link from 'next/link'
 
 type Voice = { id: string; name: string }
@@ -310,17 +310,8 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   return (
     <Container size="lg">
       <Stack gap="lg">
-        {/* Header with Back Button */}
-        <div className="flex items-center gap-4 mb-2">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            asChild
-          >
-            <Link href={`/life-vision/${visionId}`}>
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-          </Button>
+        {/* Header */}
+        <div className="mb-2">
           <h1 className="text-2xl md:text-4xl font-bold text-white">Life Vision Audio</h1>
         </div>
 

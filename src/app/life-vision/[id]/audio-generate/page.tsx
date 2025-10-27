@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { Button, Card, Spinner, Badge, Container, Stack } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Headphones } from 'lucide-react'
+import { Headphones } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys } from '@/lib/design-system'
 
@@ -209,19 +209,12 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <Container size="xl" className="py-8">
+    <Container size="xl">
       <Stack gap="lg">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/life-vision/${visionId}/audio`}>
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-white">Generate Audio</h1>
-            <p className="text-neutral-400 mt-2">Create custom audio versions of your life vision</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-white">Generate Audio</h1>
+          <p className="text-neutral-400 mt-2">Create custom audio versions of your life vision</p>
         </div>
 
         {/* Variant Selection */}

@@ -1,6 +1,8 @@
 // AWS Lambda function to automatically trigger MediaConvert when videos are uploaded to S3
+// Also updates database when processed files are created
 const { MediaConvertClient, CreateJobCommand } = require('@aws-sdk/client-mediaconvert');
 const { AudioDefaultSelection, OutputGroupType, AacCodingMode } = require('@aws-sdk/client-mediaconvert');
+const https = require('https');
 
 // Configure MediaConvert client (use Lambda execution role)
 const mediaConvertClient = new MediaConvertClient({
@@ -10,6 +12,57 @@ const mediaConvertClient = new MediaConvertClient({
 
 const BUCKET_NAME = process.env.BUCKET_NAME || 'vibration-fit-client-storage';
 const MEDIACONVERT_ROLE_ARN = process.env.MEDIACONVERT_ROLE_ARN;
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://nxjhqibnlbwzzphewncj.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+// Helper function to make HTTP request
+function makeRequest(url, options) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const reqOptions = {
+      hostname: urlObj.hostname,
+      port: urlObj.port || 443,
+      path: urlObj.pathname + (urlObj.search || ''),
+      method: options.method || 'GET',
+      headers: options.headers || {}
+    };
+
+    const req = https.request(reqOptions, (res) => {
+      let responseData = '';
+      
+      res.on('data', (chunk) => {
+        responseData += chunk;
+      });
+      
+      res.on('end', () => {
+        try {
+          const data = responseData ? JSON.parse(responseData) : {};
+          resolve({ status: res.statusCode, data });
+        } catch (e) {
+          resolve({ status: res.statusCode, data: responseData });
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    if (options.body) {
+      req.write(options.body);
+    }
+    req.end();
+  });
+}
+
+// Extract quality suffix from filename
+function extractQuality(filename) {
+  if (filename.includes('-thumb')) return 'thumb';
+  if (filename.includes('-original')) return 'original';
+  if (filename.includes('-1080p')) return '1080p';
+  if (filename.includes('-720p')) return '720p';
+  return null;
+}
 
 exports.handler = async (event) => {
   console.log('📹 S3 Event received:', JSON.stringify(event, null, 2));
@@ -23,18 +76,19 @@ exports.handler = async (event) => {
 
     console.log(`📁 Processing: s3://${bucketName}/${objectKey}`);
 
+    // Check if this is a processed file - if so, update database
+    if (objectKey.includes('/processed/')) {
+      console.log('🎬 This is a processed file, updating database...');
+      await handleProcessedFile(objectKey);
+      continue;
+    }
+
     // Check if it's a video file
     const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
     const isVideo = videoExtensions.some(ext => objectKey.toLowerCase().endsWith(ext));
 
     if (!isVideo) {
       console.log('⏭️  Skipping non-video file:', objectKey);
-      continue;
-    }
-
-    // Check if it's already processed (avoid recursive triggers)
-    if (objectKey.includes('/processed/')) {
-      console.log('⏭️  Skipping processed file:', objectKey);
       continue;
     }
 
@@ -276,4 +330,211 @@ exports.handler = async (event) => {
     body: JSON.stringify({ message: 'Processed S3 events' })
   };
 };
+
+// Handle processed files - update database
+async function handleProcessedFile(objectKey) {
+  // Extract quality type
+  const quality = extractQuality(objectKey);
+  if (!quality) {
+    console.log('⏭️ Skipping unrecognized output:', objectKey);
+    return;
+  }
+
+  console.log(`🎬 Processing ${quality} file:`, objectKey);
+
+  try {
+    // Extract user ID from path
+    const pathParts = objectKey.split('/');
+    const userId = pathParts[1]; // user-uploads/[userId]/journal/uploads/processed/file.mp4
+    
+    // Extract filename and base name  
+    const filename = pathParts[pathParts.length - 1]
+    
+    // Remove all quality suffixes to get base filename
+    let baseFilename = filename
+    
+    // Remove quality suffixes from filename
+    if (quality === 'thumb') {
+      baseFilename = filename.replace(/\.(jpg|png|webp)$/i, '')
+    } else if (quality === 'original') {
+      baseFilename = filename.replace(/-original\.(mp4|mov)$/i, '')
+    } else if (quality === '1080p') {
+      baseFilename = filename.replace(/-1080p\.mp4$/i, '')
+    } else if (quality === '720p') {
+      baseFilename = filename.replace(/-720p\.mp4$/i, '')
+    }
+    
+    const folder = pathParts[2] // journal, vision-board, evidence, etc
+    const subfolder = pathParts[3] // uploads (or processed in some cases)
+    
+    const processedUrl = `https://media.vibrationfit.com/${objectKey}`
+    
+    console.log(`🔍 Quality: ${quality}`)
+    console.log('🔍 Folder detected:', folder)
+    console.log('🔍 Base filename:', baseFilename)
+    console.log('🔍 Processed URL:', processedUrl)
+    
+    // Determine which table to update based on folder
+    let tableName
+    if (folder === 'journal') {
+      tableName = 'journal_entries'
+    } else if (folder === 'vision-board') {
+      tableName = 'vision_board_items'
+    } else if (folder === 'evidence') {
+      tableName = 'evidence_items'
+    } else {
+      console.log(`⚠️ Unknown folder: ${folder}, defaulting to journal_entries`)
+      tableName = 'journal_entries'
+    }
+    
+    // Handle thumbnails
+    if (quality === 'thumb') {
+      // Try to find URLs with common video extensions (.mov, .mp4, etc.)
+      const possibleExtensions = ['', '.mov', '.mp4', '.avi', '.mkv', '.webm']
+      const originalUrls = possibleExtensions.map(ext => 
+        `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${subfolder}/${baseFilename}${ext}`
+      )
+      
+      console.log('🔍 Searching for entries with URLs for thumbnail:', originalUrls)
+      
+      // Query Supabase REST API for entries
+      const searchUrl = `${SUPABASE_URL}/rest/v1/${tableName}?user_id=eq.${userId}&select=id,image_urls,thumbnail_urls`
+      
+      const searchResponse = await makeRequest(searchUrl, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (searchResponse.status !== 200 || !searchResponse.data) {
+        console.error('❌ Failed to search entries:', searchResponse.status, searchResponse.data)
+        return
+      }
+      
+      const entries = searchResponse.data
+      console.log(`📝 Found ${entries.length} entries`)
+      
+      // Find entries containing any of the possible original URLs and update thumbnails
+      for (const entry of entries) {
+        if (!entry.image_urls || !Array.isArray(entry.image_urls)) continue
+        
+        // Check if any of the possible URLs exist in the entry
+        const matchingUrl = originalUrls.find(url => entry.image_urls.includes(url))
+        if (!matchingUrl) {
+          console.log('   No matching URL found in entry:', entry.id)
+          continue
+        }
+        
+        console.log(`   Found matching URL in entry ${entry.id}: ${matchingUrl}`)
+        
+        // Update thumbnail_urls (add to array if exists, create if doesn't)
+        const currentThumbnails = entry.thumbnail_urls || []
+        const updatedThumbnails = [...currentThumbnails]
+        
+        // Replace matching URL if exists in thumbnails, otherwise add it
+        const thumbIndex = updatedThumbnails.findIndex(url => url === matchingUrl)
+        if (thumbIndex >= 0) {
+          updatedThumbnails[thumbIndex] = processedUrl
+        } else {
+          updatedThumbnails.push(processedUrl)
+        }
+        
+        // Update via Supabase REST API
+        const updateUrl = `${SUPABASE_URL}/rest/v1/${tableName}?id=eq.${entry.id}`
+        
+        const updateResponse = await makeRequest(updateUrl, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_SERVICE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ thumbnail_urls: updatedThumbnails })
+        })
+        
+        if (updateResponse.status === 204 || updateResponse.status === 200) {
+          console.log(`✅ Successfully updated thumbnail_urls for entry ${entry.id}`)
+        } else {
+          console.error(`❌ Failed to update entry ${entry.id}:`, updateResponse.status, updateResponse.data)
+        }
+      }
+    }
+    
+    // Only update database for 1080p files
+    if (quality === '1080p') {
+      // Try to find URLs with common video extensions (.mov, .mp4, etc.)
+      const possibleExtensions = ['', '.mov', '.mp4', '.avi', '.mkv', '.webm']
+      const originalUrls = possibleExtensions.map(ext => 
+        `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${subfolder}/${baseFilename}${ext}`
+      )
+      
+      console.log('🔍 Searching for entries with URLs:', originalUrls)
+      
+      // Query Supabase REST API for entries
+      const searchUrl = `${SUPABASE_URL}/rest/v1/${tableName}?user_id=eq.${userId}&select=id,image_urls`
+      
+      const searchResponse = await makeRequest(searchUrl, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (searchResponse.status !== 200 || !searchResponse.data) {
+        console.error('❌ Failed to search entries:', searchResponse.status, searchResponse.data)
+        return
+      }
+      
+      const entries = searchResponse.data
+      console.log(`📝 Found ${entries.length} entries`)
+      
+      // Find entries containing any of the possible original URLs and update them
+      for (const entry of entries) {
+        if (!entry.image_urls || !Array.isArray(entry.image_urls)) continue
+        
+        // Check if any of the possible URLs exist in the entry
+        const matchingUrl = originalUrls.find(url => entry.image_urls.includes(url))
+        if (!matchingUrl) {
+          console.log('   No matching URL found in entry:', entry.id)
+          continue
+        }
+        
+        console.log(`   Found matching URL in entry ${entry.id}: ${matchingUrl}`)
+        
+        // Replace matching URL with processed URL
+        const updatedUrls = entry.image_urls.map(url => 
+          url === matchingUrl ? processedUrl : url
+        )
+        
+        // Update via Supabase REST API
+        const updateUrl = `${SUPABASE_URL}/rest/v1/${tableName}?id=eq.${entry.id}`
+        
+        const updateResponse = await makeRequest(updateUrl, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_SERVICE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ image_urls: updatedUrls })
+        })
+        
+        if (updateResponse.status === 204 || updateResponse.status === 200) {
+          console.log(`✅ Successfully updated ${tableName} entry ${entry.id} with ${quality} video`)
+        } else {
+          console.error(`❌ Failed to update entry ${entry.id}:`, updateResponse.status, updateResponse.data)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to update database:', error.message, error.stack);
+  }
+}
 

@@ -78,21 +78,29 @@ exports.handler = async (event) => {
     console.log(`🎬 Processing ${quality} file:`, objectKey);
 
     try {
-      // Extract user ID from path
-      const pathParts = objectKey.split('/');
-      const userId = pathParts[1]; // user-uploads/[userId]/...
+          // Extract user ID from path
+    const pathParts = objectKey.split('/');
+    const userId = pathParts[1]; // user-uploads/[userId]/journal/uploads/processed/file.mp4
       
-      // Extract filename and base name
+      // Extract filename and base name  
       const filename = pathParts[pathParts.length - 1]
+      
       // Remove all quality suffixes to get base filename
-      const baseFilename = filename
-        .replace(/-thumb.*$/, '')
-        .replace(/-original.*$/, '')
-        .replace(/-1080p.*$/, '')
-        .replace(/-720p.*$/, '')
+      let baseFilename = filename
+      
+      // Remove quality suffixes from filename
+      if (quality === 'thumb') {
+        baseFilename = filename.replace(/\.(jpg|png|webp)$/i, '')
+      } else if (quality === 'original') {
+        baseFilename = filename.replace(/-original\.(mp4|mov)$/i, '')
+      } else if (quality === '1080p') {
+        baseFilename = filename.replace(/-1080p\.mp4$/i, '')
+      } else if (quality === '720p') {
+        baseFilename = filename.replace(/-720p\.mp4$/i, '')
+      }
       
       const folder = pathParts[2] // journal, vision-board, evidence, etc
-      const processedFolder = pathParts[3] // uploads
+      const subfolder = pathParts[3] // uploads (or processed in some cases)
       
       const processedUrl = `https://media.vibrationfit.com/${objectKey}`
       
@@ -120,7 +128,7 @@ exports.handler = async (event) => {
         // Store thumbnail URL in thumbnail_urls
         const possibleExtensions = ['', '.mov', '.mp4', '.avi', '.mkv', '.webm']
         const originalUrls = possibleExtensions.map(ext => 
-          `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${processedFolder}/${baseFilename}${ext}`
+          `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${subfolder}/${baseFilename}${ext}`
         )
         
         console.log('🔍 Searching for entries with URLs:', originalUrls)
@@ -172,7 +180,7 @@ exports.handler = async (event) => {
         // Try to find URLs with common video extensions (.mov, .mp4, etc.)
         const possibleExtensions = ['', '.mov', '.mp4', '.avi', '.mkv', '.webm']
         const originalUrls = possibleExtensions.map(ext => 
-          `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${processedFolder}/${baseFilename}${ext}`
+          `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${subfolder}/${baseFilename}${ext}`
         )
         
         console.log('🔍 Searching for entries with URLs:', originalUrls)

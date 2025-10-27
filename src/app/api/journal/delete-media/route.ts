@@ -34,30 +34,73 @@ export async function POST(request: NextRequest) {
       if (match) {
         const key = decodeURIComponent(match[1]) // Decode URL-encoded characters
         console.log('Extracted key:', key)
-        keysToDelete.push(key)
         
-        // Also delete thumbnail if it exists
-        if (key.includes('.jpg') || key.includes('.png') || key.includes('.webp')) {
-          const thumbKey = key.replace(/\.(jpg|jpeg|png|webp)$/i, '-thumb.webp')
-          keysToDelete.push(thumbKey)
-        } else if (key.includes('.mp4') || key.includes('.mov') || key.includes('.webm') || key.includes('.avi')) {
-          // Delete thumbnail
-          const thumbKey = key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
-          keysToDelete.push(thumbKey)
+        // Check if this is already a processed file (in /processed/ folder)
+        if (key.includes('/processed/')) {
+          // This is a processed file, need to extract base filename
+          const filename = key.split('/').pop() || ''
           
-          // Delete processed video versions (multiple resolutions)
-          const baseFilename = key.split('/').pop()?.replace(/\.[^/.]+$/, '') || ''
-          const path = key.split('/').slice(0, -1).join('/')
+          // Remove quality suffixes to get base filename
+          const baseFilename = filename
+            .replace(/-1080p\.mp4$/i, '')
+            .replace(/-720p\.mp4$/i, '')
+            .replace(/-original\.(mp4|mov)$/i, '')
+            .replace(/-thumb.*$/i, '')
           
-          // Delete all processed versions: -1080p.mp4, -720p.mp4, -original.mp4
+          // Get path up to the uploads folder
+          const pathParts = key.split('/')
+          const uploadsIndex = pathParts.findIndex(part => part === 'uploads')
+          const path = pathParts.slice(0, uploadsIndex + 1).join('/')
+          
+          console.log('🔍 Processing processed file:', key)
+          console.log('🔍 Base filename:', baseFilename)
+          console.log('🔍 Path:', path)
+          
+          // Delete all processed versions
           const processedVersions = [
             `${path}/processed/${baseFilename}-1080p.mp4`,
             `${path}/processed/${baseFilename}-720p.mp4`,
             `${path}/processed/${baseFilename}-original.mp4`,
-            `${path}/processed/${baseFilename}-thumb` // Thumbnail from MediaConvert
+            `${path}/processed/${baseFilename}-thumb`
           ]
           
           keysToDelete.push(...processedVersions)
+          
+          // Also delete the original file (if it exists)
+          const possibleExtensions = ['.mp4', '.mov', '.webm', '.avi']
+          possibleExtensions.forEach(ext => {
+            keysToDelete.push(`${path}/${baseFilename}${ext}`)
+          })
+          
+          // Delete thumbnail
+          keysToDelete.push(key.replace(/\.(jpg|png|webp)$/i, '-thumb.jpg'))
+        } else {
+          // This is an original file
+          keysToDelete.push(key)
+          
+          // Also delete thumbnail if it exists
+          if (key.includes('.jpg') || key.includes('.png') || key.includes('.webp')) {
+            const thumbKey = key.replace(/\.(jpg|jpeg|png|webp)$/i, '-thumb.webp')
+            keysToDelete.push(thumbKey)
+          } else if (key.includes('.mp4') || key.includes('.mov') || key.includes('.webm') || key.includes('.avi')) {
+            // Delete thumbnail
+            const thumbKey = key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
+            keysToDelete.push(thumbKey)
+            
+            // Delete processed video versions (multiple resolutions)
+            const baseFilename = key.split('/').pop()?.replace(/\.[^/.]+$/, '') || ''
+            const path = key.split('/').slice(0, -1).join('/')
+            
+            // Delete all processed versions: -1080p.mp4, -720p.mp4, -original.mp4
+            const processedVersions = [
+              `${path}/processed/${baseFilename}-1080p.mp4`,
+              `${path}/processed/${baseFilename}-720p.mp4`,
+              `${path}/processed/${baseFilename}-original.mp4`,
+              `${path}/processed/${baseFilename}-thumb` // Thumbnail from MediaConvert
+            ]
+            
+            keysToDelete.push(...processedVersions)
+          }
         }
       }
     }
@@ -67,13 +110,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, deleted: 0 })
     }
 
-    console.log(`Deleting keys:`, keysToDelete)
+    // Remove duplicates
+    const uniqueKeysToDelete = [...new Set(keysToDelete)]
+    
+    console.log(`🗑️  Deleting ${uniqueKeysToDelete.length} unique files:`)
+    uniqueKeysToDelete.forEach(key => console.log(`   - ${key}`))
 
-    // Delete all objects in batch
+    // Delete all objects in batch (use unique keys)
     const command = new DeleteObjectsCommand({
       Bucket: BUCKET_NAME,
       Delete: {
-        Objects: keysToDelete.map(key => ({ Key: key })),
+        Objects: uniqueKeysToDelete.map(key => ({ Key: key })),
         Quiet: false
       }
     })
@@ -91,12 +138,16 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      console.log(`✅ Deleted ${deletedCount}/${keysToDelete.length} files`)
+      console.log(`✅ Deleted ${deletedCount}/${uniqueKeysToDelete.length} files`)
+      
+      if (deletedCount < uniqueKeysToDelete.length) {
+        console.log(`⚠️  Warning: Only deleted ${deletedCount} out of ${uniqueKeysToDelete.length} files`)
+      }
 
       return NextResponse.json({ 
         success: true, 
         deleted: deletedCount,
-        total: keysToDelete.length,
+        total: uniqueKeysToDelete.length,
         errors: errors.length,
         errorDetails: errors
       })
