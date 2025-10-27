@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Container, Stack, Badge, Spinner } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Circle, History, Play } from 'lucide-react'
+import { CheckCircle, Circle, History, Play, Moon, Zap, Sparkles, Headphones } from 'lucide-react'
 import { Icon } from '@/lib/design-system'
 import { getVisionCategoryKeys } from '@/lib/design-system'
 
@@ -117,34 +117,35 @@ export default function AudioSetPlayerPage({
     setLoading(false)
   }
 
+  const getVariantIcon = (variant: string) => {
+    switch (variant) {
+      case 'sleep':
+        return <Moon className="w-5 h-5" />
+      case 'energy':
+        return <Zap className="w-5 h-5" />
+      case 'meditation':
+        return <Sparkles className="w-5 h-5" />
+      default:
+        return <Headphones className="w-5 h-5" />
+    }
+  }
+
+  const getVariantColor = (variant: string) => {
+    switch (variant) {
+      case 'sleep':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      case 'energy':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      case 'meditation':
+        return 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+      default:
+        return 'bg-[#39FF14]/20 text-[#39FF14] border-[#39FF14]/30'
+    }
+  }
+
   return (
     <Container size="lg">
       <Stack gap="lg">
-        {/* Vision Version Info */}
-        {vision && (
-          <Card variant="glass" className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
-                V{vision.version_number}
-              </span>
-              {vision.status === 'complete' ? (
-                <Badge variant="success">
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Active
-                </Badge>
-              ) : (
-                <Badge variant="warning">
-                  <Circle className="w-4 h-4 mr-1" />
-                  Draft
-                </Badge>
-              )}
-              <div className="text-sm text-neutral-400">
-                {new Date(vision.created_at).toLocaleDateString()}
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold text-white">The Life I Choose</h2>
-          </Card>
-        )}
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -160,7 +161,7 @@ export default function AudioSetPlayerPage({
                 See All ({allAudioSets.length})
               </Button>
               {showAllDropdown && (
-                <div className="absolute right-0 mt-2 w-64 bg-neutral-900 border-2 border-neutral-700 rounded-lg shadow-xl z-10 max-h-96 overflow-y-auto">
+                <div className="absolute right-0 mt-2 w-80 bg-neutral-900 border-2 border-neutral-700 rounded-lg shadow-xl z-10 max-h-96 overflow-y-auto p-2">
                   {allAudioSets.map((set) => (
                     <button
                       key={set.id}
@@ -168,13 +169,25 @@ export default function AudioSetPlayerPage({
                         router.push(`/life-vision/${visionId}/audio-sets/${set.id}`)
                         setShowAllDropdown(false)
                       }}
-                      className={`w-full text-left px-4 py-3 hover:bg-neutral-800 transition-colors border-b border-neutral-800 ${
-                        set.id === audioSetId ? 'bg-primary-500/20' : ''
+                      className={`w-full text-left p-3 rounded-lg border-2 transition-all mb-2 ${
+                        set.id === audioSetId 
+                          ? 'border-primary-500 bg-primary-500/20' 
+                          : 'border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/50'
                       }`}
                     >
-                      <div className="font-medium text-white">{set.name}</div>
-                      <div className="text-sm text-neutral-400 capitalize mt-1">
-                        {set.variant} • {set.voice_id}
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${getVariantColor(set.variant)}`}>
+                          {getVariantIcon(set.variant)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-white">{set.name}</div>
+                          <div className="text-sm text-neutral-400 capitalize">
+                            {set.variant} • {set.voice_id}
+                          </div>
+                        </div>
+                        {set.id === audioSetId && (
+                          <Badge variant="success" className="text-xs">Current</Badge>
+                        )}
                       </div>
                     </button>
                   ))}
@@ -185,16 +198,46 @@ export default function AudioSetPlayerPage({
         </div>
 
         {/* Audio Set Info */}
-        {audioSet && (
+        {audioSet && vision && (
           <Card variant="glass" className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-white">{audioSet.name}</h2>
-                <p className="text-sm text-neutral-400">{audioSet.description}</p>
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${getVariantColor(audioSet.variant)}`}>
+                  {getVariantIcon(audioSet.variant)}
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">{audioSet.name}</h2>
+                  <p className="text-sm text-neutral-400">{audioSet.description}</p>
+                </div>
               </div>
               <Badge variant="success">Active</Badge>
             </div>
-            <div className="flex gap-4 text-sm text-neutral-400 mt-2">
+            
+            {/* Vision Info Row */}
+            <div className="flex items-center gap-3 mb-3 pb-3 border-b border-neutral-800">
+              <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+                V{vision.version_number}
+              </span>
+              {vision.status === 'complete' ? (
+                <Badge variant="success">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Active
+                </Badge>
+              ) : (
+                <Badge variant="warning">
+                  <Circle className="w-3 h-3 mr-1" />
+                  Draft
+                </Badge>
+              )}
+              <div className="text-sm text-neutral-400">
+                {new Date(vision.created_at).toLocaleDateString()}
+              </div>
+              <div className="text-sm text-neutral-500">
+                Vision ID: {vision.id.substring(0, 8)}...
+              </div>
+            </div>
+            
+            <div className="flex gap-4 text-sm text-neutral-400">
               <span>Variant: <span className="text-white capitalize">{audioSet.variant}</span></span>
               <span>•</span>
               <span>Voice: <span className="text-white">{audioSet.voice_id}</span></span>
