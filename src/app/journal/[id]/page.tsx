@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { PageLayout, Card, Button, Badge, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
+import { deleteUserFile } from '@/lib/storage/s3-storage'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, FileText, Tag, X, Download, Play, Volume2, Edit, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -174,7 +175,36 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
     try {
       const supabase = createClient()
       
-      // Delete the journal entry
+      // Delete all associated files from S3
+      const filesToDelete: string[] = []
+      
+      // Collect image URLs
+      if (entry.image_urls && Array.isArray(entry.image_urls)) {
+        entry.image_urls.forEach((url: string) => {
+          try {
+            const s3Key = url.replace('https://media.vibrationfit.com/', '')
+            filesToDelete.push(s3Key)
+          } catch (error) {
+            console.warn('Failed to extract S3 key from URL:', url, error)
+          }
+        })
+      }
+      
+      // Delete files from S3
+      if (filesToDelete.length > 0) {
+        console.log(`Deleting ${filesToDelete.length} files from S3...`)
+        for (const s3Key of filesToDelete) {
+          try {
+            await deleteUserFile(s3Key)
+            console.log(`✅ Deleted: ${s3Key}`)
+          } catch (error) {
+            console.warn(`Failed to delete file ${s3Key}:`, error)
+            // Continue with other files even if one fails
+          }
+        }
+      }
+      
+      // Delete the journal entry from database
       const { error } = await supabase
         .from('journal_entries')
         .delete()

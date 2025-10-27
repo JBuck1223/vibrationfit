@@ -345,6 +345,40 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// DELETE handler to delete files from S3
+export async function DELETE(request: NextRequest) {
+  try {
+    const { s3Key } = await request.json()
+
+    if (!s3Key) {
+      return NextResponse.json({ error: 'Missing s3Key' }, { status: 400 })
+    }
+
+    console.log(`🗑️  Deleting file: ${s3Key}`)
+
+    // Delete the file from S3
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+    })
+
+    await s3Client.send(deleteCommand)
+    console.log(`✅ File deleted successfully: ${s3Key}`)
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'File deleted successfully',
+      deletedKey: s3Key
+    })
+  } catch (error) {
+    console.error('S3 delete error:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Delete failed' },
+      { status: 500 }
+    )
+  }
+}
+
 // Trigger MediaConvert job for video processing
 async function triggerMediaConvertJob(
   inputKey: string,

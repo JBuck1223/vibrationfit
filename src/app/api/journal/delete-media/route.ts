@@ -40,13 +40,24 @@ export async function POST(request: NextRequest) {
         if (key.includes('.jpg') || key.includes('.png') || key.includes('.webp')) {
           const thumbKey = key.replace(/\.(jpg|jpeg|png|webp)$/i, '-thumb.webp')
           keysToDelete.push(thumbKey)
-        } else if (key.includes('.mp4') || key.includes('.mov')) {
+        } else if (key.includes('.mp4') || key.includes('.mov') || key.includes('.webm') || key.includes('.avi')) {
+          // Delete thumbnail
           const thumbKey = key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
           keysToDelete.push(thumbKey)
           
-          // Also delete processed video if it exists
-          const processedKey = key.replace(/\/uploads\/([^/]+)$/, '/uploads/processed/$1-720p.mp4')
-          keysToDelete.push(processedKey)
+          // Delete processed video versions (multiple resolutions)
+          const baseFilename = key.split('/').pop()?.replace(/\.[^/.]+$/, '') || ''
+          const path = key.split('/').slice(0, -1).join('/')
+          
+          // Delete all processed versions: -1080p.mp4, -720p.mp4, -original.mp4
+          const processedVersions = [
+            `${path}/processed/${baseFilename}-1080p.mp4`,
+            `${path}/processed/${baseFilename}-720p.mp4`,
+            `${path}/processed/${baseFilename}-original.mp4`,
+            `${path}/processed/${baseFilename}-thumb` // Thumbnail from MediaConvert
+          ]
+          
+          keysToDelete.push(...processedVersions)
         }
       }
     }
