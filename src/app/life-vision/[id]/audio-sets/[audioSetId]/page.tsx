@@ -161,7 +161,7 @@ export default function AudioSetPlayerPage({
                 See All ({allAudioSets.length})
               </Button>
               {showAllDropdown && (
-                <div className="absolute right-0 mt-2 w-80 bg-neutral-900 border-2 border-neutral-700 rounded-lg shadow-xl z-10 max-h-96 overflow-y-auto p-2">
+                <div className="absolute right-0 mt-2 w-80 bg-neutral-900 border-2 border-neutral-700 rounded-lg shadow-xl z-10 p-2">
                   {allAudioSets.map((set) => (
                     <button
                       key={set.id}
@@ -232,8 +232,8 @@ export default function AudioSetPlayerPage({
               <div className="text-sm text-neutral-400">
                 {new Date(vision.created_at).toLocaleDateString()}
               </div>
-              <div className="text-sm text-neutral-500">
-                Vision ID: {vision.id.substring(0, 8)}...
+              <div className="text-xs text-neutral-500 font-mono">
+                {vision.id}
               </div>
             </div>
             

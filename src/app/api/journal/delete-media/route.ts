@@ -59,6 +59,10 @@ export async function POST(request: NextRequest) {
             baseFilename = filename.replace(/\.[^/.]+$/, '')
           }
           
+          console.log('🔍 Processing processed file:', key)
+          console.log('🔍 Filename from key:', filename)
+          console.log('🔍 Extracted base filename:', baseFilename)
+          
           // Get path up to the uploads folder
           const pathParts = key.split('/')
           const uploadsIndex = pathParts.findIndex(part => part === 'uploads')
@@ -70,10 +74,6 @@ export async function POST(request: NextRequest) {
           
           console.log('🔍 PathParts:', pathParts)
           console.log('🔍 UploadsIndex:', uploadsIndex)
-          
-          console.log('🔍 Processing processed file:', key)
-          console.log('🔍 Filename from key:', filename)
-          console.log('🔍 Base filename:', baseFilename)
           console.log('🔍 Path:', path)
           
           // Delete all processed versions
@@ -96,9 +96,9 @@ export async function POST(request: NextRequest) {
           console.log('🔍 Will also try to delete original:', `${path}/${baseFilename}`)
         } else {
           // This is NOT a processed file
-          keysToDelete.push(key)
-          
           console.log('🔍 Processing original file:', key)
+          keysToDelete.push(key)
+          console.log('✅ Added original file to deletion list:', key)
           
           // Also delete thumbnail if it exists
           if (key.includes('.jpg') || key.includes('.png') || key.includes('.webp')) {
@@ -108,21 +108,35 @@ export async function POST(request: NextRequest) {
             // Delete processed video versions (multiple resolutions)
             const filename = key.split('/').pop() || ''
             const baseFilename = filename.replace(/\.[^/.]+$/, '')  // Remove extension
+            
+            // Check if filename already has a quality suffix
+            const hasQualitySuffix = /-(1080p|720p|original)$/.test(baseFilename)
+            
+            // If it has a quality suffix, remove it to get the true base filename
+            const trueBaseFilename = hasQualitySuffix 
+              ? baseFilename.replace(/-(1080p|720p|original)$/, '')
+              : baseFilename
+            
             const path = key.split('/').slice(0, -1).join('/')
             
-            console.log('🔍 Video detected, base filename:', baseFilename)
+            console.log('🔍 Video detected, filename:', filename)
+            console.log('🔍 Base filename:', baseFilename)
+            console.log('🔍 Has quality suffix:', hasQualitySuffix)
+            console.log('🔍 True base filename:', trueBaseFilename)
             console.log('🔍 Path:', path)
             
             // Delete all processed versions: -1080p.mp4, -720p.mp4, -original.mp4
             const processedVersions = [
-              `${path}/processed/${baseFilename}-1080p.mp4`,
-              `${path}/processed/${baseFilename}-720p.mp4`,
-              `${path}/processed/${baseFilename}-original.mp4`,
-              `${path}/processed/${baseFilename}-thumb.0000000.jpg` // Thumbnail from MediaConvert
+              `${path}/processed/${trueBaseFilename}-1080p.mp4`,
+              `${path}/processed/${trueBaseFilename}-720p.mp4`,
+              `${path}/processed/${trueBaseFilename}-original.mp4`,
+              `${path}/processed/${trueBaseFilename}-thumb.0000000.jpg` // Thumbnail from MediaConvert
             ]
             
             console.log('🔍 Will delete processed versions:', processedVersions)
             keysToDelete.push(...processedVersions)
+            
+            // Note: The original key was already added above with `keysToDelete.push(key)`
           }
         }
       } else {
@@ -149,6 +163,7 @@ export async function POST(request: NextRequest) {
     console.log('═══════════════════════════════════════')
 
     // Delete all objects in batch (use unique keys)
+    console.log('🔨 Creating DeleteObjectsCommand...')
     const command = new DeleteObjectsCommand({
       Bucket: BUCKET_NAME,
       Delete: {
@@ -156,21 +171,37 @@ export async function POST(request: NextRequest) {
         Quiet: false
       }
     })
+    console.log('✅ DeleteObjectsCommand created successfully')
 
     try {
+      console.log('📤 Sending delete request to S3...')
+      console.log(`   Bucket: ${BUCKET_NAME}`)
+      console.log(`   Keys to delete: ${uniqueKeysToDelete.length}`)
+      
       const response = await s3Client.send(command)
       
       const deletedCount = response.Deleted?.length || 0
       const errors = response.Errors || []
       
+      console.log('📥 S3 Response received:')
+      console.log(`   Deleted: ${deletedCount}`)
+      console.log(`   Errors: ${errors.length}`)
+      
       if (errors.length > 0) {
-        console.error('Some deletions failed:', JSON.stringify(errors, null, 2))
+        console.error('❌ Some deletions failed:')
         errors.forEach(err => {
-          console.error(`Failed to delete ${err.Key}: ${err.Code} - ${err.Message}`)
+          console.error(`   - ${err.Key}: ${err.Code} - ${err.Message}`)
         })
       }
 
-      console.log(`✅ Deleted ${deletedCount}/${uniqueKeysToDelete.length} files`)
+      if (deletedCount > 0) {
+        console.log('✅ Successfully deleted files:')
+        response.Deleted?.forEach(item => {
+          console.log(`   ✓ ${item.Key}`)
+        })
+      }
+      
+      console.log(`📊 Summary: Deleted ${deletedCount}/${uniqueKeysToDelete.length} files`)
       
       if (deletedCount < uniqueKeysToDelete.length) {
         console.log(`⚠️  Warning: Only deleted ${deletedCount} out of ${uniqueKeysToDelete.length} files`)
@@ -183,8 +214,11 @@ export async function POST(request: NextRequest) {
         errors: errors.length,
         errorDetails: errors
       })
-    } catch (deleteError) {
-      console.error('S3 delete error:', deleteError)
+    } catch (deleteError: any) {
+      console.error('❌ S3 delete error:', deleteError)
+      console.error('   Error message:', deleteError.message)
+      console.error('   Error code:', deleteError.code)
+      console.error('   Request ID:', deleteError.requestId)
       throw deleteError
     }
   } catch (error) {

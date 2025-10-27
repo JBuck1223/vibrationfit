@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { PageLayout, Card, Button, Badge, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
-import { deleteUserFile } from '@/lib/storage/s3-storage'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, FileText, Tag, X, Download, Play, Volume2, Edit, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -99,6 +98,12 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
   // Check for processed video URLs (tries 1080p first, then 720p, then original)
   const getProcessedVideoUrl = async (originalUrl: string) => {
     try {
+      // If URL already contains /processed/, it's already a processed file - just return it
+      if (originalUrl.includes('/processed/')) {
+        console.log('✅ URL is already a processed file, returning as-is')
+        return originalUrl
+      }
+      
       // Extract the S3 key from the original URL
       const urlParts = originalUrl.split('/')
       const s3Key = urlParts.slice(urlParts.indexOf('user-uploads')).join('/')
@@ -110,11 +115,16 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
       const baseFilename = s3KeyParts[s3KeyParts.length - 1]
       const filenameWithoutExt = baseFilename.replace(/\.[^/.]+$/, '')
       
+      // Check if filename already has a quality suffix
+      const hasQualitySuffix = /-(1080p|720p|original)$/.test(filenameWithoutExt)
+      
       // Build processed URLs: same path, add /processed/ folder with quality suffix
       const processedPath = s3KeyParts.slice(0, -1).join('/')
       
-      // Try 1080p (default quality), then 720p as fallback
-      const processedFilename = `${filenameWithoutExt}-1080p.mp4`
+      // If filename already has quality suffix, use it as-is; otherwise add -1080p
+      const processedFilename = hasQualitySuffix 
+        ? `${baseFilename}` 
+        : `${filenameWithoutExt}-1080p.mp4`
       const processedKey = `${processedPath}/processed/${processedFilename}`
       const processedUrl = `https://media.vibrationfit.com/${processedKey}`
       
@@ -131,8 +141,10 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
         console.log(`❌ Fetch error for 1080p, trying 720p:`, fetchError)
       }
       
-      // Fallback to 720p
-      const fallbackFilename = `${filenameWithoutExt}-720p.mp4`
+      // Fallback to 720p (only if filename doesn't already have quality suffix)
+      const fallbackFilename = hasQualitySuffix 
+        ? `${baseFilename.replace(/-1080p$/, '-720p')}` 
+        : `${filenameWithoutExt}-720p.mp4`
       const fallbackKey = `${processedPath}/processed/${fallbackFilename}`
       const fallbackUrl = `https://media.vibrationfit.com/${fallbackKey}`
       
@@ -175,32 +187,31 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
     try {
       const supabase = createClient()
       
-      // Delete all associated files from S3
-      const filesToDelete: string[] = []
+      // First, delete media files from S3 (including thumbnails and all processed versions)
+      const allMediaUrls = [
+        ...(entry.image_urls || []),
+        ...(entry.thumbnail_urls || [])
+      ]
       
-      // Collect image URLs
-      if (entry.image_urls && Array.isArray(entry.image_urls)) {
-        entry.image_urls.forEach((url: string) => {
-          try {
-            const s3Key = url.replace('https://media.vibrationfit.com/', '')
-            filesToDelete.push(s3Key)
-          } catch (error) {
-            console.warn('Failed to extract S3 key from URL:', url, error)
+      if (allMediaUrls.length > 0) {
+        try {
+          console.log('🗑️  Deleting media files:', allMediaUrls)
+          const deleteResponse = await fetch('/api/journal/delete-media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls: allMediaUrls })
+          })
+          
+          if (!deleteResponse.ok) {
+            const errorText = await deleteResponse.text()
+            console.error('❌ Delete API error:', deleteResponse.status, errorText)
+          } else {
+            const result = await deleteResponse.json()
+            console.log(`✅ Deleted ${result.deleted || 0}/${result.total || 0} media files from S3`)
           }
-        })
-      }
-      
-      // Delete files from S3
-      if (filesToDelete.length > 0) {
-        console.log(`Deleting ${filesToDelete.length} files from S3...`)
-        for (const s3Key of filesToDelete) {
-          try {
-            await deleteUserFile(s3Key)
-            console.log(`✅ Deleted: ${s3Key}`)
-          } catch (error) {
-            console.warn(`Failed to delete file ${s3Key}:`, error)
-            // Continue with other files even if one fails
-          }
+        } catch (mediaError) {
+          console.error('❌ Failed to delete media files:', mediaError)
+          // Continue with database deletion even if media deletion fails
         }
       }
       
