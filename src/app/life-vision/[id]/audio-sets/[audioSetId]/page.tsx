@@ -219,8 +219,8 @@ export default function AudioSetPlayerPage({
             
             {/* Audio Set Info Row */}
             <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-3 pb-3 border-b border-neutral-800">
-              <div className="text-sm text-neutral-400">
-                <span className="font-medium text-white">Set ID:</span> {audioSet.id.substring(0, 8)}...
+              <div className="text-xs text-neutral-500 font-mono">
+                {audioSet.id}
               </div>
               <div className="text-sm text-neutral-400">
                 Created: {new Date(audioSet.created_at).toLocaleDateString()}
