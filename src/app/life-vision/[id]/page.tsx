@@ -327,15 +327,36 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       if (!tracks) return
 
       // Map tracks by section_key
+      // Map audio section_keys to vision category keys
+      const sectionToCategory: Record<string, string> = {
+        'meta_intro': 'forward',
+        'meta_outro': 'conclusion',
+        // Map all other keys 1:1
+        health: 'health',
+        family: 'family',
+        romance: 'romance',
+        social: 'social',
+        fun: 'fun',
+        travel: 'travel',
+        home: 'home',
+        money: 'money',
+        business: 'business',
+        possessions: 'possessions',
+        giving: 'giving',
+        spirituality: 'spirituality',
+      }
+      
       const trackMap: Record<string, { url: string; title: string }> = {}
       tracks.forEach(track => {
         const url = track.mixed_audio_url && track.mix_status === 'completed' 
           ? track.mixed_audio_url 
           : track.audio_url
         if (url) {
-          trackMap[track.section_key] = {
+          // Map section_key (meta_intro) to category key (forward)
+          const categoryKey = sectionToCategory[track.section_key] || track.section_key
+          trackMap[categoryKey] = {
             url,
-            title: VISION_SECTIONS.find(cat => cat.key === track.section_key)?.label || track.section_key
+            title: VISION_SECTIONS.find(cat => cat.key === categoryKey)?.label || categoryKey
           }
         }
       })
