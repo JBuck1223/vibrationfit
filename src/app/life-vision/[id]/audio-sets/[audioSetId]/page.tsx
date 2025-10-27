@@ -212,30 +212,18 @@ export default function AudioSetPlayerPage({
                   <p className="text-sm text-neutral-400">{audioSet.description}</p>
                 </div>
               </div>
-              <Badge variant="success">Active</Badge>
+              <Badge variant="success">
+                {vision.status === 'complete' ? 'Active' : 'Draft'} Vision
+              </Badge>
             </div>
             
-            {/* Vision Info Row */}
+            {/* Audio Set Info Row */}
             <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-3 pb-3 border-b border-neutral-800">
-              <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
-                V{vision.version_number}
-              </span>
-              {vision.status === 'complete' ? (
-                <Badge variant="success">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Active
-                </Badge>
-              ) : (
-                <Badge variant="warning">
-                  <Circle className="w-3 h-3 mr-1" />
-                  Draft
-                </Badge>
-              )}
               <div className="text-sm text-neutral-400">
-                {new Date(vision.created_at).toLocaleDateString()}
+                <span className="font-medium text-white">Set ID:</span> {audioSet.id.substring(0, 8)}...
               </div>
-              <div className="text-xs text-neutral-500 font-mono truncate max-w-full">
-                {vision.id}
+              <div className="text-sm text-neutral-400">
+                Created: {new Date(audioSet.created_at).toLocaleDateString()}
               </div>
             </div>
             
