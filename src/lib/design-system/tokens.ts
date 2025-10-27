@@ -257,12 +257,15 @@ export const components = {
   },
   card: {
     padding: {
-      sm: '1rem',       // Mobile
-      md: '1.5rem',     // Tablet
-      lg: '2rem',       // Desktop
+      mobile: '1.5rem',   // 24px - Mobile card padding (py-6)
+      desktop: '2rem',   // 32px - Desktop card padding (p-8)
+      horizontalMobile: '0.5rem', // 8px - Mobile horizontal padding (px-2)
+      horizontalDesktop: '2rem',  // 32px - Desktop horizontal padding (px-8)
     },
     borderRadius: '1rem',  // 16px (rounded-2xl)
     borderWidth: '2px',
+    // Standard card padding classes (responsive)
+    paddingClass: 'py-6 md:p-8', // Mobile: 24px vertical, Desktop: 32px all around
   },
 } as const
 

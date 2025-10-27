@@ -47,6 +47,9 @@ import {
   DeleteConfirmationDialog,
   AudioPlayer,
   PlaylistPlayer,
+  Heading,
+  Text,
+  Title,
   type AudioTrack,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -195,6 +198,12 @@ export default function DesignSystemExperiment() {
                     <Button variant="ghost" size="sm" className="w-full justify-start">
                       <Icon icon={Square} size="sm" className="mr-2" />
                       Cards
+                    </Button>
+                  </a>
+                  <a href="#typography" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={FileText} size="sm" className="mr-2" />
+                      Typography
                     </Button>
                   </a>
                   <a href="#badges" className="block">
@@ -817,6 +826,185 @@ export default function DesignSystemExperiment() {
                       <p className="text-neutral-400 text-sm">Card with frosted glass effect.</p>
                     </Card>
                   </Grid>
+                </Stack>
+              </Card>
+
+              {/* Typography */}
+              <Card id="typography">
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={FileText} size="md" color="#39FF14" />
+                    Typography - Heading & Text Components
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Heading Levels */}
+                    <Card variant="default" className="p-6">
+                      <Stack gap="md">
+                        <h4 className="text-lg font-medium text-white">Heading Levels</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <Heading level={1}>Hero Title</Heading>
+                            <p className="text-xs text-neutral-400 mt-1">
+                              level={1} - 24px mobile → 48px desktop → 60px XL
+                            </p>
+                          </div>
+                          <div>
+                            <Heading level={2}>Section Title</Heading>
+                            <p className="text-xs text-neutral-400 mt-1">
+                              level={2} - 20px mobile → 36px desktop → 48px XL
+                            </p>
+                          </div>
+                          <div>
+                            <Heading level={3}>Subsection Title</Heading>
+                            <p className="text-xs text-neutral-400 mt-1">
+                              level={3} - 18px mobile → 30px desktop → 36px XL
+                            </p>
+                          </div>
+                          <div>
+                            <Heading level={4}>Card Title</Heading>
+                            <p className="text-xs text-neutral-400 mt-1">
+                              level={4} - 18px mobile → 24px desktop • Regular weight
+                            </p>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+                    
+                    {/* Text Sizes */}
+                    <Card variant="default" className="p-6">
+                      <Stack gap="md">
+                        <h4 className="text-lg font-medium text-white">Text Component Sizes</h4>
+                        <div className="space-y-2">
+                          <div>
+                            <Text size="xs" className="text-white">Text xs - 12px</Text>
+                            <p className="text-xs text-neutral-400 mt-1">size="xs" - 12px</p>
+                          </div>
+                          <div>
+                            <Text size="sm" className="text-white">Text sm - 14px → 16px</Text>
+                            <p className="text-xs text-neutral-400 mt-1">size="sm" - 14px mobile → 16px desktop</p>
+                          </div>
+                          <div>
+                            <Text size="base" className="text-white">Text base - 16px → 18px</Text>
+                            <p className="text-xs text-neutral-400 mt-1">size="base" - 16px mobile → 18px desktop (default)</p>
+                          </div>
+                          <div>
+                            <Text size="lg" className="text-white">Text lg - 18px → 20px</Text>
+                            <p className="text-xs text-neutral-400 mt-1">size="lg" - 18px mobile → 20px desktop</p>
+                          </div>
+                          <div>
+                            <Text size="xl" className="text-white">Text xl - 18px → 24px</Text>
+                            <p className="text-xs text-neutral-400 mt-1">size="xl" - 18px mobile → 24px desktop</p>
+                          </div>
+                          <div>
+                            <Text size="2xl" className="text-white">Text 2xl - 20px → 30px</Text>
+                            <p className="text-xs text-neutral-400 mt-1">size="2xl" - 20px mobile → 30px desktop</p>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+                    
+                    {/* Title List Text Pattern */}
+                    <Card variant="default" className="p-6">
+                      <Stack gap="md">
+                        <h4 className="text-lg font-medium text-white">Title List Text Pattern</h4>
+                        <div className="border border-neutral-700 rounded-lg p-6">
+                          <div className="flex flex-col gap-3">
+                            {/* Train */}
+                            <div className="flex items-start gap-3 py-4 md:items-center">
+                              <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">Train</Heading>
+                              <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
+                                Complete profile + 84‑Q assessment + first Life Vision draft (with VIVA)
+                              </Text>
+                            </div>
+                            
+                            {/* Arrow Down */}
+                            <div className="flex items-center gap-3 pl-0">
+                              <div className="w-24 flex justify-center">
+                                <svg className="w-6 h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                </svg>
+                              </div>
+                            </div>
+                            
+                            {/* Tune */}
+                            <div className="flex items-start gap-3 py-4 md:items-center">
+                              <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">Tune</Heading>
+                              <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
+                                Refine your vision, build your Vision Board, start the Activation Protocol
+                              </Text>
+                            </div>
+                            
+                            {/* Arrow Down */}
+                            <div className="flex items-center gap-3 pl-0">
+                              <div className="w-24 flex justify-center">
+                                <svg className="w-6 h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                </svg>
+                              </div>
+                            </div>
+                            
+                            {/* Track */}
+                            <div className="flex items-start gap-3 py-4 md:items-center">
+                              <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">Track</Heading>
+                              <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
+                                Journal daily, log iterations, watch streaks and wins grow
+                              </Text>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 p-4 bg-neutral-800 rounded-lg">
+                          <p className="text-xs text-neutral-400 mb-2">Pattern:</p>
+                          <pre className="text-xs text-neutral-300 overflow-x-auto">
+{`<div className="flex flex-col gap-3">
+  <div className="flex items-start gap-3 py-4 md:items-center">
+    <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">
+      Train
+    </Heading>
+    <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
+      Description text here
+    </Text>
+  </div>
+  
+  <div className="flex items-center gap-3 pl-0">
+    <div className="w-24 flex justify-center">
+      {/* Arrow icon */}
+    </div>
+  </div>
+</div>`}
+                          </pre>
+                        </div>
+                      </Stack>
+                    </Card>
+                  </div>
+                  
+                  {/* Documentation */}
+                  <div className="mt-6 p-6 bg-neutral-800 rounded-lg">
+                    <h4 className="text-lg font-semibold mb-3 text-white">Typography Documentation</h4>
+                    <div className="space-y-4 text-sm text-neutral-300">
+                      <div>
+                        <h5 className="font-semibold text-[#39FF14] mb-2">Heading Component</h5>
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                          <li><code className="bg-neutral-900 px-1 py-0.5 rounded">&lt;Heading level={1}&gt;</code> - Hero titles (24px → 48px → 60px) • Bold</li>
+                          <li><code className="bg-neutral-900 px-1 py-0.5 rounded">&lt;Heading level={2}&gt;</code> - Section titles (20px → 36px → 48px) • Bold</li>
+                          <li><code className="bg-neutral-900 px-1 py-0.5 rounded">&lt;Heading level={3}&gt;</code> - Subsection titles (18px → 30px → 36px) • Bold</li>
+                          <li><code className="bg-neutral-900 px-1 py-0.5 rounded">&lt;Heading level={4}&gt;</code> - Card titles (18px → 24px) • Regular</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h5 className="font-semibold text-[#00FFFF] mb-2">Text Component</h5>
+                        <p className="text-xs mb-2">All Text components default to 16px mobile and 18px desktop:</p>
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                          <li><code className="bg-neutral-900 px-1 py-0.5 rounded">size="xs"</code> - 12px</li>
+                          <li><code className="bg-neutral-900 px-1 py-0.5 rounded">size="sm"</code> - 14px → 16px (mobile → desktop)</li>
+                          <li><code className="bg-neutral-900 px-1 py-0.5 rounded">size="base"</code> - 16px → 18px (mobile → desktop)</li>
+                          <li><code className="bg-neutral-900 px-1 py-0.5 rounded">size="lg"</code> - 18px → 20px (mobile → desktop)</li>
+                          <li><code className="bg-neutral-900 px-1 py-0.5 rounded">size="xl"</code> - 18px → 24px (mobile → desktop)</li>
+                          <li><code className="bg-neutral-900 px-1 py-0.5 rounded">size="2xl"</code> - 20px → 30px (mobile → desktop)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 </Stack>
               </Card>
 

@@ -23,6 +23,11 @@ import {
   Badge,
   Video,
   OfferStack,
+  Heading,
+  Text,
+  Title,
+  BulletedList,
+  ListItem,
 } from '@/lib/design-system'
 
 // Vision Categories
@@ -87,44 +92,37 @@ export default function HomePage() {
           <Cover minHeight="500px" className="!p-0">
             <div className="w-full">
               {/* Headline at top */}
-              <div className="text-center mb-4 md:mb-6 px-2 md:px-0">
-                <h1 className="text-2xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
-                  Thoughts become things…
-                  <br />
-                  <span className="text-xl md:text-4xl lg:text-5xl text-white">so why isn't it working?</span>
-                </h1>
+              <div className="text-center mb-4 md:mb-6">
+                <Heading level={1} className="text-white leading-tight">
+                  Thoughts become things…<br />so why isn't it working?
+                </Heading>
               </div>
               
               {/* Two column layout for desktop */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                 {/* Left column - Content */}
-                <div className="space-y-4 text-center lg:text-left flex flex-col justify-center">
-                  <p className="text-lg md:text-2xl text-neutral-200 leading-relaxed font-bold md:font-medium mt-2 md:mt-2 px-2 md:px-0 text-center md:text-center">
+                <div className="space-y-6 text-center lg:text-left flex flex-col justify-center">
+                  <Heading level={3} className="text-neutral-200 text-center md:text-center mt-2 md:mt-2 mb-2">
                     Bridge the woo-woo with the how-to.
-                  </p>
+                  </Heading>
                   
-                  <p className="text-base md:text-lg text-[#39FF14] leading-relaxed text-center md:text-center">
+                  <Heading level={4} className="text-[#39FF14] text-center md:text-center mt-4 mb-4">
                     Activate your Life Vision in <span className="font-bold text-[#39FF14]">72 hours</span>
                     <br />
                     with the Activation Intensive.
-                  </p>
+                  </Heading>
                   
-                  <div className="text-base text-neutral-500 leading-relaxed text-left">
-                    <ul className="space-y-1">
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#39FF14] mt-0">→</span>
-                        <span className="text-left">Conscious Creation System: Train → Tune → Track</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#39FF14] mt-0">→</span>
-                        <span className="text-left">VIVA AI turns contrast into clarity—even if you don't know what you want</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#39FF14] mt-0">→</span>
-                        <span className="text-left">Includes 8 weeks of Vision Pro; auto‑starts Day 56 at your plan</span>
-                      </li>
-                    </ul>
-                  </div>
+                  <BulletedList className="leading-relaxed lg:text-left lg:ml-6">
+                    <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                      Conscious Creation System: Train → Tune → Track
+                    </ListItem>
+                    <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                      VIVA AI turns contrast into clarity—even if you don't know what you want
+                    </ListItem>
+                    <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                      Includes 8 weeks of Vision Pro; auto‑starts Day 56 at your plan
+                    </ListItem>
+                  </BulletedList>
                   
                   <div className="flex justify-center md:justify-center">
                     <Button variant="primary" size="xl" className="mt-1 mb-4 md:mt-2" asChild>
@@ -152,96 +150,96 @@ export default function HomePage() {
           </Cover>
         </section>
 
-        {/* What 'active in 72 hours' means - Credibility Box */}
+        {/* What 'active in 72 hours' means + Train → Tune → Track - Side by Side */}
         <section>
-          <div className="w-full">
-            <Card variant="elevated" className="bg-[#39FF14]/10 border-[#39FF14]/30 !mx-0 !w-full">
-              <Stack gap="md" className="px-4">
-                <h3 className="text-xl font-bold text-[#39FF14] text-center">
+          <Grid minWidth="280px" gap="lg">
+            {/* What 'active in 72 hours' means */}
+            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-black border-[#39FF14]/30 hover:border-[#39FF14]/50 transition-all duration-300 flex flex-col items-center justify-center">
+              <Stack gap="md" className="md:gap-8 items-center">
+                <Heading level={3} className="text-[#39FF14] text-center">
                   What "active in 72 hours" means
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-center gap-3">
-                    <Icon icon={CheckCircle} size="sm" color="#39FF14" />
-                    <span className="text-sm text-neutral-300">12-category vision completed</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-3">
-                    <Icon icon={CheckCircle} size="sm" color="#39FF14" />
-                    <span className="text-sm text-neutral-300">AM/PM audio recordings</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-3">
-                    <Icon icon={CheckCircle} size="sm" color="#39FF14" />
-                    <span className="text-sm text-neutral-300">Vision board created</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-3">
-                    <Icon icon={CheckCircle} size="sm" color="#39FF14" />
-                    <span className="text-sm text-neutral-300">3 journal entries logged</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-3">
-                    <Icon icon={CheckCircle} size="sm" color="#39FF14" />
-                    <span className="text-sm text-neutral-300">Calibration call booked</span>
-                  </div>
+                </Heading>
+                <div className="flex flex-col items-center">
+                  <BulletedList className="items-center">
+                    <ListItem icon={CheckCircle} variant="success" className="text-white">
+                      12-category vision completed
+                    </ListItem>
+                    <ListItem icon={CheckCircle} variant="success" className="text-white">
+                      AM/PM audio recordings
+                    </ListItem>
+                    <ListItem icon={CheckCircle} variant="success" className="text-white">
+                      Vision board created
+                    </ListItem>
+                    <ListItem icon={CheckCircle} variant="success" className="text-white">
+                      3 journal entries logged
+                    </ListItem>
+                    <ListItem icon={CheckCircle} variant="success" className="text-white">
+                      Calibration call booked
+                    </ListItem>
+                  </BulletedList>
                 </div>
               </Stack>
             </Card>
-          </div>
-        </section>
 
-        {/* Train → Tune → Track Mechanism */}
-        <section>
-          <div className="w-full">
-            <Card variant="elevated" className="bg-neutral-900 border-neutral-700 !mx-0 !w-full">
-              <Stack gap="md" className="px-4">
-                <h3 className="text-xl font-bold text-white text-center">
-                  Train → Tune → Track
-                </h3>
-                <div className="space-y-4">
+            {/* Train → Tune → Track Mechanism */}
+            <Card variant="elevated" className="bg-gradient-to-br from-black via-neutral-900 to-black border-neutral-700 hover:border-[#14B8A6]/50 transition-all duration-300">
+              <Stack gap="md" className="md:gap-8">
+                <div className="flex flex-col gap-3">
                   {/* Train */}
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-[#39FF14] mb-1">Train</div>
-                    <div className="text-sm text-neutral-300 hidden md:block">
+                  <div className="flex items-start gap-3 py-4 md:items-center">
+                    <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">Train</Heading>
+                    <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
                       Complete profile + 84‑Q assessment + first Life Vision draft (with VIVA)
-                    </div>
-                    <div className="text-sm text-neutral-300 md:hidden">
-                      Profile + 84‑Q + first Life Vision (VIVA)
+                    </Text>
+                  </div>
+                  
+                  {/* Arrow Down */}
+                  <div className="flex items-center gap-3 pl-0">
+                    <div className="w-24 flex justify-center">
+                      <svg className="w-6 h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
                     </div>
                   </div>
                   
                   {/* Tune */}
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-[#39FF14] mb-1">Tune</div>
-                    <div className="text-sm text-neutral-300 hidden md:block">
+                  <div className="flex items-start gap-3 py-4 md:items-center">
+                    <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">Tune</Heading>
+                    <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
                       Refine your vision, build your Vision Board, start the Activation Protocol
-                    </div>
-                    <div className="text-sm text-neutral-300 md:hidden">
-                      Refine vision, build board, Activation Protocol
+                    </Text>
+                  </div>
+                  
+                  {/* Arrow Down */}
+                  <div className="flex items-center gap-3 pl-0">
+                    <div className="w-24 flex justify-center">
+                      <svg className="w-6 h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
                     </div>
                   </div>
                   
                   {/* Track */}
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-[#39FF14] mb-1">Track</div>
-                    <div className="text-sm text-neutral-300 hidden md:block">
+                  <div className="flex items-start gap-3 py-4 md:items-center">
+                    <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">Track</Heading>
+                    <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
                       Journal daily, log iterations, watch streaks and wins grow
-                    </div>
-                    <div className="text-sm text-neutral-300 md:hidden">
-                      Journal, iterations, streaks & wins
-                    </div>
+                    </Text>
                   </div>
                 </div>
               </Stack>
             </Card>
-          </div>
+          </Grid>
         </section>
 
         {/* 72-Hour Activation Path */}
         <section>
           <div className="w-full">
             <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
-              <Stack gap="sm" className="p-2 md:p-8">
-                <h3 className="text-3xl md:text-4xl font-bold text-white text-center mb-6">
+              <Stack gap="md" className="md:gap-8">
+                <Heading level={2} className="text-white text-center">
                   Your 72‑Hour Activation Path
-                </h3>
+                </Heading>
                 
                 {/* Desktop Layout on Mobile for Comparison */}
                 <div className="md:hidden mb-4">
@@ -253,19 +251,19 @@ export default function HomePage() {
                       <div className="flex items-start gap-4">
                         <div className="w-5 h-5 border-2 border-[#39FF14] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                         <div>
-                          <p className="text-base font-semibold text-white">Phase 1 — Foundation (0–24h)</p>
+                          <Text size="base" className="font-semibold text-white">Phase 1 — Foundation (0–24h)</Text>
                           <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Profile — 70%+ complete</p>
+                              <Text size="sm" className="text-neutral-400">Profile — 70%+ complete</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Assessment — 84 Qs submitted</p>
+                              <Text size="sm" className="text-neutral-400">Assessment — 84 Qs submitted</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Calibration — 1:1 call scheduled</p>
+                              <Text size="sm" className="text-neutral-400">Calibration — 1:1 call scheduled</Text>
                             </div>
                           </div>
                         </div>
@@ -274,15 +272,15 @@ export default function HomePage() {
                       <div className="flex items-start gap-4">
                         <div className="w-5 h-5 border-2 border-[#00FFFF] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                         <div>
-                          <p className="text-base font-semibold text-white">Phase 2 — Vision Creation (24–48h)</p>
+                          <Text size="base" className="font-semibold text-white">Phase 2 — Vision Creation (24–48h)</Text>
                           <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Life Vision — 12 categories drafted (with VIVA)</p>
+                              <Text size="sm" className="text-neutral-400">Life Vision — 12 categories drafted (with VIVA)</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Refine — polished with VIVA + tool</p>
+                              <Text size="sm" className="text-neutral-400">Refine — polished with VIVA + tool</Text>
                             </div>
                           </div>
                         </div>
@@ -291,19 +289,19 @@ export default function HomePage() {
                       <div className="flex items-start gap-4">
                         <div className="w-5 h-5 border-2 border-[#BF00FF] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                         <div>
-                          <p className="text-base font-semibold text-white">Phase 3 — Activation Tools (48–72h)</p>
+                          <Text size="base" className="font-semibold text-white">Phase 3 — Activation Tools (48–72h)</Text>
                           <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Vision Audio — AM + PM tracks created</p>
+                              <Text size="sm" className="text-neutral-400">Vision Audio — AM + PM tracks created</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Vision Board — 12 images added</p>
+                              <Text size="sm" className="text-neutral-400">Vision Board — 12 images added</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Journal x3 — Gratitude, Dots, Progress</p>
+                              <Text size="sm" className="text-neutral-400">Journal x3 — Gratitude, Dots, Progress</Text>
                             </div>
                           </div>
                         </div>
@@ -312,15 +310,15 @@ export default function HomePage() {
                       <div className="flex items-start gap-4">
                         <div className="w-5 h-5 border-2 border-[#FFFF00] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                         <div>
-                          <p className="text-base font-semibold text-white">Phase 4 — Calibration & Launch</p>
+                          <Text size="base" className="font-semibold text-white">Phase 4 — Calibration & Launch</Text>
                           <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Attend Calibration — 30‑min live call</p>
+                              <Text size="sm" className="text-neutral-400">Attend Calibration — 30‑min live call</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Activation Protocol — Execute custom Activation Plan</p>
+                              <Text size="sm" className="text-neutral-400">Activation Protocol — Execute custom Activation Plan</Text>
                             </div>
                           </div>
                         </div>
@@ -341,19 +339,19 @@ export default function HomePage() {
                         <div className="flex items-start gap-4">
                           <div className="w-5 h-5 border-2 border-[#39FF14] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                           <div>
-                            <p className="text-base font-semibold text-white">Phase 1 — Foundation (Hours 0–24)</p>
+                            <Text size="base" className="font-semibold text-white">Phase 1 — Foundation (Hours 0–24)</Text>
                             <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Complete Profile — 70%+ completion</p>
+                              <Text size="sm" className="text-neutral-400">Complete Profile — 70%+ completion</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Vibration Assessment — 84 questions submitted</p>
+                              <Text size="sm" className="text-neutral-400">Vibration Assessment — 84 questions submitted</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Book Calibration — 1:1 call scheduled</p>
+                              <Text size="sm" className="text-neutral-400">Book Calibration — 1:1 call scheduled</Text>
                             </div>
                             </div>
                           </div>
@@ -362,15 +360,15 @@ export default function HomePage() {
                         <div className="flex items-start gap-4">
                           <div className="w-5 h-5 border-2 border-[#00FFFF] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                           <div>
-                            <p className="text-base font-semibold text-white">Phase 2 — Vision Creation (Hours 24–48)</p>
+                            <Text size="base" className="font-semibold text-white">Phase 2 — Vision Creation (Hours 24–48)</Text>
                             <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Build Life Vision — All 12 categories drafted with VIVA</p>
+                              <Text size="sm" className="text-neutral-400">Build Life Vision — All 12 categories drafted with VIVA</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Refine Vision — Polished with VIVA + refinement tool</p>
+                              <Text size="sm" className="text-neutral-400">Refine Vision — Polished with VIVA + refinement tool</Text>
                             </div>
                             </div>
                           </div>
@@ -379,19 +377,19 @@ export default function HomePage() {
                         <div className="flex items-start gap-4">
                           <div className="w-5 h-5 border-2 border-[#BF00FF] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                           <div>
-                            <p className="text-base font-semibold text-white">Phase 3 — Activation Tools (Hours 48–72)</p>
+                            <Text size="base" className="font-semibold text-white">Phase 3 — Activation Tools (Hours 48–72)</Text>
                             <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Generate Vision Audio — AM + PM tracks created</p>
+                              <Text size="sm" className="text-neutral-400">Generate Vision Audio — AM + PM tracks created</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Create Vision Board — 12 images (1 per category) added</p>
+                              <Text size="sm" className="text-neutral-400">Create Vision Board — 12 images (1 per category) added</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Journal x3 — Gratitude, Connect‑the‑Dots, Progress entries logged</p>
+                              <Text size="sm" className="text-neutral-400">Journal x3 — Gratitude, Connect‑the‑Dots, Progress entries logged</Text>
                             </div>
                             </div>
                           </div>
@@ -400,15 +398,15 @@ export default function HomePage() {
                         <div className="flex items-start gap-4">
                           <div className="w-5 h-5 border-2 border-[#FFFF00] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                           <div>
-                            <p className="text-base font-semibold text-white">Phase 4 — Calibration & Launch</p>
+                            <Text size="base" className="font-semibold text-white">Phase 4 — Calibration & Launch</Text>
                             <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Attend Calibration — Live 30‑minute session</p>
+                              <Text size="sm" className="text-neutral-400">Attend Calibration — Live 30‑minute session</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Execute Activation Protocol — Your custom Activation Plan in place</p>
+                              <Text size="sm" className="text-neutral-400">Execute Activation Protocol — Your custom Activation Plan in place</Text>
                             </div>
                             </div>
                           </div>
@@ -425,8 +423,8 @@ export default function HomePage() {
                         <div className="w-10 h-10 bg-[#39FF14] rounded-full flex items-center justify-center mb-3">
                           <span className="text-black font-bold text-lg">1</span>
                         </div>
-                        <h4 className="text-base font-semibold text-[#39FF14] mb-2 text-center">Foundation</h4>
-                        <p className="text-sm text-neutral-400 text-center">Hours 0–24</p>
+                        <Heading level={4} className="text-[#39FF14] mb-2 text-center">Foundation</Heading>
+                        <Text size="sm" className="text-neutral-400 text-center">Hours 0–24</Text>
                       </div>
                       
                       {/* Phase 2 - Neon Cyan */}
@@ -434,8 +432,8 @@ export default function HomePage() {
                         <div className="w-10 h-10 bg-[#00FFFF] rounded-full flex items-center justify-center mb-3">
                           <span className="text-black font-bold text-lg">2</span>
                         </div>
-                        <h4 className="text-base font-semibold text-[#00FFFF] mb-2 text-center">Vision Creation</h4>
-                        <p className="text-sm text-neutral-400 text-center">Hours 24–48</p>
+                        <Heading level={4} className="text-[#00FFFF] mb-2 text-center">Vision Creation</Heading>
+                        <Text size="sm" className="text-neutral-400 text-center">Hours 24–48</Text>
                       </div>
                       
                       {/* Phase 3 - Neon Purple */}
@@ -443,8 +441,8 @@ export default function HomePage() {
                         <div className="w-10 h-10 bg-[#BF00FF] rounded-full flex items-center justify-center mb-3">
                           <span className="text-white font-bold text-lg">3</span>
                         </div>
-                        <h4 className="text-base font-semibold text-[#BF00FF] mb-2 text-center">Activation Tools</h4>
-                        <p className="text-sm text-neutral-400 text-center">Hours 48–72</p>
+                        <Heading level={4} className="text-[#BF00FF] mb-2 text-center">Activation Tools</Heading>
+                        <Text size="sm" className="text-neutral-400 text-center">Hours 48–72</Text>
                       </div>
                       
                       {/* Phase 4 - Energy Yellow */}
@@ -452,27 +450,35 @@ export default function HomePage() {
                         <div className="w-10 h-10 bg-[#FFFF00] rounded-full flex items-center justify-center mb-3">
                           <span className="text-black font-bold text-lg">4</span>
                         </div>
-                        <h4 className="text-base font-semibold text-[#FFFF00] mb-2 text-center">Calibration & Launch</h4>
-                        <p className="text-sm text-neutral-400 text-center">Hours 72+</p>
+                        <Heading level={4} className="text-[#FFFF00] mb-2 text-center">Calibration & Launch</Heading>
+                        <Text size="sm" className="text-neutral-400 text-center">Hours 72+</Text>
                       </div>
                     </div>
                   </div>
                 </div>
                 
                 {/* CTA Button */}
-                <div className="text-center my-4 md:mt-8 md:mb-4">
+                <div className="text-center">
                   <Button variant="primary" size="xl" asChild>
                     <a href="#pricing">
                       Start the Activation Intensive
                     </a>
                   </Button>
                 </div>
-                
-                {/* Dashboard Preview Box */}
-                <div>
+              </Stack>
+              
+            </Card>
+          </div>
+        </section>
+
+        {/* Dashboard Preview Section */}
+        <section>
+          <div className="w-full">
+            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
+              <Stack gap="md" className="md:gap-8">
                   <div className="text-center mb-6">
-                    <h3 className="text-xl font-bold text-white mb-2">What you'll see on your dashboard:</h3>
-                    <p className="text-sm text-neutral-400">Your personalized activation journey</p>
+                    <Heading level={2} className="text-white mb-2">What you'll see on your dashboard:</Heading>
+                    <Text size="sm" className="text-neutral-400">Your personalized activation journey</Text>
                   </div>
                   
                   {/* Dashboard Preview Container */}
@@ -484,8 +490,8 @@ export default function HomePage() {
                         <Clock className="w-4 h-4 text-[#39FF14]" />
                         <span className="text-sm font-semibold text-[#39FF14]">Activation Intensive</span>
                       </div>
-                      <h4 className="text-2xl font-bold text-white mb-2">Your Activation Journey</h4>
-                      <p className="text-sm text-neutral-400">Current Phase: <span className="text-[#39FF14]">Foundation</span></p>
+                      <Heading level={4} className="text-white mb-2">Your Activation Journey</Heading>
+                      <Text size="sm" className="text-neutral-400">Current Phase: <span className="text-[#39FF14]">Foundation</span></Text>
                     </div>
                     
                     {/* Countdown & Progress Card */}
@@ -496,13 +502,13 @@ export default function HomePage() {
                             <Clock className="w-4 h-4" />
                             Time Remaining
                           </h5>
-                          <p className="text-xl font-bold text-[#39FF14]">68h 23m 45s</p>
-                          <p className="text-xs text-neutral-400 mt-1">Deadline: Dec 15, 2024 11:59 PM</p>
+                          <Text size="xl" className="font-bold text-[#39FF14]">68h 23m 45s</Text>
+                          <Text size="xs" className="text-neutral-400 mt-1">Deadline: Dec 15, 2024 11:59 PM</Text>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-neutral-400 mb-1">Overall Progress</p>
-                          <p className="text-2xl font-bold text-[#14B8A6]">25%</p>
-                          <p className="text-xs text-neutral-400 mt-1">3 of 12 steps</p>
+                          <Text size="xs" className="text-neutral-400 mb-1">Overall Progress</Text>
+                          <Text size="2xl" className="font-bold text-[#14B8A6]">25%</Text>
+                          <Text size="xs" className="text-neutral-400 mt-1">3 of 12 steps</Text>
                         </div>
                       </div>
                       <div className="w-full bg-neutral-700 rounded-full h-2">
@@ -521,7 +527,7 @@ export default function HomePage() {
                             <span className="text-xs font-semibold text-[#BF00FF]">Next Step</span>
                           </div>
                           <h5 className="text-sm font-bold text-white">Complete Your Profile</h5>
-                          <p className="text-xs text-neutral-400">Set up your personal info, goals, and values</p>
+                          <Text size="xs" className="text-neutral-400">Set up your personal info, goals, and values</Text>
                         </div>
                         <button className="text-xs bg-[#39FF14] text-black px-3 py-1 rounded-full font-semibold hover:bg-[#39FF14]/80 transition-colors">
                           Continue
@@ -544,8 +550,8 @@ export default function HomePage() {
                                 <CheckCircle className="w-4 h-4 text-black" />
                               </div>
                               <div>
-                                <p className="text-xs font-semibold text-white">Complete Your Profile</p>
-                                <p className="text-xs text-neutral-400">Set up your personal info, goals, and values</p>
+                                <Text size="xs" className="font-semibold text-white">Complete Your Profile</Text>
+                                <Text size="xs" className="text-neutral-400">Set up your personal info, goals, and values</Text>
                               </div>
                             </div>
                             <CheckCircle className="w-4 h-4 text-[#39FF14]" />
@@ -557,8 +563,8 @@ export default function HomePage() {
                                 <Target className="w-4 h-4 text-white" />
                               </div>
                               <div>
-                                <p className="text-xs font-semibold text-white">Take Vibration Assessment</p>
-                                <p className="text-xs text-neutral-400">Discover your current vibration score</p>
+                                <Text size="xs" className="font-semibold text-white">Take Vibration Assessment</Text>
+                                <Text size="xs" className="text-neutral-400">Discover your current vibration score</Text>
                               </div>
                             </div>
                             <button className="text-xs bg-[#39FF14] text-black px-2 py-1 rounded-full font-semibold">
@@ -572,8 +578,8 @@ export default function HomePage() {
                                 <Clock className="w-4 h-4 text-white" />
                               </div>
                               <div>
-                                <p className="text-xs font-semibold text-neutral-400">Book Your Calibration Call</p>
-                                <p className="text-xs text-neutral-500">Schedule your 1-on-1 session</p>
+                                <Text size="xs" className="font-semibold text-neutral-400">Book Your Calibration Call</Text>
+                                <Text size="xs" className="text-neutral-500">Schedule your 1-on-1 session</Text>
                               </div>
                             </div>
                             <div className="flex items-center gap-1 text-neutral-500">
@@ -596,8 +602,8 @@ export default function HomePage() {
                                 <Sparkles className="w-4 h-4 text-white" />
                               </div>
                               <div>
-                                <p className="text-xs font-semibold text-neutral-400">Build Your Life Vision</p>
-                                <p className="text-xs text-neutral-500">Create your 12-category vision with VIVA</p>
+                                <Text size="xs" className="font-semibold text-neutral-400">Build Your Life Vision</Text>
+                                <Text size="xs" className="text-neutral-500">Create your 12-category vision with VIVA</Text>
                               </div>
                             </div>
                             <div className="flex items-center gap-1 text-neutral-500">
@@ -611,8 +617,8 @@ export default function HomePage() {
                                 <Brain className="w-4 h-4 text-white" />
                               </div>
                               <div>
-                                <p className="text-xs font-semibold text-neutral-400">Refine Your Vision</p>
-                                <p className="text-xs text-neutral-500">Polish with VIVA + refinement tool</p>
+                                <Text size="xs" className="font-semibold text-neutral-400">Refine Your Vision</Text>
+                                <Text size="xs" className="text-neutral-500">Polish with VIVA + refinement tool</Text>
                               </div>
                             </div>
                             <div className="flex items-center gap-1 text-neutral-500">
@@ -625,25 +631,24 @@ export default function HomePage() {
                     
                     {/* Completion Message */}
                     <div className="text-center bg-gradient-to-r from-[#39FF14]/5 to-[#14B8A6]/5 border border-[#39FF14]/20 rounded-xl p-4">
-                      <p className="text-xs text-neutral-300 mb-2">
+                      <Text size="xs" className="text-neutral-300 mb-2">
                         <strong className="text-[#39FF14]">Complete all phases</strong> to unlock your membership and continue your journey
-                      </p>
-                      <p className="text-xs text-neutral-400">
+                      </Text>
+                      <Text size="xs" className="text-neutral-400">
                         Your membership will automatically activate on Day 56
-                      </p>
+                      </Text>
                     </div>
                   </div>
                   
-                  {/* CTA Button Inside Dashboard */}
-                  <div className="text-center pt-4">
+                  {/* CTA Button */}
+                  <div className="text-center">
                     <Button variant="primary" size="xl" asChild>
                       <a href="#pricing">
                         Start the Activation Intensive
                       </a>
                     </Button>
                   </div>
-                </div>
-              </Stack>
+                </Stack>
             </Card>
           </div>
         </section>
@@ -652,14 +657,14 @@ export default function HomePage() {
         <section>
           <div className="w-full">
             <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
-              <Stack gap="md" className="p-2 md:p-8">
+              <Stack gap="md" className="md:gap-8">
                 <div className="text-center">
-                  <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                  <Heading level={2} className="text-white mb-4">
                     Exactly What You Get Today
-                  </h2>
-                  <p className="text-lg text-neutral-400 max-w-2xl mx-auto">
+                  </Heading>
+                  <Text size="lg" className="text-neutral-400 max-w-2xl mx-auto">
                     72‑Hour Activation Intensive + 8 weeks of Vision Pro included (auto‑starts Day 56 at your plan)
-                  </p>
+                  </Text>
                 </div>
                 
                 <OfferStack
@@ -746,7 +751,7 @@ export default function HomePage() {
                   allowMultiple={true}
                 />
                 
-                <div className="text-center pt-2 md:pt-4">
+                <div className="text-center">
                   <Button variant="primary" size="xl" asChild>
                     <a href="#pricing">
                       Start the Activation Intensive
@@ -762,7 +767,7 @@ export default function HomePage() {
         <section>
           <div className="w-full">
             <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
-              <Stack gap="xl" className="p-2 pb-8 md:p-8 md:pb-12">
+              <Stack gap="xl" className="md:gap-12">
                 
                 {/* ACTIVATION INTENSIVE TITLE - ENHANCED */}
                 <div className="text-center">
@@ -770,12 +775,12 @@ export default function HomePage() {
                       <Clock className="w-4 h-4 inline mr-2" />
                       72-Hour Activation
                   </span>
-                  <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-[#39FF14] via-[#14B8A6] to-[#8B5CF6] bg-clip-text text-transparent">
+                  <Heading level={2} className="mb-4 bg-gradient-to-r from-[#39FF14] via-[#14B8A6] to-[#8B5CF6] bg-clip-text text-transparent">
                       Vision Activation Intensive
-                    </h2>
-                    <p className="text-lg md:text-xl lg:text-2xl text-neutral-300 max-w-3xl mx-auto">
+                  </Heading>
+                  <Text size="xl" className="text-neutral-300 max-w-3xl mx-auto">
                     Go from blank slate to fully activated in 72 hours. Vision drafted, board built, audios recorded, conscious creation system live.
-                    </p>
+                  </Text>
                   </div>
 
                 {/* MAIN PRICING CONTENT */}
@@ -787,16 +792,11 @@ export default function HomePage() {
                         ${getPaymentAmount()}
                               </div>
                       <div className="text-xl text-white mb-2 text-center">
-                        {paymentPlan === 'full' ? 'Today' : paymentPlan === '2pay' ? '× 2 Payments' : '× 3 Payments'}
+                        {paymentPlan === 'full' ? 'Today' : paymentPlan === '2pay' ? '× 2 Payments = $499' : '× 3 Payments = $499'}
                       </div>
                       <div className="text-lg text-neutral-300 text-center">
                         Includes 8 weeks of Vision Pro access
                             </div>
-                      {paymentPlan !== 'full' && (
-                        <div className="text-sm text-neutral-400 mt-2 text-center">
-                          Total: $499 • {paymentPlan === '2pay' ? '2 payments' : '3 payments'}
-                        </div>
-                      )}
                     </div>
 
                     {/* PAYMENT OPTIONS INSIDE CARD */}
@@ -833,9 +833,9 @@ export default function HomePage() {
                     {/* SEPARATOR */}
                     <div className="w-full h-px bg-neutral-600"></div>
 
-                    <p className="text-lg text-neutral-300 text-center max-w-2xl">
+                    <Text size="lg" className="text-neutral-300 text-center max-w-2xl">
                       Then continue at your choice below starting Day 56. Cancel anytime before Day 56 to avoid renewal.
-                    </p>
+                    </Text>
 
                     {/* Billing Toggle */}
                     <div className="inline-flex items-center gap-2 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700 mx-auto mb-8">
@@ -872,7 +872,7 @@ export default function HomePage() {
                       {/* Annual Plan - Show first on mobile if selected */}
                       {billingPeriod === 'annual' && (
                         <Card 
-                          className={`p-10 transition-all relative cursor-pointer md:order-1 order-1 ${
+                          className={`transition-all relative cursor-pointer md:order-1 order-1 ${
                             billingPeriod === 'annual'
                               ? 'border-2 border-[#39FF14] bg-gradient-to-br from-primary-500/5 to-secondary-500/5 scale-105 ring-2 ring-[#39FF14]'
                               : 'border border-neutral-700 opacity-60 hover:opacity-80'
@@ -888,7 +888,7 @@ export default function HomePage() {
                       <div className="text-center mb-8">
                         <Crown className="w-12 h-12 text-primary-500 mx-auto mb-4" />
                         <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Annual</h3>
-                        <p className="text-neutral-400 mb-6">Full year, full power</p>
+                        <Text size="base" className="text-neutral-400 mb-6">Full year, full power</Text>
                         
                         <div className="inline-flex items-baseline gap-2 mb-2">
                               <span className="text-5xl font-bold text-white">$999</span>
@@ -904,18 +904,12 @@ export default function HomePage() {
 
                       <div className="space-y-3 mb-8">
                         {[
-                              'VibrationFit platform access',
-                              'Life Vision Builder and Assistant (12 Categories)',
-                              'Vision Boards, Vision Audio, Immersion Tracks',
-                              'VIVA AI assistant (5M tokens)',
-                              'Journal, community access',
-                              'Activation history & progress tracking',
-                              'Library access & future features',
-                              'Transparent renewal timing (starts Day 56)',
+                              'Platform access: Life Vision Builder (12 categories) with VIVA AI, Vision Boards + AM/PM Vision Audio, Journal, Community, Library, Progress tracking',
+                              'Capacity: 5M VIVA tokens/year + 100GB storage; tokens reset at renewal',
                               'Priority response queue',
-                              '60-day satisfaction guarantee',
-                              'Price locked for 12 months',
-                              '4 bonus calibration check-ins per year',
+                              '4 bonus calibration check‑ins per year',
+                              '60‑day satisfaction guarantee',
+                              '12‑month rate lock',
                         ].map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-3">
                             <Check className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
@@ -933,7 +927,7 @@ export default function HomePage() {
                       {/* 28-Day Plan - Show first on mobile if selected */}
                       {billingPeriod === '28day' && (
                     <Card
-                          className={`p-10 transition-all cursor-pointer md:order-2 order-1 ${
+                          className={`transition-all cursor-pointer md:order-2 order-1 ${
                         billingPeriod === '28day'
                               ? 'border-2 border-[#00FFFF] bg-gradient-to-br from-[#00FFFF]/10 to-[#00FFFF]/5 scale-105 ring-2 ring-[#00FFFF]'
                               : 'border border-neutral-700 opacity-60 hover:opacity-80'
@@ -943,7 +937,7 @@ export default function HomePage() {
                       <div className="text-center mb-8">
                         <Zap className="w-12 h-12 text-secondary-500 mx-auto mb-4" />
                         <h3 className="text-3xl font-bold text-white mb-2">Vision Pro 28-Day</h3>
-                        <p className="text-neutral-400 mb-6">Flexible billing cycle</p>
+                        <Text size="base" className="text-neutral-400 mb-6">Flexible billing cycle</Text>
                         
                         <div className="inline-flex items-baseline gap-2 mb-2">
                           <span className="text-5xl font-bold text-white">$99</span>
@@ -959,18 +953,11 @@ export default function HomePage() {
 
                       <div className="space-y-3 mb-8">
                         {[
-                              'VibrationFit platform access',
-                              'Life Vision Builder and Assistant (12 Categories)',
-                              'Vision Boards, Vision Audio, Immersion Tracks',
-                              'VIVA AI assistant (375k tokens per 28 days)',
-                              'Journal, community access',
-                              'Activation history & progress tracking',
-                              'Library access & future features',
-                              'Transparent renewal timing (starts Day 56)',
-                              '25GB storage',
+                              'Platform access: same as Annual',
+                              'Capacity: 375k VIVA tokens per 28 days + 25GB storage; unused tokens roll over (max 3 cycles)',
                               'Standard support queue',
-                              '30-day satisfaction guarantee',
-                              'Flexible - cancel any cycle',
+                              '30‑day satisfaction guarantee',
+                              'Flexible — cancel any cycle',
                         ].map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-3">
                             <Check className="w-5 h-5 text-secondary-500 flex-shrink-0 mt-0.5" />
@@ -988,7 +975,7 @@ export default function HomePage() {
                       {/* Show unselected cards */}
                       {billingPeriod !== 'annual' && (
                         <Card 
-                          className={`p-10 transition-all relative cursor-pointer md:order-1 order-2 ${
+                          className={`transition-all relative cursor-pointer md:order-1 order-2 ${
                             'border border-neutral-700 opacity-60 hover:opacity-80'
                           }`}
                           onClick={() => setBillingPeriod('annual')}
@@ -1002,7 +989,7 @@ export default function HomePage() {
                           <div className="text-center mb-8">
                             <Crown className="w-12 h-12 text-primary-500 mx-auto mb-4" />
                             <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Annual</h3>
-                            <p className="text-neutral-400 mb-6">Full year, full power</p>
+                            <Text size="base" className="text-neutral-400 mb-6">Full year, full power</Text>
                             
                             <div className="inline-flex items-baseline gap-2 mb-2">
                               <span className="text-5xl font-bold text-white">$999</span>
@@ -1018,19 +1005,12 @@ export default function HomePage() {
 
                           <div className="space-y-3 mb-8">
                             {[
-                              'VibrationFit platform access',
-                              'Life Vision Builder and Assistant (12 Categories)',
-                              'Vision Boards, Vision Audio, Immersion Tracks',
-                              'VIVA AI assistant (5M tokens)',
-                              'Journal, community access',
-                              'Activation history & progress tracking',
-                              'Library access & future features',
-                              'Transparent renewal timing (starts Day 56)',
-                              '100GB storage',
+                              'Platform access: Life Vision Builder (12 categories) with VIVA AI, Vision Boards + AM/PM Vision Audio, Journal, Community, Library, Progress tracking',
+                              'Capacity: 5M VIVA tokens/year + 100GB storage; tokens reset at renewal',
                               'Priority response queue',
-                              '60-day satisfaction guarantee',
-                              'Price locked for 12 months',
-                              '4 bonus calibration check-ins per year',
+                              '4 bonus calibration check‑ins per year',
+                              '60‑day satisfaction guarantee',
+                              '12‑month rate lock',
                             ].map((feature, idx) => (
                               <div key={idx} className="flex items-start gap-3">
                                 <Check className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
@@ -1047,7 +1027,7 @@ export default function HomePage() {
 
                       {billingPeriod !== '28day' && (
                         <Card 
-                          className={`p-10 transition-all cursor-pointer md:order-2 order-2 ${
+                          className={`transition-all cursor-pointer md:order-2 order-2 ${
                             'border border-neutral-700 opacity-60 hover:opacity-80'
                           }`}
                           onClick={() => setBillingPeriod('28day')}
@@ -1055,7 +1035,7 @@ export default function HomePage() {
                           <div className="text-center mb-8">
                             <Zap className="w-12 h-12 text-secondary-500 mx-auto mb-4" />
                             <h3 className="text-3xl font-bold text-white mb-2">Vision Pro 28-Day</h3>
-                            <p className="text-neutral-400 mb-6">Flexible billing cycle</p>
+                            <Text size="base" className="text-neutral-400 mb-6">Flexible billing cycle</Text>
                             
                             <div className="inline-flex items-baseline gap-2 mb-2">
                               <span className="text-5xl font-bold text-white">$99</span>
@@ -1071,18 +1051,11 @@ export default function HomePage() {
 
                           <div className="space-y-3 mb-8">
                             {[
-                              'VibrationFit platform access',
-                              'Life Vision Builder and Assistant (12 Categories)',
-                              'Vision Boards, Vision Audio, Immersion Tracks',
-                              'VIVA AI assistant (375k tokens per 28 days)',
-                              'Journal, community access',
-                              'Activation history & progress tracking',
-                              'Library access & future features',
-                              'Transparent renewal timing (starts Day 56)',
-                              '25GB storage',
+                              'Platform access: same as Annual',
+                              'Capacity: 375k VIVA tokens per 28 days + 25GB storage; unused tokens roll over (max 3 cycles)',
                               'Standard support queue',
-                              '30-day satisfaction guarantee',
-                              'Flexible - cancel any cycle',
+                              '30‑day satisfaction guarantee',
+                              'Flexible — cancel any cycle',
                             ].map((feature, idx) => (
                               <div key={idx} className="flex items-start gap-3">
                                 <Check className="w-5 h-5 text-secondary-500 flex-shrink-0 mt-0.5" />
@@ -1099,13 +1072,13 @@ export default function HomePage() {
                     </div>
 
                     {/* RENEWAL TERMS & ORDER SUMMARY COMBINED */}
-                    <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30 pb-8 md:pb-12 px-4 md:px-8">
-                      <Stack gap="md">
-                        <h4 className="text-lg font-bold text-[#39FF14] text-center">Order Summary & Renewal Terms</h4>
+                    <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30 w-full max-w-5xl mx-auto">
+                      <Stack gap="md" className="md:gap-8">
+                        <Heading level={4} className="text-[#39FF14] text-center">Order Summary & Renewal Terms</Heading>
                         
                         {/* Order Summary */}
                         <Stack gap="sm" align="center">
-                          <div className="text-white text-center text-sm md:text-base px-2">
+                          <div className="text-white text-center text-sm md:text-base">
                             {paymentPlan === 'full' ? (
                               <><strong>Today:</strong> $499 for the 72‑Hour Intensive + 8 weeks included.</>
                             ) : paymentPlan === '2pay' ? (
@@ -1121,13 +1094,13 @@ export default function HomePage() {
                               </>
                             )}
                           </div>
-                          <div className="text-white text-center text-sm md:text-base px-2">
+                          <div className="text-white text-center text-sm md:text-base">
                             <strong>Day 56:</strong> {billingPeriod === 'annual' 
                               ? '$999 Payment (=$76.85/28 days). Renews annually.'
                               : '$99 Payment. Renews every 28 days.'
                             }
                           </div>
-                          <div className="text-white text-center text-sm md:text-base px-2">
+                          <div className="text-white text-center text-sm md:text-base">
                             <strong>You can switch or cancel any time before Day 56.</strong>
                           </div>
                         </Stack>
@@ -1146,15 +1119,16 @@ export default function HomePage() {
                         </label>
 
                         {/* CTA BUTTON */}
-                    <Button
-                      variant="primary"
-                      size="lg"
-                          className="w-full text-sm md:text-base py-2 md:py-4"
-                      onClick={handleIntensivePurchase}
-                          disabled={isLoading || !agreedToTerms}
-                    >
-                      {isLoading ? 'Processing...' : 'Start the Activation Intensive'}
-                    </Button>
+                    <div className="flex justify-center">
+                      <Button
+                        variant="primary"
+                        size="xl"
+                        onClick={handleIntensivePurchase}
+                        disabled={isLoading || !agreedToTerms}
+                      >
+                        {isLoading ? 'Processing...' : 'Start the Activation Intensive'}
+                      </Button>
+                    </div>
                       </Stack>
                     </Card>
                   </Stack>
@@ -1170,37 +1144,37 @@ export default function HomePage() {
                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
                   The Problem: <span className="text-[#FF0040]">Vibrational Chaos</span>
                 </h2>
-                <p className="text-xl text-neutral-300">
+                <Text size="xl" className="text-neutral-300">
                   Understanding conscious creation isn't enough. You need a SYSTEM.
-                </p>
+                </Text>
               </div>
 
               <Card variant="elevated" className="border-[#FF0040]/30 bg-[#FF0040]/5 max-w-4xl">
-                <Stack gap="md" className="p-8">
+                <Stack gap="md" className="md:gap-8">
                   <div className="text-center">
-                    <h3 className="text-2xl font-bold text-[#FF0040] mb-4">What is Vibrational Chaos?</h3>
-                    <p className="text-lg text-neutral-300 mb-6">
+                    <Heading level={3} className="text-[#FF0040] mb-4">What is Vibrational Chaos?</Heading>
+                    <Text size="lg" className="text-neutral-300 mb-6">
                       "Vibrational chaos is a state of being where a person is consistently inconsistent in their thought patterns, also known as their vibe."
-                    </p>
+                    </Text>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="text-center">
                       <Icon icon={Target} size="xl" color="#39FF14" className="mx-auto mb-4" />
-                      <h4 className="text-lg font-semibold text-[#39FF14] mb-2">Thoughts in Harmony</h4>
-                      <p className="text-sm text-neutral-400">Desires aligned with your goals</p>
+                      <Heading level={4} className="text-[#39FF14] mb-2">Thoughts in Harmony</Heading>
+                      <Text size="sm" className="text-neutral-400">Desires aligned with your goals</Text>
                     </div>
                     <div className="text-center">
                       <Icon icon={Shield} size="xl" color="#FF0040" className="mx-auto mb-4" />
-                      <h4 className="text-lg font-semibold text-[#FF0040] mb-2">Thoughts of Self-Doubt</h4>
-                      <p className="text-sm text-neutral-400">Limiting beliefs holding you back</p>
+                      <Heading level={4} className="text-[#FF0040] mb-2">Thoughts of Self-Doubt</Heading>
+                      <Text size="sm" className="text-neutral-400">Limiting beliefs holding you back</Text>
                     </div>
                   </div>
 
                   <div className="text-center">
-                    <p className="text-neutral-400 mb-4">
+                    <Text size="base" className="text-neutral-400 mb-4">
                       "These opposing thoughts continuously are in battle, if unchecked."
-                    </p>
+                    </Text>
                     <Badge variant="danger">Vibrational Tug-of-War</Badge>
                   </div>
                 </Stack>
@@ -1212,53 +1186,53 @@ export default function HomePage() {
         <section id="solution">
             <Stack gap="lg" align="center">
               <div className="text-center max-w-3xl">
-                <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+                <Heading level={2} className="text-white mb-6">
                   The Solution: <span className="text-[#39FF14]">Conscious Creation System</span>
-                </h2>
-                <p className="text-xl text-neutral-300">
+                </Heading>
+                <Text size="xl" className="text-neutral-300">
                   "A structured way to train, tune and track our vibration so that actualization or manifestation becomes second nature."
-                </p>
+                </Text>
               </div>
 
               <Grid minWidth="300px" gap="lg">
                 <Card variant="elevated" className="group hover:scale-105 transition-transform duration-300 border-[#39FF14]/30 bg-[#39FF14]/5">
-                  <Stack gap="md" className="p-8">
+                  <Stack gap="md" className="md:gap-8">
                     <div className="w-16 h-16 bg-gradient-to-br from-[#39FF14]/20 to-[#39FF14]/5 rounded-2xl flex items-center justify-center">
                       <Icon icon={Target} size="lg" color="#39FF14" />
                     </div>
                     <h3 className="text-2xl font-bold text-white">TRAIN</h3>
-                    <p className="text-neutral-400">
+                    <Text size="base" className="text-neutral-400">
                       Create your comprehensive <span className="text-[#39FF14] font-semibold">Life I Choose™</span> document 
                       across 14 life categories. Get crystal clear on your goals and direction with AI-guided prompts.
-                    </p>
+                    </Text>
                     <Badge variant="success">Above the Green Line</Badge>
                   </Stack>
                 </Card>
 
                 <Card variant="elevated" className="group hover:scale-105 transition-transform duration-300 border-[#00FFFF]/30 bg-[#00FFFF]/5">
-                  <Stack gap="md" className="p-8">
+                  <Stack gap="md">
                     <div className="w-16 h-16 bg-gradient-to-br from-[#00FFFF]/20 to-[#00FFFF]/5 rounded-2xl flex items-center justify-center">
                       <Icon icon={Brain} size="lg" color="#00FFFF" />
                     </div>
                     <h3 className="text-2xl font-bold text-white">TUNE</h3>
-                    <p className="text-neutral-400">
+                    <Text size="base" className="text-neutral-400">
                       Daily check-ins and personalized AI guidance to keep you aligned and in flow. 
                       Your intelligent companion for staying above the Green Line every single day.
-                    </p>
+                    </Text>
                     <Badge variant="info">VIVA Assistant</Badge>
                   </Stack>
                 </Card>
 
                 <Card variant="elevated" className="group hover:scale-105 transition-transform duration-300 border-[#BF00FF]/30 bg-[#BF00FF]/5">
-                  <Stack gap="md" className="p-8">
+                  <Stack gap="md">
                     <div className="w-16 h-16 bg-gradient-to-br from-[#BF00FF]/20 to-[#BF00FF]/5 rounded-2xl flex items-center justify-center">
                       <Icon icon={TrendingUp} size="lg" color="#BF00FF" />
                     </div>
                     <h3 className="text-2xl font-bold text-white">TRACK</h3>
-                    <p className="text-neutral-400">
+                    <Text size="base" className="text-neutral-400">
                       Log your wins and track evidence of actualization. See your progress, 
                       celebrate victories, and prove to yourself that manifestation works.
-                    </p>
+                    </Text>
                     <Badge variant="premium">Premium Feature</Badge>
                   </Stack>
                 </Card>
@@ -1274,13 +1248,13 @@ export default function HomePage() {
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                   What is Vibrational Fitness?
                 </h2>
-                <p className="text-xl md:text-2xl text-neutral-300 max-w-4xl">
+                <Text size="xl" className="md:text-2xl text-neutral-300 max-w-4xl">
                   <span className="text-[#39FF14] font-semibold">Vibrational fitness is intentionally training your vibration to attract the life you choose.</span>
-                </p>
-                <p className="text-lg text-neutral-400 max-w-3xl">
+                </Text>
+                <Text size="lg" className="text-neutral-400 max-w-3xl">
                   "By becoming a member, you'll be able to instantly apply our conscious creation system in your reality 
                   and eliminate confusion around conscious creation, AKA turning thoughts into things."
-                </p>
+                </Text>
                 <Badge variant="premium" className="text-lg px-6 py-3">
                   <Icon icon={Sparkles} size="md" className="mr-2" />
                   Decades of Trial & Error → Instant Access
@@ -1296,49 +1270,49 @@ export default function HomePage() {
                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
                   How It Works
                 </h2>
-                <p className="text-xl text-neutral-300 max-w-2xl mx-auto">
+                <Text size="xl" className="text-neutral-300 max-w-2xl mx-auto">
                   Simple, powerful, and designed for real results. Get started in minutes, 
                   see results in days.
-                </p>
+                </Text>
               </div>
 
               <Switcher className="gap-8">
                 <Card variant="glass" className="flex-1">
-                  <Stack gap="md" className="p-8 text-center">
+                  <Stack gap="md" className="text-center">
                     <div className="w-16 h-16 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto text-black font-bold text-xl">
                       1
                     </div>
                     <h3 className="text-2xl font-bold text-white">Craft Your Vision</h3>
-                    <p className="text-neutral-400">
+                    <Text size="base" className="text-neutral-400">
                       Use our guided AI prompts to create your comprehensive Life I Choose™ document 
                       across all 14 life categories.
-                    </p>
+                    </Text>
                   </Stack>
                 </Card>
 
                 <Card variant="glass" className="flex-1">
-                  <Stack gap="md" className="p-8 text-center">
+                  <Stack gap="md" className="text-center">
                     <div className="w-16 h-16 bg-[#00FFFF] rounded-full flex items-center justify-center mx-auto text-black font-bold text-xl">
                       2
                     </div>
                     <h3 className="text-2xl font-bold text-white">Daily Alignment</h3>
-                    <p className="text-neutral-400">
+                    <Text size="base" className="text-neutral-400">
                       Check in daily with your AI Alignment Coach. Stay above the Green Line 
                       with personalized guidance and support.
-                    </p>
+                    </Text>
                   </Stack>
                 </Card>
 
                 <Card variant="glass" className="flex-1">
-                  <Stack gap="md" className="p-8 text-center">
+                  <Stack gap="md" className="text-center">
                     <div className="w-16 h-16 bg-[#BF00FF] rounded-full flex items-center justify-center mx-auto text-white font-bold text-xl">
                       3
                     </div>
                     <h3 className="text-2xl font-bold text-white">Track & Actualize</h3>
-                    <p className="text-neutral-400">
+                    <Text size="base" className="text-neutral-400">
                       Log evidence of your manifestations. Watch your vision come to life 
                       with our powerful tracking tools.
-                    </p>
+                    </Text>
                   </Stack>
                 </Card>
               </Switcher>
@@ -1354,38 +1328,38 @@ export default function HomePage() {
                 </h2>
                 
                 <div className="max-w-4xl">
-                  <p className="text-xl md:text-2xl text-neutral-300 mb-6">
+                  <Text size="xl" className="md:text-2xl text-neutral-300 mb-6">
                     "What would happen if I gained clarity on the life that I wanted to live, 
                     intentionally established vibrational harmony with it, and allowed my vision for a fun and 
                     emotionally satisfying life experience to become dominant in my point of attraction?"
-                  </p>
+                  </Text>
                   
-                  <p className="text-2xl md:text-3xl font-bold text-[#39FF14] mb-8">
+                  <Text size="2xl" className="md:text-3xl font-bold text-[#39FF14] mb-8">
                     We know the answer. You would live a life you love waking up to every day, 
                     feeling your creative power as you live the life you choose.
-                  </p>
+                  </Text>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-6 mb-8">
                   <Card variant="glass" className="text-center">
-                    <Stack gap="sm" className="p-6">
+                    <Stack gap="sm">
                       <Icon icon={Target} size="lg" color="#39FF14" className="mx-auto" />
                       <h4 className="font-bold text-white">Gain Clarity</h4>
-                      <p className="text-sm text-neutral-400">On the life you want to live</p>
+                      <Text size="sm" className="text-neutral-400">On the life you want to live</Text>
                     </Stack>
                   </Card>
                   <Card variant="glass" className="text-center">
-                    <Stack gap="sm" className="p-6">
+                    <Stack gap="sm">
                       <Icon icon={Brain} size="lg" color="#00FFFF" className="mx-auto" />
                       <h4 className="font-bold text-white">Establish Harmony</h4>
-                      <p className="text-sm text-neutral-400">With your vibrational point of attraction</p>
+                      <Text size="sm" className="text-neutral-400">With your vibrational point of attraction</Text>
                     </Stack>
                   </Card>
                   <Card variant="glass" className="text-center">
-                    <Stack gap="sm" className="p-6">
+                    <Stack gap="sm">
                       <Icon icon={Crown} size="lg" color="#BF00FF" className="mx-auto" />
                       <h4 className="font-bold text-white">Become Dominant</h4>
-                      <p className="text-sm text-neutral-400">In your vision for your life</p>
+                      <Text size="sm" className="text-neutral-400">In your vision for your life</Text>
                     </Stack>
                   </Card>
                 </div>
@@ -1404,14 +1378,14 @@ export default function HomePage() {
                   </Button>
                 </Inline>
 
-                <p className="text-lg text-neutral-300 max-w-2xl">
+                <Text size="lg" className="text-neutral-300 max-w-2xl">
                   "If you're ready to ditch vibrational chaos, align with your clarity, and train your vibration 
                   to attract the life you choose, then <span className="text-[#39FF14] font-semibold">welcome home</span>."
-                </p>
+                </Text>
 
-                <p className="text-sm text-neutral-500">
+                <Text size="sm" className="text-neutral-500">
                   No credit card required • 14-day free trial • Cancel anytime
-                </p>
+                </Text>
               </Stack>
             </Cover>
         </section>

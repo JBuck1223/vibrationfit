@@ -28,6 +28,9 @@ export {
   Badge,
   Input,
   Textarea,
+  Heading,
+  Text,
+  Title,
   
   // List Components
   BulletedList,

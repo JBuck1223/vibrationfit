@@ -399,12 +399,13 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
       glass: 'bg-[#1F1F1F]/50 backdrop-blur-lg border border-[#333]/50'
     }
     
-    const hoverEffect = hover ? 'hover:border-[#00CC44] hover:-translate-y-1 transition-all duration-200' : ''
+    const hoverEffect = hover ? 'hover:border-[#00CC44] hover:shadow-2xl transition-all duration-200' : ''
     
+    // Standardized padding: Mobile p-6 (24px all around), Desktop p-8 (32px all around)
     return (
       <div 
         ref={ref}
-        className={cn('rounded-2xl px-2 py-6 md:p-8', variants[variant], hoverEffect, className)}
+        className={cn('rounded-2xl p-6 md:p-8', variants[variant], hoverEffect, className)}
         {...props}
       >
         {children}
@@ -429,52 +430,38 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const variants = {
       primary: `
         bg-[#39FF14] text-black font-semibold
-        hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] 
-        hover:border hover:border-[rgba(57,255,20,0.2)]
-        shadow-[0_4px_14px_rgba(0,0,0,0.25)]
-        hover:shadow-none
-        hover:-translate-y-0.5
-        active:translate-y-0 active:shadow-none
+        border-2 border-transparent
+        hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] hover:border-[rgba(57,255,20,0.2)]
+        active:opacity-80
       `,
       secondary: `
         bg-[#00FFFF] text-black font-semibold
-        hover:bg-[rgba(0,255,255,0.1)] hover:text-[#00FFFF]
-        hover:border hover:border-[rgba(0,255,255,0.2)]
-        shadow-[0_4px_14px_rgba(0,0,0,0.25)]
-        hover:shadow-none
-        hover:-translate-y-0.5
-        active:translate-y-0 active:shadow-none
+        border-2 border-transparent
+        hover:bg-[rgba(0,255,255,0.1)] hover:text-[#00FFFF] hover:border-[rgba(0,255,255,0.2)]
+        active:opacity-80
       `,
       accent: `
         bg-[#BF00FF] text-white font-semibold
-        hover:bg-[rgba(191,0,255,0.1)] hover:text-[#BF00FF]
-        hover:border hover:border-[rgba(191,0,255,0.2)]
-        shadow-[0_4px_14px_rgba(0,0,0,0.25)]
-        hover:shadow-none
-        hover:-translate-y-0.5
-        active:translate-y-0 active:shadow-none
+        border-2 border-transparent
+        hover:bg-[rgba(191,0,255,0.1)] hover:text-[#BF00FF] hover:border-[rgba(191,0,255,0.2)]
+        active:opacity-80
       `,
       ghost: `
         bg-[rgba(57,255,20,0.1)] text-[#39FF14] 
-        border border-[rgba(57,255,20,0.2)]
-        hover:bg-[rgba(57,255,20,0.2)] hover:border-[rgba(57,255,20,0.4)]
-        hover:-translate-y-px
-        shadow-none
+        border-2 border-[rgba(57,255,20,0.2)]
+        hover:bg-[rgba(57,255,20,0.2)]
+        active:opacity-80
       `,
       outline: `
         bg-transparent border-2 border-[#39FF14] text-[#39FF14]
         hover:bg-[#39FF14] hover:text-black
-        hover:-translate-y-0.5
-        shadow-none hover:shadow-[0_6px_20px_rgba(57,255,20,0.3)]
+        active:opacity-80
       `,
       danger: `
         bg-[#FF0040] text-white font-semibold
-        hover:bg-[rgba(255,0,64,0.1)] hover:text-[#FF0040]
-        hover:border hover:border-[rgba(255,0,64,0.2)]
-        shadow-[0_4px_14px_rgba(0,0,0,0.25)]
-        hover:shadow-none
-        hover:-translate-y-0.5
-        active:translate-y-0 active:shadow-none
+        border-2 border-transparent
+        hover:bg-[rgba(255,0,64,0.1)] hover:text-[#FF0040] hover:border-[rgba(255,0,64,0.2)]
+        active:opacity-80
       `,
     }
     
@@ -487,7 +474,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     
     const buttonClasses = cn(
       'inline-flex items-center justify-center',
-      'rounded-full transition-all duration-300 transform disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap',
+      'rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap',
       variants[variant],
       sizes[size],
       fullWidth ? 'w-full' : '',
@@ -1067,8 +1054,8 @@ export const VIVAButton = React.forwardRef<HTMLButtonElement, VIVAButtonProps>(
     }
     
     const buttonClasses = cn(
-      'inline-flex items-center justify-center font-semibold rounded-full transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap',
-      'bg-[#BF00FF] text-white hover:bg-[rgba(191,0,255,0.1)] hover:text-[#BF00FF] hover:border hover:border-[rgba(191,0,255,0.2)] shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:shadow-none active:translate-y-0 active:shadow-none',
+      'inline-flex items-center justify-center font-semibold rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap',
+      'bg-[#BF00FF] text-white border-2 border-transparent hover:bg-[rgba(191,0,255,0.1)] hover:text-[#BF00FF] hover:border-[rgba(191,0,255,0.2)] active:opacity-80',
       sizes[size],
       className
     )
@@ -1604,8 +1591,8 @@ export const PricingCard = React.forwardRef<HTMLDivElement, PricingCardProps>(
     ...props 
   }, ref) => {
     const variants = {
-      default: 'rounded-2xl p-6 md:p-8 bg-[#1F1F1F] border-2 border-[#333] shadow-xl hover:border-[#00CC44] hover:-translate-y-1 transition-all duration-200 cursor-pointer',
-      elevated: 'rounded-2xl p-6 md:p-8 bg-[#1F1F1F] border-2 border-[#333] shadow-xl hover:border-[#00CC44] hover:-translate-y-1 transition-all duration-200 cursor-pointer transition-all ring-2 border-[#39FF14]'
+      default: 'rounded-2xl p-6 md:p-8 bg-[#1F1F1F] border-2 border-[#333] shadow-xl hover:border-[#00CC44] hover:shadow-2xl transition-all duration-200 cursor-pointer',
+      elevated: 'rounded-2xl p-6 md:p-8 bg-[#1F1F1F] border-2 border-[#333] shadow-xl hover:border-[#00CC44] hover:shadow-2xl transition-all duration-200 cursor-pointer ring-2 border-[#39FF14]'
     }
 
     const cardClasses = cn(
@@ -1764,6 +1751,7 @@ export const ListItem = React.forwardRef<HTMLLIElement, ListItemProps>(
           baseClasses,
           variantClasses[variant],
           sizeClasses[size],
+          'leading-relaxed',
           className
         )}
         {...props}
@@ -2664,7 +2652,7 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                 key={item.id}
                 className={cn(
                   'bg-[#1F1F1F] border-2 border-[#333] rounded-xl overflow-hidden transition-all duration-300',
-                  'hover:border-[#39FF14]/50 hover:-translate-y-0.5',
+                  'hover:border-[#39FF14]/50 hover:shadow-xl',
                   isExpanded && 'border-[#39FF14]'
                 )}
               >
@@ -3627,3 +3615,125 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   )
 }
 PlaylistPlayer.displayName = 'PlaylistPlayer'
+
+// ============================================================================
+// TYPOGRAPHY COMPONENTS
+// ============================================================================
+
+interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {
+  children: React.ReactNode
+  level?: 1 | 2 | 3 | 4
+  className?: string
+}
+
+export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
+  ({ children, level = 1, className = '', ...props }, ref) => {
+    const sizes = {
+      1: 'text-2xl md:text-5xl lg:text-6xl',      // Hero titles
+      2: 'text-xl md:text-4xl lg:text-5xl',       // Section titles
+      3: 'text-lg md:text-3xl lg:text-4xl',       // Subsection titles
+      4: 'text-lg md:text-2xl'      // Card titles
+    }
+    
+    const margins = {
+      1: 'mb-4 md:mb-6',
+      2: 'mb-3 md:mb-4',
+      3: 'mb-2 md:mb-3',
+      4: 'mb-2'
+    }
+    
+    const weights = {
+      1: 'font-bold',
+      2: 'font-bold',
+      3: 'font-bold',
+      4: '' // H4 is not bold
+    }
+    
+    const baseClassName = cn(weights[level], sizes[level], margins[level], className)
+    
+    switch (level) {
+      case 1:
+        return (
+          <h1 ref={ref} className={baseClassName} {...props}>
+            {children}
+          </h1>
+        )
+      case 2:
+        return (
+          <h2 ref={ref} className={baseClassName} {...props}>
+            {children}
+          </h2>
+        )
+      case 3:
+        return (
+          <h3 ref={ref} className={baseClassName} {...props}>
+            {children}
+          </h3>
+        )
+      case 4:
+        return (
+          <h4 ref={ref} className={baseClassName} {...props}>
+            {children}
+          </h4>
+        )
+    }
+  }
+)
+Heading.displayName = 'Heading'
+
+interface TextProps extends React.HTMLAttributes<HTMLParagraphElement> {
+  children: React.ReactNode
+  size?: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl'
+  className?: string
+}
+
+export const Text = React.forwardRef<HTMLParagraphElement, TextProps>(
+  ({ children, size = 'base', className = '', ...props }, ref) => {
+    const sizes = {
+      xs: 'text-xs',
+      sm: 'text-sm md:text-base',
+      base: 'text-base md:text-lg',
+      lg: 'text-lg md:text-xl',
+      xl: 'text-lg md:text-2xl',
+      '2xl': 'text-xl md:text-3xl'
+    }
+    
+    return (
+      <p
+        ref={ref}
+        className={cn(sizes[size], className)}
+        {...props}
+      >
+        {children}
+      </p>
+    )
+  }
+)
+Text.displayName = 'Text'
+
+interface TitleProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode
+  level?: 'hero' | 'section' | 'card'
+  className?: string
+}
+
+export const Title = React.forwardRef<HTMLDivElement, TitleProps>(
+  ({ children, level = 'section', className = '', ...props }, ref) => {
+    const styles = {
+      hero: 'text-2xl md:text-5xl lg:text-6xl font-bold leading-tight',
+      section: 'text-xl md:text-4xl lg:text-5xl font-bold',
+      card: 'text-lg md:text-3xl lg:text-4xl font-bold'
+    }
+    
+    return (
+      <div
+        ref={ref}
+        className={cn(styles[level], className)}
+        {...props}
+      >
+        {children}
+      </div>
+    )
+  }
+)
+Title.displayName = 'Title'
