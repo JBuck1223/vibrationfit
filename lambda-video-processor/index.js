@@ -57,10 +57,11 @@ function makeRequest(url, options) {
 
 // Extract quality suffix from filename
 function extractQuality(filename) {
-  if (filename.includes('-thumb')) return 'thumb';
-  if (filename.includes('-original')) return 'original';
-  if (filename.includes('-1080p')) return '1080p';
-  if (filename.includes('-720p')) return '720p';
+  // Check for quality suffixes (order matters - check more specific first)
+  if (filename.match(/-thumb/i) || filename.match(/-thumb\./i)) return 'thumb';
+  if (filename.match(/-1080p/i)) return '1080p';
+  if (filename.match(/-720p/i)) return '720p';
+  if (filename.match(/-original/i)) return 'original';
   return null;
 }
 
@@ -79,14 +80,27 @@ exports.handler = async (event) => {
     // Check if this is a processed file - if so, update database
     if (objectKey.includes('/processed/')) {
       console.log('🎬 This is a processed file, updating database...');
+      console.log('🔍 Object key:', objectKey);
+      const quality = extractQuality(objectKey);
+      console.log('🔍 Detected quality:', quality);
       await handleProcessedFile(objectKey);
       continue;
     }
 
-    // Check if it's a video file
+    // Check if it's a video file or a processed file
     const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
     const isVideo = videoExtensions.some(ext => objectKey.toLowerCase().endsWith(ext));
+    const isImage = imageExtensions.some(ext => objectKey.toLowerCase().endsWith(ext));
+    const isProcessed = objectKey.includes('/processed/');
 
+    // If it's a thumbnail or other processed file, let handleProcessedFile handle it above
+    if (!isVideo && (isProcessed || isImage)) {
+      console.log('⏭️  Skipping processed image/non-video file:', objectKey);
+      continue;
+    }
+    
+    // If it's not a video and not processed, skip it
     if (!isVideo) {
       console.log('⏭️  Skipping non-video file:', objectKey);
       continue;
@@ -355,7 +369,8 @@ async function handleProcessedFile(objectKey) {
     
     // Remove quality suffixes from filename
     if (quality === 'thumb') {
-      baseFilename = filename.replace(/\.(jpg|png|webp)$/i, '')
+      // Handle MediaConvert thumbnail naming: remove .0000000.jpg suffix and -thumb prefix
+      baseFilename = filename.replace(/-thumb\.\d+\.(jpg|png|webp)$/i, '').replace(/\.(jpg|png|webp)$/i, '')
     } else if (quality === 'original') {
       baseFilename = filename.replace(/-original\.(mp4|mov)$/i, '')
     } else if (quality === '1080p') {
@@ -389,13 +404,20 @@ async function handleProcessedFile(objectKey) {
     
     // Handle thumbnails
     if (quality === 'thumb') {
-      // Try to find URLs with common video extensions (.mov, .mp4, etc.)
+      // Try to find URLs with common video extensions (.mov, .mp4, etc.) and 1080p
       const possibleExtensions = ['', '.mov', '.mp4', '.avi', '.mkv', '.webm']
       const originalUrls = possibleExtensions.map(ext => 
         `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${subfolder}/${baseFilename}${ext}`
       )
       
-      console.log('🔍 Searching for entries with URLs for thumbnail:', originalUrls)
+      // Also check for 1080p video URL (which may have already replaced the original)
+      const videoUrls = [
+        ...originalUrls,
+        `https://media.vibrationfit.com/user-uploads/${userId}/${folder}/${subfolder}/processed/${baseFilename}-1080p.mp4`,
+        `https://media.vibrationfit.com/${objectKey.replace('-thumb.0000000.jpg', '-1080p.mp4')}`
+      ]
+      
+      console.log('🔍 Searching for entries with URLs for thumbnail:', videoUrls)
       
       // Query Supabase REST API for entries
       const searchUrl = `${SUPABASE_URL}/rest/v1/${tableName}?user_id=eq.${userId}&select=id,image_urls,thumbnail_urls`
@@ -417,12 +439,12 @@ async function handleProcessedFile(objectKey) {
       const entries = searchResponse.data
       console.log(`📝 Found ${entries.length} entries`)
       
-      // Find entries containing any of the possible original URLs and update thumbnails
+      // Find entries containing any of the possible video URLs and update thumbnails
       for (const entry of entries) {
         if (!entry.image_urls || !Array.isArray(entry.image_urls)) continue
         
-        // Check if any of the possible URLs exist in the entry
-        const matchingUrl = originalUrls.find(url => entry.image_urls.includes(url))
+        // Check if any of the possible video URLs exist in the entry
+        const matchingUrl = videoUrls.find(url => entry.image_urls.includes(url))
         if (!matchingUrl) {
           console.log('   No matching URL found in entry:', entry.id)
           continue
@@ -434,11 +456,8 @@ async function handleProcessedFile(objectKey) {
         const currentThumbnails = entry.thumbnail_urls || []
         const updatedThumbnails = [...currentThumbnails]
         
-        // Replace matching URL if exists in thumbnails, otherwise add it
-        const thumbIndex = updatedThumbnails.findIndex(url => url === matchingUrl)
-        if (thumbIndex >= 0) {
-          updatedThumbnails[thumbIndex] = processedUrl
-        } else {
+        // Add thumbnail URL if it doesn't exist already
+        if (!updatedThumbnails.includes(processedUrl)) {
           updatedThumbnails.push(processedUrl)
         }
         

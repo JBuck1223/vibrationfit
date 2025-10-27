@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button, Spinner } from '@/lib/design-system'
+import { PageLayout, Card, Button, Spinner, Video } from '@/lib/design-system'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -513,9 +513,13 @@ export default function JournalPage() {
                         const videoKey = `${entry.id}-${index}`
                         const hasError = videoErrors[videoKey] || false
                         const isLoading = videoLoading[videoKey] !== false
-                        const thumbUrl = getThumbnailUrl(url)
-                        const hasThumb = thumbnailExists[url] !== false
+                        // Get thumbnail URL from thumbnail_urls array if available
+                        const thumbnailUrl = entry.thumbnail_urls && entry.thumbnail_urls.length > 0
+                          ? entry.thumbnail_urls[0]
+                          : getThumbnailUrl(url)
+                        
                         const isProcessing = !processedVideoUrls[url] && isVideo(url)
+                        const videoSrc = processedVideoUrls[url] || url
                         
                         return (
                           <div key={`video-${index}`} className="relative group">
@@ -536,34 +540,14 @@ export default function JournalPage() {
                               </div>
                             )}
                             {!hasError ? (
-                              <video
-                                src={processedVideoUrls[url] || url}
-                                poster={hasThumb ? thumbUrl : undefined}
-                                className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors"
-                                controls
-                                preload="none"
-                                style={{ minHeight: '200px' }}
-                                onError={(e) => {
-                                  const videoUrl = processedVideoUrls[url] || url
-                                  console.error('Video load error for:', videoUrl)
-                                  console.error('Error type:', (e.nativeEvent as any)?.type || 'unknown')
-                                  console.error('Using original URL:', url)
-                                  console.error('Processed URL:', processedVideoUrls[url])
-                                  setVideoErrors(prev => ({ ...prev, [videoKey]: true }))
-                                  setVideoLoading(prev => ({ ...prev, [videoKey]: false }))
-                                }}
-                                onLoadStart={() => {
-                                  const videoUrl = processedVideoUrls[url] || url
-                                  console.log('Video loading started:', videoUrl, 'Original:', url)
-                                  setVideoLoading(prev => ({ ...prev, [videoKey]: false }))
-                                }}
-                                onLoadedMetadata={() => {
-                                  const videoUrl = processedVideoUrls[url] || url
-                                  console.log('Video metadata loaded:', videoUrl)
-                                }}
-                              >
-                                Your browser does not support the video tag.
-                              </video>
+                              <Video
+                                src={videoSrc}
+                                poster={thumbnailUrl}
+                                variant="card"
+                                controls={true}
+                                preload="metadata"
+                                className="w-full"
+                              />
                             ) : (
                               <div className="w-full aspect-video bg-neutral-800 rounded-lg border border-neutral-700 flex items-center justify-center">
                                 <div className="text-center text-neutral-400 p-6">
@@ -583,9 +567,6 @@ export default function JournalPage() {
                                 </div>
                               </div>
                             )}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                              <Play className="w-8 h-8 text-white" />
-                            </div>
                           </div>
                         )
                       })}
