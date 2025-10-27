@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button } from '@/lib/design-system'
+import { PageLayout, Card, Button, Spinner } from '@/lib/design-system'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -17,6 +17,7 @@ interface JournalEntry {
   content: string
   categories: string[]
   image_urls: string[]
+  thumbnail_urls?: string[]
   audio_recordings: any[]
   created_at: string
   updated_at: string
@@ -39,6 +40,7 @@ export default function JournalPage() {
   const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({})
   const [videoLoading, setVideoLoading] = useState<Record<string, boolean>>({})
   const [processedVideoUrls, setProcessedVideoUrls] = useState<Record<string, string>>({})
+  const [processingEntries, setProcessingEntries] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     async function fetchData() {
@@ -95,30 +97,60 @@ export default function JournalPage() {
 
     async function checkProcessedVideos() {
       const processedUrls: Record<string, string> = {}
+      const processingSet = new Set<string>()
       
       console.log('🔍 Checking for processed videos in', entries.length, 'entries')
       
       for (const entry of entries) {
         if (entry.image_urls) {
           console.log('📹 Entry', entry.id, 'has', entry.image_urls.length, 'media URLs')
+          let entryHasProcessing = false
+          
           for (const url of entry.image_urls) {
             if (isVideo(url)) {
               console.log('🎬 Found video URL:', url)
-              const processedUrl = await getProcessedVideoUrl(url)
-              console.log('🔗 Processed URL result:', processedUrl)
-              if (processedUrl !== url) {
-                processedUrls[url] = processedUrl
-                console.log('✅ Using processed video:', processedUrl)
+              
+              // Check if URL already contains -1080p (Lambda already updated image_urls)
+              const isAlreadyProcessed = url.includes('-1080p') || url.includes('-720p')
+              
+              if (isAlreadyProcessed) {
+                console.log('✅ Video already processed (URL contains quality suffix)')
+                processedUrls[url] = url
               } else {
-                console.log('⚠️ No processed version found, using original')
+                // Check when the entry was created
+                const entryAge = Date.now() - new Date(entry.created_at).getTime()
+                const tenMinutesAgo = 10 * 60 * 1000 // 10 minutes
+                
+                // If entry is more than 10 minutes old and still not processed, use original
+                if (entryAge > tenMinutesAgo) {
+                  console.log('⚠️ Video processing timeout (10+ minutes), using original:', url)
+                  processedUrls[url] = url
+                } else {
+                  // Check S3 for processed version
+                  const processedUrl = await getProcessedVideoUrl(url)
+                  console.log('🔗 Processed URL result:', processedUrl)
+                  if (processedUrl !== url) {
+                    processedUrls[url] = processedUrl
+                    console.log('✅ Using processed video:', processedUrl)
+                  } else {
+                    console.log('⚠️ No processed version found, video is processing')
+                    entryHasProcessing = true
+                  }
+                }
               }
             }
+          }
+          
+          if (entryHasProcessing) {
+            processingSet.add(entry.id)
           }
         }
       }
       
       console.log('📊 Final processed URLs:', processedUrls)
+      console.log('⏳ Processing entries:', Array.from(processingSet))
       setProcessedVideoUrls(processedUrls)
+      setProcessingEntries(processingSet)
     }
 
     checkProcessedVideos()
@@ -271,7 +303,7 @@ export default function JournalPage() {
     checkThumbnails()
   }, [entries])
 
-  // Check for processed video URLs
+  // Check for processed video URLs (tries 1080p first, then 720p, then original)
   const getProcessedVideoUrl = useCallback(async (originalUrl: string) => {
     try {
       console.log('🔍 Checking for processed video for:', originalUrl)
@@ -288,51 +320,56 @@ export default function JournalPage() {
       const s3Key = urlParts.slice(userUploadsIndex).join('/')
       console.log('📁 Extracted S3 key:', s3Key)
       
-      // MediaConvert outputs with "-compressed" suffix in the processed/ folder
-      // Example: user-uploads/userId/journal/uploads/file.mov -> user-uploads/userId/journal/uploads/processed/file-compressed.mp4
-      
       // Extract the folder structure to determine where processed files should be
       const s3KeyParts = s3Key.split('/')
-      const userId = s3KeyParts[1] // user-uploads/[userId]/...
-      const folder = s3KeyParts[2] // user-uploads/[userId]/[folder]/...
-      const filename = s3KeyParts.slice(3).join('/') // The rest after userId/folder
       
       // Get just the base filename without path
       const baseFilename = s3KeyParts[s3KeyParts.length - 1]
       const filenameWithoutExt = baseFilename.replace(/\.[^/.]+$/, '')
       
-      // Build processed URL: same path, add /processed/ folder and -720p suffix
+      // Build processed URLs: same path, add /processed/ folder with quality suffix
       // Example: user-uploads/userId/journal/uploads/file.mov 
+      //      -> user-uploads/userId/journal/uploads/processed/file-1080p.mp4
       //      -> user-uploads/userId/journal/uploads/processed/file-720p.mp4
       const processedPath = s3KeyParts.slice(0, -1).join('/')
-      const processedFilename = `${filenameWithoutExt}-720p.mp4`
+      
+      // Try 1080p (default quality), then 720p as fallback
+      const processedFilename = `${filenameWithoutExt}-1080p.mp4`
       const processedKey = `${processedPath}/processed/${processedFilename}`
+      const processedUrl = `https://media.vibrationfit.com/${processedKey}`
       
-      const processedPatterns = [
-        processedKey,  // Primary pattern
-        s3Key.replace(/\.[^/.]+$/, '').replace(/\/([^/]+)$/, '/processed/$1-720p.mp4')  // Fallback
-      ]
+      console.log(`🔗 Checking 1080p processed URL:`, processedUrl)
       
-      console.log('🔍 Trying processed patterns:', processedPatterns)
-      
-      for (const processedKey of processedPatterns) {
-        const processedUrl = `https://media.vibrationfit.com/${processedKey}`
-        console.log('🔗 Checking processed URL:', processedUrl)
+      try {
+        const response = await fetch(processedUrl, { method: 'HEAD' })
         
-        try {
-          const response = await fetch(processedUrl, { method: 'HEAD' })
-          console.log('📡 Response status:', response.status, response.ok)
-          
-          if (response.ok) {
-            console.log('✅ Using processed video:', processedUrl)
-            return processedUrl
-          }
-        } catch (fetchError) {
-          console.log('❌ Fetch error for:', processedUrl, fetchError)
+        if (response.ok) {
+          console.log(`✅ Using 1080p processed video:`, processedUrl)
+          return processedUrl
         }
+      } catch (fetchError) {
+        console.log(`❌ Fetch error for 1080p, trying 720p:`, fetchError)
       }
       
-      console.log('❌ No processed video found in any pattern, using original')
+      // Fallback to 720p
+      const fallbackFilename = `${filenameWithoutExt}-720p.mp4`
+      const fallbackKey = `${processedPath}/processed/${fallbackFilename}`
+      const fallbackUrl = `https://media.vibrationfit.com/${fallbackKey}`
+      
+      console.log(`🔗 Checking 720p fallback URL:`, fallbackUrl)
+      
+      try {
+        const response = await fetch(fallbackUrl, { method: 'HEAD' })
+        
+        if (response.ok) {
+          console.log(`✅ Using 720p fallback video:`, fallbackUrl)
+          return fallbackUrl
+        }
+      } catch (fetchError) {
+        console.log(`❌ Fetch error for 720p:`, fetchError)
+      }
+      
+      console.log('❌ No processed video found, using original')
     } catch (error) {
       console.log('❌ Error checking processed video:', error, 'Using original:', originalUrl)
     }
@@ -478,9 +515,26 @@ export default function JournalPage() {
                         const isLoading = videoLoading[videoKey] !== false
                         const thumbUrl = getThumbnailUrl(url)
                         const hasThumb = thumbnailExists[url] !== false
+                        const isProcessing = !processedVideoUrls[url] && isVideo(url)
                         
                         return (
                           <div key={`video-${index}`} className="relative group">
+                            {/* Processing Overlay */}
+                            {isProcessing && (
+                              <div className="absolute inset-0 bg-black/80 rounded-lg flex flex-col items-center justify-center z-10 backdrop-blur-sm">
+                                <div className="text-center space-y-4">
+                                  <Spinner size="lg" variant="branded" />
+                                  <div>
+                                    <div className="text-lg font-semibold text-white mb-1">
+                                      VIVA is Processing Your Video
+                                    </div>
+                                    <div className="text-sm text-neutral-400">
+                                      This may take a few moments
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                             {!hasError ? (
                               <video
                                 src={processedVideoUrls[url] || url}
@@ -488,6 +542,7 @@ export default function JournalPage() {
                                 className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors"
                                 controls
                                 preload="none"
+                                style={{ minHeight: '200px' }}
                                 onError={(e) => {
                                   const videoUrl = processedVideoUrls[url] || url
                                   console.error('Video load error for:', videoUrl)

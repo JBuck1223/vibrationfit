@@ -61,7 +61,11 @@ exports.handler = async (event) => {
     });
 
     try {
-      // Create MediaConvert job
+      // Extract base filename without extension
+      const filename = objectKey.split('/').pop()
+      const baseName = filename.replace(/\.[^/.]+$/, '')
+      
+      // Create MediaConvert job with multiple outputs
       const jobSettings = {
         Role: MEDIACONVERT_ROLE_ARN,
         Settings: {
@@ -74,49 +78,177 @@ exports.handler = async (event) => {
               }
             }
           }],
-          OutputGroups: [{
-            Name: 'File Group',
-            OutputGroupSettings: {
-              Type: OutputGroupType.FILE_GROUP_SETTINGS,
-              FileGroupSettings: {
-                Destination: `s3://${BUCKET_NAME}/${destinationPath}`
-              }
-            },
-            Outputs: [{
-              NameModifier: '-720p',
-              VideoDescription: {
-                Width: 1280,
-                Height: 720,
-                CodecSettings: {
-                  Codec: 'H_264',
-                  H264Settings: {
-                    Bitrate: 2000000, // 2Mbps
-                    RateControlMode: 'CBR',
-                    CodecProfile: 'MAIN',
-                    CodecLevel: 'LEVEL_4_1'
-                  }
+          OutputGroups: [
+            // THUMBNAIL OUTPUT (processed first)
+            {
+              Name: 'Thumbnail Group',
+              OutputGroupSettings: {
+                Type: OutputGroupType.FILE_GROUP_SETTINGS,
+                FileGroupSettings: {
+                  Destination: `s3://${BUCKET_NAME}/${destinationPath}`,
+                  CustomName: `${baseName}`
                 }
               },
-              AudioDescriptions: [{
-                CodecSettings: {
-                  Codec: 'AAC',
-                  AacSettings: {
-                    Bitrate: 128000,
-                    SampleRate: 48000,
-                    CodingMode: AacCodingMode.CODING_MODE_2_0
+              Outputs: [{
+                NameModifier: '-thumb',
+                VideoDescription: {
+                  Width: 1920,
+                  Height: 1080,
+                  CodecSettings: {
+                    Codec: 'FRAME_CAPTURE',
+                    FrameCaptureSettings: {
+                      Quality: 90,
+                      MaxCaptures: 1,
+                      CaptureTimecode: '00:00:01:00'
+                    }
+                  }
+                },
+                ContainerSettings: {
+                  Container: 'RAW'
+                }
+              }]
+            },
+            // ORIGINAL COMPRESSED OUTPUT
+            {
+              Name: 'File Group Original',
+              OutputGroupSettings: {
+                Type: OutputGroupType.FILE_GROUP_SETTINGS,
+                FileGroupSettings: {
+                  Destination: `s3://${BUCKET_NAME}/${destinationPath}`
+                }
+              },
+              Outputs: [{
+                NameModifier: '-original',
+                VideoDescription: {
+                  CodecSettings: {
+                    Codec: 'H_264',
+                    H264Settings: {
+                      Bitrate: 8000000,
+                      QualityTuningLevel: 'SINGLE_PASS_HQ',
+                      RateControlMode: 'VBR',
+                      CodecProfile: 'HIGH',
+                      CodecLevel: 'AUTO',
+                      MaxBitrate: 10000000,
+                      BufSize: 15000000
+                    }
+                  }
+                },
+                AudioDescriptions: [{
+                  CodecSettings: {
+                    Codec: 'AAC',
+                    AacSettings: {
+                      Bitrate: 192000,
+                      SampleRate: 48000,
+                      CodingMode: AacCodingMode.CODING_MODE_2_0
+                    }
+                  }
+                }],
+                ContainerSettings: {
+                  Container: 'MP4',
+                  Mp4Settings: {
+                    CslgAtom: 'INCLUDE',
+                    FreeSpaceBox: 'EXCLUDE',
+                    MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
                   }
                 }
-              }],
-              ContainerSettings: {
-                Container: 'MP4',
-                Mp4Settings: {
-                  CslgAtom: 'INCLUDE',
-                  FreeSpaceBox: 'EXCLUDE',
-                  MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
+              }]
+            },
+            // 1080p VIDEO OUTPUT
+            {
+              Name: 'File Group 1080p',
+              OutputGroupSettings: {
+                Type: OutputGroupType.FILE_GROUP_SETTINGS,
+                FileGroupSettings: {
+                  Destination: `s3://${BUCKET_NAME}/${destinationPath}`
                 }
-              }
-            }]
-          }]
+              },
+              Outputs: [{
+                NameModifier: '-1080p',
+                VideoDescription: {
+                  Width: 1920,
+                  Height: 1080,
+                  CodecSettings: {
+                    Codec: 'H_264',
+                    H264Settings: {
+                      Bitrate: 5000000,
+                      RateControlMode: 'VBR',
+                      CodecProfile: 'HIGH',
+                      CodecLevel: 'LEVEL_4_1',
+                      MaxBitrate: 6000000,
+                      BufSize: 7500000
+                    }
+                  }
+                },
+                AudioDescriptions: [{
+                  CodecSettings: {
+                    Codec: 'AAC',
+                    AacSettings: {
+                      Bitrate: 192000,
+                      SampleRate: 48000,
+                      CodingMode: AacCodingMode.CODING_MODE_2_0
+                    }
+                  }
+                }],
+                ContainerSettings: {
+                  Container: 'MP4',
+                  Mp4Settings: {
+                    CslgAtom: 'INCLUDE',
+                    FreeSpaceBox: 'EXCLUDE',
+                    MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
+                  }
+                }
+              }]
+            },
+            // 720p VIDEO OUTPUT
+            {
+              Name: 'File Group 720p',
+              OutputGroupSettings: {
+                Type: OutputGroupType.FILE_GROUP_SETTINGS,
+                FileGroupSettings: {
+                  Destination: `s3://${BUCKET_NAME}/${destinationPath}`
+                }
+              },
+              Outputs: [{
+                NameModifier: '-720p',
+                VideoDescription: {
+                  Width: 1280,
+                  Height: 720,
+                  CodecSettings: {
+                    Codec: 'H_264',
+                    H264Settings: {
+                      Bitrate: 2500000,
+                      RateControlMode: 'VBR',
+                      CodecProfile: 'MAIN',
+                      CodecLevel: 'LEVEL_4',
+                      MaxBitrate: 3000000,
+                      BufSize: 3750000
+                    }
+                  }
+                },
+                AudioDescriptions: [{
+                  CodecSettings: {
+                    Codec: 'AAC',
+                    AacSettings: {
+                      Bitrate: 128000,
+                      SampleRate: 48000,
+                      CodingMode: AacCodingMode.CODING_MODE_2_0
+                    }
+                  }
+                }],
+                ContainerSettings: {
+                  Container: 'MP4',
+                  Mp4Settings: {
+                    CslgAtom: 'INCLUDE',
+                    FreeSpaceBox: 'EXCLUDE',
+                    MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
+                  }
+                }
+              }]
+            }
+          ],
+          TimecodeConfig: {
+            Source: 'ZEROBASED'
+          }
         },
         Tags: {
           'user-id': userId,
@@ -130,7 +262,8 @@ exports.handler = async (event) => {
 
       console.log('✅ MediaConvert job created:', response.Job?.Id);
       console.log('   Status:', response.Job?.Status);
-      console.log('   Output path: user-uploads/' + userId + '/' + folder + '/processed/');
+      console.log('   Outputs: Thumbnail, Original, 1080p, 720p');
+      console.log('   Output path:', destinationPath);
 
     } catch (error) {
       console.error('❌ MediaConvert job failed:', error);

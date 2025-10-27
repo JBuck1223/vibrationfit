@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
       folder
     })
 
+    // Extract base filename without extension
+    const baseName = filename.replace(/\.[^/.]+$/, '')
+
     const jobSettings = {
       Role: process.env.MEDIACONVERT_ROLE_ARN!,
       Settings: {
@@ -46,51 +49,182 @@ export async function POST(request: NextRequest) {
             }
           }
         }],
-        OutputGroups: [{
-          Name: 'File Group',
-          OutputGroupSettings: {
-            Type: OutputGroupType.FILE_GROUP_SETTINGS,
-            FileGroupSettings: {
-              Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
-            }
-          },
-          Outputs: [{
-            NameModifier: '-compressed',
-            VideoDescription: {
-              Width: 1920,
-              Height: 1080,
-              CodecSettings: {
-                Codec: 'H_264',
-                H264Settings: {
-                  Bitrate: 2000000, // 2Mbps
-                  RateControlMode: 'CBR',
-                  CodecProfile: 'MAIN',
-                  CodecLevel: 'LEVEL_4_1',
-                  MaxBitrate: 2500000,
-                  BufSize: 3000000
-                }
+        OutputGroups: [
+          // THUMBNAIL OUTPUT (processed first)
+          {
+            Name: 'Thumbnail Group',
+            OutputGroupSettings: {
+              Type: OutputGroupType.FILE_GROUP_SETTINGS,
+              FileGroupSettings: {
+                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`,
+                CustomName: `${baseName}`
               }
             },
-            AudioDescriptions: [{
-              CodecSettings: {
-                Codec: 'AAC',
-                AacSettings: {
-                  Bitrate: 128000,
-                  SampleRate: 48000,
-                  CodingMode: AacCodingMode.CODING_MODE_2_0
+            Outputs: [{
+              NameModifier: '-thumb',
+              VideoDescription: {
+                Width: 1920,
+                Height: 1080,
+                CodecSettings: {
+                  Codec: 'FRAME_CAPTURE',
+                  FrameCaptureSettings: {
+                    Quality: 90,
+                    MaxCaptures: 1,
+                    CaptureTimecode: '00:00:01:00' // 1 second timestamp
+                  }
+                }
+              },
+              ContainerSettings: {
+                Container: 'RAW'
+              }
+            }]
+          },
+          // ORIGINAL COMPRESSED OUTPUT (MP4, source quality)
+          {
+            Name: 'File Group Original',
+            OutputGroupSettings: {
+              Type: OutputGroupType.FILE_GROUP_SETTINGS,
+              FileGroupSettings: {
+                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
+              }
+            },
+            Outputs: [{
+              NameModifier: '-original',
+              VideoDescription: {
+                CodecSettings: {
+                  Codec: 'H_264',
+                  H264Settings: {
+                    QualityTuningLevel: 'SINGLE_PASS_HQ',
+                    RateControlMode: 'QVBR',
+                    QvbrSettings: {
+                      QvbrQualityLevel: 8 // High quality, balances size/quality
+                    },
+                    CodecProfile: 'HIGH',
+                    CodecLevel: 'AUTO'
+                  }
+                }
+              },
+              AudioDescriptions: [{
+                CodecSettings: {
+                  Codec: 'AAC',
+                  AacSettings: {
+                    Bitrate: 192000,
+                    SampleRate: 48000,
+                    CodingMode: AacCodingMode.CODING_MODE_2_0
+                  }
+                }
+              }],
+              ContainerSettings: {
+                Container: 'MP4',
+                Mp4Settings: {
+                  CslgAtom: 'INCLUDE',
+                  FreeSpaceBox: 'EXCLUDE',
+                  MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
                 }
               }
-            }],
-            ContainerSettings: {
-              Container: 'MP4',
-              Mp4Settings: {
-                CslgAtom: 'INCLUDE',
-                FreeSpaceBox: 'EXCLUDE',
-                MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
+            }]
+          },
+          // 1080p VIDEO OUTPUT
+          {
+            Name: 'File Group 1080p',
+            OutputGroupSettings: {
+              Type: OutputGroupType.FILE_GROUP_SETTINGS,
+              FileGroupSettings: {
+                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
               }
-            }
-          }]
-        }]
+            },
+            Outputs: [{
+              NameModifier: '-1080p',
+              VideoDescription: {
+                Width: 1920,
+                Height: 1080,
+                CodecSettings: {
+                  Codec: 'H_264',
+                  H264Settings: {
+                    Bitrate: 5000000, // 5Mbps for high quality 1080p
+                    RateControlMode: 'VBR',
+                    CodecProfile: 'HIGH',
+                    CodecLevel: 'LEVEL_4_1',
+                    MaxBitrate: 6000000,
+                    BufSize: 7500000
+                  }
+                }
+              },
+              AudioDescriptions: [{
+                CodecSettings: {
+                  Codec: 'AAC',
+                  AacSettings: {
+                    Bitrate: 192000,
+                    SampleRate: 48000,
+                    CodingMode: AacCodingMode.CODING_MODE_2_0
+                  }
+                }
+              }],
+              ContainerSettings: {
+                Container: 'MP4',
+                Mp4Settings: {
+                  CslgAtom: 'INCLUDE',
+                  FreeSpaceBox: 'EXCLUDE',
+                  MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
+                }
+              }
+            }]
+          },
+          // 720p VIDEO OUTPUT
+          {
+            Name: 'File Group 720p',
+            OutputGroupSettings: {
+              Type: OutputGroupType.FILE_GROUP_SETTINGS,
+              FileGroupSettings: {
+                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
+              }
+            },
+            Outputs: [{
+              NameModifier: '-720p',
+              VideoDescription: {
+                Width: 1280,
+                Height: 720,
+                CodecSettings: {
+                  Codec: 'H_264',
+                  H264Settings: {
+                    Bitrate: 2500000, // 2.5Mbps for 720p
+                    RateControlMode: 'VBR',
+                    CodecProfile: 'MAIN',
+                    CodecLevel: 'LEVEL_4',
+                    MaxBitrate: 3000000,
+                    BufSize: 3750000
+                  }
+                }
+              },
+              AudioDescriptions: [{
+                CodecSettings: {
+                  Codec: 'AAC',
+                  AacSettings: {
+                    Bitrate: 128000,
+                    SampleRate: 48000,
+                    CodingMode: AacCodingMode.CODING_MODE_2_0
+                  }
+                }
+              }],
+              ContainerSettings: {
+                Container: 'MP4',
+                Mp4Settings: {
+                  CslgAtom: 'INCLUDE',
+                  FreeSpaceBox: 'EXCLUDE',
+                  MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
+                }
+              }
+            }]
+          }
+        ],
+        TimecodeConfig: {
+          Source: 'ZEROBASED'
+        }
+      },
+      Tags: {
+        'user-id': userId,
+        'folder': folder,
+        'original-filename': filename
       }
     }
 
@@ -105,7 +239,12 @@ export async function POST(request: NextRequest) {
       status: response.Job?.Status,
       inputKey,
       outputPath: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`,
-      expectedOutput: `${filename.replace(/\.[^/.]+$/, '')}-compressed.mp4`
+      expectedOutputs: {
+        thumbnail: `${baseName}-thumb`,
+        original: `${baseName}-original.mp4`,
+        video1080p: `${baseName}-1080p.mp4`,
+        video720p: `${baseName}-720p.mp4`
+      }
     })
 
   } catch (error) {

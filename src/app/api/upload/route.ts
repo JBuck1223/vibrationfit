@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { MediaConvertClient, CreateJobCommand, AudioDefaultSelection, OutputGroupType, AacCodingMode } from '@aws-sdk/client-mediaconvert'
 import { optimizeImage, shouldOptimizeImage, getOptimalDimensions, generateThumbnail } from '@/lib/utils/imageOptimization'
-import { compressVideo, shouldCompressVideo, getCompressionOptions, generateVideoThumbnail } from '@/lib/utils/videoOptimization'
+import { generateVideoThumbnail } from '@/lib/utils/videoOptimization'
 
 // Configure runtime for large file uploads
 export const runtime = 'nodejs'
@@ -85,7 +85,18 @@ export async function POST(request: NextRequest) {
     console.log(`Starting upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
 
     // Use multipart upload for large files
-    if (file.size > MULTIPART_THRESHOLD || useMultipart) {
+    // BUT: If it's a video that needs MediaConvert, we must use regular upload
+    const isVideoNeedingProcessing = file.type.startsWith('video/') // ALL videos go through MediaConvert
+    
+    console.log('🔍 Upload decision:', {
+      fileType: file.type,
+      isVideo: isVideoNeedingProcessing,
+      fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+      useMultipart: file.size > MULTIPART_THRESHOLD,
+      willSkipMultipart: isVideoNeedingProcessing
+    })
+    
+    if ((file.size > MULTIPART_THRESHOLD || useMultipart) && !isVideoNeedingProcessing) {
       console.log(`Using multipart upload for ${file.name}`)
       const result = await multipartUpload(s3Key, file)
       return NextResponse.json(result)
@@ -100,12 +111,13 @@ export async function POST(request: NextRequest) {
 
     // Check if file needs optimization
     const needsImageOptimization = file.type.startsWith('image/') && shouldOptimizeImage(file)
-    // Check if it's a large video that needs MediaConvert processing
-    const needsVideoProcessing = file.type.startsWith('video/') && file.size > 20 * 1024 * 1024 // 20MB
+    // needsVideoProcessing is already determined above
+    const needsVideoProcessing = isVideoNeedingProcessing
     console.log('📹 Video processing check:', {
       isVideo: file.type.startsWith('video/'),
       fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
       needsProcessing: needsVideoProcessing,
+      processingStrategy: 'All videos go through MediaConvert',
       filename: file.name
     })
     const isAudioFile = file.type.startsWith('audio/')
@@ -124,64 +136,9 @@ export async function POST(request: NextRequest) {
       console.log(`Image optimization completed. Original: ${(optimizedResult.originalSize / 1024 / 1024).toFixed(2)}MB, Optimized: ${(optimizedResult.optimizedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${optimizedResult.compressionRatio.toFixed(1)}%`)
     }
 
-    // Compress videos (smaller than MediaConvert threshold)
-    if (shouldCompressVideo(file) && !needsVideoProcessing) {
-      console.log(`Compressing video: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
-      try {
-        const compressionOptions = getCompressionOptions(file)
-        const compressionResult = await compressVideo(buffer, file.name, compressionOptions)
-        
-        buffer = Buffer.from(compressionResult.buffer)
-        contentType = 'video/mp4' // Always output MP4 for better compatibility
-        
-        const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
-        finalFilename = `${nameWithoutExt}-compressed.mp4`
-        
-        console.log(`Video compression completed. Original: ${(compressionResult.originalSize / 1024 / 1024).toFixed(2)}MB, Compressed: ${(compressionResult.compressedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${compressionResult.compressionRatio.toFixed(1)}%`)
-        
-        // Generate video thumbnail (use original buffer before compression)
-        try {
-          console.log('🎬 Generating video thumbnail...')
-          const originalBuffer = Buffer.from(arrayBuffer)
-          const thumbnailBuffer = await generateVideoThumbnail(originalBuffer, file.name)
-          
-          if (thumbnailBuffer) {
-            const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
-            const finalFilename = `${nameWithoutExt}-compressed.mp4`
-            const finalS3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${finalFilename}`
-            const thumbKey = finalS3Key.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
-            const thumbCommand = new PutObjectCommand({
-              Bucket: BUCKET_NAME,
-              Key: thumbKey,
-              Body: thumbnailBuffer,
-              ContentType: 'image/jpeg',
-              CacheControl: 'public, max-age=31536000, immutable',
-              Metadata: {
-                'original-filename': file.name,
-                'upload-timestamp': timestamp.toString(),
-                'is-thumbnail': 'true',
-                'original-s3-key': finalS3Key
-              }
-            })
-            
-            await s3Client.send(thumbCommand)
-            thumbnailUrl = `https://media.vibrationfit.com/${thumbKey}`
-            console.log(`✅ Video thumbnail uploaded: ${thumbKey}`)
-          } else {
-            console.log('⚠️ Thumbnail generation returned null, skipping upload')
-          }
-        } catch (thumbError) {
-          console.error('⚠️ Video thumbnail generation failed:', thumbError)
-        }
-      } catch (compressionError) {
-        console.error('Video compression failed:', compressionError)
-        // Continue with original file if compression fails
-      }
-    }
-
-    // For large videos, upload original and trigger MediaConvert job
+    // For all videos, upload original and trigger MediaConvert job
     if (needsVideoProcessing) {
-      console.log(`Large video detected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+      console.log(`Video detected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
       
       // Upload original video immediately
       const originalCommand = new PutObjectCommand({
@@ -318,7 +275,7 @@ export async function POST(request: NextRequest) {
            'original-filename': file.name,
            'upload-timestamp': timestamp.toString(),
            'optimized': needsImageOptimization ? 'true' : 'false',
-           'compressed': (shouldCompressVideo(file) && !needsVideoProcessing) ? 'true' : 'false',
+           'compressed': 'false',
            'processed': 'false',
            'original-size': file.size.toString(),
            'final-size': buffer.length.toString(),
@@ -396,8 +353,12 @@ async function triggerMediaConvertJob(
   folder: string
 ) {
   console.log('🎬 Creating MediaConvert job settings...')
+  
+  // Extract base filename without extension
+  const baseName = filename.replace(/\.[^/.]+$/, '')
+  
   const jobSettings = {
-    Role: process.env.MEDIACONVERT_ROLE_ARN!, // You'll need to set this
+    Role: process.env.MEDIACONVERT_ROLE_ARN!,
     Settings: {
       Inputs: [{
         FileInput: `s3://${BUCKET_NAME}/${inputKey}`,
@@ -408,51 +369,178 @@ async function triggerMediaConvertJob(
           }
         }
       }],
-      OutputGroups: [{
-        Name: 'File Group',
-        OutputGroupSettings: {
-          Type: OutputGroupType.FILE_GROUP_SETTINGS,
-          FileGroupSettings: {
-            Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
-          }
-        },
-        Outputs: [{
-          NameModifier: '-compressed',
-          VideoDescription: {
-            Width: 1920,
-            Height: 1080,
-            CodecSettings: {
-              Codec: 'H_264',
-              H264Settings: {
-                Bitrate: 2000000, // 2Mbps
-                RateControlMode: 'CBR',
-                CodecProfile: 'MAIN',
-                CodecLevel: 'LEVEL_4_1',
-                MaxBitrate: 2500000,
-                BufSize: 3000000
+        OutputGroups: [
+          // THUMBNAIL OUTPUT (processed first)
+          {
+            Name: 'Thumbnail Group',
+            OutputGroupSettings: {
+              Type: OutputGroupType.FILE_GROUP_SETTINGS,
+              FileGroupSettings: {
+                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`,
+                CustomName: `${baseName}`
               }
+            },
+            Outputs: [{
+              NameModifier: '-thumb',
+              // Generate thumbnail at 1 second mark
+              VideoDescription: {
+                Width: 1920,
+                Height: 1080,
+                CodecSettings: {
+                  Codec: 'FRAME_CAPTURE',
+                  FrameCaptureSettings: {
+                    Quality: 90,
+                    MaxCaptures: 1,
+                    CaptureTimecode: '00:00:01:00' // 1 second timestamp
+                  }
+                }
+              },
+              ContainerSettings: {
+                Container: 'RAW'
+              }
+            }]
+          },
+          // ORIGINAL COMPRESSED OUTPUT (MP4, source quality)
+          {
+            Name: 'File Group Original',
+            OutputGroupSettings: {
+              Type: OutputGroupType.FILE_GROUP_SETTINGS,
+              FileGroupSettings: {
+                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
+              }
+            },
+            Outputs: [{
+              NameModifier: '-original',
+              VideoDescription: {
+                CodecSettings: {
+                  Codec: 'H_264',
+                  H264Settings: {
+                    QualityTuningLevel: 'SINGLE_PASS_HQ',
+                    RateControlMode: 'QVBR',
+                    QvbrSettings: {
+                      QvbrQualityLevel: 8 // High quality, balances size/quality
+                    },
+                    CodecProfile: 'HIGH',
+                    CodecLevel: 'AUTO'
+                  }
+                }
+              },
+              AudioDescriptions: [{
+                CodecSettings: {
+                  Codec: 'AAC',
+                  AacSettings: {
+                    Bitrate: 192000,
+                    SampleRate: 48000,
+                    CodingMode: AacCodingMode.CODING_MODE_2_0
+                  }
+                }
+              }],
+              ContainerSettings: {
+                Container: 'MP4',
+                Mp4Settings: {
+                  CslgAtom: 'INCLUDE',
+                  FreeSpaceBox: 'EXCLUDE',
+                  MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
+                }
+              }
+            }]
+          },
+          // 1080p VIDEO OUTPUT
+          {
+            Name: 'File Group 1080p',
+            OutputGroupSettings: {
+              Type: OutputGroupType.FILE_GROUP_SETTINGS,
+              FileGroupSettings: {
+                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
+              }
+            },
+            Outputs: [{
+              NameModifier: '-1080p',
+            VideoDescription: {
+              Width: 1920,
+              Height: 1080,
+              CodecSettings: {
+                Codec: 'H_264',
+                H264Settings: {
+                  Bitrate: 5000000, // 5Mbps for high quality 1080p
+                  RateControlMode: 'VBR',
+                  CodecProfile: 'HIGH',
+                  CodecLevel: 'LEVEL_4_1',
+                  MaxBitrate: 6000000,
+                  BufSize: 7500000
+                }
+              }
+            },
+            AudioDescriptions: [{
+              CodecSettings: {
+                Codec: 'AAC',
+                AacSettings: {
+                  Bitrate: 192000,
+                  SampleRate: 48000,
+                  CodingMode: AacCodingMode.CODING_MODE_2_0
+                }
+              }
+            }],
+            ContainerSettings: {
+              Container: 'MP4',
+              Mp4Settings: {
+                CslgAtom: 'INCLUDE',
+                FreeSpaceBox: 'EXCLUDE',
+                MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
+              }
+            }
+          }]
+        },
+        // 720p VIDEO OUTPUT
+        {
+          Name: 'File Group 720p',
+          OutputGroupSettings: {
+            Type: OutputGroupType.FILE_GROUP_SETTINGS,
+            FileGroupSettings: {
+              Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
             }
           },
-          AudioDescriptions: [{
-            CodecSettings: {
-              Codec: 'AAC',
-              AacSettings: {
-                Bitrate: 128000,
-                SampleRate: 48000,
-                CodingMode: AacCodingMode.CODING_MODE_2_0
+          Outputs: [{
+            NameModifier: '-720p',
+            VideoDescription: {
+              Width: 1280,
+              Height: 720,
+              CodecSettings: {
+                Codec: 'H_264',
+                H264Settings: {
+                  Bitrate: 2500000, // 2.5Mbps for 720p
+                  RateControlMode: 'VBR',
+                  CodecProfile: 'MAIN',
+                  CodecLevel: 'LEVEL_4',
+                  MaxBitrate: 3000000,
+                  BufSize: 3750000
+                }
+              }
+            },
+            AudioDescriptions: [{
+              CodecSettings: {
+                Codec: 'AAC',
+                AacSettings: {
+                  Bitrate: 128000,
+                  SampleRate: 48000,
+                  CodingMode: AacCodingMode.CODING_MODE_2_0
+                }
+              }
+            }],
+            ContainerSettings: {
+              Container: 'MP4',
+              Mp4Settings: {
+                CslgAtom: 'INCLUDE',
+                FreeSpaceBox: 'EXCLUDE',
+                MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
               }
             }
-          }],
-          ContainerSettings: {
-            Container: 'MP4',
-            Mp4Settings: {
-              CslgAtom: 'INCLUDE',
-              FreeSpaceBox: 'EXCLUDE',
-              MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
-            }
-          }
-        }]
-      }]
+          }]
+        }
+      ],
+      TimecodeConfig: {
+        Source: 'ZEROBASED'
+      }
     },
     Tags: {
       'user-id': userId,
@@ -472,6 +560,7 @@ async function triggerMediaConvertJob(
     console.log(`✅ MediaConvert job created successfully! Job ID: ${response.Job?.Id}`)
     console.log('   Status:', response.Job?.Status)
     console.log('   Created at:', response.Job?.CreatedAt)
+    console.log('   Outputs: Thumbnail, Original MP4, 1080p, 720p')
     return response.Job?.Id
   } catch (error) {
     console.error('❌ MediaConvert job creation failed:', error)

@@ -16,6 +16,7 @@ interface JournalEntry {
   content: string
   categories: string[]
   image_urls: string[]
+  thumbnail_urls?: string[]
   audio_recordings: any[]
   created_at: string
   updated_at: string
@@ -94,25 +95,62 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
     return 'unknown'
   }
 
-  // Check for processed video URLs
+  // Check for processed video URLs (tries 1080p first, then 720p, then original)
   const getProcessedVideoUrl = async (originalUrl: string) => {
     try {
       // Extract the S3 key from the original URL
       const urlParts = originalUrl.split('/')
       const s3Key = urlParts.slice(urlParts.indexOf('user-uploads')).join('/')
       
-      // Check if there's a processed version
-      const processedKey = s3Key.replace('/uploads/', '/uploads/processed/').replace(/\.[^/.]+$/, '-720p.mp4')
+      // Extract the folder structure to determine where processed files should be
+      const s3KeyParts = s3Key.split('/')
+      
+      // Get just the base filename without path
+      const baseFilename = s3KeyParts[s3KeyParts.length - 1]
+      const filenameWithoutExt = baseFilename.replace(/\.[^/.]+$/, '')
+      
+      // Build processed URLs: same path, add /processed/ folder with quality suffix
+      const processedPath = s3KeyParts.slice(0, -1).join('/')
+      
+      // Try 1080p (default quality), then 720p as fallback
+      const processedFilename = `${filenameWithoutExt}-1080p.mp4`
+      const processedKey = `${processedPath}/processed/${processedFilename}`
       const processedUrl = `https://media.vibrationfit.com/${processedKey}`
       
-      // Test if the processed URL exists
-      const response = await fetch(processedUrl, { method: 'HEAD' })
-      if (response.ok) {
-        console.log('✅ Using processed video:', processedUrl)
-        return processedUrl
+      console.log(`🔗 Checking 1080p processed URL:`, processedUrl)
+      
+      try {
+        const response = await fetch(processedUrl, { method: 'HEAD' })
+        
+        if (response.ok) {
+          console.log(`✅ Using 1080p processed video:`, processedUrl)
+          return processedUrl
+        }
+      } catch (fetchError) {
+        console.log(`❌ Fetch error for 1080p, trying 720p:`, fetchError)
       }
+      
+      // Fallback to 720p
+      const fallbackFilename = `${filenameWithoutExt}-720p.mp4`
+      const fallbackKey = `${processedPath}/processed/${fallbackFilename}`
+      const fallbackUrl = `https://media.vibrationfit.com/${fallbackKey}`
+      
+      console.log(`🔗 Checking 720p fallback URL:`, fallbackUrl)
+      
+      try {
+        const response = await fetch(fallbackUrl, { method: 'HEAD' })
+        
+        if (response.ok) {
+          console.log(`✅ Using 720p fallback video:`, fallbackUrl)
+          return fallbackUrl
+        }
+      } catch (fetchError) {
+        console.log(`❌ Fetch error for 720p:`, fetchError)
+      }
+      
+      console.log('No processed video found, using original')
     } catch (error) {
-      console.log('No processed video found, using original:', originalUrl)
+      console.log('Error checking processed video:', error)
     }
     
     return originalUrl

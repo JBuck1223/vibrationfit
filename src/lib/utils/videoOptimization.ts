@@ -145,8 +145,13 @@ export async function compressVideo(
           // Set timeout to prevent hanging
           timeoutId = setTimeout(() => {
             console.error('⏱️ Compression timeout after 5 minutes')
-            command.kill('SIGTERM')
-            reject(new Error('Compression timeout'))
+            resolve({
+              buffer: inputBuffer,
+              originalSize: inputBuffer.length,
+              compressedSize: inputBuffer.length,
+              compressionRatio: 0,
+              duration: 0
+            })
           }, TIMEOUT)
         })
         .on('progress', (progress) => {
