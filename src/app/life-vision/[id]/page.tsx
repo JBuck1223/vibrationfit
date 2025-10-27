@@ -307,20 +307,21 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   // Load audio tracks for vision
   const loadAudioTracks = async (visionId: string) => {
     try {
-      // Get the latest audio set for this vision
+      // Get the standard (voice-only) audio set for this vision
       const { data: audioSets } = await supabase
         .from('audio_sets')
         .select('id, variant')
         .eq('vision_id', visionId)
+        .eq('variant', 'standard')
         .order('created_at', { ascending: false })
         .limit(1)
 
       if (!audioSets || audioSets.length === 0) return
 
-      // Get audio tracks for the latest audio set
+      // Get audio tracks for the standard audio set
       const { data: tracks } = await supabase
         .from('audio_tracks')
-        .select('section_key, audio_url, mixed_audio_url, mix_status')
+        .select('section_key, audio_url')
         .eq('audio_set_id', audioSets[0].id)
         .eq('status', 'completed')
 
@@ -348,9 +349,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       
       const trackMap: Record<string, { url: string; title: string }> = {}
       tracks.forEach(track => {
-        const url = track.mixed_audio_url && track.mix_status === 'completed' 
-          ? track.mixed_audio_url 
-          : track.audio_url
+        // Always use voice-only audio_url for standard version
+        const url = track.audio_url
         if (url) {
           // Map section_key (meta_intro) to category key (forward)
           const categoryKey = sectionToCategory[track.section_key] || track.section_key
