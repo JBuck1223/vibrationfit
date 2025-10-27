@@ -238,29 +238,71 @@ export default function CategoryPage() {
 
       {/* Recording Section */}
       {!transcript && !aiSummary && (
-        <Card className="mb-8">
-          <div>
-            <div className="mb-4 md:mb-6">
-              <h2 className="text-xl font-semibold text-white mb-2">
-                Share your vision for {category.label.toLowerCase()}
-              </h2>
-              <p className="text-neutral-400">
-                Speak naturally about what you envision in this area of your life. 
-                Your authentic voice will be captured and transformed into a resonant summary by VIVA.
-              </p>
-            </div>
+        <>
+          {/* Prompt Guidance Card */}
+          <Card className="mb-6 border-2 border-[#00FFFF]/30 bg-[#00FFFF]/5">
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-[#00FFFF]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-4 h-4 text-[#00FFFF]" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-[#00FFFF] mb-2">Let's Get Clear...</h3>
+                  <p className="text-xs text-neutral-400 leading-relaxed">
+                    Explore what feels AMAZING and what feels BAD or frustrating. Contrast creates clarity!
+                  </p>
+                </div>
+              </div>
 
-            <RecordingTextarea
-              value={content}
-              onChange={(value) => setContent(value)}
-              rows={10}
-              placeholder="Write about your vision or click the microphone/video icon to record!"
-              allowVideo={true}
-              storageFolder="life-vision"
-              onRecordingSaved={handleRecordingSaved}
-            />
-          </div>
-        </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* What Feels Amazing */}
+                <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-lg p-4">
+                  <h4 className="text-xs font-semibold text-[#39FF14] mb-2 uppercase tracking-wide">
+                    What Feels Amazing
+                  </h4>
+                  <p className="text-xs text-neutral-300 leading-relaxed">
+                    Imagine your ideal {category.label.toLowerCase()}. What do you love? How does it feel?
+                  </p>
+                </div>
+
+                {/* What Feels Bad or Missing */}
+                <div className="bg-[#FFB701]/10 border border-[#FFB701]/30 rounded-lg p-4">
+                  <h4 className="text-xs font-semibold text-[#FFB701] mb-2 uppercase tracking-wide">
+                    What Feels Bad or Missing
+                  </h4>
+                  <p className="text-xs text-neutral-300 leading-relaxed">
+                    What's frustrating? What's not working? Don't hold back—vent it out!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Recording Card */}
+          <Card className="mb-8">
+            <div>
+              <div className="mb-4 md:mb-6">
+                <h2 className="text-xl font-semibold text-white mb-2">
+                  Share your vision for {category.label.toLowerCase()}
+                </h2>
+                <p className="text-neutral-400 text-sm">
+                  Speak naturally about what you envision in this area of your life. 
+                  Your authentic voice will be captured and transformed into a resonant summary by VIVA.
+                </p>
+              </div>
+
+              <RecordingTextarea
+                value={content}
+                onChange={(value) => setContent(value)}
+                rows={10}
+                placeholder="Write about your vision or click the microphone/video icon to record!"
+                allowVideo={true}
+                storageFolder="lifeVision"
+                onRecordingSaved={handleRecordingSaved}
+              />
+            </div>
+          </Card>
+        </>
       )}
 
       {/* Transcript Display */}
