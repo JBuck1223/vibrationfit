@@ -45,7 +45,7 @@ export function MediaRecorderComponent({
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [isPreparing, setIsPreparing] = useState(false) // For showing preview before countdown
-  const [saveRecording, setSaveRecording] = useState(true) // Whether to save the actual file
+  const [saveRecording, setSaveRecording] = useState(showSaveOption) // Whether to save the actual file (defaults to showSaveOption value)
   const [hasSavedRecording, setHasSavedRecording] = useState(false) // Track if there's a saved recording to resume
   const [previousChunks, setPreviousChunks] = useState<Blob[]>([]) // Chunks from before refresh
   const [previousDuration, setPreviousDuration] = useState(0) // Duration from before refresh
@@ -438,6 +438,11 @@ export function MediaRecorderComponent({
         let finalTranscript = transcript
         if (autoTranscribe) {
           finalTranscript = await transcribeAudio(blob)
+          // Update state so transcript is available when user clicks save button
+          if (finalTranscript) {
+            setTranscript(finalTranscript)
+            transcriptRef.current = finalTranscript
+          }
           // Update IndexedDB with transcript
           if (recordingIdRef.current && finalTranscript) {
             await saveRecordingChunks(
@@ -452,9 +457,9 @@ export function MediaRecorderComponent({
           }
         }
 
-        if (onRecordingComplete) {
-          onRecordingComplete(blob, finalTranscript, saveRecording)
-        }
+        // DON'T automatically call onRecordingComplete here
+        // Wait for user to explicitly click "Save Recording & Transcript" button
+        // This allows them to review the recording and transcript before saving
       }
 
       mediaRecorder.start(1000) // Collect data every second
@@ -927,7 +932,9 @@ export function MediaRecorderComponent({
               className="gap-2 w-full sm:w-auto"
             >
               <Upload className="w-4 h-4" />
-              {saveRecording ? 'Save Recording & Transcript' : 'Use Transcript Only'}
+              {showSaveOption 
+                ? (saveRecording ? 'Save Recording & Transcript' : 'Use Transcript Only')
+                : 'Use Transcript'}
             </Button>
             <Button
               onClick={discardRecording}

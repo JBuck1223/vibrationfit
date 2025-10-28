@@ -140,6 +140,43 @@ export default function CategoryPage() {
     setContent(updatedText)
     console.log('✅ Category page: State updated with transcript and content')
 
+    // Auto-save transcript to refinements table when recording is saved
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      try {
+        // Check if refinement already exists
+        const { data: existing } = await supabase
+          .from('refinements')
+          .select('id')
+          .eq('category', categoryKey)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (existing?.id) {
+          // Update existing refinement with new transcript
+          await supabase
+            .from('refinements')
+            .update({
+              transcript: updatedText // Use updatedText which includes transcript
+            })
+            .eq('id', existing.id)
+          console.log('✅ Auto-saved transcript to existing refinement')
+        } else {
+          // Create new refinement with transcript
+          await supabase.from('refinements').insert({
+            user_id: user.id,
+            category: categoryKey,
+            transcript: updatedText
+          })
+          console.log('✅ Auto-saved transcript to new refinement')
+        }
+      } catch (error) {
+        console.error('Failed to auto-save transcript:', error)
+        // Non-critical, continue even if save fails
+      }
+    }
+
     // Clear any saved recordings from IndexedDB for this category (successful upload means we don't need backups)
     try {
       const savedRecordings = await getRecordingsForCategory(categoryKey)
@@ -215,7 +252,8 @@ export default function CategoryPage() {
               setVivaMessage(data.message)
             } else if (data.type === 'complete') {
               if (data.summary) {
-                // Save to refinements table first
+                // Only save to database when user explicitly clicks "Process with VIVA"
+                // Don't auto-save on text changes - wait for explicit button click
                 const { data: { user } } = await supabase.auth.getUser()
                 if (user) {
                   // Update existing refinement or create new one
@@ -458,6 +496,7 @@ export default function CategoryPage() {
               storageFolder="lifeVision"
               category={categoryKey}
               onRecordingSaved={handleRecordingSaved}
+              transcriptOnly={true}
             />
 
             {/* Submit Button - Shows when there's content */}

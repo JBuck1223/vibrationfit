@@ -22,6 +22,7 @@ interface RecordingTextareaProps {
   storageFolder?: 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'profile' | 'customTracks'
   category?: string // Category for IndexedDB persistence (e.g., 'fun', 'health', 'journal')
   onUploadProgress?: (progress: number, status: string, fileName: string, fileSize: number) => void
+  transcriptOnly?: boolean // If true, only save transcript (no file upload)
 }
 
 export function RecordingTextarea({
@@ -36,7 +37,8 @@ export function RecordingTextarea({
   onRecordingSaved,
   storageFolder = 'journal',
   category,
-  onUploadProgress
+  onUploadProgress,
+  transcriptOnly = false
 }: RecordingTextareaProps) {
   const [showRecorder, setShowRecorder] = useState(false)
   const [recordingMode, setRecordingMode] = useState<'audio' | 'video'>('audio')
@@ -82,8 +84,8 @@ export function RecordingTextarea({
         ? `${value}\n\n${transcript}`
         : transcript
 
-      // Upload the recording file to S3 if requested
-      if (shouldSaveFile) {
+      // Upload the recording file to S3 if requested AND not in transcript-only mode
+      if (shouldSaveFile && !transcriptOnly) {
         console.log('📤 Uploading recording to S3...')
         
         // Determine the specific subfolder based on recording type and storage folder
@@ -113,22 +115,22 @@ export function RecordingTextarea({
         )
         recordingUrl = result.url
         console.log('✅ Recording uploaded:', recordingUrl)
-        
-        // Notify parent component about the saved recording (pass the updated text too)
-        if (onRecordingSaved) {
-          console.log('📢 Notifying parent about saved recording with updated text')
-          await onRecordingSaved(recordingUrl, transcript, recordingMode, newValue)
-          console.log('✅ Parent save completed')
-          // Don't update text field here - parent reload will handle it
-        } else {
-          console.warn('⚠️ No onRecordingSaved callback provided!')
-          // Only update text if no callback (fallback)
-          console.log('📝 Updating text field with transcript (no callback)')
-          onChange(newValue)
-        }
+      } else if (transcriptOnly) {
+        console.log('📝 Transcript-only mode: skipping file upload')
       } else {
         console.log('⏭️ Skipping file upload (checkbox unchecked)')
-        console.log('📝 Updating text field with transcript')
+      }
+
+      // Notify parent component (with or without file URL)
+      if (onRecordingSaved) {
+        console.log('📢 Notifying parent about saved recording with updated text')
+        await onRecordingSaved(recordingUrl || '', transcript, recordingMode, newValue)
+        console.log('✅ Parent save completed')
+        // Don't update text field here - parent reload will handle it
+      } else {
+        console.warn('⚠️ No onRecordingSaved callback provided!')
+        // Only update text if no callback (fallback)
+        console.log('📝 Updating text field with transcript (no callback)')
         onChange(newValue)
       }
       
@@ -235,7 +237,7 @@ export function RecordingTextarea({
             onTranscriptComplete={handleTranscriptComplete}
             autoTranscribe={true} // Transcribe both audio and video
             maxDuration={600} // 10 minutes
-            showSaveOption={true} // Show the save recording checkbox
+            showSaveOption={!transcriptOnly} // Hide save option if transcript-only mode
             category={category || storageFolder} // Use category if provided, else storageFolder
           />
         </div>
