@@ -172,17 +172,19 @@ Combine all three summaries to create one unified view that identifies:
 - Reframe in first person present tense USING THEIR SPEECH PATTERNS
 - Be compassionate but honest about what they expressed
 
-## OUTPUT FORMAT (strict - no vibrational summary):
+## OUTPUT FORMAT (strict - no markdown, no vibrational summary):
 
-### ${categoryName}
+CRITICAL: Do NOT use markdown formatting. No asterisks (**), no hash symbols (#), no markdown syntax. Use plain text with clean line breaks.
 
-**The things going really well in this area are...**
+${categoryName}
+
+The things going really well in this area are...
 - [Item 1 - Use their words, their phrases, reframed in first person]
 - [Item 2 - Use their words, their phrases, reframed in first person]
 - [Item 3 - Use their words, their phrases, reframed in first person]
 - [Additional items as needed]
 
-**The challenges currently in this area are...**
+The challenges currently in this area are...
 - [Challenge 1 - Use their words, their phrases, reframed in first person]
 - [Challenge 2 - Use their words, their phrases, reframed in first person]
 - [Challenge 3 - Use their words, their phrases, reframed in first person]
@@ -206,7 +208,9 @@ Combine all three summaries to create one unified view that identifies:
 
 8. **If they didn't mention something positive, don't make it up** - Only include what they actually said or implied.
 
-Remember: This should read like THEM summarizing their own life, not an AI writing about them.`
+9. **NO MARKDOWN FORMATTING** - Do not use asterisks (**), hash symbols (#), or any markdown syntax. Write in plain text with clean formatting. Use line breaks and dashes for bullet points, but no markdown syntax.
+
+Remember: This should read like THEM summarizing their own life, not an AI writing about them. Use their words, their phrasing, and plain text formatting - no markdown.`
 }
 
 function sendProgress(controller: ReadableStreamDefaultController, stage: string, message: string) {
