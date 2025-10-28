@@ -174,13 +174,24 @@ export default function AssemblyPage() {
       if (data.markdown && data.json) {
         setMasterVision({ markdown: data.markdown, json: data.json })
         
+        // Get the highest version number for this user (like the existing vision system does)
+        const { data: latestVersion } = await supabase
+          .from('vision_versions')
+          .select('version_number')
+          .eq('user_id', user.id)
+          .order('version_number', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        const newVersionNumber = (latestVersion?.version_number || 0) + 1
+
         // Save to vision_versions
         // Map API response fields to database columns (API may still use old names for backwards compat)
         const { data: insertedVision } = await supabase
           .from('vision_versions')
           .insert({
             user_id: user.id,
-            version_number: 1,
+            version_number: newVersionNumber,
             forward: data.json.forward || '',
             fun: data.json.fun || '',
             travel: data.json.travel || '',
