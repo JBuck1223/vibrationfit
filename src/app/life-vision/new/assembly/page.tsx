@@ -99,9 +99,13 @@ export default function AssemblyPage() {
         .eq('user_id', user.id)
 
       const categorySummaries: Record<string, string> = {}
+      const categoryTranscripts: Record<string, string> = {}
       refinements?.forEach(ref => {
         if (ref.ai_summary) {
           categorySummaries[ref.category] = ref.ai_summary
+        }
+        if (ref.transcript && ref.transcript.trim().length > 0) {
+          categoryTranscripts[ref.category] = ref.transcript
         }
       })
 
@@ -155,6 +159,7 @@ export default function AssemblyPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           categorySummaries,
+          categoryTranscripts,
           profile: profileData,
           assessment: assessmentData
         })
