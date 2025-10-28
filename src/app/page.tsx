@@ -13,6 +13,7 @@ import {
   Stack,
   Inline,
   Grid,
+  TwoColumn,
   Switcher,
   Cover,
   Container,
@@ -758,6 +759,81 @@ export default function HomePage() {
                     </a>
                   </Button>
                 </div>
+              </Stack>
+            </Card>
+          </div>
+        </section>
+
+        {/* Guarantees Section */}
+        <section>
+          <div className="w-full">
+            <Card variant="elevated" className="bg-[#1F1F1F] border-[#333] !mx-0 !w-full p-6 md:p-8">
+              <Stack gap="xs" className="md:gap-3" align="center">
+                <div className="w-16 h-16 bg-[#FFFF00] rounded-full flex items-center justify-center mb-2">
+                  <Shield className="w-8 h-8 text-black" />
+                </div>
+                <Heading level={2} className="text-center mb-0">Our Guarantees</Heading>
+                
+                <TwoColumn gap="lg">
+                {/* 72-Hour Activation Guarantee */}
+                <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
+                  <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
+                    <img 
+                      src="https://media.vibrationfit.com/site-assets/brand/guarantees/72-hour-activation-guarantee.png" 
+                      alt="72 Hour Activation Guarantee"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <Stack gap="md" align="center" className="pb-2">
+                    <Heading level={3} className="text-white text-center">
+                      72‑Hour Activation Guarantee
+                    </Heading>
+                    <div className="text-center mb-2">
+                      <p className="text-base text-[#39FF14] font-semibold flex items-center justify-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Clock starts today
+                      </p>
+                    </div>
+                    <Text size="base" className="text-white text-center">
+                      If you complete all 10 steps in 72 hours and aren't satisfied, we'll refund you in full.
+                    </Text>
+                    <Text size="sm" className="text-neutral-300 text-center">
+                      Completion = 70%+ Profile, 84‑Q Assessment, 12‑category Vision (with VIVA), AM/PM Vision Audio, Vision Board (12 images), 3 journal entries, Calibration call booked.
+                    </Text>
+                  </Stack>
+                </Card>
+
+                {/* Membership Guarantee */}
+                <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
+                  <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
+                    <img 
+                      src="https://media.vibrationfit.com/site-assets/brand/guarantees/membership-guarantee.png"
+                      alt="Membership Guarantee"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <Stack gap="md" align="center">
+                    <Heading level={3} className="text-white text-center">
+                      Membership Guarantee
+                    </Heading>
+                    <div className="text-center mb-2">
+                      <p className="text-base text-[#8B5CF6] font-semibold flex items-center justify-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Clock starts today
+                      </p>
+                    </div>
+                    <Text size="base" className="text-white text-center">
+                      28‑Day Plan: 12‑week satisfaction guarantee from checkout.
+                    </Text>
+                    <Text size="base" className="text-white text-center">
+                      Annual Plan: 16‑week satisfaction guarantee from checkout.
+                    </Text>
+                    <Text size="base" className="text-white text-center">
+                      Not satisfied within your window? We'll refund the plan and cancel future renewals.
+                    </Text>
+                </Stack>
+              </Card>
+                </TwoColumn>
               </Stack>
             </Card>
           </div>

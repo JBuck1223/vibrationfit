@@ -260,6 +260,12 @@ export default function DesignSystemExperiment() {
                       Lists
                     </Button>
                   </a>
+                  <a href="#guarantees" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Icon icon={Shield} size="sm" className="mr-2" />
+                      Guarantees
+                    </Button>
+                  </a>
                   <a href="#categories" className="block">
                     <Button variant="ghost" size="sm" className="w-full justify-start">
                       <Icon icon={Users} size="sm" className="mr-2" />
@@ -1835,6 +1841,116 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
                         <ListItem>Add custom icons with <code className="bg-neutral-800 px-1 rounded">icon</code> prop</ListItem>
                         <ListItem>Adjust <code className="bg-neutral-800 px-1 rounded">size</code> and <code className="bg-neutral-800 px-1 rounded">spacing</code> for hierarchy</ListItem>
                       </BulletedList>
+                    </Stack>
+                  </Card>
+                </Stack>
+              </Card>
+
+              {/* Guarantees Section */}
+              <Card id="guarantees">
+                <Stack gap="md">
+                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                    <Icon icon={Shield} size="md" color="#39FF14" />
+                    Guarantees
+                  </h3>
+                  
+                  {/* Guarantee Card Pattern */}
+                  <Card variant="default" className="p-6">
+                    <Stack gap="md">
+                      <h4 className="text-lg font-medium text-white">Guarantee Card Pattern</h4>
+                      <p className="text-sm text-neutral-400">Icon positioned at top (half in, half out), centered H3 title, and base text list.</p>
+                      <div className="border border-neutral-700 rounded-lg p-6">
+                        <TwoColumn gap="lg">
+                          {/* Example 1 */}
+                          <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
+                            <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
+                              <img 
+                                src="https://media.vibrationfit.com/site-assets/brand/guarantees/72-hour-activation-guarantee.png" 
+                                alt="72 Hour Activation Guarantee"
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            <Stack gap="md" align="center" className="pb-2">
+                              <Heading level={3} className="text-white text-center">
+                                72‑Hour Activation Guarantee
+                              </Heading>
+                              <div className="text-center mb-2">
+                                <p className="text-base text-[#39FF14] font-semibold flex items-center justify-center gap-2">
+                                  <Clock className="w-4 h-4" />
+                                  Clock starts today
+                                </p>
+                              </div>
+                              <Text size="base" className="text-white text-center">
+                                If you complete all 10 steps in 72 hours and aren't satisfied, we'll refund you in full.
+                              </Text>
+                              <Text size="sm" className="text-neutral-300 text-center">
+                                Completion = 70%+ Profile, 84‑Q Assessment, 12‑category Vision (with VIVA), AM/PM Vision Audio, Vision Board (12 images), 3 journal entries, Calibration call booked.
+                              </Text>
+                            </Stack>
+                          </Card>
+
+                          {/* Example 2 */}
+                          <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
+                            <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
+                              <img 
+                                src="https://media.vibrationfit.com/site-assets/brand/guarantees/membership-guarantee.png"
+                                alt="Membership Guarantee"
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            <Stack gap="md" align="center">
+                              <Heading level={3} className="text-white text-center">
+                                Membership Guarantee
+                              </Heading>
+                              <div className="text-center mb-2">
+                                <p className="text-base text-[#8B5CF6] font-semibold flex items-center justify-center gap-2">
+                                  <Clock className="w-4 h-4" />
+                                  Clock starts today
+                                </p>
+                              </div>
+                              <Text size="base" className="text-white text-center">
+                                28‑Day Plan: 12‑week satisfaction guarantee from checkout.
+                              </Text>
+                              <Text size="base" className="text-white text-center">
+                                Annual Plan: 16‑week satisfaction guarantee from checkout.
+                              </Text>
+                              <Text size="base" className="text-white text-center">
+                                Not satisfied within your window? We'll refund the plan and cancel future renewals.
+                              </Text>
+                            </Stack>
+                          </Card>
+                        </TwoColumn>
+                      </div>
+                      <div className="mt-4 p-4 bg-neutral-800 rounded-lg">
+                        <p className="text-xs text-neutral-400 mb-2">Pattern:</p>
+                        <pre className="text-xs text-neutral-300 overflow-x-auto">
+{`<TwoColumn gap="lg">
+  <Card variant="elevated" className="relative pt-8">
+    {/* Icon - positioned at top, half sticking out */}
+    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-[color] rounded-full flex items-center justify-center z-10">
+      <Icon className="w-6 h-6" />
+    </div>
+    
+    <Stack gap="md" align="center">
+      {/* H3 Title */}
+      <Heading level={3} className="text-center">
+        Guarantee Title
+      </Heading>
+      
+      {/* List */}
+      <BulletedList variant="default" size="md">
+        <ListItem>Guarantee detail 1</ListItem>
+        <ListItem>Guarantee detail 2</ListItem>
+      </BulletedList>
+    </Stack>
+  </Card>
+  
+  <Card variant="elevated" className="relative pt-8">
+    {/* Second guarantee card */}
+  </Card>
+</TwoColumn>`}
+                        </pre>
+                      </div>
                     </Stack>
                   </Card>
                 </Stack>
