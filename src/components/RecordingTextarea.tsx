@@ -85,8 +85,15 @@ export function RecordingTextarea({
       if (shouldSaveFile) {
         console.log('📤 Uploading recording to S3...')
         
-        // Determine the specific subfolder based on recording type
-        const specificFolder = recordingMode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings'
+        // Determine the specific subfolder based on recording type and storage folder
+        let specificFolder: string
+        if (storageFolder === 'lifeVision') {
+          specificFolder = recordingMode === 'video' ? 'lifeVisionVideoRecordings' : 'lifeVisionAudioRecordings'
+        } else if (storageFolder === 'evidence') {
+          specificFolder = recordingMode === 'video' ? 'evidenceVideoRecordings' : 'evidenceAudioRecordings'
+        } else {
+          specificFolder = recordingMode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings'
+        }
         
         // Generate file info for progress tracking
         const fileName = `recording-${Date.now()}.${recordingMode === 'video' ? 'webm' : 'webm'}`

@@ -108,8 +108,10 @@ export default function CategoryPage() {
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
+    console.log('🎯 Category page: handleRecordingSaved called', { url, transcriptLength: transcript.length, type, updatedTextLength: updatedText.length })
     setTranscript(transcript)
     setContent(updatedText)
+    console.log('✅ Category page: State updated with transcript and content')
   }
 
   const handleTranscriptComplete = (transcriptText: string) => {
