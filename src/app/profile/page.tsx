@@ -48,18 +48,18 @@ import NextImage from 'next/image'
 const getCategoryInfo = (categoryId: string) => {
   // Map profile category filters to vision category keys
   const categoryMapping: Record<string, string> = {
-    'romance_partnership': 'romance',
-    'family_parenting': 'family', 
-    'health_vitality': 'health',
-    'home_environment': 'home',
-    'career_work': 'business',
-    'money_wealth': 'money',
-    'fun_recreation': 'fun',
-    'travel_adventure': 'travel',
-    'social_friends': 'social',
-    'possessions_lifestyle': 'possessions',
-    'spirituality_growth': 'spirituality',
-    'giving_legacy': 'giving'
+    'love': 'love',
+    'family': 'family', 
+    'health': 'health',
+    'home': 'home',
+    'work': 'work',
+    'money': 'money',
+    'fun': 'fun',
+    'travel': 'travel',
+    'social': 'social',
+    'stuff': 'stuff',
+    'spirituality': 'spirituality',
+    'giving': 'giving'
   }
   
   const visionCategoryKey = categoryMapping[categoryId] || categoryId
@@ -88,18 +88,18 @@ const getCategoryInfo = (categoryId: string) => {
 // Helper function to get profile categories in design system order
 const getOrderedProfileCategories = () => {
   const profileCategories = [
-    'romance_partnership',
-    'family_parenting', 
-    'health_vitality',
-    'home_environment',
-    'career_work',
-    'money_wealth',
-    'fun_recreation',
-    'travel_adventure',
-    'social_friends',
-    'possessions_lifestyle',
-    'spirituality_growth',
-    'giving_legacy'
+    'love',
+    'family', 
+    'health',
+    'home',
+    'work',
+    'money',
+    'fun',
+    'travel',
+    'social',
+    'stuff',
+    'spirituality',
+    'giving'
   ]
   
   return profileCategories
@@ -572,7 +572,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
   // Helper function to render fields for each category
   const renderCategoryFields = (categoryId: string) => {
     switch (categoryId) {
-      case 'romance_partnership':
+      case 'love':
         return (
           <>
             <ProfileField 
@@ -617,16 +617,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Romance & Partnership" 
-              value={profile.romance_partnership_story}
+              value={profile.love_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="romance_partnership_story"
+              fieldKey="love_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'family_parenting':
+      case 'family':
         return (
           <>
             <ProfileField 
@@ -656,16 +656,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Family & Parenting" 
-              value={profile.family_parenting_story}
+              value={profile.family_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="family_parenting_story"
+              fieldKey="family_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'health_vitality':
+      case 'health':
         return (
           <>
             <ProfileField 
@@ -713,16 +713,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Health & Vitality" 
-              value={profile.health_vitality_story}
+              value={profile.health_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="health_vitality_story"
+              fieldKey="health_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'home_environment':
+      case 'home':
         return (
           <>
             <ProfileField 
@@ -784,16 +784,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Home & Environment" 
-              value={profile.home_environment_story}
+              value={profile.home_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="home_environment_story"
+              fieldKey="home_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'career_work':
+      case 'work':
         return (
           <>
             <ProfileField 
@@ -845,16 +845,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Career & Work" 
-              value={profile.career_work_story}
+              value={profile.work_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="career_work_story"
+              fieldKey="work_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'money_wealth':
+      case 'money':
         return (
           <>
             <ProfileField 
@@ -940,16 +940,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Money & Wealth" 
-              value={profile.money_wealth_story}
+              value={profile.money_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="money_wealth_story"
+              fieldKey="money_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'fun_recreation':
+      case 'fun':
         return (
           <>
             <ProfileField 
@@ -977,16 +977,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Fun & Recreation" 
-              value={profile.fun_recreation_story}
+              value={profile.fun_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="fun_recreation_story"
+              fieldKey="fun_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'travel_adventure':
+      case 'travel':
         return (
           <>
             <ProfileField 
@@ -1021,16 +1021,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Travel & Adventure" 
-              value={profile.travel_adventure_story}
+              value={profile.travel_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="travel_adventure_story"
+              fieldKey="travel_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'social_friends':
+      case 'social':
         return (
           <>
             <ProfileField 
@@ -1062,16 +1062,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Social & Friends" 
-              value={profile.social_friends_story}
+              value={profile.social_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="social_friends_story"
+              fieldKey="social_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'possessions_lifestyle':
+      case 'stuff':
         return (
           <>
             <ProfileField 
@@ -1097,16 +1097,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Possessions & Lifestyle" 
-              value={profile.possessions_lifestyle_story}
+              value={profile.stuff_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="possessions_lifestyle_story"
+              fieldKey="stuff_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'spirituality_growth':
+      case 'spirituality':
         return (
           <>
             <ProfileField 
@@ -1147,16 +1147,16 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Spirituality & Growth" 
-              value={profile.spirituality_growth_story}
+              value={profile.spirituality_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="spirituality_growth_story"
+              fieldKey="spirituality_story"
               onSave={handleFieldSave}
             />
           </>
         )
       
-      case 'giving_legacy':
+      case 'giving':
         return (
           <>
             <ProfileField 
@@ -1197,10 +1197,10 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
             />
             <ProfileField 
               label="My Current Story Around Giving & Legacy" 
-              value={profile.giving_legacy_story}
+              value={profile.giving_story}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="giving_legacy_story"
+              fieldKey="giving_story"
               onSave={handleFieldSave}
             />
           </>

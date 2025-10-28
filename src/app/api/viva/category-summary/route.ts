@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAIModelConfig } from '@/lib/ai/config'
 import OpenAI from 'openai'
 import { analyzeProfile, analyzeAssessment } from '@/lib/viva/profile-analyzer'
+import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -20,13 +22,13 @@ function getCategoryProfileFields(category: string, profile: any): string {
     fun: 'fun_story',
     health: 'health_story',
     travel: 'travel_story',
-    romance: 'love_story',
+    love: 'love_story',
     family: 'family_story',
     social: 'social_story',
     home: 'home_story',
-    business: 'work_story',
+    work: 'work_story',
     money: 'money_story',
-    possessions: 'stuff_story',
+    stuff: 'stuff_story',
     giving: 'giving_story',
     spirituality: 'spirituality_story'
   }
@@ -42,13 +44,13 @@ function getCategoryProfileFields(category: string, profile: any): string {
     fun: ['leisure_time_weekly', 'hobbies'],
     health: ['exercise_frequency', 'health_concerns'],
     travel: ['countries_visited', 'travel_frequency'],
-    romance: ['relationship_status', 'relationship_length'],
+    love: ['relationship_status', 'relationship_length'],
     family: ['has_children', 'number_of_children'],
     social: ['close_friends_count', 'social_frequency'],
     home: ['living_situation', 'time_at_location'],
-    business: ['employment_type', 'time_in_role', 'occupation'],
+    work: ['employment_type', 'time_in_role', 'occupation'],
     money: ['household_income', 'consumer_debt', 'assets_equity'],
-    possessions: ['material_values'],
+    stuff: ['material_values'],
     giving: ['volunteer_status', 'charitable_giving'],
     spirituality: ['spiritual_practice']
   }
@@ -84,13 +86,13 @@ function buildCategoryPrompt(
     fun: 'fun_story',
     health: 'health_story',
     travel: 'travel_story',
-    romance: 'love_story',
+    love: 'love_story',
     family: 'family_story',
     social: 'social_story',
     home: 'home_story',
-    business: 'work_story',
+    work: 'work_story',
     money: 'money_story',
-    possessions: 'stuff_story',
+    stuff: 'stuff_story',
     giving: 'giving_story',
     spirituality: 'spirituality_story'
   }
@@ -128,7 +130,7 @@ function buildCategoryPrompt(
   
   if (assessmentQAs.length > 0) {
     dataSections += `## DATA SOURCE 3: Assessment Responses (Their Own Answers)
-${assessmentQAs.map((qa: { question: string; answer: string; greenLine: string; score: any }, i: number) => `Question ${i + 1}: ${qa.question}
+${assessmentQAs.map((qa: { question: string; answer: string; greenLine: string; score: number }, i: number) => `Question ${i + 1}: ${qa.question}
 Answer: "${qa.answer}"
 Green Line Status: ${qa.greenLine}
 Score: ${qa.score}
@@ -299,18 +301,36 @@ export async function POST(request: NextRequest) {
         // Build prompt with context
         const prompt = buildCategoryPrompt(category, transcript, categoryName, profile, assessment)
 
+        // Get admin-approved AI model config
+        const aiConfig = getAIModelConfig('LIFE_VISION_CATEGORY_SUMMARY')
+
+        // Estimate tokens and validate balance
+        const estimatedTokens = estimateTokensForText(prompt, aiConfig.model)
+        const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
+        
+        if (tokenValidation) {
+          const error = JSON.stringify({ 
+            type: 'error', 
+            error: tokenValidation.error,
+            tokensRemaining: tokenValidation.tokensRemaining
+          })
+          controller.enqueue(new TextEncoder().encode(`data: ${error}\n\n`))
+          controller.close()
+          return
+        }
+
         // Stage 5: Creating summary
         sendProgress(controller, 'creating', 'Creating your summary...')
 
         // Call OpenAI
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
+          model: aiConfig.model,
           messages: [
-            { role: 'system', content: SHARED_SYSTEM_PROMPT },
+            { role: 'system', content: aiConfig.systemPrompt || SHARED_SYSTEM_PROMPT },
             { role: 'user', content: prompt }
           ],
-          temperature: 0.7,
-          max_tokens: 1000,
+          temperature: aiConfig.temperature,
+          max_tokens: aiConfig.maxTokens,
         })
 
         const summary = completion.choices[0]?.message?.content
@@ -319,13 +339,37 @@ export async function POST(request: NextRequest) {
           throw new Error('No summary generated')
         }
 
-        // TODO: Track token usage in database
+        // Track token usage
+        if (completion.usage) {
+          try {
+            await trackTokenUsage({
+              user_id: user.id,
+              action_type: 'life_vision_category_summary',
+              model_used: aiConfig.model,
+              tokens_used: completion.usage.total_tokens || 0,
+              input_tokens: completion.usage.prompt_tokens || 0,
+              output_tokens: completion.usage.completion_tokens || 0,
+              cost_estimate: 0, // Will be calculated by trackTokenUsage
+              success: true,
+              metadata: {
+                category: category,
+                categoryName: categoryName,
+                summary_length: summary.length,
+                has_profile: !!profile,
+                has_assessment: !!assessment,
+              },
+            })
+          } catch (trackingError) {
+            console.error('Failed to track token usage:', trackingError)
+            // Don't fail the request if tracking fails
+          }
+        }
 
         // Send final result
         const result = JSON.stringify({ 
           type: 'complete',
           summary,
-          model: 'gpt-4o',
+          model: aiConfig.model,
           category 
         })
         controller.enqueue(new TextEncoder().encode(`data: ${result}\n\n`))

@@ -24,7 +24,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
     const newRecording = { url, transcript, type, category: 'fun_recreation', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, fun_recreation_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, fun_story: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -130,8 +130,8 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
         {/* Story Field */}
         <RecordingTextarea
           label="My Current Story Around Fun & Recreation"
-          value={profile.fun_recreation_story || ''}
-          onChange={(value) => handleInputChange('fun_recreation_story', value)}
+          value={profile.fun_story || ''}
+          onChange={(value) => handleInputChange('fun_story', value)}
           placeholder="Share your recreational activities, leisure time, what brings you joy... Or record your story!"
           rows={6}
           allowVideo={true}

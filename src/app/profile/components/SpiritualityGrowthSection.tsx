@@ -22,7 +22,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
     const newRecording = { url, transcript, type, category: 'spirituality_growth', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, spirituality_growth_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, spirituality_story: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -103,8 +103,8 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
         {/* Story Field */}
         <RecordingTextarea
           label="My Current Story Around Spirituality & Growth"
-          value={profile.spirituality_growth_story || ''}
-          onChange={(value) => handleInputChange('spirituality_growth_story', value)}
+          value={profile.spirituality_story || ''}
+          onChange={(value) => handleInputChange('spirituality_story', value)}
           placeholder="Share your spiritual journey, personal growth practices, what you're learning... Or record your story!"
           rows={6}
           allowVideo={true}

@@ -39,7 +39,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
       url,
       transcript,
       type,
-      category: 'romance_partnership',
+      category: 'love',
       created_at: new Date().toISOString()
     }
 
@@ -51,7 +51,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           story_recordings: updatedRecordings,
-          romance_partnership_story: updatedText
+          love_story: updatedText
         }),
       })
 
@@ -65,7 +65,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'romance_partnership')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'love')
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => 
@@ -168,8 +168,8 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
         {/* Romance & Partnership Story */}
         <RecordingTextarea
           label="My Current Story Around Romance & Partnership"
-          value={profile.romance_partnership_story || ''}
-          onChange={(value) => handleInputChange('romance_partnership_story', value)}
+          value={profile.love_story || ''}
+          onChange={(value) => handleInputChange('love_story', value)}
           placeholder="Share your relationship journey, love story, partnership goals, or romantic aspirations... Or click the microphone to record!"
           rows={6}
           allowVideo={true}
@@ -181,7 +181,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
         <SavedRecordings
           key={`romance-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="romance_partnership"
+          categoryFilter="love"
           onDelete={handleDeleteRecording}
         />
       </div>

@@ -21,12 +21,22 @@ export interface AIProviderConfig {
 // ============================================================================
 
 export let AI_MODELS = {
-  // Assessment scoring - needs consistency and accuracy
-  ASSESSMENT_SCORING: {
-    model: 'gpt-5',
-    temperature: 0.3,
-    maxTokens: 200,
-    systemPrompt: 'You are an expert at analyzing vibrational alignment and mindset. Score responses based on empowerment vs victim mindset, abundance vs scarcity thinking, and overall energetic alignment.'
+  // VIVA Life Vision Creation - Category Summary
+  // Generates personalized category summaries from user input, profile, and assessment
+  LIFE_VISION_CATEGORY_SUMMARY: {
+    model: 'gpt-4o',
+    temperature: 0.7,
+    maxTokens: 1500,
+    systemPrompt: 'You are VIVA — the AI Vibrational Assistant for Vibration Fit. Your purpose is to help members articulate and activate the life they choose through vibrational alignment. You are a warm, wise, intuitive life coach — never a therapist or problem-solver. All responses must be in present tense, first person, and vibrationally activating.'
+  },
+
+  // VIVA Life Vision Creation - Master Vision Assembly
+  // Assembles complete life vision document from all category summaries
+  LIFE_VISION_MASTER_ASSEMBLY: {
+    model: 'gpt-4-turbo',
+    temperature: 0.7,
+    maxTokens: 4000,
+    systemPrompt: 'You are VIVA — the AI Vibrational Assistant for Vibration Fit. Your purpose is to help members articulate and activate the life they choose through vibrational alignment. You are a warm, wise, intuitive life coach — never a therapist or problem-solver. All responses must be in present tense, first person, and vibrationally activating.'
   },
 
   // Vision generation - needs creativity and depth
@@ -67,6 +77,22 @@ export let AI_MODELS = {
     temperature: 0.7,
     maxTokens: 800,
     systemPrompt: 'You are creating natural, flowing audio scripts for life visions and affirmations.'
+  },
+
+  // Prompt suggestions for life vision - needs personalization and creativity
+  PROMPT_SUGGESTIONS: {
+    model: 'gpt-4o',
+    temperature: 0.8,
+    maxTokens: 1000,
+    systemPrompt: 'You are VIVA, VibrationFit\'s AI Vision Assistant. You generate personalized, creative prompts to help users reflect deeply on their life experiences.'
+  },
+
+  // Assessment scoring - needs consistency and accuracy
+  ASSESSMENT_SCORING: {
+    model: 'gpt-5',
+    temperature: 0.3,
+    maxTokens: 200,
+    systemPrompt: 'You are an expert at analyzing vibrational alignment and mindset. Score responses based on empowerment vs victim mindset, abundance vs scarcity thinking, and overall energetic alignment.'
   },
 
   // Image generation - needs visual creativity

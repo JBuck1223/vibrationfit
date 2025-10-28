@@ -41,12 +41,12 @@ interface VisionData {
   travel: string
   home: string
   family: string
-  romance: string
+  love: string
   health: string
   money: string
-  business: string
+  work: string
   social: string
-  possessions: string
+  stuff: string
   giving: string
   spirituality: string
   conclusion: string

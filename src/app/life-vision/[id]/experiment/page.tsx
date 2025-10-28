@@ -26,12 +26,12 @@ interface VisionData {
   travel: string
   home: string
   family: string
-  romance: string
+  love: string
   health: string
   money: string
-  business: string
+  work: string
   social: string
-  possessions: string
+  stuff: string
   giving: string
   spirituality: string
   conclusion: string
@@ -333,12 +333,12 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
         travel: vision.travel || '',
         home: vision.home || '',
         family: vision.family || '',
-        romance: vision.romance || '',
+        love: vision.love || '',
         health: vision.health || '',
         money: vision.money || '',
-        business: vision.business || '',
+        work: vision.work || '',
         social: vision.social || '',
-        possessions: vision.possessions || '',
+        stuff: vision.stuff || '',
         giving: vision.giving || '',
         spirituality: vision.spirituality || '',
         conclusion: vision.conclusion || '',

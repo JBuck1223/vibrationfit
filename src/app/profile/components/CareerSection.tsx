@@ -39,20 +39,20 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'career_work', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: 'work', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
       await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ story_recordings: updatedRecordings, career_work_story: updatedText }),
+        body: JSON.stringify({ story_recordings: updatedRecordings, work_story: updatedText }),
       })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'career_work')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'work')
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
@@ -149,8 +149,8 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
         {/* Career & Work Story */}
         <RecordingTextarea
           label="My Current Story Around Career & Work"
-          value={profile.career_work_story || ''}
-          onChange={(value) => handleInputChange('career_work_story', value)}
+          value={profile.work_story || ''}
+          onChange={(value) => handleInputChange('work_story', value)}
           placeholder="Share your career journey, professional goals, work experiences... Or record your story!"
           rows={6}
           allowVideo={true}
@@ -161,7 +161,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
         <SavedRecordings
           key={`career-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="career_work"
+          categoryFilter="work"
           onDelete={handleDeleteRecording}
         />
       </div>

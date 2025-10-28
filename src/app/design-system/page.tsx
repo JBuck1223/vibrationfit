@@ -45,6 +45,8 @@ import {
   OfferStack,
   ActionButtons,
   DeleteConfirmationDialog,
+  InsufficientTokensDialog,
+  InsufficientStorageDialog,
   AudioPlayer,
   PlaylistPlayer,
   Heading,
@@ -121,6 +123,8 @@ export default function DesignSystemExperiment() {
   const [videoModalOpen, setVideoModalOpen] = useState(false)
   const [billingPeriod, setBillingPeriod] = useState<'annual' | '28day'>('annual')
   const [showDeleteDemo, setShowDeleteDemo] = useState(false)
+  const [showInsufficientTokensDemo, setShowInsufficientTokensDemo] = useState(false)
+  const [showInsufficientStorageDemo, setShowInsufficientStorageDemo] = useState(false)
 
   // Sample audio tracks for showcase
   // Note: These are placeholder URLs. Replace with your actual audio files.
@@ -1063,21 +1067,21 @@ export default function DesignSystemExperiment() {
               {/* Standardized Action Components */}
               <Card>
                 <Stack gap="md">
-                  <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="text-xl md:text-2xl font-semibold mb-4 flex items-center gap-2">
                     <Icon icon={CheckCircle} size="md" color="#39FF14" />
                     Standardized Action Components
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     {/* ActionButtons */}
-                    <Card variant="default" className="p-6">
+                    <Card variant="default" className="p-4 md:p-6">
                       <Stack gap="md">
-                        <h4 className="text-lg font-medium text-white">ActionButtons</h4>
-                        <p className="text-sm text-[#9CA3AF] mb-4">Standardized View/Delete button pair for list cards</p>
+                        <h4 className="text-base md:text-lg font-medium text-white">ActionButtons</h4>
+                        <p className="text-xs md:text-sm text-[#9CA3AF] mb-4">Standardized View/Delete button pair for list cards. Buttons fit side-by-side on mobile when space allows, wrap to stack only if needed.</p>
                         
                         <div className="space-y-4">
                           <div>
-                            <p className="text-sm text-neutral-300 mb-2">Default (with labels):</p>
+                            <p className="text-xs md:text-sm text-neutral-300 mb-2">Default (with labels):</p>
                             <ActionButtons
                               versionType="completed"
                               viewHref="/vision-board/example"
@@ -1086,7 +1090,7 @@ export default function DesignSystemExperiment() {
                           </div>
                           
                           <div>
-                            <p className="text-sm text-neutral-300 mb-2">Icon-only (compact):</p>
+                            <p className="text-xs md:text-sm text-neutral-300 mb-2">Icon-only (compact):</p>
                             <ActionButtons
                               versionType="completed"
                               viewHref="/vision-board/example"
@@ -1097,7 +1101,7 @@ export default function DesignSystemExperiment() {
                           </div>
                           
                           <div>
-                            <p className="text-sm text-neutral-300 mb-2">Custom variants:</p>
+                            <p className="text-xs md:text-sm text-neutral-300 mb-2">Custom variants:</p>
                             <ActionButtons
                               versionType="completed"
                               viewHref="/vision-board/example"
@@ -1112,17 +1116,19 @@ export default function DesignSystemExperiment() {
                     </Card>
 
                     {/* DeleteConfirmationDialog */}
-                    <Card variant="default" className="p-6">
+                    <Card variant="default" className="p-4 md:p-6">
                       <Stack gap="md">
-                        <h4 className="text-lg font-medium text-white">DeleteConfirmationDialog</h4>
-                        <p className="text-sm text-[#9CA3AF] mb-4">Beautiful delete confirmation popup</p>
+                        <h4 className="text-base md:text-lg font-medium text-white">DeleteConfirmationDialog</h4>
+                        <p className="text-xs md:text-sm text-[#9CA3AF] mb-4">Beautiful delete confirmation popup</p>
                         
                         <div className="space-y-4">
                           <div>
-                            <p className="text-sm text-neutral-300 mb-2">Click to see the dialog:</p>
+                            <p className="text-xs md:text-sm text-neutral-300 mb-2">Click to see the dialog:</p>
                             <Button 
-                              variant="danger" 
+                              variant="danger"
+                              size="sm"
                               onClick={() => setShowDeleteDemo(true)}
+                              className="w-full md:w-auto"
                             >
                               Show Delete Dialog
                             </Button>
@@ -1136,6 +1142,75 @@ export default function DesignSystemExperiment() {
                               <li>Loading states</li>
                               <li>Mobile responsive</li>
                               <li>Accessibility built-in</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+
+                    {/* InsufficientTokensDialog */}
+                    <Card variant="default" className="p-4 md:p-6">
+                      <Stack gap="md">
+                        <h4 className="text-base md:text-lg font-medium text-white">InsufficientTokensDialog</h4>
+                        <p className="text-xs md:text-sm text-[#9CA3AF] mb-4">Beautiful dialog shown when user runs out of tokens</p>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs md:text-sm text-neutral-300 mb-2">Click to see the dialog:</p>
+                            <Button 
+                              variant="accent"
+                              size="sm"
+                              onClick={() => setShowInsufficientTokensDemo(true)}
+                              className="w-full md:w-auto"
+                            >
+                              Show Insufficient Tokens Dialog
+                            </Button>
+                          </div>
+                          
+                          <div className="text-xs text-neutral-400">
+                            <p className="mb-2">Features:</p>
+                            <ul className="list-disc list-inside space-y-1">
+                              <li>Animated energy icon (Zap)</li>
+                              <li>Shows current token balance</li>
+                              <li>Smart messaging with token estimates</li>
+                              <li>Direct link to purchase tokens</li>
+                              <li>Mobile responsive</li>
+                              <li>Matches brand aesthetic</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+
+                    {/* InsufficientStorageDialog */}
+                    <Card variant="default" className="p-4 md:p-6">
+                      <Stack gap="md">
+                        <h4 className="text-base md:text-lg font-medium text-white">InsufficientStorageDialog</h4>
+                        <p className="text-xs md:text-sm text-[#9CA3AF] mb-4">Beautiful dialog shown when user runs out of storage</p>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs md:text-sm text-neutral-300 mb-2">Click to see the dialog:</p>
+                            <Button 
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setShowInsufficientStorageDemo(true)}
+                              className="w-full md:w-auto"
+                            >
+                              Show Insufficient Storage Dialog
+                            </Button>
+                          </div>
+                          
+                          <div className="text-xs text-neutral-400">
+                            <p className="mb-2">Features:</p>
+                            <ul className="list-disc list-inside space-y-1">
+                              <li>Animated storage icon (HardDrive)</li>
+                              <li>Shows storage usage and quota</li>
+                              <li>Visual progress bar</li>
+                              <li>Smart messaging with file size estimates</li>
+                              <li>Direct link to upgrade storage</li>
+                              <li>Mobile responsive</li>
+                              <li>Matches brand aesthetic</li>
                             </ul>
                           </div>
                         </div>
@@ -2286,9 +2361,21 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
             <Stack gap="lg">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">All Life Categories</h2>
-                <p className="text-[#9CA3AF] text-sm md:text-base">Responsive grid - click to select (12 across on desktop, 4 across on mobile)</p>
+                <p className="text-[#9CA3AF] text-sm md:text-base">
+                  Responsive grid - click to select (
+                    {VISION_CATEGORIES.some(c => c.key === 'forward') && VISION_CATEGORIES.some(c => c.key === 'conclusion')
+                      ? '14 across on desktop, 4 across on mobile' 
+                      : '12 across on desktop, 4 across on mobile'}
+                  )
+                </p>
             </div>
-              <div className="grid grid-cols-4 md:grid-cols-12 gap-2 md:gap-3">
+              <div className={`
+                grid grid-cols-4 gap-2 md:gap-3
+                ${VISION_CATEGORIES.some(c => c.key === 'forward') && VISION_CATEGORIES.some(c => c.key === 'conclusion')
+                  ? 'md:grid-cols-[repeat(14,minmax(0,1fr))]' 
+                  : 'md:grid-cols-12'
+                }
+              `}>
                 {VISION_CATEGORIES.map((category) => (
                   <CategoryCard 
                     key={category.key} 
@@ -2887,6 +2974,23 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
     itemName="Design System Demo Item"
     itemType="Example"
     isLoading={false}
+  />
+
+  <InsufficientTokensDialog
+    isOpen={showInsufficientTokensDemo}
+    onClose={() => setShowInsufficientTokensDemo(false)}
+    tokensRemaining={0}
+    estimatedTokens={5000}
+    actionName="generate blueprint"
+  />
+
+  <InsufficientStorageDialog
+    isOpen={showInsufficientStorageDemo}
+    onClose={() => setShowInsufficientStorageDemo(false)}
+    storageUsedGB={24.5}
+    storageQuotaGB={25}
+    estimatedSizeGB={2.5}
+    actionName="upload file"
   />
 
 </>

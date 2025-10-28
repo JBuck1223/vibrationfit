@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateAudioTracks, OpenAIVoice, hashContent } from '@/lib/services/audioService'
+import { validateTokenBalance, getDefaultTokenEstimate } from '@/lib/tokens/tracking'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -25,6 +26,23 @@ export async function POST(request: NextRequest) {
 
     if (!visionId || !Array.isArray(sections)) {
       return NextResponse.json({ error: 'visionId and sections are required' }, { status: 400 })
+    }
+
+    // Calculate total text length for token estimation
+    const totalTextLength = sections.reduce((sum, section) => sum + (section.text?.length || 0), 0)
+    // TTS: approximately 1 token per character
+    const estimatedTokens = Math.max(100, totalTextLength)
+    
+    // Validate token balance
+    const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
+    if (tokenValidation) {
+      return NextResponse.json(
+        { 
+          error: tokenValidation.error,
+          tokensRemaining: tokenValidation.tokensRemaining
+        },
+        { status: tokenValidation.status }
+      )
     }
 
     const results = await generateAudioTracks({

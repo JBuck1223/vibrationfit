@@ -22,7 +22,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
     const newRecording = { url, transcript, type, category: 'travel_adventure', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, travel_adventure_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, travel_story: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -100,8 +100,8 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
         {/* Story Field */}
         <RecordingTextarea
           label="My Current Story Around Travel & Adventure"
-          value={profile.travel_adventure_story || ''}
-          onChange={(value) => handleInputChange('travel_adventure_story', value)}
+          value={profile.travel_story || ''}
+          onChange={(value) => handleInputChange('travel_story', value)}
           placeholder="Share your travel experiences, where you've been, how you like to travel... Or record your story!"
           rows={6}
           allowVideo={true}

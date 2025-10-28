@@ -53,6 +53,7 @@
 - **ALWAYS** use responsive flex direction: `flex-col md:flex-row`
 - **ALWAYS** ensure items wrap properly: `flex-wrap`
 - **ALWAYS** use proper gap spacing: `gap-2 md:gap-4`
+- **PREFERENCE**: For ActionButtons - buttons should fit side-by-side on mobile when they fit, use `flex-row flex-wrap` to allow wrapping only when necessary (prevents overflow while maximizing horizontal space usage)
 
 ## MOBILE TESTING CHECKLIST
 Before considering any component "complete":

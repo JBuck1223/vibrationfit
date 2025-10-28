@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateJSON } from '@/lib/ai/client'
-import { trackTokenUsage } from '@/lib/tokens/tracking'
+import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
@@ -50,6 +50,20 @@ Respond with ONLY a JSON object:
 }
 
 Be decisive! Look for emotional energy, confidence, and empowerment vs. anxiety, negativity, and victimhood.`
+
+    // Estimate tokens and validate balance
+    const tokenEstimate = estimateTokensForText(prompt + userResponse, 'gpt-5')
+    const tokenValidation = await validateTokenBalance(user.id, tokenEstimate, supabase)
+    
+    if (tokenValidation) {
+      return NextResponse.json(
+        { 
+          error: tokenValidation.error,
+          tokensRemaining: tokenValidation.tokensRemaining
+        },
+        { status: tokenValidation.status }
+      )
+    }
 
     // Use centralized AI client with safe fallback
     let result: { score: 2 | 4 | 6 | 8 | 10; greenLine: 'above' | 'neutral' | 'below' } | null = null
@@ -110,13 +124,13 @@ Be decisive! Look for emotional energy, confidence, and empowerment vs. anxiety,
 
     // Track token usage (estimate since generateJSON doesn't return usage data)
     const modelUsed = 'gpt-5' // Default model for assessment scoring
-    const estimatedTokens = Math.ceil((prompt.length + userResponse.length) / 4) // Rough estimate
+    const actualTokensUsed = Math.ceil((prompt.length + userResponse.length) / 4) // Rough estimate
     
     await trackTokenUsage({
       user_id: user.id,
       action_type: 'assessment_scoring',
       model_used: modelUsed,
-      tokens_used: estimatedTokens,
+      tokens_used: actualTokensUsed,
       input_tokens: Math.ceil(prompt.length / 4),
       output_tokens: 50, // Estimated output tokens for JSON response
       cost_estimate: 0, // Will be calculated by trackTokenUsage function

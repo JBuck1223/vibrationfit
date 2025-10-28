@@ -22,7 +22,7 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload 
     const newRecording = { url, transcript, type, category: 'giving_legacy', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, giving_legacy_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, giving_story: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -103,8 +103,8 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload 
         {/* Story Field */}
         <RecordingTextarea
           label="My Current Story Around Giving & Legacy"
-          value={profile.giving_legacy_story || ''}
-          onChange={(value) => handleInputChange('giving_legacy_story', value)}
+          value={profile.giving_story || ''}
+          onChange={(value) => handleInputChange('giving_story', value)}
           placeholder="Share your giving practices, what causes matter to you, how you're contributing... Or record your story!"
           rows={6}
           allowVideo={true}

@@ -4,7 +4,7 @@
 import { streamText } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
-import { trackTokenUsage } from '@/lib/tokens/tracking'
+import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 
 export const runtime = 'edge' // Use Edge Runtime for faster cold starts
 
@@ -72,6 +72,25 @@ export async function POST(req: Request) {
     const chatMessages = isInitialGreeting 
       ? [] 
       : messages
+
+    // Estimate tokens and validate balance before starting stream
+    const messagesText = chatMessages.map((m: { content: string }) => m.content).join('\n')
+    const promptText = systemPrompt + (isInitialGreeting ? `\nIntroduce yourself to ${userName}...` : messagesText)
+    const estimatedTokens = estimateTokensForText(promptText, 'gpt-4-turbo')
+    const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
+    
+    if (tokenValidation) {
+      return new Response(
+        JSON.stringify({ 
+          error: tokenValidation.error,
+          tokensRemaining: tokenValidation.tokensRemaining
+        }),
+        { 
+          status: tokenValidation.status,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
 
     // Create streaming completion using AI SDK
     const result = streamText({

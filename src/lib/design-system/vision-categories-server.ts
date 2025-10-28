@@ -34,7 +34,7 @@ export const VISION_CATEGORIES_SERVER: VisionCategoryServer[] = [
     order: 4
   },
   {
-    key: 'romance',
+    key: 'love',
     label: 'Love',
     description: 'Romantic relationships',
     order: 5
@@ -58,7 +58,7 @@ export const VISION_CATEGORIES_SERVER: VisionCategoryServer[] = [
     order: 8
   },
   {
-    key: 'business',
+    key: 'work',
     label: 'Work',
     description: 'Work and career aspirations',
     order: 9
@@ -70,8 +70,8 @@ export const VISION_CATEGORIES_SERVER: VisionCategoryServer[] = [
     order: 10
   },
   {
-    key: 'possessions',
-    label: 'Possessions',
+    key: 'stuff',
+    label: 'Stuff',
     description: 'Material belongings and things',
     order: 11
   },

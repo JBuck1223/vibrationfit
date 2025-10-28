@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Container, Card, Button, Badge } from '@/lib/design-system/components'
 import { AI_MODELS, getFeaturesUsingModel, type AIModelConfig } from '@/lib/ai/config'
 import { AdminWrapper } from '@/components/AdminWrapper'
+import { ExternalLink, Target } from 'lucide-react'
 
 function AIModelsAdminContent() {
   const [models, setModels] = useState<typeof AI_MODELS>(AI_MODELS)
@@ -247,13 +249,44 @@ function AIModelsAdminContent() {
 
         {/* Features Configuration */}
         <div className="space-y-6">
-          {Object.entries(models).map(([feature, config]) => (
+          {Object.entries(models).map(([feature, config]) => {
+            // Map features to their tool access URLs
+            const toolLinks: Record<string, { label: string; href: string }> = {
+              'LIFE_VISION_CATEGORY_SUMMARY': { label: 'Life Vision Creation Tool', href: '/life-vision/new' },
+              'LIFE_VISION_MASTER_ASSEMBLY': { label: 'Life Vision Creation Tool', href: '/life-vision/new/assembly' },
+              'PROMPT_SUGGESTIONS': { label: 'Life Vision Creation Tool', href: '/life-vision/new' },
+              'VISION_GENERATION': { label: 'Vision Builder', href: '/vision/build' },
+              'VISION_REFINEMENT': { label: 'Vision Builder', href: '/vision/build' },
+              'BLUEPRINT_GENERATION': { label: 'Vibe Assistant', href: '/dashboard/vibe-assistant-usage' },
+              'CHAT_CONVERSATION': { label: 'Vibe Assistant', href: '/dashboard/vibe-assistant-usage' },
+              'AUDIO_GENERATION': { label: 'Audio Mixer', href: '/admin/audio-mixer' },
+              'IMAGE_GENERATION': { label: 'Vision Board', href: '/vision-board' },
+              'ASSESSMENT_SCORING': { label: 'Assessment', href: '/assessment' },
+            }
+            
+            const toolLink = toolLinks[feature]
+            
+            return (
             <Card key={feature} className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-semibold text-white capitalize">
-                    {feature.replace(/_/g, ' ')}
-                  </h3>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <h3 className="text-xl font-semibold text-white capitalize">
+                      {feature.replace(/_/g, ' ')}
+                    </h3>
+                    {toolLink && (
+                      <Link 
+                        href={toolLink.href}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-[#00FFFF] hover:text-[#39FF14] hover:bg-[#00FFFF]/10 rounded-lg border border-[#00FFFF]/30 hover:border-[#00FFFF]/50 transition-all"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Target className="w-3.5 h-3.5" />
+                        <span>{toolLink.label}</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    )}
+                  </div>
                   <p className="text-sm text-neutral-400">
                     {config.systemPrompt ? 'With system prompt' : 'Simple prompt'}
                   </p>
@@ -332,6 +365,9 @@ function AIModelsAdminContent() {
                     {(() => {
                       // Map feature names to action types
                       const featureToActionType: Record<string, string> = {
+                        'LIFE_VISION_CATEGORY_SUMMARY': 'life_vision_category_summary',
+                        'LIFE_VISION_MASTER_ASSEMBLY': 'life_vision_master_assembly',
+                        'PROMPT_SUGGESTIONS': 'prompt_suggestions',
                         'ASSESSMENT_SCORING': 'assessment_scoring',
                         'VISION_GENERATION': 'vision_generation',
                         'VISION_REFINEMENT': 'vision_refinement',
@@ -365,7 +401,8 @@ function AIModelsAdminContent() {
                 </div>
               )}
             </Card>
-          ))}
+            )
+          })}
         </div>
 
         {/* Edit Modal */}

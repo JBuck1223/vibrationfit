@@ -50,7 +50,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
     const newRecording = { url, transcript, type, category: 'home_environment', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, home_environment_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, home_story: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -180,8 +180,8 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
         {/* Home & Environment Story */}
         <RecordingTextarea
           label="My Current Story Around Home & Environment"
-          value={profile.home_environment_story || ''}
-          onChange={(value) => handleInputChange('home_environment_story', value)}
+          value={profile.home_story || ''}
+          onChange={(value) => handleInputChange('home_story', value)}
           placeholder="Share your home story, living environment, space goals... Or record your story!"
           rows={6}
           allowVideo={true}

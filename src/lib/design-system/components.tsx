@@ -2775,8 +2775,9 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="max-w-md mx-4">
+    <div className="fixed inset-0 bg-black/50 z-[9999] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4 pt-6 pb-20 md:pb-4">
+        <Card className="max-w-md w-full my-auto">
         <div className="text-center">
           <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <X className="w-8 h-8 text-red-400" />
@@ -2805,6 +2806,280 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
           </div>
         </div>
       </Card>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * InsufficientTokensDialog - Beautiful dialog shown when user runs out of tokens
+ * 
+ * Features:
+ * - Consistent visual design matching DeleteConfirmationDialog
+ * - Shows current token balance
+ * - Call-to-action button to purchase more tokens
+ * - Beautiful energy-themed design with Zap icon
+ * - Proper accessibility and keyboard navigation
+ * 
+ * Usage:
+ * <InsufficientTokensDialog
+ *   isOpen={showInsufficientTokens}
+ *   onClose={() => setShowInsufficientTokens(false)}
+ *   tokensRemaining={0}
+ *   estimatedTokens={500}
+ * />
+ */
+interface InsufficientTokensDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  tokensRemaining: number
+  estimatedTokens?: number // How many tokens the action would require
+  actionName?: string // Optional: "refine vision", "generate audio", etc.
+}
+
+export const InsufficientTokensDialog: React.FC<InsufficientTokensDialogProps> = ({
+  isOpen,
+  onClose,
+  tokensRemaining,
+  estimatedTokens,
+  actionName = 'this action'
+}) => {
+  if (!isOpen) return null
+
+  const formatTokens = (tokens: number) => {
+    if (tokens >= 1_000_000) {
+      return `${(tokens / 1_000_000).toFixed(1)}M`
+    }
+    if (tokens >= 1_000) {
+      return `${(tokens / 1_000).toFixed(1)}K`
+    }
+    return tokens.toLocaleString()
+  }
+
+  const handleBuyTokens = () => {
+    window.location.href = '/dashboard/add-tokens'
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[9999] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4 pt-6 pb-20 md:pb-4">
+        <Card className="max-w-md w-full my-auto">
+        <div className="text-center">
+          {/* Icon */}
+          <div className="w-16 h-16 bg-energy-500/20 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+            <Zap className="w-8 h-8 text-energy-500" />
+            <div className="absolute inset-0 bg-energy-500/10 rounded-full animate-ping" />
+          </div>
+
+          {/* Title */}
+          <h3 className="text-2xl font-bold text-white mb-3">
+            Insufficient Tokens
+          </h3>
+
+          {/* Current Balance */}
+          <div className="bg-neutral-900 rounded-xl p-4 mb-4 border border-neutral-700">
+            <div className="text-sm text-neutral-400 mb-1">Current Balance</div>
+            <div className="flex items-center justify-center gap-2">
+              <Zap className="w-5 h-5 text-energy-500" />
+              <span className="text-3xl font-bold text-white">
+                {formatTokens(tokensRemaining)}
+              </span>
+              <span className="text-sm text-neutral-500">tokens</span>
+            </div>
+          </div>
+
+          {/* Message */}
+          <p className="text-neutral-300 mb-1">
+            {estimatedTokens && estimatedTokens > tokensRemaining ? (
+              <>
+                This {actionName} requires <span className="font-semibold text-white">{formatTokens(estimatedTokens)} tokens</span>, but you only have <span className="font-semibold text-white">{formatTokens(tokensRemaining)} tokens</span> remaining.
+              </>
+            ) : (
+              <>
+                You don't have enough tokens to perform {actionName}.
+              </>
+            )}
+          </p>
+          <p className="text-sm text-neutral-400 mb-6">
+            Purchase more tokens to continue creating with VIVA.
+          </p>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-3">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleBuyTokens}
+              className="w-full"
+            >
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              Buy More Tokens
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={onClose}
+              className="w-full"
+            >
+              Maybe Later
+            </Button>
+          </div>
+
+          {/* Info Footer */}
+          <div className="mt-6 pt-6 border-t border-neutral-700">
+            <p className="text-xs text-neutral-500">
+              Tokens never expire • Use anytime • Instant delivery
+            </p>
+          </div>
+        </div>
+      </Card>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * InsufficientStorageDialog - Beautiful dialog shown when user runs out of storage
+ * 
+ * Features:
+ * - Consistent visual design matching InsufficientTokensDialog
+ * - Shows current storage usage and quota
+ * - Call-to-action button to upgrade storage
+ * - Beautiful storage-themed design with HardDrive icon
+ * - Proper accessibility and keyboard navigation
+ * 
+ * Usage:
+ * <InsufficientStorageDialog
+ *   isOpen={showInsufficientStorage}
+ *   onClose={() => setShowInsufficientStorage(false)}
+ *   storageUsedGB={24.5}
+ *   storageQuotaGB={25}
+ *   estimatedSizeGB={2.5}
+ *   actionName="upload file"
+ * />
+ */
+interface InsufficientStorageDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  storageUsedGB: number // Current storage used
+  storageQuotaGB: number // Total storage quota
+  estimatedSizeGB?: number // Optional: Size of file/action that would exceed quota
+  actionName?: string // Optional: "upload file", "save recording", etc.
+}
+
+export const InsufficientStorageDialog: React.FC<InsufficientStorageDialogProps> = ({
+  isOpen,
+  onClose,
+  storageUsedGB,
+  storageQuotaGB,
+  estimatedSizeGB,
+  actionName = 'this action'
+}) => {
+  if (!isOpen) return null
+
+  const formatGB = (gb: number) => {
+    if (gb < 0.1) {
+      return `${(gb * 1024).toFixed(1)} MB`
+    }
+    return `${gb.toFixed(2)} GB`
+  }
+
+  const remainingGB = Math.max(0, storageQuotaGB - storageUsedGB)
+  const usagePercentage = (storageUsedGB / storageQuotaGB) * 100
+
+  const handleUpgradeStorage = () => {
+    // Link to pricing or billing page where they can upgrade
+    window.location.href = '/pricing'
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[9999] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4 pt-6 pb-20 md:pb-4">
+        <Card className="max-w-md w-full my-auto">
+        <div className="text-center">
+          {/* Icon */}
+          <div className="w-16 h-16 bg-secondary-500/20 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+            <HardDrive className="w-8 h-8 text-secondary-500" />
+            <div className="absolute inset-0 bg-secondary-500/10 rounded-full animate-ping" />
+          </div>
+
+          {/* Title */}
+          <h3 className="text-2xl font-bold text-white mb-3">
+            Insufficient Storage
+          </h3>
+
+          {/* Current Usage */}
+          <div className="bg-neutral-900 rounded-xl p-4 mb-4 border border-neutral-700">
+            <div className="text-sm text-neutral-400 mb-2">Storage Usage</div>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-neutral-800 rounded-full h-2 mb-3">
+              <div 
+                className="h-2 rounded-full bg-gradient-to-r from-secondary-500 to-primary-500 transition-all duration-300"
+                style={{ width: `${Math.min(100, usagePercentage)}%` }}
+              />
+            </div>
+            
+            {/* Usage Stats */}
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <HardDrive className="w-5 h-5 text-secondary-500" />
+              <span className="text-2xl font-bold text-white">
+                {formatGB(storageUsedGB)}
+              </span>
+              <span className="text-sm text-neutral-500">/</span>
+              <span className="text-2xl font-bold text-white">
+                {formatGB(storageQuotaGB)}
+              </span>
+            </div>
+            <div className="text-xs text-neutral-400">
+              {formatGB(remainingGB)} remaining
+            </div>
+          </div>
+
+          {/* Message */}
+          <p className="text-neutral-300 mb-1">
+            {estimatedSizeGB && (remainingGB < estimatedSizeGB) ? (
+              <>
+                This {actionName} requires <span className="font-semibold text-white">{formatGB(estimatedSizeGB)}</span>, but you only have <span className="font-semibold text-white">{formatGB(remainingGB)}</span> of storage remaining.
+              </>
+            ) : (
+              <>
+                You don't have enough storage space to perform {actionName}.
+              </>
+            )}
+          </p>
+          <p className="text-sm text-neutral-400 mb-6">
+            Upgrade your plan or add storage to continue uploading and creating.
+          </p>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-3">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleUpgradeStorage}
+              className="w-full"
+            >
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              Upgrade Storage
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={onClose}
+              className="w-full"
+            >
+              Maybe Later
+            </Button>
+          </div>
+
+          {/* Info Footer */}
+          <div className="mt-6 pt-6 border-t border-neutral-700">
+            <p className="text-xs text-neutral-500">
+              Annual plans include 100GB • Add-ons available • Instant upgrade
+            </p>
+          </div>
+        </div>
+      </Card>
+      </div>
     </div>
   )
 }
@@ -2817,9 +3092,14 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
  * - Draft versions: Edit | View | Commit
  * - Completed versions: Edit | View | Delete
  * - Consistent styling and behavior
- * - Responsive design (full-width on mobile, inline on desktop)
+ * - Responsive design: Buttons try to fit side-by-side on mobile, wrap to stack only if needed
  * - Customizable variants and sizes
  * - Optional labels for icon-only buttons
+ * 
+ * Mobile Behavior:
+ * - Uses flex-row with flex-wrap to allow buttons side-by-side when they fit
+ * - Automatically wraps to new line if buttons don't fit (prevents overflow)
+ * - Preference: Side-by-side when space allows, stack only when necessary
  * 
  * Usage:
  * <ActionButtons
@@ -2864,13 +3144,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 }) => {
   if (versionType === 'draft') {
     return (
-      <div className={cn('flex flex-row gap-2 w-full md:w-auto', className)}>
+      <div className={cn('flex flex-row flex-wrap gap-2 md:gap-4 w-full', className)}>
         {/* Edit Button */}
         <Button 
           asChild 
           size={size} 
           variant={variant} 
-          className="text-xs md:text-sm flex-1 md:flex-none"
+          className="text-xs md:text-sm flex-1 min-w-0 shrink"
         >
           <Link href={editHref || viewHref}>
             <Edit className="w-4 h-4" />
@@ -2883,7 +3163,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           asChild 
           size={size} 
           variant={variant} 
-          className="text-xs md:text-sm flex-1 md:flex-none"
+          className="text-xs md:text-sm flex-1 min-w-0 shrink"
         >
           <Link href={viewHref}>
             <Eye className="w-4 h-4" />
@@ -2897,7 +3177,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           variant={commitVariant}
           onClick={onCommit}
           disabled={isCommitting}
-          className="text-xs md:text-sm flex-1 md:flex-none"
+          className="text-xs md:text-sm flex-1 min-w-0 shrink"
         >
           {isCommitting ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -2912,13 +3192,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   // Completed version - show Edit, View and Delete
   return (
-    <div className={cn('flex flex-row gap-2 w-full md:w-auto', className)}>
+    <div className={cn('flex flex-row flex-wrap gap-2 md:gap-4 w-full', className)}>
       {/* Edit Button */}
       <Button 
         asChild 
         size={size} 
         variant={variant} 
-        className="text-xs md:text-sm flex-1 md:flex-none"
+        className="text-xs md:text-sm flex-1 min-w-0 shrink"
       >
         <Link href={editHref || viewHref}>
           <Edit className="w-4 h-4" />
@@ -2931,7 +3211,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         asChild 
         size={size} 
         variant={variant} 
-        className="text-xs md:text-sm flex-1 md:flex-none"
+        className="text-xs md:text-sm flex-1 min-w-0 shrink"
       >
         <Link href={viewHref}>
           <Eye className="w-4 h-4" />
@@ -2944,7 +3224,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         size={size}
         variant={deleteVariant}
         onClick={onDelete}
-        className="text-xs md:text-sm flex-1 md:flex-none"
+        className="text-xs md:text-sm flex-1 min-w-0 shrink"
       >
         <X className="w-4 h-4" />
         {showLabels && <span className="ml-1">Delete</span>}

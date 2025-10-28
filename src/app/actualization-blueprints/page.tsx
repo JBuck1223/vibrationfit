@@ -30,7 +30,8 @@ import {
   Badge, 
   ProgressBar, 
   Spinner,
-  Input
+  Input,
+  InsufficientTokensDialog
 } from '@/lib/design-system'
 import { 
   checkVibeAssistantAllowance,
@@ -103,6 +104,14 @@ export default function ActualizationBlueprintsPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  
+  // Insufficient tokens dialog state
+  const [showInsufficientTokens, setShowInsufficientTokens] = useState(false)
+  const [insufficientTokensData, setInsufficientTokensData] = useState<{
+    tokensRemaining: number
+    estimatedTokens?: number
+    actionName?: string
+  } | null>(null)
   
   // Text isolation state
   const [activeVisionText, setActiveVisionText] = useState('')
@@ -207,8 +216,16 @@ export default function ActualizationBlueprintsPage() {
       const data = await response.json()
 
       if (!data.success) {
-        if (data.error === 'Insufficient tokens remaining') {
-          throw new Error(`Insufficient tokens remaining. You have ${data.allowanceInfo?.tokensRemaining || 0} tokens left. Please upgrade your plan or wait for your monthly allowance to reset.`)
+        if (data.error === 'Insufficient tokens remaining' || response.status === 402) {
+          // Show beautiful insufficient tokens dialog
+          setInsufficientTokensData({
+            tokensRemaining: data.tokensRemaining || data.allowanceInfo?.tokensRemaining || 0,
+            estimatedTokens: undefined, // We don't get this from the error
+            actionName: 'generate blueprint'
+          })
+          setShowInsufficientTokens(true)
+          setIsGenerating(false)
+          return
         }
         throw new Error(data.error || 'Blueprint generation failed')
       }
@@ -285,6 +302,7 @@ export default function ActualizationBlueprintsPage() {
 
   return (
     <>
+      <PageLayout>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
@@ -625,6 +643,19 @@ export default function ActualizationBlueprintsPage() {
             )}
           </div>
         </div>
+      </PageLayout>
+
+      {/* Insufficient Tokens Dialog */}
+      <InsufficientTokensDialog
+        isOpen={showInsufficientTokens}
+        onClose={() => {
+          setShowInsufficientTokens(false)
+          setInsufficientTokensData(null)
+        }}
+        tokensRemaining={insufficientTokensData?.tokensRemaining || 0}
+        estimatedTokens={insufficientTokensData?.estimatedTokens}
+        actionName={insufficientTokensData?.actionName}
+      />
     </>
   )
 }

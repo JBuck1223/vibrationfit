@@ -59,7 +59,7 @@ export const VISION_CATEGORIES: VisionCategory[] = [
     order: 3
   },
   {
-    key: 'romance',
+    key: 'love',
     label: 'Love',
     description: 'Romantic relationships',
     icon: Heart,
@@ -87,7 +87,7 @@ export const VISION_CATEGORIES: VisionCategory[] = [
     order: 7
   },
   {
-    key: 'business',
+    key: 'work',
     label: 'Work',
     description: 'Work and career aspirations',
     icon: Briefcase,
@@ -101,7 +101,7 @@ export const VISION_CATEGORIES: VisionCategory[] = [
     order: 9
   },
   {
-    key: 'possessions',
+    key: 'stuff',
     label: 'Stuff',
     description: 'Material belongings and things',
     icon: Package,

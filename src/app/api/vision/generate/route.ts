@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { trackTokenUsage } from '@/lib/tokens/tracking'
+import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 
 export const runtime = 'nodejs'
 
@@ -17,12 +17,12 @@ const CATEGORY_TO_COLUMN_MAP: { [key: string]: string } = {
   'Travel / Adventure': 'travel',
   'Home / Environment': 'home',
   'Family / Parenting': 'family',
-  'Love / Romance': 'romance',
+  'Love / Romance': 'love',
   'Health / Vitality': 'health',
   'Money / Wealth': 'money',
-  'Business / Career': 'business',
+  'Business / Career': 'work',
   'Social / Friends': 'social',
-  'Possessions / Stuff': 'possessions',
+  'Possessions / Stuff': 'stuff',
   'Giving / Legacy': 'giving',
   'Spirituality': 'spirituality',
   'Conclusion': 'conclusion'
@@ -124,6 +124,21 @@ Generate the vision now based on the conversation below.`
         content: msg.content
       })
     })
+
+    // Estimate tokens and validate balance
+    const promptText = contextMessages.map(m => m.content).join('\n')
+    const estimatedTokens = estimateTokensForText(promptText, 'gpt-4')
+    const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
+    
+    if (tokenValidation) {
+      return NextResponse.json(
+        { 
+          error: tokenValidation.error,
+          tokensRemaining: tokenValidation.tokensRemaining
+        },
+        { status: tokenValidation.status }
+      )
+    }
 
     // Call OpenAI to generate vision
     const completion = await openai.chat.completions.create({

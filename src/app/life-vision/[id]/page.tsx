@@ -15,7 +15,9 @@ import {
   Textarea,
   AutoResizeTextarea,
   Icon,
-  AudioPlayer
+  AudioPlayer,
+  Stack,
+  Inline
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -28,12 +30,12 @@ interface VisionData {
   travel: string
   home: string
   family: string
-  romance: string
+  love: string
   health: string
   money: string
-  business: string
+  work: string
   social: string
-  possessions: string
+  stuff: string
   giving: string
   spirituality: string
   conclusion: string
@@ -335,14 +337,14 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         // Map all other keys 1:1
         health: 'health',
         family: 'family',
-        romance: 'romance',
+        love: 'love',
         social: 'social',
         fun: 'fun',
         travel: 'travel',
         home: 'home',
         money: 'money',
-        business: 'business',
-        possessions: 'possessions',
+        work: 'work',
+        stuff: 'stuff',
         giving: 'giving',
         spirituality: 'spirituality',
       }
@@ -601,12 +603,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         travel: vision.travel || '',
         home: vision.home || '',
         family: vision.family || '',
-        romance: vision.romance || '',
+        love: vision.love || '',
         health: vision.health || '',
         money: vision.money || '',
-        business: vision.business || '',
+        work: vision.work || '',
         social: vision.social || '',
-        possessions: vision.possessions || '',
+        stuff: vision.stuff || '',
         giving: vision.giving || '',
         spirituality: vision.spirituality || '',
         conclusion: vision.conclusion || '',
@@ -1050,111 +1052,113 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           {/* Versions Dropdown */}
           {showVersions && versions.length > 0 && (
             <div className="mt-6">
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Version History</h3>
-                <div className="space-y-3">
+              <Card className="p-4 md:p-6">
+                <h3 className="text-base md:text-lg font-semibold text-white mb-4">Version History</h3>
+                <Stack gap="sm">
                   {versions.map((version) => (
-                    <div key={version.id} className="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-sm font-medium text-white">
-                            Version {version.version_number}
-                          </span>
-                          {version.status === 'draft' && (
-                            <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
-                              Draft
-                            </span>
-                          )}
-                          {version.status === 'complete' && (
-                            <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
-                              Complete
-                            </span>
-                          )}
-                          <span className="text-sm text-neutral-400">
-                            {version.completion_percent}% complete
-                          </span>
+                    <Card key={version.id} variant="outlined" className="p-4 md:p-6">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        {/* Left side - Version Info */}
+                        <div className="flex-1 min-w-0">
+                          <Stack gap="sm">
+                            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                              <span className="text-xs md:text-sm font-medium text-white">
+                                Version {version.version_number}
+                              </span>
+                              {version.status === 'draft' && (
+                                <Badge variant="warning">Draft</Badge>
+                              )}
+                              {version.status === 'complete' && (
+                                <Badge variant="success">Complete</Badge>
+                              )}
+                              <span className="text-xs md:text-sm text-neutral-400">
+                                {version.completion_percent}% complete
+                              </span>
+                            </div>
+                            <Stack gap="xs">
+                              <p className="text-xs text-neutral-500 truncate">
+                                <span className="font-mono">ID:</span> {version.id}
+                              </p>
+                              <p className="text-xs text-neutral-500">
+                                <span className="font-medium">Version:</span> v{version.version_number}
+                              </p>
+                              <p className="text-xs text-neutral-500">
+                                <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                              </p>
+                            </Stack>
+                          </Stack>
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-neutral-500">
-                            <span className="font-mono">ID:</span> {version.id}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            <span className="font-medium">Version:</span> v{version.version_number}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {version.status === 'draft' ? (
-                          <>
-                            <Button
-                              onClick={() => router.push('/life-vision/create-with-viva')}
-                              variant="primary"
-                              size="sm"
-                              className="flex items-center gap-1"
-                            >
-                              <Sparkles className="w-3 h-3" />
-                              Continue with VIVA
-                            </Button>
-                            <Button
-                              onClick={() => router.push(`/life-vision/${version.id}`)}
-                              variant="secondary"
-                              size="sm"
-                              className="flex items-center gap-1"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                              Edit On My Own
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              onClick={() => {
-                                const url = new URL(window.location.href)
-                                url.searchParams.set('versionId', version.id)
-                                window.history.pushState({}, '', url.toString())
-                                fetchVisionVersion(version.id)
-                              }}
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-1"
-                            >
-                              <Eye className="w-3 h-3" />
-                              View
-                            </Button>
-                            {version.status === 'draft' && (
+                        {/* Right side - Action Buttons */}
+                        <div className="flex flex-row flex-wrap gap-2 md:gap-4 shrink-0">
+                          {version.status === 'draft' ? (
+                            <>
+                              <Button
+                                onClick={() => router.push('/life-vision/create-with-viva')}
+                                variant="primary"
+                                size="sm"
+                                className="flex-1 min-w-0 shrink md:flex-none"
+                              >
+                                <Icon icon={Sparkles} size="sm" />
+                                <span className="ml-1 truncate">Continue with VIVA</span>
+                              </Button>
                               <Button
                                 onClick={() => router.push(`/life-vision/${version.id}`)}
                                 variant="secondary"
                                 size="sm"
-                                className="flex items-center gap-1"
+                                className="flex-1 min-w-0 shrink md:flex-none"
                               >
-                                <Edit3 className="w-3 h-3" />
-                                Edit
+                                <Icon icon={Edit3} size="sm" />
+                                <span className="ml-1 truncate">Edit On My Own</span>
                               </Button>
-                            )}
-                          </>
-                        )}
-                        <Button
-                          onClick={() => deleteVersion(version.id)}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:border-red-400"
-                          disabled={deletingVersion === version.id}
-                        >
-                          {deletingVersion === version.id ? (
-                            <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
+                            </>
                           ) : (
-                            <Trash2 className="w-3 h-3" />
+                            <>
+                              <Button
+                                onClick={() => {
+                                  const url = new URL(window.location.href)
+                                  url.searchParams.set('versionId', version.id)
+                                  window.history.pushState({}, '', url.toString())
+                                  fetchVisionVersion(version.id)
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 min-w-0 shrink md:flex-none"
+                              >
+                                <Icon icon={Eye} size="sm" />
+                                <span className="ml-1">View</span>
+                              </Button>
+                              {version.status === 'draft' && (
+                                <Button
+                                  onClick={() => router.push(`/life-vision/${version.id}`)}
+                                  variant="secondary"
+                                  size="sm"
+                                  className="flex-1 min-w-0 shrink md:flex-none"
+                                >
+                                  <Icon icon={Edit3} size="sm" />
+                                  <span className="ml-1">Edit</span>
+                                </Button>
+                              )}
+                            </>
                           )}
-                          Delete
-                        </Button>
+                          <Button
+                            onClick={() => deleteVersion(version.id)}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 min-w-0 shrink md:flex-none text-red-400 hover:text-red-300 hover:border-red-400"
+                            disabled={deletingVersion === version.id}
+                          >
+                            {deletingVersion === version.id ? (
+                              <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Icon icon={Trash2} size="sm" />
+                            )}
+                            <span className="ml-1">Delete</span>
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    </Card>
                   ))}
-                </div>
+                </Stack>
               </Card>
             </div>
           )}

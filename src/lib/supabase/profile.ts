@@ -48,19 +48,19 @@ export interface UserProfile {
     duration?: number
     created_at: string
   }> | null
-  // Life Vision Story Fields (12 categories)
-  health_vitality_story?: string | null
-  romance_partnership_story?: string | null
-  family_parenting_story?: string | null
-  social_friends_story?: string | null
-  career_work_story?: string | null
-  money_wealth_story?: string | null
-  fun_recreation_story?: string | null
-  travel_adventure_story?: string | null
-  home_environment_story?: string | null
-  possessions_lifestyle_story?: string | null
-  spirituality_growth_story?: string | null
-  giving_legacy_story?: string | null
+  // Life Vision Story Fields (12 categories) - using category keys as field names
+  fun_story?: string | null
+  health_story?: string | null
+  travel_story?: string | null
+  love_story?: string | null
+  family_story?: string | null
+  social_story?: string | null
+  home_story?: string | null
+  work_story?: string | null
+  money_story?: string | null
+  stuff_story?: string | null
+  giving_story?: string | null
+  spirituality_story?: string | null
   // Structured Data Fields (12 categories)
   // Fun & Recreation
   hobbies?: string[] | null

@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateImage, generateVisionBoardImage, generateJournalImage } from '@/lib/services/imageService'
+import { validateTokenBalance, getDefaultTokenEstimate } from '@/lib/tokens/tracking'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,6 +27,20 @@ export async function POST(request: NextRequest) {
       type,
       prompt: prompt ? prompt.substring(0, 100) + '...' : 'No prompt',
     })
+
+    // Validate token balance (image generation uses override token value)
+    const estimatedTokens = await getDefaultTokenEstimate('image_generation', supabase)
+    const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
+    
+    if (tokenValidation) {
+      return NextResponse.json(
+        { 
+          error: tokenValidation.error,
+          tokensRemaining: tokenValidation.tokensRemaining
+        },
+        { status: tokenValidation.status }
+      )
+    }
 
     let result
 

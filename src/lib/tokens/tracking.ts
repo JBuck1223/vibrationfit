@@ -4,11 +4,12 @@
 // Comprehensive token usage tracking for all AI actions across the platform
 
 import { createClient } from '@/lib/supabase/client'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
 export interface TokenUsage {
   id?: string
   user_id: string
-  action_type: 'assessment_scoring' | 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'admin_grant' | 'admin_deduct'
+  action_type: 'assessment_scoring' | 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'admin_grant' | 'admin_deduct' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'prompt_suggestions'
   model_used: string
   tokens_used: number
   cost_estimate: number // in cents
@@ -39,6 +40,105 @@ const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
   'gpt-3.5-turbo': { input: 0.5, output: 1.5 },
   'dall-e-3': { input: 40, output: 0 }, // Fixed cost per image
   'dall-e-2': { input: 20, output: 0 }
+}
+
+/**
+ * Check if user has sufficient tokens before allowing an AI action (server-side)
+ * Returns null if user has enough tokens, or an error response object if insufficient
+ */
+export async function validateTokenBalance(
+  userId: string, 
+  estimatedTokens: number,
+  supabaseClient?: any
+): Promise<{ error: string; tokensRemaining: number; status: number } | null> {
+  try {
+    const supabase = supabaseClient || await createServerClient()
+    
+    // Get current token balance
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('vibe_assistant_tokens_remaining')
+      .eq('user_id', userId)
+      .single()
+
+    if (profileError || !profile) {
+      console.error('Failed to fetch user profile for token validation:', profileError)
+      // Allow the request to proceed if we can't check (better than blocking)
+      return null
+    }
+
+    const tokensRemaining = profile.vibe_assistant_tokens_remaining || 0
+
+    // Check if user has sufficient tokens
+    if (tokensRemaining < estimatedTokens) {
+      return {
+        error: 'Insufficient tokens remaining',
+        tokensRemaining,
+        status: 402 // Payment Required
+      }
+    }
+
+    return null // User has sufficient tokens
+  } catch (error) {
+    console.error('Error validating token balance:', error)
+    // On error, allow request to proceed (fail open rather than blocking)
+    return null
+  }
+}
+
+/**
+ * Estimate tokens for a text-based AI request
+ */
+export function estimateTokensForText(text: string, model: string): number {
+  // Rough estimate: ~4 characters per token for English text
+  // Add buffer for system prompts and formatting
+  const inputTokens = Math.max(100, Math.ceil(text.length / 4) + 200)
+  
+  // Estimate output tokens based on model (typically 20-50% of input for completions)
+  let outputMultiplier = 0.3 // Conservative default
+  if (model.includes('gpt-4')) outputMultiplier = 0.4
+  if (model.includes('gpt-5')) outputMultiplier = 0.5
+  
+  const outputTokens = Math.ceil(inputTokens * outputMultiplier)
+  
+  return inputTokens + outputTokens
+}
+
+/**
+ * Get default token estimate for non-text actions (images, audio, etc.)
+ */
+export async function getDefaultTokenEstimate(
+  actionType: TokenUsage['action_type'],
+  supabaseClient?: any
+): Promise<number> {
+  try {
+    const supabase = supabaseClient || await createServerClient()
+    
+    // Check for override value
+    const { data: override } = await supabase
+      .from('ai_action_token_overrides')
+      .select('token_value')
+      .eq('action_type', actionType)
+      .single()
+    
+    if (override?.token_value) {
+      return override.token_value
+    }
+
+    // Default estimates if no override
+    const defaults: Record<string, number> = {
+      image_generation: 25,
+      audio_generation: 1,
+      transcription: 60,
+      assessment_scoring: 200,
+    }
+
+    return defaults[actionType] || 100
+  } catch (error) {
+    console.error('Error getting default token estimate:', error)
+    // Return conservative default
+    return 100
+  }
 }
 
 /**

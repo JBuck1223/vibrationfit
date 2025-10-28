@@ -60,7 +60,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
         },
         body: JSON.stringify({
           story_recordings: updatedRecordings,
-          health_vitality_story: updatedText // Save the updated story text with transcript
+          health_story: updatedText // Save the updated story text with transcript
         }),
       })
 
@@ -71,7 +71,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
       const data = await response.json()
       console.log('✅ Recording auto-saved to database', {
         savedRecordings: data.profile?.story_recordings?.length || 0,
-        storyTextLength: data.profile?.health_vitality_story?.length || 0,
+        storyTextLength: data.profile?.health_story?.length || 0,
         actualRecordings: data.profile?.story_recordings
       })
 
@@ -292,8 +292,8 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
         {/* Health & Vitality Story */}
         <RecordingTextarea
           label="My Current Story Around Health & Vitality"
-          value={profile.health_vitality_story || ''}
-          onChange={(value) => handleInputChange('health_vitality_story', value)}
+          value={profile.health_story || ''}
+          onChange={(value) => handleInputChange('health_story', value)}
           placeholder="Share your health journey, fitness goals, wellness practices, or any health-related aspirations... Or click the microphone to record your story!"
           rows={6}
           allowVideo={true}

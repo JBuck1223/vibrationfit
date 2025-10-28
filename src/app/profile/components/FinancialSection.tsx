@@ -53,7 +53,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
     const newRecording = { url, transcript, type, category: 'money_wealth', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, money_wealth_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, money_story: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -204,8 +204,8 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
         {/* Money & Wealth Story */}
         <RecordingTextarea
           label="My Current Story Around Money & Wealth"
-          value={profile.money_wealth_story || ''}
-          onChange={(value) => handleInputChange('money_wealth_story', value)}
+          value={profile.money_story || ''}
+          onChange={(value) => handleInputChange('money_story', value)}
           placeholder="Share your financial journey, wealth goals, money mindset... Or record your story!"
           rows={6}
           allowVideo={true}

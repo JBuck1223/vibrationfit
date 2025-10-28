@@ -22,7 +22,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
     const newRecording = { url, transcript, type, category: 'social_friends', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, social_friends_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, social_story: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -89,8 +89,8 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
         {/* Story Field */}
         <RecordingTextarea
           label="My Current Story Around Social & Friends"
-          value={profile.social_friends_story || ''}
-          onChange={(value) => handleInputChange('social_friends_story', value)}
+          value={profile.social_story || ''}
+          onChange={(value) => handleInputChange('social_story', value)}
           placeholder="Share your social life, friendships, how you connect with others... Or record your story!"
           rows={6}
           allowVideo={true}

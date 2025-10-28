@@ -91,10 +91,8 @@ export default function NewProfileVersionPage() {
 
     // Life Category Story Fields (12 categories)
     const storyFields: (keyof UserProfile)[] = [
-      'health_vitality_story', 'romance_partnership_story', 'family_parenting_story',
-      'career_work_story', 'money_wealth_story', 'home_environment_story',
-      'fun_recreation_story', 'travel_adventure_story', 'social_friends_story',
-      'possessions_lifestyle_story', 'spirituality_growth_story', 'giving_legacy_story'
+      'fun_story', 'health_story', 'travel_story', 'love_story', 'family_story', 'social_story',
+      'home_story', 'work_story', 'money_story', 'stuff_story', 'giving_story', 'spirituality_story'
     ]
     storyFields.forEach(field => {
       totalFields++
@@ -244,30 +242,30 @@ export default function NewProfileVersionPage() {
         case 'fun-recreation':
           return (profile.hobbies && profile.hobbies.length > 0) || 
                  profile.leisure_time_weekly ||
-                 (profile.fun_recreation_story && profile.fun_recreation_story.trim().length > 0)
+                 (profile.fun_story && profile.fun_story.trim().length > 0)
         case 'travel-adventure':
           return profile.travel_frequency || 
                  profile.passport !== undefined || 
                  profile.countries_visited !== undefined ||
-                 (profile.travel_adventure_story && profile.travel_adventure_story.trim().length > 0)
+                 (profile.travel_story && profile.travel_story.trim().length > 0)
         case 'social-friends':
           return profile.close_friends_count || 
                  profile.social_preference ||
-                 (profile.social_friends_story && profile.social_friends_story.trim().length > 0)
+                 (profile.social_story && profile.social_story.trim().length > 0)
         case 'possessions-lifestyle':
           return profile.lifestyle_category || 
                  profile.primary_vehicle ||
-                 (profile.possessions_lifestyle_story && profile.possessions_lifestyle_story.trim().length > 0)
+                 (profile.stuff_story && profile.stuff_story.trim().length > 0)
         case 'spirituality-growth':
           return profile.spiritual_practice || 
                  profile.meditation_frequency || 
                  profile.personal_growth_focus !== undefined ||
-                 (profile.spirituality_growth_story && profile.spirituality_growth_story.trim().length > 0)
+                 (profile.spirituality_story && profile.spirituality_story.trim().length > 0)
         case 'giving-legacy':
           return profile.volunteer_status || 
                  profile.charitable_giving || 
                  profile.legacy_mindset !== undefined ||
-                 (profile.giving_legacy_story && profile.giving_legacy_story.trim().length > 0)
+                 (profile.giving_story && profile.giving_story.trim().length > 0)
         case 'photos-notes':
           return (profile.version_notes && profile.version_notes.trim().length > 0) || 
                  (profile.progress_photos && profile.progress_photos.length > 0)

@@ -4,8 +4,8 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 
 export const CATEGORIES = [
-  "forward", "fun", "travel", "home", "family", "romance", "health",
-  "money", "business", "social", "possessions", "giving", "spirituality", "conclusion"
+  "forward", "fun", "travel", "home", "family", "love", "health",
+  "money", "work", "social", "stuff", "giving", "spirituality", "conclusion"
 ] as const
 
 export type Category = typeof CATEGORIES[number]

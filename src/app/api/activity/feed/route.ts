@@ -155,25 +155,28 @@ export async function GET(request: NextRequest) {
       })
     })
 
-    // Get Token Transactions (AI usage)
-    const { data: tokenTx } = await supabase
-      .from('token_transactions')
-      .select('id, action_type, tokens_used, created_at, metadata')
+    // Get Token Usage (AI usage) from token_usage table
+    const { data: tokenUsage } = await supabase
+      .from('token_usage')
+      .select('id, action_type, tokens_used, created_at, metadata, success')
       .eq('user_id', user.id)
+      .eq('success', true) // Only successful calls
       .gt('tokens_used', 0) // Only deductions (not grants)
+      .neq('action_type', 'admin_grant') // Exclude admin grants
       .order('created_at', { ascending: false })
       .limit(20)
 
-    tokenTx?.forEach((tx: any) => {
+    tokenUsage?.forEach((tx: any) => {
+      // Map tracking action types to display labels
       const actionLabels: Record<string, { title: string; desc: string; icon: string; color: string; link: string }> = {
-        chat: { 
+        chat_conversation: { 
           title: 'VIVA Chat', 
           desc: 'Had a conversation with VIVA',
           icon: 'MessageSquare',
           color: 'text-secondary-500',
           link: '/vision/build'
         },
-        refinement: { 
+        vision_refinement: { 
           title: 'Refined Vision', 
           desc: `Enhanced ${tx.metadata?.category || 'vision'} with VIVA`,
           icon: 'Sparkles',
@@ -187,13 +190,6 @@ export async function GET(request: NextRequest) {
           color: 'text-energy-500',
           link: '/life-vision'
         },
-        transcription: { 
-          title: 'Transcribed Recording', 
-          desc: 'Converted voice to text',
-          icon: 'Zap',
-          color: 'text-neutral-400',
-          link: '/journal/new'
-        },
         image_generation: { 
           title: 'Generated Image', 
           desc: 'Created image with VIVA',
@@ -201,10 +197,53 @@ export async function GET(request: NextRequest) {
           color: 'text-accent-400',
           link: '/vision-board/new'
         },
+        vision_generation: {
+          title: 'Generated Vision',
+          desc: `Created vision for ${tx.metadata?.category || 'category'}`,
+          icon: 'Sparkles',
+          color: 'text-primary-500',
+          link: '/life-vision'
+        },
+        blueprint_generation: {
+          title: 'Generated Blueprint',
+          desc: 'Created action blueprint with VIVA',
+          icon: 'Target',
+          color: 'text-primary-500',
+          link: '/vision/build'
+        },
+        assessment_scoring: {
+          title: 'Scored Assessment',
+          desc: 'AI analyzed assessment response',
+          icon: 'CheckCircle',
+          color: 'text-primary-500',
+          link: '/assessment'
+        },
+        // Life vision creation actions
+        life_vision_category_summary: {
+          title: 'Life Vision Summary',
+          desc: `Generated category summary for ${tx.metadata?.category || 'life vision'}`,
+          icon: 'Target',
+          color: 'text-primary-500',
+          link: '/life-vision/new'
+        },
+        life_vision_master_assembly: {
+          title: 'Assembled Life Vision',
+          desc: 'Created complete life vision document',
+          icon: 'Target',
+          color: 'text-primary-500',
+          link: '/life-vision'
+        },
+        prompt_suggestions: {
+          title: 'Prompt Suggestions',
+          desc: 'Generated personalized prompts',
+          icon: 'Sparkles',
+          color: 'text-secondary-500',
+          link: '/life-vision/new'
+        },
       }
 
       const config = actionLabels[tx.action_type] || {
-        title: tx.action_type,
+        title: tx.action_type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
         desc: 'Used VIVA',
         icon: 'Zap',
         color: 'text-neutral-400',

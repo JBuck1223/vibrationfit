@@ -19,16 +19,16 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'possessions_lifestyle', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: 'stuff', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, possessions_lifestyle_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, stuff_story: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'possessions_lifestyle')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'stuff')
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
@@ -86,8 +86,8 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
         {/* Story Field */}
         <RecordingTextarea
           label="My Current Story Around Possessions & Lifestyle"
-          value={profile.possessions_lifestyle_story || ''}
-          onChange={(value) => handleInputChange('possessions_lifestyle_story', value)}
+          value={profile.stuff_story || ''}
+          onChange={(value) => handleInputChange('stuff_story', value)}
           placeholder="Share your lifestyle, what possessions matter to you, how you live... Or record your story!"
           rows={6}
           allowVideo={true}
@@ -98,7 +98,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
         <SavedRecordings
           key={`possessions-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="possessions_lifestyle"
+          categoryFilter="stuff"
           onDelete={handleDeleteRecording}
         />
       </div>

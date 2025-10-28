@@ -83,7 +83,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           story_recordings: updatedRecordings,
-          family_parenting_story: updatedText
+          family_story: updatedText
         }),
       })
       if (onProfileReload) await onProfileReload()
@@ -291,8 +291,8 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
         {/* Family & Parenting Story */}
         <RecordingTextarea
           label="My Current Story Around Family & Parenting"
-          value={profile.family_parenting_story || ''}
-          onChange={(value) => handleInputChange('family_parenting_story', value)}
+          value={profile.family_story || ''}
+          onChange={(value) => handleInputChange('family_story', value)}
           placeholder="Share your family journey, parenting experiences, family goals, or aspirations... Or record your story!"
           rows={6}
           allowVideo={true}
