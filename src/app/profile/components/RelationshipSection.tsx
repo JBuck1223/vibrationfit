@@ -174,7 +174,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
-          storageFolder="evidence"
+          storageFolder="profile"
         />
 
         {/* Display Saved Recordings */}

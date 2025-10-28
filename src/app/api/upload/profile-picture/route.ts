@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Upload to S3
     console.log('Starting upload for user:', user.id, 'file size:', file.size, 'file type:', file.type)
-    const uploadResult = await uploadUserFile('avatar' as const, file, user.id)
+    const uploadResult = await uploadUserFile('profilePicture' as const, file, user.id)
     console.log('Upload result:', uploadResult)
     
     if (!uploadResult) {

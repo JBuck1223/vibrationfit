@@ -109,7 +109,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
-          storageFolder="evidence"
+          storageFolder="profile"
         />
 
         <SavedRecordings

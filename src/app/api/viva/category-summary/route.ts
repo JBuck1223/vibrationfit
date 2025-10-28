@@ -157,98 +157,141 @@ OUTPUT FORMAT: Return Markdown in this exact structure:
 [1-2 paragraphs that integrate alignment and expansion, ending with an upward statement]`
 }
 
+function sendProgress(controller: ReadableStreamDefaultController, stage: string, message: string) {
+  const data = JSON.stringify({ type: 'progress', stage, message })
+  controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`))
+}
+
 export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { category, transcript, categoryName } = await request.json()
-
-    if (!transcript || !category) {
-      return NextResponse.json({ error: 'Transcript and category are required' }, { status: 400 })
-    }
-
-    // Get profile and assessment data
-    let profile, assessment
-    try {
-      // Get raw profile data
-      const { data: profileData } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
-      profile = profileData
-    } catch (err) {
-      console.log('No profile found, continuing without profile data')
-      profile = null
-    }
-
-    try {
-      // Get raw assessment data
-      const { data: assessmentData } = await supabase
-        .from('assessment_results')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(1)
-        .single()
-      
-      if (assessmentData) {
-        // Get assessment responses with questions and answers
-        const { data: responsesData } = await supabase
-          .from('assessment_responses')
-          .select('*')
-          .eq('assessment_id', assessmentData.id)
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const supabase = await createClient()
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
         
-        assessment = {
-          ...assessmentData,
-          responses: responsesData || []
+        if (userError || !user) {
+          const error = JSON.stringify({ type: 'error', error: 'Unauthorized' })
+          controller.enqueue(new TextEncoder().encode(`data: ${error}\n\n`))
+          controller.close()
+          return
         }
-      } else {
-        assessment = null
+
+        const { category, transcript, categoryName } = await request.json()
+
+        if (!transcript || !category) {
+          const error = JSON.stringify({ type: 'error', error: 'Transcript and category are required' })
+          controller.enqueue(new TextEncoder().encode(`data: ${error}\n\n`))
+          controller.close()
+          return
+        }
+
+        // Stage 1: Evaluating input
+        sendProgress(controller, 'evaluating', 'Evaluating your input...')
+
+        // Stage 2: Get profile data
+        sendProgress(controller, 'profile', `Compiling your profile information around ${categoryName}...`)
+        
+        let profile, assessment
+        try {
+          // Get raw profile data
+          const { data: profileData } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single()
+          profile = profileData
+        } catch (err) {
+          console.log('No profile found, continuing without profile data')
+          profile = null
+        }
+
+        // Stage 3: Get assessment data
+        sendProgress(controller, 'assessment', `Compiling your assessment data for ${categoryName}...`)
+        
+        try {
+          // Get raw assessment data
+          const { data: assessmentData } = await supabase
+            .from('assessment_results')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('completed_at', { ascending: false })
+            .limit(1)
+            .single()
+          
+          if (assessmentData) {
+            // Get assessment responses with questions and answers
+            const { data: responsesData } = await supabase
+              .from('assessment_responses')
+              .select('*')
+              .eq('assessment_id', assessmentData.id)
+            
+            assessment = {
+              ...assessmentData,
+              responses: responsesData || []
+            }
+          } else {
+            assessment = null
+          }
+        } catch (err) {
+          console.log('No assessment found, continuing without assessment data')
+          assessment = null
+        }
+
+        // Stage 4: Reasoning
+        sendProgress(controller, 'reasoning', 'Reasoning and synthesizing your vision...')
+
+        // Build prompt with context
+        const prompt = buildCategoryPrompt(category, transcript, categoryName, profile, assessment)
+
+        // Stage 5: Creating summary
+        sendProgress(controller, 'creating', 'Creating your summary...')
+
+        // Call OpenAI
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: SHARED_SYSTEM_PROMPT },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+        })
+
+        const summary = completion.choices[0]?.message?.content
+
+        if (!summary) {
+          throw new Error('No summary generated')
+        }
+
+        // TODO: Track token usage in database
+
+        // Send final result
+        const result = JSON.stringify({ 
+          type: 'complete',
+          summary,
+          model: 'gpt-4o',
+          category 
+        })
+        controller.enqueue(new TextEncoder().encode(`data: ${result}\n\n`))
+        controller.close()
+
+      } catch (err) {
+        console.error('Category summary error:', err)
+        const error = JSON.stringify({ 
+          type: 'error', 
+          error: err instanceof Error ? err.message : 'Failed to generate summary' 
+        })
+        controller.enqueue(new TextEncoder().encode(`data: ${error}\n\n`))
+        controller.close()
       }
-    } catch (err) {
-      console.log('No assessment found, continuing without assessment data')
-      assessment = null
     }
+  })
 
-    // Build prompt with context
-    const prompt = buildCategoryPrompt(category, transcript, categoryName, profile, assessment)
-
-    // Call OpenAI
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: SHARED_SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000,
-    })
-
-    const summary = completion.choices[0]?.message?.content
-
-    if (!summary) {
-      throw new Error('No summary generated')
-    }
-
-    // TODO: Track token usage in database
-
-    return NextResponse.json({ 
-      summary,
-      model: 'gpt-4o',
-      category 
-    })
-
-  } catch (err) {
-    console.error('Category summary error:', err)
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to generate summary' },
-      { status: 500 }
-    )
-  }
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  })
 }

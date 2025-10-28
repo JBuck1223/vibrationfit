@@ -178,7 +178,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
       console.log('Starting upload for user:', user.id, 'file size:', croppedFile.size, 'file type:', croppedFile.type)
 
       // Upload directly using the same method as other features
-      const uploadResult = await uploadUserFile('avatar', croppedFile, user.id)
+      const uploadResult = await uploadUserFile('profilePicture', croppedFile, user.id)
       console.log('Upload result:', uploadResult)
 
       // Update user profile with new picture URL

@@ -5,6 +5,9 @@ import { Mic, Video, Loader2, X } from 'lucide-react'
 import { Textarea, Button } from '@/lib/design-system/components'
 import { MediaRecorderComponent } from './MediaRecorder'
 import { uploadAndTranscribeRecording } from '@/lib/services/recordingService'
+import { USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
+
+type UserFolder = keyof typeof USER_FOLDERS
 
 interface RecordingTextareaProps {
   value: string
@@ -16,7 +19,8 @@ interface RecordingTextareaProps {
   className?: string
   disabled?: boolean
   onRecordingSaved?: (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => Promise<void>
-  storageFolder?: 'evidence' | 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'avatar' | 'customTracks'
+  storageFolder?: 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'profile' | 'customTracks'
+  category?: string // Category for IndexedDB persistence (e.g., 'fun', 'health', 'journal')
   onUploadProgress?: (progress: number, status: string, fileName: string, fileSize: number) => void
 }
 
@@ -30,7 +34,8 @@ export function RecordingTextarea({
   className = '',
   disabled = false,
   onRecordingSaved,
-  storageFolder = 'evidence',
+  storageFolder = 'journal',
+  category,
   onUploadProgress
 }: RecordingTextareaProps) {
   const [showRecorder, setShowRecorder] = useState(false)
@@ -73,12 +78,8 @@ export function RecordingTextarea({
       let recordingUrl: string | undefined
 
       // Prepare the updated text value with transcript
-      const recordingNote = shouldSaveFile 
-        ? `\n\n--- Recorded on ${new Date().toLocaleDateString()} (${recordingMode === 'video' ? 'Video' : 'Audio'} saved) ---\n`
-        : `\n\n--- Recorded on ${new Date().toLocaleDateString()} ---\n`
-      
       const newValue = value 
-        ? `${value}${recordingNote}${transcript}`
+        ? `${value}\n\n${transcript}`
         : transcript
 
       // Upload the recording file to S3 if requested
@@ -89,9 +90,12 @@ export function RecordingTextarea({
         let specificFolder: string
         if (storageFolder === 'lifeVision') {
           specificFolder = recordingMode === 'video' ? 'lifeVisionVideoRecordings' : 'lifeVisionAudioRecordings'
-        } else if (storageFolder === 'evidence') {
-          specificFolder = recordingMode === 'video' ? 'evidenceVideoRecordings' : 'evidenceAudioRecordings'
+        } else if (storageFolder === 'alignmentPlan') {
+          specificFolder = recordingMode === 'video' ? 'alignmentPlanVideoRecordings' : 'alignmentPlanAudioRecordings'
+        } else if (storageFolder === 'profile') {
+          specificFolder = recordingMode === 'video' ? 'profileVideoRecordings' : 'profileAudioRecordings'
         } else {
+          // Default to journal (or other tools can specify their own recording folders)
           specificFolder = recordingMode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings'
         }
         
@@ -101,7 +105,7 @@ export function RecordingTextarea({
         
         const result = await uploadAndTranscribeRecording(
           blob, 
-          specificFolder as any, 
+          specificFolder as UserFolder, 
           fileName,
           (progress, status) => {
             onUploadProgress?.(progress, status, fileName, fileSize)
@@ -232,6 +236,7 @@ export function RecordingTextarea({
             autoTranscribe={true} // Transcribe both audio and video
             maxDuration={600} // 10 minutes
             showSaveOption={true} // Show the save recording checkbox
+            category={category || storageFolder} // Use category if provided, else storageFolder
           />
         </div>
       )}

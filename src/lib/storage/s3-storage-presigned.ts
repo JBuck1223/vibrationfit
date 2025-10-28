@@ -11,9 +11,15 @@ export const USER_FOLDERS = {
   journalAudioRecordings: 'journal/audio-recordings',
   journalVideoRecordings: 'journal/video-recordings',
   lifeVision: 'life-vision',
+  lifeVisionAudioRecordings: 'life-vision/audio-recordings',
+  lifeVisionVideoRecordings: 'life-vision/video-recordings',
   alignmentPlan: 'alignment-plan',
-  evidence: 'evidence',
-  avatar: 'avatar',
+  alignmentPlanAudioRecordings: 'alignment-plan/audio-recordings',
+  alignmentPlanVideoRecordings: 'alignment-plan/video-recordings',
+  profile: 'profile',
+  profilePicture: 'profile/avatar',
+  profileAudioRecordings: 'profile/audio-recordings',
+  profileVideoRecordings: 'profile/video-recordings',
   customTracks: 'custom-tracks',
 } as const
 
@@ -259,16 +265,40 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       maxSize: 500 * 1024 * 1024, // 500MB for audio/docs
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg', 'application/pdf', 'text/plain'],
     },
+    lifeVisionAudioRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    lifeVisionVideoRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for video recordings
+      types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
+    },
     alignmentPlan: {
       maxSize: 500 * 1024 * 1024, // 500MB for media/docs
       types: ['image/jpeg', 'image/png', 'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg', 'application/pdf'],
     },
-    evidence: {
-      maxSize: 1024 * 1024 * 1024, // 1GB for evidence videos/audio
+    alignmentPlanAudioRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    alignmentPlanVideoRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for video recordings
+      types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
+    },
+    profile: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for profile files
       types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi', 'audio/webm', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/ogg'],
     },
-    avatar: {
-      maxSize: 20 * 1024 * 1024, // 20MB for avatars
+    profileAudioRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    profileVideoRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for video recordings
+      types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
+    },
+    profilePicture: {
+      maxSize: 20 * 1024 * 1024, // 20MB for profile pictures
       types: ['image/jpeg', 'image/png', 'image/webp'],
     },
     customTracks: {

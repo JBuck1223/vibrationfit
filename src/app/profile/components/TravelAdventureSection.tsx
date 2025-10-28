@@ -106,7 +106,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
-          storageFolder="evidence"
+          storageFolder="profile"
         />
 
         <SavedRecordings

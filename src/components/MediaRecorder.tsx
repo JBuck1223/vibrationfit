@@ -3,6 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2 } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
+import {
+  saveRecordingChunks,
+  loadSavedRecording,
+  deleteSavedRecording,
+  generateRecordingId,
+  isStorageLow,
+  clearOldRecordings
+} from '@/lib/storage/indexed-db-recording'
 
 interface MediaRecorderProps {
   mode?: 'audio' | 'video'
@@ -12,6 +20,8 @@ interface MediaRecorderProps {
   maxDuration?: number // in seconds
   className?: string
   showSaveOption?: boolean // Show "Save Recording" checkbox
+  recordingId?: string // Optional: ID for IndexedDB persistence
+  category?: string // Optional: Category for IndexedDB persistence
 }
 
 export function MediaRecorderComponent({
@@ -21,7 +31,9 @@ export function MediaRecorderComponent({
   autoTranscribe = true,
   maxDuration = 600, // 10 minutes default
   className = '',
-  showSaveOption = true
+  showSaveOption = true,
+  recordingId: providedRecordingId,
+  category = 'general'
 }: MediaRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -34,12 +46,161 @@ export function MediaRecorderComponent({
   const [countdown, setCountdown] = useState<number | null>(null)
   const [isPreparing, setIsPreparing] = useState(false) // For showing preview before countdown
   const [saveRecording, setSaveRecording] = useState(true) // Whether to save the actual file
+  const [hasSavedRecording, setHasSavedRecording] = useState(false) // Track if there's a saved recording to resume
+  const [previousChunks, setPreviousChunks] = useState<Blob[]>([]) // Chunks from before refresh
+  const [previousDuration, setPreviousDuration] = useState(0) // Duration from before refresh
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const recordingIdRef = useRef<string>(providedRecordingId || generateRecordingId(category))
   const videoRef = useRef<HTMLVideoElement>(null)
+  const lastSaveSizeRef = useRef<number>(0) // Track total size saved for video size-based saves
+  const durationRef = useRef<number>(0) // Track duration for auto-save
+  const transcriptRef = useRef<string>('') // Track transcript for auto-save
+
+  // Check for saved recording on mount - look by category first, not just by ID
+  useEffect(() => {
+    const checkForSavedRecording = async () => {
+      if (!category) {
+        return
+      }
+
+      try {
+        console.log('🔍 Checking for saved recording:', {
+          generatedId: recordingIdRef.current,
+          category: category,
+          mode: mode
+        })
+        
+        // First, try to load by the generated ID (for consistency)
+        let saved = await loadSavedRecording(recordingIdRef.current)
+        const chunkCount = saved?.chunks ? saved.chunks.length : 0
+        console.log('📋 Load result by ID:', {
+          found: !!saved,
+          hasChunks: chunkCount > 0,
+          chunkCount: chunkCount
+        })
+        
+        // If not found by ID, look for any saved recording in this category
+        // This handles the case where page refreshes and ID is regenerated
+        if (!saved || !saved.chunks || saved.chunks.length === 0) {
+          console.log('🔍 No recording found by ID, searching by category:', category)
+          const { getRecordingsForCategory } = await import('@/lib/storage/indexed-db-recording')
+          const categoryRecordings = await getRecordingsForCategory(category)
+          
+          console.log('📊 Category search results:', {
+            category: category,
+            totalFound: categoryRecordings.length,
+            recordings: categoryRecordings.map(r => ({
+              id: r.id,
+              chunks: r.chunks?.length || 0,
+              hasBlob: !!r.blob,
+              duration: r.duration,
+              timestamp: new Date(r.timestamp).toISOString()
+            }))
+          })
+          
+          // Find the most recent in-progress recording (has chunks but no final blob)
+          const inProgressRecording = categoryRecordings.find(r => 
+            r.chunks && r.chunks.length > 0 && !r.blob
+          )
+          
+          if (inProgressRecording) {
+            console.log('✅ Found in-progress recording in category:', {
+              id: inProgressRecording.id,
+              duration: inProgressRecording.duration,
+              chunks: inProgressRecording.chunks.length
+            })
+            saved = inProgressRecording
+            // Update recording ID to match the found recording
+            recordingIdRef.current = saved.id
+          } else if (categoryRecordings.length > 0) {
+            // If no in-progress, use the most recent one (might be completed)
+            saved = categoryRecordings[0]
+            recordingIdRef.current = saved.id
+            console.log('✅ Found most recent recording in category:', {
+              id: saved.id,
+              hasBlob: !!saved.blob,
+              chunks: saved.chunks?.length || 0
+            })
+          } else {
+            console.log('❌ No recordings found in category:', category)
+          }
+        }
+
+        if (saved && saved.chunks && Array.isArray(saved.chunks) && saved.chunks.length > 0) {
+          console.log('🔄 Restoring saved recording:', {
+            id: saved.id,
+            duration: saved.duration,
+            chunks: saved.chunks.length,
+            hasBlob: !!saved.blob,
+            hasTranscript: !!saved.transcript,
+            firstChunkSize: saved.chunks[0]?.size || 0
+          })
+          
+          // Verify chunks are actually Blobs
+          const validChunks = saved.chunks.filter(chunk => chunk instanceof Blob)
+          if (validChunks.length === 0) {
+            console.error('❌ No valid Blob chunks found in saved recording')
+            return
+          }
+          
+          if (validChunks.length !== saved.chunks.length) {
+            console.warn(`⚠️ Only ${validChunks.length} of ${saved.chunks.length} chunks are valid Blobs`)
+          }
+          
+          setHasSavedRecording(true)
+          setDuration(saved.duration || 0)
+          durationRef.current = saved.duration || 0
+          setPreviousChunks([...validChunks]) // Store previous chunks
+          setPreviousDuration(saved.duration || 0) // Store previous duration
+          chunksRef.current = validChunks // Use only valid chunks for now
+          
+          if (saved.blob && saved.blob instanceof Blob) {
+            setRecordedBlob(saved.blob)
+            const url = URL.createObjectURL(saved.blob)
+            setRecordedUrl(url)
+            console.log('✅ Restored completed recording with blob:', {
+              blobSize: saved.blob.size,
+              blobType: saved.blob.type
+            })
+          } else {
+            console.log('📝 Found in-progress recording - chunks available for restore')
+          }
+          
+          if (saved.transcript) {
+            setTranscript(saved.transcript)
+            transcriptRef.current = saved.transcript
+          }
+        } else {
+          console.log('ℹ️ No saved recording found or invalid chunks:', {
+            hasSaved: !!saved,
+            hasChunks: !!saved?.chunks,
+            isArray: Array.isArray(saved?.chunks),
+            chunkCount: saved?.chunks?.length || 0,
+            category: category
+          })
+        }
+      } catch (error) {
+        console.error('❌ Error checking for saved recording:', error)
+      }
+
+      // Clear old recordings on mount (cleanup)
+      await clearOldRecordings(24) // Clear recordings older than 24 hours
+
+      // Check storage quota
+      const storageLow = await isStorageLow(80)
+      if (storageLow) {
+        console.warn('⚠️ Browser storage is getting low (>80% used)')
+        // Could show user notification here
+      }
+    }
+
+    checkForSavedRecording()
+  }, [category])
 
   useEffect(() => {
     return () => {
@@ -50,11 +211,96 @@ export function MediaRecorderComponent({
       if (timerRef.current) {
         clearInterval(timerRef.current)
       }
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current)
+      }
       if (recordedUrl) {
         URL.revokeObjectURL(recordedUrl)
       }
     }
   }, [recordedUrl])
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    durationRef.current = duration
+  }, [duration])
+
+  useEffect(() => {
+    transcriptRef.current = transcript
+  }, [transcript])
+
+  useEffect(() => {
+    if (recordedBlob) {
+      // Update IndexedDB with final blob
+      if (recordingIdRef.current) {
+        saveRecordingChunks(
+          recordingIdRef.current,
+          category,
+          chunksRef.current,
+          durationRef.current,
+          mode,
+          recordedBlob,
+          transcriptRef.current || undefined
+        ).catch(err => console.error('Failed to update IndexedDB with blob:', err))
+      }
+    }
+  }, [recordedBlob, category, mode])
+
+  // Auto-save every 30 seconds during recording (or every 20 seconds for video)
+  useEffect(() => {
+    if (isRecording && !isPaused) {
+      const interval = mode === 'video' ? 20000 : 30000 // 20s for video, 30s for audio
+      
+      autoSaveTimerRef.current = setInterval(async () => {
+        // Check if still recording and have chunks
+        if (!isRecording || chunksRef.current.length === 0 || !recordingIdRef.current) {
+          return
+        }
+
+        try {
+          const totalSize = chunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0)
+          
+          // Track size for video (can use for size-based saves in future if needed)
+          if (mode === 'video' && totalSize - lastSaveSizeRef.current >= 10 * 1024 * 1024) {
+            lastSaveSizeRef.current = totalSize
+          }
+
+          // Always save on time interval (every 20s for video, 30s for audio)
+          // This ensures regular backups even if size tracking fails
+
+          await saveRecordingChunks(
+            recordingIdRef.current,
+            category,
+            chunksRef.current,
+            durationRef.current, // Use ref for current duration
+            mode,
+            undefined, // Don't save blob during recording (only chunks)
+            transcriptRef.current || undefined // Use ref for current transcript
+          )
+
+          console.log(`💾 Auto-saved recording chunks:`, {
+            recordingId: recordingIdRef.current,
+            chunkCount: chunksRef.current.length,
+            duration: durationRef.current,
+            totalSize: `${(totalSize / 1024 / 1024).toFixed(2)}MB`
+          })
+        } catch (error) {
+          console.error('❌ Auto-save failed:', error)
+        }
+      }, interval)
+
+      return () => {
+        if (autoSaveTimerRef.current) {
+          clearInterval(autoSaveTimerRef.current)
+        }
+      }
+    } else {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording, isPaused, mode, category])
 
   const startRecording = async () => {
     try {
@@ -120,7 +366,9 @@ export function MediaRecorderComponent({
       // Now start actual recording
       setIsPreparing(false)
       setIsRecording(true)
-      setDuration(0)
+      // If continuing from previous recording, start duration from previous
+      setDuration(previousDuration)
+      durationRef.current = previousDuration
 
       const mimeType = mode === 'video' 
         ? 'video/webm;codecs=vp9,opus'
@@ -142,7 +390,21 @@ export function MediaRecorderComponent({
       }
 
       mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { 
+        // Merge previous chunks with new chunks if continuing from saved recording
+        let finalChunks = chunksRef.current
+        if (previousChunks.length > 0) {
+          console.log('🔄 Merging previous chunks with new recording:', {
+            previous: previousChunks.length,
+            new: chunksRef.current.length
+          })
+          finalChunks = [...previousChunks, ...chunksRef.current]
+          chunksRef.current = finalChunks
+          // Clear previous chunks so they're not used again
+          setPreviousChunks([])
+          setPreviousDuration(0)
+        }
+        
+        const blob = new Blob(finalChunks, { 
           type: mode === 'video' ? 'video/webm' : 'audio/webm' 
         })
         setRecordedBlob(blob)
@@ -155,25 +417,56 @@ export function MediaRecorderComponent({
           streamRef.current.getTracks().forEach(track => track.stop())
         }
 
+        // Save final blob to IndexedDB (with transcript if available)
+        if (recordingIdRef.current) {
+          await saveRecordingChunks(
+            recordingIdRef.current,
+            category,
+            finalChunks,
+            duration,
+            mode,
+            blob,
+            transcript || undefined
+          )
+          console.log('✅ Saved final recording blob to IndexedDB:', {
+            totalChunks: finalChunks.length,
+            totalDuration: duration
+          })
+        }
+
         // Auto-transcribe if enabled (works for both audio and video)
+        let finalTranscript = transcript
         if (autoTranscribe) {
-          await transcribeAudio(blob)
+          finalTranscript = await transcribeAudio(blob)
+          // Update IndexedDB with transcript
+          if (recordingIdRef.current && finalTranscript) {
+            await saveRecordingChunks(
+              recordingIdRef.current,
+              category,
+              finalChunks,
+              duration,
+              mode,
+              blob,
+              finalTranscript
+            )
+          }
         }
 
         if (onRecordingComplete) {
-          onRecordingComplete(blob)
+          onRecordingComplete(blob, finalTranscript, saveRecording)
         }
       }
 
       mediaRecorder.start(1000) // Collect data every second
 
-      // Start timer
+      // Start timer (continues from previousDuration if continuing recording)
       timerRef.current = setInterval(() => {
         setDuration(prev => {
           const newDuration = prev + 1
           if (newDuration >= maxDuration) {
             stopRecording()
           }
+          durationRef.current = newDuration
           return newDuration
         })
       }, 1000)
@@ -251,7 +544,7 @@ export function MediaRecorderComponent({
     }
   }
 
-  const discardRecording = () => {
+  const discardRecording = async () => {
     if (recordedUrl) {
       URL.revokeObjectURL(recordedUrl)
     }
@@ -260,9 +553,24 @@ export function MediaRecorderComponent({
     setDuration(0)
     setTranscript('')
     chunksRef.current = []
+    lastSaveSizeRef.current = 0
+    setHasSavedRecording(false)
+
+    // Clear from IndexedDB
+    if (recordingIdRef.current) {
+      await deleteSavedRecording(recordingIdRef.current)
+    }
   }
 
-  const transcribeAudio = async (blob: Blob) => {
+  // Clear IndexedDB after successful upload (called from parent via onRecordingComplete)
+  const clearRecordingFromIndexedDB = async () => {
+    if (recordingIdRef.current) {
+      await deleteSavedRecording(recordingIdRef.current)
+      console.log('✅ Cleared recording from IndexedDB after successful upload')
+    }
+  }
+
+  const transcribeAudio = async (blob: Blob): Promise<string> => {
     setIsTranscribing(true)
     setError(null)
 
@@ -280,14 +588,18 @@ export function MediaRecorderComponent({
       }
 
       const data = await response.json()
-      setTranscript(data.transcript)
+      const transcriptText = data.transcript || ''
+      setTranscript(transcriptText)
       
       if (onTranscriptComplete) {
-        onTranscriptComplete(data.transcript)
+        onTranscriptComplete(transcriptText)
       }
+
+      return transcriptText
     } catch (err) {
       console.error('Transcription error:', err)
       setError('Failed to transcribe audio. Please try again.')
+      return ''
     } finally {
       setIsTranscribing(false)
     }
@@ -362,9 +674,123 @@ export function MediaRecorderComponent({
             </div>
           )}
 
+          {/* Show recovery option if saved recording found */}
+          {hasSavedRecording && !recordedBlob && !isRecording && countdown === null && (
+            <div className="mb-4 p-4 bg-primary-500/10 border border-primary-500/30 rounded-lg">
+              <p className="text-sm text-neutral-300 mb-2">
+                📦 Found saved recording ({formatDuration(duration)})
+              </p>
+              <p className="text-xs text-neutral-400 mb-3">
+                Your recording was saved before the page refresh. Continue recording, transcribe what you have, or start fresh.
+              </p>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      // Continue recording - merge old chunks with new recording when done
+                      console.log('▶️ Continuing recording - will merge with previous chunks:', {
+                        previousChunks: previousChunks.length,
+                        previousDuration: previousDuration,
+                        currentChunks: chunksRef.current.length
+                      })
+                      setHasSavedRecording(false)
+                      // Don't clear chunksRef here - startRecording() will handle it
+                      // previousChunks is already stored in state and will be merged on stop
+                      await startRecording()
+                    }}
+                    variant="primary"
+                    size="sm"
+                    className="gap-2 flex-1"
+                  >
+                    <Mic className="w-4 h-4" />
+                    Continue Recording
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      // Reconstruct blob from saved chunks and auto-transcribe
+                      console.log('🎙️ Transcribing saved recording...')
+                      const chunksToUse = chunksRef.current.length > 0 
+                        ? chunksRef.current 
+                        : previousChunks.length > 0 
+                          ? previousChunks 
+                          : []
+                      
+                      if (chunksToUse.length === 0) {
+                        console.error('❌ No chunks available to transcribe')
+                        setError('No recording data found to transcribe')
+                        return
+                      }
+                      
+                      const blob = new Blob(chunksToUse, {
+                        type: mode === 'video' ? 'video/webm' : 'audio/webm'
+                      })
+                      setRecordedBlob(blob)
+                      const url = URL.createObjectURL(blob)
+                      setRecordedUrl(url)
+                      setHasSavedRecording(false)
+                      
+                      // Auto-transcribe if enabled
+                      if (autoTranscribe) {
+                        setIsTranscribing(true)
+                        const transcribed = await transcribeAudio(blob)
+                        if (transcribed && onTranscriptComplete) {
+                          onTranscriptComplete(transcribed)
+                        }
+                      }
+                      
+                      console.log('✅ Restored and transcribed recording:', {
+                        blobSize: blob.size,
+                        duration: duration,
+                        chunksUsed: chunksToUse.length
+                      })
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    className="gap-2 flex-1"
+                    disabled={isTranscribing}
+                  >
+                    {isTranscribing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Transcribing...
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-4 h-4" />
+                        Transcribe This
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <Button
+                  onClick={() => {
+                    // Delete the saved recording and start fresh
+                    if (recordingIdRef.current) {
+                      deleteSavedRecording(recordingIdRef.current).then(() => {
+                        setHasSavedRecording(false)
+                        chunksRef.current = []
+                        setDuration(0)
+                        durationRef.current = 0
+                        setTranscript('')
+                        transcriptRef.current = ''
+                        recordingIdRef.current = generateRecordingId(category)
+                        console.log('🗑️ Deleted saved recording, ready for new recording')
+                      })
+                    }
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                >
+                  Discard & Start New
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Control Buttons */}
           <div className="flex justify-center gap-3">
-            {!isRecording && countdown === null ? (
+            {!isRecording && countdown === null && !hasSavedRecording ? (
               <Button
                 onClick={startRecording}
                 variant="primary"
