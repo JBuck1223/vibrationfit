@@ -128,7 +128,7 @@ function buildCategoryPrompt(
   
   if (assessmentQAs.length > 0) {
     dataSections += `## DATA SOURCE 3: Assessment Responses (Their Own Answers)
-${assessmentQAs.map((qa, i) => `Question ${i + 1}: ${qa.question}
+${assessmentQAs.map((qa: { question: string; answer: string; greenLine: string; score: any }, i: number) => `Question ${i + 1}: ${qa.question}
 Answer: "${qa.answer}"
 Green Line Status: ${qa.greenLine}
 Score: ${qa.score}
