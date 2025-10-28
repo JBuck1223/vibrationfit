@@ -92,7 +92,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
-          storageFolder="evidence"
+          storageFolder="profile"
         />
 
         <SavedRecordings

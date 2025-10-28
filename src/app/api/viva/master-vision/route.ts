@@ -26,13 +26,13 @@ ${[
   { key: 'fun', story: profile.fun_story },
   { key: 'health', story: profile.health_story },
   { key: 'travel', story: profile.travel_story },
-  { key: 'romance', story: profile.love_story },
+  { key: 'love', story: profile.love_story },
   { key: 'family', story: profile.family_story },
   { key: 'social', story: profile.social_story },
   { key: 'home', story: profile.home_story },
-  { key: 'business', story: profile.work_story },
+  { key: 'work', story: profile.work_story },
   { key: 'money', story: profile.money_story },
-  { key: 'possessions', story: profile.stuff_story },
+  { key: 'stuff', story: profile.stuff_story },
   { key: 'giving', story: profile.giving_story },
   { key: 'spirituality', story: profile.spirituality_story }
 ]
@@ -83,7 +83,7 @@ IMPORTANT:
 
 STRUCTURE:
 1) **Forward (Vibrational Warmup)** — 2-3 short paragraphs introducing the vision.
-2) **12 Category Sections** (## Category Name) — In order: Fun, Health, Travel, Romance, Family, Social, Home, Work, Money, Stuff, Giving, Spirituality
+2) **12 Category Sections** (## Category Name) — In order: Fun, Health, Travel, Love, Family, Social, Home, Work, Money, Stuff, Giving, Spirituality
    - Begin with a short overview paragraph
    - Write entirely in present-tense activation
    - Draw wording from their category summaries
@@ -105,13 +105,13 @@ JSON structure:
   "fun": "...",
   "health": "...",
   "travel": "...",
-  "romance": "...",
+  "love": "...",
   "family": "...",
   "social": "...",
   "home": "...",
-  "business": "...",
+  "work": "...",
   "money": "...",
-  "possessions": "...",
+  "stuff": "...",
   "giving": "...",
   "spirituality": "...",
   "conclusion": "...",
@@ -213,9 +213,13 @@ function extractCategoriesFromMarkdown(markdown: string): any {
     const lines = section.trim().split('\n')
     const title = lines[0]?.trim().toLowerCase().replace(/^the\s+/i, '')
     
-    if (title && ['forward', 'fun', 'health', 'travel', 'romance', 'family', 'social', 'home', 'work', 'business', 'money', 'possessions', 'stuff', 'giving', 'spirituality', 'conclusion'].includes(title)) {
+    if (title && ['forward', 'fun', 'health', 'travel', 'love', 'romance', 'family', 'social', 'home', 'work', 'business', 'money', 'stuff', 'possessions', 'giving', 'spirituality', 'conclusion'].includes(title)) {
       const content = lines.slice(1).join('\n').trim()
-      const key = title === 'work' ? 'business' : title === 'stuff' ? 'possessions' : title
+      // Map old names to new names for database compatibility
+      let key = title
+      if (title === 'romance') key = 'love'
+      else if (title === 'business') key = 'work'
+      else if (title === 'possessions') key = 'stuff'
       categories[key] = content
     }
   })

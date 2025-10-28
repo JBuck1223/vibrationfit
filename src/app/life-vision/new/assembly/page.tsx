@@ -170,6 +170,7 @@ export default function AssemblyPage() {
         setMasterVision({ markdown: data.markdown, json: data.json })
         
         // Save to vision_versions
+        // Map API response fields to database columns (API may still use old names for backwards compat)
         const { data: insertedVision } = await supabase
           .from('vision_versions')
           .insert({
@@ -180,12 +181,12 @@ export default function AssemblyPage() {
             travel: data.json.travel || '',
             home: data.json.home || '',
             family: data.json.family || '',
-            romance: data.json.romance || '',
+            love: data.json.love || data.json.romance || '', // Support both old and new
             health: data.json.health || '',
             money: data.json.money || '',
-            business: data.json.business || '',
+            work: data.json.work || data.json.business || '', // Support both old and new
             social: data.json.social || '',
-            possessions: data.json.possessions || '',
+            stuff: data.json.stuff || data.json.possessions || '', // Support both old and new
             giving: data.json.giving || '',
             spirituality: data.json.spirituality || '',
             conclusion: '',
@@ -228,7 +229,7 @@ export default function AssemblyPage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
+    <div>
       {/* Header */}
       <div className="text-center mb-10 md:mb-12">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-3xl mb-6">

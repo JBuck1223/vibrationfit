@@ -298,7 +298,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
-          storageFolder="evidence"
+          storageFolder="profile"
         />
 
         {/* Display Saved Recordings */}

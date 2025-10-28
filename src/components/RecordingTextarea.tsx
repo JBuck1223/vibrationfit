@@ -5,6 +5,9 @@ import { Mic, Video, Loader2, X } from 'lucide-react'
 import { Textarea, Button } from '@/lib/design-system/components'
 import { MediaRecorderComponent } from './MediaRecorder'
 import { uploadAndTranscribeRecording } from '@/lib/services/recordingService'
+import { USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
+
+type UserFolder = keyof typeof USER_FOLDERS
 
 interface RecordingTextareaProps {
   value: string
@@ -16,8 +19,10 @@ interface RecordingTextareaProps {
   className?: string
   disabled?: boolean
   onRecordingSaved?: (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => Promise<void>
-  storageFolder?: 'evidence' | 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'avatar' | 'customTracks'
+  storageFolder?: 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'profile' | 'customTracks'
+  category?: string // Category for IndexedDB persistence (e.g., 'fun', 'health', 'journal')
   onUploadProgress?: (progress: number, status: string, fileName: string, fileSize: number) => void
+  transcriptOnly?: boolean // If true, only save transcript (no file upload)
 }
 
 export function RecordingTextarea({
@@ -30,8 +35,10 @@ export function RecordingTextarea({
   className = '',
   disabled = false,
   onRecordingSaved,
-  storageFolder = 'evidence',
-  onUploadProgress
+  storageFolder = 'journal',
+  category,
+  onUploadProgress,
+  transcriptOnly = false
 }: RecordingTextareaProps) {
   const [showRecorder, setShowRecorder] = useState(false)
   const [recordingMode, setRecordingMode] = useState<'audio' | 'video'>('audio')
@@ -73,25 +80,24 @@ export function RecordingTextarea({
       let recordingUrl: string | undefined
 
       // Prepare the updated text value with transcript
-      const recordingNote = shouldSaveFile 
-        ? `\n\n--- Recorded on ${new Date().toLocaleDateString()} (${recordingMode === 'video' ? 'Video' : 'Audio'} saved) ---\n`
-        : `\n\n--- Recorded on ${new Date().toLocaleDateString()} ---\n`
-      
       const newValue = value 
-        ? `${value}${recordingNote}${transcript}`
+        ? `${value}\n\n${transcript}`
         : transcript
 
-      // Upload the recording file to S3 if requested
-      if (shouldSaveFile) {
+      // Upload the recording file to S3 if requested AND not in transcript-only mode
+      if (shouldSaveFile && !transcriptOnly) {
         console.log('📤 Uploading recording to S3...')
         
         // Determine the specific subfolder based on recording type and storage folder
         let specificFolder: string
         if (storageFolder === 'lifeVision') {
           specificFolder = recordingMode === 'video' ? 'lifeVisionVideoRecordings' : 'lifeVisionAudioRecordings'
-        } else if (storageFolder === 'evidence') {
-          specificFolder = recordingMode === 'video' ? 'evidenceVideoRecordings' : 'evidenceAudioRecordings'
+        } else if (storageFolder === 'alignmentPlan') {
+          specificFolder = recordingMode === 'video' ? 'alignmentPlanVideoRecordings' : 'alignmentPlanAudioRecordings'
+        } else if (storageFolder === 'profile') {
+          specificFolder = recordingMode === 'video' ? 'profileVideoRecordings' : 'profileAudioRecordings'
         } else {
+          // Default to journal (or other tools can specify their own recording folders)
           specificFolder = recordingMode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings'
         }
         
@@ -101,7 +107,7 @@ export function RecordingTextarea({
         
         const result = await uploadAndTranscribeRecording(
           blob, 
-          specificFolder as any, 
+          specificFolder as UserFolder, 
           fileName,
           (progress, status) => {
             onUploadProgress?.(progress, status, fileName, fileSize)
@@ -109,22 +115,22 @@ export function RecordingTextarea({
         )
         recordingUrl = result.url
         console.log('✅ Recording uploaded:', recordingUrl)
-        
-        // Notify parent component about the saved recording (pass the updated text too)
-        if (onRecordingSaved) {
-          console.log('📢 Notifying parent about saved recording with updated text')
-          await onRecordingSaved(recordingUrl, transcript, recordingMode, newValue)
-          console.log('✅ Parent save completed')
-          // Don't update text field here - parent reload will handle it
-        } else {
-          console.warn('⚠️ No onRecordingSaved callback provided!')
-          // Only update text if no callback (fallback)
-          console.log('📝 Updating text field with transcript (no callback)')
-          onChange(newValue)
-        }
+      } else if (transcriptOnly) {
+        console.log('📝 Transcript-only mode: skipping file upload')
       } else {
         console.log('⏭️ Skipping file upload (checkbox unchecked)')
-        console.log('📝 Updating text field with transcript')
+      }
+
+      // Notify parent component (with or without file URL)
+      if (onRecordingSaved) {
+        console.log('📢 Notifying parent about saved recording with updated text')
+        await onRecordingSaved(recordingUrl || '', transcript, recordingMode, newValue)
+        console.log('✅ Parent save completed')
+        // Don't update text field here - parent reload will handle it
+      } else {
+        console.warn('⚠️ No onRecordingSaved callback provided!')
+        // Only update text if no callback (fallback)
+        console.log('📝 Updating text field with transcript (no callback)')
         onChange(newValue)
       }
       
@@ -231,7 +237,8 @@ export function RecordingTextarea({
             onTranscriptComplete={handleTranscriptComplete}
             autoTranscribe={true} // Transcribe both audio and video
             maxDuration={600} // 10 minutes
-            showSaveOption={true} // Show the save recording checkbox
+            showSaveOption={!transcriptOnly} // Hide save option if transcript-only mode
+            category={category || storageFolder} // Use category if provided, else storageFolder
           />
         </div>
       )}

@@ -79,176 +79,275 @@ function buildCategoryPrompt(
   profile: any,
   assessment: any
 ): string {
-  // Get category-specific profile fields
-  const categoryProfileFields = getCategoryProfileFields(category, profile)
+  // Get category-specific profile story (user's own words)
+  const categoryStories: Record<string, string> = {
+    fun: 'fun_story',
+    health: 'health_story',
+    travel: 'travel_story',
+    romance: 'love_story',
+    family: 'family_story',
+    social: 'social_story',
+    home: 'home_story',
+    business: 'work_story',
+    money: 'money_story',
+    possessions: 'stuff_story',
+    giving: 'giving_story',
+    spirituality: 'spirituality_story'
+  }
+  
+  const storyField = categoryStories[category]
+  const profileStory = profile && storyField && profile[storyField] && profile[storyField].trim()
+    ? profile[storyField].trim()
+    : null
   
   // Get category-specific assessment responses
   const categoryResponses = assessment?.responses?.filter((r: any) => r.category === category) || []
-  const assessmentContext = categoryResponses.length > 0
-    ? `Assessment Responses for ${categoryName}:
-${categoryResponses.map((r: any) => `Q: ${r.question_text}
-A: ${r.response_text} (${r.green_line || 'not assessed'}) (Score: ${r.response_value})
+  const assessmentQAs = categoryResponses.map((r: any) => ({
+    question: r.question_text,
+    answer: r.response_text,
+    greenLine: r.green_line || 'not assessed',
+    score: r.response_value
+  }))
+  
+  // Build data sections
+  let dataSections = ''
+  
+  if (transcript && transcript.trim()) {
+    dataSections += `## DATA SOURCE 1: User's Current Reflection (Spoken/Written Input)
+"${transcript}"
+
+`
+  }
+  
+  if (profileStory) {
+    dataSections += `## DATA SOURCE 2: User's Profile Story (Their Own Words)
+"${profileStory}"
+
+`
+  }
+  
+  if (assessmentQAs.length > 0) {
+    dataSections += `## DATA SOURCE 3: Assessment Responses (Their Own Answers)
+${assessmentQAs.map((qa, i) => `Question ${i + 1}: ${qa.question}
+Answer: "${qa.answer}"
+Green Line Status: ${qa.greenLine}
+Score: ${qa.score}
 `).join('\n')}`
-    : ''
-  
-  // Calculate transcript length to determine detail level
-  const transcriptLength = transcript.length
-  const wordCount = transcript.split(/\s+/).length
-  
-  // Determine length guidance based on transcript detail
-  let lengthGuidance = ''
-  if (wordCount > 500) {
-    lengthGuidance = '\n\nThe user spoke at great length about this topic. Write a COMPREHENSIVE and DETAILED summary with rich imagery and multiple paragraphs.'
-  } else if (wordCount > 200) {
-    lengthGuidance = '\n\nThe user provided substantial detail on this topic. Write a DETAILED summary with good depth and imagery.'
-  } else if (wordCount > 50) {
-    lengthGuidance = '\n\nThe user provided moderate detail on this topic. Write a MODERATE-LENGTH summary with some depth.'
-  } else {
-    lengthGuidance = '\n\nThe user provided brief input on this topic. Write a CONCISE summary that captures the essence without unnecessary elaboration.'
   }
   
   return `${SHARED_SYSTEM_PROMPT}
 
-BACKGROUND CONTEXT (this helps you understand the user deeply - synthesize this into the vision):
-${categoryProfileFields}
+# YOUR TASK: Create a Data-Driven Summary of ${categoryName}
 
-${assessmentContext}
+## CRITICAL INSTRUCTIONS:
 
-${assessment && assessment.category_scores ? `Assessment Summary:
-- ${categoryName} Score: ${assessment.category_scores[category] || 'not scored'}%
-- Overall Score: ${assessment.overall_percentage || 'not calculated'}%
-- Green Line Status: ${assessment.green_line_status || 'not assessed'}
-` : ''}
+**PRIMARY GOAL: Capture the user's voice using their own words. 80%+ of the output must be reframed from their actual speech patterns, phrases, and word choices. If it doesn't sound like them, it won't stick.**
 
-YOUR TASK:
-Write a detailed **Category Summary** for ${categoryName} that weaves together:
-1. The user's spoken reflection below
-2. The background context above (especially their own words from their profile story)${lengthGuidance}
+**APPROACH:**
+1. First, create THREE separate summaries (one for each data source below)
+2. Then, combine these summaries to identify what's going well and what's challenging
+3. Use their actual words, phrases, and speech patterns throughout - reframe, don't rewrite
 
-User's spoken reflection:
-"${transcript}"
+${dataSections}
 
-TASK: Write a structured summary including:
+## STEP 1: Create Three Separate Summaries
 
-1. **Overview Paragraph** — describe the vibrational landscape of this category in first person present tense.
-2. **Highlights Section** — title it "The things going really well in this area are..." and list 3-5 specific items in affirming present-tense language.
-3. **Contrast Section** — title it "The challenges currently in this area are..." — gently identify areas where energy feels resistant, keeping tone compassionate and observational.
-4. **Vibrational Summary Paragraph** — integrate what's going well and what's calling for alignment. End with an upward statement like "I can feel myself opening into greater ease and harmony here."
+For EACH data source above, create a brief summary that:
+- Uses their exact words, phrases, and speech patterns
+- Identifies what's going well in their own words
+- Identifies what's challenging in their own words
+- Maintains their voice, tone, and way of expressing themselves
 
-OUTPUT FORMAT: Return Markdown in this exact structure:
+## STEP 2: Combine Into Final Summary
 
-### ${categoryName}
-**Overview**
-[1-2 emotionally intelligent paragraphs]
+Combine all three summaries to create one unified view that identifies:
 
-**The things going really well in this area are...**
-- [specific highlight 1]
-- [specific highlight 2]
-- [specific highlight 3]
-- [optional highlight 4]
-- [optional highlight 5]
+**What's Going Really Well** - Things they mentioned that feel positive, aligned, or working well
+- Extract their actual words and phrases
+- Reframe in first person present tense USING THEIR SPEECH PATTERNS
+- Be specific and grounded in what they actually said
 
-**The challenges currently in this area are...**
-- [contrast 1]
-- [contrast 2]
-- [contrast 3]
+**What's Challenging** - Things they mentioned that feel difficult, frustrating, or out of alignment
+- Use their actual words and phrases
+- Reframe in first person present tense USING THEIR SPEECH PATTERNS
+- Be compassionate but honest about what they expressed
 
-**Vibrational Summary**
-[1-2 paragraphs that integrate alignment and expansion, ending with an upward statement]`
+## OUTPUT FORMAT (strict - no markdown, no vibrational summary):
+
+CRITICAL: Do NOT use markdown formatting. No asterisks (**), no hash symbols (#), no markdown syntax. Use plain text with clean line breaks.
+
+${categoryName}
+
+The things going really well in this area are...
+- [Item 1 - Use their words, their phrases, reframed in first person]
+- [Item 2 - Use their words, their phrases, reframed in first person]
+- [Item 3 - Use their words, their phrases, reframed in first person]
+- [Additional items as needed]
+
+The challenges currently in this area are...
+- [Challenge 1 - Use their words, their phrases, reframed in first person]
+- [Challenge 2 - Use their words, their phrases, reframed in first person]
+- [Challenge 3 - Use their words, their phrases, reframed in first person]
+- [Additional challenges as needed]
+
+## CRITICAL RULES:
+
+1. **80%+ must be their actual words reframed** - If you're writing in a style that doesn't match their speech patterns, you're doing it wrong.
+
+2. **Match their tone** - If they're casual, be casual. If they're formal, be formal. If they use slang, use similar language.
+
+3. **Use their phrases** - If they say "I'm really struggling with..." use that phrase structure. Don't replace it with generic language.
+
+4. **No "woo" language** - No "vibrational alignment," "raising my frequency," or abstract spiritual concepts. Use concrete, real language THEY would use.
+
+5. **Reframe, don't rewrite** - Take "I'm stressed about money" and reframe it as "Money feels stressful right now" or "I feel stress around my financial situation" - same meaning, their words, first person present.
+
+6. **Be specific** - Include actual details they mentioned (names, places, specific situations, concrete examples).
+
+7. **No overview paragraph** - Just go straight to the two sections.
+
+8. **If they didn't mention something positive, don't make it up** - Only include what they actually said or implied.
+
+9. **NO MARKDOWN FORMATTING** - Do not use asterisks (**), hash symbols (#), or any markdown syntax. Write in plain text with clean formatting. Use line breaks and dashes for bullet points, but no markdown syntax.
+
+Remember: This should read like THEM summarizing their own life, not an AI writing about them. Use their words, their phrasing, and plain text formatting - no markdown.`
+}
+
+function sendProgress(controller: ReadableStreamDefaultController, stage: string, message: string) {
+  const data = JSON.stringify({ type: 'progress', stage, message })
+  controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`))
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { category, transcript, categoryName } = await request.json()
-
-    if (!transcript || !category) {
-      return NextResponse.json({ error: 'Transcript and category are required' }, { status: 400 })
-    }
-
-    // Get profile and assessment data
-    let profile, assessment
-    try {
-      // Get raw profile data
-      const { data: profileData } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
-      profile = profileData
-    } catch (err) {
-      console.log('No profile found, continuing without profile data')
-      profile = null
-    }
-
-    try {
-      // Get raw assessment data
-      const { data: assessmentData } = await supabase
-        .from('assessment_results')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(1)
-        .single()
-      
-      if (assessmentData) {
-        // Get assessment responses with questions and answers
-        const { data: responsesData } = await supabase
-          .from('assessment_responses')
-          .select('*')
-          .eq('assessment_id', assessmentData.id)
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const supabase = await createClient()
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
         
-        assessment = {
-          ...assessmentData,
-          responses: responsesData || []
+        if (userError || !user) {
+          const error = JSON.stringify({ type: 'error', error: 'Unauthorized' })
+          controller.enqueue(new TextEncoder().encode(`data: ${error}\n\n`))
+          controller.close()
+          return
         }
-      } else {
-        assessment = null
+
+        const { category, transcript, categoryName } = await request.json()
+
+        if (!transcript || !category) {
+          const error = JSON.stringify({ type: 'error', error: 'Transcript and category are required' })
+          controller.enqueue(new TextEncoder().encode(`data: ${error}\n\n`))
+          controller.close()
+          return
+        }
+
+        // Stage 1: Evaluating input
+        sendProgress(controller, 'evaluating', 'Evaluating your input...')
+
+        // Stage 2: Get profile data
+        sendProgress(controller, 'profile', `Compiling your profile information around ${categoryName}...`)
+        
+        let profile, assessment
+        try {
+          // Get raw profile data
+          const { data: profileData } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single()
+          profile = profileData
+        } catch (err) {
+          console.log('No profile found, continuing without profile data')
+          profile = null
+        }
+
+        // Stage 3: Get assessment data
+        sendProgress(controller, 'assessment', `Compiling your assessment data for ${categoryName}...`)
+        
+        try {
+          // Get raw assessment data
+          const { data: assessmentData } = await supabase
+            .from('assessment_results')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('completed_at', { ascending: false })
+            .limit(1)
+            .single()
+          
+          if (assessmentData) {
+            // Get assessment responses with questions and answers
+            const { data: responsesData } = await supabase
+              .from('assessment_responses')
+              .select('*')
+              .eq('assessment_id', assessmentData.id)
+            
+            assessment = {
+              ...assessmentData,
+              responses: responsesData || []
+            }
+          } else {
+            assessment = null
+          }
+        } catch (err) {
+          console.log('No assessment found, continuing without assessment data')
+          assessment = null
+        }
+
+        // Stage 4: Reasoning
+        sendProgress(controller, 'reasoning', 'Reasoning and synthesizing your vision...')
+
+        // Build prompt with context
+        const prompt = buildCategoryPrompt(category, transcript, categoryName, profile, assessment)
+
+        // Stage 5: Creating summary
+        sendProgress(controller, 'creating', 'Creating your summary...')
+
+        // Call OpenAI
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: SHARED_SYSTEM_PROMPT },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+        })
+
+        const summary = completion.choices[0]?.message?.content
+
+        if (!summary) {
+          throw new Error('No summary generated')
+        }
+
+        // TODO: Track token usage in database
+
+        // Send final result
+        const result = JSON.stringify({ 
+          type: 'complete',
+          summary,
+          model: 'gpt-4o',
+          category 
+        })
+        controller.enqueue(new TextEncoder().encode(`data: ${result}\n\n`))
+        controller.close()
+
+      } catch (err) {
+        console.error('Category summary error:', err)
+        const error = JSON.stringify({ 
+          type: 'error', 
+          error: err instanceof Error ? err.message : 'Failed to generate summary' 
+        })
+        controller.enqueue(new TextEncoder().encode(`data: ${error}\n\n`))
+        controller.close()
       }
-    } catch (err) {
-      console.log('No assessment found, continuing without assessment data')
-      assessment = null
     }
+  })
 
-    // Build prompt with context
-    const prompt = buildCategoryPrompt(category, transcript, categoryName, profile, assessment)
-
-    // Call OpenAI
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: SHARED_SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000,
-    })
-
-    const summary = completion.choices[0]?.message?.content
-
-    if (!summary) {
-      throw new Error('No summary generated')
-    }
-
-    // TODO: Track token usage in database
-
-    return NextResponse.json({ 
-      summary,
-      model: 'gpt-4o',
-      category 
-    })
-
-  } catch (err) {
-    console.error('Category summary error:', err)
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to generate summary' },
-      { status: 500 }
-    )
-  }
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  })
 }

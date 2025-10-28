@@ -297,7 +297,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
-          storageFolder="evidence"
+          storageFolder="profile"
         />
 
         {/* Display Saved Recordings */}

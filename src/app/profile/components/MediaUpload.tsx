@@ -31,7 +31,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
 
     try {
       const uploadPromises = files.map(async (file) => {
-        const result = await uploadUserFile('evidence', file)
+        const result = await uploadUserFile('profile', file)
         return result.url
       })
 

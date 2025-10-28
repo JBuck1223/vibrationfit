@@ -155,7 +155,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
-          storageFolder="evidence"
+          storageFolder="profile"
         />
 
         <SavedRecordings

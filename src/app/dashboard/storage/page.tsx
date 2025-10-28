@@ -25,11 +25,10 @@ interface StorageData {
 }
 
 const FOLDER_LABELS: Record<string, { label: string; icon: any; color: string }> = {
-  avatar: { label: 'Profile', icon: Image, color: 'text-primary-500' },
+  profile: { label: 'Profile', icon: Image, color: 'text-primary-500' },
   'vision-board': { label: 'Vision Board', icon: Image, color: 'text-accent-500' },
   journal: { label: 'Journal', icon: FileText, color: 'text-energy-500' },
   'life-vision': { label: 'Life Vision', icon: Music, color: 'text-secondary-500' },
-  evidence: { label: 'Profile Recordings', icon: Video, color: 'text-neutral-400' },
   'alignment-plan': { label: 'Alignment Plans', icon: FileText, color: 'text-primary-400' },
   'custom-tracks': { label: 'Custom Audio', icon: Music, color: 'text-accent-400' },
   other: { label: 'Other', icon: Folder, color: 'text-neutral-500' },

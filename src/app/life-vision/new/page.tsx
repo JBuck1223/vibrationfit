@@ -17,7 +17,7 @@ export default function VIVALifeVisionLandingPage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
+    <div>
       {/* Hero Section */}
       <div className="text-center mb-12 md:mb-16">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 bg-gradient-to-br from-[#8B5CF6]/20 to-[#B629D4]/20 border-2 border-[#8B5CF6]/50 backdrop-blur-sm">

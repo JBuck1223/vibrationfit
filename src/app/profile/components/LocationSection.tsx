@@ -186,7 +186,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
-          storageFolder="evidence"
+          storageFolder="profile"
         />
 
         <SavedRecordings

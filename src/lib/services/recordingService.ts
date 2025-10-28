@@ -10,13 +10,13 @@ export interface RecordingUploadResult {
 /**
  * Upload a recorded audio/video file to S3
  * @param blob - The recorded media blob
- * @param folder - The folder to upload to (e.g., 'journal', 'evidence')
+ * @param folder - The folder to upload to (e.g., 'journalAudioRecordings', 'lifeVisionAudioRecordings')
  * @param fileName - Optional custom file name
  * @returns Upload result with URL and transcript
  */
 export async function uploadRecording(
   blob: Blob,
-  folder: keyof typeof USER_FOLDERS = 'evidence',
+  folder: keyof typeof USER_FOLDERS = 'journalAudioRecordings',
   fileName?: string,
   onProgress?: (progress: number) => void
 ): Promise<RecordingUploadResult> {
@@ -52,7 +52,7 @@ export async function uploadRecording(
  */
 export async function uploadAndTranscribeRecording(
   blob: Blob,
-  folder: keyof typeof USER_FOLDERS = 'evidence',
+  folder: keyof typeof USER_FOLDERS = 'journalAudioRecordings',
   fileName?: string,
   onProgress?: (progress: number, status: string) => void
 ): Promise<RecordingUploadResult> {
@@ -116,8 +116,8 @@ export function estimateTranscriptionCost(durationSeconds: number): number {
 
 /**
  * Extract S3 key from CDN URL
- * Example: https://media.vibrationfit.com/user-uploads/123/evidence/file.webm
- * Returns: user-uploads/123/evidence/file.webm
+ * Example: https://media.vibrationfit.com/user-uploads/123/journal/audio-recordings/file.webm
+ * Returns: user-uploads/123/journal/audio-recordings/file.webm
  */
 export function extractS3KeyFromUrl(url: string): string {
   try {
