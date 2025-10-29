@@ -5,9 +5,9 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text } from '@/lib/design-system/components'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
-import { Sparkles, CheckCircle, ArrowLeft, ArrowRight, ChevronDown, User, TrendingUp, RefreshCw } from 'lucide-react'
+import { Sparkles, CheckCircle, ArrowLeft, ArrowRight, ChevronDown, User, TrendingUp, RefreshCw, Mic, AlertCircle, Loader2, Video } from 'lucide-react'
 import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
-import { deleteSavedRecording, getRecordingsForCategory } from '@/lib/storage/indexed-db-recording'
+import { deleteSavedRecording, getRecordingsForCategory, loadSavedRecording, saveRecordingChunks } from '@/lib/storage/indexed-db-recording'
 
 interface VIVAActionCardProps {
   stage: string
@@ -98,6 +98,8 @@ export default function CategoryPage() {
   } | null>(null)
   const [loadingPrompts, setLoadingPrompts] = useState(false)
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
+  const [savedRecordings, setSavedRecordings] = useState<any[]>([])
+  const [transcribingRecordingId, setTranscribingRecordingId] = useState<string | null>(null)
 
   // VIVA prompt generation loading messages
   const promptLoadingMessages = [
@@ -171,6 +173,9 @@ export default function CategoryPage() {
 
       // Load profile and assessment data for personalized prompts
       await loadPromptSuggestions(user.id)
+
+      // Check for saved recordings without transcripts
+      await checkForUnsavedRecordings()
 
       setLoading(false)
     } catch (err) {
@@ -532,16 +537,23 @@ export default function CategoryPage() {
     }
 
     // Clear any saved recordings from IndexedDB for this category (successful upload means we don't need backups)
+    // Only clear recordings that have transcripts (successfully processed)
     try {
-      const savedRecordings = await getRecordingsForCategory(categoryKey)
-      for (const recording of savedRecordings) {
+      const allRecordings = await getRecordingsForCategory(categoryKey)
+      const processedRecordings = allRecordings.filter(rec => rec.transcript)
+      for (const recording of processedRecordings) {
         await deleteSavedRecording(recording.id)
       }
-      console.log('✅ Cleared IndexedDB backups after successful upload')
+      // Update savedRecordings state to remove processed ones
+      setSavedRecordings(prev => prev.filter(r => processedRecordings.find(p => p.id === r.id)))
+      console.log('✅ Cleared processed recordings from IndexedDB')
     } catch (error) {
       console.error('Failed to clear IndexedDB:', error)
       // Non-critical, don't fail the save
     }
+    
+    // Refresh the saved recordings list in case there are still unprocessed ones
+    await checkForUnsavedRecordings()
   }
 
   const handleProcessWithVIVA = async () => {
@@ -553,7 +565,10 @@ export default function CategoryPage() {
     setIsProcessing(true)
     setVivaStage('evaluating')
     setVivaMessage('')
-    setError(null)
+    setError(null) // Clear any previous errors
+
+    // Also refresh saved recordings list in case any got processed
+    await checkForUnsavedRecordings()
 
     try {
       const response = await fetch('/api/viva/category-summary', {
@@ -706,6 +721,113 @@ export default function CategoryPage() {
     setAiSummary('') // Clear summary to return to input mode
     setEditingSummary(false) // Make sure we're not in edit mode
     setEditedSummary('')
+  }
+
+  const checkForUnsavedRecordings = async () => {
+    try {
+      const recordings = await getRecordingsForCategory(categoryKey)
+      // Filter for recordings that have a blob but no transcript
+      const unsavedRecordings = recordings.filter(rec => rec.blob && !rec.transcript)
+      setSavedRecordings(unsavedRecordings)
+      console.log('📼 Found unsaved recordings:', unsavedRecordings.length)
+    } catch (error) {
+      console.error('Error checking for saved recordings:', error)
+    }
+  }
+
+  const handleRetryTranscription = async (recordingId: string) => {
+    setTranscribingRecordingId(recordingId)
+    setError(null)
+    
+    try {
+      // Load the recording from IndexedDB
+      const recording = await loadSavedRecording(recordingId)
+      if (!recording || !recording.blob) {
+        throw new Error('Recording not found or missing audio data')
+      }
+
+      // Create FormData for transcription
+      const formData = new FormData()
+      formData.append('audio', recording.blob, `recording-${recordingId}.webm`)
+
+      // Call transcription API
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Transcription failed')
+      }
+
+      const data = await response.json()
+      const transcriptText = data.transcript
+
+      if (!transcriptText) {
+        throw new Error('No transcript received')
+      }
+
+      // Update the recording in IndexedDB with the transcript
+      await saveRecordingChunks(
+        recordingId,
+        categoryKey,
+        recording.chunks,
+        recording.duration,
+        recording.mode,
+        recording.blob,
+        transcriptText
+      )
+
+      // Update state - add transcript to content
+      const updatedText = content 
+        ? `${content}\n\n${transcriptText}`
+        : transcriptText
+      setContent(updatedText)
+      setTranscript(transcriptText)
+
+      // Save transcript to refinements table
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        try {
+          const { data: existing } = await supabase
+            .from('refinements')
+            .select('id')
+            .eq('category', categoryKey)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (existing) {
+            await supabase
+              .from('refinements')
+              .update({ transcript: updatedText })
+              .eq('id', existing.id)
+          } else {
+            await supabase.from('refinements').insert({
+              user_id: user.id,
+              category: categoryKey,
+              transcript: updatedText
+            })
+          }
+        } catch (error) {
+          console.error('Failed to save transcript to refinements:', error)
+        }
+      }
+
+      // Remove from unsaved recordings list
+      setSavedRecordings(prev => prev.filter(r => r.id !== recordingId))
+
+      // Clear any errors
+      setError(null)
+
+      console.log('✅ Transcription successful and saved')
+    } catch (error) {
+      console.error('Transcription error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to transcribe audio')
+    } finally {
+      setTranscribingRecordingId(null)
+    }
   }
 
   const handleSaveAndContinue = async () => {
@@ -1273,6 +1395,76 @@ export default function CategoryPage() {
                 Your authentic voice will be captured and transformed into a resonant summary by VIVA.
               </p>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <Card className="border-2 border-[#D03739]/30 bg-[#D03739]/10 mb-6">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-[#D03739] flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="text-base font-semibold text-[#D03739] mb-1">Error</h3>
+                    <Text size="sm" className="text-neutral-300">{error}</Text>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Saved Recordings Without Transcripts */}
+            {savedRecordings.length > 0 && (
+              <Card className="border-2 border-[#FFB701]/30 bg-[#FFB701]/10 mb-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-[#FFB701]" />
+                    <h3 className="text-base font-semibold text-[#FFB701]">Saved Recording Available</h3>
+                  </div>
+                  <Text size="sm" className="text-neutral-300">
+                    You have {savedRecordings.length} saved recording{savedRecordings.length > 1 ? 's' : ''} that didn't get transcribed. You can retry transcription now.
+                  </Text>
+                  {savedRecordings.map((recording) => (
+                    <div key={recording.id} className="bg-black/30 rounded-lg p-4 border border-[#FFB701]/20">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-[#FFB701]/20 rounded-lg flex items-center justify-center">
+                            {recording.mode === 'video' ? (
+                              <Video className="w-5 h-5 text-[#FFB701]" />
+                            ) : (
+                              <Mic className="w-5 h-5 text-[#FFB701]" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-white">
+                              {recording.mode === 'video' ? 'Video' : 'Audio'} Recording
+                            </p>
+                            <p className="text-xs text-neutral-400">
+                              {Math.floor(recording.duration / 60)}:{(recording.duration % 60).toString().padStart(2, '0')} • {new Date(recording.timestamp).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => handleRetryTranscription(recording.id)}
+                          variant="secondary"
+                          size="sm"
+                          disabled={transcribingRecordingId === recording.id}
+                          className="gap-2 flex-shrink-0"
+                        >
+                          {transcribingRecordingId === recording.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Transcribing...
+                            </>
+                          ) : (
+                            <>
+                              <Mic className="w-4 h-4" />
+                              Transcribe
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             <RecordingTextarea
               value={content}
