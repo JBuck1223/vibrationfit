@@ -75,6 +75,9 @@ export default function TokenHistoryPage() {
       'chat_conversation': 'VIVA Conversation',
       'audio_generation': 'VIVA Audio Generation',
       'image_generation': 'VIVA Image Generation',
+      'life_vision_category_summary': 'Life Vision Category Summary',
+      'life_vision_master_assembly': 'Life Vision Master Assembly',
+      'prompt_suggestions': 'Prompt Suggestions',
       'admin_grant': 'Admin Grant',
       'admin_deduct': 'Admin Deduction'
     }
@@ -90,6 +93,9 @@ export default function TokenHistoryPage() {
       'chat_conversation': '💬',
       'audio_generation': '🎵',
       'image_generation': '🖼️',
+      'life_vision_category_summary': '📝',
+      'life_vision_master_assembly': '📖',
+      'prompt_suggestions': '💡',
       'admin_grant': '➕',
       'admin_deduct': '➖'
     }

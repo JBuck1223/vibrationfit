@@ -114,9 +114,10 @@ export default function AssemblyPage() {
       setTimeout(() => setVivaStage('crafting'), 3000)
 
       // Call API
-      // Get profile and assessment for context
+      // Get profile, assessment, and active vision for context
       let profileData = {}
       let assessmentData = {}
+      let activeVision = null
       
       try {
         const { data: profile } = await supabase
@@ -153,6 +154,25 @@ export default function AssemblyPage() {
       } catch (e) {
         console.log('No assessment available')
       }
+      
+      // Get active (complete) vision if one exists
+      try {
+        const { data: activeVisionData } = await supabase
+          .from('vision_versions')
+          .select('*')
+          .eq('user_id', user.id)
+          .neq('status', 'draft') // Only complete visions
+          .order('version_number', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        
+        if (activeVisionData) {
+          activeVision = activeVisionData
+          console.log('Found active vision to reference:', activeVisionData.version_number)
+        }
+      } catch (e) {
+        console.log('No active vision available')
+      }
 
       const response = await fetch('/api/viva/master-vision', {
         method: 'POST',
@@ -161,7 +181,8 @@ export default function AssemblyPage() {
           categorySummaries,
           categoryTranscripts,
           profile: profileData,
-          assessment: assessmentData
+          assessment: assessmentData,
+          activeVision: activeVision // Pass active vision to API
         })
       })
 

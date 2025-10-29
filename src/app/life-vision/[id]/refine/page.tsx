@@ -628,32 +628,100 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     return vision[category as keyof VisionData] as string || ''
   }
 
-  const startConversation = () => {
-    if (!selectedCategory || !vision) return
+  const startConversation = async () => {
+    if (!selectedCategory || !vision || !visionId) return
 
     const categoryValue = getCategoryValue(selectedCategory)
     const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
     
-    const initialMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'assistant',
-      content: `Hello! I'm VIVA, your intelligent vision refinement assistant. I see you want to work on your **${categoryInfo?.label}** vision.
+    setIsTyping(true)
+    
+    try {
+      // Call real VIVA chat API with initial greeting
+      const response = await fetch('/api/viva/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'START_SESSION' }],
+          context: {
+            refinement: true,
+            operation: 'refine_vision',
+            category: selectedCategory,
+            visionId: visionId,
+            isInitialGreeting: true
+          },
+          visionBuildPhase: 'refinement'
+        })
+      })
 
-Your current vision for this area is:
-"${categoryValue}"
+      if (!response.ok) {
+        throw new Error('Failed to start conversation')
+      }
 
-Let me help you refine this vision through a thoughtful conversation. I'll ask you questions to help you dive deeper and create a more powerful, specific vision.
+      // Handle streaming response
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let assistantMessageContent = ''
+      const assistantMessageId = Date.now().toString()
 
-What aspects of your ${categoryInfo?.label.toLowerCase()} vision feel most important to you right now?`,
-      timestamp: new Date()
+      // Add placeholder message for streaming
+      const placeholderMessage: ChatMessage = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date()
+      }
+      setChatMessages([placeholderMessage])
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value, { stream: true })
+          // AI SDK streams plain text chunks, so just append them
+          assistantMessageContent += chunk
+          
+          // Update the message in real-time
+          setChatMessages(prev => 
+            prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: assistantMessageContent }
+                : msg
+            )
+          )
+        }
+      }
+
+      setChatMessages(prev => 
+        prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: assistantMessageContent }
+            : msg
+        )
+      )
+      
+      setConversationPhase('exploring')
+    } catch (error) {
+      console.error('Error starting conversation:', error)
+      setError('Failed to start conversation. Please try again.')
+      
+      // Fallback to basic message
+      const fallbackMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `Hello! I'm VIVA, your intelligent vision refinement assistant. I see you want to work on your **${categoryInfo?.label}** vision. Let me help you refine this vision through thoughtful conversation.`,
+        timestamp: new Date()
+      }
+      setChatMessages([fallbackMessage])
+      setConversationPhase('exploring')
+    } finally {
+      setIsTyping(false)
     }
-
-    setChatMessages([initialMessage])
-    setConversationPhase('exploring')
   }
 
   const sendMessage = async () => {
-    if (!currentMessage.trim() || !selectedCategory) return
+    if (!currentMessage.trim() || !selectedCategory || !visionId) return
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -662,70 +730,132 @@ What aspects of your ${categoryInfo?.label.toLowerCase()} vision feel most impor
       timestamp: new Date()
     }
 
+    const userMessageForAI = currentMessage.trim()
     setChatMessages(prev => [...prev, userMessage])
     setCurrentMessage('')
     setIsTyping(true)
 
-    // Simulate AI response (in real implementation, this would call your AI API)
-        setTimeout(() => {
-      const aiResponse = generateAIResponse(currentMessage, conversationPhase)
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+    try {
+      // Prepare conversation history for API
+      const messagesForAPI = [...chatMessages, userMessage].map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+
+      // Call real VIVA chat API
+      const response = await fetch('/api/viva/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messagesForAPI,
+          context: {
+            refinement: true,
+            operation: 'refine_vision',
+            category: selectedCategory,
+            visionId: visionId
+          },
+          visionBuildPhase: 'refinement'
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send message')
+      }
+
+      // Handle streaming response
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let assistantMessageContent = ''
+      const assistantMessageId = (Date.now() + 1).toString()
+
+      // Add placeholder message for streaming
+      const placeholderMessage: ChatMessage = {
+        id: assistantMessageId,
         role: 'assistant',
-        content: aiResponse.content,
+        content: '',
         timestamp: new Date()
       }
+      setChatMessages(prev => [...prev, placeholderMessage])
 
-      setChatMessages(prev => [...prev, assistantMessage])
-      setLastVivaResponse(aiResponse.content)
-      setConversationPhase(aiResponse.nextPhase)
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value, { stream: true })
+          // AI SDK streams plain text chunks, so just append them
+          assistantMessageContent += chunk
+          
+          // Update the message in real-time
+          setChatMessages(prev => 
+            prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: assistantMessageContent }
+                : msg
+            )
+          )
+        }
+      }
+
+      // Final update with complete message
+      setChatMessages(prev => 
+        prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: assistantMessageContent }
+            : msg
+        )
+      )
+
+      // Check if message suggests a refined version is ready (look for keywords)
+      const refinedPattern = /refined|refinement|refine|copy.*refinement|copy.*refined/i
+      if (refinedPattern.test(assistantMessageContent)) {
+        setLastVivaResponse(assistantMessageContent)
+        // Extract refined text if provided in the response
+        const refinedMatch = assistantMessageContent.match(/"([^"]+)"/)
+        if (refinedMatch && refinedMatch[1]) {
+          setLastVivaResponse(refinedMatch[1])
+          setShowCopyPrompt(true)
+        }
+      }
+
+      setConversationPhase('exploring') // Reset phase - let AI drive the conversation
+    } catch (error) {
+      console.error('Error sending message:', error)
+      setError('Failed to send message. Please try again.')
+      
+      // Add error message to chat
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error. Please try again.',
+        timestamp: new Date()
+      }
+      setChatMessages(prev => [...prev, errorMessage])
+    } finally {
       setIsTyping(false)
-
-      // Show copy prompt if we're in finalizing phase
-      if (aiResponse.nextPhase === 'finalizing') {
-        setShowCopyPrompt(true)
-      }
-    }, 1500)
-  }
-
-  const generateAIResponse = (userMessage: string, phase: string) => {
-    const responses = {
-      exploring: {
-        content: `That's a great insight! I can see how ${userMessage.toLowerCase()} connects to your vision. 
-
-Let me ask you this: When you imagine achieving this vision, what specific feelings do you want to experience? How will you know you've truly actualized this vision in your life?
-
-The more specific and emotionally connected we can make your vision, the more powerful it becomes.`,
-        nextPhase: 'refining' as const
-      },
-      refining: {
-        content: `Beautiful! I can feel the energy in what you're describing. 
-
-Based on our conversation, here's a refined version of your vision:
-
-**Refined Vision:**
-"${userMessage}"
-
-This refined vision is more specific, emotionally connected, and actionable than your original. It captures the essence of what you truly want to actualize.
-
-Would you like me to copy this refined vision to your current refinement? You can always edit it further after I copy it over.`,
-        nextPhase: 'finalizing' as const
-      },
-      finalizing: {
-        content: `Perfect! I've copied the refined vision to your current refinement. You can now edit it further if you'd like, or move on to refine another category.
-
-Remember, this is your vision - make it yours! The refinement process is about making it more powerful and aligned with your true desires.
-
-Would you like to refine another category, or are you satisfied with this refinement?`,
-        nextPhase: 'initial' as const
-      }
     }
-
-    return responses[phase as keyof typeof responses] || responses.exploring
   }
+
+  // generateAIResponse removed - now using real AI API
 
   const copyToRefinement = () => {
-    setCurrentRefinement(lastVivaResponse)
+    // Extract refined text from last VIVA response if it contains a refined version
+    // Look for quoted text or text after "Refined Vision:" or similar markers
+    let refinedText = lastVivaResponse
+    
+    // Try to extract quoted text (most common format)
+    const quotedMatch = lastVivaResponse.match(/"([^"]+)"/)
+    if (quotedMatch && quotedMatch[1]) {
+      refinedText = quotedMatch[1]
+    } else {
+      // Look for text after markers like "Refined Vision:" or "Here's a refined version:"
+      const refinedMatch = lastVivaResponse.match(/(?:refined|refinement|version)[:\s]+([\s\S]+?)(?:\n\n|Would you|Can I|$)/i)
+      if (refinedMatch && refinedMatch[1]) {
+        refinedText = refinedMatch[1].trim()
+      }
+    }
+    
+    setCurrentRefinement(refinedText)
     setShowCopyPrompt(false)
   }
 

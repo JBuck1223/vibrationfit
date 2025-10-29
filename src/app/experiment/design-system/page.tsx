@@ -21,7 +21,8 @@ import {
   Grid,
   Inline
 } from '@/lib/design-system/components'
-import { Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, Copy, Check, Palette } from 'lucide-react'
+import { getComponentProps } from './component/[componentName]/component-props'
 
 export default function DesignSystemMasterPage() {
   const router = useRouter()
@@ -29,6 +30,9 @@ export default function DesignSystemMasterPage() {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(COMPONENT_CATEGORIES)
   )
+  const [copiedComponent, setCopiedComponent] = useState<string | null>(null)
+  const [showColorPalette, setShowColorPalette] = useState(false)
+  const [copiedColor, setCopiedColor] = useState<string | null>(null)
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => {
@@ -54,6 +58,59 @@ export default function DesignSystemMasterPage() {
     return acc
   }, {} as Record<string, ComponentMetadata[]>)
 
+  const generateComponentCopyText = (component: ComponentMetadata): string => {
+    const props = getComponentProps(component.id)
+    const requiredProps = props.filter(p => p.required)
+    const optionalProps = props.filter(p => !p.required && p.name !== 'className' && p.name !== 'children').slice(0, 3)
+    
+    let usageExample = `<${component.exportName}>`
+    if (requiredProps.length > 0) {
+      const firstRequired = requiredProps[0]
+      if (firstRequired.name === 'children') {
+        usageExample = `<${component.exportName}>Content</${component.exportName}>`
+      } else {
+        usageExample = `<${component.exportName} ${firstRequired.name}="..." />`
+      }
+    } else if (component.id === 'button' || component.id === 'card') {
+      usageExample = `<${component.exportName}>Content</${component.exportName}>`
+    } else {
+      usageExample = `<${component.exportName} />`
+    }
+
+    let copyText = `Component: ${component.name}\n`
+    copyText += `Category: ${component.category}\n`
+    copyText += `Description: ${component.description}\n\n`
+    copyText += `Import:\nimport { ${component.exportName} } from '@/lib/design-system/components'\n\n`
+    copyText += `Basic Usage:\n${usageExample}\n\n`
+    
+    if (requiredProps.length > 0) {
+      copyText += `Required Props:\n`
+      requiredProps.forEach(prop => {
+        copyText += `  - ${prop.name}: ${prop.type}${prop.description ? ` - ${prop.description}` : ''}\n`
+      })
+      copyText += '\n'
+    }
+    
+    if (optionalProps.length > 0) {
+      copyText += `Common Optional Props:\n`
+      optionalProps.forEach(prop => {
+        const defaultValue = prop.defaultValue ? ` (default: ${prop.defaultValue})` : ''
+        copyText += `  - ${prop.name}: ${prop.type}${defaultValue}${prop.description ? ` - ${prop.description}` : ''}\n`
+      })
+    }
+    
+    copyText += `\nView full documentation: ${component.path}`
+
+    return copyText
+  }
+
+  const handleCopyComponent = (component: ComponentMetadata) => {
+    const copyText = generateComponentCopyText(component)
+    navigator.clipboard.writeText(copyText)
+    setCopiedComponent(component.id)
+    setTimeout(() => setCopiedComponent(null), 2000)
+  }
+
   return (
     <Stack gap="lg">
       <div className="text-center">
@@ -65,23 +122,53 @@ export default function DesignSystemMasterPage() {
         </p>
       </div>
 
-      {/* Search */}
-      <Card className="p-4 md:p-6">
-        <div className="relative">
-          <Icon 
-            icon={Search} 
-            size="sm" 
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
-          />
-          <input
-            type="text"
-            placeholder="Search components..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          />
-        </div>
-      </Card>
+      {/* Search & Color Palette */}
+      <Stack gap="sm">
+        <Card className="p-4 md:p-6">
+          <div className="relative">
+            <Icon 
+              icon={Search} 
+              size="sm" 
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+            />
+            <input
+              type="text"
+              placeholder="Search components..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+        </Card>
+
+        {/* Color Palette Quick Access */}
+        <Card className="p-3 md:p-4">
+          <button
+            onClick={() => setShowColorPalette(!showColorPalette)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Icon icon={Palette} size="sm" color="#39FF14" />
+              <span className="text-sm md:text-base font-semibold text-white">Color Palette</span>
+            </div>
+            <Icon 
+              icon={showColorPalette ? ChevronDown : ChevronRight} 
+              size="sm" 
+              className="text-neutral-400"
+            />
+          </button>
+
+          {showColorPalette && (
+            <div className="mt-4 pt-4 border-t border-neutral-700">
+              <ColorPaletteDropdown onCopy={(hex) => {
+                navigator.clipboard.writeText(hex)
+                setCopiedColor(hex)
+                setTimeout(() => setCopiedColor(null), 1500)
+              }} copiedColor={copiedColor} />
+            </div>
+          )}
+        </Card>
+      </Stack>
 
       {/* Components by Category */}
       <Stack gap="md">
@@ -131,7 +218,7 @@ export default function DesignSystemMasterPage() {
                           >
                             <Stack gap="sm">
                               <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                                <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                                   <Icon 
                                     icon={component.icon} 
                                     size="sm" 
@@ -146,17 +233,35 @@ export default function DesignSystemMasterPage() {
                               <p className="text-xs md:text-sm text-neutral-400 line-clamp-2">
                                 {component.description}
                               </p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="w-full md:w-auto mt-2"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  router.push(component.path)
-                                }}
-                              >
-                                View Component →
-                              </Button>
+                              <Inline gap="sm" wrap>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="flex-1 min-w-0 shrink"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    router.push(component.path)
+                                  }}
+                                >
+                                  View →
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleCopyComponent(component)
+                                  }}
+                                  title="Copy component info"
+                                >
+                                  <Icon 
+                                    icon={copiedComponent === component.id ? Check : Copy} 
+                                    size="sm"
+                                    className={copiedComponent === component.id ? 'text-primary-500' : ''}
+                                  />
+                                </Button>
+                              </Inline>
                             </Stack>
                           </Card>
                         ))}
@@ -192,5 +297,80 @@ export default function DesignSystemMasterPage() {
         </Inline>
       </Card>
     </Stack>
+  )
+}
+
+// Color Palette Dropdown Component
+function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) => void, copiedColor: string | null }) {
+  const ColorRow = ({ hex, name, tokens, description }: { hex: string, name: string, tokens?: string, description: string }) => (
+    <div className="flex items-center gap-2 py-1">
+      <div 
+        className="w-5 h-5 rounded-full border border-white/20 shadow-md flex-shrink-0" 
+        style={{ backgroundColor: hex, boxShadow: `0 0 6px ${hex}40` }}
+      ></div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-white truncate">{name}{tokens && ` (${tokens})`}</p>
+        <p className="text-[10px] text-neutral-500 truncate">{description}</p>
+      </div>
+      <button
+        onClick={() => onCopy(hex)}
+        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors flex-shrink-0"
+        title="Copy hex code"
+      >
+        <span>{hex}</span>
+        {copiedColor === hex ? (
+          <Icon icon={Check} size="xs" className="text-primary-500" />
+        ) : (
+          <Icon icon={Copy} size="xs" />
+        )}
+      </button>
+    </div>
+  )
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="space-y-1">
+        <h6 className="text-xs font-semibold text-[#39FF14] mb-1.5">Primary</h6>
+        <ColorRow hex="#39FF14" name="Primary Green" tokens="50, 500" description="Electric Lime" />
+        <ColorRow hex="#00FF88" name="Electric Green" tokens="100, 600" description="Neon Electric" />
+        <ColorRow hex="#00CC44" name="Forest Green" tokens="200, 700" description="Electric Forest" />
+      </div>
+      <div className="space-y-1">
+        <h6 className="text-xs font-semibold text-[#00FFFF] mb-1.5">Secondary</h6>
+        <ColorRow hex="#00FFFF" name="Neon Cyan" tokens="50, 500" description="Neon Cyan (main)" />
+        <ColorRow hex="#06B6D4" name="Bright Cyan" tokens="100, 600" description="Bright Cyan" />
+        <ColorRow hex="#0F766E" name="Teal Dark" tokens="700" description="Teal Darker" />
+      </div>
+      <div className="space-y-1">
+        <h6 className="text-xs font-semibold text-[#BF00FF] mb-1.5">Accent</h6>
+        <ColorRow hex="#BF00FF" name="Neon Purple" tokens="50, 500" description="Neon Purple" />
+        <ColorRow hex="#A855F7" name="Bright Purple" tokens="100, 600" description="Brighter Purple" />
+        <ColorRow hex="#601B9F" name="Primary Purple" tokens="700" description="Primary Purple" />
+        <ColorRow hex="#B629D4" name="Violet" tokens="800" description="Violet" />
+      </div>
+      <div className="space-y-1">
+        <h6 className="text-xs font-semibold text-[#FFFF00] mb-1.5">Energy</h6>
+        <ColorRow hex="#FFFF00" name="Neon Yellow" description="Neon Yellow" />
+        <ColorRow hex="#FF6600" name="Neon Orange" description="Neon Orange" />
+        <ColorRow hex="#FF0080" name="Neon Pink" description="Neon Pink" />
+        <ColorRow hex="#FF0040" name="Neon Red" description="Neon Red" />
+      </div>
+      <div className="space-y-1">
+        <h6 className="text-xs font-semibold text-white mb-1.5">Semantic</h6>
+        <ColorRow hex="#39FF14" name="Success" description="Above Green Line" />
+        <ColorRow hex="#00FFFF" name="Info" description="Clarity" />
+        <ColorRow hex="#FFFF00" name="Warning" description="Celebration" />
+        <ColorRow hex="#FF0040" name="Error" description="Below Green Line" />
+        <ColorRow hex="#BF00FF" name="Premium" description="Premium / AI" />
+      </div>
+      <div className="space-y-1">
+        <h6 className="text-xs font-semibold text-neutral-400 mb-1.5">Neutrals</h6>
+        <ColorRow hex="#000000" name="Pure Black" description="Primary bg" />
+        <ColorRow hex="#1F1F1F" name="Dark Gray" description="Cards" />
+        <ColorRow hex="#404040" name="Medium Gray" description="Borders" />
+        <ColorRow hex="#666666" name="Light Gray" description="Borders" />
+        <ColorRow hex="#9CA3AF" name="Tertiary Text" description="Text" />
+      </div>
+    </div>
   )
 }

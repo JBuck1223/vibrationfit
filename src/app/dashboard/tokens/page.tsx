@@ -41,6 +41,9 @@ const ACTION_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   assessment_scoring: { label: 'VIVA Scoring', color: 'text-neutral-400' },
   image_generation: { label: 'VIVA Image Generation', color: 'text-accent-400' },
   vision_generation: { label: 'VIVA Vision Generation', color: 'text-primary-500' },
+  life_vision_category_summary: { label: 'Life Vision Category Summary', color: 'text-primary-500' },
+  life_vision_master_assembly: { label: 'Life Vision Master Assembly', color: 'text-primary-500' },
+  prompt_suggestions: { label: 'Prompt Suggestions', color: 'text-secondary-500' },
   admin_grant: { label: 'Admin Grant', color: 'text-primary-500' },
   admin_deduct: { label: 'Admin Deduction', color: 'text-red-500' },
 }

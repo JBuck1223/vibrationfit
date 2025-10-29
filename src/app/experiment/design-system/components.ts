@@ -5,7 +5,7 @@ import {
   Layout, Grid as GridIcon, Square, MousePointer, Tag, Edit, 
   Activity, Play, Monitor, CreditCard, List, CheckCircle, 
   Sparkles, Smartphone, PanelTop, FileText, Music, Type, 
-  Users, Eye, Trash2, Zap, HardDrive, Headphones
+  Users, Eye, Trash2, Zap, HardDrive, Headphones, Palette
 } from 'lucide-react'
 
 export interface ComponentMetadata {
@@ -229,6 +229,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     exportName: 'ActionButtons',
     path: '/experiment/design-system/component/action-buttons'
   },
+  {
+    id: 'toggle',
+    name: 'Toggle',
+    description: 'Toggle between options with active/inactive states (e.g., Annual/28-Day billing)',
+    category: 'UI',
+    icon: Edit,
+    exportName: 'Toggle',
+    path: '/experiment/design-system/component/toggle'
+  },
 
   // Feedback Components
   {
@@ -400,6 +409,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: HardDrive,
     exportName: 'InsufficientStorageDialog',
     path: '/experiment/design-system/component/insufficient-storage-dialog'
+  },
+  {
+    id: 'color-palette',
+    name: 'Color Palette',
+    description: 'Complete VibrationFit brand color palette with all variants, gradients, and semantic colors',
+    category: 'Special',
+    icon: Palette,
+    exportName: 'ColorPalette',
+    path: '/experiment/design-system/component/color-palette'
   },
 ]
 

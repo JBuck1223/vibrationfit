@@ -110,6 +110,7 @@ const navigation: NavItem[] = [
     hasDropdown: true,
     children: [
       { name: 'Chat with VIVA', href: '/dashboard/vibe-assistant-usage', icon: Sparkles },
+      { name: 'VIVA Master Assistant', href: '/viva-master', icon: Brain },
       { name: 'VIVA Actions Here', href: '/dashboard/vibe-assistant-actions', icon: Zap },
     ]
   },

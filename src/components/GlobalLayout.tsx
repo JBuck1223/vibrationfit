@@ -25,6 +25,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       '/dashboard/token-history',
       '/dashboard/tokens',
       '/dashboard/vibe-assistant-usage',
+      '/viva-master',
       
       // Life Vision and sub-pages
       '/life-vision',

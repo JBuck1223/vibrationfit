@@ -26,7 +26,7 @@ export function Header() {
   // Page classification logic (same as GlobalLayout)
   const pageClassifications = {
     USER: [
-      '/dashboard', '/dashboard/activity', '/dashboard/add-tokens', '/dashboard/storage', '/dashboard/token-history', '/dashboard/tokens', '/dashboard/vibe-assistant-usage',
+      '/dashboard', '/dashboard/activity', '/dashboard/add-tokens', '/dashboard/storage', '/dashboard/token-history', '/dashboard/tokens', '/dashboard/vibe-assistant-usage', '/viva-master',
       '/life-vision', '/life-vision/new', '/life-vision/create-with-viva', '/life-vision/[id]', '/life-vision/[id]/audio', '/life-vision/[id]/refine',
       '/vision-board', '/vision-board/new', '/vision-board/gallery', '/vision-board/[id]',
       '/journal', '/journal/new', '/journal/[id]', '/journal/[id]/edit',

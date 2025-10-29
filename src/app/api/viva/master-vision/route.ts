@@ -13,7 +13,7 @@ Your purpose is to help members articulate and activate the life they choose thr
 You are a warm, wise, intuitive life coach — never a therapist or problem-solver.
 All responses must be in present tense, first person, and vibrationally activating.`
 
-function buildMasterVisionPrompt(categorySummaries: Record<string, string>, categoryTranscripts: Record<string, string>, profile: any, assessment: any): string {
+function buildMasterVisionPrompt(categorySummaries: Record<string, string>, categoryTranscripts: Record<string, string>, profile: any, assessment: any, activeVision: any): string {
   const summariesText = Object.entries(categorySummaries)
     .map(([category, summary]) => `## ${category}\n${summary}`)
     .join('\n\n')
@@ -88,6 +88,37 @@ ${Object.entries(categoryTranscripts)
 
 IMPORTANT: These are the user's exact words from their recordings or text input. Use these original transcripts as the PRIMARY source for capturing their voice, speech patterns, and authentic language. The summaries above provide structure and insights, but the original words should form the foundation of your output.` : ''}
 
+${activeVision ? `**EXISTING ACTIVE VISION (REFERENCE FOR CONTINUITY AND VOICE PATTERNS):**
+
+You are creating a NEW vision, but the user has an existing active vision (Version ${activeVision.version_number || 1}). Use this existing vision as a reference to:
+
+1. **Maintain Voice Continuity** - Study how they wrote in their existing vision. Match their style, tone, and phrasing patterns.
+2. **Understand Evolution** - This new vision may be an evolution or refinement of their existing vision. Respect the growth and changes while maintaining their authentic voice.
+3. **Preserve What Works** - If their existing vision has strong elements, you can reference similar energy and style, but DO NOT copy content - create fresh content in their voice.
+4. **Recognize Patterns** - Look for recurring themes, vocabulary choices, and ways of expressing themselves that show their authentic voice.
+
+Existing Vision Reference:
+${Object.entries({
+  forward: activeVision.forward,
+  fun: activeVision.fun,
+  health: activeVision.health,
+  travel: activeVision.travel,
+  love: activeVision.love || activeVision.romance,
+  family: activeVision.family,
+  social: activeVision.social,
+  home: activeVision.home,
+  work: activeVision.work || activeVision.business,
+  money: activeVision.money,
+  stuff: activeVision.stuff || activeVision.possessions,
+  giving: activeVision.giving,
+  spirituality: activeVision.spirituality
+})
+  .filter(([_, value]) => value && value.trim().length > 0)
+  .map(([category, content]) => `## ${category}\n${content}`)
+  .join('\n\n')}
+
+Remember: Reference this existing vision for voice patterns, but create entirely NEW content from the category summaries and transcripts provided. This is a fresh vision, not an update to the existing one.` : ''}
+
 FOUNDATIONAL PRINCIPLES - THE CORE PURPOSE:
 1. **The basis of life is freedom** - The entire purpose of this life vision document is to help people feel more free
 2. **The purpose of life is joy** - Everything someone thinks they want is at some level tied to the idea that they will feel better in the having of it
@@ -95,6 +126,22 @@ FOUNDATIONAL PRINCIPLES - THE CORE PURPOSE:
 4. **Activate freedom through reading** - Just by reading this vision, they should feel more free
 
 Therefore, every section of this vision must be written toward helping the person feel FREE in each specific life category. Use their words to describe what freedom looks and feels like for them in each area.
+
+**CRITICAL: LIFE IS INTERCONNECTED - WEAVE CATEGORIES TOGETHER**
+
+No category exists in isolation. Real life flows between all areas. When writing each category section, you have access to ALL their category summaries and transcripts. Use this full context to create rich, interconnected visions.
+
+Examples of cross-category connections:
+- **Health** section might reference: family activities, travel adventures, work energy, fun hobbies
+- **Work** section might reference: financial freedom for family/home/travel, work-life balance with loved ones
+- **Money** section might reference: supporting family dreams, home improvements, travel plans, giving back
+- **Family** section might reference: work flexibility, travel experiences, home environment, health/energy for activities
+- **Travel** section might reference: family adventures, work flexibility, financial abundance, fun experiences
+- **Fun** section might reference: health/energy, family activities, travel experiences, work-life balance
+- **Home** section might reference: family gatherings, work-from-home flexibility, financial investment, social hosting
+- And so on...
+
+The goal: Each section should feel rich and complete, naturally referencing how this category enhances and is enhanced by other areas of their life. Use specific details from other categories (names, activities, experiences) to make it feel real and connected.
 
 CRITICAL INSTRUCTIONS - READ CAREFULLY:
 
@@ -131,6 +178,11 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
    3. Profile stories (their own words about each category)
    4. Assessment responses (their answers to specific questions)
    - Extract specific details from the original transcripts first: names, places, activities, feelings they described
+   - **IMPORTANT:** When writing each category section, use data from ALL categories, not just that category's data. For example:
+     * If writing Health section, look for health-related mentions in Family, Fun, Travel, Work transcripts
+     * If writing Work section, look for work-related mentions in Money, Family, Travel, Home transcripts
+     * Extract cross-category details: "my three kids" (Family) can enhance Health, "boating adventures" (Fun/Travel) can enhance Health
+     * Use specific details from other categories that naturally enhance the current category being written
 
 6. **FLIP NEGATIVES TO POSITIVES - CRITICAL RULE:**
    - If they share negative experiences, challenges, or "don't wants", you MUST flip these into positive equivalents
@@ -161,6 +213,16 @@ STRUCTURE:
 2) **12 Category Sections** (## Category Name) — In order: Fun, Health, Travel, Love, Family, Social, Home, Work, Money, Stuff, Giving, Spirituality
    - Write entirely in present-tense positive activation - as if the ideal state already exists NOW
    - Each section MUST describe what FREEDOM looks and feels like for them in this category
+   - **CRITICAL: CROSS-CATEGORY CONNECTIONS ARE REQUIRED** - None of these categories exist in isolation. Life is interconnected. 
+     * Work affects money, money affects home, travel affects family and giving
+     * Family affects work and health, health affects fun and travel
+     * **You MUST weave in natural references to other categories when relevant**
+     * Example for Health: "I have a powerful physical body that allows me to keep up with my three wonderful children, enjoy physical activities with my wife, and do the things I love like boating and hiking."
+     * Example for Work: "My work energizes me and provides the financial freedom to enjoy amazing experiences with my family and explore new places."
+     * Example for Money: "I have abundance that supports my family's dreams, our beautiful home, and amazing adventures together."
+   - Use specific details from ALL category summaries - don't limit each section to only its own category data
+   - Reference specific people, places, activities, and experiences mentioned in other categories when they naturally enhance the current category
+   - The vision should feel unified and interconnected, not like 12 separate silos
    - FLIP any negatives from their category summaries into positive equivalents
    - Use specific details they provided (activities, relationships, situations, feelings)
    - Focus on how this area of their life represents freedom and joy for them
@@ -169,7 +231,7 @@ STRUCTURE:
    - NO comparative language - don't mention what they don't have, only what they have
    - Write as ideal state: "I have...", "I feel...", "It feels amazing to...", "I love..."
    - If they mentioned challenges, flip them: "struggling to pay bills" → "I consistently meet my needs and have abundance left over"
-3) **Conclusion** — 2-3 paragraphs that unify the document, using their words and patterns. Emphasize the freedom, joy, and expansion they experience across all areas. All positive, no comparisons.
+3) **Conclusion** — 2-3 paragraphs that unify the document, using their words and patterns. Emphasize the freedom, joy, and expansion they experience across all areas. All positive, no comparisons. Show how all categories flow together seamlessly.
 
 STYLE + TONE:
 - Present tense POSITIVE IDEAL STATE (write as if the ideal exists now: "I have...", "It feels amazing to...", "I love...")
@@ -222,14 +284,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { categorySummaries, categoryTranscripts = {}, profile, assessment } = await request.json()
+    const { categorySummaries, categoryTranscripts = {}, profile, assessment, activeVision = null } = await request.json()
 
     if (!categorySummaries || Object.keys(categorySummaries).length === 0) {
       return NextResponse.json({ error: 'Category summaries are required' }, { status: 400 })
     }
 
     // Build the prompt
-    const prompt = buildMasterVisionPrompt(categorySummaries, categoryTranscripts || {}, profile || {}, assessment || {})
+    const prompt = buildMasterVisionPrompt(categorySummaries, categoryTranscripts || {}, profile || {}, assessment || {}, activeVision || null)
 
     // Get admin-approved AI model config
     const aiConfig = getAIModelConfig('LIFE_VISION_MASTER_ASSEMBLY')

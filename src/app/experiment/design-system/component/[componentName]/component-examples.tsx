@@ -41,7 +41,9 @@ import {
   DeleteConfirmationDialog,
   InsufficientTokensDialog,
   InsufficientStorageDialog,
+  Toggle,
 } from '@/lib/design-system/components'
+import { Copy, Check } from 'lucide-react'
 import {
   Layout,
   AlignLeft,
@@ -124,16 +126,54 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'grid':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">Grid - Responsive Grid</h4>
-              <Grid minWidth="200px" gap="md" className="p-6 bg-neutral-900 rounded-lg border border-neutral-700">
-                <div className="p-3 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg text-sm font-medium text-center">Item 1</div>
-                <div className="p-3 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg text-sm font-medium text-center">Item 2</div>
-                <div className="p-3 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg text-sm font-medium text-center">Item 3</div>
-                <div className="p-3 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg text-sm font-medium text-center">Item 4</div>
-                <div className="p-3 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg text-sm font-medium text-center">Item 5</div>
-                <div className="p-3 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg text-sm font-medium text-center">Item 6</div>
+              <h4 className="text-base md:text-lg font-semibold text-white">Grid - Responsive Auto-Wrapping Grid</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">Auto-wraps items based on minWidth. Used throughout the home page.</p>
+              <Grid minWidth="200px" gap="md">
+                <Card variant="outlined" className="p-4 bg-[#39FF14]/10 border-[#39FF14]/30">
+                  <Text size="sm" className="text-center text-white font-medium">Item 1</Text>
+                </Card>
+                <Card variant="outlined" className="p-4 bg-[#00FFFF]/10 border-[#00FFFF]/30">
+                  <Text size="sm" className="text-center text-white font-medium">Item 2</Text>
+                </Card>
+                <Card variant="outlined" className="p-4 bg-[#BF00FF]/10 border-[#BF00FF]/30">
+                  <Text size="sm" className="text-center text-white font-medium">Item 3</Text>
+                </Card>
+                <Card variant="outlined" className="p-4 bg-[#39FF14]/10 border-[#39FF14]/30">
+                  <Text size="sm" className="text-center text-white font-medium">Item 4</Text>
+                </Card>
+              </Grid>
+            </Stack>
+          </Card>
+          
+          {/* Real Example from Home Page */}
+          <Card variant="elevated" className="p-4 md:p-6 bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30">
+            <Stack gap="md">
+              <h5 className="text-sm md:text-base font-semibold text-white">Real Example from Home Page</h5>
+              <Text size="sm" className="text-neutral-400 mb-4">"What active in 72 hours means" + "Train → Tune → Track" side-by-side cards</Text>
+              <Grid minWidth="280px" gap="lg">
+                <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-black border-[#39FF14]/30">
+                  <Stack gap="md" className="items-center">
+                    <Heading level={3} className="text-[#39FF14] text-center">What "active in 72 hours" means</Heading>
+                    <BulletedList className="items-center">
+                      <ListItem icon={CheckCircle} variant="success" className="text-white">
+                        12-category vision completed
+                      </ListItem>
+                      <ListItem icon={CheckCircle} variant="success" className="text-white">
+                        AM/PM audio recordings
+                      </ListItem>
+                    </BulletedList>
+                  </Stack>
+                </Card>
+                <Card variant="elevated" className="bg-gradient-to-br from-black via-neutral-900 to-black border-neutral-700">
+                  <Stack gap="md">
+                    <Heading level={4} className="text-[#39FF14]">Train</Heading>
+                    <Text size="sm" className="text-white">
+                      Complete profile + assessment + first Life Vision draft
+                    </Text>
+                  </Stack>
+                </Card>
               </Grid>
             </Stack>
           </Card>
@@ -360,35 +400,46 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'heading':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-medium text-white">Heading Levels</h4>
-              <div className="space-y-3">
+              <h4 className="text-base md:text-lg font-medium text-white">Heading Levels</h4>
+              <div className="space-y-4">
                 <div>
                   <Heading level={1}>Hero Title</Heading>
                   <p className="text-xs text-neutral-400 mt-1">
-                    level={1} - 24px mobile → 48px desktop → 60px XL
+                    level={1} - Used for main page hero sections
                   </p>
                 </div>
                 <div>
                   <Heading level={2}>Section Title</Heading>
                   <p className="text-xs text-neutral-400 mt-1">
-                    level={2} - 20px mobile → 36px desktop → 48px XL
+                    level={2} - Used for major section headers
                   </p>
                 </div>
                 <div>
                   <Heading level={3}>Subsection Title</Heading>
                   <p className="text-xs text-neutral-400 mt-1">
-                    level={3} - 18px mobile → 30px desktop → 36px XL
+                    level={3} - Used for subsections within cards
                   </p>
                 </div>
                 <div>
                   <Heading level={4}>Card Title</Heading>
                   <p className="text-xs text-neutral-400 mt-1">
-                    level={4} - 18px mobile → 24px desktop • Regular weight
+                    level={4} - Used for card titles and smaller headers
                   </p>
                 </div>
               </div>
+            </Stack>
+          </Card>
+          
+          {/* Real Example from Home Page */}
+          <Card variant="elevated" className="p-4 md:p-6 bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30">
+            <Stack gap="md">
+              <h5 className="text-sm md:text-base font-semibold text-white">Real Example from Home Page</h5>
+              <Text size="sm" className="text-neutral-400 mb-4">Hero section headline</Text>
+              <Heading level={1} className="text-white leading-tight text-center">
+                Thoughts become things…<br />so why isn't it working?
+              </Heading>
             </Stack>
           </Card>
         </Stack>
@@ -613,9 +664,10 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'bulleted-list':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
-            <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">BulletedList - Brand-Colored Lists</h4>
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-medium text-white">BulletedList - Brand-Colored Lists</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">Used throughout the home page for feature lists and benefits</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h5 className="text-sm font-medium text-neutral-400 mb-2">Default</h5>
@@ -650,6 +702,26 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   </BulletedList>
                 </div>
               </div>
+            </Stack>
+          </Card>
+          
+          {/* Real Example from Home Page */}
+          <Card variant="elevated" className="p-4 md:p-6 bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-black border-[#39FF14]/30">
+            <Stack gap="md" className="items-center">
+              <h5 className="text-sm md:text-base font-semibold text-[#39FF14] text-center">Real Example from Home Page</h5>
+              <Text size="sm" className="text-neutral-400 text-center mb-4">Hero section feature list with icons</Text>
+              <Heading level={3} className="text-[#39FF14] text-center">Conscious Creation System</Heading>
+              <BulletedList className="leading-relaxed">
+                <ListItem icon={Zap} variant="primary" className="text-neutral-300">
+                  Conscious Creation System: Train → Tune → Track
+                </ListItem>
+                <ListItem icon={Zap} variant="primary" className="text-neutral-300">
+                  VIVA AI turns contrast into clarity—even if you don't know what you want
+                </ListItem>
+                <ListItem icon={Zap} variant="primary" className="text-neutral-300">
+                  Includes 8 weeks of Vision Pro; auto‑starts Day 56 at your plan
+                </ListItem>
+              </BulletedList>
             </Stack>
           </Card>
         </Stack>
@@ -1269,6 +1341,289 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
           </Card>
         </Stack>
       )
+
+    case 'toggle':
+      const ToggleDemo = () => {
+        const [billingPeriod, setBillingPeriod] = useState<'annual' | '28day'>('annual')
+        const [planType, setPlanType] = useState<'basic' | 'pro' | 'enterprise'>('pro')
+        const [smallToggle, setSmallToggle] = useState<'option1' | 'option2'>('option1')
+        
+        return (
+          <Stack gap="md">
+            <Card variant="default" className="p-4 md:p-6">
+              <Stack gap="md">
+                <h4 className="text-base md:text-lg font-medium text-white">Toggle Component</h4>
+                <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                  Switch between options with active/inactive states. Perfect for billing periods, plan types, and settings.
+                </p>
+                
+                <Stack gap="lg">
+                  {/* Billing Toggle - Real example from home page */}
+                  <Card variant="outlined" className="p-4 md:p-6 bg-neutral-900/50">
+                    <Stack gap="md">
+                      <h5 className="text-sm md:text-base font-semibold text-white">Billing Period Toggle</h5>
+                      <p className="text-xs text-neutral-400 mb-4">Used on pricing pages to switch between annual and 28-day billing</p>
+                      <div className="flex justify-center">
+                        <Toggle
+                          options={[
+                            { 
+                              value: 'annual', 
+                              label: 'Annual',
+                              badge: 'Save 22%',
+                              badgeColor: '#FFB701'
+                            },
+                            { 
+                              value: '28day', 
+                              label: '28-Day'
+                            }
+                          ]}
+                          value={billingPeriod}
+                          onChange={setBillingPeriod}
+                          activeColor={billingPeriod === 'annual' ? '#39FF14' : '#00FFFF'}
+                          size="md"
+                        />
+                      </div>
+                      <p className="text-xs text-neutral-500 text-center mt-2">
+                        Current selection: <span className="text-primary-500 font-semibold">{billingPeriod}</span>
+                      </p>
+                    </Stack>
+                  </Card>
+
+                  {/* Plan Type Toggle */}
+                  <Card variant="outlined" className="p-4 md:p-6 bg-neutral-900/50">
+                    <Stack gap="md">
+                      <h5 className="text-sm md:text-base font-semibold text-white">Plan Type Toggle</h5>
+                      <p className="text-xs text-neutral-400 mb-4">Example with multiple options</p>
+                      <div className="flex justify-center">
+                        <Toggle
+                          options={[
+                            { value: 'basic', label: 'Basic' },
+                            { value: 'pro', label: 'Pro', badge: 'Popular', badgeColor: '#BF00FF' },
+                            { value: 'enterprise', label: 'Enterprise' }
+                          ]}
+                          value={planType}
+                          onChange={setPlanType}
+                          activeColor="#BF00FF"
+                          size="md"
+                        />
+                      </div>
+                      <p className="text-xs text-neutral-500 text-center mt-2">
+                        Current selection: <span className="text-accent-500 font-semibold">{planType}</span>
+                      </p>
+                    </Stack>
+                  </Card>
+
+                  {/* Small Size */}
+                  <Card variant="outlined" className="p-4 md:p-6 bg-neutral-900/50">
+                    <Stack gap="md">
+                      <h5 className="text-sm md:text-base font-semibold text-white">Small Size</h5>
+                      <p className="text-xs text-neutral-400 mb-4">Compact toggle for smaller spaces</p>
+                      <div className="flex justify-center">
+                        <Toggle
+                          options={[
+                            { value: 'option1', label: 'Option 1' },
+                            { value: 'option2', label: 'Option 2' }
+                          ]}
+                          value={smallToggle}
+                          onChange={setSmallToggle}
+                          activeColor="#14B8A6"
+                          size="sm"
+                        />
+                      </div>
+                      <p className="text-xs text-neutral-500 text-center mt-2">
+                        Current selection: <span className="text-secondary-500 font-semibold">{smallToggle}</span>
+                      </p>
+                    </Stack>
+                  </Card>
+                </Stack>
+              </Stack>
+            </Card>
+          </Stack>
+        )
+      }
+      return <ToggleDemo />
+
+    case 'color-palette':
+      const ColorPaletteDemo = () => {
+        const [copiedColor, setCopiedColor] = useState<string | null>(null)
+
+        const handleCopyColor = (hex: string) => {
+          navigator.clipboard.writeText(hex)
+          setCopiedColor(hex)
+          setTimeout(() => setCopiedColor(null), 1500)
+        }
+
+        const ColorRow = ({ hex, name, tokens, description, color }: { hex: string, name: string, tokens?: string, description: string, color: string }) => (
+          <div className="flex items-center gap-2.5 py-1.5">
+            <div 
+              className="w-6 h-6 rounded-full border border-white/20 shadow-md flex-shrink-0" 
+              style={{ backgroundColor: hex, boxShadow: `0 0 8px ${hex}40` }}
+            ></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-white truncate">{name}{tokens && ` (${tokens})`}</p>
+              <p className="text-[10px] text-neutral-500 truncate">{description}</p>
+            </div>
+            <button
+              onClick={() => handleCopyColor(hex)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors flex-shrink-0"
+              title="Copy hex code"
+            >
+              <span>{hex}</span>
+              {copiedColor === hex ? (
+                <Icon icon={Check} size="xs" className="text-primary-500" />
+              ) : (
+                <Icon icon={Copy} size="xs" />
+              )}
+            </button>
+          </div>
+        )
+
+        const GradientRow = ({ gradient, name }: { gradient: string, name: string }) => (
+          <div className="relative group">
+            <div 
+              className="p-3 rounded-lg border border-neutral-700 hover:border-neutral-600 transition-colors"
+              style={{ background: gradient }}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold mb-0.5" style={{ color: gradient.includes('#000000') ? '#fff' : '#000' }}>
+                  {name}
+                </p>
+                <button
+                  onClick={() => handleCopyColor(gradient)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/20 flex-shrink-0"
+                  title="Copy gradient"
+                >
+                  {copiedColor === gradient ? (
+                    <Icon icon={Check} size="xs" className={gradient.includes('#000000') ? 'text-white' : 'text-black'} />
+                  ) : (
+                    <Icon icon={Copy} size="xs" className={gradient.includes('#000000') ? 'text-white' : 'text-black'} />
+                  )}
+                </button>
+              </div>
+              <p className="text-[10px] font-mono opacity-70" style={{ color: gradient.includes('#000000') ? '#fff' : '#000' }}>
+                {gradient}
+              </p>
+            </div>
+          </div>
+        )
+
+        return (
+          <Stack gap="md">
+            <Card variant="default" className="p-4 md:p-6">
+              <Stack gap="sm">
+                <h4 className="text-base md:text-lg font-medium text-white">Color Palette</h4>
+                <p className="text-xs text-neutral-400">
+                  Complete VibrationFit brand color palette. Click hex codes to copy.
+                </p>
+                
+                <Grid minWidth="280px" gap="md" className="mt-2">
+                  {/* Primary Colors */}
+                  <Card variant="outlined" className="p-3 bg-neutral-900/50">
+                    <Stack gap="sm">
+                      <h5 className="text-xs font-semibold text-[#39FF14]">Primary Colors</h5>
+                      <div className="space-y-0.5">
+                        <ColorRow hex="#39FF14" name="Primary Green" tokens="50, 500" description="Electric Lime Green" color="#39FF14" />
+                        <ColorRow hex="#00FF88" name="Electric Green" tokens="100, 600" description="Neon Electric Green" color="#00FF88" />
+                        <ColorRow hex="#00CC44" name="Forest Green" tokens="200, 700" description="Electric Forest" color="#00CC44" />
+                      </div>
+                    </Stack>
+                  </Card>
+
+                  {/* Secondary Colors */}
+                  <Card variant="outlined" className="p-3 bg-neutral-900/50">
+                    <Stack gap="sm">
+                      <h5 className="text-xs font-semibold text-[#00FFFF]">Secondary Colors</h5>
+                      <div className="space-y-0.5">
+                        <ColorRow hex="#00FFFF" name="Neon Cyan" tokens="50, 500" description="Neon Cyan (main)" color="#00FFFF" />
+                        <ColorRow hex="#06B6D4" name="Bright Cyan" tokens="100, 600" description="Bright Cyan" color="#06B6D4" />
+                        <ColorRow hex="#0F766E" name="Teal Dark" tokens="700" description="Teal Darker" color="#0F766E" />
+                      </div>
+                    </Stack>
+                  </Card>
+
+                  {/* Accent Colors */}
+                  <Card variant="outlined" className="p-3 bg-neutral-900/50">
+                    <Stack gap="sm">
+                      <h5 className="text-xs font-semibold text-[#BF00FF]">Accent Colors</h5>
+                      <div className="space-y-0.5">
+                        <ColorRow hex="#BF00FF" name="Neon Purple" tokens="50, 500" description="Neon Purple (main)" color="#BF00FF" />
+                        <ColorRow hex="#A855F7" name="Bright Purple" tokens="100, 600" description="Brighter Purple" color="#A855F7" />
+                        <ColorRow hex="#601B9F" name="Primary Purple" tokens="700" description="Primary Purple" color="#601B9F" />
+                        <ColorRow hex="#B629D4" name="Violet" tokens="800" description="Violet" color="#B629D4" />
+                      </div>
+                    </Stack>
+                  </Card>
+
+                  {/* Energy Colors */}
+                  <Card variant="outlined" className="p-3 bg-neutral-900/50">
+                    <Stack gap="sm">
+                      <h5 className="text-xs font-semibold text-[#FFFF00]">Energy Colors</h5>
+                      <div className="space-y-0.5">
+                        <ColorRow hex="#FFFF00" name="Neon Yellow" tokens="50, 500" description="Neon Yellow" color="#FFFF00" />
+                        <ColorRow hex="#FF6600" name="Neon Orange" tokens="50, 500" description="Neon Orange" color="#FF6600" />
+                        <ColorRow hex="#FF0080" name="Neon Pink" tokens="50, 500" description="Neon Pink" color="#FF0080" />
+                        <ColorRow hex="#FF3366" name="Electric Red" tokens="50" description="Electric Red" color="#FF3366" />
+                        <ColorRow hex="#FF0040" name="Neon Red" tokens="500, 600" description="Neon Red" color="#FF0040" />
+                      </div>
+                    </Stack>
+                  </Card>
+
+                  {/* Semantic Colors */}
+                  <Card variant="outlined" className="p-3 bg-neutral-900/50">
+                    <Stack gap="sm">
+                      <h5 className="text-xs font-semibold text-white">Semantic</h5>
+                      <p className="text-[10px] text-neutral-500 mb-1">Contextual meanings</p>
+                      <div className="space-y-0.5">
+                        <ColorRow hex="#39FF14" name="Success" description="Above Green Line / Electric Lime" color="#39FF14" />
+                        <ColorRow hex="#00FFFF" name="Info" description="Clarity / Neon Cyan" color="#00FFFF" />
+                        <ColorRow hex="#FFFF00" name="Warning" description="Celebration / Win / Neon Yellow" color="#FFFF00" />
+                        <ColorRow hex="#FF0040" name="Error" description="Below Green Line / Neon Red" color="#FF0040" />
+                        <ColorRow hex="#BF00FF" name="Premium" description="Premium / AI Assistant / Neon Purple" color="#BF00FF" />
+                      </div>
+                    </Stack>
+                  </Card>
+
+                  {/* Neutral Colors */}
+                  <Card variant="outlined" className="p-3 bg-neutral-900/50">
+                    <Stack gap="sm">
+                      <h5 className="text-xs font-semibold text-neutral-400">Neutrals</h5>
+                      <div className="space-y-0.5">
+                        <ColorRow hex="#000000" name="Pure Black" tokens="0" description="Primary background" color="#000000" />
+                        <ColorRow hex="#1F1F1F" name="Dark Gray" tokens="800, cardBg" description="Cards, elevated surfaces" color="#1F1F1F" />
+                        <ColorRow hex="#404040" name="Medium Gray" tokens="inputBg" description="Borders, input backgrounds" color="#404040" />
+                        <ColorRow hex="#666666" name="Light Gray" tokens="border" description="Borders" color="#666666" />
+                        <ColorRow hex="#333333" name="Border Light" tokens="borderLight" description="Subtle borders" color="#333333" />
+                        <ColorRow hex="#6B7280" name="Subtle Text" tokens="500" description="Subtle text" color="#6B7280" />
+                        <ColorRow hex="#9CA3AF" name="Tertiary Text" tokens="400" description="Tertiary text" color="#9CA3AF" />
+                      </div>
+                    </Stack>
+                  </Card>
+                </Grid>
+
+                {/* Gradients */}
+                <Card variant="outlined" className="p-3 bg-neutral-900/50 mt-2">
+                  <Stack gap="sm">
+                    <h5 className="text-xs font-semibold text-white">Brand Gradients</h5>
+                    <p className="text-[10px] text-neutral-500 mb-1">For hero sections and special moments</p>
+                    <Grid minWidth="200px" gap="sm">
+                      <GradientRow gradient="linear-gradient(135deg, #39FF14, #00FF88)" name="Primary" />
+                      <GradientRow gradient="linear-gradient(135deg, #00FFFF, #06B6D4)" name="Secondary" />
+                      <GradientRow gradient="linear-gradient(135deg, #BF00FF, #FF0080)" name="Accent" />
+                      <GradientRow gradient="linear-gradient(135deg, #39FF14, #00FFFF)" name="Brand" />
+                      <GradientRow gradient="linear-gradient(135deg, #BF00FF, #FF0080, #00FFFF)" name="Cosmic" />
+                      <GradientRow gradient="linear-gradient(135deg, #FF6600, #FFFF00)" name="Energy" />
+                      <GradientRow gradient="linear-gradient(135deg, #39FF14, #00FFFF)" name="Neon" />
+                      <GradientRow gradient="linear-gradient(135deg, #BF00FF, #FF0080)" name="Electric" />
+                      <GradientRow gradient="linear-gradient(180deg, #1F1F1F, #000000)" name="Dark Elevation" />
+                    </Grid>
+                  </Stack>
+                </Card>
+              </Stack>
+            </Card>
+          </Stack>
+        )
+      }
+      return <ColorPaletteDemo />
 
     default:
       return (
