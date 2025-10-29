@@ -580,20 +580,44 @@ export function MediaRecorderComponent({
     setError(null)
 
     try {
+      // Validate blob
+      if (!blob || blob.size === 0) {
+        throw new Error('Recording is empty or invalid. Please record again.')
+      }
+
       const formData = new FormData()
       formData.append('audio', blob, 'recording.webm')
+
+      console.log('🎙️ Starting transcription:', { size: blob.size, type: blob.type })
 
       const response = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData
       })
 
+      // Get error details from response if available
       if (!response.ok) {
-        throw new Error('Transcription failed')
+        let errorMessage = 'Transcription failed'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.details || `Server error (${response.status})`
+          console.error('❌ Transcription API error:', errorData)
+        } catch (parseError) {
+          // If JSON parsing fails, use status text
+          errorMessage = `Transcription failed: ${response.statusText || response.status}`
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
+      
+      if (!data.transcript) {
+        throw new Error('No transcript received from server')
+      }
+
       const transcriptText = data.transcript || ''
+      console.log('✅ Transcription successful:', { length: transcriptText.length })
+      
       setTranscript(transcriptText)
       
       if (onTranscriptComplete) {
@@ -602,8 +626,11 @@ export function MediaRecorderComponent({
 
       return transcriptText
     } catch (err) {
-      console.error('Transcription error:', err)
-      setError('Failed to transcribe audio. Please try again.')
+      console.error('❌ Transcription error:', err)
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Failed to transcribe audio. Please try again.'
+      setError(errorMessage)
       return ''
     } finally {
       setIsTranscribing(false)
