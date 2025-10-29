@@ -2,9 +2,10 @@
 
 import React from 'react'
 import { usePathname } from 'next/navigation'
-import { SidebarLayout, PageLayout } from '@/lib/design-system'
+import { PageLayout } from '@/lib/design-system'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { SidebarLayout } from '@/components/Sidebar'
 import { getPageType } from '@/lib/navigation'
 
 interface GlobalLayoutProps {

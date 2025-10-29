@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Button, Card, Badge, ProgressBar, Spinner } from '@/lib/design-system/components'
 import { fetchAssessments, deleteAssessment } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
+import { createClient } from '@/lib/supabase/client'
 import { 
   PlayCircle, 
   Trash2, 
@@ -27,6 +28,7 @@ export default function AssessmentDetailPage() {
   const router = useRouter()
   const params = useParams()
   const assessmentId = params.id as string
+  const supabase = createClient()
   
   const [assessment, setAssessment] = useState<AssessmentResult | null>(null)
   const [assessments, setAssessments] = useState<AssessmentResult[]>([])
@@ -274,19 +276,61 @@ export default function AssessmentDetailPage() {
                   <Button 
                     variant="outline" 
                     className="w-full"
-                    onClick={() => {
-                      const dataStr = JSON.stringify(assessment, null, 2)
-                      const dataBlob = new Blob([dataStr], {type: 'application/json'})
-                      const url = URL.createObjectURL(dataBlob)
-                      const link = document.createElement('a')
-                      link.href = url
-                      link.download = `assessment-${assessmentId}.json`
-                      link.click()
-                      URL.revokeObjectURL(url)
+                    onClick={async () => {
+                      try {
+                        const { generateAssessmentPDF } = await import('@/lib/pdf')
+                        
+                        // Fetch user profile if available
+                        let userProfile = undefined
+                        try {
+                          const { data: { user } } = await supabase.auth.getUser()
+                          if (user) {
+                            const { data: profile } = await supabase
+                              .from('user_profiles')
+                              .select('first_name, full_name')
+                              .eq('user_id', user.id)
+                              .single()
+                            userProfile = profile || undefined
+                          }
+                        } catch (e) {
+                          // Profile fetch failed, continue without it
+                        }
+                        
+                        // Convert AssessmentResult to AssessmentPDFData format
+                        const pdfData = {
+                          id: assessment.id,
+                          user_id: assessment.user_id,
+                          overall_percentage: assessment.overall_percentage,
+                          status: assessment.status,
+                          created_at: assessment.created_at instanceof Date 
+                            ? assessment.created_at.toISOString() 
+                            : typeof assessment.created_at === 'string' 
+                              ? assessment.created_at 
+                              : new Date().toISOString(),
+                          completed_at: assessment.completed_at 
+                            ? (assessment.completed_at instanceof Date 
+                                ? assessment.completed_at.toISOString() 
+                                : typeof assessment.completed_at === 'string'
+                                  ? assessment.completed_at
+                                  : undefined)
+                            : undefined,
+                          category_scores: Object.entries(assessment.category_scores).map(([category, score]) => ({
+                            category,
+                            score,
+                            percentage: (score / 100) * 100 // Assuming max score is 100, adjust if needed
+                          })),
+                          responses: [] // Will need to fetch responses separately if needed
+                        }
+                        
+                        await generateAssessmentPDF(pdfData, userProfile)
+                      } catch (error) {
+                        console.error('Error generating PDF:', error)
+                        alert('Failed to generate PDF. Please try again.')
+                      }
                     }}
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Download Data
+                    Download PDF
                   </Button>
                 </div>
               </Card>

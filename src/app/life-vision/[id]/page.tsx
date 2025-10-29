@@ -20,6 +20,7 @@ import {
   Inline
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { generateVisionPDF } from '@/lib/pdf'
 
 interface VisionData {
   id: string
@@ -212,6 +213,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
   const [audioTracks, setAudioTracks] = useState<Record<string, { url: string; title: string }>>({})
+  const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
 
   // Card-based view functions
   const handleCategoryToggle = (categoryKey: string) => {
@@ -424,6 +426,17 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
         setVision(vision)
         setCompletionPercentage(actualCompletion)
+
+        // Fetch user profile for PDF generation
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('first_name, full_name')
+          .eq('user_id', user.id)
+          .single()
+        
+        if (profile) {
+          setUserProfile(profile)
+        }
         setCompletedSections(completed)
         setVersions(versions || [])
         
@@ -653,238 +666,16 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   }, [vision])
 
   // Download Vision as PDF
-  const downloadVisionPDF = useCallback(() => {
+  const downloadVisionPDF = useCallback(async () => {
     if (!vision) return
 
-    // Create a new window for PDF generation
-    const pdfWindow = window.open('', '_blank')
-    if (!pdfWindow) return
-
-    // Get the current section content or all sections
-    const currentSection = VISION_SECTIONS.find(s => s.key === 'fun')
-    const currentContent = currentSection ? vision[currentSection.key as keyof VisionData] as string : ''
-
-    // Create HTML content for PDF
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>The Life I Choose - Version ${vision.version_number}</title>
-          <style>
-            @page {
-              margin: 0;
-              size: A4;
-            }
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              margin: 0;
-              padding: 0;
-              background: #000000;
-              color: white;
-              min-height: 100vh;
-              display: flex;
-              flex-direction: column;
-            }
-            
-            /* Cover Page Styles */
-            .cover-page {
-              min-height: 100vh;
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-              align-items: center;
-              text-align: center;
-              padding: 60px 40px;
-              page-break-after: always;
-            }
-            .cover-title {
-              font-size: 48px;
-              font-weight: bold;
-              color: white;
-              margin-bottom: 20px;
-              line-height: 1.2;
-            }
-            .cover-subtitle {
-              font-size: 24px;
-              color: white;
-              margin-bottom: 40px;
-              font-weight: 300;
-            }
-            .cover-divider {
-              width: 200px;
-              height: 3px;
-              background: #39FF14;
-              margin: 0 auto 40px auto;
-            }
-            .cover-version {
-              font-size: 20px;
-              color: white;
-              margin-bottom: 80px;
-            }
-            .cover-footer {
-              position: absolute;
-              bottom: 60px;
-              left: 50%;
-              transform: translateX(-50%);
-              text-align: center;
-            }
-            .barbell-logo {
-              width: 40px;
-              height: 40px;
-              margin: 0 auto 15px auto;
-              background: #39FF14;
-              border-radius: 8px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-weight: bold;
-              color: white;
-              font-size: 20px;
-            }
-            .barbell-logo::before {
-              content: "🏋";
-              font-size: 24px;
-            }
-            .cover-created {
-              font-size: 14px;
-              color: white;
-            }
-            
-            /* Content Pages Styles */
-            .content-page {
-              background: white;
-              color: #333;
-              padding: 40px;
-              min-height: calc(100vh - 80px);
-            }
-            .content-header {
-              text-align: center;
-              margin-bottom: 40px;
-              border-bottom: 3px solid #00CC44;
-              padding-bottom: 20px;
-            }
-            .content-title {
-              font-size: 32px;
-              font-weight: bold;
-              color: #00CC44;
-              margin-bottom: 10px;
-            }
-            .content-version {
-              font-size: 16px;
-              color: #666;
-              margin-bottom: 20px;
-            }
-            .content-created {
-              font-size: 14px;
-              color: #888;
-            }
-            .section {
-              margin-bottom: 30px;
-              page-break-inside: avoid;
-            }
-            .section-title {
-              font-size: 24px;
-              font-weight: bold;
-              color: #00CC44;
-              margin-bottom: 15px;
-              border-left: 4px solid #00CC44;
-              padding-left: 15px;
-            }
-            .section-content {
-              font-size: 16px;
-              line-height: 1.8;
-              color: #444;
-              white-space: pre-wrap;
-              background: #f9f9f9;
-              padding: 20px;
-              border-radius: 8px;
-              border: 1px solid #e0e0e0;
-            }
-            .empty-section {
-              font-style: italic;
-              color: #888;
-              text-align: center;
-              padding: 40px;
-              background: #f5f5f5;
-              border-radius: 8px;
-              border: 2px dashed #ccc;
-            }
-            .completion {
-              text-align: center;
-              margin-top: 40px;
-              padding: 20px;
-              background: #39FF14;
-              color: white;
-              border-radius: 8px;
-            }
-            .completion-text {
-              font-size: 18px;
-              font-weight: bold;
-            }
-            
-            @media print {
-              .cover-page { 
-                page-break-after: always;
-                min-height: 100vh;
-              }
-              .content-page { 
-                page-break-before: always;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <!-- Cover Page -->
-          <div class="cover-page">
-            <div class="cover-title">The Life I Choose</div>
-            <div class="cover-subtitle">My Conscious Creation Blueprint</div>
-            <div class="cover-divider"></div>
-            <div class="cover-version">Version ${vision.version_number}</div>
-            <div class="cover-footer">
-              <div class="barbell-logo">⚡</div>
-              <div class="cover-created">Created at VibrationFit.com</div>
-            </div>
-          </div>
-          
-          <!-- Content Pages -->
-          <div class="content-page">
-            <div class="content-header">
-              <div class="content-title">The Life I Choose</div>
-              <div class="content-version">Version ${vision.version_number} ${vision.status === 'complete' ? '(Active)' : '(Draft)'}</div>
-              <div class="content-created">Created: ${new Date(vision.created_at).toLocaleDateString()} at ${new Date(vision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
-            </div>
-
-            ${VISION_SECTIONS.map(section => {
-              const content = vision[section.key as keyof VisionData] as string
-              const hasContent = content && content.trim().length > 0
-              
-              return `
-                <div class="section">
-                  <div class="section-title">${section.label}</div>
-                  <div class="section-content">
-                    ${hasContent ? content.trim() : '<div class="empty-section">No content for this section yet</div>'}
-                  </div>
-                </div>
-              `
-            }).join('')}
-
-            <div class="completion">
-              <div class="completion-text">${completionPercentage}% Life Vision Complete</div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `
-
-    // Write content to the new window
-    pdfWindow.document.write(htmlContent)
-    pdfWindow.document.close()
-
-    // Wait for content to load, then trigger print
-    setTimeout(() => {
-      pdfWindow.print()
-    }, 500)
-  }, [vision, completionPercentage])
+    try {
+      await generateVisionPDF(vision, userProfile || undefined, false)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      alert('Failed to generate PDF. Please try again.')
+    }
+  }, [vision, userProfile])
 
   // Auto-resize textarea when content or section changes
   if (loading) {

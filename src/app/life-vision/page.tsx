@@ -413,7 +413,26 @@ export default function VisionListPage() {
                 Audio Tracks
               </Button>
               <Button
-                onClick={() => alert('PDF download coming soon!')}
+                onClick={async () => {
+                  if (!activeVision) return
+                  try {
+                    const { generateVisionPDF } = await import('@/lib/pdf')
+                    const supabase = createClient()
+                    const { data: { user } } = await supabase.auth.getUser()
+                    if (!user) return
+                    
+                    const { data: profile } = await supabase
+                      .from('user_profiles')
+                      .select('first_name, full_name')
+                      .eq('user_id', user.id)
+                      .single()
+                    
+                    await generateVisionPDF(activeVision, profile || undefined, false)
+                  } catch (error) {
+                    console.error('Error generating PDF:', error)
+                    alert('Failed to generate PDF. Please try again.')
+                  }
+                }}
                 variant="secondary"
                 className="flex items-center gap-2"
               >

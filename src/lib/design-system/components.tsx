@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useStorageData } from '@/hooks/useStorageData'
+import { userNavigation, adminNavigation as centralAdminNav, mobileNavigation as centralMobileNav, isNavItemActive, type NavItem as CentralNavItem } from '@/lib/navigation'
 import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2, Save, AlertTriangle, Volume2, Play, File, Mic, Video as VideoIcon, Loader2, SkipBack, SkipForward, Pause, PlayCircle, Repeat, Shuffle, MoreHorizontal } from 'lucide-react'
 
 // ============================================================================
@@ -1823,15 +1824,9 @@ OrderedList.displayName = 'OrderedList'
 // 9. NAVIGATION COMPONENTS
 // ============================================================================
 
-// Navigation Item Interface
-interface NavItem {
-  name: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-  badge?: string
-  children?: NavItem[]
-  hasDropdown?: boolean
-}
+// Navigation Item Interface - Using centralized type from @/lib/navigation
+// Legacy interface kept for backward compatibility but prefer CentralNavItem
+type NavItem = CentralNavItem
 
 // Admin Navigation Configuration
 const adminNavigation: NavItem[] = [
@@ -2024,8 +2019,8 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
   ({ className, navigation, isAdmin = false, ...props }, ref) => {
-    // Use admin navigation if isAdmin is true, otherwise use provided navigation or default
-    const navItems = isAdmin ? adminNavigation : (navigation || defaultNavigation)
+    // Use admin navigation if isAdmin is true, otherwise use provided navigation or centralized userNavigation
+    const navItems = isAdmin ? centralAdminNav : (navigation || userNavigation)
     const [collapsed, setCollapsed] = useState(false)
     const [expandedItems, setExpandedItems] = useState<string[]>([])
     const [user, setUser] = useState<any>(null)
@@ -2155,8 +2150,8 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.children && item.children.some(child => pathname === child.href))
+          {navItems.map((item: NavItem) => {
+            const isActive = isNavItemActive(item, pathname)
             const isExpanded = expandedItems.includes(item.name)
             const Icon = item.icon
 
@@ -2201,9 +2196,9 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
                           </div>
                         )}
                         
-                        {item.children.map((child) => {
+                        {item.children.map((child: NavItem) => {
                           const ChildIcon = child.icon
-                          const isChildActive = pathname === child.href
+                          const isChildActive = isNavItemActive(child, pathname)
                           
                           return (
                             <Link
@@ -2358,32 +2353,18 @@ export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavP
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
     
-    // Use admin navigation if isAdmin is true, otherwise use provided navigation or default
-    const navItems = isAdmin ? adminNavigation : (navigation || defaultNavigation)
+    // Use admin navigation if isAdmin is true, otherwise use provided navigation or centralized userNavigation
+    const navItems = isAdmin ? centralAdminNav : (navigation || userNavigation)
     
-    // Admin mobile nav items
-    const adminMobileNavItems = [
-      { name: 'Users', href: '/admin/users', icon: Users },
-      { name: 'AI', href: '/admin/ai-models', icon: Brain },
-      { name: 'Analytics', href: '/admin/token-usage', icon: BarChart3 },
-      { name: 'Tools', href: '/api/admin/fix-database', icon: HardDrive },
-      { name: 'More', href: '#', icon: Settings, isAction: true },
-    ]
-    
-    // User mobile nav items
-    const userMobileNavItems = [
-      { name: 'Vision', href: '/life-vision', icon: Target },
-      { name: 'Board', href: '/vision-board', icon: Image },
-      { name: 'Journal', href: '/journal', icon: FileText },
-      { name: 'VIVA', href: '/dashboard/vibe-assistant-usage', icon: Sparkles },
-      { name: 'More', href: '#', icon: Settings, isAction: true },
-    ]
-    
-    const mobileNavItems = isAdmin ? adminMobileNavItems : userMobileNavItems
+    // Use centralized mobile navigation
+    const mobileNavItems = centralMobileNav.map((item: CentralNavItem) => ({
+      ...item,
+      isAction: item.href === '#', // "More" button is an action
+    }))
 
     // Get all sidebar items for the drawer (exclude main nav items)
-    const allSidebarItems = navItems.filter(item => 
-      !mobileNavItems.some(mobileItem => 
+    const allSidebarItems = navItems.filter((item: NavItem) => 
+      !mobileNavItems.some((mobileItem: NavItem & { isAction?: boolean }) => 
         mobileItem.href === item.href || 
         (mobileItem.href === '/life-vision' && item.href === '/life-vision') ||
         (mobileItem.href === '/vision-board' && item.href === '/vision-board') ||
@@ -2419,12 +2400,9 @@ export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavP
           {...props}
         >
           <div className="flex items-center justify-around py-2">
-            {mobileNavItems.map((item) => {
+            {mobileNavItems.map((item: NavItem & { isAction?: boolean }) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || 
-                (item.href === '/life-vision' && pathname.startsWith('/life-vision')) ||
-                (item.href === '/profile' && pathname.startsWith('/profile')) ||
-                (item.href === '/journal' && pathname.startsWith('/journal'))
+              const isActive = isNavItemActive(item, pathname)
               
               if (item.isAction) {
                 return (
@@ -2499,10 +2477,9 @@ export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavP
 
               {/* Grid of Items */}
               <div className="grid grid-cols-2 gap-3">
-                {allSidebarItems.map((item) => {
+                {allSidebarItems.map((item: NavItem) => {
                   const Icon = item.icon
-                  const isActive = pathname === item.href || 
-                    (item.children && item.children.some(child => pathname === child.href))
+                  const isActive = isNavItemActive(item, pathname)
                   
                   return (
                     <Link

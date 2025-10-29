@@ -22,14 +22,13 @@ export const PAGE_CLASSIFICATIONS = {
    */
   USER: [
     // Dashboard & Analytics
-    '/dashboard',
-    '/dashboard/activity',
-    '/dashboard/add-tokens',
-    '/dashboard/storage',
-    '/dashboard/token-history',
-    '/dashboard/tokens',
-    '/dashboard/vibe-assistant-usage',
-    '/viva',
+      '/dashboard',
+      '/dashboard/activity',
+      '/dashboard/add-tokens',
+      '/dashboard/storage',
+      '/dashboard/token-history',
+      '/dashboard/tokens',
+      '/viva',
     
     // Life Vision System
     '/life-vision',

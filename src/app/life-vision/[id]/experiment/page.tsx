@@ -16,6 +16,7 @@ import {
   Icon
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { generateVisionPDF } from '@/lib/pdf'
 
 interface VisionData {
   id: string
@@ -198,6 +199,7 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [isViewingVersion, setIsViewingVersion] = useState(false)
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
+  const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
 
   // Calculate completion percentage
   const calculateCompletion = useCallback((data: VisionData) => {
@@ -266,6 +268,17 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
         setCompletionPercentage(actualCompletion)
         setCompletedSections(completed)
         setVersions(versionsData || [])
+        
+        // Fetch user profile for PDF generation
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('first_name, full_name')
+          .eq('user_id', user.id)
+          .single()
+        
+        if (profile) {
+          setUserProfile(profile)
+        }
         
         // Initialize with all categories selected
         setSelectedCategories(VISION_CATEGORIES.map(cat => cat.key))
@@ -454,6 +467,15 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
             <Button
               variant="secondary"
               className="flex items-center gap-2"
+              onClick={async () => {
+                if (!vision) return
+                try {
+                  await generateVisionPDF(vision, userProfile || undefined, false)
+                } catch (error) {
+                  console.error('Error generating PDF:', error)
+                  alert('Failed to generate PDF. Please try again.')
+                }
+              }}
             >
               <Download className="w-4 h-4" />
               Download PDF

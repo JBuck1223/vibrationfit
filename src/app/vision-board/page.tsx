@@ -329,44 +329,6 @@ export default function VisionBoardPage() {
           </div>
         </div>
 
-        {/* Anchor Navigation */}
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-2 justify-center">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => document.getElementById('stats')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-xs"
-            >
-              📊 Stats
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => document.getElementById('filters')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-xs"
-            >
-              🔍 Filters
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => document.getElementById('view-toggle')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-xs"
-            >
-              👁️ View Options
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => document.getElementById('content')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-xs"
-            >
-              🎯 Vision Board
-            </Button>
-          </div>
-        </div>
-
           {/* Stats - Responsive Grid */}
           <div id="stats" className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <Card className="text-center">

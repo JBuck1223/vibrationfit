@@ -72,7 +72,7 @@ export default function SitemapPage() {
         { href: '/dashboard/add-tokens', label: 'Add Tokens', icon: Plus, description: 'Purchase more tokens' },
         { href: '/dashboard/storage', label: 'Storage Usage', icon: HardDrive, description: 'File storage management' },
         { href: '/dashboard/token-history', label: 'Token History', icon: BarChart3, description: 'Token usage history' },
-        { href: '/dashboard/vibe-assistant-usage', label: 'VIVA Assistant', icon: MessageCircle, description: 'AI assistant usage' },
+        { href: '/viva', label: 'VIVA Assistant', icon: MessageCircle, description: 'AI assistant usage' },
 
         // Life Vision
         { href: '/life-vision', label: 'Life Visions', icon: Eye, description: 'All life visions' },

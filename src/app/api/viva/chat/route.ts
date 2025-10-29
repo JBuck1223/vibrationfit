@@ -5,7 +5,7 @@ import { streamText } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
-import { MASTER_ASSISTANT_KNOWLEDGE } from '@/lib/viva/master-assistant-knowledge'
+import { loadKnowledgeBase } from '@/lib/viva/knowledge'
 
 export const runtime = 'edge' // Use Edge Runtime for faster cold starts
 
@@ -20,11 +20,87 @@ export async function POST(req: Request) {
     }
 
     // Parse request
-    const { messages, context, visionBuildPhase } = await req.json()
+    const { messages, context, visionBuildPhase, conversationId } = await req.json()
     
-    // Check if this is an initial greeting request
+    // Get or create conversation session
+    let currentConversationId = conversationId
+    
+    // If no conversation ID and not initial greeting, create new session
     const isInitialGreeting = context?.isInitialGreeting === true || 
                               (messages.length === 1 && messages[0].content === 'START_SESSION')
+    
+    if (!currentConversationId && !isInitialGreeting) {
+      // Create new conversation session
+      const { data: newSession, error: sessionError } = await supabase
+        .from('conversation_sessions')
+        .insert({
+          user_id: user.id,
+          mode: context?.mode || 'master',
+          preview_message: messages[messages.length - 1]?.content?.slice(0, 100) || '',
+          message_count: 0
+        })
+        .select()
+        .single()
+      
+      if (!sessionError && newSession) {
+        currentConversationId = newSession.id
+      }
+    } else if (!currentConversationId && isInitialGreeting) {
+      // For initial greeting, create a new session
+      const { data: newSession, error: sessionError } = await supabase
+        .from('conversation_sessions')
+        .insert({
+          user_id: user.id,
+          mode: context?.mode || 'master',
+          preview_message: 'New conversation',
+          message_count: 0
+        })
+        .select()
+        .single()
+      
+      if (!sessionError && newSession) {
+        currentConversationId = newSession.id
+      }
+    }
+    
+    // Save user message to database (the last one in the messages array)
+    if (messages.length > 0 && !isInitialGreeting) {
+      const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user')
+      if (lastUserMessage) {
+        try {
+          await supabase.from('ai_conversations').insert({
+            user_id: user.id,
+            conversation_id: currentConversationId || null,
+            message: lastUserMessage.content,
+            role: 'user',
+            context: { visionBuildPhase, ...context, conversationId: currentConversationId },
+            created_at: new Date().toISOString()
+          })
+        } catch (err) {
+          console.error('Error saving user message:', err)
+          // Don't fail the request if message save fails
+        }
+      }
+    }
+    
+    // Load conversation history for context (last 20 messages)
+    let conversationHistory: any[] = []
+    if (currentConversationId) {
+      const { data: historyMessages } = await supabase
+        .from('ai_conversations')
+        .select('*')
+        .eq('conversation_id', currentConversationId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(20)
+      
+      if (historyMessages && historyMessages.length > 0) {
+        conversationHistory = historyMessages.map(msg => ({
+          role: msg.role,
+          content: msg.message
+        }))
+      }
+    }
 
     // Check if this is master assistant mode
     const isMasterAssistant = context?.masterAssistant === true || context?.mode === 'master'
@@ -116,7 +192,8 @@ export async function POST(req: Request) {
         .eq('user_id', user.id)
         .single(),
       
-      // Vision - use specific vision if refining, otherwise get latest COMPLETE vision (for document queries)
+      // Vision - get latest ACTIVE or COMPLETE vision for master assistant, or specific for refinement
+      // Priority: 1) is_active = true, 2) status = 'complete', 3) latest by version/date
       visionId 
         ? supabase
             .from('vision_versions')
@@ -124,22 +201,86 @@ export async function POST(req: Request) {
             .eq('id', visionId)
             .eq('user_id', user.id)
             .single()
-        : requestedSection
-          ? supabase
-              .from('vision_versions')
-              .select('*')
-              .eq('user_id', user.id)
-              .eq('status', 'complete') // Only get complete visions for section queries
-              .order('version_number', { ascending: false })
-              .limit(1)
-              .single()
-          : supabase
-              .from('vision_versions')
-              .select('*')
-              .eq('user_id', user.id)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single(),
+        : isMasterAssistant
+          ? (async () => {
+              // First try to get active vision
+              const { data: activeVision } = await supabase
+                .from('vision_versions')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('is_active', true)
+                .order('version_number', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+              
+              if (activeVision) return { data: activeVision, error: null }
+              
+              // Then try complete vision
+              const { data: completeVision } = await supabase
+                .from('vision_versions')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('status', 'complete')
+                .order('version_number', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+              
+              if (completeVision) return { data: completeVision, error: null }
+              
+              // Finally get latest vision by version number (might have substantial content)
+              const { data: latestVision } = await supabase
+                .from('vision_versions')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('version_number', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+              
+              return { data: latestVision, error: null }
+            })()
+          : requestedSection
+            ? (async () => {
+                // Similar logic for section queries - try active first, then complete, then latest
+                const { data: activeVision } = await supabase
+                  .from('vision_versions')
+                  .select('*')
+                  .eq('user_id', user.id)
+                  .eq('is_active', true)
+                  .order('version_number', { ascending: false })
+                  .limit(1)
+                  .maybeSingle()
+                
+                if (activeVision) return { data: activeVision, error: null }
+                
+                const { data: completeVision } = await supabase
+                  .from('vision_versions')
+                  .select('*')
+                  .eq('user_id', user.id)
+                  .eq('status', 'complete')
+                  .order('version_number', { ascending: false })
+                  .limit(1)
+                  .maybeSingle()
+                
+                if (completeVision) return { data: completeVision, error: null }
+                
+                const { data: latestVision } = await supabase
+                  .from('vision_versions')
+                  .select('*')
+                  .eq('user_id', user.id)
+                  .order('version_number', { ascending: false })
+                  .limit(1)
+                  .maybeSingle()
+                
+                return { data: latestVision, error: null }
+              })()
+            : supabase
+                .from('vision_versions')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('version_number', { ascending: false })
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle(),
       
       // Latest assessment
       supabase
@@ -178,13 +319,29 @@ export async function POST(req: Request) {
       ...assessmentDataRaw,
       responses: assessmentDataRaw.assessment_responses || []
     } : null
+    // Check for active/complete vision more reliably
+    const hasCompleteVision = visionData && (
+      visionData.status === 'complete' || 
+      (visionData.completion_percent && visionData.completion_percent >= 90) ||
+      // If vision has substantial content in multiple categories, consider it active
+      (Object.values(visionData).filter((v: any) => 
+        typeof v === 'string' && 
+        v.trim().length > 50 && 
+        !['id', 'user_id', 'created_at', 'updated_at', 'version_number', 'status', 'completion_percent'].includes(v)
+      ).length >= 3)
+    )
+    
     const journeyState = isMasterAssistant && Array.isArray(journeyStateResults) ? {
       visionCount: journeyStateResults[0]?.count || 0,
       journalCount: journeyStateResults[1]?.count || 0,
       visionBoardCount: journeyStateResults[2]?.count || 0,
       hasProfile: !!profileData,
       hasAssessment: !!assessmentDataRaw,
-      hasActiveVision: !!visionData && visionData.status === 'complete'
+      hasActiveVision: !!hasCompleteVision,
+      activeVisionVersion: visionData?.version_number || null,
+      activeVisionId: visionData?.id || null,
+      activeVisionStatus: visionData?.status || null,
+      isActiveFlag: visionData?.is_active || false
     } : null
     const userName = profileData?.first_name || user.user_metadata?.full_name || 'friend'
 
@@ -202,10 +359,16 @@ export async function POST(req: Request) {
       }
     })
 
+    // Combine conversation history with new messages for context
+    // Use conversation history if available, otherwise use the messages from request
+    const allMessagesForContext = conversationHistory.length > 0 && currentConversationId
+      ? [...conversationHistory.slice(0, -1), ...messages.slice(-2)] // Last messages from history + new messages
+      : messages
+
     // Filter out the START_SESSION message if present
     const chatMessages = isInitialGreeting 
       ? [] 
-      : messages
+      : allMessagesForContext
 
     // Estimate tokens and validate balance before starting stream
     const messagesText = chatMessages.map((m: { content: string }) => m.content).join('\n')
@@ -236,15 +399,45 @@ export async function POST(req: Request) {
         : undefined,
       temperature: 0.8,
       async onFinish({ text, usage }: { text: string; usage?: any }) {
-        // Store message in database after completion
+        // Store assistant message in database after completion
         try {
           await supabase.from('ai_conversations').insert({
             user_id: user.id,
+            conversation_id: currentConversationId || null,
             message: text,
             role: 'assistant',
-            context: { visionBuildPhase, ...context },
+            context: { 
+              visionBuildPhase, 
+              ...context, 
+              conversationId: currentConversationId 
+            },
             created_at: new Date().toISOString()
           })
+          
+          // Update conversation session title if this is the first assistant message
+          if (currentConversationId && isInitialGreeting) {
+            const { data: session } = await supabase
+              .from('conversation_sessions')
+              .select('title, preview_message')
+              .eq('id', currentConversationId)
+              .single()
+            
+            // Generate a title from first user message or assistant greeting
+            if (session && (!session.title || session.title.includes('Conversation'))) {
+              const firstUserMessage = messages.find((m: any) => m.role === 'user' && m.content !== 'START_SESSION')
+              const title = firstUserMessage 
+                ? firstUserMessage.content.slice(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')
+                : text.slice(0, 50) + (text.length > 50 ? '...' : '')
+              
+              await supabase
+                .from('conversation_sessions')
+                .update({ 
+                  title: title || `Conversation ${new Date().toLocaleDateString()}`,
+                  preview_message: firstUserMessage?.content?.slice(0, 100) || text.slice(0, 100)
+                })
+                .eq('id', currentConversationId)
+            }
+          }
 
           // Track actual token usage
           if (usage) {
@@ -279,7 +472,11 @@ export async function POST(req: Request) {
       },
     })
 
-    return result.toTextStreamResponse()
+    return result.toTextStreamResponse({
+      headers: {
+        'X-Conversation-Id': currentConversationId || ''
+      }
+    })
   } catch (error) {
     console.error('VIVA Chat Error:', error)
     return new Response('Error processing request', { status: 500 })
@@ -291,8 +488,8 @@ function buildVivaSystemPrompt({ userName, profileData, visionData, assessmentDa
   const isRefinement = context?.refinement === true || context?.operation === 'refine_vision'
   const categoryBeingRefined = context?.category
   
-  // Use master assistant knowledge base if in master mode
-  const masterKnowledge = isMasterAssistant ? MASTER_ASSISTANT_KNOWLEDGE : ''
+  // Use master assistant knowledge base if in master mode - load from approved knowledge files
+  const masterKnowledge = isMasterAssistant ? loadKnowledgeBase() : ''
   
   // Extract key profile details
   const profileSummary = profileData ? {
@@ -418,13 +615,21 @@ ${masterKnowledge}
 ${requestedSectionContent}
 
 **YOUR ROLE AS MASTER ASSISTANT:**
-- Answer questions about ANY tool, feature, or process on the platform
-- Guide users to the right tools at the right time in their journey
-- Explain concepts (Green Line, conscious creation, vibrational alignment, etc.)
-- Help troubleshoot issues or confusion
-- Suggest best practices and workflows
+- Answer questions about ANY tool, feature, or process using ONLY the knowledge base above
+- Never mention features that don't exist in the current system - only reference what's documented
+- Guide users to the right tools at the right time using exact paths (e.g., "/life-vision/new")
+- Explain concepts using the current definitions from the knowledge base
+- Help troubleshoot issues or confusion based on current system capabilities
+- Suggest best practices and workflows that actually exist
 - Understand their current state and suggest next steps
 - Be knowledgeable, warm, encouraging, and expert
+- **If unsure about a feature**, acknowledge uncertainty rather than guessing
+
+**CRITICAL: VISION DETECTION**
+When checking if a user has a vision document:
+- Vision exists if: status === 'complete' OR completion_percent >= 90 OR substantial content in 3+ categories
+- Do NOT say "you don't have a vision" unless all checks fail
+- If visionCount > 0 but no complete vision found, they may have drafts - check carefully
 
 **COMMUNICATION STYLE:**
 - Warm and supportive, never condescending
@@ -440,10 +645,19 @@ ${journeyState ? `
 **${userName.toUpperCase()}'S JOURNEY STATE:**
 - Has completed profile: ${journeyState.hasProfile ? 'Yes' : 'No'}
 - Has taken assessment: ${journeyState.hasAssessment ? 'Yes' : 'No'}
-- Has active vision: ${journeyState.hasActiveVision ? 'Yes' : 'No'}
+- Has active vision: ${journeyState.hasActiveVision ? 'Yes' : 'No'} ${journeyState.activeVisionId ? `(Vision ID: ${journeyState.activeVisionId})` : ''}
+- Active vision version: ${journeyState.activeVisionVersion || 'None'}
+- Active vision status: ${journeyState.activeVisionStatus || 'None'} ${journeyState.isActiveFlag ? '(is_active flag: true - THIS IS THEIR ACTIVE VISION)' : ''}
 - Number of visions: ${journeyState.visionCount}
 - Journal entries: ${journeyState.journalCount}
 - Vision boards: ${journeyState.visionBoardCount}
+
+**CRITICAL VISION DETECTION RULES:**
+- If visionCount > 0, they DEFINITELY have at least one vision document in the database
+- If isActiveFlag is true, they have an active vision marked with is_active=true - this IS their working vision
+- If activeVisionId exists, that is the actual vision record ID - reference this when discussing their vision
+- NEVER suggest they need to "build a new vision" if visionCount > 0 or isActiveFlag is true
+- Instead, help them view, refine, or work with their EXISTING vision using the vision ID
 
 **GUIDANCE APPROACH:**
 Use this journey state to provide personalized guidance:

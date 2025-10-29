@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, Send, Sparkles, Loader2 } from 'lucide-react'
+import { MessageCircle, Send, Sparkles, Loader2, Mic, Square, Check, RotateCcw, History, Plus, Trash2, X } from 'lucide-react'
 import { Button, Card, Text } from '@/lib/design-system/components'
 import { cn } from '@/lib/utils'
 
@@ -17,9 +17,21 @@ export default function VivaMasterPage() {
   const [currentMessage, setCurrentMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
+  const [hasUserInteracted, setHasUserInteracted] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [transcript, setTranscript] = useState<string | null>(null)
+  const [recordingDuration, setRecordingDuration] = useState(0)
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [conversations, setConversations] = useState<any[]>([])
+  const [showConversations, setShowConversations] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const lastContentLengthRef = useRef<number>(0)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Auto-scroll to bottom when messages change or content length changes (streaming)
   useEffect(() => {
@@ -36,6 +48,11 @@ export default function VivaMasterPage() {
     }
   }, [messages, isTyping])
 
+  // Load conversation list on mount
+  useEffect(() => {
+    loadConversations()
+  }, [])
+
   // Start conversation on mount - ensure it runs even after refresh
   useEffect(() => {
     if (!hasStarted && messages.length === 0) {
@@ -48,6 +65,73 @@ export default function VivaMasterPage() {
     }
   }, [hasStarted, messages.length]) // Removed hasStarted from dependencies that might prevent re-run
 
+  const loadConversations = async () => {
+    try {
+      const response = await fetch('/api/viva/conversations')
+      if (response.ok) {
+        const data = await response.json()
+        setConversations(data.sessions || [])
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error)
+    }
+  }
+
+  const loadConversation = async (conversationId: string) => {
+    try {
+      setMessages([])
+      setCurrentConversationId(conversationId)
+      setHasUserInteracted(true) // Hide welcome message
+      
+      // Fetch messages for this conversation
+      const response = await fetch(`/api/viva/conversations/${conversationId}/messages`)
+      if (response.ok) {
+        const data = await response.json()
+        const loadedMessages: Message[] = (data.messages || []).map((msg: any) => ({
+          id: msg.id,
+          role: msg.role as 'user' | 'assistant',
+          content: msg.message,
+          timestamp: new Date(msg.created_at)
+        }))
+        setMessages(loadedMessages)
+        
+        // Update conversation list
+        await loadConversations()
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error)
+    }
+  }
+
+  const startNewConversation = () => {
+    setMessages([])
+    setCurrentConversationId(null)
+    setHasUserInteracted(false)
+    setHasStarted(false)
+    startConversation()
+  }
+
+  const deleteConversation = async (conversationId: string) => {
+    if (!confirm('Are you sure you want to delete this conversation?')) return
+    
+    try {
+      const response = await fetch(`/api/viva/conversations?id=${conversationId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        await loadConversations()
+        // If deleted conversation was current, start new one
+        if (conversationId === currentConversationId) {
+          startNewConversation()
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error)
+      alert('Failed to delete conversation')
+    }
+  }
+
   const startConversation = async () => {
     setIsTyping(true)
     
@@ -57,6 +141,7 @@ export default function VivaMasterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role: 'user', content: 'START_SESSION' }],
+          conversationId: currentConversationId,
           context: {
             masterAssistant: true,
             mode: 'master',
@@ -65,6 +150,14 @@ export default function VivaMasterPage() {
           visionBuildPhase: 'master_assistant'
         })
       })
+      
+      // Extract conversation ID from response headers
+      const conversationIdHeader = response.headers.get('X-Conversation-Id')
+      if (conversationIdHeader && conversationIdHeader !== currentConversationId) {
+        setCurrentConversationId(conversationIdHeader)
+        // Refresh conversation list
+        await loadConversations()
+      }
 
       if (!response.ok) {
         throw new Error('Failed to start conversation')
@@ -155,6 +248,11 @@ export default function VivaMasterPage() {
   const sendMessage = async () => {
     if (!currentMessage.trim()) return
 
+    // Hide welcome message once user sends their first message
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true)
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -179,6 +277,7 @@ export default function VivaMasterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: messagesForAPI,
+          conversationId: currentConversationId,
           context: {
             masterAssistant: true,
             mode: 'master'
@@ -186,6 +285,14 @@ export default function VivaMasterPage() {
           visionBuildPhase: 'master_assistant'
         })
       })
+      
+      // Extract conversation ID from response headers
+      const conversationIdHeader = response.headers.get('X-Conversation-Id')
+      if (conversationIdHeader && conversationIdHeader !== currentConversationId) {
+        setCurrentConversationId(conversationIdHeader)
+        // Refresh conversation list
+        await loadConversations()
+      }
 
       if (!response.ok) {
         throw new Error('Failed to send message')
@@ -259,6 +366,144 @@ export default function VivaMasterPage() {
     }
   }
 
+  const startRecording = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Your browser does not support audio recording')
+        return
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+
+      setIsRecording(true)
+      setRecordingDuration(0)
+      setTranscript(null)
+
+      // Determine best supported mime type
+      let mimeType = ''
+      const options = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus']
+      for (const option of options) {
+        if (MediaRecorder.isTypeSupported(option)) {
+          mimeType = option
+          break
+        }
+      }
+      if (!mimeType) mimeType = 'audio/webm'
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType })
+      mediaRecorderRef.current = mediaRecorder
+      chunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: mimeType })
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop())
+        }
+        await transcribeAudio(blob)
+      }
+
+      mediaRecorder.start(1000)
+      
+      // Start timer
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1)
+      }, 1000)
+    } catch (err: any) {
+      console.error('Error starting recording:', err)
+      alert('Failed to access microphone. Please check permissions.')
+      setIsRecording(false)
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      if (mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.requestData()
+      }
+      setTimeout(() => {
+        if (mediaRecorderRef.current) {
+          mediaRecorderRef.current.stop()
+        }
+      }, 100)
+      setIsRecording(false)
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }
+
+  const transcribeAudio = async (blob: Blob) => {
+    setIsTranscribing(true)
+    try {
+      if (blob.size === 0) {
+        throw new Error('Recorded audio is empty')
+      }
+
+      const formData = new FormData()
+      formData.append('audio', blob, 'recording.webm')
+
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Transcription failed')
+      }
+
+      const data = await response.json()
+      if (!data.transcript) {
+        throw new Error('No transcript received')
+      }
+
+      setTranscript(data.transcript)
+    } catch (err) {
+      console.error('Transcription error:', err)
+      alert(err instanceof Error ? err.message : 'Failed to transcribe audio')
+    } finally {
+      setIsTranscribing(false)
+    }
+  }
+
+  const handleUseTranscript = () => {
+    if (transcript) {
+      setCurrentMessage(transcript)
+      setTranscript(null)
+      setRecordingDuration(0)
+    }
+  }
+
+  const handleDiscardTranscript = () => {
+    setTranscript(null)
+    setRecordingDuration(0)
+  }
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-black flex flex-col">
       {/* Header */}
@@ -276,14 +521,112 @@ export default function VivaMasterPage() {
                 Your comprehensive guide to mastering VibrationFit and living a vibrationally aligned life
               </Text>
             </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowConversations(!showConversations)}
+                variant="ghost"
+                size="lg"
+                title="View conversation history"
+              >
+                <History className="w-5 h-5" />
+              </Button>
+              <Button
+                onClick={startNewConversation}
+                variant="secondary"
+                size="lg"
+                title="Start new conversation"
+              >
+                <Plus className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Conversations Sidebar */}
+      {showConversations && (
+        <div className="fixed inset-y-0 left-0 w-80 bg-[#1F1F1F] border-r border-neutral-800 z-20 flex flex-col pt-24">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
+            <h2 className="text-lg font-bold text-white">Conversations</h2>
+            <Button
+              onClick={() => setShowConversations(false)}
+              variant="ghost"
+              size="sm"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto">
+            {conversations.length === 0 ? (
+              <div className="p-4 text-center text-neutral-400">
+                <Text size="sm">No conversations yet</Text>
+              </div>
+            ) : (
+              <div className="space-y-1 p-2">
+                {conversations.map((conv) => (
+                  <div
+                    key={conv.id}
+                    className={`group relative p-3 rounded-lg cursor-pointer transition-colors ${
+                      conv.id === currentConversationId
+                        ? 'bg-[#8B5CF6]/20 border border-[#8B5CF6]/30'
+                        : 'bg-neutral-800/50 hover:bg-neutral-800 border border-transparent'
+                    }`}
+                    onClick={() => {
+                      loadConversation(conv.id)
+                      setShowConversations(false)
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-white truncate">
+                          {conv.title || 'Untitled Conversation'}
+                        </h3>
+                        {conv.preview_message && (
+                          <Text size="xs" className="text-neutral-400 mt-1 line-clamp-2">
+                            {conv.preview_message}
+                          </Text>
+                        )}
+                        <div className="flex items-center gap-2 mt-2 text-xs text-neutral-500">
+                          <span>{conv.message_count || 0} messages</span>
+                          <span>•</span>
+                          <span>{new Date(conv.last_message_at || conv.updated_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteConversation(conv.id)
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-400" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Overlay when sidebar is open */}
+      {showConversations && (
+        <div
+          className="fixed inset-0 bg-black/50 z-10 md:hidden"
+          onClick={() => setShowConversations(false)}
+        />
+      )}
+
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-6 py-6">
-        {/* Welcome Intro Message */}
-        {messages.length === 0 && !isTyping && (
+      <div className={`flex-1 flex flex-col mx-auto w-full px-6 py-6 transition-all duration-300 ${
+        showConversations ? 'md:ml-80 max-w-4xl' : 'max-w-4xl'
+      }`}>
+      {/* Welcome Intro Message - Show until user sends their first message */}
+      {!hasUserInteracted && (
           <div className="mb-6 animate-in fade-in slide-in-from-top duration-500">
             <Card className="bg-gradient-to-br from-[#8B5CF6]/20 to-[#B629D4]/20 border-2 border-[#8B5CF6]/30">
               <div className="space-y-4">
@@ -413,8 +756,71 @@ export default function VivaMasterPage() {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Transcript Preview */}
+        {transcript && (
+          <div className="mb-4 animate-in fade-in slide-in-from-bottom duration-300">
+            <Card className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-2 border-[#14B8A6]/30">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Mic className="w-4 h-4 text-[#14B8A6]" />
+                  <Text size="sm" className="text-[#14B8A6] font-semibold">Transcription Ready</Text>
+                </div>
+                <div className="bg-black/30 rounded-lg p-3 border border-[#14B8A6]/20">
+                  <p className="text-sm text-neutral-200 whitespace-pre-wrap">{transcript}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleUseTranscript}
+                    variant="primary"
+                    size="sm"
+                    className="flex-1 gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    Use This
+                  </Button>
+                  <Button
+                    onClick={handleDiscardTranscript}
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Discard
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
         {/* Input Area */}
         <div className="border-t border-neutral-800 pt-6">
+          {/* Recording Indicator */}
+          {(isRecording || isTranscribing) && (
+            <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-[#1F1F1F] border-2 border-[#D03739] rounded-2xl">
+              {isRecording ? (
+                <>
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                  <span className="text-white font-mono text-sm">{formatDuration(recordingDuration)}</span>
+                  <Button
+                    onClick={stopRecording}
+                    variant="danger"
+                    size="sm"
+                    className="ml-auto gap-2"
+                  >
+                    <Square className="w-4 h-4" />
+                    Stop
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#14B8A6]" />
+                  <span className="text-neutral-300 text-sm">Transcribing...</span>
+                </>
+              )}
+            </div>
+          )}
+
           <Card className="bg-neutral-900 border-neutral-800">
             <div className="flex gap-4 items-end">
               <textarea
@@ -433,10 +839,23 @@ export default function VivaMasterPage() {
                   target.style.height = 'auto'
                   target.style.height = `${Math.min(target.scrollHeight, 200)}px`
                 }}
+                disabled={isTyping || isRecording || isTranscribing}
               />
+              {!isRecording && !isTranscribing && (
+                <Button
+                  onClick={startRecording}
+                  variant={transcript ? "secondary" : "ghost"}
+                  size="lg"
+                  className="flex-shrink-0"
+                  disabled={isTyping}
+                  title="Record voice message"
+                >
+                  <Mic className="w-5 h-5" />
+                </Button>
+              )}
               <Button
                 onClick={sendMessage}
-                disabled={!currentMessage.trim() || isTyping}
+                disabled={!currentMessage.trim() || isTyping || isRecording || isTranscribing}
                 variant="primary"
                 size="lg"
                 className="flex-shrink-0"
