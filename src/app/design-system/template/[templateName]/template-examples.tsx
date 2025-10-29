@@ -28,9 +28,11 @@ export function renderTemplateExample(templateId: string) {
               {/* 72-Hour Activation Guarantee */}
               <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
                 <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
-                  <div className="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center border-2 border-neutral-700">
-                    <span className="text-6xl">🛡️</span>
-                  </div>
+                  <img 
+                    src="https://media.vibrationfit.com/site-assets/brand/guarantees/72-hour-activation-guarantee.png" 
+                    alt="72 Hour Activation Guarantee"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <Stack gap="md" align="center" className="pb-2">
                   <Heading level={3} className="text-white text-center">
@@ -54,9 +56,11 @@ export function renderTemplateExample(templateId: string) {
               {/* Membership Guarantee */}
               <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
                 <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
-                  <div className="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center border-2 border-neutral-700">
-                    <span className="text-6xl">✨</span>
-                  </div>
+                  <img 
+                    src="https://media.vibrationfit.com/site-assets/brand/guarantees/membership-guarantee.png"
+                    alt="Membership Guarantee"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <Stack gap="md" align="center">
                   <Heading level={3} className="text-white text-center">

@@ -614,26 +614,30 @@ export function MediaRecorderComponent({
         throw new Error('Recording is empty or invalid. Please record again.')
       }
 
-      // 1. Upload to S3 first for immediate storage
-      console.log('📤 Uploading recording to S3 for streaming...')
+      // 1. Start transcription immediately (user sees transcript ASAP)
+      // 2. Upload to S3 in parallel (doesn't block transcription)
+      console.log('🎙️ Starting transcription and S3 upload in parallel...')
+      
       const folder = storageFolder || (mode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings')
       const fileName = `recording-${Date.now()}.webm`
       
-      try {
-        const uploadResult = await uploadRecording(blob, folder, fileName)
-        setS3Url(uploadResult.url)
-        console.log('✅ Recording uploaded to S3:', uploadResult.url)
-      } catch (uploadErr) {
-        console.error('❌ S3 upload failed:', uploadErr)
-        // Continue with transcription even if upload fails - we can retry later
-        console.warn('⚠️ Continuing without S3 upload - will use local blob')
-      }
+      // Start S3 upload in background (non-blocking)
+      const uploadPromise = uploadRecording(blob, folder, fileName)
+        .then((uploadResult) => {
+          setS3Url(uploadResult.url)
+          console.log('✅ Recording uploaded to S3:', uploadResult.url)
+        })
+        .catch((uploadErr) => {
+          console.error('❌ S3 upload failed:', uploadErr)
+          // Non-critical - continue without S3 URL, user can still use local blob
+          console.warn('⚠️ S3 upload failed - will use local blob for playback')
+        })
 
-      // 2. Transcribe the audio
+      // Start transcription immediately (this is what user is waiting for)
       const formData = new FormData()
       formData.append('audio', blob, 'recording.webm')
 
-      console.log('🎙️ Starting transcription:', { size: blob.size, type: blob.type })
+      console.log('🎙️ Transcribing audio...')
 
       const response = await fetch('/api/transcribe', {
         method: 'POST',
@@ -668,6 +672,13 @@ export function MediaRecorderComponent({
       if (onTranscriptComplete) {
         onTranscriptComplete(transcriptText)
       }
+
+      // Wait for S3 upload to complete (or fail) before returning
+      // This ensures we have S3 URL available for playback
+      await uploadPromise.catch(() => {
+        // Upload failed but transcription succeeded - that's okay
+        // User can still use local blob or retry upload later
+      })
 
       return transcriptText
     } catch (err) {
