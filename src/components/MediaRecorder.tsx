@@ -739,41 +739,61 @@ export function MediaRecorderComponent({
                   </Button>
                   <Button
                     onClick={async () => {
-                      // Reconstruct blob from saved chunks and auto-transcribe
+                      // Use existing blob if available, otherwise reconstruct from chunks
                       console.log('🎙️ Transcribing saved recording...')
-                      const chunksToUse = chunksRef.current.length > 0 
-                        ? chunksRef.current 
-                        : previousChunks.length > 0 
-                          ? previousChunks 
-                          : []
                       
-                      if (chunksToUse.length === 0) {
-                        console.error('❌ No chunks available to transcribe')
-                        setError('No recording data found to transcribe')
+                      let blobToTranscribe: Blob | null = null
+                      
+                      // First, try to use existing recordedBlob if available
+                      if (recordedBlob && recordedBlob instanceof Blob && recordedBlob.size > 0) {
+                        blobToTranscribe = recordedBlob
+                        console.log('✅ Using existing blob for transcription:', { size: blobToTranscribe.size })
+                      } else {
+                        // Otherwise, reconstruct from chunks
+                        const chunksToUse = chunksRef.current.length > 0 
+                          ? chunksRef.current 
+                          : previousChunks.length > 0 
+                            ? previousChunks 
+                            : []
+                        
+                        if (chunksToUse.length === 0) {
+                          console.error('❌ No chunks or blob available to transcribe')
+                          setError('No recording data found to transcribe')
+                          return
+                        }
+                        
+                        blobToTranscribe = new Blob(chunksToUse, {
+                          type: mode === 'video' ? 'video/webm' : 'audio/webm'
+                        })
+                        
+                        // Set the blob state if we just created it
+                        setRecordedBlob(blobToTranscribe)
+                        const url = URL.createObjectURL(blobToTranscribe)
+                        setRecordedUrl(url)
+                        
+                        console.log('✅ Reconstructed blob from chunks:', {
+                          blobSize: blobToTranscribe.size,
+                          chunksUsed: chunksToUse.length
+                        })
+                      }
+                      
+                      if (!blobToTranscribe || blobToTranscribe.size === 0) {
+                        setError('Recording is empty or invalid')
                         return
                       }
                       
-                      const blob = new Blob(chunksToUse, {
-                        type: mode === 'video' ? 'video/webm' : 'audio/webm'
-                      })
-                      setRecordedBlob(blob)
-                      const url = URL.createObjectURL(blob)
-                      setRecordedUrl(url)
                       setHasSavedRecording(false)
                       
-                      // Auto-transcribe if enabled
-                      if (autoTranscribe) {
-                        setIsTranscribing(true)
-                        const transcribed = await transcribeAudio(blob)
-                        if (transcribed && onTranscriptComplete) {
-                          onTranscriptComplete(transcribed)
-                        }
+                      // Transcribe the blob
+                      const transcribed = await transcribeAudio(blobToTranscribe)
+                      if (transcribed && onTranscriptComplete) {
+                        onTranscriptComplete(transcribed)
                       }
                       
-                      console.log('✅ Restored and transcribed recording:', {
-                        blobSize: blob.size,
+                      console.log('✅ Transcription complete for saved recording:', {
+                        blobSize: blobToTranscribe.size,
                         duration: duration,
-                        chunksUsed: chunksToUse.length
+                        transcriptLength: transcribed?.length || 0
                       })
                     }}
                     variant="secondary"
