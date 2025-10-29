@@ -11,10 +11,12 @@ import {
   isStorageLow,
   clearOldRecordings
 } from '@/lib/storage/indexed-db-recording'
+import { uploadRecording } from '@/lib/services/recordingService'
+import { USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
 
 interface MediaRecorderProps {
   mode?: 'audio' | 'video'
-  onRecordingComplete?: (blob: Blob, transcript?: string, shouldSaveFile?: boolean) => void
+  onRecordingComplete?: (blob: Blob, transcript?: string, shouldSaveFile?: boolean, s3Url?: string) => void
   onTranscriptComplete?: (transcript: string) => void
   autoTranscribe?: boolean
   maxDuration?: number // in seconds
@@ -22,6 +24,7 @@ interface MediaRecorderProps {
   showSaveOption?: boolean // Show "Save Recording" checkbox
   recordingId?: string // Optional: ID for IndexedDB persistence
   category?: string // Optional: Category for IndexedDB persistence
+  storageFolder?: keyof typeof USER_FOLDERS // S3 folder for uploads
 }
 
 export function MediaRecorderComponent({
@@ -33,12 +36,14 @@ export function MediaRecorderComponent({
   className = '',
   showSaveOption = true,
   recordingId: providedRecordingId,
-  category = 'general'
+  category = 'general',
+  storageFolder = 'journalAudioRecordings'
 }: MediaRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null)
+  const [s3Url, setS3Url] = useState<string | null>(null) // S3 URL for streaming playback
   const [duration, setDuration] = useState(0)
   const [transcript, setTranscript] = useState<string>('')
   const [isTranscribing, setIsTranscribing] = useState(false)
@@ -593,6 +598,22 @@ export function MediaRecorderComponent({
         throw new Error('Recording is empty or invalid. Please record again.')
       }
 
+      // 1. Upload to S3 first for immediate storage
+      console.log('📤 Uploading recording to S3 for streaming...')
+      const folder = storageFolder || (mode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings')
+      const fileName = `recording-${Date.now()}.webm`
+      
+      try {
+        const uploadResult = await uploadRecording(blob, folder, fileName)
+        setS3Url(uploadResult.url)
+        console.log('✅ Recording uploaded to S3:', uploadResult.url)
+      } catch (uploadErr) {
+        console.error('❌ S3 upload failed:', uploadErr)
+        // Continue with transcription even if upload fails - we can retry later
+        console.warn('⚠️ Continuing without S3 upload - will use local blob')
+      }
+
+      // 2. Transcribe the audio
       const formData = new FormData()
       formData.append('audio', blob, 'recording.webm')
 
@@ -908,7 +929,7 @@ export function MediaRecorderComponent({
           {/* Media Player */}
           {mode === 'video' ? (
             <video
-              src={recordedUrl || undefined}
+              src={s3Url || recordedUrl || undefined}
               controls
               className="w-full rounded-xl bg-black"
               onError={(e) => {
@@ -918,7 +939,7 @@ export function MediaRecorderComponent({
             />
           ) : (
             <audio
-              src={recordedUrl || undefined}
+              src={s3Url || recordedUrl || undefined}
               controls
               className="w-full"
               onError={(e) => {
@@ -1008,7 +1029,7 @@ export function MediaRecorderComponent({
             <Button
               onClick={() => {
                 if (onRecordingComplete) {
-                  onRecordingComplete(recordedBlob, transcript || undefined, saveRecording)
+                  onRecordingComplete(recordedBlob, transcript || undefined, saveRecording, s3Url || undefined)
                 }
               }}
               variant="primary"
