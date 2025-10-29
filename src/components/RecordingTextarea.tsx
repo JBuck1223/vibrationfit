@@ -235,7 +235,7 @@ export function RecordingTextarea({
             mode={recordingMode}
             onRecordingComplete={handleRecordingComplete}
             onTranscriptComplete={handleTranscriptComplete}
-            autoTranscribe={true} // Transcribe both audio and video
+            autoTranscribe={false} // Manual transcription - user clicks Transcribe button to avoid timing issues
             maxDuration={600} // 10 minutes
             showSaveOption={!transcriptOnly} // Hide save option if transcript-only mode
             category={category || storageFolder} // Use category if provided, else storageFolder

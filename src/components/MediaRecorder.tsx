@@ -887,17 +887,31 @@ export function MediaRecorderComponent({
                 <p className="text-sm text-neutral-400 mb-2">Transcript:</p>
                 <p className="text-white whitespace-pre-wrap">{transcript}</p>
               </div>
-            ) : !autoTranscribe ? (
+            ) : (
               <Button
-                onClick={() => transcribeAudio(recordedBlob)}
+                onClick={async () => {
+                  const transcriptResult = await transcribeAudio(recordedBlob)
+                  // Update IndexedDB with transcript if we have a recording ID
+                  if (recordingIdRef.current && transcriptResult) {
+                    await saveRecordingChunks(
+                      recordingIdRef.current,
+                      category,
+                      chunksRef.current,
+                      duration,
+                      mode,
+                      recordedBlob,
+                      transcriptResult
+                    )
+                  }
+                }}
                 variant="secondary"
                 size="sm"
-                className="gap-2"
+                className="gap-2 w-full"
               >
                 <Mic className="w-4 h-4" />
                 Transcribe {mode === 'video' ? 'Video' : 'Audio'}
               </Button>
-            ) : null}
+            )}
           </div>
 
           {/* Save Recording Option */}
