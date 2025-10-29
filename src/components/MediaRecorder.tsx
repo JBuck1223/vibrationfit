@@ -745,7 +745,7 @@ export function MediaRecorderComponent({
                       let blobToTranscribe: Blob | null = null
                       
                       // First, try to use existing recordedBlob if available
-                      if (recordedBlob && recordedBlob instanceof Blob && recordedBlob.size > 0) {
+                      if (recordedBlob && recordedBlob.size > 0) {
                         blobToTranscribe = recordedBlob
                         console.log('✅ Using existing blob for transcription:', { size: blobToTranscribe.size })
                       } else {
