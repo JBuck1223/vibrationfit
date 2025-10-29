@@ -7,152 +7,20 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { 
-  Home, 
-  User, 
-  Target, 
-  FileText, 
-  Image, 
-  Calendar,
-  Settings,
-  BarChart3,
-  CreditCard,
-  Users,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
-  Brain,
-  Zap,
   ChevronDown,
-  Plus,
-  Eye,
-  Edit,
-  ShoppingCart,
-  HardDrive,
-  X
+  X,
+  Zap,
 } from 'lucide-react'
+import { userNavigation, adminNavigation, mobileNavigation, isNavItemActive, type NavItem } from '@/lib/navigation'
 
 interface SidebarProps {
   className?: string
+  isAdmin?: boolean
 }
 
-interface NavItem {
-  name: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-  badge?: string
-  children?: NavItem[]
-  hasDropdown?: boolean
-}
-
-const navigation: NavItem[] = [
-  {
-    name: 'Dashboard',
-    href: '/dashboard',
-    icon: Home,
-  },
-  {
-    name: 'Profile',
-    href: '/profile',
-    icon: User,
-    hasDropdown: true,
-    children: [
-      { name: 'See Profile', href: '/profile', icon: Eye },
-      { name: 'Edit Profile', href: '/profile/edit', icon: Edit },
-      { name: 'New Profile', href: '/profile/new', icon: Plus },
-    ]
-  },
-  {
-    name: 'Life Vision',
-    href: '/life-vision',
-    icon: Target,
-    hasDropdown: true,
-    children: [
-      { name: 'See Vision', href: '/life-vision', icon: Eye },
-      { name: 'Edit Vision', href: '/life-vision/edit', icon: Edit },
-      { name: 'Refine Vision', href: '/life-vision/refine', icon: Target },
-    ]
-  },
-  {
-    name: 'Assessment',
-    href: '/assessment',
-    icon: Brain,
-    hasDropdown: true,
-    children: [
-      { name: 'Take Assessment', href: '/assessment', icon: Eye },
-      { name: 'View Results', href: '/assessment/results', icon: BarChart3 },
-      { name: 'New Assessment', href: '/assessment/new', icon: Plus },
-    ]
-  },
-  {
-    name: 'Vision Board',
-    href: '/vision-board',
-    icon: Image,
-    hasDropdown: true,
-    children: [
-      { name: 'See Vision Board', href: '/vision-board', icon: Eye },
-      { name: 'New Item', href: '/vision-board/new', icon: Plus },
-    ]
-  },
-  {
-    name: 'Journal',
-    href: '/journal',
-    icon: FileText,
-    hasDropdown: true,
-    children: [
-      { name: 'See Journal', href: '/journal', icon: Eye },
-      { name: 'New Entry', href: '/journal/new', icon: Plus },
-    ]
-  },
-  {
-    name: 'VIVA Assistant',
-    href: '/dashboard/vibe-assistant-usage',
-    icon: Sparkles,
-    hasDropdown: true,
-    children: [
-      { name: 'Chat with VIVA', href: '/dashboard/vibe-assistant-usage', icon: Sparkles },
-      { name: 'VIVA Master Assistant', href: '/viva-master', icon: Brain },
-      { name: 'VIVA Actions Here', href: '/dashboard/vibe-assistant-actions', icon: Zap },
-    ]
-  },
-  {
-    name: 'Activity',
-    href: '/dashboard/activity',
-    icon: BarChart3,
-  },
-  {
-    name: 'Token Tracking',
-    href: '/dashboard/tokens',
-    icon: Zap,
-    hasDropdown: true,
-    children: [
-      { name: '# Tokens Available', href: '/dashboard/tokens', icon: Zap },
-      { name: 'Token Tracking', href: '/dashboard/token-history', icon: BarChart3 },
-      { name: 'Buy Tokens', href: '/dashboard/add-tokens', icon: ShoppingCart },
-    ]
-  },
-  {
-    name: 'Storage',
-    href: '/dashboard/storage',
-    icon: HardDrive,
-    hasDropdown: true,
-    children: [
-      { name: 'See Usage', href: '/dashboard/storage', icon: Eye },
-      { name: 'Add Storage', href: '/dashboard/storage', icon: Plus },
-    ]
-  },
-  {
-    name: 'Billing',
-    href: '/billing',
-    icon: CreditCard,
-  },
-  {
-    name: 'Support',
-    href: '/support',
-    icon: Users,
-  },
-]
-
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, isAdmin = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [user, setUser] = useState<SupabaseUser | null>(null)
@@ -161,6 +29,9 @@ export function Sidebar({ className }: SidebarProps) {
   const [profileLoaded, setProfileLoaded] = useState(false)
   const pathname = usePathname()
   const supabase = createClient()
+  
+  // Use admin or user navigation based on isAdmin prop
+  const navigation = isAdmin ? adminNavigation : userNavigation
 
   useEffect(() => {
     const getUser = async () => {
@@ -313,7 +184,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         {navigation.map((item) => {
-          const isActive = pathname === item.href || (item.children && item.children.some(child => pathname === child.href))
+          const isActive = isNavItemActive(item, pathname)
           const isExpanded = expandedItems.includes(item.name)
           const Icon = item.icon
 
@@ -366,7 +237,7 @@ export function Sidebar({ className }: SidebarProps) {
                       
                       {item.children.map((child) => {
                         const ChildIcon = child.icon
-                        const isChildActive = pathname === child.href
+                        const isChildActive = isNavItemActive(child, pathname)
                         
                         return (
                           <Link
@@ -438,39 +309,16 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   
-  // Key navigation items for mobile (most important ones)
-  const mobileNavItems = [
-    {
-      name: 'Vision',
-      href: '/life-vision',
-      icon: Target,
-    },
-    {
-      name: 'Board',
-      href: '/vision-board',
-      icon: Image,
-    },
-    {
-      name: 'Journal',
-      href: '/journal',
-      icon: FileText,
-    },
-    {
-      name: 'VIVA',
-      href: '/dashboard/vibe-assistant-usage',
-      icon: Sparkles,
-    },
-    {
-      name: 'More',
-      href: '#',
-      icon: Settings,
-      isAction: true,
-    },
-  ]
+  // Use centralized mobile navigation
+  const mobileNavItems = mobileNavigation.map(item => ({
+    ...item,
+    isAction: item.href === '#', // "More" button is an action
+  }))
 
   // Get all sidebar items for the drawer (exclude main nav items)
-  const allSidebarItems = navigation.filter(item => 
-    !mobileNavItems.some(mobileItem => 
+  // Use userNavigation for mobile drawer (admin uses same mobile nav)
+  const allSidebarItems = userNavigation.filter((item: NavItem) => 
+    !mobileNavItems.some((mobileItem: NavItem & { isAction?: boolean }) => 
       mobileItem.href === item.href || 
       (mobileItem.href === '/life-vision' && item.href === '/life-vision') ||
       (mobileItem.href === '/vision-board' && item.href === '/vision-board') ||
@@ -501,10 +349,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
         <div className="flex items-center justify-around py-2">
           {mobileNavItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || 
-              (item.href === '/life-vision' && pathname.startsWith('/life-vision')) ||
-              (item.href === '/profile' && pathname.startsWith('/profile')) ||
-              (item.href === '/journal' && pathname.startsWith('/journal'))
+            const isActive = isNavItemActive(item, pathname)
             
             if (item.isAction) {
               return (
@@ -579,10 +424,9 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
 
             {/* Grid of Items */}
             <div className="grid grid-cols-2 gap-3">
-              {allSidebarItems.map((item) => {
+              {allSidebarItems.map((item: NavItem) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href || 
-                  (item.children && item.children.some(child => pathname === child.href))
+                const isActive = isNavItemActive(item, pathname)
                 
                 return (
                   <Link
@@ -619,12 +463,13 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
 interface SidebarLayoutProps {
   children: React.ReactNode
   className?: string
+  isAdmin?: boolean
 }
 
-export function SidebarLayout({ children, className }: SidebarLayoutProps) {
+export function SidebarLayout({ children, className, isAdmin = false }: SidebarLayoutProps) {
   return (
     <div className="flex h-screen bg-black">
-      <Sidebar />
+      <Sidebar isAdmin={isAdmin} />
       <main className={cn('flex-1 overflow-auto pb-16 md:pb-0', className)}>
         {children}
       </main>

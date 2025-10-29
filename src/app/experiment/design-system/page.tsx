@@ -302,30 +302,41 @@ export default function DesignSystemMasterPage() {
 
 // Color Palette Dropdown Component
 function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) => void, copiedColor: string | null }) {
-  const ColorRow = ({ hex, name, tokens, description }: { hex: string, name: string, tokens?: string, description: string }) => (
-    <div className="flex items-center gap-2 py-1">
-      <div 
-        className="w-5 h-5 rounded-full border border-white/20 shadow-md flex-shrink-0" 
-        style={{ backgroundColor: hex, boxShadow: `0 0 6px ${hex}40` }}
-      ></div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-white truncate">{name}{tokens && ` (${tokens})`}</p>
-        <p className="text-[10px] text-neutral-500 truncate">{description}</p>
+  const ColorRow = ({ hex, name, tokens, description }: { hex: string, name: string, tokens?: string, description: string }) => {
+    // Determine if we should use dark text (for light colors)
+    const isLightColor = hex === '#FFFF00' || hex === '#39FF14' || hex === '#00FF88' || hex === '#00FFFF' || hex === '#06B6D4'
+    const textColor = isLightColor ? '#000000' : '#FFFFFF'
+    
+    return (
+      <div className="flex items-center gap-2 py-1">
+        <div 
+          className="w-5 h-5 rounded-full border border-white/20 shadow-md flex-shrink-0" 
+          style={{ backgroundColor: hex, boxShadow: `0 0 6px ${hex}40` }}
+        ></div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-white truncate">{name}{tokens && ` (${tokens})`}</p>
+          <p className="text-[10px] text-neutral-500 truncate">{description}</p>
+        </div>
+        <button
+          onClick={() => onCopy(hex)}
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-semibold transition-all hover:scale-105 active:scale-95 flex-shrink-0 shadow-md"
+          style={{ 
+            backgroundColor: hex,
+            color: textColor,
+            boxShadow: `0 2px 8px ${hex}60`
+          }}
+          title="Copy hex code"
+        >
+          <span>{hex}</span>
+          {copiedColor === hex ? (
+            <Icon icon={Check} size="xs" color={textColor} />
+          ) : (
+            <Icon icon={Copy} size="xs" color={textColor} />
+          )}
+        </button>
       </div>
-      <button
-        onClick={() => onCopy(hex)}
-        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors flex-shrink-0"
-        title="Copy hex code"
-      >
-        <span>{hex}</span>
-        {copiedColor === hex ? (
-          <Icon icon={Check} size="xs" className="text-primary-500" />
-        ) : (
-          <Icon icon={Copy} size="xs" />
-        )}
-      </button>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

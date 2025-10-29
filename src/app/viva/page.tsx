@@ -36,13 +36,17 @@ export default function VivaMasterPage() {
     }
   }, [messages, isTyping])
 
-  // Start conversation on mount
+  // Start conversation on mount - ensure it runs even after refresh
   useEffect(() => {
     if (!hasStarted && messages.length === 0) {
-      startConversation()
-      setHasStarted(true)
+      // Small delay to ensure component is fully mounted
+      const timer = setTimeout(() => {
+        startConversation()
+        setHasStarted(true)
+      }, 100)
+      return () => clearTimeout(timer)
     }
-  }, [hasStarted, messages.length])
+  }, [hasStarted, messages.length]) // Removed hasStarted from dependencies that might prevent re-run
 
   const startConversation = async () => {
     setIsTyping(true)
@@ -72,16 +76,16 @@ export default function VivaMasterPage() {
       let assistantMessageContent = ''
       const assistantMessageId = Date.now().toString()
 
-      // Add placeholder message for streaming
-      const placeholderMessage: Message = {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date()
-      }
-      setMessages([placeholderMessage])
-
+      // Only add placeholder if we have content or are about to receive it
       if (reader) {
+        const placeholderMessage: Message = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date()
+        }
+        setMessages([placeholderMessage])
+
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
@@ -89,7 +93,26 @@ export default function VivaMasterPage() {
           const chunk = decoder.decode(value, { stream: true })
           assistantMessageContent += chunk
           
-          // Update the message in real-time
+          // Only update if we have content
+          if (assistantMessageContent.trim()) {
+            // Update the message in real-time
+            setMessages(prev => 
+              prev.map(msg => 
+                msg.id === assistantMessageId 
+                  ? { ...msg, content: assistantMessageContent }
+                  : msg
+              )
+            )
+            
+            // Auto-scroll during streaming
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+            }, 50)
+          }
+        }
+
+        // Final update - ensure we have the complete message
+        if (assistantMessageContent.trim()) {
           setMessages(prev => 
             prev.map(msg => 
               msg.id === assistantMessageId 
@@ -97,22 +120,24 @@ export default function VivaMasterPage() {
                 : msg
             )
           )
-          
-          // Auto-scroll during streaming
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-          }, 50)
+        } else {
+          // If no content received, show error message instead of empty bubble
+          setMessages([{
+            id: assistantMessageId,
+            role: 'assistant',
+            content: 'Hello! I\'m VIVA, your master guide for VibrationFit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
+            timestamp: new Date()
+          }])
         }
+      } else {
+        // If no reader, set fallback message immediately
+        setMessages([{
+          id: assistantMessageId,
+          role: 'assistant',
+          content: 'Hello! I\'m VIVA, your master guide for VibrationFit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
+          timestamp: new Date()
+        }])
       }
-
-      // Final update
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === assistantMessageId 
-            ? { ...msg, content: assistantMessageContent }
-            : msg
-        )
-      )
     } catch (error) {
       console.error('Error starting conversation:', error)
       const errorMessage: Message = {
@@ -257,16 +282,85 @@ export default function VivaMasterPage() {
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-6 py-6">
+        {/* Welcome Intro Message */}
+        {messages.length === 0 && !isTyping && (
+          <div className="mb-6 animate-in fade-in slide-in-from-top duration-500">
+            <Card className="bg-gradient-to-br from-[#8B5CF6]/20 to-[#B629D4]/20 border-2 border-[#8B5CF6]/30">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#B629D4] flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
+                      Welcome to VIVA Master Assistant
+                    </h2>
+                    <Text size="sm" className="text-neutral-300">
+                      Your comprehensive guide to mastering VibrationFit
+                    </Text>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[#8B5CF6]/20">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-[#8B5CF6] uppercase tracking-wide">What I Can Do</h3>
+                    <ul className="space-y-1.5 text-sm text-neutral-300">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#8B5CF6] mt-0.5">•</span>
+                        <span>Answer questions about all VibrationFit tools</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#8B5CF6] mt-0.5">•</span>
+                        <span>Show sections from your Life Vision</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#8B5CF6] mt-0.5">•</span>
+                        <span>Guide you through your journey</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#8B5CF6] mt-0.5">•</span>
+                        <span>Explain concepts and processes</span>
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-[#B629D4] uppercase tracking-wide">Try Asking</h3>
+                    <ul className="space-y-1.5 text-sm text-neutral-300">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#B629D4] mt-0.5">•</span>
+                        <span>"Show me the money section of my vision"</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#B629D4] mt-0.5">•</span>
+                        <span>"How do I create a Life Vision?"</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#B629D4] mt-0.5">•</span>
+                        <span>"What is the Green Line?"</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#B629D4] mt-0.5">•</span>
+                        <span>"Help me understand my assessment"</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
         {/* Messages Container */}
         <div 
           ref={messagesContainerRef}
           className="flex-1 overflow-y-auto space-y-6 mb-6"
         >
           {messages.length === 0 && !isTyping && (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center">
               <div className="text-center space-y-4">
-                <Sparkles className="w-16 h-16 text-[#8B5CF6] mx-auto" />
-                <Text size="lg" className="text-neutral-400">
+                <Sparkles className="w-12 h-12 text-[#8B5CF6] mx-auto animate-pulse" />
+                <Text size="base" className="text-neutral-400">
                   Starting your conversation with VIVA...
                 </Text>
               </div>
@@ -281,12 +375,6 @@ export default function VivaMasterPage() {
                 message.role === 'user' ? 'justify-end' : 'justify-start'
               )}
             >
-              {message.role === 'assistant' && (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#B629D4] flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-              )}
-              
               <Card
                 className={cn(
                   'max-w-[85%] md:max-w-[75%]',
@@ -306,20 +394,11 @@ export default function VivaMasterPage() {
                   </div>
                 </div>
               </Card>
-
-              {message.role === 'user' && (
-                <div className="w-10 h-10 rounded-full bg-[#601B9F] flex items-center justify-center flex-shrink-0">
-                  <MessageCircle className="w-5 h-5 text-white" />
-                </div>
-              )}
             </div>
           ))}
 
           {isTyping && messages.length > 0 && (
             <div className="flex gap-4 justify-start">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#B629D4] flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
               <Card className="bg-neutral-900 border-neutral-800">
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 text-[#8B5CF6] animate-spin" />

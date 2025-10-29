@@ -11,7 +11,8 @@ import { cn } from '@/lib/utils'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
-import { ChevronDown, User as UserIcon, Settings, CreditCard, Zap, LogOut, HardDrive, Activity } from 'lucide-react'
+import { ChevronDown, LogOut, Zap } from 'lucide-react'
+import { getPageType, headerAccountMenu } from '@/lib/navigation'
 
 export function Header() {
   const [user, setUser] = useState<User | null>(null)
@@ -23,44 +24,7 @@ export function Header() {
   const pathname = usePathname()
   const supabase = createClient()
 
-  // Page classification logic (same as GlobalLayout)
-  const pageClassifications = {
-    USER: [
-      '/dashboard', '/dashboard/activity', '/dashboard/add-tokens', '/dashboard/storage', '/dashboard/token-history', '/dashboard/tokens', '/dashboard/vibe-assistant-usage', '/viva-master',
-      '/life-vision', '/life-vision/new', '/life-vision/create-with-viva', '/life-vision/[id]', '/life-vision/[id]/audio', '/life-vision/[id]/refine',
-      '/vision-board', '/vision-board/new', '/vision-board/gallery', '/vision-board/[id]',
-      '/journal', '/journal/new', '/journal/[id]', '/journal/[id]/edit',
-      '/profile', '/profile/edit', '/profile/new',
-      '/assessment', '/assessment/in-progress', '/assessment/results',
-      '/actualization-blueprints', '/actualization-blueprints/[id]',
-      '/intensive', '/intensive/activate', '/intensive/activation-protocol', '/intensive/builder', '/intensive/calibration', '/intensive/call-prep', '/intensive/check-email', '/intensive/dashboard', '/intensive/intake', '/intensive/refine-vision', '/intensive/schedule-call',
-      '/billing', '/account/settings',
-    ],
-    ADMIN: [
-      '/admin/ai-models', '/admin/token-usage', '/admin/users', '/sitemap', '/design-system',
-    ],
-    PUBLIC: [
-      '/', '/pricing', '/pricing-hormozi',
-      '/auth/login', '/auth/signup', '/auth/verify', '/auth/setup-password', '/auth/logout', '/auth/callback', '/auth/auto-login',
-      '/checkout', '/billing/success', '/debug/email', '/test-recording', '/vision/build',
-      '/support',
-    ]
-  }
-
-  const getPageType = (pathname: string): 'USER' | 'ADMIN' | 'PUBLIC' => {
-    if (pageClassifications.USER.some(page => 
-      pathname === page || pathname.startsWith(page + '/')
-    )) {
-      return 'USER'
-    }
-    if (pageClassifications.ADMIN.some(page => 
-      pathname === page || pathname.startsWith(page + '/')
-    )) {
-      return 'ADMIN'
-    }
-    return 'PUBLIC'
-  }
-
+  // Page classification using centralized system
   const pageType = getPageType(pathname)
 
   // Only show header on PUBLIC pages
@@ -195,59 +159,20 @@ export function Header() {
 
                     {/* Menu Items */}
                     <div className="py-1">
-                      <Link
-                        href="/profile"
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
-                        onClick={() => setOpenDropdown(null)}
-                      >
-                        <UserIcon className="w-4 h-4" />
-                        <span className="font-medium">My Profile</span>
-                      </Link>
-                      
-                      <Link
-                        href="/dashboard/activity"
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
-                        onClick={() => setOpenDropdown(null)}
-                      >
-                        <Activity className="w-4 h-4" />
-                        <span className="font-medium">Activity Feed</span>
-                      </Link>
-                      
-                      <Link
-                        href="/dashboard/tokens"
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
-                        onClick={() => setOpenDropdown(null)}
-                      >
-                        <Zap className="w-4 h-4" />
-                        <span className="font-medium">Token Usage</span>
-                      </Link>
-                      
-                      <Link
-                        href="/dashboard/storage"
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
-                        onClick={() => setOpenDropdown(null)}
-                      >
-                        <HardDrive className="w-4 h-4" />
-                        <span className="font-medium">Storage</span>
-                      </Link>
-                      
-                      <Link
-                        href="/billing"
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
-                        onClick={() => setOpenDropdown(null)}
-                      >
-                        <CreditCard className="w-4 h-4" />
-                        <span className="font-medium">Billing</span>
-                      </Link>
-                      
-                      <Link
-                        href="/account/settings"
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
-                        onClick={() => setOpenDropdown(null)}
-                      >
-                        <Settings className="w-4 h-4" />
-                        <span className="font-medium">Settings</span>
-                      </Link>
+                      {headerAccountMenu.map((item) => {
+                        const Icon = item.icon
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
+                            onClick={() => setOpenDropdown(null)}
+                          >
+                            <Icon className="w-4 h-4" />
+                            <span className="font-medium">{item.name}</span>
+                          </Link>
+                        )
+                      })}
                     </div>
 
                     {/* Logout */}

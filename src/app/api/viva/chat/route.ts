@@ -28,6 +28,81 @@ export async function POST(req: Request) {
 
     // Check if this is master assistant mode
     const isMasterAssistant = context?.masterAssistant === true || context?.mode === 'master'
+    
+    // Detect document section queries (e.g., "show me the money section")
+    const lastMessage = messages[messages.length - 1]
+    const detectSectionQuery = (text: string): string | null => {
+      if (!isMasterAssistant) return null
+      const lowerText = text.toLowerCase()
+      
+      // Pattern matching for section queries
+      const patterns = [
+        /(?:show|display|get|find|tell me about|what does.*say about).*(?:the |my )?(money|fun|health|travel|love|family|social|home|work|stuff|giving|spirituality|forward|conclusion)(?: section)?/i,
+        /(?:section|part|category).*?(money|fun|health|travel|love|family|social|home|work|stuff|giving|spirituality|forward|conclusion)/i,
+      ]
+      
+      // Map common aliases to category keys
+      const categoryMap: Record<string, string> = {
+        'money': 'money',
+        'finance': 'money',
+        'financial': 'money',
+        'finances': 'money',
+        'wealth': 'money',
+        'fun': 'fun',
+        'recreation': 'fun',
+        'health': 'health',
+        'wellness': 'health',
+        'fitness': 'health',
+        'travel': 'travel',
+        'adventure': 'travel',
+        'love': 'love',
+        'romance': 'love',
+        'relationship': 'love',
+        'family': 'family',
+        'family life': 'family',
+        'social': 'social',
+        'friends': 'social',
+        'home': 'home',
+        'house': 'home',
+        'living': 'home',
+        'work': 'work',
+        'career': 'work',
+        'business': 'work',
+        'stuff': 'stuff',
+        'possessions': 'stuff',
+        'things': 'stuff',
+        'giving': 'giving',
+        'legacy': 'giving',
+        'contribution': 'giving',
+        'spirituality': 'spirituality',
+        'spiritual': 'spirituality',
+        'forward': 'forward',
+        'introduction': 'forward',
+        'conclusion': 'conclusion',
+        'closing': 'conclusion'
+      }
+      
+      for (const pattern of patterns) {
+        const match = lowerText.match(pattern)
+        if (match) {
+          const foundCategory = match[1] || match[0]
+          return categoryMap[foundCategory.toLowerCase()] || foundCategory.toLowerCase()
+        }
+      }
+      
+      // Direct category mention check
+      for (const [alias, key] of Object.entries(categoryMap)) {
+        if (lowerText.includes(alias) && (lowerText.includes('show') || lowerText.includes('display') || lowerText.includes('section') || lowerText.includes('vision'))) {
+          return key
+        }
+      }
+      
+      return null
+    }
+    
+    const requestedSection = lastMessage && typeof lastMessage.content === 'string' 
+      ? detectSectionQuery(lastMessage.content) 
+      : null
 
     // If this is a refinement context, use the specific vision being refined
     const visionId = context?.visionId || context?.vision_id
@@ -41,7 +116,7 @@ export async function POST(req: Request) {
         .eq('user_id', user.id)
         .single(),
       
-      // Vision - use specific vision if refining, otherwise get latest
+      // Vision - use specific vision if refining, otherwise get latest COMPLETE vision (for document queries)
       visionId 
         ? supabase
             .from('vision_versions')
@@ -49,13 +124,22 @@ export async function POST(req: Request) {
             .eq('id', visionId)
             .eq('user_id', user.id)
             .single()
-        : supabase
-            .from('vision_versions')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single(),
+        : requestedSection
+          ? supabase
+              .from('vision_versions')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('status', 'complete') // Only get complete visions for section queries
+              .order('version_number', { ascending: false })
+              .limit(1)
+              .single()
+          : supabase
+              .from('vision_versions')
+              .select('*')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single(),
       
       // Latest assessment
       supabase
@@ -112,7 +196,10 @@ export async function POST(req: Request) {
       assessmentData,
       journeyState,
       currentPhase: visionBuildPhase,
-      context
+      context: {
+        ...context,
+        requestedSection: requestedSection || undefined
+      }
     })
 
     // Filter out the START_SESSION message if present
@@ -280,11 +367,55 @@ ${categoryResponses.slice(0, 3).map((r: any, i: number) => `Q${i + 1}: ${r.quest
     }
   }
 
+  // Extract requested section content if user asked to see a specific section
+  let requestedSectionContent = ''
+  let requestedSectionLabel = ''
+  if (isMasterAssistant && context?.requestedSection && visionData) {
+    const sectionKey = context.requestedSection
+    const categoryMap: Record<string, string> = {
+      'love': 'love', 'romance': 'love',
+      'work': 'work', 'business': 'work',
+      'stuff': 'stuff', 'possessions': 'stuff'
+    }
+    const actualKey = categoryMap[sectionKey] || sectionKey
+    
+    // Get category label
+    const categoryLabels: Record<string, string> = {
+      'forward': 'Forward',
+      'fun': 'Fun',
+      'health': 'Health',
+      'travel': 'Travel',
+      'love': 'Love',
+      'family': 'Family',
+      'social': 'Social',
+      'home': 'Home',
+      'work': 'Work',
+      'money': 'Money',
+      'stuff': 'Stuff',
+      'giving': 'Giving',
+      'spirituality': 'Spirituality',
+      'conclusion': 'Conclusion'
+    }
+    requestedSectionLabel = categoryLabels[actualKey] || actualKey
+    
+    // Get section content, checking both new and old field names
+    const sectionContent = visionData[actualKey] || 
+                     visionData[actualKey === 'love' ? 'romance' : actualKey === 'work' ? 'business' : actualKey === 'stuff' ? 'possessions' : actualKey]
+    
+    if (sectionContent && sectionContent.trim()) {
+      requestedSectionContent = `\n\n**USER REQUESTED TO SEE THEIR "${requestedSectionLabel.toUpperCase()}" SECTION:**\n\n${sectionContent}\n\n**IMPORTANT:** When the user asks to see a section, you MUST include the full section content above in your response. Format it nicely and make it clear that this is from their Life Vision.`
+    } else {
+      requestedSectionContent = `\n\n**USER REQUESTED TO SEE THEIR "${requestedSectionLabel.toUpperCase()}" SECTION BUT IT DOES NOT EXIST YET.**\n\nLet them know this section hasn't been created yet, and suggest they create or complete their Life Vision.`
+    }
+  }
+
   const basePrompt = isMasterAssistant 
     ? `You are VIVA, the Master Guide for VibrationFit.com. You have comprehensive knowledge of all tools, systems, processes, and the vibrational alignment philosophy. Your purpose is to help ${userName} become a master of the platform and live a powerful, vibrationally aligned life.
 
 **MASTER KNOWLEDGE BASE:**
 ${masterKnowledge}
+
+${requestedSectionContent}
 
 **YOUR ROLE AS MASTER ASSISTANT:**
 - Answer questions about ANY tool, feature, or process on the platform
