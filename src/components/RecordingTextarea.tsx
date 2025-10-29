@@ -34,7 +34,7 @@ export function RecordingTextarea({
   allowVideo = false,
   className = '',
   disabled = false,
-  onRecordingSaved,
+  onRecordingSaved, // (url: string, transcript: string, type: 'audio' | 'video', updatedText: string, s3Url?: string) => void
   storageFolder = 'journal',
   category,
   onUploadProgress,
@@ -121,11 +121,12 @@ export function RecordingTextarea({
         console.log('⏭️ Skipping file upload (checkbox unchecked)')
       }
 
-      // Notify parent component (with or without file URL)
+      // Notify parent component (with or without file URL and S3 URL)
       if (onRecordingSaved) {
         console.log('📢 Notifying parent about saved recording with updated text')
         await onRecordingSaved(recordingUrl || '', transcript, recordingMode, newValue)
         console.log('✅ Parent save completed')
+        // Note: S3 URL is handled separately in MediaRecorder via onRecordingComplete callback
         // Don't update text field here - parent reload will handle it
       } else {
         console.warn('⚠️ No onRecordingSaved callback provided!')
