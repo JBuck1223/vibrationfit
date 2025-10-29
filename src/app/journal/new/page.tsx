@@ -282,7 +282,7 @@ export default function NewJournalEntryPage() {
                 </label>
                 
                 {/* Toggle Buttons */}
-                <div className="flex gap-2 mb-4">
+                <div className="flex flex-row flex-wrap gap-2 mb-4 w-full">
                   <Button
                     type="button"
                     variant={imageSource === 'upload' ? 'primary' : 'outline'}
@@ -297,10 +297,10 @@ export default function NewJournalEntryPage() {
                         setAiGeneratedImageUrls([])
                       }
                     }}
-                    className="flex-1"
+                    className="flex-1 min-w-0 shrink"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Files
+                    <span className="text-xs md:text-sm">Upload Files</span>
                   </Button>
                   <Button
                     type="button"
@@ -310,10 +310,10 @@ export default function NewJournalEntryPage() {
                       setImageSource('ai')
                       setFiles([])
                     }}
-                    className="flex-1"
+                    className="flex-1 min-w-0 shrink"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Generate with VIVA
+                    <span className="text-xs md:text-sm">Generate with VIVA</span>
                   </Button>
                 </div>
 
@@ -436,20 +436,22 @@ export default function NewJournalEntryPage() {
               />
 
               {/* Submit */}
-              <div className="flex gap-4">
+              <div className="flex flex-row flex-wrap gap-2 md:gap-4 w-full">
                 <Button
                   type="submit"
-                  size="lg"
+                  size="sm"
                   loading={loading}
                   disabled={loading}
+                  className="flex-1 min-w-0 shrink text-xs md:text-sm"
                 >
                   {loading ? 'Saving...' : 'Save Entry'}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="lg"
+                  size="sm"
                   onClick={() => router.back()}
+                  className="flex-1 min-w-0 shrink text-xs md:text-sm"
                 >
                   Cancel
                 </Button>

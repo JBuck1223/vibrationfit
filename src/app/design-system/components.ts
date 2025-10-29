@@ -12,7 +12,7 @@ export interface ComponentMetadata {
   id: string
   name: string
   description: string
-  category: 'Layout' | 'UI' | 'Feedback' | 'Media' | 'Typography' | 'Navigation' | 'Special'
+  category: 'Layout' | 'UI' | 'Feedback' | 'Media' | 'Typography' | 'Navigation' | 'Special' | 'Patterns'
   icon: typeof Layout
   exportName: string
   path: string
@@ -436,6 +436,7 @@ export const COMPONENT_CATEGORIES: ComponentMetadata['category'][] = [
   'Media',
   'Typography',
   'Navigation',
-  'Special'
+  'Special',
+  'Patterns'
 ]
 

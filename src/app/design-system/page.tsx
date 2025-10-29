@@ -15,13 +15,20 @@ import {
   getComponentsByCategory,
   type ComponentMetadata
 } from './components'
+import {
+  LAYOUT_TEMPLATES,
+  TEMPLATE_CATEGORIES,
+  getTemplatesByCategory,
+  type LayoutTemplateMetadata
+} from './layout-templates'
 import { 
   Icon,
   Stack,
   Grid,
-  Inline
+  Inline,
+  Badge
 } from '@/lib/design-system/components'
-import { Search, ChevronDown, ChevronRight, Copy, Check, Palette } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, Copy, Check, Palette, Layout } from 'lucide-react'
 import { getComponentProps } from './component/[componentName]/component-props'
 
 export default function DesignSystemMasterPage() {
@@ -112,23 +119,23 @@ export default function DesignSystemMasterPage() {
   }
 
   return (
-    <Stack gap="lg">
-      <div className="text-center">
+            <Stack gap="lg">
+                <div className="text-center">
         <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
           VibrationFit Design System
         </h1>
         <p className="text-base md:text-lg text-neutral-400 max-w-2xl mx-auto">
           Explore all design system components individually. Each component has its own showcase page with examples, props, and usage guidelines.
-        </p>
-      </div>
+                            </p>
+                          </div>
 
       {/* Search & Color Palette */}
-      <Stack gap="sm">
+                      <Stack gap="sm">
         <Card className="p-4 md:p-6">
           <div className="relative">
             <Icon 
               icon={Search} 
-              size="sm" 
+                              size="sm"
               className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
             />
             <input
@@ -137,9 +144,9 @@ export default function DesignSystemMasterPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-          </div>
-        </Card>
+                            />
+                          </div>
+                    </Card>
 
         {/* Color Palette Quick Access */}
         <Card className="p-3 md:p-4">
@@ -150,7 +157,7 @@ export default function DesignSystemMasterPage() {
             <div className="flex items-center gap-2">
               <Icon icon={Palette} size="sm" color="#39FF14" />
               <span className="text-sm md:text-base font-semibold text-white">Color Palette</span>
-            </div>
+                          </div>
             <Icon 
               icon={showColorPalette ? ChevronDown : ChevronRight} 
               size="sm" 
@@ -160,31 +167,100 @@ export default function DesignSystemMasterPage() {
 
           {showColorPalette && (
             <div className="mt-4 pt-4 border-t border-neutral-700">
-              <Stack gap="sm">
+                      <Stack gap="sm">
                 <ColorPaletteDropdown onCopy={(hex) => {
                   navigator.clipboard.writeText(hex)
                   setCopiedColor(hex)
                   setTimeout(() => setCopiedColor(null), 1500)
                 }} copiedColor={copiedColor} />
                 <div className="pt-2 border-t border-neutral-700">
-                  <Button
+                          <Button 
                     variant="outline"
-                    size="sm"
+                              size="sm"
                     className="w-full"
                     onClick={() => router.push('/design-system/component/color-palette')}
                   >
                     View Full Color Palette →
-                  </Button>
-                </div>
-              </Stack>
-            </div>
+                            </Button>
+                          </div>
+                        </Stack>
+                  </div>
           )}
         </Card>
       </Stack>
 
+      {/* Layout Templates Section */}
+      <Card className="p-4 md:p-6">
+        <Stack gap="md">
+          <div className="flex items-center gap-3 mb-2">
+            <Icon icon={Layout} size="md" color="#BF00FF" />
+            <h2 className="text-xl md:text-2xl font-bold text-white">
+              Layout Templates
+            </h2>
+            <span className="text-sm text-neutral-400">
+              ({LAYOUT_TEMPLATES.length})
+            </span>
+          </div>
+          <p className="text-sm text-neutral-400 mb-4">
+            Reusable combinations of components found in production. Copy these templates for quick implementation.
+          </p>
+          <Grid minWidth="280px" gap="md">
+            {LAYOUT_TEMPLATES.map((template) => (
+              <Card
+                key={template.id}
+                variant="outlined"
+                hover
+                className="p-4 md:p-6 cursor-pointer"
+                onClick={() => router.push(template.path)}
+              >
+                <Stack gap="sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-accent-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Icon
+                        icon={template.icon}
+                        size="sm"
+                        color="#BF00FF"
+                        className="opacity-80"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base md:text-lg font-semibold text-white truncate">
+                        {template.name}
+                      </h3>
+                      <Badge variant="premium" className="text-xs mt-1">
+                        {template.category}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-xs md:text-sm text-neutral-400 line-clamp-2">
+                    {template.description}
+                  </p>
+                  <div className="text-[10px] text-neutral-500 mt-1">
+                    Uses: {template.componentsUsed.join(', ')}
+                  </div>
+                  <div className="pt-2 border-t border-neutral-700">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(template.path)
+                      }}
+                    >
+                      View Template →
+                    </Button>
+                  </div>
+                </Stack>
+              </Card>
+            ))}
+          </Grid>
+        </Stack>
+      </Card>
+
       {/* Components by Category */}
       <Stack gap="md">
-        {COMPONENT_CATEGORIES.map((category) => {
+        {COMPONENT_CATEGORIES.filter(cat => cat !== 'Patterns').map((category) => {
               const components = componentsByCategory[category]
               if (components.length === 0) return null
 
@@ -192,7 +268,7 @@ export default function DesignSystemMasterPage() {
 
               return (
                 <Card key={category} className="p-4 md:p-6">
-                  <Stack gap="md">
+                      <Stack gap="md">
                     {/* Category Header */}
                     <button
                       onClick={() => toggleCategory(category)}
@@ -228,7 +304,7 @@ export default function DesignSystemMasterPage() {
                             className="p-4 md:p-6 cursor-pointer"
                             onClick={() => router.push(component.path)}
                           >
-                            <Stack gap="sm">
+                    <Stack gap="sm">
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                                   <Icon 
@@ -237,18 +313,18 @@ export default function DesignSystemMasterPage() {
                                     color="#39FF14"
                                     className="opacity-80"
                                   />
-                                </div>
+                      </div>
                                 <h3 className="text-base md:text-lg font-semibold text-white">
                                   {component.name}
-                                </h3>
-                              </div>
+                  </h3>
+                      </div>
                               <p className="text-xs md:text-sm text-neutral-400 line-clamp-2">
                                 {component.description}
                               </p>
                               <Inline gap="sm" wrap>
-                                <Button
+                        <Button 
                                   variant="ghost"
-                                  size="sm"
+                            size="sm" 
                                   className="flex-1 min-w-0 shrink"
                                   onClick={(e) => {
                                     e.stopPropagation()
@@ -256,10 +332,10 @@ export default function DesignSystemMasterPage() {
                                   }}
                                 >
                                   View →
-                                </Button>
-                                <Button
+                          </Button>
+                          <Button 
                                   variant="ghost"
-                                  size="sm"
+                            size="sm" 
                                   className="flex-shrink-0"
                                   onClick={(e) => {
                                     e.stopPropagation()
@@ -272,18 +348,18 @@ export default function DesignSystemMasterPage() {
                                     size="sm"
                                     className={copiedComponent === component.id ? 'text-primary-500' : ''}
                                   />
-                                </Button>
+                          </Button>
                               </Inline>
-                            </Stack>
-                          </Card>
+                      </Stack>
+            </Card>
                         ))}
                       </Grid>
                     )}
-                  </Stack>
-                </Card>
+                </Stack>
+              </Card>
               )
             })}
-      </Stack>
+            </Stack>
 
       {/* Quick Stats */}
       <Card variant="outlined" className="p-4 md:p-6">
@@ -291,24 +367,24 @@ export default function DesignSystemMasterPage() {
           <div className="text-center">
             <div className="text-2xl md:text-3xl font-bold text-primary-500">
               {DESIGN_SYSTEM_COMPONENTS.length}
-            </div>
+              </div>
             <div className="text-xs md:text-sm text-neutral-400">Components</div>
-          </div>
+                  </div>
           <div className="text-center">
             <div className="text-2xl md:text-3xl font-bold text-secondary-500">
               {COMPONENT_CATEGORIES.length}
-            </div>
+                  </div>
             <div className="text-xs md:text-sm text-neutral-400">Categories</div>
-          </div>
+                  </div>
           <div className="text-center">
             <div className="text-2xl md:text-3xl font-bold text-accent-500">
               100%
-            </div>
+                  </div>
             <div className="text-xs md:text-sm text-neutral-400">Mobile-First</div>
-          </div>
+                </div>
         </Inline>
-      </Card>
-    </Stack>
+              </Card>
+              </Stack>
   )
 }
 
@@ -328,8 +404,8 @@ function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) =
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-white truncate">{name}{tokens && ` (${tokens})`}</p>
           <p className="text-[10px] text-neutral-500 truncate">{description}</p>
-        </div>
-        <button
+            </div>
+                <button 
           onClick={() => onCopy(hex)}
           className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-semibold transition-all hover:scale-105 active:scale-95 flex-shrink-0 shadow-md"
           style={{ 
@@ -345,8 +421,8 @@ function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) =
           ) : (
             <Icon icon={Copy} size="xs" color={textColor} />
           )}
-        </button>
-      </div>
+                </button>
+              </div>
     )
   }
 
@@ -358,7 +434,7 @@ function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) =
           <ColorRow hex="#39FF14" name="Primary Green" tokens="50, 500" description="Electric Lime" />
           <ColorRow hex="#00FF88" name="Electric Green" tokens="100, 600" description="Neon Electric" />
           <ColorRow hex="#00CC44" name="Forest Green" tokens="200, 700" description="Electric Forest" />
-        </div>
+                  </div>
       </Card>
       <Card variant="outlined" className="p-3 bg-neutral-900/50">
         <div className="space-y-1">
@@ -366,7 +442,7 @@ function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) =
           <ColorRow hex="#00FFFF" name="Neon Cyan" tokens="50, 500" description="Neon Cyan (main)" />
           <ColorRow hex="#06B6D4" name="Bright Cyan" tokens="100, 600" description="Bright Cyan" />
           <ColorRow hex="#0F766E" name="Teal Dark" tokens="700" description="Teal Darker" />
-        </div>
+                </div>
       </Card>
       <Card variant="outlined" className="p-3 bg-neutral-900/50">
         <div className="space-y-1">
@@ -375,8 +451,8 @@ function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) =
           <ColorRow hex="#A855F7" name="Bright Purple" tokens="100, 600" description="Brighter Purple" />
           <ColorRow hex="#601B9F" name="Primary Purple" tokens="700" description="Primary Purple" />
           <ColorRow hex="#B629D4" name="Violet" tokens="800" description="Violet" />
-        </div>
-      </Card>
+                </div>
+                </Card>
       <Card variant="outlined" className="p-3 bg-neutral-900/50">
         <div className="space-y-1">
           <h6 className="text-xs font-semibold text-[#FFFF00] mb-1.5">Energy</h6>
@@ -384,8 +460,8 @@ function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) =
           <ColorRow hex="#FF6600" name="Neon Orange" description="Neon Orange" />
           <ColorRow hex="#FF0080" name="Neon Pink" description="Neon Pink" />
           <ColorRow hex="#FF0040" name="Neon Red" description="Neon Red" />
-        </div>
-      </Card>
+                </div>
+                </Card>
       <Card variant="outlined" className="p-3 bg-neutral-900/50">
         <div className="space-y-1">
           <h6 className="text-xs font-semibold text-white mb-1.5">Semantic</h6>
@@ -394,8 +470,8 @@ function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) =
           <ColorRow hex="#FFFF00" name="Warning" description="Celebration" />
           <ColorRow hex="#FF0040" name="Error" description="Below Green Line" />
           <ColorRow hex="#BF00FF" name="Premium" description="Premium / AI" />
-        </div>
-      </Card>
+                  </div>
+                </Card>
       <Card variant="outlined" className="p-3 bg-neutral-900/50">
         <div className="space-y-1">
           <h6 className="text-xs font-semibold text-neutral-400 mb-1.5">Neutrals</h6>
@@ -404,8 +480,8 @@ function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) =
           <ColorRow hex="#404040" name="Medium Gray" description="Borders" />
           <ColorRow hex="#666666" name="Light Gray" description="Borders" />
           <ColorRow hex="#9CA3AF" name="Tertiary Text" description="Text" />
-        </div>
-      </Card>
-    </div>
+                  </div>
+                </Card>
+            </div>
   )
 }
