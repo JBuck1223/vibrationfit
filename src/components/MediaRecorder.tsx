@@ -938,17 +938,19 @@ export function MediaRecorderComponent({
             <Button
               onClick={() => {
                 if (onRecordingComplete) {
-                  onRecordingComplete(recordedBlob, transcript, saveRecording)
+                  onRecordingComplete(recordedBlob, transcript || undefined, saveRecording)
                 }
               }}
               variant="primary"
               size="sm"
               className="gap-2 w-full sm:w-auto"
+              disabled={!transcript}
             >
               <Upload className="w-4 h-4" />
               {showSaveOption 
                 ? (saveRecording ? 'Save Recording & Transcript' : 'Use Transcript Only')
                 : 'Use Transcript'}
+              {!transcript && ' (Transcribe First)'}
             </Button>
             <Button
               onClick={discardRecording}
