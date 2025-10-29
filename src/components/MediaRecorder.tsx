@@ -739,50 +739,40 @@ export function MediaRecorderComponent({
                   </Button>
                   <Button
                     onClick={async () => {
-                      // Use existing blob if available, otherwise reconstruct from chunks
+                      // Reconstruct blob from saved chunks (we're in a state where recordedBlob is null)
                       console.log('🎙️ Transcribing saved recording...')
                       
-                      let blobToTranscribe: Blob | null = null
+                      const chunksToUse = chunksRef.current.length > 0 
+                        ? chunksRef.current 
+                        : previousChunks.length > 0 
+                          ? previousChunks 
+                          : []
                       
-                      // First, try to use existing recordedBlob if available
-                      if (recordedBlob) {
-                        blobToTranscribe = recordedBlob
-                        console.log('✅ Using existing blob for transcription:', { size: blobToTranscribe.size })
-                      } else {
-                        // Otherwise, reconstruct from chunks
-                        const chunksToUse = chunksRef.current.length > 0 
-                          ? chunksRef.current 
-                          : previousChunks.length > 0 
-                            ? previousChunks 
-                            : []
-                        
-                        if (chunksToUse.length === 0) {
-                          console.error('❌ No chunks or blob available to transcribe')
-                          setError('No recording data found to transcribe')
-                          return
-                        }
-                        
-                        blobToTranscribe = new Blob(chunksToUse, {
-                          type: mode === 'video' ? 'video/webm' : 'audio/webm'
-                        })
-                        
-                        // Set the blob state if we just created it
-                        setRecordedBlob(blobToTranscribe)
-                        const url = URL.createObjectURL(blobToTranscribe)
-                        setRecordedUrl(url)
-                        
-                        console.log('✅ Reconstructed blob from chunks:', {
-                          blobSize: blobToTranscribe.size,
-                          chunksUsed: chunksToUse.length
-                        })
+                      if (chunksToUse.length === 0) {
+                        console.error('❌ No chunks available to transcribe')
+                        setError('No recording data found to transcribe')
+                        return
                       }
                       
-                      if (!blobToTranscribe || blobToTranscribe.size === 0) {
+                      const blobToTranscribe = new Blob(chunksToUse, {
+                        type: mode === 'video' ? 'video/webm' : 'audio/webm'
+                      })
+                      
+                      if (blobToTranscribe.size === 0) {
                         setError('Recording is empty or invalid')
                         return
                       }
                       
+                      // Set the blob state so it displays
+                      setRecordedBlob(blobToTranscribe)
+                      const url = URL.createObjectURL(blobToTranscribe)
+                      setRecordedUrl(url)
                       setHasSavedRecording(false)
+                      
+                      console.log('✅ Reconstructed blob from chunks:', {
+                        blobSize: blobToTranscribe.size,
+                        chunksUsed: chunksToUse.length
+                      })
                       
                       // Transcribe the blob
                       const transcribed = await transcribeAudio(blobToTranscribe)
