@@ -563,21 +563,37 @@ export function MediaRecorderComponent({
   }
 
   const discardRecording = async () => {
+    // Delete S3 file if it exists (uploaded during transcription)
+    if (s3Url) {
+      try {
+        const { deleteRecording } = await import('@/lib/services/recordingService')
+        await deleteRecording(s3Url)
+        console.log('🗑️ Deleted recording from S3:', s3Url)
+      } catch (deleteErr) {
+        console.error('❌ Failed to delete recording from S3:', deleteErr)
+        // Continue with cleanup even if delete fails
+      }
+    }
+    
+    // Revoke local blob URLs
     if (recordedUrl) {
       URL.revokeObjectURL(recordedUrl)
     }
+    
+    // Clear from IndexedDB
+    if (recordingIdRef.current) {
+      await deleteSavedRecording(recordingIdRef.current)
+    }
+    
+    // Reset all state
     setRecordedBlob(null)
     setRecordedUrl(null)
+    setS3Url(null)
     setDuration(0)
     setTranscript('')
     chunksRef.current = []
     lastSaveSizeRef.current = 0
     setHasSavedRecording(false)
-
-    // Clear from IndexedDB
-    if (recordingIdRef.current) {
-      await deleteSavedRecording(recordingIdRef.current)
-    }
   }
 
   // Clear IndexedDB after successful upload (called from parent via onRecordingComplete)
