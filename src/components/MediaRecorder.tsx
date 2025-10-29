@@ -900,15 +900,23 @@ export function MediaRecorderComponent({
           {/* Media Player */}
           {mode === 'video' ? (
             <video
-              src={recordedUrl}
+              src={recordedUrl || undefined}
               controls
               className="w-full rounded-xl bg-black"
+              onError={(e) => {
+                console.error('❌ Video player error:', e)
+                setError('Unable to play video. The recording file may be corrupted.')
+              }}
             />
           ) : (
             <audio
-              src={recordedUrl}
+              src={recordedUrl || undefined}
               controls
               className="w-full"
+              onError={(e) => {
+                console.error('❌ Audio player error:', e)
+                setError('Unable to play audio. The recording file may be corrupted.')
+              }}
             />
           )}
 
