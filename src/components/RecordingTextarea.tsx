@@ -84,9 +84,10 @@ export function RecordingTextarea({
         ? `${value}\n\n${transcript}`
         : transcript
 
-      // Upload the recording file to S3 if requested AND not in transcript-only mode
+      // NOTE: S3 upload now happens automatically during transcription in MediaRecorder
+      // This section is for parent's explicit file save requests (legacy flow)
       if (shouldSaveFile && !transcriptOnly) {
-        console.log('📤 Uploading recording to S3...')
+        console.log('📤 Parent requested explicit file upload to S3...')
         
         // Determine the specific subfolder based on recording type and storage folder
         let specificFolder: string
@@ -244,6 +245,17 @@ export function RecordingTextarea({
             maxDuration={600} // 10 minutes
             showSaveOption={!transcriptOnly} // Hide save option if transcript-only mode
             category={category || storageFolder} // Use category if provided, else storageFolder
+            storageFolder={
+              recordingMode === 'video'
+                ? (storageFolder === 'lifeVision' ? 'lifeVisionVideoRecordings' 
+                   : storageFolder === 'alignmentPlan' ? 'alignmentPlanVideoRecordings'
+                   : storageFolder === 'profile' ? 'profileVideoRecordings'
+                   : 'journalVideoRecordings')
+                : (storageFolder === 'lifeVision' ? 'lifeVisionAudioRecordings'
+                   : storageFolder === 'alignmentPlan' ? 'alignmentPlanAudioRecordings'
+                   : storageFolder === 'profile' ? 'profileAudioRecordings'
+                   : 'journalAudioRecordings')
+            }
           />
         </div>
       )}
