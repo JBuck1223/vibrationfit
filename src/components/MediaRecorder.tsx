@@ -159,16 +159,24 @@ export function MediaRecorderComponent({
           setPreviousDuration(saved.duration || 0) // Store previous duration
           chunksRef.current = validChunks // Use only valid chunks for now
           
-          if (saved.blob && saved.blob instanceof Blob) {
+          if (saved.blob && saved.blob instanceof Blob && saved.blob.size > 0) {
+            // Revoke any existing URL to prevent memory leaks
+            if (recordedUrl) {
+              URL.revokeObjectURL(recordedUrl)
+            }
+            
             setRecordedBlob(saved.blob)
             const url = URL.createObjectURL(saved.blob)
             setRecordedUrl(url)
+            setHasSavedRecording(false) // Clear this since we have a complete blob - show normal player UI
+            
             console.log('✅ Restored completed recording with blob:', {
               blobSize: saved.blob.size,
-              blobType: saved.blob.type
+              blobType: saved.blob.type,
+              urlCreated: !!url
             })
           } else {
-            console.log('📝 Found in-progress recording - chunks available for restore')
+            console.log('📝 Found in-progress recording - chunks available for restore (no blob)')
           }
           
           if (saved.transcript) {
