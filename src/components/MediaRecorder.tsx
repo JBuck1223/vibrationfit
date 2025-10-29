@@ -943,7 +943,23 @@ export function MediaRecorderComponent({
             ) : (
               <Button
                 onClick={async () => {
+                  if (!recordedBlob) {
+                    setError('No recording available to transcribe')
+                    return
+                  }
+                  
+                  if (recordedBlob.size === 0) {
+                    setError('Recording is empty or invalid. Please record again.')
+                    return
+                  }
+                  
+                  console.log('🎙️ Starting transcription:', {
+                    blobSize: recordedBlob.size,
+                    blobType: recordedBlob.type
+                  })
+                  
                   const transcriptResult = await transcribeAudio(recordedBlob)
+                  
                   // Update IndexedDB with transcript if we have a recording ID
                   if (recordingIdRef.current && transcriptResult) {
                     await saveRecordingChunks(
@@ -960,6 +976,7 @@ export function MediaRecorderComponent({
                 variant="secondary"
                 size="sm"
                 className="gap-2 w-full"
+                disabled={!recordedBlob || recordedBlob.size === 0}
               >
                 <Mic className="w-4 h-4" />
                 Transcribe {mode === 'video' ? 'Video' : 'Audio'}
