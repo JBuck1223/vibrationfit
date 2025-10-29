@@ -144,8 +144,12 @@ export function RecordingTextarea({
   }
 
   const handleTranscriptComplete = (transcript: string) => {
-    // Optionally append transcript immediately (before upload completes)
-    // This provides faster feedback to the user
+    // Auto-populate textarea with transcript immediately when transcription completes
+    // This allows user to see and edit the transcript right away
+    const newValue = value 
+      ? `${value}\n\n${transcript}`
+      : transcript
+    onChange(newValue)
   }
 
   return (
