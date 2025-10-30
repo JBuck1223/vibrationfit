@@ -170,19 +170,21 @@ export async function GET(req: NextRequest) {
       font-size: 48pt;
       font-weight: 700;
       color: #${primary};
-      margin-bottom: 32pt;
+      margin-bottom: 0;
     }
 
     .cover-by {
       font-size: 16pt;
       color: #${textColor};
-      margin-bottom: 16pt;
+      margin-top: 32pt;
+      margin-bottom: 0;
     }
 
     .cover-date {
       font-size: 14pt;
       color: #${textColor};
-      margin-bottom: 32pt;
+      margin-top: 32pt;
+      margin-bottom: 0;
     }
 
     .cover-info {
@@ -294,7 +296,7 @@ export async function GET(req: NextRequest) {
     <header class="cover" style="page-break-after: always; page-break-inside: avoid;">
       <h1 class="cover-title">The Life I Choose</h1>
       ${vision.version_number > 1 ? `
-        <div style="display: inline-block; margin-top: 16pt; margin-bottom: 24pt;">
+        <div style="display: inline-block; margin-top: 32pt; margin-bottom: 0;">
           <span class="version-badge">Version ${vision.version_number}</span>
         </div>
       ` : ''}
@@ -436,36 +438,39 @@ export async function GET(req: NextRequest) {
       const coverPageHeight = pageHeightPoints
       const tocPageHeight = pageHeightPoints
       
-      // Get the main element to find where content sections start
-      const mainElement = document.querySelector('main')
-      if (!mainElement) return pageNumbers
-      
-      const mainTop = mainElement.getBoundingClientRect().top + window.pageYOffset
-      
-      // Get bounding boxes for all section headings
+      // Get bounding boxes for all section headings using absolute document positions
       sections.forEach((h2) => {
-        const box = h2.getBoundingClientRect()
         const categoryText = h2.textContent || ''
         
-        // Find parent section element
+        // Find parent section element (content section, not TOC)
         let sectionElement = h2.parentElement
         while (sectionElement && sectionElement.tagName !== 'SECTION' && sectionElement.tagName !== 'MAIN') {
           sectionElement = sectionElement.parentElement
         }
         
         if (sectionElement && sectionElement.tagName === 'SECTION' && !sectionElement.classList.contains('toc')) {
-          // This is a content section
-          const sectionTop = sectionElement.getBoundingClientRect().top + window.pageYOffset
-          const relativeTop = sectionTop - mainTop
+          // Get absolute position of section heading in document
+          const rect = h2.getBoundingClientRect()
+          const absoluteTop = rect.top + window.pageYOffset
           
-          // Account for TOC taking up space (approximately 720 points = 1 page)
-          // Content starts at relative position after TOC
-          const contentStartOffset = 720 // Approximate TOC height
-          const contentRelativeTop = Math.max(0, relativeTop - contentStartOffset)
+          // Document starts with cover page (page 1) + TOC (page 2)
+          // Cover page height = 720 points (10in usable)
+          // TOC page height = 720 points (10in usable)  
+          // Content sections start after 1440 points (2 pages)
+          const coverAndTocHeight = 1440 // 2 pages * 720 points
           
-          // Calculate page number: Cover (1) + TOC (2) + content pages
-          const pageNum = 3 + Math.floor(contentRelativeTop / pageHeightPoints)
-          pageNumbers[categoryText] = Math.max(3, pageNum)
+          // Calculate which page this section appears on
+          // Each page after cover/TOC is 720 points tall
+          const contentTop = absoluteTop - coverAndTocHeight
+          
+          if (contentTop > 0) {
+            // Page 3 starts at 0, page 4 at 720, page 5 at 1440, etc.
+            const pageNum = 3 + Math.floor(contentTop / pageHeightPoints)
+            pageNumbers[categoryText] = pageNum
+          } else {
+            // Shouldn't happen, but safety check
+            pageNumbers[categoryText] = 3
+          }
         }
       })
       
