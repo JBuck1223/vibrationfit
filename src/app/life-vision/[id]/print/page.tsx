@@ -14,7 +14,6 @@ export default function PrintPreviewPage() {
   const visionId = params.id as string
   const [colors, setColors] = useState({
     primary: '#199D67',
-    secondary: '#14B8A6',
     accent: '#8B5CF6',
     text: '#1F1F1F',
     background: '#FFFFFF',
@@ -25,7 +24,6 @@ export default function PrintPreviewPage() {
     // Set iframe URL with color parameters
     const colorParams = new URLSearchParams({
       primary: colors.primary.replace('#', ''),
-      secondary: colors.secondary.replace('#', ''),
       accent: colors.accent.replace('#', ''),
       text: colors.text.replace('#', ''),
       bg: colors.background.replace('#', ''),
@@ -39,7 +37,6 @@ export default function PrintPreviewPage() {
       const colorParams = new URLSearchParams({
         id: visionId,
         primary: colors.primary.replace('#', ''),
-        secondary: colors.secondary.replace('#', ''),
         accent: colors.accent.replace('#', ''),
         text: colors.text.replace('#', ''),
         bg: colors.background.replace('#', ''),
@@ -119,130 +116,108 @@ export default function PrintPreviewPage() {
             <h2 className="text-lg font-semibold">Color Theme</h2>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Primary Color
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={colors.primary}
-                  onChange={(e) => updateColor('primary', e.target.value)}
-                  className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
-                />
-                <input
-                  type="text"
-                  value={colors.primary}
-                  onChange={(e) => updateColor('primary', e.target.value)}
-                  className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
-                  placeholder="#199D67"
-                />
-              </div>
-            </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Primary Color (Title)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={colors.primary}
+                        onChange={(e) => updateColor('primary', e.target.value)}
+                        className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
+                      />
+                      <input
+                        type="text"
+                        value={colors.primary}
+                        onChange={(e) => updateColor('primary', e.target.value)}
+                        className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
+                        placeholder="#199D67"
+                      />
+                    </div>
+                  </div>
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Secondary Color
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={colors.secondary}
-                  onChange={(e) => updateColor('secondary', e.target.value)}
-                  className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
-                />
-                <input
-                  type="text"
-                  value={colors.secondary}
-                  onChange={(e) => updateColor('secondary', e.target.value)}
-                  className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
-                  placeholder="#14B8A6"
-                />
-              </div>
-            </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Accent Color (Lines)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={colors.accent}
+                        onChange={(e) => updateColor('accent', e.target.value)}
+                        className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
+                      />
+                      <input
+                        type="text"
+                        value={colors.accent}
+                        onChange={(e) => updateColor('accent', e.target.value)}
+                        className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
+                        placeholder="#8B5CF6"
+                      />
+                    </div>
+                  </div>
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Accent Color
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={colors.accent}
-                  onChange={(e) => updateColor('accent', e.target.value)}
-                  className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
-                />
-                <input
-                  type="text"
-                  value={colors.accent}
-                  onChange={(e) => updateColor('accent', e.target.value)}
-                  className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
-                  placeholder="#8B5CF6"
-                />
-              </div>
-            </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Text Color
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={colors.text}
+                        onChange={(e) => updateColor('text', e.target.value)}
+                        className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
+                      />
+                      <input
+                        type="text"
+                        value={colors.text}
+                        onChange={(e) => updateColor('text', e.target.value)}
+                        className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
+                        placeholder="#1F1F1F"
+                      />
+                    </div>
+                  </div>
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Text Color
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={colors.text}
-                  onChange={(e) => updateColor('text', e.target.value)}
-                  className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
-                />
-                <input
-                  type="text"
-                  value={colors.text}
-                  onChange={(e) => updateColor('text', e.target.value)}
-                  className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
-                  placeholder="#1F1F1F"
-                />
-              </div>
-            </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Background Color
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={colors.background}
+                        onChange={(e) => updateColor('background', e.target.value)}
+                        className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
+                      />
+                      <input
+                        type="text"
+                        value={colors.background}
+                        onChange={(e) => updateColor('background', e.target.value)}
+                        className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
+                        placeholder="#FFFFFF"
+                      />
+                    </div>
+                  </div>
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Background Color
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={colors.background}
-                  onChange={(e) => updateColor('background', e.target.value)}
-                  className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
-                />
-                <input
-                  type="text"
-                  value={colors.background}
-                  onChange={(e) => updateColor('background', e.target.value)}
-                  className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
-                  placeholder="#FFFFFF"
-                />
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-neutral-700">
-              <Button
-                onClick={() => setColors({
-                  primary: '#199D67',
-                  secondary: '#14B8A6',
-                  accent: '#8B5CF6',
-                  text: '#1F1F1F',
-                  background: '#FFFFFF',
-                })}
-                variant="outline"
-                size="sm"
-                className="w-full flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Reset to Default
-              </Button>
-            </div>
-          </div>
+                  <div className="pt-4 border-t border-neutral-700">
+                    <Button
+                      onClick={() => setColors({
+                        primary: '#199D67',
+                        accent: '#8B5CF6',
+                        text: '#1F1F1F',
+                        background: '#FFFFFF',
+                      })}
+                      variant="outline"
+                      size="sm"
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Reset to Default
+                    </Button>
+                  </div>
+                </div>
         </div>
 
         {/* Preview Area */}

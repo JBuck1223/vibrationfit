@@ -51,7 +51,6 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams
     const visionId = searchParams.get('id')
     const primary = searchParams.get('primary') || '199D67'
-    const secondary = searchParams.get('secondary') || '14B8A6'
     const accent = searchParams.get('accent') || '8B5CF6'
     const textColor = searchParams.get('text') || '1F1F1F'
     const bgColor = searchParams.get('bg') || 'FFFFFF'
@@ -155,57 +154,61 @@ export async function GET(req: NextRequest) {
 
     .cover {
       text-align: center;
-      margin: 40pt 0 20pt;
-      min-height: 100vh;
+      min-height: 90vh;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
+      padding: 40pt 20pt;
     }
 
     .cover-title {
-      font-size: 36pt;
+      font-size: 48pt;
       font-weight: 700;
       color: #${primary};
-      margin-bottom: 12pt;
+      margin-bottom: 32pt;
     }
 
-    .cover-subtitle {
+    .cover-by {
+      font-size: 16pt;
+      color: #${textColor};
+      margin-bottom: 16pt;
+    }
+
+    .cover-date {
       font-size: 14pt;
-      color: #${secondary};
-      margin-bottom: 20pt;
+      color: #${textColor};
+      margin-bottom: 32pt;
+    }
+
+    .cover-info {
+      font-size: 12pt;
+      color: #${textColor};
+      line-height: 2;
     }
 
     .cover-divider {
       width: 60px;
       height: 2px;
-      background: #${secondary};
-      margin: 0 auto 24pt;
+      background: #${accent};
+      margin: 32pt auto;
     }
 
-    .cover-badge {
-      display: inline-block;
-      padding: 8pt 16pt;
-      background: ${vision.status === 'complete' ? '#' + primary : '#FFB701'}15;
-      border: 2px solid ${vision.status === 'complete' ? '#' + primary : '#FFB701'};
-      border-radius: 50px;
-      margin: 12pt 0;
-      font-size: 11pt;
-      font-weight: 600;
-      color: ${vision.status === 'complete' ? '#' + primary : '#FFB701'};
-    }
-
-    .cover-meta {
-      margin-top: 24pt;
-      font-size: 11pt;
+    .cover-footer {
+      position: absolute;
+      bottom: 24pt;
+      left: 0;
+      right: 0;
+      font-size: 9pt;
       color: #64748b;
+      text-align: center;
     }
 
     h2 {
       font-size: 18pt;
-      margin: 32pt 0 16pt;
-      color: #${accent};
-      border-bottom: 2px solid #${secondary};
+      margin: 0 0 12pt;
+      color: #${primary};
+      border-bottom: 2px solid #${accent};
       padding-bottom: 8pt;
     }
 
@@ -220,27 +223,39 @@ export async function GET(req: NextRequest) {
     }
 
     section {
-      page-break-inside: avoid;
-      margin-bottom: 32pt;
+      margin-bottom: 40pt;
+    }
+    
+    section:not(:first-child) {
+      margin-top: 40pt;
+    }
+    
+    @media print {
+      @page {
+        @bottom-center {
+          content: counter(page);
+          font-size: 10pt;
+          color: #666;
+        }
+      }
     }
   </style>
 </head>
 <body>
   <main>
-    <header class="cover" style="page-break-after: always;">
-      <h1 class="cover-title">${escapeHtml(title)}</h1>
-      <div class="cover-subtitle">Life Vision Document</div>
+    <header class="cover" style="page-break-after: always; position: relative;">
+      <h1 class="cover-title">The Life I Choose</h1>
+      <div class="cover-by">By ${escapeHtml(userName)}</div>
+      <div class="cover-date">Created ${createdDate}</div>
+      
+      <div class="cover-info">
+        Version ${vision.version_number}<br>
+        ID: ${vision.id.substring(0, 8)}...
+      </div>
+      
       <div class="cover-divider"></div>
       
-      <div class="cover-badge">
-        Version ${vision.version_number} • ${vision.status === 'complete' ? 'Complete' : 'Draft'}
-      </div>
-      
-      <div class="cover-meta">Created by ${escapeHtml(userName)}</div>
-      <div class="cover-meta">${createdDate}</div>
-      <div class="cover-meta" style="margin-top: 40pt; font-size: 9pt; letter-spacing: 2px;">
-        VIBRATIONFIT
-      </div>
+      <div class="cover-footer">VIBRATIONFIT</div>
     </header>
 
     ${categoriesWithContent.map((category) => {
@@ -254,7 +269,7 @@ export async function GET(req: NextRequest) {
       if (paragraphs.length === 0) return ''
 
       return `
-      <section style="page-break-inside: avoid; margin-bottom: 32pt;">
+      <section style="margin-bottom: 40pt;">
         <h2>${escapeHtml(category.label)}</h2>
         ${category.description ? `
         <div class="mute">${escapeHtml(category.description)}</div>
@@ -272,20 +287,20 @@ export async function GET(req: NextRequest) {
       </h2>
       <div class="section-content">
         <p style="margin-bottom: 8pt;">
-          <strong style="color: #${secondary};">Version:</strong> ${vision.version_number}
+          <strong style="color: #${primary};">Version:</strong> ${vision.version_number}
         </p>
         <p style="margin-bottom: 8pt;">
-          <strong style="color: #${secondary};">Status:</strong>
+          <strong style="color: #${primary};">Status:</strong>
           <span style="color: ${vision.status === 'complete' ? '#' + primary : '#FFB701'}; font-weight: 600;">
             ${vision.status === 'complete' ? 'Complete' : 'Draft'}
           </span>
         </p>
         <p style="margin-bottom: 8pt;">
-          <strong style="color: #${secondary};">Created:</strong> ${createdDate}
+          <strong style="color: #${primary};">Created:</strong> ${createdDate}
         </p>
         ${vision.updated_at ? `
         <p style="margin-bottom: 8pt;">
-          <strong style="color: #${secondary};">Last Updated:</strong>
+          <strong style="color: #${primary};">Last Updated:</strong>
           ${new Date(vision.updated_at).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -330,14 +345,17 @@ export async function GET(req: NextRequest) {
       timeout: 30000 
     })
 
-    // Generate PDF
+    // Generate PDF with page numbers
     const pdfBuffer = await page.pdf({
       format: 'Letter',
-        printBackground: true,
+      printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: '<div></div>',
+      footerTemplate: '<div style="width: 100%; text-align: center; font-size: 10pt; color: #666; margin: 0 auto;"><span class="pageNumber"></span></div>',
       margin: {
         top: '0.5in',
         right: '0.5in',
-        bottom: '0.5in',
+        bottom: '0.75in',
         left: '0.5in'
       }
     })
