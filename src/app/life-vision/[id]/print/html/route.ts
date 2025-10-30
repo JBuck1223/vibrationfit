@@ -236,19 +236,15 @@ export async function GET(
       font-size: 10pt;
     }
     .section-content {
-      background: #fafafa;
-      border: 1px solid #e5e7eb;
-      border-radius: 6pt;
-      padding: 10pt 12pt;
-      margin-top: 12pt;
       line-height: 1.8;
+      margin-top: 12pt;
     }
   </style>
 </head>
 <body>
   <main>
-    <!-- Cover Page -->
-    <header class="cover" style="page-break-after: always;">
+    <!-- Full Cover Page -->
+    <header class="cover" style="page-break-after: always; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
       <h1 class="cover-title">${escapeHtml(title)}</h1>
       <div class="cover-subtitle">Life Vision Document</div>
       <div class="cover-divider"></div>
@@ -261,7 +257,7 @@ export async function GET(
       <div class="cover-meta">Created by ${escapeHtml(userName)}</div>
       ` : ''}
       <div class="cover-meta">${createdDate}</div>
-      <div class="cover-meta" style="margin-top: 24pt; font-size: 9pt; letter-spacing: 1px;">
+      <div class="cover-meta" style="margin-top: 40pt; font-size: 9pt; letter-spacing: 2px;">
         VIBRATIONFIT
       </div>
     </header>
@@ -279,14 +275,14 @@ export async function GET(
       if (paragraphs.length === 0) return ''
       
       return `
-      <section style="margin-bottom: 24pt;">
+      <section style="page-break-inside: avoid; margin-bottom: 32pt;">
         <h2>${escapeHtml(category.label)}</h2>
         ${category.description ? `
         <div class="mute">${escapeHtml(category.description)}</div>
         ` : ''}
-        <article class="section-content">
+        <div class="section-content">
           ${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}
-        </article>
+        </div>
       </section>
       `
     }).join('')}
@@ -296,7 +292,7 @@ export async function GET(
       <h2 style="font-size: 20pt; margin-bottom: 12pt; color: ${accent};">
         Vision Summary
       </h2>
-      <div class="section-content" style="border-left-color: ${accent};">
+      <div class="section-content">
         <p style="margin-bottom: 8pt;">
           <strong style="color: ${secondary};">Version:</strong> ${vision.version_number}
         </p>
@@ -321,8 +317,8 @@ export async function GET(
         ` : ''}
       </div>
       
-      <div style="margin-top: 32pt; padding-top: 24pt; border-top: 1px solid #e5e7eb; text-align: center;">
-        <div style="background: ${primary}15; padding: 16pt; border-radius: 6pt; border-left: 4px solid ${primary}; font-style: italic; margin-bottom: 16pt;">
+      <div style="margin-top: 40pt; padding-top: 24pt; border-top: 1px solid #e5e7eb; text-align: center;">
+        <div style="font-style: italic; margin-bottom: 24pt; font-size: 14pt;">
           "The future belongs to those who believe in the beauty of their dreams."
         </div>
         <div class="mute" style="font-size: 9pt; letter-spacing: 1px;">

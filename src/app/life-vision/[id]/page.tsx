@@ -826,7 +826,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               Audio Tracks
             </Button>
             <Button
-              onClick={() => downloadVisionPDF()}
+              onClick={() => router.push(`/life-vision/${vision.id}/print`)}
               variant="secondary"
               className="flex items-center gap-2"
             >

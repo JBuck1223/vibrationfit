@@ -33,9 +33,44 @@ export default function PrintPreviewPage() {
     setIframeUrl(`/life-vision/${visionId}/print/html?${colorParams.toString()}`)
   }, [visionId, colors])
 
-  const handleDownload = () => {
-    // Simple: Open the clean print page in a new tab
-    window.open(iframeUrl || '', '_blank')
+  const handleDownload = async () => {
+    if (!iframeUrl) return
+    
+    try {
+      // Fetch the HTML content
+      const response = await fetch(iframeUrl)
+      const html = await response.text()
+      
+      // Create a hidden iframe to render the HTML
+      const iframe = document.createElement('iframe')
+      iframe.style.display = 'none'
+      iframe.src = 'about:blank'
+      document.body.appendChild(iframe)
+      
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      if (!iframe.contentWindow) {
+        throw new Error('Failed to create iframe')
+      }
+      
+      iframe.contentWindow.document.open()
+      iframe.contentWindow.document.write(html)
+      iframe.contentWindow.document.close()
+      
+      // Wait for content to load
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Trigger print dialog
+      iframe.contentWindow?.print()
+      
+      // Clean up after a delay
+      setTimeout(() => {
+        document.body.removeChild(iframe)
+      }, 1000)
+    } catch (error) {
+      console.error('Download error:', error)
+      alert('Failed to download PDF. Please try again.')
+    }
   }
 
   const updateColor = (key: keyof typeof colors, value: string) => {
@@ -43,7 +78,7 @@ export default function PrintPreviewPage() {
   }
 
   return (
-    <div className="min-h-screen p-0">
+    <div className="min-h-screen">
       {/* Toolbar */}
       <div className="sticky top-0 z-10 bg-neutral-800 border-b border-neutral-700 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
@@ -65,9 +100,9 @@ export default function PrintPreviewPage() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row">
+      <div className="flex flex-col lg:flex-row">
         {/* Color Picker Sidebar */}
-        <div className="w-full md:w-80 bg-neutral-800 border-r border-neutral-700 p-6 overflow-y-auto h-auto md:h-[calc(100vh-73px)]">
+        <div className="w-full lg:w-80 bg-neutral-800 border-r-0 lg:border-r border-b lg:border-b-0 border-neutral-700 p-4 lg:p-6 overflow-y-auto h-auto lg:h-[calc(100vh-73px)]">
           <div className="flex items-center gap-2 mb-6">
             <Palette className="w-5 h-5 text-primary-500" />
             <h2 className="text-lg font-semibold">Color Theme</h2>
@@ -200,44 +235,38 @@ export default function PrintPreviewPage() {
         </div>
 
         {/* Preview Area */}
-        <div className="flex-1 bg-black overflow-auto h-auto md:h-[calc(100vh-73px)]">
-          <div className="max-w-4xl mx-auto">
-            {/* Preview Instructions */}
-            <div className="mb-4 p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-              <p className="text-sm text-neutral-300">
-                💡 <strong>Preview Tips:</strong> This shows exactly what your PDF will look like. 
-                Use the color picker on the left to customize your theme, then click "Download PDF" to open the print page. From there, press Cmd/Ctrl+P and select "Save as PDF".
+        <div className="flex-1 bg-black overflow-auto h-auto lg:h-[calc(100vh-73px)]">
+          <div className="w-full">
+            {/* Mobile Instructions */}
+            <div className="lg:hidden p-4 bg-neutral-800 border-b border-neutral-700">
+              <p className="text-sm text-neutral-300 text-center">
+                💡 Swipe left on the color picker to customize, then tap "Download PDF"
               </p>
             </div>
             
-            {/* Letter-sized Preview Container */}
-            <div className="bg-white shadow-2xl rounded overflow-hidden print-view" style={{ width: '8.5in', minHeight: '11in' }}>
+            {/* Preview Container */}
+            <div className="w-full flex justify-center items-start min-h-[600px] p-4 lg:p-8">
               {iframeUrl ? (
                 <iframe
                   src={iframeUrl}
-                  className="w-full border-0"
+                  className="border-0 bg-white"
                   style={{ 
-                    height: '11in',
-                    minHeight: '11in',
+                    width: '100%',
+                    maxWidth: '8.5in',
+                    aspectRatio: '8.5 / 11',
+                    minHeight: '400px',
                     display: 'block',
                   }}
                   title="PDF Preview"
                 />
               ) : (
-                <div className="flex items-center justify-center h-[11in] bg-neutral-100">
+                <div className="flex items-center justify-center w-full h-96 bg-neutral-100">
                   <div className="text-center text-neutral-500">
                     <p className="text-lg font-medium mb-2">Loading preview...</p>
                     <p className="text-sm">Preparing your PDF preview</p>
                   </div>
                 </div>
               )}
-            </div>
-            
-            {/* Instructions */}
-            <div className="mt-4 p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-              <p className="text-sm text-neutral-300">
-                💡 <strong>Customize your colors</strong> using the picker on the left, then click "Download PDF" to open the print page. From there, press Cmd/Ctrl+P and select "Save as PDF".
-              </p>
             </div>
           </div>
         </div>
