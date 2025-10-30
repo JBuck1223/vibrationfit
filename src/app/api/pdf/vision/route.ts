@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
     // Get search params
     const searchParams = req.nextUrl.searchParams
     const visionId = searchParams.get('id')
+    const preview = searchParams.get('preview') === 'true'
     const primary = searchParams.get('primary') || '199D67'
     const accent = searchParams.get('accent') || '8B5CF6'
     const textColor = searchParams.get('text') || '1F1F1F'
@@ -211,6 +212,11 @@ export async function GET(req: NextRequest) {
     
     .toc {
       padding: 20pt 0;
+      page-break-after: auto;
+    }
+    
+    .toc h2 {
+      page-break-after: avoid;
     }
   </style>
 </head>
@@ -228,15 +234,18 @@ export async function GET(req: NextRequest) {
     </header>
 
     <!-- Table of Contents -->
-    <section class="toc" style="page-break-after: always;">
+    <section class="toc">
       <h2 style="font-size: 24pt; margin-bottom: 24pt; color: #${primary}; border-bottom: 2px solid #${accent}; padding-bottom: 12pt;">
         Table of Contents
       </h2>
       <div style="line-height: 2.5;">
         ${categoriesWithContent.map((category, index) => `
-          <div style="margin-bottom: 8pt;">
-            <span style="color: #${primary}; font-weight: 600;">${index + 1}.</span>
-            <span style="color: #${textColor}; margin-left: 8pt;">${escapeHtml(category.label)}</span>
+          <div style="margin-bottom: 8pt; display: flex; justify-content: space-between; align-items: baseline;">
+            <span>
+              <span style="color: #${primary}; font-weight: 600;">${index + 1}.</span>
+              <span style="color: #${textColor}; margin-left: 12pt;">${escapeHtml(category.label)}</span>
+            </span>
+            <span style="color: #666; font-size: 10pt;">..........</span>
           </div>
         `).join('')}
       </div>
@@ -268,6 +277,15 @@ export async function GET(req: NextRequest) {
   </main>
 </body>
 </html>`
+
+    // If preview mode, return HTML directly
+    if (preview) {
+      return new NextResponse(html, {
+        headers: {
+          'Content-Type': 'text/html',
+        },
+      })
+    }
 
     // Launch Puppeteer
     const browser = await puppeteer.launch({

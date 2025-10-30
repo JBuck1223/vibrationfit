@@ -21,14 +21,17 @@ export default function PrintPreviewPage() {
   const [iframeUrl, setIframeUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    // Set iframe URL with color parameters
+    // Build API URL with color parameters for preview
     const colorParams = new URLSearchParams({
+      id: visionId,
+      preview: 'true',
       primary: colors.primary.replace('#', ''),
       accent: colors.accent.replace('#', ''),
       text: colors.text.replace('#', ''),
       bg: colors.background.replace('#', ''),
     })
-    setIframeUrl(`/life-vision/${visionId}/print/html?${colorParams.toString()}`)
+    // Use the API route for both preview and PDF - it generates the same HTML
+    setIframeUrl(`/api/pdf/vision?${colorParams.toString()}`)
   }, [visionId, colors])
 
   const handleDownload = async () => {
