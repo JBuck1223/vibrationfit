@@ -155,12 +155,15 @@ export async function GET(req: NextRequest) {
 
     .cover {
       text-align: center;
+      height: calc(100vh - 1in);
       min-height: calc(100vh - 1in);
+      max-height: calc(100vh - 1in);
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       padding: 40pt 20pt;
+      box-sizing: border-box;
     }
 
     .cover-title {
@@ -224,9 +227,10 @@ export async function GET(req: NextRequest) {
     
     .toc {
       padding: 20pt 0 20pt;
+      page-break-before: always;
       page-break-after: auto;
       page-break-inside: avoid;
-      min-height: auto;
+      min-height: 0;
     }
     
     .toc h2 {
@@ -287,20 +291,16 @@ export async function GET(req: NextRequest) {
 </head>
 <body>
   <main>
-    <header class="cover" style="page-break-after: always;">
+    <header class="cover" style="page-break-after: always; page-break-inside: avoid;">
       <h1 class="cover-title">The Life I Choose</h1>
       <div class="cover-by"><strong>By ${escapeHtml(userName)}</strong></div>
       <div class="cover-date">Created ${createdDate}</div>
       
-      <div class="cover-info">
-        ${vision.version_number > 1 ? `
-          <div style="display: inline-block; margin-bottom: 16pt;">
-            <span class="version-badge">Version ${vision.version_number}</span>
-          </div>
-          <br>
-        ` : ''}
-        ID: ${vision.id}
-      </div>
+      ${vision.version_number > 1 ? `
+        <div style="display: inline-block; margin-top: 16pt;">
+          <span class="version-badge">Version ${vision.version_number}</span>
+        </div>
+      ` : ''}
     </header>
 
     <!-- Table of Contents -->
