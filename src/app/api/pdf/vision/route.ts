@@ -360,32 +360,58 @@ export async function GET(req: NextRequest) {
                 const sections = Array.from(document.querySelectorAll('section > h2'));
                 const tocItems = Array.from(document.querySelectorAll('.toc-item'));
                 
+                const pointsPerPixel = 72 / 96; // 0.75
                 const pageHeightPoints = 720;
-                const coverPageHeight = pageHeightPoints;
-                const tocPageHeight = pageHeightPoints;
+                const pageHeightPixels = 960; // 10 inches * 96 DPI
+                
+                // Measure actual cover and TOC heights
+                const cover = document.querySelector('header.cover');
+                const toc = document.querySelector('section.toc');
+                
+                let coverHeightPixels = pageHeightPixels;
+                let tocHeightPixels = pageHeightPixels;
+                
+                if (cover) {
+                  coverHeightPixels = cover.getBoundingClientRect().height;
+                }
+                if (toc) {
+                  tocHeightPixels = toc.getBoundingClientRect().height;
+                }
+                
+                const coverAndTocPixels = coverHeightPixels + tocHeightPixels;
                 
                 sections.forEach(function(h2) {
-                  const box = h2.getBoundingClientRect();
                   const categoryText = h2.textContent || '';
+                  let sectionElement = h2.parentElement;
                   
-                  let elementTop = box.top + window.pageYOffset;
-                  elementTop -= (coverPageHeight + tocPageHeight);
-                  
-                  let pageNum = 3;
-                  if (elementTop > 0) {
-                    pageNum = Math.floor(elementTop / pageHeightPoints) + 3;
-                    pageNum = Math.max(3, pageNum);
+                  // Find parent section (content section, not TOC)
+                  while (sectionElement && sectionElement.tagName !== 'SECTION' && sectionElement.tagName !== 'MAIN') {
+                    sectionElement = sectionElement.parentElement;
                   }
                   
-                  tocItems.forEach(function(item) {
-                    const tocText = item.querySelector('.toc-text')?.textContent || '';
-                    if (tocText === categoryText) {
-                      const pageElement = item.querySelector('.toc-page');
-                      if (pageElement) {
-                        pageElement.textContent = String(pageNum);
-                      }
+                  if (sectionElement && sectionElement.tagName === 'SECTION' && !sectionElement.classList.contains('toc')) {
+                    const rect = h2.getBoundingClientRect();
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                    const elementTopPixels = rect.top + scrollTop;
+                    const contentTopPixels = elementTopPixels - coverAndTocPixels;
+                    
+                    let pageNum = 3;
+                    if (contentTopPixels > 0) {
+                      const contentTopPoints = contentTopPixels * pointsPerPixel;
+                      pageNum = 3 + Math.floor(contentTopPoints / pageHeightPoints);
+                      pageNum = Math.max(3, pageNum);
                     }
-                  });
+                    
+                    tocItems.forEach(function(item) {
+                      const tocText = item.querySelector('.toc-text')?.textContent || '';
+                      if (tocText === categoryText) {
+                        const pageElement = item.querySelector('.toc-page');
+                        if (pageElement) {
+                          pageElement.textContent = String(pageNum);
+                        }
+                      }
+                    });
+                  }
                 });
               }, 300);
             });
@@ -417,58 +443,78 @@ export async function GET(req: NextRequest) {
       
       const page = await browser.newPage()
 
+    // Set viewport to Letter size for accurate measurements
+    await page.setViewport({
+      width: 816,  // 8.5 inches * 96 DPI
+      height: 1056, // 11 inches * 96 DPI  
+    })
+
     // Set HTML content and wait for it to load
     await page.setContent(html, { 
       waitUntil: 'networkidle0',
       timeout: 30000 
     })
 
-    // Wait a bit for layout to settle
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // Wait for layout to fully settle
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
-    // Calculate actual page numbers for TOC by finding positions of section headings
-    // We need to account for PDF page dimensions: Letter size with 0.5in margins
+    // Calculate page numbers by measuring actual rendered positions
     const tocPageNumbers = await page.evaluate(() => {
-      const tocItems = Array.from(document.querySelectorAll('.toc-item'))
       const sections = Array.from(document.querySelectorAll('section > h2'))
       const pageNumbers: Record<string, number> = {}
       
-      // Letter page: 11in height, 0.5in margins = 10in usable = 720 points
-      const pageHeightPoints = 720 // 10 inches * 72 points per inch
-      const coverPageHeight = pageHeightPoints
-      const tocPageHeight = pageHeightPoints
+      // PDF page dimensions: 10" usable height = 720 points
+      // Browser: 96 DPI = 960 pixels for 10"
+      // Conversion factor: 72/96 = 0.75 (points are smaller than pixels)
+      const pointsPerPixel = 72 / 96 // 0.75
+      const pageHeightPoints = 720
+      const pageHeightPixels = 960 // 10 inches * 96 DPI
       
-      // Get bounding boxes for all section headings using absolute document positions
+      // Measure actual cover and TOC heights
+      const cover = document.querySelector('header.cover')
+      const toc = document.querySelector('section.toc')
+      
+      let coverHeightPixels = pageHeightPixels // Default fallback
+      let tocHeightPixels = pageHeightPixels // Default fallback
+      
+      if (cover) {
+        const coverRect = cover.getBoundingClientRect()
+        const coverScroll = cover.getBoundingClientRect().top + window.pageYOffset
+        coverHeightPixels = coverRect.height
+      }
+      
+      if (toc) {
+        const tocRect = toc.getBoundingClientRect()
+        tocHeightPixels = tocRect.height
+      }
+      
+      // Total pixels before content starts
+      const coverAndTocPixels = coverHeightPixels + tocHeightPixels
+      
       sections.forEach((h2) => {
         const categoryText = h2.textContent || ''
         
-        // Find parent section element (content section, not TOC)
+        // Find parent section (content section, not TOC)
         let sectionElement = h2.parentElement
         while (sectionElement && sectionElement.tagName !== 'SECTION' && sectionElement.tagName !== 'MAIN') {
           sectionElement = sectionElement.parentElement
         }
         
         if (sectionElement && sectionElement.tagName === 'SECTION' && !sectionElement.classList.contains('toc')) {
-          // Get absolute position of section heading in document
+          // Get position from document top in pixels
           const rect = h2.getBoundingClientRect()
-          const absoluteTop = rect.top + window.pageYOffset
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+          const elementTopPixels = rect.top + scrollTop
           
-          // Document starts with cover page (page 1) + TOC (page 2)
-          // Cover page height = 720 points (10in usable)
-          // TOC page height = 720 points (10in usable)  
-          // Content sections start after 1440 points (2 pages)
-          const coverAndTocHeight = 1440 // 2 pages * 720 points
+          // Subtract cover + TOC to get content position
+          const contentTopPixels = elementTopPixels - coverAndTocPixels
           
-          // Calculate which page this section appears on
-          // Each page after cover/TOC is 720 points tall
-          const contentTop = absoluteTop - coverAndTocHeight
-          
-          if (contentTop > 0) {
-            // Page 3 starts at 0, page 4 at 720, page 5 at 1440, etc.
-            const pageNum = 3 + Math.floor(contentTop / pageHeightPoints)
-            pageNumbers[categoryText] = pageNum
+          if (contentTopPixels > 0) {
+            // Convert pixels to points, then calculate page number
+            const contentTopPoints = contentTopPixels * pointsPerPixel
+            const pageNum = 3 + Math.floor(contentTopPoints / pageHeightPoints)
+            pageNumbers[categoryText] = Math.max(3, pageNum)
           } else {
-            // Shouldn't happen, but safety check
             pageNumbers[categoryText] = 3
           }
         }
