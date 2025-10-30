@@ -14,7 +14,7 @@ export default function PrintPreviewPage() {
   const visionId = params.id as string
   const [colors, setColors] = useState({
     primary: '#000000',
-    accent: '#404040',
+    accent: '#9CA3AF',
     text: '#1F1F1F',
     background: '#FFFFFF',
   })
@@ -91,25 +91,25 @@ export default function PrintPreviewPage() {
   const colorPresets = {
     default: {
       primary: '#000000',
-      accent: '#404040',
+      accent: '#9CA3AF',
       text: '#1F1F1F',
       background: '#FFFFFF',
     },
     green: {
       primary: '#00CC44',
-      accent: '#39FF14',
+      accent: '#9CA3AF',
       text: '#1F1F1F',
       background: '#FFFFFF',
     },
     purple: {
       primary: '#601B9F',
-      accent: '#BF00FF',
+      accent: '#9CA3AF',
       text: '#1F1F1F',
       background: '#FFFFFF',
     },
     cyan: {
       primary: '#06B6D4',
-      accent: '#00FFFF',
+      accent: '#9CA3AF',
       text: '#1F1F1F',
       background: '#FFFFFF',
     },
@@ -281,7 +281,7 @@ export default function PrintPreviewPage() {
                     <Button
                       onClick={() => setColors({
                         primary: '#000000',
-                        accent: '#404040',
+                        accent: '#9CA3AF',
                         text: '#1F1F1F',
                         background: '#FFFFFF',
                       })}

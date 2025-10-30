@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     const visionId = searchParams.get('id')
     const preview = searchParams.get('preview') === 'true'
     const primary = searchParams.get('primary') || '000000'
-    const accent = searchParams.get('accent') || '404040'
+    const accent = searchParams.get('accent') || '9CA3AF'
     const textColor = searchParams.get('text') || '1F1F1F'
     const bgColor = searchParams.get('bg') || 'FFFFFF'
 
@@ -220,6 +220,11 @@ export async function GET(req: NextRequest) {
     .section-content {
       line-height: 1.8;
       margin-top: 12pt;
+      text-align: justify;
+    }
+
+    .section-content p {
+      text-align: justify;
     }
 
     section {
