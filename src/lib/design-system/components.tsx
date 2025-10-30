@@ -505,11 +505,11 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     
     const hoverEffect = hover ? 'hover:border-[#00CC44] hover:shadow-2xl transition-all duration-200' : ''
     
-    // Standardized padding: Mobile p-6 (24px all around), Desktop p-8 (32px all around)
+    // Standardized padding: Mobile p-4 (16px all around), Desktop p-6 (24px all around)
     return (
       <div 
         ref={ref}
-        className={cn('rounded-2xl p-6 md:p-8', variants[variant], hoverEffect, className)}
+        className={cn('rounded-2xl p-4 md:p-6', variants[variant], hoverEffect, className)}
         {...props}
       >
         {children}

@@ -6,7 +6,7 @@ import {
   Activity, DollarSign, Briefcase, UserPlus, Package, 
   Gift, Zap, CheckCircle, ArrowRight, Star, Target,
   Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check, Clock, User,
-  Headphones, Image, BookOpen, CalendarDays, Lock
+  Headphones, Image, BookOpen, CalendarDays, Lock, HelpCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -54,6 +54,128 @@ export default function HomePage() {
   const [paymentPlan, setPaymentPlan] = useState<'full' | '2pay' | '3pay'>('full')
   const [isLoading, setIsLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [selfCheckAnswers, setSelfCheckAnswers] = useState<boolean[]>([false, false, false, false, false])
+  const [isYesHeld, setIsYesHeld] = useState(false)
+  const [holdProgress, setHoldProgress] = useState(0)
+  const [burgerOrderPlaced, setBurgerOrderPlaced] = useState(false)
+  const [burgerOrderCanceled, setBurgerOrderCanceled] = useState(false)
+  const [burgerTimer, setBurgerTimer] = useState<NodeJS.Timeout | null>(null)
+  const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
+
+  const calculateChaosScore = () => {
+    const total = selfCheckAnswers.filter(Boolean).length
+    if (total === 0 || total === 1) return { score: total, label: 'Stable', color: '#39FF14' }
+    if (total === 2 || total === 3) return { score: total, label: 'Shaky', color: '#FFB701' }
+    return { score: total, label: 'Chaos', color: '#FF0040' }
+  }
+
+  const getPrescription = () => {
+    const prescriptions = []
+    if (selfCheckAnswers[1]) prescriptions.push('Jump to VIVA Vision (Train)')
+    if (selfCheckAnswers[2]) prescriptions.push('Start Activation Protocol (Tune)')
+    if (selfCheckAnswers[3]) prescriptions.push('Build Vision Board + Journal x3 (Track)')
+    return prescriptions
+  }
+
+  const handleYesMouseDown = () => {
+    setIsYesHeld(true)
+    setHoldProgress(0)
+    setBurgerOrderPlaced(false)
+    setBurgerOrderCanceled(false)
+
+    // Start progress interval (update every 50ms for smooth animation)
+    const interval = setInterval(() => {
+      setHoldProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval)
+          return 100
+        }
+        return prev + (100 / 60) // 60 frames over 3 seconds (3000ms / 50ms)
+      })
+    }, 50)
+    setProgressInterval(interval)
+
+    // Start 3-second timer
+    const timer = setTimeout(() => {
+      // Vibrate on mobile for success
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100])
+      }
+      setBurgerOrderPlaced(true)
+      setBurgerOrderCanceled(false)
+      setHoldProgress(100)
+    }, 3000)
+    
+    setBurgerTimer(timer)
+  }
+
+  const handleYesMouseUp = () => {
+    // Clear timers
+    if (burgerTimer) {
+      clearTimeout(burgerTimer)
+      setBurgerTimer(null)
+    }
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      setProgressInterval(null)
+    }
+
+    setIsYesHeld(false)
+    
+    // Only cancel if user actually started holding (progress > 0)
+    // and didn't complete (progress < 100)
+    if (holdProgress > 0 && holdProgress < 100) {
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200])
+      }
+      setBurgerOrderCanceled(true)
+      setBurgerOrderPlaced(false)
+      setHoldProgress(0)
+    } else {
+      // Reset to idle state
+      setHoldProgress(0)
+      setBurgerOrderCanceled(false)
+      setBurgerOrderPlaced(false)
+    }
+  }
+
+  const handleNoClick = () => {
+    // Clear timers
+    if (burgerTimer) {
+      clearTimeout(burgerTimer)
+      setBurgerTimer(null)
+    }
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      setProgressInterval(null)
+    }
+
+    setIsYesHeld(false)
+    setHoldProgress(0)
+    
+    // Cancel order
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200])
+    }
+    setBurgerOrderCanceled(true)
+    setBurgerOrderPlaced(false)
+  }
+
+  const resetBurgerTest = () => {
+    // Clear any existing timers
+    if (burgerTimer) {
+      clearTimeout(burgerTimer)
+      setBurgerTimer(null)
+    }
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      setProgressInterval(null)
+    }
+    setIsYesHeld(false)
+    setHoldProgress(0)
+    setBurgerOrderPlaced(false)
+    setBurgerOrderCanceled(false)
+  }
 
   const getPaymentAmount = () => {
     switch (paymentPlan) {
@@ -763,6 +885,85 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Why this works Section */}
+        <section>
+          <div className="w-full">
+            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
+              <Stack gap="lg" className="md:gap-12">
+                <div className="text-center">
+                  <Heading level={2} className="text-white mb-4">
+                    Why this works (even if…)
+                  </Heading>
+                </div>
+
+                {/* Value Equation Grid */}
+                <Grid minWidth="250px" gap="lg">
+                  {/* Dream Outcome */}
+                  <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30">
+                    <Stack gap="md">
+                      <div className="flex flex-col items-center gap-3 mb-0">
+                        <Icon icon={Sparkles} size="lg" color="#39FF14" />
+                        <Heading level={4} className="text-white text-center font-bold">Total Clarity</Heading>
+                      </div>
+                      <Text size="sm" className="text-neutral-300 text-center">
+                        Your 12‑category Life Vision, activated in 72 hours.
+                      </Text>
+                    </Stack>
+                  </Card>
+
+                  {/* Likelihood of Success */}
+                  <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30">
+                    <Stack gap="md">
+                      <div className="flex flex-col items-center gap-3 mb-0">
+                        <Icon icon={TrendingUp} size="lg" color="#14B8A6" />
+                        <Heading level={4} className="text-white text-center font-bold">Proven System</Heading>
+                      </div>
+                      <Text size="sm" className="text-neutral-300 text-center">
+                        Conscious Creation System: Train → Tune → Track + proof.
+                      </Text>
+                    </Stack>
+                  </Card>
+
+                  {/* Time Delay */}
+                  <Card variant="elevated" className="bg-gradient-to-br from-[#8B5CF6]/10 to-[#BF00FF]/10 border-[#8B5CF6]/30">
+                    <Stack gap="md">
+                      <div className="flex flex-col items-center gap-3 mb-0">
+                        <Icon icon={Clock} size="lg" color="#8B5CF6" />
+                        <Heading level={4} className="text-white text-center font-bold">72‑Hour Activation</Heading>
+                      </div>
+                      <Text size="sm" className="text-neutral-300 text-center">
+                        Vision, audio, board, journals, and call—done in 3 days.
+                      </Text>
+                    </Stack>
+                  </Card>
+
+                  {/* Effort & Sacrifice */}
+                  <Card variant="elevated" className="bg-gradient-to-br from-[#FFB701]/10 to-[#39FF14]/10 border-[#FFB701]/30">
+                    <Stack gap="md">
+                      <div className="flex flex-col items-center gap-3 mb-0">
+                        <Icon icon={Zap} size="lg" color="#FFB701" />
+                        <Heading level={4} className="text-white text-center font-bold">No Guesswork</Heading>
+                      </div>
+                      <Text size="sm" className="text-neutral-300 text-center">
+                        VIVA AI turns contrast into clarity; simple guided steps.
+                      </Text>
+                    </Stack>
+                  </Card>
+                </Grid>
+
+                {/* CTA Button */}
+                <div className="text-center">
+                  <Button variant="primary" size="xl" asChild>
+                    <a href="#pricing">
+                      Start the Activation Intensive
+                    </a>
+                  </Button>
+                </div>
+              </Stack>
+            </Card>
+          </div>
+        </section>
+
         {/* Guarantees Section */}
         <section>
           <div className="w-full">
@@ -794,7 +995,7 @@ export default function HomePage() {
                       </p>
                     </div>
                     <Text size="base" className="text-white text-center">
-                      If you complete all 10 steps in 72 hours and aren't satisfied, we'll refund you in full.
+                      Complete all 10 steps in 72 hours. Not satisfied? Full refund—no questions.
                     </Text>
                     <Text size="sm" className="text-neutral-300 text-center">
                       Completion = 70%+ Profile, 84‑Q Assessment, 12‑category Vision (with VIVA), AM/PM Vision Audio, Vision Board (12 images), 3 journal entries, Calibration call booked.
@@ -822,10 +1023,10 @@ export default function HomePage() {
                       </p>
                     </div>
                     <Text size="base" className="text-white text-center">
-                      28‑Day Plan: 12‑week satisfaction guarantee from checkout.
+                      28‑Day Plan: 12‑week satisfaction guarantee from today.
                     </Text>
                     <Text size="base" className="text-white text-center">
-                      Annual Plan: 16‑week satisfaction guarantee from checkout.
+                      Annual Plan: 16‑week satisfaction guarantee from today.
                     </Text>
                     <Text size="base" className="text-white text-center">
                       Not satisfied within your window? We'll refund the plan and cancel future renewals.
@@ -839,7 +1040,7 @@ export default function HomePage() {
         </section>
 
         {/* Pricing Section */}
-        <section>
+        <section id="pricing">
           <div className="w-full">
             <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
               <Stack gap="xl" className="md:gap-12">
@@ -983,7 +1184,7 @@ export default function HomePage() {
                               'Capacity: 5M VIVA tokens/year + 100GB storage; tokens reset at renewal',
                               'Priority response queue',
                               '4 bonus calibration check‑ins per year',
-                              '60‑day satisfaction guarantee',
+                              '16‑week satisfaction guarantee from today',
                               '12‑month rate lock',
                         ].map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-3">
@@ -1031,7 +1232,7 @@ export default function HomePage() {
                               'Platform access: same as Annual',
                               'Capacity: 375k VIVA tokens per 28 days + 25GB storage; unused tokens roll over (max 3 cycles)',
                               'Standard support queue',
-                              '30‑day satisfaction guarantee',
+                              '12‑week satisfaction guarantee from today',
                               'Flexible — cancel any cycle',
                         ].map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-3">
@@ -1084,7 +1285,7 @@ export default function HomePage() {
                               'Capacity: 5M VIVA tokens/year + 100GB storage; tokens reset at renewal',
                               'Priority response queue',
                               '4 bonus calibration check‑ins per year',
-                              '60‑day satisfaction guarantee',
+                              '16‑week satisfaction guarantee from today',
                               '12‑month rate lock',
                             ].map((feature, idx) => (
                               <div key={idx} className="flex items-start gap-3">
@@ -1129,7 +1330,7 @@ export default function HomePage() {
                               'Platform access: same as Annual',
                               'Capacity: 375k VIVA tokens per 28 days + 25GB storage; unused tokens roll over (max 3 cycles)',
                               'Standard support queue',
-                              '30‑day satisfaction guarantee',
+                              '12‑week satisfaction guarantee from today',
                               'Flexible — cancel any cycle',
                             ].map((feature, idx) => (
                               <div key={idx} className="flex items-start gap-3">
@@ -1169,11 +1370,22 @@ export default function HomePage() {
                               </>
                             )}
                           </div>
+                          <div className="flex items-center justify-center gap-2 text-neutral-400 text-xs">
+                            <Shield className="w-3 h-3 text-[#FFFF00]" />
+                            <span>72‑Hour Activation Guarantee</span>
+                          </div>
                           <div className="text-white text-center text-sm md:text-base">
                             <strong>Day 56:</strong> {billingPeriod === 'annual' 
                               ? '$999 Payment (=$76.85/28 days). Renews annually.'
                               : '$99 Payment. Renews every 28 days.'
                             }
+                          </div>
+                          <div className="flex items-center justify-center gap-2 text-neutral-400 text-xs">
+                            <Shield className="w-3 h-3 text-[#FFFF00]" />
+                            <span>{billingPeriod === 'annual' 
+                              ? '16-week money-back Membership Guarantee'
+                              : '12-week money-back Membership Guarantee'
+                            }</span>
                           </div>
                           <div className="text-white text-center text-sm md:text-base">
                             <strong>You can switch or cancel any time before Day 56.</strong>
@@ -1189,7 +1401,7 @@ export default function HomePage() {
                             className="w-5 h-5 text-[#39FF14] bg-neutral-800 border-neutral-600 rounded focus:ring-[#39FF14] focus:ring-2"
                           />
                           <span className="text-sm text-neutral-300">
-                            <span className="text-[#39FF14] font-semibold">I agree to the renewal terms above.</span>
+                            <span className="text-[#39FF14] font-semibold">I agree to the renewal and guarantee terms above.</span>
                           </span>
                         </label>
 
@@ -1206,31 +1418,383 @@ export default function HomePage() {
                     </div>
                       </Stack>
                     </Card>
+
+                    {/* FAQ Section */}
+                    <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30 w-full max-w-5xl mx-auto">
+                      <Stack gap="md">
+                        <div className="text-center">
+                          <Heading level={4} className="text-white font-bold border-b-2 border-[#39FF14] pb-2 inline-block">FAQ's</Heading>
+                        </div>
+                        <Stack gap="sm" className="text-left">
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">When does billing start?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">$499 today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.</p>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">Can I switch or cancel my membership before Day 56?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">Yes—1‑click switch/cancel anytime before Day 56.</p>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">When do guarantees start?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">From checkout (today), not at first renewal.</p>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">What qualifies for the 72‑Hour Activation Guarantee?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">Complete all 10 steps in 72 hours (profile 70%+, 84‑Q assessment, 12‑category vision with VIVA, AM/PM audio, 12‑image board, 3 journals, calibration call booked).</p>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">What if I'm not satisfied with the membership?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">Annual: 16‑week satisfaction guarantee from today. 28‑Day: 12‑week satisfaction guarantee. We'll refund the plan and cancel future renewals.</p>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">What if I don't know what I want?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">VIVA AI turns contrast into clarity and drafts your 12‑category Life Vision for you.</p>
+                            </div>
+                          </div>
+                        </Stack>
+                        <div className="text-center mt-4 space-y-4">
+                          <a
+                            href="#faq"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })
+                            }}
+                            className="text-[#39FF14] hover:text-[#5EC49A] underline transition-colors cursor-pointer text-sm md:text-base block mb-6"
+                          >
+                            See full FAQ
+                          </a>
+                          <div>
+                            <Button variant="primary" size="xl" asChild>
+                              <a href="#pricing">
+                                Start the Activation Intensive
+                              </a>
+                          </Button>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
                   </Stack>
               </Stack>
             </Card>
           </div>
         </section>
 
+        {/* FAQ Section - Full FAQ */}
+        <section id="faq">
+          {/* Full FAQ content can be added here later */}
+        </section>
+
         {/* The Problem: Vibrational Chaos */}
         <section id="problem">
-            <Stack gap="lg" align="center">
-              <div className="text-center max-w-3xl">
-                <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+          <div className="w-full">
+            <Card variant="elevated" className="border-[#FF0040]/30 bg-[#FF0040]/5 !mx-0 !w-full">
+              <Stack gap="md" className="md:gap-8">
+                <div className="text-center">
+                  <div className="flex flex-wrap justify-center">
+                    <Heading level={2} className="text-white mb-4 text-2xl sm:text-3xl md:text-5xl">
                   The Problem: <span className="text-[#FF0040]">Vibrational Chaos</span>
-                </h2>
-                <Text size="xl" className="text-neutral-300">
-                  Understanding conscious creation isn't enough. You need a SYSTEM.
+                    </Heading>
+                  </div>
+                  <Text size="lg" className="text-neutral-300 mb-8">
+                    Vibrational chaos = being consistently inconsistent about the same desire.
                 </Text>
+                </div>
+                <Stack gap="md" className="md:gap-8">
+                  {/* Symptoms Section */}
+                  <div>
+                    <Heading level={3} className="text-[#FF0040] mb-4 text-center">Symptoms</Heading>
+                    <div className="space-y-3">
+                      <BulletedList>
+                        <ListItem variant="error">Flip‑flop thoughts: "I want it" ⇄ "I can't have it"</ListItem>
+                        <ListItem variant="error">Toddlers‑with‑scissors beliefs running your mind</ListItem>
+                        <ListItem variant="error">Open loops: start, stop, restart—no dominant signal</ListItem>
+                        <ListItem variant="error">Seeking signs instead of setting structure</ListItem>
+                        <ListItem variant="error">Evidence‑hunting for why it won't work</ListItem>
+                      </BulletedList>
+                    </div>
               </div>
 
-              <Card variant="elevated" className="border-[#FF0040]/30 bg-[#FF0040]/5 max-w-4xl">
+                  {/* 60-Second Self-Check */}
+                  <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#FF0040]/30">
+                    <Heading level={3} className="text-white mb-4 text-center">60‑Second Self‑Check</Heading>
+                    <Text size="sm" className="text-neutral-400 text-center mb-4">Tap Yes/No for each. Your score appears instantly.</Text>
+                    <Text size="sm" className="text-neutral-300 text-center mb-4 font-semibold">In the past 7 days did you...</Text>
+                    <Stack gap="sm">
+                      {[
+                        'Contradict a key desire with doubt?',
+                        'Avoid writing what you want ("I\'m not sure yet")?',
+                        'Start, stop, and "restart Monday"?',
+                        'Consume more than you create (no assets built)?',
+                        'Dismiss a small win as "luck"?'
+                      ].map((question, index) => (
+                        <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 py-3 border-b border-neutral-700/50 last:border-b-0">
+                          <Text size="sm" className="text-neutral-300 flex-1">{question}</Text>
+                          <div className="flex gap-2 sm:gap-3 flex-shrink-0">
+                            <button
+                              onClick={() => {
+                                const newAnswers = [...selfCheckAnswers]
+                                newAnswers[index] = true
+                                setSelfCheckAnswers(newAnswers)
+                              }}
+                              className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all min-h-[44px] ${
+                                selfCheckAnswers[index]
+                                  ? 'bg-[#39FF14] text-black scale-105 shadow-lg shadow-[#39FF14]/20'
+                                  : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'
+                              }`}
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newAnswers = [...selfCheckAnswers]
+                                newAnswers[index] = false
+                                setSelfCheckAnswers(newAnswers)
+                              }}
+                              className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all min-h-[44px] ${
+                                selfCheckAnswers[index] === false
+                                  ? 'bg-neutral-800 text-white border-2 border-[#333]'
+                                  : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'
+                              }`}
+                            >
+                              No
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {(() => {
+                        const chaosScore = calculateChaosScore()
+                        const prescriptions = getPrescription()
+                        return (
+                          <div className="space-y-4">
+                            <div 
+                              className={`border-2 rounded-lg p-4 mt-4`}
+                              style={{ borderColor: chaosScore.color }}
+                            >
+                              <Text size="sm" className="text-center">
+                                <strong style={{ color: chaosScore.color }}>Score: {chaosScore.score}/5</strong>
+                                <span className="text-neutral-400 ml-2">= {chaosScore.label}</span>
+                              </Text>
+                            </div>
+                            {prescriptions.length > 0 && (
+                              <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-lg p-4">
+                                <Text size="sm" className="text-[#39FF14] font-semibold mb-2">Micro‑prescriptions:</Text>
+                                <Stack gap="xs">
+                                  {prescriptions.map((prescription, idx) => (
+                                    <Text key={idx} size="sm" className="text-neutral-300">
+                                      • {prescription}
+                                    </Text>
+                                  ))}
+                                </Stack>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
+                      <div className="text-center mt-6">
+                        <Text size="sm" className="text-neutral-400 text-center mb-3">
+                          Ditch chaos in 72 hours
+                        </Text>
+                        <Button variant="primary" size="md" asChild>
+                          <a href="#pricing">
+                            Start the Activation Intensive
+                          </a>
+                        </Button>
+                      </div>
+                    </Stack>
+                  </div>
+
+                  {/* Cheeseburger Test */}
+                  <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#FF0040]/30">
+                    <Heading level={3} className="text-white mb-2 text-center">Cheeseburger Test</Heading>
+                    <Text size="xs" className="text-neutral-400 text-center mb-4">
+                      Tap and hold "Yes" for 3 seconds to place your order. Changing your mind cancels it.
+                    </Text>
+                    <Text size="sm" className="text-neutral-400 text-center mb-6">
+                      Server: "Would you like the cheeseburger?"
+                    </Text>
+
+                    {!burgerOrderPlaced && !burgerOrderCanceled && (
+                      <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                          <button
+                            onMouseDown={handleYesMouseDown}
+                            onMouseUp={handleYesMouseUp}
+                            onMouseLeave={handleYesMouseUp}
+                            onTouchStart={handleYesMouseDown}
+                            onTouchEnd={handleYesMouseUp}
+                            className={`px-6 py-4 rounded-full text-base sm:text-lg font-semibold text-black transition-all min-h-[44px] sm:min-h-[48px] ${
+                              isYesHeld ? 'bg-[#5EC49A] scale-105' : 'bg-[#39FF14] hover:scale-105'
+                            }`}
+                          >
+                            Yes — Place the order
+                          </button>
+                          <button
+                            onClick={handleNoClick}
+                            className="px-6 py-4 rounded-full text-base sm:text-lg font-semibold bg-neutral-700 text-neutral-300 hover:bg-neutral-600 transition-all min-h-[44px] sm:min-h-[48px]"
+                          >
+                            No — Cancel the order
+                          </button>
+                        </div>
+
+                        {/* Progress ring/circle */}
+                        {isYesHeld && (
+                          <div className="flex flex-col items-center space-y-3">
+                            <div className="relative w-32 h-32">
+                              <svg className="transform -rotate-90" width="128" height="128">
+                                {/* Background circle */}
+                                <circle
+                                  cx="64"
+                                  cy="64"
+                                  r="56"
+                                  fill="none"
+                                  stroke="#333"
+                                  strokeWidth="8"
+                                />
+                                {/* Progress circle */}
+                                <circle
+                                  cx="64"
+                                  cy="64"
+                                  r="56"
+                                  fill="none"
+                                  stroke="#39FF14"
+                                  strokeWidth="8"
+                                  strokeDasharray={`${2 * Math.PI * 56}`}
+                                  strokeDashoffset={`${2 * Math.PI * 56 * (1 - holdProgress / 100)}`}
+                                  className="transition-all duration-50"
+                                />
+                              </svg>
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Text className="text-2xl font-bold text-[#39FF14]">
+                                  {Math.round(holdProgress)}%
+                                </Text>
+                              </div>
+                            </div>
+                            <Text size="xs" className="text-neutral-400 text-center">
+                              {holdProgress < 100 ? 'Hold Yes to complete order...' : 'Order placed!'}
+                            </Text>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {burgerOrderPlaced && (
+                      <div className="space-y-4" role="status" aria-live="polite">
+                        <div className="flex flex-col items-center bg-[#39FF14]/10 border-2 border-[#39FF14] rounded-lg p-6">
+                          <div className="w-24 h-24 rounded-full bg-[#39FF14]/20 flex items-center justify-center mb-4" role="img" aria-label="Burger delivered">
+                            <span className="text-6xl">🍔</span>
+                          </div>
+                          <Text size="lg" className="text-[#39FF14] font-bold text-center">
+                            Order placed. Consistent signal = burger delivered.
+                          </Text>
+                        </div>
+                      </div>
+                    )}
+
+                    {burgerOrderCanceled && (
+                      <div className="space-y-4" role="status" aria-live="polite">
+                        <div className="flex flex-col items-center bg-[#FF0040]/10 border-2 border-[#FF0040] rounded-lg p-6">
+                          <div className="w-24 h-24 rounded-full bg-neutral-700 flex items-center justify-center mb-4 opacity-50" role="img" aria-label="Order canceled">
+                            <span className="text-6xl">⛔</span>
+                          </div>
+                          <Text size="lg" className="text-[#FF0040] font-bold text-center">
+                            Order canceled. Flip‑flopping signal = no burger.
+                          </Text>
+                        </div>
+                      </div>
+                    )}
+
+                    {(burgerOrderPlaced || burgerOrderCanceled) && (
+                      <div className="space-y-4 mt-6">
+                        <button
+                          onClick={resetBurgerTest}
+                          className="text-center w-full text-[#39FF14] hover:text-[#5EC49A] hover:underline transition-colors text-sm"
+                        >
+                          Try again
+                        </button>
+                        <Text size="sm" className="text-neutral-300 text-center">
+                          Vibrational chaos works the same way—mixed signals cancel outcomes. Structure your signal to get delivery.
+                        </Text>
+                        <div className="text-center">
+                          <Text size="xs" className="text-neutral-400 text-center mb-3">
+                            Ditch chaos in 72 hours
+                          </Text>
+                          <Button variant="primary" size="sm" asChild>
+                            <a href="#pricing">
+                              Start the Activation Intensive
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bridge Section */}
+                  <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#39FF14]/30">
+                    <Heading level={3} className="text-[#39FF14] mb-3 text-center">The Fix</Heading>
+                    <Text size="base" className="text-neutral-300 mb-4">
+                      Chaos is an input problem. Structure fixes inputs. Conscious Creation System: Train → Tune → Track turns scattered signals into a dominant point of attraction.
+                    </Text>
+                    <Text size="sm" className="text-neutral-300">
+                      <strong className="text-[#39FF14]">Cost of chaos:</strong> weeks pass, assets = 0. <strong className="text-[#39FF14]">Structure</strong> = a complete vision, audio, board, journals in 72 hours—visible progress now.
+                    </Text>
+                  </div>
+
+                  {/* CTA */}
+                  <div className="text-center">
+                    <Text size="sm" className="text-neutral-400 text-center mb-3">
+                      Ditch chaos in 72 hours
+                    </Text>
+                    <Button variant="primary" size="lg" asChild>
+                      <a href="#pricing">
+                        Start the Activation Intensive
+                      </a>
+                    </Button>
+                  </div>
+                </Stack>
+              </Stack>
+            </Card>
+          </div>
+        </section>
+
+        {/* Visual Comparison - Before moving to Solution */}
+        <section>
+          <Stack gap="lg" align="center">
+            <Card variant="elevated" className="border-[#333] bg-[#1F1F1F] max-w-4xl">
                 <Stack gap="md" className="md:gap-8">
                   <div className="text-center">
-                    <Heading level={3} className="text-[#FF0040] mb-4">What is Vibrational Chaos?</Heading>
-                    <Text size="lg" className="text-neutral-300 mb-6">
-                      "Vibrational chaos is a state of being where a person is consistently inconsistent in their thought patterns, also known as their vibe."
+                  <Text size="base" className="text-neutral-400 mb-4">
+                    "These opposing thoughts continuously are in battle, if unchecked."
                     </Text>
+                  <Badge variant="error">Vibrational Tug-of-War</Badge>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-6">
@@ -1245,13 +1809,6 @@ export default function HomePage() {
                       <Text size="sm" className="text-neutral-400">Limiting beliefs holding you back</Text>
                     </div>
                   </div>
-
-                  <div className="text-center">
-                    <Text size="base" className="text-neutral-400 mb-4">
-                      "These opposing thoughts continuously are in battle, if unchecked."
-                    </Text>
-                    <Badge variant="danger">Vibrational Tug-of-War</Badge>
-                  </div>
                 </Stack>
               </Card>
             </Stack>
@@ -1261,9 +1818,11 @@ export default function HomePage() {
         <section id="solution">
             <Stack gap="lg" align="center">
               <div className="text-center max-w-3xl">
-                <Heading level={2} className="text-white mb-6">
+                <div className="flex justify-center">
+                  <Heading level={2} className="text-white mb-6 whitespace-nowrap">
                   The Solution: <span className="text-[#39FF14]">Conscious Creation System</span>
                 </Heading>
+                </div>
                 <Text size="xl" className="text-neutral-300">
                   "A structured way to train, tune and track our vibration so that actualization or manifestation becomes second nature."
                 </Text>
