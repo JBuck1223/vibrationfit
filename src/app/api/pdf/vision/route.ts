@@ -51,8 +51,8 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams
     const visionId = searchParams.get('id')
     const preview = searchParams.get('preview') === 'true'
-    const primary = searchParams.get('primary') || '199D67'
-    const accent = searchParams.get('accent') || '8B5CF6'
+    const primary = searchParams.get('primary') || '00CC44'
+    const accent = searchParams.get('accent') || '39FF14'
     const textColor = searchParams.get('text') || '1F1F1F'
     const bgColor = searchParams.get('bg') || 'FFFFFF'
 
@@ -83,14 +83,13 @@ export async function GET(req: NextRequest) {
     // Fetch user profile for name
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('first_name, full_name, last_name')
+      .select('first_name, last_name')
       .eq('user_id', user.id)
       .single()
 
-    const userName = profile?.full_name || 
-                     (profile?.first_name && profile?.last_name ? `${profile.first_name} ${profile.last_name}` : null) ||
-                     profile?.first_name || 
-                     (profile?.last_name || 'User')
+    const userName = (profile?.first_name && profile?.last_name) 
+                     ? `${profile.first_name} ${profile.last_name}`
+                     : profile?.first_name || profile?.last_name || 'User'
     const title = vision.title || 'My Life Vision'
     const createdDate = new Date(vision.created_at).toLocaleDateString('en-US', {
       month: 'long',
@@ -337,9 +336,6 @@ export async function GET(req: NextRequest) {
       return `
       <section style="margin-bottom: 40pt;">
         <h2>${escapeHtml(category.label)}</h2>
-        ${category.description ? `
-        <div class="mute">${escapeHtml(category.description)}</div>
-        ` : ''}
         <div class="section-content">
           ${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}
         </div>
@@ -351,9 +347,53 @@ export async function GET(req: NextRequest) {
 </body>
 </html>`
 
-    // If preview mode, return HTML directly
+    // If preview mode, add JavaScript to calculate and display page numbers
     if (preview) {
-      return new NextResponse(html, {
+      const htmlWithPageNumbers = html.replace(
+        '</body>',
+        `
+        <script>
+          (function() {
+            window.addEventListener('load', function() {
+              setTimeout(function() {
+                const sections = Array.from(document.querySelectorAll('section > h2'));
+                const tocItems = Array.from(document.querySelectorAll('.toc-item'));
+                
+                const pageHeightPoints = 720;
+                const coverPageHeight = pageHeightPoints;
+                const tocPageHeight = pageHeightPoints;
+                
+                sections.forEach(function(h2) {
+                  const box = h2.getBoundingClientRect();
+                  const categoryText = h2.textContent || '';
+                  
+                  let elementTop = box.top + window.pageYOffset;
+                  elementTop -= (coverPageHeight + tocPageHeight);
+                  
+                  let pageNum = 3;
+                  if (elementTop > 0) {
+                    pageNum = Math.floor(elementTop / pageHeightPoints) + 3;
+                    pageNum = Math.max(3, pageNum);
+                  }
+                  
+                  tocItems.forEach(function(item) {
+                    const tocText = item.querySelector('.toc-text')?.textContent || '';
+                    if (tocText === categoryText) {
+                      const pageElement = item.querySelector('.toc-page');
+                      if (pageElement) {
+                        pageElement.textContent = String(pageNum);
+                      }
+                    }
+                  });
+                });
+              }, 300);
+            });
+          })();
+        </script>
+        </body>`
+      )
+      
+      return new NextResponse(htmlWithPageNumbers, {
         headers: {
           'Content-Type': 'text/html',
         },

@@ -13,8 +13,8 @@ export default function PrintPreviewPage() {
   const params = useParams()
   const visionId = params.id as string
   const [colors, setColors] = useState({
-    primary: '#199D67',
-    accent: '#8B5CF6',
+    primary: '#00CC44',
+    accent: '#39FF14',
     text: '#1F1F1F',
     background: '#FFFFFF',
   })
@@ -90,8 +90,8 @@ export default function PrintPreviewPage() {
 
   const colorPresets = {
     default: {
-      primary: '#199D67',
-      accent: '#8B5CF6',
+      primary: '#00CC44',
+      accent: '#39FF14',
       text: '#1F1F1F',
       background: '#FFFFFF',
     },
@@ -104,6 +104,12 @@ export default function PrintPreviewPage() {
     purple: {
       primary: '#601B9F',
       accent: '#BF00FF',
+      text: '#1F1F1F',
+      background: '#FFFFFF',
+    },
+    cyan: {
+      primary: '#06B6D4',
+      accent: '#00FFFF',
       text: '#1F1F1F',
       background: '#FFFFFF',
     },
@@ -181,6 +187,17 @@ export default function PrintPreviewPage() {
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.purple.primary }} />
                   <span>Purple</span>
+                </div>
+              </Button>
+              <Button
+                onClick={() => applyPreset('cyan')}
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.cyan.primary }} />
+                  <span>Cyan</span>
                 </div>
               </Button>
             </div>
@@ -274,8 +291,8 @@ export default function PrintPreviewPage() {
                   <div className="pt-4 border-t border-neutral-700">
                     <Button
                       onClick={() => setColors({
-                        primary: '#199D67',
-                        accent: '#8B5CF6',
+                        primary: '#00CC44',
+                        accent: '#39FF14',
                         text: '#1F1F1F',
                         background: '#FFFFFF',
                       })}
