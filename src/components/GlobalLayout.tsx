@@ -14,6 +14,13 @@ interface GlobalLayoutProps {
 
 export function GlobalLayout({ children }: GlobalLayoutProps) {
   const pathname = usePathname()
+  
+  // Only exclude the /html route from layout (for clean PDF generation)
+  // Preview pages should have normal layout with sidebar
+  if (pathname?.endsWith('/html')) {
+    return <>{children}</>
+  }
+  
   const pageType = getPageType(pathname)
   
   // Render based on page type

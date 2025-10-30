@@ -1061,7 +1061,11 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       {/* Category Selection */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-white mb-6">Choose a Category to Refine</h2>
-        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+        <div className={`grid grid-cols-4 md:grid-cols-6 gap-2 ${
+          VISION_CATEGORIES.some(cat => cat.key === 'forward' || cat.key === 'conclusion')
+            ? 'lg:grid-cols-[repeat(14,minmax(0,1fr))]'
+            : 'lg:grid-cols-[repeat(12,minmax(0,1fr))]'
+        }`}>
           {VISION_CATEGORIES.map((category) => (
             <CategoryCard 
                       key={category.key}

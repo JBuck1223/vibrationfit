@@ -41,6 +41,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/life-vision/[id]/audio-sets/[audioSetId]',
     '/life-vision/[id]/experiment',
     '/life-vision/[id]/refine',
+    '/life-vision/[id]/print',        // PDF preview page (with sidebar)
     '/life-vision/new/assembly',
     '/life-vision/new/category/[key]',
     

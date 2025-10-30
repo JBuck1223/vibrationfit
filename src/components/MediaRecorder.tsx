@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2 } from 'lucide-react'
+import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
 import {
   saveRecordingChunks,
@@ -14,6 +14,8 @@ import {
 import { uploadRecording } from '@/lib/services/recordingService'
 import { USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
 
+type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile'
+
 interface MediaRecorderProps {
   mode?: 'audio' | 'video'
   onRecordingComplete?: (blob: Blob, transcript?: string, shouldSaveFile?: boolean, s3Url?: string) => void
@@ -25,6 +27,13 @@ interface MediaRecorderProps {
   recordingId?: string // Optional: ID for IndexedDB persistence
   category?: string // Optional: Category for IndexedDB persistence
   storageFolder?: keyof typeof USER_FOLDERS // S3 folder for uploads
+  recordingPurpose?: RecordingPurpose // 'quick' | 'transcriptOnly' | 'withFile'
+  /**
+   * Recording modes:
+   * - 'quick': Small snippets (VIVA chat) - No S3, no player, instant transcript, discard immediately
+   * - 'transcriptOnly': Long audio (life-vision) - S3 for reliability, delete if discarded
+   * - 'withFile': Full recordings (journal) - S3 always, keep file for playback
+   */
 }
 
 export function MediaRecorderComponent({
@@ -37,7 +46,8 @@ export function MediaRecorderComponent({
   showSaveOption = true,
   recordingId: providedRecordingId,
   category = 'general',
-  storageFolder = 'journalAudioRecordings'
+  storageFolder = 'journalAudioRecordings',
+  recordingPurpose = 'withFile' // Default to full file storage
 }: MediaRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -422,16 +432,19 @@ export function MediaRecorderComponent({
         })
         setRecordedBlob(blob)
         
-        const url = URL.createObjectURL(blob)
-        setRecordedUrl(url)
+        // Only create blob URL if not in quick mode (no player needed)
+        if (recordingPurpose !== 'quick') {
+          const url = URL.createObjectURL(blob)
+          setRecordedUrl(url)
+        }
 
         // Stop all tracks
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop())
         }
 
-        // Save final blob to IndexedDB (with transcript if available)
-        if (recordingIdRef.current) {
+        // Save final blob to IndexedDB (skip in quick mode - no need to persist)
+        if (recordingIdRef.current && recordingPurpose !== 'quick') {
           await saveRecordingChunks(
             recordingIdRef.current,
             category,
@@ -447,17 +460,16 @@ export function MediaRecorderComponent({
           })
         }
 
-        // Auto-transcribe if enabled (works for both audio and video)
-        let finalTranscript = transcript
-        if (autoTranscribe) {
-          finalTranscript = await transcribeAudio(blob)
-          // Update state so transcript is available when user clicks save button
+        // Auto-transcribe if enabled OR if in quick mode (always auto-transcribe in quick mode)
+        if (autoTranscribe || recordingPurpose === 'quick') {
+          const finalTranscript = await transcribeAudio(blob)
+          // Update state so transcript is available
           if (finalTranscript) {
             setTranscript(finalTranscript)
             transcriptRef.current = finalTranscript
           }
-          // Update IndexedDB with transcript
-          if (recordingIdRef.current && finalTranscript) {
+          // Update IndexedDB with transcript (only if not quick mode)
+          if (recordingIdRef.current && finalTranscript && recordingPurpose !== 'quick') {
             await saveRecordingChunks(
               recordingIdRef.current,
               category,
@@ -468,10 +480,16 @@ export function MediaRecorderComponent({
               finalTranscript
             )
           }
+          
+          // In quick mode, auto-cleanup blob after transcription (no player needed)
+          if (recordingPurpose === 'quick') {
+            setRecordedBlob(null)
+            // Don't create blob URL - not needed in quick mode
+          }
         }
 
         // DON'T automatically call onRecordingComplete here
-        // Wait for user to explicitly click "Save Recording & Transcript" button
+        // Wait for user to explicitly click action button
         // This allows them to review the recording and transcript before saving
       }
 
@@ -563,16 +581,23 @@ export function MediaRecorderComponent({
   }
 
   const discardRecording = async () => {
-    // Delete S3 file if it exists (uploaded during transcription)
-    if (s3Url) {
+    // Delete S3 file based on recording purpose:
+    // - 'quick': No S3 file to delete
+    // - 'transcriptOnly': Delete S3 file (only needed transcript, not the file)
+    // - 'withFile': Keep S3 file (user might want it later even if they discard now)
+    if (s3Url && recordingPurpose === 'transcriptOnly') {
       try {
         const { deleteRecording } = await import('@/lib/services/recordingService')
         await deleteRecording(s3Url)
-        console.log('🗑️ Deleted recording from S3:', s3Url)
+        console.log('🗑️ Deleted transcript-only recording from S3:', s3Url)
       } catch (deleteErr) {
         console.error('❌ Failed to delete recording from S3:', deleteErr)
         // Continue with cleanup even if delete fails
       }
+    } else if (s3Url && recordingPurpose === 'withFile') {
+      // With-file mode: Don't delete S3 file even if discarded
+      // File stays available for potential recovery
+      console.log('📦 With-file mode: Keeping S3 file even after discard (available for recovery)')
     }
     
     // Revoke local blob URLs
@@ -614,24 +639,34 @@ export function MediaRecorderComponent({
         throw new Error('Recording is empty or invalid. Please record again.')
       }
 
-      // 1. Start transcription immediately (user sees transcript ASAP)
-      // 2. Upload to S3 in parallel (doesn't block transcription)
-      console.log('🎙️ Starting transcription and S3 upload in parallel...')
+      // Handle different recording purposes:
+      // - 'quick': No S3 upload, just transcribe immediately
+      // - 'transcriptOnly': S3 upload in parallel (backup), delete if discarded
+      // - 'withFile': S3 upload in parallel, keep file always
       
-      const folder = storageFolder || (mode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings')
-      const fileName = `recording-${Date.now()}.webm`
+      let uploadPromise: Promise<void> | null = null
       
-      // Start S3 upload in background (non-blocking)
-      const uploadPromise = uploadRecording(blob, folder, fileName)
-        .then((uploadResult) => {
-          setS3Url(uploadResult.url)
-          console.log('✅ Recording uploaded to S3:', uploadResult.url)
-        })
-        .catch((uploadErr) => {
-          console.error('❌ S3 upload failed:', uploadErr)
-          // Non-critical - continue without S3 URL, user can still use local blob
-          console.warn('⚠️ S3 upload failed - will use local blob for playback')
-        })
+      if (recordingPurpose === 'quick') {
+        // Quick mode: Skip S3 entirely, just transcribe
+        console.log('⚡ Quick mode: Transcribing only (no S3 upload)')
+      } else {
+        // Transcript-only or with-file: Upload to S3 in parallel
+        console.log(`📤 ${recordingPurpose === 'transcriptOnly' ? 'Transcript-only' : 'Full file'} mode: Uploading to S3 in parallel...`)
+        const folder = storageFolder || (mode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings')
+        const fileName = `recording-${Date.now()}.webm`
+        
+        uploadPromise = uploadRecording(blob, folder, fileName)
+          .then((uploadResult) => {
+            setS3Url(uploadResult.url)
+            console.log('✅ Recording uploaded to S3:', uploadResult.url)
+          })
+          .catch((uploadErr) => {
+            console.error('❌ S3 upload failed:', uploadErr)
+            // Non-critical - continue without S3 URL
+            console.warn('⚠️ S3 upload failed - will use local blob for playback')
+          })
+          .then(() => {}) as Promise<void>
+      }
 
       // Start transcription immediately (this is what user is waiting for)
       const formData = new FormData()
@@ -673,12 +708,13 @@ export function MediaRecorderComponent({
         onTranscriptComplete(transcriptText)
       }
 
-      // Wait for S3 upload to complete (or fail) before returning
-      // This ensures we have S3 URL available for playback
-      await uploadPromise.catch(() => {
-        // Upload failed but transcription succeeded - that's okay
-        // User can still use local blob or retry upload later
-      })
+      // Wait for S3 upload to complete if we started one
+      if (uploadPromise) {
+        await uploadPromise.catch(() => {
+          // Upload failed but transcription succeeded - that's okay
+          // User can still use local blob or retry upload later
+        })
+      }
 
       return transcriptText
     } catch (err) {
@@ -702,7 +738,7 @@ export function MediaRecorderComponent({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Recording Controls */}
-      {!recordedBlob && (
+      {!recordedBlob && !(recordingPurpose === 'quick' && transcript) && (
         <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6">
           {/* Video Preview */}
           {mode === 'video' && (isRecording || isPreparing) && (
@@ -945,8 +981,50 @@ export function MediaRecorderComponent({
         </div>
       )}
 
-      {/* Recorded Media Preview */}
-      {recordedBlob && recordedUrl && (
+      {/* Quick Mode - Just show transcript when ready (no player) */}
+      {recordingPurpose === 'quick' && transcript && !isTranscribing && (
+        <div className="bg-neutral-900 border-2 border-[#14B8A6]/50 rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Check className="w-5 h-5 text-[#14B8A6]" />
+            <h3 className="text-lg font-semibold text-[#14B8A6]">Transcript Ready</h3>
+          </div>
+          <div className="bg-black/30 rounded-lg p-4 border border-[#14B8A6]/20 mb-4">
+            <p className="text-white whitespace-pre-wrap">{transcript}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                if (onRecordingComplete && recordedBlob) {
+                  // Quick mode: Just pass transcript, no file needed
+                  onRecordingComplete(recordedBlob, transcript, false, undefined)
+                }
+                // Auto-cleanup after use
+                setRecordedBlob(null)
+                setTranscript('')
+                setDuration(0)
+              }}
+              variant="primary"
+              size="sm"
+              className="gap-2 flex-1"
+            >
+              <Check className="w-4 h-4" />
+              Use This
+            </Button>
+            <Button
+              onClick={discardRecording}
+              variant="ghost"
+              size="sm"
+              className="gap-2 flex-1"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Discard
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Recorded Media Preview - Hidden in quick mode (no playback needed) */}
+      {recordedBlob && recordedUrl && recordingPurpose !== 'quick' && (
         <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-semibold text-white">Recording Complete</h3>

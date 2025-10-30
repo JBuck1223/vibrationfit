@@ -58,8 +58,8 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
   },
   {
     id: 'four-column',
-    name: 'Four Column',
-    description: 'Responsive four column layout (2x2 on mobile, 4x1 on desktop)',
+    name: 'Four Column (Deprecated)',
+    description: 'Responsive four column layout (2x2 on mobile, 4x1 on desktop). DEPRECATED: Use Grid with responsiveCols={{mobile: 2, desktop: 4}} instead.',
     category: 'Layout',
     icon: GridIcon,
     exportName: 'FourColumn',
@@ -67,8 +67,8 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
   },
   {
     id: 'switcher',
-    name: 'Switcher',
-    description: 'Toggles from row to column when items don\'t fit',
+    name: 'Switcher (Deprecated)',
+    description: 'Toggles from row to column when items don\'t fit. DEPRECATED: Use Grid with responsiveCols or mode="flex-row" className="flex-col md:flex-row" instead.',
     category: 'Layout',
     icon: GridIcon,
     exportName: 'Switcher',

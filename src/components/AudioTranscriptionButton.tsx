@@ -185,6 +185,7 @@ export function AudioTranscriptionButton({
         throw new Error('Recorded audio is empty')
       }
 
+      // Quick mode: No S3 upload, just transcribe immediately
       const formData = new FormData()
       formData.append('audio', blob, 'recording.webm')
 

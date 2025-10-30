@@ -14,7 +14,6 @@ import {
   Inline,
   Grid,
   TwoColumn,
-  Switcher,
   Cover,
   Container,
   Card,
@@ -1352,7 +1351,7 @@ export default function HomePage() {
                 </Text>
               </div>
 
-              <Switcher className="gap-8">
+              <Grid responsiveCols={{mobile: 1, desktop: 3}} gap="lg" className="flex-col md:flex-row">
                 <Card variant="glass" className="flex-1">
                   <Stack gap="md" className="text-center">
                     <div className="w-16 h-16 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto text-black font-bold text-xl">
@@ -1391,7 +1390,7 @@ export default function HomePage() {
                     </Text>
                   </Stack>
                 </Card>
-              </Switcher>
+              </Grid>
             </Stack>
         </section>
 

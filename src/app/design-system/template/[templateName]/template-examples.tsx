@@ -12,6 +12,7 @@ import {
   Badge,
 } from '@/lib/design-system/components'
 import { Clock, Shield, Crown, Zap, Check } from 'lucide-react'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 export function renderTemplateExample(templateId: string) {
   switch (templateId) {
@@ -251,6 +252,58 @@ export function renderTemplateExample(templateId: string) {
         )
       }
       return <PaymentOptionsDemo />
+
+    case 'category-selection-grid':
+      const CategorySelectionGridDemo = () => {
+        const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+        const hasForwardConclusion = VISION_CATEGORIES.some(cat => cat.key === 'forward' || cat.key === 'conclusion')
+
+        return (
+          <Stack gap="md">
+            <div>
+              <Heading level={3} className="text-white mb-4">
+                Choose a Category
+              </Heading>
+              <p className="text-sm text-neutral-400 mb-4">
+                {hasForwardConclusion ? '14 columns (Forward & Conclusion included)' : '12 columns (Forward & Conclusion omitted)'}
+              </p>
+              <div className={`grid grid-cols-4 md:grid-cols-6 gap-2 ${
+                hasForwardConclusion
+                  ? 'lg:grid-cols-[repeat(14,minmax(0,1fr))]'
+                  : 'lg:grid-cols-[repeat(12,minmax(0,1fr))]'
+              }`}>
+                {VISION_CATEGORIES.map((category) => {
+                  const IconComponent = category.icon
+                  return (
+                    <Card
+                      key={category.key}
+                      variant="outlined"
+                      hover
+                      className={`cursor-pointer aspect-square transition-all duration-300 ${
+                        selectedCategory === category.key ? 'border border-primary-500' : ''
+                      }`}
+                      onClick={() => setSelectedCategory(category.key)}
+                    >
+                      <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+                        <Icon icon={IconComponent} size="sm" color={selectedCategory === category.key ? '#39FF14' : '#14B8A6'} />
+                        <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
+                          {category.label}
+                        </span>
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+              {selectedCategory && (
+                <p className="text-sm text-primary-500 mt-4">
+                  Selected: {VISION_CATEGORIES.find(c => c.key === selectedCategory)?.label}
+                </p>
+              )}
+            </div>
+          </Stack>
+        )
+      }
+      return <CategorySelectionGridDemo />
 
     default:
       return (

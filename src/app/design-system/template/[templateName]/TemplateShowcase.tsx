@@ -227,6 +227,52 @@ const [paymentPlan, setPaymentPlan] = useState<'full' | '2pay' | '3pay'>('full')
   </div>
 </Stack>`
 
+    case 'category-selection-grid':
+      return `// Category Selection Grid Template
+// Uses: Card, Grid, Icon
+// Responsive: 4 cols mobile, 6 cols tablet, 14 cols desktop (when Forward/Conclusion included)
+
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+
+const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+const hasForwardConclusion = VISION_CATEGORIES.some(
+  cat => cat.key === 'forward' || cat.key === 'conclusion'
+)
+
+<div className={\`grid grid-cols-4 md:grid-cols-6 gap-2 \${
+  hasForwardConclusion
+    ? 'lg:grid-cols-[repeat(14,minmax(0,1fr))]'
+    : 'lg:grid-cols-[repeat(12,minmax(0,1fr))]'
+}\`}>
+  {VISION_CATEGORIES.map((category) => {
+    const IconComponent = category.icon
+    return (
+      <Card
+        key={category.key}
+        variant="outlined"
+        hover
+        className={\`cursor-pointer aspect-square \${
+          selectedCategory === category.key 
+            ? 'border border-primary-500' 
+            : ''
+        }\`}
+        onClick={() => setSelectedCategory(category.key)}
+      >
+        <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
+          <Icon 
+            icon={IconComponent} 
+            size="sm" 
+            color={selectedCategory === category.key ? '#39FF14' : '#14B8A6'} 
+          />
+          <span className="text-xs font-medium text-center text-neutral-300">
+            {category.label}
+          </span>
+        </div>
+      </Card>
+    )
+  })}
+</div>`
+
     default:
       return `// ${template.name}\n// Full code available in template-examples.tsx`
   }

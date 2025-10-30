@@ -78,7 +78,7 @@ const cn = (...classes: (string | undefined | false)[]) => {
 // 1. LAYOUT PRIMITIVES
 // ============================================================================
 
-// Stack - Vertical rhythm with consistent gaps
+// Stack - Vertical rhythm with consistent gaps (Grid wrapper)
 interface StackProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   gap?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -87,35 +87,23 @@ interface StackProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Stack = React.forwardRef<HTMLDivElement, StackProps>(
   ({ children, gap = 'md', align = 'stretch', className = '', ...props }, ref) => {
-    const gaps = {
-      xs: 'gap-2',
-      sm: 'gap-4',
-      md: 'gap-6',
-      lg: 'gap-8',
-      xl: 'gap-12'
-    }
-    
-    const alignments = {
-      start: 'items-start',
-      center: 'items-center',
-      end: 'items-end',
-      stretch: 'items-stretch'
-    }
-    
     return (
-      <div 
+      <Grid
         ref={ref}
-        className={cn('flex flex-col', gaps[gap], alignments[align], className)}
+        mode="flex-col"
+        gap={gap}
+        align={align || 'stretch'}
+        className={className}
         {...props}
       >
         {children}
-      </div>
+      </Grid>
     )
   }
 )
 Stack.displayName = 'Stack'
 
-// Inline/Cluster - Mobile-first responsive horizontal row
+// Inline - Mobile-first responsive horizontal row (Grid wrapper)
 interface InlineProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   gap?: 'xs' | 'sm' | 'md' | 'lg'
@@ -126,11 +114,75 @@ interface InlineProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Inline = React.forwardRef<HTMLDivElement, InlineProps>(
   ({ children, gap = 'md', align = 'center', justify = 'start', wrap = true, className = '', ...props }, ref) => {
+    return (
+      <Grid
+        ref={ref}
+        mode="flex-row"
+        gap={gap}
+        align={align}
+        justify={justify}
+        wrap={wrap}
+        className={className}
+        {...props}
+      >
+        {children}
+      </Grid>
+    )
+  }
+)
+Inline.displayName = 'Inline'
+
+// Grid - Unified responsive layout component (powers all layout primitives)
+interface GridProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode
+  // Fixed columns (legacy)
+  cols?: number
+  minWidth?: string
+  // Responsive columns (new)
+  responsiveCols?: {
+    mobile?: number | 'auto'
+    tablet?: number | 'auto'
+    desktop?: number | 'auto'
+  }
+  // Layout mode (for Stack/Inline wrappers)
+  mode?: 'grid' | 'flex-col' | 'flex-row'
+  // Gap spacing
+  gap?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  // Flexbox-specific props (when using flex modes)
+  justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly'
+  align?: 'start' | 'center' | 'end' | 'stretch'
+  wrap?: boolean
+}
+
+export const Grid = React.forwardRef<HTMLDivElement, GridProps>(
+  ({ 
+    children, 
+    cols, 
+    minWidth = '280px', 
+    responsiveCols,
+    mode = 'grid',
+    gap = 'md', 
+    justify,
+    align,
+    wrap = true,
+    className = '', 
+    ...props 
+  }, ref) => {
     const gaps = {
       xs: 'gap-2',
       sm: 'gap-4',
       md: 'gap-6',
-      lg: 'gap-8'
+      lg: 'gap-8',
+      xl: 'gap-12'
+    }
+    
+    const justifications = {
+      start: 'justify-start',
+      center: 'justify-center',
+      end: 'justify-end',
+      between: 'justify-between',
+      around: 'justify-around',
+      evenly: 'justify-evenly'
     }
     
     const alignments = {
@@ -139,71 +191,134 @@ export const Inline = React.forwardRef<HTMLDivElement, InlineProps>(
       end: 'items-end',
       stretch: 'items-stretch'
     }
-    
-    const justifications = {
-      start: 'justify-start',
-      center: 'justify-center',
-      end: 'justify-end',
-      between: 'justify-between',
-      around: 'justify-around'
+
+    // Handle responsive columns - use Tailwind arbitrary values for dynamic columns
+    const getGridColsClass = (cols: number | 'auto' | undefined, breakpoint?: 'mobile' | 'tablet' | 'desktop'): string => {
+      if (cols === undefined) return ''
+      if (cols === 'auto') {
+        return breakpoint === 'tablet' 
+          ? 'md:grid-cols-[repeat(auto-fit,minmax(0,1fr))]'
+          : breakpoint === 'desktop'
+          ? 'lg:grid-cols-[repeat(auto-fit,minmax(0,1fr))]'
+          : 'grid-cols-[repeat(auto-fit,minmax(0,1fr))]'
+      }
+      
+      // Map common values to Tailwind classes, use arbitrary values for others
+      const commonCols: Record<number, string> = {
+        1: breakpoint === 'tablet' ? 'md:grid-cols-1' : breakpoint === 'desktop' ? 'lg:grid-cols-1' : 'grid-cols-1',
+        2: breakpoint === 'tablet' ? 'md:grid-cols-2' : breakpoint === 'desktop' ? 'lg:grid-cols-2' : 'grid-cols-2',
+        3: breakpoint === 'tablet' ? 'md:grid-cols-3' : breakpoint === 'desktop' ? 'lg:grid-cols-3' : 'grid-cols-3',
+        4: breakpoint === 'tablet' ? 'md:grid-cols-4' : breakpoint === 'desktop' ? 'lg:grid-cols-4' : 'grid-cols-4',
+        5: breakpoint === 'tablet' ? 'md:grid-cols-5' : breakpoint === 'desktop' ? 'lg:grid-cols-5' : 'grid-cols-5',
+        6: breakpoint === 'tablet' ? 'md:grid-cols-6' : breakpoint === 'desktop' ? 'lg:grid-cols-6' : 'grid-cols-6',
+        12: breakpoint === 'tablet' ? 'md:grid-cols-12' : breakpoint === 'desktop' ? 'lg:grid-cols-12' : 'grid-cols-12',
+        14: breakpoint === 'tablet' ? 'md:grid-cols-[repeat(14,minmax(0,1fr))]' : breakpoint === 'desktop' ? 'lg:grid-cols-[repeat(14,minmax(0,1fr))]' : 'grid-cols-[repeat(14,minmax(0,1fr))]',
+      }
+      
+      if (commonCols[cols]) return commonCols[cols]
+      
+      // Use arbitrary value for uncommon column counts
+      return breakpoint === 'tablet'
+        ? `md:grid-cols-[repeat(${cols},minmax(0,1fr))]`
+        : breakpoint === 'desktop'
+        ? `lg:grid-cols-[repeat(${cols},minmax(0,1fr))]`
+        : `grid-cols-[repeat(${cols},minmax(0,1fr))]`
     }
-    
-    return (
-      <div 
-        ref={ref}
-        className={cn(
-          'flex flex-row',
-          wrap ? 'flex-wrap' : '',
-          gaps[gap],
-          alignments[align],
-          justifications[justify],
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </div>
-    )
-  }
-)
-Inline.displayName = 'Inline'
 
-// Grid - Intrinsic grid with auto card wrapping
-interface GridProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode
-  cols?: number
-  minWidth?: string
-  gap?: 'xs' | 'sm' | 'md' | 'lg'
-}
+    // Grid mode (default)
+    if (mode === 'grid') {
+      let gridStyle: React.CSSProperties = {}
+      
+      // Only use inline style if responsiveCols is not provided
+      if (!responsiveCols) {
+        gridStyle = cols 
+          ? { gridTemplateColumns: `repeat(${cols}, 1fr)` }
+          : { gridTemplateColumns: `repeat(auto-fit, minmax(${minWidth}, 1fr))` }
+      }
+      // If responsiveCols is provided, rely on className-based classes (no inline style needed)
 
-export const Grid = React.forwardRef<HTMLDivElement, GridProps>(
-  ({ children, cols, minWidth = '280px', gap = 'md', className = '', ...props }, ref) => {
-    const gaps = {
-      xs: 'gap-2',
-      sm: 'gap-4',
-      md: 'gap-6',
-      lg: 'gap-8'
+      // Build className with responsive column classes
+      let gridColsClasses: string[] = []
+      if (responsiveCols) {
+        const { mobile, tablet, desktop } = responsiveCols
+        if (mobile !== undefined) {
+          gridColsClasses.push(getGridColsClass(mobile))
+        } else {
+          gridColsClasses.push('grid-cols-1') // Default to 1 column on mobile
+        }
+        
+        if (tablet !== undefined) {
+          gridColsClasses.push(getGridColsClass(tablet, 'tablet'))
+        }
+        
+        if (desktop !== undefined) {
+          gridColsClasses.push(getGridColsClass(desktop, 'desktop'))
+        }
+      }
+
+      return (
+        <div 
+          ref={ref}
+          className={cn(
+            'grid',
+            ...gridColsClasses,
+            gaps[gap],
+            align && alignments[align],
+            className
+          )}
+          style={gridStyle}
+          {...props}
+        >
+          {children}
+        </div>
+      )
     }
-    
-    const gridStyle = cols 
-      ? { gridTemplateColumns: `repeat(${cols}, 1fr)` }
-      : { gridTemplateColumns: `repeat(auto-fit, minmax(${minWidth}, 1fr))` }
 
-    return (
-      <div 
-        ref={ref}
-        className={cn('grid', gaps[gap], className)}
-        style={gridStyle}
-        {...props}
-      >
-        {children}
-      </div>
-    )
+    // Flex-col mode (for Stack)
+    if (mode === 'flex-col') {
+      return (
+        <div 
+          ref={ref}
+          className={cn(
+            'flex flex-col',
+            gaps[gap],
+            align && alignments[align],
+            justify && justifications[justify],
+            className
+          )}
+          {...props}
+        >
+          {children}
+        </div>
+      )
+    }
+
+    // Flex-row mode (for Inline)
+    if (mode === 'flex-row') {
+      return (
+        <div 
+          ref={ref}
+          className={cn(
+            'flex flex-row',
+            wrap && 'flex-wrap',
+            gaps[gap],
+            align && alignments[align],
+            justify && justifications[justify],
+            className
+          )}
+          {...props}
+        >
+          {children}
+        </div>
+      )
+    }
+
+    return null
   }
 )
 Grid.displayName = 'Grid'
 
-// TwoColumn - Responsive two column layout that stacks on mobile
+// TwoColumn - Responsive two column layout that stacks on mobile (Grid wrapper)
 interface TwoColumnProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   gap?: 'xs' | 'sm' | 'md' | 'lg'
@@ -212,33 +327,32 @@ interface TwoColumnProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const TwoColumn = React.forwardRef<HTMLDivElement, TwoColumnProps>(
   ({ children, gap = 'md', reverse = false, className = '', ...props }, ref) => {
-    const gaps = {
-      xs: 'gap-2',
-      sm: 'gap-4',
-      md: 'gap-6',
-      lg: 'gap-8'
-    }
-    
-    const direction = reverse ? 'flex-col md:flex-row-reverse' : 'flex-col md:flex-row'
-    
     return (
-      <div 
+      <Grid
         ref={ref}
-        className={cn('flex w-full', direction, gaps[gap], className)}
+        responsiveCols={{mobile: 1, desktop: 2}}
+        gap={gap}
+        mode="grid"
+        className={cn(
+          reverse && 'flex-col-reverse md:flex-row-reverse',
+          className
+        )}
         {...props}
       >
         {React.Children.map(children, (child) => (
+          // Wrap children to ensure proper 50/50 split on desktop
           <div className="w-full md:w-1/2">
             {child}
           </div>
         ))}
-      </div>
+      </Grid>
     )
   }
 )
 TwoColumn.displayName = 'TwoColumn'
 
-// FourColumn - Responsive four column layout (2x2 on mobile, 4x1 on desktop)
+// FourColumn - Responsive four column layout (DEPRECATED - use Grid with responsiveCols)
+// @deprecated Use <Grid responsiveCols={{mobile: 2, desktop: 4}}> instead
 interface FourColumnProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   gap?: 'xs' | 'sm' | 'md' | 'lg'
@@ -246,27 +360,27 @@ interface FourColumnProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const FourColumn = React.forwardRef<HTMLDivElement, FourColumnProps>(
   ({ children, gap = 'md', className = '', ...props }, ref) => {
-    const gaps = {
-      xs: 'gap-2',
-      sm: 'gap-4',
-      md: 'gap-6',
-      lg: 'gap-8'
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('FourColumn is deprecated. Use Grid with responsiveCols={{mobile: 2, desktop: 4}} instead.')
     }
     
     return (
-      <div 
+      <Grid
         ref={ref}
-        className={cn('grid grid-cols-2 md:grid-cols-4', gaps[gap], className)}
+        responsiveCols={{mobile: 2, desktop: 4}}
+        gap={gap}
+        className={className}
         {...props}
       >
         {children}
-      </div>
+      </Grid>
     )
   }
 )
 FourColumn.displayName = 'FourColumn'
 
-// Switcher - Toggles from row to column when items don't fit
+// Switcher - Toggles from row to column when items don't fit (DEPRECATED)
+// @deprecated Use <Grid responsiveCols={{mobile: 1, desktop: 'auto'}}> or <Grid mode="flex-row" className="flex-col md:flex-row"> instead
 interface SwitcherProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   gap?: 'xs' | 'sm' | 'md' | 'lg'
@@ -274,21 +388,20 @@ interface SwitcherProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Switcher = React.forwardRef<HTMLDivElement, SwitcherProps>(
   ({ children, gap = 'md', className = '', ...props }, ref) => {
-    const gaps = {
-      xs: 'gap-2',
-      sm: 'gap-4',
-      md: 'gap-6',
-      lg: 'gap-8'
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Switcher is deprecated. Use Grid with responsiveCols={{mobile: 1, desktop: "auto"}} or Grid with mode="flex-row" className="flex-col md:flex-row" instead.')
     }
     
     return (
-      <div 
+      <Grid
         ref={ref}
-        className={cn('flex flex-col md:flex-row', gaps[gap], className)}
+        mode="flex-row"
+        gap={gap}
+        className={cn('flex-col md:flex-row', className)}
         {...props}
       >
         {children}
-      </div>
+      </Grid>
     )
   }
 )

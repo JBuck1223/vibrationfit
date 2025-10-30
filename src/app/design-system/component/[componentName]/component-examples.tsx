@@ -11,8 +11,6 @@ import {
   Grid,
   Inline,
   TwoColumn,
-  FourColumn,
-  Switcher,
   Cover,
   Frame,
   Container,
@@ -200,13 +198,14 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
         <Stack gap="md">
           <Card variant="default" className="p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">FourColumn - 2x2 on Mobile, 4x1 on Desktop</h4>
-              <FourColumn gap="md" className="p-6 bg-neutral-900 rounded-lg border border-neutral-700">
+              <h4 className="text-lg font-semibold text-white">FourColumn - 2x2 on Mobile, 4x1 on Desktop (DEPRECATED - use Grid)</h4>
+              <Grid responsiveCols={{mobile: 2, desktop: 4}} gap="md" className="p-6 bg-neutral-900 rounded-lg border border-neutral-700">
                 <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg">Item A</div>
                 <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg">Item B</div>
                 <div className="p-4 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg">Item C</div>
                 <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg">Item D</div>
-              </FourColumn>
+              </Grid>
+              <p className="text-xs text-neutral-400 mt-2">Note: FourColumn is deprecated. Use Grid with responsiveCols instead.</p>
             </Stack>
           </Card>
         </Stack>
@@ -797,9 +796,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
         <Stack gap="md">
           <Card variant="glass">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">Switcher - Responsive Row/Column</h4>
+              <h4 className="text-lg font-semibold text-white">Switcher - Responsive Row/Column (DEPRECATED - use Grid)</h4>
               <p className="text-sm text-neutral-400">Automatically switches from row to column on mobile</p>
-              <Switcher gap="lg">
+              <Grid responsiveCols={{mobile: 1, desktop: 'auto'}} gap="lg" className="flex-col md:flex-row">
                 <Card variant="elevated" className="flex-1">
                   <Stack align="center" gap="sm">
                     <Icon icon={Sparkles} size="lg" color="#39FF14" />
@@ -821,7 +820,8 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                     <p className="text-xs md:text-sm text-[#9CA3AF] text-center">No manual breakpoint management needed</p>
                   </Stack>
                 </Card>
-              </Switcher>
+              </Grid>
+              <p className="text-xs text-neutral-400 mt-2">Note: Switcher is deprecated. Use Grid with responsiveCols or mode="flex-row" className="flex-col md:flex-row" instead.</p>
             </Stack>
           </Card>
         </Stack>

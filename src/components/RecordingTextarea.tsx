@@ -22,7 +22,8 @@ interface RecordingTextareaProps {
   storageFolder?: 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'profile' | 'customTracks'
   category?: string // Category for IndexedDB persistence (e.g., 'fun', 'health', 'journal')
   onUploadProgress?: (progress: number, status: string, fileName: string, fileSize: number) => void
-  transcriptOnly?: boolean // If true, only save transcript (no file upload)
+  transcriptOnly?: boolean // Deprecated: use recordingPurpose instead
+  recordingPurpose?: 'quick' | 'transcriptOnly' | 'withFile' // Recording behavior: quick (no S3), transcriptOnly (S3 deleted if discarded), withFile (S3 always kept)
 }
 
 export function RecordingTextarea({
@@ -38,7 +39,8 @@ export function RecordingTextarea({
   storageFolder = 'journal',
   category,
   onUploadProgress,
-  transcriptOnly = false
+  transcriptOnly = false, // Deprecated
+  recordingPurpose = transcriptOnly ? 'transcriptOnly' : 'withFile' // Default based on transcriptOnly for backward compat
 }: RecordingTextareaProps) {
   const [showRecorder, setShowRecorder] = useState(false)
   const [recordingMode, setRecordingMode] = useState<'audio' | 'video'>('audio')
@@ -243,8 +245,9 @@ export function RecordingTextarea({
             onTranscriptComplete={handleTranscriptComplete}
             autoTranscribe={false} // Manual transcription - user clicks Transcribe button to avoid timing issues
             maxDuration={600} // 10 minutes
-            showSaveOption={!transcriptOnly} // Hide save option if transcript-only mode
+            showSaveOption={recordingPurpose === 'withFile'} // Hide save option if not withFile mode
             category={category || storageFolder} // Use category if provided, else storageFolder
+            recordingPurpose={recordingPurpose}
             storageFolder={
               recordingMode === 'video'
                 ? (storageFolder === 'lifeVision' ? 'lifeVisionVideoRecordings' 

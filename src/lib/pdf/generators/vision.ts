@@ -33,13 +33,13 @@ export interface UserProfile {
 }
 
 // Convenience function to generate and download Vision PDF
-// Uses fast template-based generation for beautiful PDFs
+// Uses server-side Puppeteer for high-quality PDF generation
 export async function generateVisionPDF(
   vision: VisionData,
   userProfile?: UserProfile,
   includeEmptySections: boolean = false
 ): Promise<void> {
-  // Use fast template-based PDF generation
-  const { generateVisionPDFTemplate } = await import('./templates/vision-template')
-  generateVisionPDFTemplate(vision, userProfile, includeEmptySections)
+  // Use server-side Puppeteer via API for crisp vector text and professional pagination
+  const { downloadVisionPDF } = await import('../download-vision-pdf')
+  await downloadVisionPDF(vision.id)
 }

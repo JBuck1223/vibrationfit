@@ -1475,7 +1475,7 @@ export default function CategoryPage() {
               storageFolder="lifeVision"
               category={categoryKey}
               onRecordingSaved={handleRecordingSaved}
-              transcriptOnly={true}
+              recordingPurpose="transcriptOnly"
             />
 
             {/* Submit Button - Shows when there's content */}

@@ -667,13 +667,20 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
   // Download Vision as PDF
   const downloadVisionPDF = useCallback(async () => {
-    if (!vision) return
+    if (!vision) {
+      alert('No vision data available')
+      return
+    }
 
     try {
+      console.log('Starting PDF download for vision:', vision.id)
+      // Call the PDF generation function
       await generateVisionPDF(vision, userProfile || undefined, false)
+      console.log('PDF download initiated successfully')
     } catch (error) {
       console.error('Error generating PDF:', error)
-      alert('Failed to generate PDF. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate PDF'
+      alert(`PDF Generation Failed\n\n${errorMessage}\n\nPlease check the browser console for details.`)
     }
   }, [vision, userProfile])
 

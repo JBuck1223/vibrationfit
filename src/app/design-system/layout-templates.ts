@@ -48,6 +48,16 @@ export const LAYOUT_TEMPLATES: LayoutTemplateMetadata[] = [
     category: 'Pricing',
     path: '/design-system/template/payment-options'
   },
+  {
+    id: 'category-selection-grid',
+    name: 'Category Selection Grid',
+    description: 'Responsive grid for selecting vision categories - 14 columns when Forward/Conclusion included, 12 columns when omitted',
+    icon: GridIcon,
+    sourcePath: '/life-vision/[id]/refine (Category Selection)',
+    componentsUsed: ['Card', 'Grid', 'Icon'],
+    category: 'Product',
+    path: '/design-system/template/category-selection-grid'
+  },
 ]
 
 export function getTemplateById(id: string): LayoutTemplateMetadata | undefined {
