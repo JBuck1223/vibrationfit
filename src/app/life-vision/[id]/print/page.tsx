@@ -231,28 +231,28 @@ export default function PrintPreviewPage() {
             </div>
             
             {/* Preview Container */}
-            <div className="w-full flex justify-center items-start min-h-[600px] p-4 lg:p-8">
-              {iframeUrl ? (
-                <iframe
-                  src={iframeUrl}
-                  className="border-0 bg-white"
-                  style={{ 
-                    width: '100%',
-                    maxWidth: '8.5in',
-                    aspectRatio: '8.5 / 11',
-                    minHeight: '400px',
-                    display: 'block',
-                  }}
-                  title="PDF Preview"
-                />
-              ) : (
-                <div className="flex items-center justify-center w-full h-96 bg-neutral-100">
-                  <div className="text-center text-neutral-500">
-                    <p className="text-lg font-medium mb-2">Loading preview...</p>
-                    <p className="text-sm">Preparing your PDF preview</p>
+            <div className="w-full flex justify-center items-start min-h-[600px] py-4 lg:py-8">
+              <div className="w-full max-w-full px-6 lg:px-16 xl:px-24">
+                {iframeUrl ? (
+                  <iframe
+                    src={iframeUrl}
+                    className="border-0 bg-white rounded-lg shadow-2xl w-full mx-auto block"
+                    style={{ 
+                      maxWidth: '10in',
+                      aspectRatio: '8.5 / 11',
+                      minHeight: '400px',
+                    }}
+                    title="PDF Preview"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-96 bg-neutral-100 rounded-lg">
+                    <div className="text-center text-neutral-500">
+                      <p className="text-lg font-medium mb-2">Loading preview...</p>
+                      <p className="text-sm">Preparing your PDF preview</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

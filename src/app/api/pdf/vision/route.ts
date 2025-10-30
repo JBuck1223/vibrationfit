@@ -189,8 +189,9 @@ export async function GET(req: NextRequest) {
       font-size: 18pt;
       margin: 0 0 12pt;
       color: #${primary};
-      border-bottom: 2px solid #${accent};
+      border-bottom: 3px solid #${accent};
       padding-bottom: 8pt;
+      page-break-after: avoid;
     }
 
     .mute {
@@ -208,14 +209,8 @@ export async function GET(req: NextRequest) {
       page-break-inside: auto;
     }
     
-    @media print {
-      @page {
-        @bottom-center {
-          content: counter(page);
-          font-size: 10pt;
-          color: #666;
-        }
-      }
+    .toc {
+      padding: 20pt 0;
     }
   </style>
 </head>
@@ -227,10 +222,25 @@ export async function GET(req: NextRequest) {
       <div class="cover-date">Created ${createdDate}</div>
       
       <div class="cover-info">
-        Version ${vision.version_number}<br>
+        ${vision.version_number > 1 ? `Version ${vision.version_number}<br>` : ''}
         ID: ${vision.id.substring(0, 8)}...
       </div>
     </header>
+
+    <!-- Table of Contents -->
+    <section class="toc" style="page-break-after: always;">
+      <h2 style="font-size: 24pt; margin-bottom: 24pt; color: #${primary}; border-bottom: 2px solid #${accent}; padding-bottom: 12pt;">
+        Table of Contents
+      </h2>
+      <div style="line-height: 2.5;">
+        ${categoriesWithContent.map((category, index) => `
+          <div style="margin-bottom: 8pt;">
+            <span style="color: #${primary}; font-weight: 600;">${index + 1}.</span>
+            <span style="color: #${textColor}; margin-left: 8pt;">${escapeHtml(category.label)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </section>
 
     ${categoriesWithContent.map((category) => {
       const content = vision[category.key as keyof VisionData] as string
@@ -281,13 +291,13 @@ export async function GET(req: NextRequest) {
       timeout: 30000 
     })
 
-    // Generate PDF with page numbers
+    // Generate PDF (Puppeteer will handle page numbers in its footer template)
     const pdfBuffer = await page.pdf({
       format: 'Letter',
       printBackground: true,
       displayHeaderFooter: true,
       headerTemplate: '<div></div>',
-      footerTemplate: '<div style="width: 100%; text-align: center; font-size: 10pt; color: #666; margin: 0 auto;"><span class="pageNumber"></span></div>',
+      footerTemplate: '<div style="width: 100%; text-align: center; font-size: 10pt; color: #666; padding: 0 20pt;"><span class="pageNumber"></span></div>',
       margin: {
         top: '0.5in',
         right: '0.5in',

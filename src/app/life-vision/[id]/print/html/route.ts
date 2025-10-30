@@ -166,7 +166,7 @@ export async function GET(
       p { orphans: 2; widows: 2; margin: 8pt 0; }
       article { break-inside: auto; }
       
-      /* Ensure no extra margins on printed content */
+      /* Ensure no extra margins on printed content - remove screen padding for print */
       main {
         margin: 0 !important;
         padding: 0 !important;
@@ -187,6 +187,15 @@ export async function GET(
       text-rendering: optimizeLegibility;
       hyphens: auto;
       padding: 0;
+    }
+    main {
+      padding: 0 48px;
+      max-width: 100%;
+    }
+    @media (max-width: 768px) {
+      main {
+        padding: 0 24px;
+      }
     }
     h1, h2, h3 {
       break-after: avoid-page;
