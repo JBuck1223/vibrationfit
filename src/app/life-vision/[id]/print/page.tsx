@@ -88,6 +88,31 @@ export default function PrintPreviewPage() {
     setColors(prev => ({ ...prev, [key]: value }))
   }
 
+  const colorPresets = {
+    default: {
+      primary: '#199D67',
+      accent: '#8B5CF6',
+      text: '#1F1F1F',
+      background: '#FFFFFF',
+    },
+    blackWhite: {
+      primary: '#000000',
+      accent: '#404040',
+      text: '#1F1F1F',
+      background: '#FFFFFF',
+    },
+    purple: {
+      primary: '#601B9F',
+      accent: '#BF00FF',
+      text: '#1F1F1F',
+      background: '#FFFFFF',
+    },
+  }
+
+  const applyPreset = (preset: keyof typeof colorPresets) => {
+    setColors(colorPresets[preset])
+  }
+
   return (
     <div className="min-h-screen">
       {/* Toolbar */}
@@ -117,6 +142,48 @@ export default function PrintPreviewPage() {
           <div className="flex items-center gap-2 mb-6">
             <Palette className="w-5 h-5 text-primary-500" />
             <h2 className="text-lg font-semibold">Color Theme</h2>
+          </div>
+
+          {/* Color Presets */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-neutral-300 mb-3">
+              Quick Presets
+            </label>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                onClick={() => applyPreset('default')}
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.default.primary }} />
+                  <span>Default (Green)</span>
+                </div>
+              </Button>
+              <Button
+                onClick={() => applyPreset('blackWhite')}
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.blackWhite.primary }} />
+                  <span>Black & White</span>
+                </div>
+              </Button>
+              <Button
+                onClick={() => applyPreset('purple')}
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.purple.primary }} />
+                  <span>Purple</span>
+                </div>
+              </Button>
+            </div>
           </div>
 
                 <div className="space-y-4">

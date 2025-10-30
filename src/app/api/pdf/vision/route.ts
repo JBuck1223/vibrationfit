@@ -153,7 +153,7 @@ export async function GET(req: NextRequest) {
 
     .cover {
       text-align: center;
-      min-height: 90vh;
+      min-height: calc(100vh - 1in);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -213,16 +213,57 @@ export async function GET(req: NextRequest) {
     .toc {
       padding: 20pt 0;
       page-break-after: auto;
+      page-break-inside: avoid;
     }
     
     .toc h2 {
       page-break-after: avoid;
     }
+    
+    .toc-item {
+      margin-bottom: 12pt;
+      display: flex;
+      align-items: center;
+      gap: 12pt;
+    }
+    
+    .toc-number {
+      width: 24pt;
+      height: 24pt;
+      border-radius: 50%;
+      background-color: #${primary};
+      color: ${bgColor === 'FFFFFF' ? '#fff' : '#fff'};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 11pt;
+      flex-shrink: 0;
+    }
+    
+    .toc-text {
+      flex: 1;
+      color: #${textColor};
+    }
+    
+    .toc-dots {
+      color: #999;
+      flex-shrink: 0;
+      margin: 0 8pt;
+    }
+    
+    .toc-page {
+      color: #666;
+      font-size: 10pt;
+      flex-shrink: 0;
+      min-width: 24pt;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
   <main>
-    <header class="cover" style="page-break-after: always; position: relative;">
+    <header class="cover" style="page-break-after: always;">
       <h1 class="cover-title">The Life I Choose</h1>
       <div class="cover-by"><strong>By ${escapeHtml(userName)}</strong></div>
       <div class="cover-date">Created ${createdDate}</div>
@@ -238,16 +279,19 @@ export async function GET(req: NextRequest) {
       <h2 style="font-size: 24pt; margin-bottom: 24pt; color: #${primary}; border-bottom: 2px solid #${accent}; padding-bottom: 12pt;">
         Table of Contents
       </h2>
-      <div style="line-height: 2.5;">
-        ${categoriesWithContent.map((category, index) => `
-          <div style="margin-bottom: 8pt; display: flex; justify-content: space-between; align-items: baseline;">
-            <span>
-              <span style="color: #${primary}; font-weight: 600;">${index + 1}.</span>
-              <span style="color: #${textColor}; margin-left: 12pt;">${escapeHtml(category.label)}</span>
-            </span>
-            <span style="color: #666; font-size: 10pt;">..........</span>
+      <div style="padding-top: 8pt;">
+        ${categoriesWithContent.map((category, index) => {
+          // Estimate page number (roughly 2 categories per page after cover + TOC)
+          const estimatedPage = Math.ceil((index + 2) / 2)
+          return `
+          <div class="toc-item">
+            <div class="toc-number">${index + 1}</div>
+            <div class="toc-text">${escapeHtml(category.label)}</div>
+            <div class="toc-dots">..................................................................</div>
+            <div class="toc-page">${estimatedPage}</div>
           </div>
-        `).join('')}
+        `
+        }).join('')}
       </div>
     </section>
 
