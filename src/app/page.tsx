@@ -355,8 +355,8 @@ export default function HomePage() {
 
         {/* 72-Hour Activation Path */}
         <section>
-          <div className="w-full">
-            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                 <Heading level={2} className="text-white text-center">
                   Your 72‑Hour Activation Path
@@ -587,15 +587,14 @@ export default function HomePage() {
                   </Button>
                 </div>
               </Stack>
-              
-            </Card>
-          </div>
+            </div>
+          </Container>
         </section>
 
         {/* Dashboard Preview Section */}
         <section>
-          <div className="w-full">
-            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                   <div className="text-center mb-6">
                     <Heading level={2} className="text-white mb-2">What you'll see on your dashboard:</Heading>
@@ -770,14 +769,14 @@ export default function HomePage() {
                     </Button>
                   </div>
                 </Stack>
-            </Card>
-          </div>
+            </div>
+          </Container>
         </section>
 
         {/* Offer Stack Section */}
         <section>
-          <div className="w-full">
-            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                 <div className="text-center">
                   <Heading level={2} className="text-white mb-4">
@@ -880,14 +879,14 @@ export default function HomePage() {
                   </Button>
                 </div>
               </Stack>
-            </Card>
-          </div>
+            </div>
+          </Container>
         </section>
 
         {/* Why this works Section */}
         <section>
-          <div className="w-full">
-            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="lg" className="md:gap-12">
                 <div className="text-center">
                   <Heading level={2} className="text-white mb-4">
@@ -959,14 +958,14 @@ export default function HomePage() {
                   </Button>
                 </div>
               </Stack>
-            </Card>
-          </div>
+            </div>
+          </Container>
         </section>
 
         {/* Guarantees Section */}
         <section>
-          <div className="w-full">
-            <Card variant="elevated" className="bg-[#1F1F1F] border-[#333] !mx-0 !w-full p-4 md:p-6 lg:p-8">
+          <Container size="xl">
+            <div className="bg-[#1F1F1F] border-[#333] border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="xs" className="md:gap-3" align="center">
                 <div className="w-16 h-16 bg-[#FFFF00] rounded-full flex items-center justify-center mb-2">
                   <Shield className="w-8 h-8 text-black" />
@@ -1034,14 +1033,14 @@ export default function HomePage() {
                   </Card>
                 </Grid>
               </Stack>
-            </Card>
-          </div>
+            </div>
+          </Container>
         </section>
 
         {/* Pricing Section */}
         <section id="pricing">
-          <div className="w-full">
-            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 !mx-0 !w-full">
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="xl" className="md:gap-12">
                 
                 {/* ACTIVATION INTENSIVE TITLE - ENHANCED */}
@@ -1503,8 +1502,8 @@ export default function HomePage() {
                     </Card>
                   </Stack>
               </Stack>
-            </Card>
-          </div>
+            </div>
+          </Container>
         </section>
 
         {/* FAQ Section - Full FAQ */}
@@ -1514,8 +1513,8 @@ export default function HomePage() {
 
         {/* The Problem: Vibrational Chaos */}
         <section id="problem">
-          <div className="w-full">
-            <Card variant="elevated" className="border-[#FF0040]/30 bg-[#FF0040]/5 !mx-0 !w-full">
+          <Container size="xl">
+            <div className="border-[#FF0040]/30 bg-[#FF0040]/5 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                 <div className="text-center">
                   <div className="flex flex-wrap justify-center">
@@ -1780,8 +1779,8 @@ export default function HomePage() {
                   </div>
                 </Stack>
               </Stack>
-            </Card>
-          </div>
+            </div>
+          </Container>
         </section>
 
         {/* Visual Comparison - Before moving to Solution */}
@@ -1809,8 +1808,8 @@ export default function HomePage() {
                     </div>
                   </div>
                 </Stack>
-              </Card>
-            </Stack>
+            </Card>
+          </Stack>
         </section>
 
         {/* The Solution: Conscious Creation System */}

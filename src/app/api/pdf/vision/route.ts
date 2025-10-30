@@ -83,11 +83,14 @@ export async function GET(req: NextRequest) {
     // Fetch user profile for name
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('first_name, full_name')
+      .select('first_name, full_name, last_name')
       .eq('user_id', user.id)
       .single()
 
-    const userName = profile?.full_name || profile?.first_name || 'User'
+    const userName = profile?.full_name || 
+                     (profile?.first_name && profile?.last_name ? `${profile.first_name} ${profile.last_name}` : null) ||
+                     profile?.first_name || 
+                     (profile?.last_name || 'User')
     const title = vision.title || 'My Life Vision'
     const createdDate = new Date(vision.created_at).toLocaleDateString('en-US', {
       month: 'long',
@@ -185,6 +188,16 @@ export async function GET(req: NextRequest) {
       color: #${textColor};
       line-height: 2;
     }
+    
+    .version-badge {
+      display: inline-block;
+      padding: 6pt 16pt;
+      background-color: #${primary};
+      color: ${bgColor === 'FFFFFF' ? '#fff' : '#fff'};
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 11pt;
+    }
 
     h2 {
       font-size: 18pt;
@@ -211,9 +224,10 @@ export async function GET(req: NextRequest) {
     }
     
     .toc {
-      padding: 20pt 0;
+      padding: 20pt 0 20pt;
       page-break-after: auto;
       page-break-inside: avoid;
+      min-height: auto;
     }
     
     .toc h2 {
@@ -242,14 +256,25 @@ export async function GET(req: NextRequest) {
     }
     
     .toc-text {
-      flex: 1;
+      flex: 0 0 auto;
       color: #${textColor};
+      margin-right: 8pt;
+      white-space: nowrap;
     }
     
     .toc-dots {
-      color: #999;
-      flex-shrink: 0;
-      margin: 0 8pt;
+      flex: 1 1 auto;
+      color: #ccc;
+      overflow: hidden;
+      white-space: nowrap;
+      text-align: left;
+      font-size: 8pt;
+      letter-spacing: 2pt;
+      min-width: 0;
+      border-bottom: 1px dotted #ccc;
+      margin: 0 8pt 4pt 0;
+      height: 1px;
+      align-self: center;
     }
     
     .toc-page {
@@ -269,8 +294,13 @@ export async function GET(req: NextRequest) {
       <div class="cover-date">Created ${createdDate}</div>
       
       <div class="cover-info">
-        ${vision.version_number > 1 ? `Version ${vision.version_number}<br>` : ''}
-        ID: ${vision.id.substring(0, 8)}...
+        ${vision.version_number > 1 ? `
+          <div style="display: inline-block; margin-bottom: 16pt;">
+            <span class="version-badge">Version ${vision.version_number}</span>
+          </div>
+          <br>
+        ` : ''}
+        ID: ${vision.id}
       </div>
     </header>
 
@@ -281,14 +311,13 @@ export async function GET(req: NextRequest) {
       </h2>
       <div style="padding-top: 8pt;">
         ${categoriesWithContent.map((category, index) => {
-          // Estimate page number (roughly 2 categories per page after cover + TOC)
-          const estimatedPage = Math.ceil((index + 2) / 2)
+          // Page numbers will be calculated dynamically after rendering
           return `
           <div class="toc-item">
             <div class="toc-number">${index + 1}</div>
             <div class="toc-text">${escapeHtml(category.label)}</div>
-            <div class="toc-dots">..................................................................</div>
-            <div class="toc-page">${estimatedPage}</div>
+            <div class="toc-dots"></div>
+            <div class="toc-page" data-category="${category.key}">...</div>
           </div>
         `
         }).join('')}
@@ -353,6 +382,59 @@ export async function GET(req: NextRequest) {
       timeout: 30000 
     })
 
+    // Wait a bit for layout to settle
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // Calculate actual page numbers for TOC by finding positions of section headings
+    // We need to account for PDF page dimensions: Letter size with 0.5in margins
+    const tocPageNumbers = await page.evaluate(() => {
+      const tocItems = Array.from(document.querySelectorAll('.toc-item'))
+      const sections = Array.from(document.querySelectorAll('section > h2'))
+      const pageNumbers: Record<string, number> = {}
+      
+      // Letter page: 11in height, 0.5in margins = 10in usable = 720 points
+      const pageHeightPoints = 720 // 10 inches * 72 points per inch
+      const coverPageHeight = pageHeightPoints
+      const tocPageHeight = pageHeightPoints
+      
+      // Get bounding boxes for all section headings relative to document
+      sections.forEach((h2) => {
+        const box = h2.getBoundingClientRect()
+        const categoryText = h2.textContent || ''
+        
+        // Get element's position relative to document top
+        let elementTop = box.top + window.pageYOffset
+        
+        // Account for cover page (page 1) and TOC (page 2)
+        // Content sections start after cover + TOC
+        elementTop -= (coverPageHeight + tocPageHeight)
+        
+        // Calculate which page this section starts on (page 3, 4, 5, etc.)
+        if (elementTop > 0) {
+          const pageNum = Math.floor(elementTop / pageHeightPoints) + 3
+          pageNumbers[categoryText] = Math.max(3, pageNum)
+        } else {
+          pageNumbers[categoryText] = 3
+        }
+      })
+      
+      return pageNumbers
+    })
+
+    // Update TOC with actual page numbers
+    if (Object.keys(tocPageNumbers).length > 0) {
+      await page.evaluate((pageNumbers) => {
+        const tocItems = Array.from(document.querySelectorAll('.toc-item'))
+        tocItems.forEach((item) => {
+          const categoryText = item.querySelector('.toc-text')?.textContent || ''
+          const pageElement = item.querySelector('.toc-page')
+          if (pageElement && categoryText in pageNumbers) {
+            pageElement.textContent = String(pageNumbers[categoryText])
+          }
+        })
+      }, tocPageNumbers)
+    }
+
     // Generate PDF (Puppeteer will handle page numbers in its footer template)
     const pdfBuffer = await page.pdf({
       format: 'Letter',
@@ -374,8 +456,8 @@ export async function GET(req: NextRequest) {
     // Return PDF as response
     const filename = `life-vision-v${vision.version_number}.pdf`
     return new NextResponse(Buffer.from(pdfBuffer), {
-      headers: {
-        'Content-Type': 'application/pdf',
+        headers: {
+          'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
