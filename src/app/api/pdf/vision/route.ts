@@ -463,14 +463,20 @@ export async function GET(req: NextRequest) {
       const sections = Array.from(document.querySelectorAll('section > h2'))
       const pageNumbers: Record<string, number> = {}
       
-      // PDF page dimensions: 10" usable height = 720 points
-      // Browser: 96 DPI = 960 pixels for 10"
-      // Conversion factor: 72/96 = 0.75 (points are smaller than pixels)
-      const pointsPerPixel = 72 / 96 // 0.75
-      const pageHeightPoints = 720
-      const pageHeightPixels = 960 // 10 inches * 96 DPI
+      // PDF dimensions:
+      // Letter size: 8.5" x 11"
+      // Margins: 0.5" all around
+      // Usable area: 7.5" x 10"
+      // In points: 540pt x 720pt (72 points per inch)
       
-      // Measure actual cover and TOC heights
+      const pageHeightPoints = 720 // 10 inches usable height
+      const pageWidthPoints = 540 // 7.5 inches usable width
+      
+      // Browser measurements (CSS pixels at 96 DPI)
+      const pixelsPerPoint = 96 / 72 // 1.333 pixels per point
+      const pageHeightPixels = pageHeightPoints * pixelsPerPoint // ~960 pixels
+      
+      // Measure actual cover and TOC heights in pixels
       const cover = document.querySelector('header.cover')
       const toc = document.querySelector('section.toc')
       
@@ -479,17 +485,19 @@ export async function GET(req: NextRequest) {
       
       if (cover) {
         const coverRect = cover.getBoundingClientRect()
-        const coverScroll = cover.getBoundingClientRect().top + window.pageYOffset
         coverHeightPixels = coverRect.height
+        console.log('Cover height:', coverHeightPixels, 'pixels')
       }
       
       if (toc) {
         const tocRect = toc.getBoundingClientRect()
         tocHeightPixels = tocRect.height
+        console.log('TOC height:', tocHeightPixels, 'pixels')
       }
       
       // Total pixels before content starts
       const coverAndTocPixels = coverHeightPixels + tocHeightPixels
+      console.log('Cover + TOC total:', coverAndTocPixels, 'pixels')
       
       sections.forEach((h2) => {
         const categoryText = h2.textContent || ''
@@ -506,15 +514,19 @@ export async function GET(req: NextRequest) {
           const scrollTop = window.pageYOffset || document.documentElement.scrollTop
           const elementTopPixels = rect.top + scrollTop
           
+          console.log(categoryText, 'at', elementTopPixels, 'pixels from top')
+          
           // Subtract cover + TOC to get content position
           const contentTopPixels = elementTopPixels - coverAndTocPixels
           
           if (contentTopPixels > 0) {
             // Convert pixels to points, then calculate page number
-            const contentTopPoints = contentTopPixels * pointsPerPixel
+            const contentTopPoints = contentTopPixels / pixelsPerPoint
             const pageNum = 3 + Math.floor(contentTopPoints / pageHeightPoints)
+            console.log(categoryText, '→ Page', pageNum, `(contentTop: ${contentTopPoints}pt)`)
             pageNumbers[categoryText] = Math.max(3, pageNum)
           } else {
+            console.log(categoryText, '→ Page 3 (before content start)')
             pageNumbers[categoryText] = 3
           }
         }
