@@ -90,10 +90,10 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'stack':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">Stack - Vertical Spacing</h4>
-              <Stack gap="md" className="p-6 bg-neutral-900 rounded-lg border border-neutral-700">
+              <h4 className="text-base md:text-lg font-semibold text-white">Stack - Vertical Spacing</h4>
+              <Stack gap="md" className="p-4 md:p-6 bg-neutral-900 rounded-lg border border-neutral-700">
                 <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg">Item 1</div>
                 <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg">Item 2</div>
                 <div className="p-4 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg">Item 3</div>
@@ -106,10 +106,10 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'inline':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">Inline - Horizontal Spacing & Wrapping</h4>
-              <Inline gap="md" wrap className="p-6 bg-neutral-900 rounded-lg border border-neutral-700">
+              <h4 className="text-base md:text-lg font-semibold text-white">Inline - Horizontal Spacing & Wrapping</h4>
+              <Inline gap="md" wrap className="p-4 md:p-6 bg-neutral-900 rounded-lg border border-neutral-700">
                 <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg">Item 1</div>
                 <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg">Item 2</div>
                 <div className="p-4 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg">Item 3</div>
@@ -181,10 +181,10 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'two-column':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">TwoColumn - Stacks on Mobile, 50/50 on Desktop</h4>
-              <TwoColumn gap="md" className="p-6 bg-neutral-900 rounded-lg border border-neutral-700">
+              <h4 className="text-base md:text-lg font-semibold text-white">TwoColumn - Stacks on Mobile, 50/50 on Desktop</h4>
+              <TwoColumn gap="md" className="p-4 md:p-6 bg-neutral-900 rounded-lg border border-neutral-700">
                 <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg">Left Content</div>
                 <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg">Right Content</div>
               </TwoColumn>
@@ -196,10 +196,10 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'four-column':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">FourColumn - 2x2 on Mobile, 4x1 on Desktop (DEPRECATED - use Grid)</h4>
-              <Grid responsiveCols={{mobile: 2, desktop: 4}} gap="md" className="p-6 bg-neutral-900 rounded-lg border border-neutral-700">
+              <h4 className="text-base md:text-lg font-semibold text-white">FourColumn - 2x2 on Mobile, 4x1 on Desktop (DEPRECATED - use Grid)</h4>
+              <Grid responsiveCols={{mobile: 2, desktop: 4}} gap="md" className="p-4 md:p-6 bg-neutral-900 rounded-lg border border-neutral-700">
                 <div className="p-4 bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg">Item A</div>
                 <div className="p-4 bg-[#00FFFF]/20 border border-[#00FFFF]/30 rounded-lg">Item B</div>
                 <div className="p-4 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-lg">Item C</div>
@@ -214,23 +214,23 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'card':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">Card Variants</h4>
+              <h4 className="text-base md:text-lg font-semibold text-white">Card Variants</h4>
               <Grid minWidth="200px" className="gap-6">
-                <Card variant="default" className="p-6">
-                  <Icon icon={CreditCard} size="lg" color="#39FF14" className="mb-3" />
-                  <h4 className="text-lg font-semibold mb-2">Default Card</h4>
+                <Card variant="default" className="p-4 md:p-6">
+                  <Icon icon={CreditCard} size="md" color="#39FF14" className="mb-3" />
+                  <h4 className="text-sm md:text-base font-semibold mb-2">Default Card</h4>
                   <p className="text-neutral-400 text-sm">Standard card with subtle styling.</p>
                 </Card>
-                <Card variant="elevated" className="p-6">
-                  <Icon icon={CreditCard} size="lg" color="#00FFFF" className="mb-3" />
-                  <h4 className="text-lg font-semibold mb-2">Elevated Card</h4>
+                <Card variant="elevated" className="p-4 md:p-6">
+                  <Icon icon={CreditCard} size="md" color="#00FFFF" className="mb-3" />
+                  <h4 className="text-sm md:text-base font-semibold mb-2">Elevated Card</h4>
                   <p className="text-neutral-400 text-sm">Card with enhanced shadow and depth.</p>
                 </Card>
-                <Card variant="glass" className="p-6">
-                  <Icon icon={CreditCard} size="lg" color="#BF00FF" className="mb-3" />
-                  <h4 className="text-lg font-semibold mb-2">Glass Card</h4>
+                <Card variant="glass" className="p-4 md:p-6">
+                  <Icon icon={CreditCard} size="md" color="#BF00FF" className="mb-3" />
+                  <h4 className="text-sm md:text-base font-semibold mb-2">Glass Card</h4>
                   <p className="text-neutral-400 text-sm">Card with frosted glass effect.</p>
                 </Card>
               </Grid>
@@ -245,7 +245,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
           <Grid minWidth="300px" gap="md">
             <Card variant="default" className="p-4">
               <Stack gap="sm">
-                <h4 className="text-lg font-medium mb-2 text-white">Variants</h4>
+                <h4 className="text-base md:text-lg font-medium mb-2 text-white">Variants</h4>
                 <Button variant="primary" fullWidth>Primary</Button>
                 <Button variant="secondary" fullWidth>Secondary</Button>
                 <Button variant="accent" fullWidth>Accent</Button>
@@ -256,26 +256,27 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
             </Card>
             <Card variant="default" className="p-4">
               <Stack gap="sm">
-                <h4 className="text-lg font-medium mb-2 text-white">Sizes</h4>
-                <Button variant="primary" size="sm" fullWidth>Small</Button>
-                <Button variant="primary" size="md" fullWidth>Medium</Button>
-                <Button variant="primary" size="lg" fullWidth>Large</Button>
-                <Button variant="primary" size="xl" fullWidth>Extra Large</Button>
+                <h4 className="text-base md:text-lg font-medium mb-2 text-white">Sizes</h4>
+                <Button variant="primary" size="sm" fullWidth>Small (Mobile-Friendly)</Button>
+                <Button variant="primary" size="md" fullWidth>Medium (Default)</Button>
+                <Button variant="primary" size="lg" fullWidth>Large (Desktop)</Button>
+                <Button variant="primary" size="xl" fullWidth>Extra Large (Hero)</Button>
+                <p className="text-xs text-neutral-400 mt-2">Note: Use <code className="text-primary-500">size="sm"</code> for mobile-first buttons in production</p>
               </Stack>
             </Card>
           </Grid>
           
           {/* Icon Left + Text */}
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-medium text-white">Icon Left + Text</h4>
-              <p className="text-sm text-[#9CA3AF] mb-4">Icon positioned to the left of text</p>
+              <h4 className="text-base md:text-lg font-medium text-white">Icon Left + Text</h4>
+              <p className="text-xs md:text-sm text-[#9CA3AF] mb-4">Icon positioned to the left of text</p>
               <Inline gap="md">
-                <Button variant="primary" size="lg">
+                <Button variant="primary" size="sm">
                   <Icon icon={ArrowRight} size="sm" />
                   Get Started
                 </Button>
-                <Button variant="secondary" size="lg">
+                <Button variant="secondary" size="sm">
                   <Icon icon={Play} size="sm" />
                   Watch Video
                 </Button>
@@ -284,16 +285,16 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
           </Card>
 
           {/* Text + Icon Right */}
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-medium text-white">Text + Icon Right</h4>
-              <p className="text-sm text-[#9CA3AF] mb-4">Icon positioned to the right of text</p>
+              <h4 className="text-base md:text-lg font-medium text-white">Text + Icon Right</h4>
+              <p className="text-xs md:text-sm text-[#9CA3AF] mb-4">Icon positioned to the right of text</p>
               <Inline gap="md">
-                <Button variant="primary" size="lg">
+                <Button variant="primary" size="sm">
                   Learn More
                   <Icon icon={ArrowRight} size="sm" />
                 </Button>
-                <Button variant="secondary" size="lg">
+                <Button variant="secondary" size="sm">
                   Download
                   <Icon icon={Download} size="sm" />
                 </Button>
@@ -302,9 +303,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
           </Card>
 
           {/* All Sizes with Icons */}
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-medium text-white">All Sizes with Icons</h4>
+              <h4 className="text-base md:text-lg font-medium text-white">All Sizes with Icons</h4>
               <p className="text-sm text-[#9CA3AF] mb-4">Testing icons across all button sizes</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Button variant="primary" size="sm">
@@ -328,9 +329,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
           </Card>
 
           {/* Icon-Only Buttons */}
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-medium text-white">Icon-Only Buttons</h4>
+              <h4 className="text-base md:text-lg font-medium text-white">Icon-Only Buttons</h4>
               <p className="text-sm text-[#9CA3AF] mb-4">Buttons with only icons, no text</p>
               <Inline gap="md">
                 <Button variant="ghost" size="md" className="w-12 h-12 p-0">
@@ -354,22 +355,22 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'spinner':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Grid minWidth="150px" gap="md">
               <div className="text-center">
-                <Spinner variant="primary" size="lg" className="mx-auto mb-4" />
+                <Spinner variant="primary" size="md" className="mx-auto mb-4" />
                 <p className="text-sm text-[#9CA3AF]">Primary Loading</p>
               </div>
               <div className="text-center">
-                <Spinner variant="secondary" size="lg" className="mx-auto mb-4" />
-                <p className="text-sm text-[#9CA3AF]">Secondary Loading</p>
+                <Spinner variant="secondary" size="md" className="mx-auto mb-4" />
+                <p className="text-xs md:text-sm text-[#9CA3AF]">Secondary Loading</p>
               </div>
               <div className="text-center">
-                <Spinner variant="accent" size="lg" className="mx-auto mb-4" />
-                <p className="text-sm text-[#9CA3AF]">Accent Loading</p>
+                <Spinner variant="accent" size="md" className="mx-auto mb-4" />
+                <p className="text-xs md:text-sm text-[#9CA3AF]">Accent Loading</p>
               </div>
               <div className="text-center">
-                <Spinner variant="branded" size="lg" className="mx-auto mb-4" />
+                <Spinner variant="branded" size="md" className="mx-auto mb-4" />
                 <p className="text-sm text-[#9CA3AF]">Branded Loading</p>
               </div>
             </Grid>
@@ -380,13 +381,13 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'progress-bar':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">ProgressBar - Progress Indicators</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">ProgressBar - Progress Indicators</h4>
               <Stack gap="md">
                 <ProgressBar value={25} max={100} variant="primary" showLabel label="Primary Progress" />
                 <ProgressBar value={50} max={100} variant="secondary" showLabel />
-                <ProgressBar value={75} max={100} variant="accent" size="lg" />
+                <ProgressBar value={75} max={100} variant="accent" size="md" />
                 <ProgressBar value={100} max={100} variant="success" size="sm" />
                 <ProgressBar value={30} max={100} variant="warning" />
                 <ProgressBar value={80} max={100} variant="danger" />
@@ -447,9 +448,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'text':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-medium text-white">Text Component Sizes</h4>
+              <h4 className="text-base md:text-lg font-medium text-white">Text Component Sizes</h4>
               <div className="space-y-2">
                 <div>
                   <Text size="xs" className="text-white">Text xs - 12px</Text>
@@ -530,9 +531,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'badge':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">Badge Variants</h4>
+              <h4 className="text-base md:text-lg font-semibold text-white">Badge Variants</h4>
               <Inline gap="md" wrap>
                 <Badge variant="primary">Primary</Badge>
                 <Badge variant="secondary">Secondary</Badge>
@@ -552,9 +553,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'input':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">Input - Text Input Fields</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Input - Text Input Fields</h4>
               <Stack gap="md">
                 <Input
                   label="Default Input"
@@ -581,9 +582,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'textarea':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">Textarea - Multi-line Text Input</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Textarea - Multi-line Text Input</h4>
               <Stack gap="md">
                 <Textarea
                   label="Default Textarea"
@@ -607,34 +608,34 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
       return (
         <Stack gap="md">
           <Grid minWidth="300px" gap="md">
-            <Card>
+            <Card className="p-4 md:p-6">
               <Stack gap="md">
-                <h4 className="text-lg font-semibold text-white">16:9 Video Frame</h4>
+                <h4 className="text-base md:text-lg font-semibold text-white">16:9 Video Frame</h4>
                 <Frame ratio="16/9" className="bg-gradient-to-br from-[#39FF14]/20 to-[#00FFFF]/20 border border-[#39FF14]/30 rounded-lg">
                   <div className="flex items-center justify-center h-full">
-                    <Icon icon={Play} size="xl" color="#39FF14" />
+                    <Icon icon={Play} size="lg" color="#39FF14" />
                   </div>
                 </Frame>
               </Stack>
             </Card>
 
-            <Card>
+            <Card className="p-4 md:p-6">
               <Stack gap="md">
-                <h4 className="text-lg font-semibold text-white">4:3 Image Frame</h4>
+                <h4 className="text-base md:text-lg font-semibold text-white">4:3 Image Frame</h4>
                 <Frame ratio="4/3" className="bg-gradient-to-br from-[#00FFFF]/20 to-[#BF00FF]/20 border border-[#00FFFF]/30 rounded-lg">
                   <div className="flex items-center justify-center h-full">
-                    <Icon icon={Image} size="xl" color="#00FFFF" />
+                    <Icon icon={Image} size="lg" color="#00FFFF" />
                   </div>
                 </Frame>
               </Stack>
             </Card>
 
-            <Card>
+            <Card className="p-4 md:p-6">
               <Stack gap="md">
-                <h4 className="text-lg font-semibold text-white">1:1 Square Frame</h4>
+                <h4 className="text-base md:text-lg font-semibold text-white">1:1 Square Frame</h4>
                 <Frame ratio="1/1" className="bg-gradient-to-br from-[#BF00FF]/20 to-[#39FF14]/20 border border-[#BF00FF]/30 rounded-lg">
                   <div className="flex items-center justify-center h-full">
-                    <Icon icon={Square} size="xl" color="#BF00FF" />
+                    <Icon icon={Square} size="lg" color="#BF00FF" />
                   </div>
                 </Frame>
               </Stack>
@@ -646,9 +647,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'viva-button':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">VIVA Buttons</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">VIVA Buttons</h4>
               <Inline gap="md" wrap>
                 <VIVAButton size="sm">Small VIVA</VIVAButton>
                 <VIVAButton size="md">Medium VIVA</VIVAButton>
@@ -729,9 +730,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'ordered-list':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">OrderedList - Numbered Lists</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">OrderedList - Numbered Lists</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h5 className="text-sm font-medium text-neutral-400 mb-2">Default</h5>
@@ -760,9 +761,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'list-item':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">ListItem - Custom Icons</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">ListItem - Custom Icons</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h5 className="text-sm font-medium text-neutral-400 mb-2">With Icons</h5>
@@ -796,27 +797,27 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
         <Stack gap="md">
           <Card variant="glass">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">Switcher - Responsive Row/Column (DEPRECATED - use Grid)</h4>
-              <p className="text-sm text-neutral-400">Automatically switches from row to column on mobile</p>
+              <h4 className="text-base md:text-lg font-semibold text-white">Switcher - Responsive Row/Column (DEPRECATED - use Grid)</h4>
+              <p className="text-xs md:text-sm text-neutral-400">Automatically switches from row to column on mobile</p>
               <Grid responsiveCols={{mobile: 1, desktop: 'auto'}} gap="lg" className="flex-col md:flex-row">
                 <Card variant="elevated" className="flex-1">
                   <Stack align="center" gap="sm">
-                    <Icon icon={Sparkles} size="lg" color="#39FF14" />
-                    <h4 className="font-semibold text-white text-center">Desktop: Side by Side</h4>
+                    <Icon icon={Sparkles} size="md" color="#39FF14" />
+                    <h4 className="text-sm md:text-base font-semibold text-white text-center">Desktop: Side by Side</h4>
                     <p className="text-xs md:text-sm text-[#9CA3AF] text-center">These cards appear in a row on desktop</p>
                   </Stack>
                 </Card>
                 <Card variant="elevated" className="flex-1">
                   <Stack align="center" gap="sm">
-                    <Icon icon={Activity} size="lg" color="#00FFFF" />
-                    <h4 className="font-semibold text-white text-center">Mobile: Stacked</h4>
+                    <Icon icon={Activity} size="md" color="#00FFFF" />
+                    <h4 className="text-sm md:text-base font-semibold text-white text-center">Mobile: Stacked</h4>
                     <p className="text-xs md:text-sm text-[#9CA3AF] text-center">But stack vertically on mobile devices</p>
                   </Stack>
                 </Card>
                 <Card variant="elevated" className="flex-1">
                   <Stack align="center" gap="sm">
-                    <Icon icon={Zap} size="lg" color="#BF00FF" />
-                    <h4 className="font-semibold text-white text-center">Automatic</h4>
+                    <Icon icon={Zap} size="md" color="#BF00FF" />
+                    <h4 className="text-sm md:text-base font-semibold text-white text-center">Automatic</h4>
                     <p className="text-xs md:text-sm text-[#9CA3AF] text-center">No manual breakpoint management needed</p>
                   </Stack>
                 </Card>
@@ -830,16 +831,16 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'cover':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">Cover - Centered Hero Section</h4>
+              <h4 className="text-base md:text-lg font-semibold text-white">Cover - Centered Hero Section</h4>
               <Cover minHeight="300px" className="bg-gradient-to-br from-[#39FF14]/20 via-[#00FFFF]/10 to-[#BF00FF]/20 rounded-3xl border-2 border-[#333]">
                 <Stack align="center" gap="md" className="text-center max-w-4xl">
-                  <h2 className="text-3xl md:text-5xl font-bold text-white">VibrationFit Design System</h2>
-                  <p className="text-lg md:text-xl text-[#cbd5e1]">Complete component library with layout primitives, UI components, and mobile-first responsive guidelines</p>
+                  <h2 className="text-2xl md:text-4xl font-bold text-white">VibrationFit Design System</h2>
+                  <p className="text-sm md:text-lg text-[#cbd5e1]">Complete component library with layout primitives, UI components, and mobile-first responsive guidelines</p>
                   <Inline gap="sm" className="mt-4">
-                    <Button variant="primary" size="lg">Get Started</Button>
-                    <Button variant="outline" size="lg">View Docs</Button>
+                    <Button variant="primary" size="sm">Get Started</Button>
+                    <Button variant="outline" size="sm">View Docs</Button>
                   </Inline>
                 </Stack>
               </Cover>
@@ -851,10 +852,10 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'container':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">Container - Page Width with Responsive Gutters</h4>
-              <Container size="xl" className="p-6 bg-neutral-900 rounded-lg border border-neutral-700">
+              <h4 className="text-base md:text-lg font-semibold text-white">Container - Page Width with Responsive Gutters</h4>
+              <Container size="xl" className="p-4 md:p-6 bg-neutral-900 rounded-lg border border-neutral-700">
                 <p className="text-white">Container content with responsive padding</p>
                 <p className="text-neutral-400 text-sm mt-2">This container automatically adjusts its max-width and padding based on screen size</p>
               </Container>
@@ -866,9 +867,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'select':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">Select - Dropdown Selection</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Select - Dropdown Selection</h4>
               <Select
                 label="Choose an Option"
                 placeholder="Select an option"
@@ -920,9 +921,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'video':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">Video Player</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Video Player</h4>
               <p className="text-sm text-[#9CA3AF] mb-4">Responsive video with VibrationFit styling and YouTube-style play button</p>
               <Video 
                 src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
@@ -952,9 +953,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
         const [modalSize, setModalSize] = useState<'sm' | 'md' | 'lg' | 'xl'>('md')
         return (
           <Stack gap="md">
-            <Card variant="default" className="p-4">
+            <Card variant="default" className="p-4 md:p-6">
               <Stack gap="sm">
-                <h4 className="text-lg font-medium mb-2 text-white">Modal Dialog</h4>
+                <h4 className="text-base md:text-lg font-medium mb-2 text-white">Modal Dialog</h4>
                 <p className="text-sm text-[#9CA3AF] mb-4">Accessible modal with overlay and animations</p>
                 <Stack gap="sm">
                   <Button 
@@ -1029,9 +1030,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               </p>
             </Stack>
           </Card>
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">Individual Audio Player</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Individual Audio Player</h4>
               <p className="text-sm text-[#9CA3AF] mb-4">Single track player with progress bar, volume control, and time display</p>
               <AudioPlayer 
                 track={sampleTrack} 
@@ -1079,9 +1080,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               </p>
             </Stack>
           </Card>
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">Playlist Player</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Playlist Player</h4>
               <p className="text-sm text-[#9CA3AF] mb-4">Full-featured player with shuffle, repeat, and queue management</p>
               <PlaylistPlayer 
                 tracks={sampleTracks} 
@@ -1094,9 +1095,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'title':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-6">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-lg font-semibold text-white">Title Component</h4>
+              <h4 className="text-base md:text-lg font-semibold text-white">Title Component</h4>
               <Title level="hero">
                 Vision Pro Annual
               </Title>
@@ -1242,9 +1243,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'item-list-card':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">Item List Card - Feature Lists</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Item List Card - Feature Lists</h4>
               <ItemListCard
                 title="72-Hour Vision Activation Intensive"
                 items={[
@@ -1266,9 +1267,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'pricing-card':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">Feature Card - Plan Example</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Feature Card - Plan Example</h4>
               <PricingCard
                 title="Vision Pro Annual"
                 price="$999/year"
@@ -1287,9 +1288,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
     case 'offer-stack':
       return (
         <Stack gap="md">
-          <Card variant="default" className="p-4">
+          <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
-              <h4 className="text-lg font-medium mb-2 text-white">OfferStack - Individual Accordion Items</h4>
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">OfferStack - Individual Accordion Items</h4>
               <p className="text-sm text-neutral-400 mb-4">
                 Each item is its own accordion that can be clicked to expand and show detailed descriptions.
                 Perfect for pricing pages and feature breakdowns.

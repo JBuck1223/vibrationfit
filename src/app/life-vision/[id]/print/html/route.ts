@@ -124,19 +124,34 @@ export async function GET(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   <title>${escapeHtml(title)} - Vision Document</title>
   <style>
     /* US Letter with 0.5" margins */
     @page {
       size: Letter;
-      margin: 0.5in;
+      margin: 0.5in !important;
     }
 
     @media print {
-      html, body {
-        background: #fff;
-        color: #111;
+      @page {
+        size: Letter;
+        margin: 0.5in !important;
       }
+      
+      html, body {
+        background: #fff !important;
+        color: #111 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      
+      /* Remove header/footer that browsers add */
+      body::before,
+      body::after {
+        display: none !important;
+      }
+      
       body {
         font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         font-size: 12pt;
@@ -150,6 +165,12 @@ export async function GET(
       section { break-inside: avoid; }
       p { orphans: 2; widows: 2; margin: 8pt 0; }
       article { break-inside: auto; }
+      
+      /* Ensure no extra margins on printed content */
+      main {
+        margin: 0 !important;
+        padding: 0 !important;
+      }
     }
 
     html, body {

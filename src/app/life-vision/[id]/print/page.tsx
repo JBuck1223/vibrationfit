@@ -34,42 +34,53 @@ export default function PrintPreviewPage() {
   }, [visionId, colors])
 
   const handleDownload = async () => {
-    if (!iframeUrl) return
-    
     try {
-      // Fetch the HTML content
-      const response = await fetch(iframeUrl)
-      const html = await response.text()
-      
-      // Create a hidden iframe to render the HTML
-      const iframe = document.createElement('iframe')
-      iframe.style.display = 'none'
-      iframe.src = 'about:blank'
-      document.body.appendChild(iframe)
-      
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      if (!iframe.contentWindow) {
-        throw new Error('Failed to create iframe')
+      // Build API URL with color parameters
+      const colorParams = new URLSearchParams({
+        id: visionId,
+        primary: colors.primary.replace('#', ''),
+        secondary: colors.secondary.replace('#', ''),
+        accent: colors.accent.replace('#', ''),
+        text: colors.text.replace('#', ''),
+        bg: colors.background.replace('#', ''),
+      })
+
+      const apiUrl = `/api/pdf/vision?${colorParams.toString()}`
+
+      // Fetch PDF from API
+      const response = await fetch(apiUrl)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to generate PDF')
       }
+
+      // Convert response to blob
+      const blob = await response.blob()
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
       
-      iframe.contentWindow.document.open()
-      iframe.contentWindow.document.write(html)
-      iframe.contentWindow.document.close()
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition')
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') || 'life-vision.pdf'
+        : 'life-vision.pdf'
       
-      // Wait for content to load
-      await new Promise(resolve => setTimeout(resolve, 500))
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       
-      // Trigger print dialog
-      iframe.contentWindow?.print()
-      
-      // Clean up after a delay
-      setTimeout(() => {
-        document.body.removeChild(iframe)
-      }, 1000)
+      // Clean up URL
+      window.URL.revokeObjectURL(url)
+
+      console.log('PDF downloaded successfully')
     } catch (error) {
       console.error('Download error:', error)
-      alert('Failed to download PDF. Please try again.')
+      alert(`Failed to download PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 

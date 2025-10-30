@@ -25,7 +25,17 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   
   // Render based on page type
   if (pageType === 'USER' || pageType === 'ADMIN') {
-    // User and Admin pages: Use SidebarLayout with PageLayout
+    // User and Admin pages: Use SidebarLayout
+    // Print pages: SidebarLayout without PageLayout padding (full-screen interface)
+    if (pathname?.includes('/print') && !pathname?.endsWith('/html')) {
+      return (
+        <SidebarLayout isAdmin={pageType === 'ADMIN'}>
+          {children}
+        </SidebarLayout>
+      )
+    }
+    
+    // Regular user/admin pages: Use SidebarLayout with PageLayout
     return (
       <SidebarLayout isAdmin={pageType === 'ADMIN'}>
         <PageLayout containerSize="xl">
