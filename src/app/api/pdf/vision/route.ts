@@ -51,8 +51,8 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams
     const visionId = searchParams.get('id')
     const preview = searchParams.get('preview') === 'true'
-    const primary = searchParams.get('primary') || '00CC44'
-    const accent = searchParams.get('accent') || '39FF14'
+    const primary = searchParams.get('primary') || '000000'
+    const accent = searchParams.get('accent') || '404040'
     const textColor = searchParams.get('text') || '1F1F1F'
     const bgColor = searchParams.get('bg') || 'FFFFFF'
 
@@ -293,14 +293,13 @@ export async function GET(req: NextRequest) {
   <main>
     <header class="cover" style="page-break-after: always; page-break-inside: avoid;">
       <h1 class="cover-title">The Life I Choose</h1>
-      <div class="cover-by"><strong>By ${escapeHtml(userName)}</strong></div>
-      <div class="cover-date">Created ${createdDate}</div>
-      
       ${vision.version_number > 1 ? `
-        <div style="display: inline-block; margin-top: 16pt;">
+        <div style="display: inline-block; margin-top: 16pt; margin-bottom: 24pt;">
           <span class="version-badge">Version ${vision.version_number}</span>
         </div>
       ` : ''}
+      <div class="cover-by"><strong>By ${escapeHtml(userName)}</strong></div>
+      <div class="cover-date">Created ${createdDate}</div>
     </header>
 
     <!-- Table of Contents -->
@@ -437,24 +436,36 @@ export async function GET(req: NextRequest) {
       const coverPageHeight = pageHeightPoints
       const tocPageHeight = pageHeightPoints
       
-      // Get bounding boxes for all section headings relative to document
+      // Get the main element to find where content sections start
+      const mainElement = document.querySelector('main')
+      if (!mainElement) return pageNumbers
+      
+      const mainTop = mainElement.getBoundingClientRect().top + window.pageYOffset
+      
+      // Get bounding boxes for all section headings
       sections.forEach((h2) => {
         const box = h2.getBoundingClientRect()
         const categoryText = h2.textContent || ''
         
-        // Get element's position relative to document top
-        let elementTop = box.top + window.pageYOffset
+        // Find parent section element
+        let sectionElement = h2.parentElement
+        while (sectionElement && sectionElement.tagName !== 'SECTION' && sectionElement.tagName !== 'MAIN') {
+          sectionElement = sectionElement.parentElement
+        }
         
-        // Account for cover page (page 1) and TOC (page 2)
-        // Content sections start after cover + TOC
-        elementTop -= (coverPageHeight + tocPageHeight)
-        
-        // Calculate which page this section starts on (page 3, 4, 5, etc.)
-        if (elementTop > 0) {
-          const pageNum = Math.floor(elementTop / pageHeightPoints) + 3
+        if (sectionElement && sectionElement.tagName === 'SECTION' && !sectionElement.classList.contains('toc')) {
+          // This is a content section
+          const sectionTop = sectionElement.getBoundingClientRect().top + window.pageYOffset
+          const relativeTop = sectionTop - mainTop
+          
+          // Account for TOC taking up space (approximately 720 points = 1 page)
+          // Content starts at relative position after TOC
+          const contentStartOffset = 720 // Approximate TOC height
+          const contentRelativeTop = Math.max(0, relativeTop - contentStartOffset)
+          
+          // Calculate page number: Cover (1) + TOC (2) + content pages
+          const pageNum = 3 + Math.floor(contentRelativeTop / pageHeightPoints)
           pageNumbers[categoryText] = Math.max(3, pageNum)
-        } else {
-          pageNumbers[categoryText] = 3
         }
       })
       
