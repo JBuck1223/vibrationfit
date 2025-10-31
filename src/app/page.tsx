@@ -27,6 +27,7 @@ import {
   Title,
   BulletedList,
   ListItem,
+  Section,
 } from '@/lib/design-system'
 
 // Vision Categories
@@ -354,8 +355,7 @@ export default function HomePage() {
         </section>
 
         {/* 72-Hour Activation Path */}
-        <section>
-          <Container size="xl">
+        <Section>
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                 <Heading level={2} className="text-white text-center">
@@ -588,12 +588,10 @@ export default function HomePage() {
                 </div>
               </Stack>
             </div>
-          </Container>
-        </section>
+        </Section>
 
         {/* Dashboard Preview Section */}
-        <section>
-          <Container size="xl">
+        <Section>
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                   <div className="text-center mb-6">
@@ -770,12 +768,10 @@ export default function HomePage() {
                   </div>
                 </Stack>
             </div>
-          </Container>
-        </section>
+        </Section>
 
         {/* Offer Stack Section */}
-        <section>
-          <Container size="xl">
+        <Section>
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                 <div className="text-center">
@@ -880,12 +876,10 @@ export default function HomePage() {
                 </div>
               </Stack>
             </div>
-          </Container>
-        </section>
+        </Section>
 
         {/* Why this works Section */}
-        <section>
-          <Container size="xl">
+        <Section>
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="lg" className="md:gap-12">
                 <div className="text-center">
@@ -959,12 +953,10 @@ export default function HomePage() {
                 </div>
               </Stack>
             </div>
-          </Container>
-        </section>
+        </Section>
 
         {/* Guarantees Section */}
-        <section>
-          <Container size="xl">
+        <Section>
             <div className="bg-[#1F1F1F] border-[#333] border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="xs" className="md:gap-3" align="center">
                 <div className="w-16 h-16 bg-[#FFFF00] rounded-full flex items-center justify-center mb-2">
@@ -1034,12 +1026,10 @@ export default function HomePage() {
                 </Grid>
               </Stack>
             </div>
-          </Container>
-        </section>
+        </Section>
 
         {/* Pricing Section */}
-        <section id="pricing">
-          <Container size="xl">
+        <Section id="pricing">
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="xl" className="md:gap-12">
                 
@@ -1503,8 +1493,7 @@ export default function HomePage() {
                   </Stack>
               </Stack>
             </div>
-          </Container>
-        </section>
+        </Section>
 
         {/* FAQ Section - Full FAQ */}
         <section id="faq">
@@ -1512,8 +1501,7 @@ export default function HomePage() {
         </section>
 
         {/* The Problem: Vibrational Chaos */}
-        <section id="problem">
-          <Container size="xl">
+        <Section id="problem">
             <div className="border-[#FF0040]/30 bg-[#FF0040]/5 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                 <div className="text-center">
@@ -1780,8 +1768,7 @@ export default function HomePage() {
                 </Stack>
               </Stack>
             </div>
-          </Container>
-        </section>
+        </Section>
 
         {/* Visual Comparison - Before moving to Solution */}
         <section>

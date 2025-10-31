@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Download, Palette, RefreshCw } from 'lucide-react'
+import { Download, Palette, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
 
 export default function PrintPreviewPage() {
@@ -19,6 +19,7 @@ export default function PrintPreviewPage() {
     background: '#FFFFFF',
   })
   const [iframeUrl, setIframeUrl] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   useEffect(() => {
     // Build API URL with color parameters for preview
@@ -35,6 +36,7 @@ export default function PrintPreviewPage() {
   }, [visionId, colors])
 
   const handleDownload = async () => {
+    setIsGenerating(true)
     try {
       // Build API URL with color parameters
       const colorParams = new URLSearchParams({
@@ -81,6 +83,8 @@ export default function PrintPreviewPage() {
     } catch (error) {
       console.error('Download error:', error)
       alert(`Failed to download PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -113,6 +117,12 @@ export default function PrintPreviewPage() {
       text: '#1F1F1F',
       background: '#FFFFFF',
     },
+    forestGreen: {
+      primary: '#00CC44',
+      accent: '#9CA3AF',
+      text: '#1F1F1F',
+      background: '#FFFFFF',
+    },
   }
 
   const applyPreset = (preset: keyof typeof colorPresets) => {
@@ -134,9 +144,19 @@ export default function PrintPreviewPage() {
               onClick={handleDownload}
               variant="primary"
               className="flex items-center gap-2"
+              disabled={isGenerating}
             >
-              <Download className="w-4 h-4" />
-              Download PDF
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Download PDF
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -187,6 +207,17 @@ export default function PrintPreviewPage() {
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.cyan.primary }} />
                   <span>Cyan</span>
+                </div>
+              </Button>
+              <Button
+                onClick={() => applyPreset('forestGreen')}
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.forestGreen.primary }} />
+                  <span>Forest Green</span>
                 </div>
               </Button>
             </div>
@@ -308,13 +339,14 @@ export default function PrintPreviewPage() {
             
             {/* Preview Container */}
             <div className="w-full flex justify-center items-start min-h-[600px] py-4 lg:py-8">
-              <div className="w-full max-w-full px-6 lg:px-16 xl:px-24">
+              <div className="w-full max-w-full px-4 lg:px-16 xl:px-24">
                 {iframeUrl ? (
                   <iframe
                     src={iframeUrl}
                     className="border-0 bg-white rounded-lg shadow-2xl w-full mx-auto block"
                     style={{ 
-                      maxWidth: '10in',
+                      maxWidth: '100%',
+                      width: '100%',
                       aspectRatio: '8.5 / 11',
                       minHeight: '400px',
                     }}

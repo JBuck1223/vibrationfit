@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>${escapeHtml(title)}</title>
   <style>
     @page {
@@ -134,36 +134,64 @@ export async function GET(req: NextRequest) {
       p { orphans: 2; widows: 2; margin: 8pt 0; }
     }
 
+    * {
+      box-sizing: border-box;
+    }
+
     html, body {
-      background: ${bgColor};
-      color: ${textColor};
+      background: #${bgColor};
+      color: #${textColor};
       margin: 0;
       padding: 0;
+      width: 100%;
+      overflow-x: hidden;
     }
 
     body {
       font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       font-size: 12pt;
       line-height: 1.6;
+      width: 100%;
+      position: relative;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        font-size: 11pt;
+      }
+      
+      h2 {
+        font-size: 16pt;
+      }
+      
+      main {
+        padding: 15pt;
+      }
     }
 
     main {
       max-width: 850px;
       margin: 0 auto;
       padding: 20pt;
+      width: 100%;
+      position: relative;
+      overflow-x: hidden;
     }
 
     .cover {
       text-align: center;
-      height: calc(100vh - 1in);
-      min-height: calc(100vh - 1in);
-      max-height: calc(100vh - 1in);
+      min-height: 720pt;
+      height: 720pt;
+      max-height: 720pt;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       padding: 40pt 20pt;
       box-sizing: border-box;
+      page-break-after: always;
+      page-break-inside: avoid;
+      overflow: hidden;
     }
 
     .cover-title {
@@ -210,6 +238,8 @@ export async function GET(req: NextRequest) {
       border-bottom: 3px solid #${accent};
       padding-bottom: 8pt;
       page-break-after: avoid;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .mute {
@@ -221,84 +251,28 @@ export async function GET(req: NextRequest) {
       line-height: 1.8;
       margin-top: 12pt;
       text-align: justify;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .section-content p {
       text-align: justify;
+      width: 100%;
+      margin: 8pt 0;
+      box-sizing: border-box;
     }
 
     section {
       margin-bottom: 40pt;
       page-break-inside: auto;
-    }
-    
-    .toc {
-      padding: 20pt 0 20pt;
-      page-break-before: always;
-      page-break-after: auto;
-      page-break-inside: avoid;
-      min-height: 0;
-    }
-    
-    .toc h2 {
-      page-break-after: avoid;
-    }
-    
-    .toc-item {
-      margin-bottom: 12pt;
-      display: flex;
-      align-items: center;
-      gap: 12pt;
-    }
-    
-    .toc-number {
-      width: 24pt;
-      height: 24pt;
-      border-radius: 50%;
-      background-color: #${primary};
-      color: ${bgColor === 'FFFFFF' ? '#fff' : '#fff'};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 11pt;
-      flex-shrink: 0;
-    }
-    
-    .toc-text {
-      flex: 0 0 auto;
-      color: #${textColor};
-      margin-right: 8pt;
-      white-space: nowrap;
-    }
-    
-    .toc-dots {
-      flex: 1 1 auto;
-      color: #ccc;
-      overflow: hidden;
-      white-space: nowrap;
-      text-align: left;
-      font-size: 8pt;
-      letter-spacing: 2pt;
-      min-width: 0;
-      border-bottom: 1px dotted #ccc;
-      margin: 0 8pt 4pt 0;
-      height: 1px;
-      align-self: center;
-    }
-    
-    .toc-page {
-      color: #666;
-      font-size: 10pt;
-      flex-shrink: 0;
-      min-width: 24pt;
-      text-align: right;
+      width: 100%;
+      box-sizing: border-box;
     }
   </style>
 </head>
 <body>
   <main>
-    <header class="cover" style="page-break-after: always; page-break-inside: avoid;">
+    <header class="cover">
       <h1 class="cover-title">The Life I Choose</h1>
       ${vision.version_number > 1 ? `
         <div style="display: inline-block; margin-top: 32pt; margin-bottom: 0;">
@@ -308,26 +282,6 @@ export async function GET(req: NextRequest) {
       <div class="cover-by"><strong>By ${escapeHtml(userName)}</strong></div>
       <div class="cover-date">Created ${createdDate}</div>
     </header>
-
-    <!-- Table of Contents -->
-    <section class="toc">
-      <h2 style="font-size: 24pt; margin-bottom: 24pt; color: #${primary}; border-bottom: 2px solid #${accent}; padding-bottom: 12pt;">
-        Table of Contents
-      </h2>
-      <div style="padding-top: 8pt;">
-        ${categoriesWithContent.map((category, index) => {
-          // Page numbers will be calculated dynamically after rendering
-          return `
-          <div class="toc-item">
-            <div class="toc-number">${index + 1}</div>
-            <div class="toc-text">${escapeHtml(category.label)}</div>
-            <div class="toc-dots"></div>
-            <div class="toc-page" data-category="${category.key}">...</div>
-          </div>
-        `
-        }).join('')}
-      </div>
-    </section>
 
     ${categoriesWithContent.map((category) => {
       const content = vision[category.key as keyof VisionData] as string
@@ -353,79 +307,9 @@ export async function GET(req: NextRequest) {
 </body>
 </html>`
 
-    // If preview mode, add JavaScript to calculate and display page numbers
+    // If preview mode, return HTML as-is (no TOC page numbers in preview)
     if (preview) {
-      const htmlWithPageNumbers = html.replace(
-        '</body>',
-        `
-        <script>
-          (function() {
-            window.addEventListener('load', function() {
-              setTimeout(function() {
-                const sections = Array.from(document.querySelectorAll('section > h2'));
-                const tocItems = Array.from(document.querySelectorAll('.toc-item'));
-                
-                const pointsPerPixel = 72 / 96; // 0.75
-                const pageHeightPoints = 720;
-                const pageHeightPixels = 960; // 10 inches * 96 DPI
-                
-                // Measure actual cover and TOC heights
-                const cover = document.querySelector('header.cover');
-                const toc = document.querySelector('section.toc');
-                
-                let coverHeightPixels = pageHeightPixels;
-                let tocHeightPixels = pageHeightPixels;
-                
-                if (cover) {
-                  coverHeightPixels = cover.getBoundingClientRect().height;
-                }
-                if (toc) {
-                  tocHeightPixels = toc.getBoundingClientRect().height;
-                }
-                
-                const coverAndTocPixels = coverHeightPixels + tocHeightPixels;
-                
-                sections.forEach(function(h2) {
-                  const categoryText = h2.textContent || '';
-                  let sectionElement = h2.parentElement;
-                  
-                  // Find parent section (content section, not TOC)
-                  while (sectionElement && sectionElement.tagName !== 'SECTION' && sectionElement.tagName !== 'MAIN') {
-                    sectionElement = sectionElement.parentElement;
-                  }
-                  
-                  if (sectionElement && sectionElement.tagName === 'SECTION' && !sectionElement.classList.contains('toc')) {
-                    const rect = h2.getBoundingClientRect();
-                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                    const elementTopPixels = rect.top + scrollTop;
-                    const contentTopPixels = elementTopPixels - coverAndTocPixels;
-                    
-                    let pageNum = 3;
-                    if (contentTopPixels > 0) {
-                      const contentTopPoints = contentTopPixels * pointsPerPixel;
-                      pageNum = 3 + Math.floor(contentTopPoints / pageHeightPoints);
-                      pageNum = Math.max(3, pageNum);
-                    }
-                    
-                    tocItems.forEach(function(item) {
-                      const tocText = item.querySelector('.toc-text')?.textContent || '';
-                      if (tocText === categoryText) {
-                        const pageElement = item.querySelector('.toc-page');
-                        if (pageElement) {
-                          pageElement.textContent = String(pageNum);
-                        }
-                      }
-                    });
-                  }
-                });
-              }, 300);
-            });
-          })();
-        </script>
-        </body>`
-      )
-      
-      return new NextResponse(htmlWithPageNumbers, {
+      return new NextResponse(html, {
         headers: {
           'Content-Type': 'text/html',
         },
@@ -460,111 +344,18 @@ export async function GET(req: NextRequest) {
       timeout: 30000 
     })
 
-    // Wait for layout to fully settle
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // Calculate page numbers by measuring actual rendered positions
-    const tocPageNumbers = await page.evaluate(() => {
-      const sections = Array.from(document.querySelectorAll('section > h2'))
-      const pageNumbers: Record<string, number> = {}
-      
-      // PDF dimensions:
-      // Letter size: 8.5" x 11"
-      // Margins: 0.5" all around
-      // Usable area: 7.5" x 10"
-      // In points: 540pt x 720pt (72 points per inch)
-      
-      const pageHeightPoints = 720 // 10 inches usable height
-      const pageWidthPoints = 540 // 7.5 inches usable width
-      
-      // Browser measurements (CSS pixels at 96 DPI)
-      const pixelsPerPoint = 96 / 72 // 1.333 pixels per point
-      const pageHeightPixels = pageHeightPoints * pixelsPerPoint // ~960 pixels
-      
-      // Measure actual cover and TOC heights in pixels
-      const cover = document.querySelector('header.cover')
-      const toc = document.querySelector('section.toc')
-      
-      let coverHeightPixels = pageHeightPixels // Default fallback
-      let tocHeightPixels = pageHeightPixels // Default fallback
-      
-      if (cover) {
-        const coverRect = cover.getBoundingClientRect()
-        coverHeightPixels = coverRect.height
-        console.log('Cover height:', coverHeightPixels, 'pixels')
-      }
-      
-      if (toc) {
-        const tocRect = toc.getBoundingClientRect()
-        tocHeightPixels = tocRect.height
-        console.log('TOC height:', tocHeightPixels, 'pixels')
-      }
-      
-      // Total pixels before content starts
-      const coverAndTocPixels = coverHeightPixels + tocHeightPixels
-      console.log('Cover + TOC total:', coverAndTocPixels, 'pixels')
-      
-      sections.forEach((h2) => {
-        const categoryText = h2.textContent || ''
-        
-        // Find parent section (content section, not TOC)
-        let sectionElement = h2.parentElement
-        while (sectionElement && sectionElement.tagName !== 'SECTION' && sectionElement.tagName !== 'MAIN') {
-          sectionElement = sectionElement.parentElement
-        }
-        
-        if (sectionElement && sectionElement.tagName === 'SECTION' && !sectionElement.classList.contains('toc')) {
-          // Get position from document top in pixels
-          const rect = h2.getBoundingClientRect()
-          const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-          const elementTopPixels = rect.top + scrollTop
-          
-          console.log(categoryText, 'at', elementTopPixels, 'pixels from top')
-          
-          // Subtract cover + TOC to get content position
-          const contentTopPixels = elementTopPixels - coverAndTocPixels
-          
-          if (contentTopPixels > 0) {
-            // Convert pixels to points, then calculate page number
-            const contentTopPoints = contentTopPixels / pixelsPerPoint
-            const pageNum = 3 + Math.floor(contentTopPoints / pageHeightPoints)
-            console.log(categoryText, '→ Page', pageNum, `(contentTop: ${contentTopPoints}pt)`)
-            pageNumbers[categoryText] = Math.max(3, pageNum)
-          } else {
-            console.log(categoryText, '→ Page 3 (before content start)')
-            pageNumbers[categoryText] = 3
-          }
-        }
-      })
-      
-      return pageNumbers
-    })
-
-    // Update TOC with actual page numbers
-    if (Object.keys(tocPageNumbers).length > 0) {
-      await page.evaluate((pageNumbers) => {
-        const tocItems = Array.from(document.querySelectorAll('.toc-item'))
-        tocItems.forEach((item) => {
-          const categoryText = item.querySelector('.toc-text')?.textContent || ''
-          const pageElement = item.querySelector('.toc-page')
-          if (pageElement && categoryText in pageNumbers) {
-            pageElement.textContent = String(pageNumbers[categoryText])
-          }
-        })
-      }, tocPageNumbers)
-    }
 
     // Generate PDF (Puppeteer will handle page numbers in its footer template)
     const pdfBuffer = await page.pdf({
       format: 'Letter',
-      printBackground: true,
-      displayHeaderFooter: true,
+        printBackground: true,
+        displayHeaderFooter: true,
       headerTemplate: '<div></div>',
       footerTemplate: '<div style="width: 100%; text-align: center; font-size: 10pt; color: #666; padding: 0 20pt;"><span class="pageNumber"></span></div>',
       margin: {
         top: '0.5in',
         right: '0.5in',
-        bottom: '0.75in',
+        bottom: '0.5in',
         left: '0.5in'
       }
     })
