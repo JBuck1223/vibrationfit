@@ -21,6 +21,7 @@ export {
   
   // UI Components
   Card,
+  FeatureCard,
   Button,
   VIVAButton,
   Icon,
@@ -53,6 +54,7 @@ export {
   // Specialized Cards
   ItemListCard,
   PricingCard,
+  FlowCards,
   
   // Navigation Components
   Sidebar,

@@ -5,7 +5,8 @@ import {
   Layout, Grid as GridIcon, Square, MousePointer, Tag, Edit, 
   Activity, Play, Monitor, CreditCard, List, CheckCircle, 
   Sparkles, Smartphone, PanelTop, FileText, Music, Type, 
-  Users, Eye, Trash2, Zap, HardDrive, Headphones, Palette
+  Users, Eye, Trash2, Zap, HardDrive, Headphones, Palette,
+  ArrowRight
 } from 'lucide-react'
 
 export interface ComponentMetadata {
@@ -122,6 +123,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     path: '/design-system/component/card'
   },
   {
+    id: 'feature-card',
+    name: 'Feature Card',
+    description: 'Card with icon on top, title under icon, and body text under title',
+    category: 'UI',
+    icon: Square,
+    exportName: 'FeatureCard',
+    path: '/design-system/component/feature-card'
+  },
+  {
     id: 'button',
     name: 'Button',
     description: 'Primary interactive element with multiple variants and sizes',
@@ -201,6 +211,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: Square,
     exportName: 'ItemListCard',
     path: '/design-system/component/item-list-card'
+  },
+  {
+    id: 'flow-cards',
+    name: 'Flow Cards',
+    description: 'Vertically stacked cards with arrows showing a flow or process',
+    category: 'UI',
+    icon: ArrowRight,
+    exportName: 'FlowCards',
+    path: '/design-system/component/flow-cards'
   },
   {
     id: 'pricing-card',

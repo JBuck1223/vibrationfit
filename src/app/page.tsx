@@ -6,16 +6,20 @@ import {
   Activity, DollarSign, Briefcase, UserPlus, Package, 
   Gift, Zap, CheckCircle, ArrowRight, Star, Target,
   Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check, Clock, User,
-  Headphones, Image, BookOpen, CalendarDays, Lock, HelpCircle
+  Headphones, Image, BookOpen, CalendarDays, Lock, HelpCircle, Eye
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Stack,
   Inline,
   Grid,
+  TwoColumn,
   Cover,
   Container,
   Card,
+  FeatureCard,
+  ItemListCard,
+  FlowCards,
   Button,
   VIVAButton,
   Icon,
@@ -27,7 +31,6 @@ import {
   Title,
   BulletedList,
   ListItem,
-  Section,
 } from '@/lib/design-system'
 
 // Vision Categories
@@ -242,16 +245,19 @@ export default function HomePage() {
                       VIVA AI turns contrast into clarity—even if you don't know what you want
                     </ListItem>
                     <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                      Includes 8 weeks of Vision Pro; auto‑starts Day 56 at your plan
+                      Powered by the 5‑Phase Flow inside VIVA Vision
                     </ListItem>
                   </BulletedList>
                   
-                  <div className="flex justify-center md:justify-center">
-                    <Button variant="primary" size="xl" className="mt-1 mb-4 md:mt-2" asChild>
+                  <div className="flex flex-col items-center md:items-center">
+                    <Button variant="primary" size="xl" className="mt-1 mb-2 md:mt-2" asChild>
                       <a href="#pricing">
                         Start the Activation Intensive
                       </a>
                   </Button>
+                    <Text size="xs" className="text-neutral-400 text-center">
+                      $499 today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                    </Text>
                   </div>
                 </div>
                 
@@ -272,90 +278,148 @@ export default function HomePage() {
           </Cover>
         </section>
 
-        {/* What 'active in 72 hours' means + Train → Tune → Track - Side by Side */}
+        {/* Two Column Section with Item List Card */}
         <section>
-          <Grid minWidth="280px" gap="lg">
-            {/* What 'active in 72 hours' means */}
-            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-black border-[#39FF14]/30 hover:border-[#39FF14]/50 transition-all duration-300 flex flex-col items-center justify-center">
-              <Stack gap="md" className="md:gap-8 items-center">
-                <Heading level={3} className="text-[#39FF14] text-center">
-                  What "active in 72 hours" means
+          <Container size="xl">
+            <TwoColumn gap="lg">
+              <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 relative overflow-hidden flex items-center">
+                {/* Thunderbolt Background */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                  <Zap className="w-48 h-48 md:w-64 md:h-64 text-[#39FF14]" strokeWidth={0.5} />
+                </div>
+                {/* Content */}
+                <div className="relative z-10 w-full">
+                  <Heading level={3} className="text-white text-center mb-8 md:mb-10">
+                    What &quot;active in 72 hours&quot; means
                 </Heading>
-                <div className="flex flex-col items-center">
-                  <BulletedList className="items-center">
-                    <ListItem icon={CheckCircle} variant="success" className="text-white">
-                      12-category vision completed
-                    </ListItem>
-                    <ListItem icon={CheckCircle} variant="success" className="text-white">
-                      AM/PM audio recordings
-                    </ListItem>
-                    <ListItem icon={CheckCircle} variant="success" className="text-white">
-                      Vision board created
-                    </ListItem>
-                    <ListItem icon={CheckCircle} variant="success" className="text-white">
-                      3 journal entries logged
-                    </ListItem>
-                    <ListItem icon={CheckCircle} variant="success" className="text-white">
-                      Calibration call booked
-                    </ListItem>
-                  </BulletedList>
+                  <div className="flex flex-col gap-4 items-center">
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200">12‑category Life Vision completed (with VIVA)</Text>
                 </div>
-              </Stack>
-            </Card>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200">AM/PM Vision Audios generated</Text>
+                  </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200">Vision Board built (12 images, 1 per category)</Text>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200">3 journal entries logged (Gratitude, Connect‑the‑Dots, Progress)</Text>
+                  </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200">Calibration call booked</Text>
+                  </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200">Activation Protocol scheduled</Text>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6">
+                <FlowCards
+                  items={[
+                    {
+                      label: 'Train',
+                      description: 'Complete profile (70%+) + 84‑Q assessment; finish first Life Vision (with VIVA)',
+                      icon: Brain,
+                      iconColor: '#39FF14'
+                    },
+                    {
+                      label: 'Tune',
+                      description: 'Refine your vision; generate AM/PM Vision Audios; build your 12‑image Vision Board; start the Activation Protocol',
+                      icon: Target,
+                      iconColor: '#14B8A6'
+                    },
+                    {
+                      label: 'Track',
+                      description: 'Journal daily (Gratitude, Dots, Progress), log iterations, and watch streaks and wins grow',
+                      icon: TrendingUp,
+                      iconColor: '#8B5CF6'
+                    }
+                  ]}
+                  arrowColor="#39FF14"
+                />
+              </div>
+            </TwoColumn>
+          </Container>
+        </section>
 
-            {/* Train → Tune → Track Mechanism */}
-            <Card variant="elevated" className="bg-gradient-to-br from-black via-neutral-900 to-black border-neutral-700 hover:border-[#14B8A6]/50 transition-all duration-300">
-              <Stack gap="md" className="md:gap-8">
-                <div className="flex flex-col gap-3">
-                  {/* Train */}
-                  <div className="flex items-start gap-3 py-4 md:items-center">
-                    <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">Train</Heading>
-                    <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
-                      Complete profile + 84‑Q assessment + first Life Vision draft (with VIVA)
+        {/* Meet the Mechanism */}
+        <section>
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
+              <Stack gap="md" className="md:gap-8" align="center">
+                <Heading level={2} className="text-white text-center">
+                  Meet the Mechanism
+                </Heading>
+                <Card variant="outlined" className="w-full border-2 !border-[#39FF14]/30 !bg-[#39FF14]/20 flex items-center justify-center pb-4 md:pb-3">
+                  <Heading level={3} className="text-white text-center">
+                    The 5‑Phase Conscious Creation Flow<br className="md:hidden" />(encoded in VIVA)
+                  </Heading>
+                </Card>
+                <Grid responsiveCols={{ mobile: 1, desktop: 5 }} minWidth="200px" gap="sm">
+                  <FeatureCard 
+                    icon={Heart} 
+                    title="Gratitude Opening" 
+                    iconColor="#39FF14"
+                    variant="outlined"
+                    number={1}
+                  >
+                    Access the frequency with thanks
+                  </FeatureCard>
+                  <FeatureCard 
+                    icon={Eye} 
+                    title="Sensory Expansion" 
+                    iconColor="#39FF14"
+                    variant="outlined"
+                    number={2}
+                  >
+                    Make it tangible with sight/sound/feel
+                  </FeatureCard>
+                  <FeatureCard 
+                    icon={Brain} 
+                    title="Mental Lifestyle Embodiment" 
+                    iconColor="#39FF14"
+                    variant="outlined"
+                    number={3}
+                  >
+                    Live it now in present tense
+                  </FeatureCard>
+                  <FeatureCard 
+                    icon={Target} 
+                    title="Essence Summarization" 
+                    iconColor="#39FF14"
+                    variant="outlined"
+                    number={4}
+                  >
+                    Lock in the core emotion
+                  </FeatureCard>
+                  <FeatureCard 
+                    icon={Sparkles} 
+                    title="Universal Surrender" 
+                    iconColor="#39FF14"
+                    variant="outlined"
+                    number={5}
+                  >
+                    Release it to unfold
+                  </FeatureCard>
+                </Grid>
+                <Text size="xs" className="text-neutral-400 text-center">
+                  VIVA guides you through all 5 phases across 12 life categories in 72 hours.
                     </Text>
-                  </div>
-                  
-                  {/* Arrow Down */}
-                  <div className="flex items-center gap-3 pl-0">
-                    <div className="w-24 flex justify-center">
-                      <svg className="w-6 h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  {/* Tune */}
-                  <div className="flex items-start gap-3 py-4 md:items-center">
-                    <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">Tune</Heading>
-                    <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
-                      Refine your vision, build your Vision Board, start the Activation Protocol
-                    </Text>
-                  </div>
-                  
-                  {/* Arrow Down */}
-                  <div className="flex items-center gap-3 pl-0">
-                    <div className="w-24 flex justify-center">
-                      <svg className="w-6 h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  {/* Track */}
-                  <div className="flex items-start gap-3 py-4 md:items-center">
-                    <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">Track</Heading>
-                    <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
-                      Journal daily, log iterations, watch streaks and wins grow
-                    </Text>
-                  </div>
-                </div>
               </Stack>
-            </Card>
-          </Grid>
+            </div>
+          </Container>
         </section>
 
         {/* 72-Hour Activation Path */}
-        <Section>
+        <section>
+          <Container size="xl">
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                 <Heading level={2} className="text-white text-center">
@@ -587,11 +651,13 @@ export default function HomePage() {
                   </Button>
                 </div>
               </Stack>
-            </div>
-        </Section>
+          </div>
+          </Container>
+        </section>
 
         {/* Dashboard Preview Section */}
-        <Section>
+        <section>
+          <Container size="xl">
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                   <div className="text-center mb-6">
@@ -767,11 +833,13 @@ export default function HomePage() {
                     </Button>
                   </div>
                 </Stack>
-            </div>
-        </Section>
+          </div>
+          </Container>
+        </section>
 
         {/* Offer Stack Section */}
-        <Section>
+        <section>
+          <Container size="xl">
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                 <div className="text-center">
@@ -876,10 +944,12 @@ export default function HomePage() {
                 </div>
               </Stack>
             </div>
-        </Section>
+          </Container>
+        </section>
 
         {/* Why this works Section */}
-        <Section>
+        <section>
+          <Container size="xl">
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="lg" className="md:gap-12">
                 <div className="text-center">
@@ -900,8 +970,8 @@ export default function HomePage() {
                       <Text size="sm" className="text-neutral-300 text-center">
                         Your 12‑category Life Vision, activated in 72 hours.
                       </Text>
-                    </Stack>
-                  </Card>
+              </Stack>
+            </Card>
 
                   {/* Likelihood of Success */}
                   <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30">
@@ -909,7 +979,7 @@ export default function HomePage() {
                       <div className="flex flex-col items-center gap-3 mb-0">
                         <Icon icon={TrendingUp} size="lg" color="#14B8A6" />
                         <Heading level={4} className="text-white text-center font-bold">Proven System</Heading>
-                      </div>
+          </div>
                       <Text size="sm" className="text-neutral-300 text-center">
                         Conscious Creation System: Train → Tune → Track + proof.
                       </Text>
@@ -953,10 +1023,12 @@ export default function HomePage() {
                 </div>
               </Stack>
             </div>
-        </Section>
+          </Container>
+        </section>
 
         {/* Guarantees Section */}
-        <Section>
+        <section>
+          <Container size="xl">
             <div className="bg-[#1F1F1F] border-[#333] border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="xs" className="md:gap-3" align="center">
                 <div className="w-16 h-16 bg-[#FFFF00] rounded-full flex items-center justify-center mb-2">
@@ -965,71 +1037,73 @@ export default function HomePage() {
                 <Heading level={2} className="text-center mb-0">Our Guarantees</Heading>
                 
                 <Grid responsiveCols={{mobile: 1, desktop: 2}} gap="lg" className="w-full items-stretch">
-                  {/* 72-Hour Activation Guarantee */}
-                  <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
-                    <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
-                      <img 
-                        src="https://media.vibrationfit.com/site-assets/brand/guarantees/72-hour-activation-guarantee.png" 
-                        alt="72 Hour Activation Guarantee"
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
+                {/* 72-Hour Activation Guarantee */}
+                <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
+                  <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
+                    <img 
+                      src="https://media.vibrationfit.com/site-assets/brand/guarantees/72-hour-activation-guarantee.png" 
+                      alt="72 Hour Activation Guarantee"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
                     <Stack gap="md" align="center" className="pb-4 md:pb-6">
                       <Heading level={3} className="text-base md:text-lg lg:text-xl text-white text-center">
-                        72‑Hour Activation Guarantee
-                      </Heading>
-                      <div className="text-center mb-2">
+                      72‑Hour Activation Guarantee
+                    </Heading>
+                    <div className="text-center mb-2">
                         <p className="text-sm md:text-base text-[#39FF14] font-semibold flex items-center justify-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          Clock starts today
-                        </p>
-                      </div>
-                      <Text size="sm" className="md:text-base text-white text-center">
-                        Complete all 10 steps in 72 hours. Not satisfied? Full refund—no questions.
-                      </Text>
-                      <Text size="xs" className="md:text-sm text-neutral-300 text-center">
-                        Completion = 70%+ Profile, 84‑Q Assessment, 12‑category Vision (with VIVA), AM/PM Vision Audio, Vision Board (12 images), 3 journal entries, Calibration call booked.
-                      </Text>
-                    </Stack>
-                  </Card>
-
-                  {/* Membership Guarantee */}
-                  <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
-                    <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
-                      <img 
-                        src="https://media.vibrationfit.com/site-assets/brand/guarantees/membership-guarantee.png"
-                        alt="Membership Guarantee"
-                        className="w-full h-full object-contain"
-                      />
+                        <Clock className="w-4 h-4" />
+                        Clock starts today
+                      </p>
                     </div>
+                      <Text size="sm" className="md:text-base text-white text-center">
+                      Complete all 10 steps in 72 hours. Not satisfied? Full refund—no questions.
+                    </Text>
+                      <Text size="xs" className="md:text-sm text-neutral-300 text-center">
+                      Completion = 70%+ Profile, 84‑Q Assessment, 12‑category Vision (with VIVA), AM/PM Vision Audio, Vision Board (12 images), 3 journal entries, Calibration call booked.
+                    </Text>
+                  </Stack>
+                </Card>
+
+                {/* Membership Guarantee */}
+                <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
+                  <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
+                    <img 
+                      src="https://media.vibrationfit.com/site-assets/brand/guarantees/membership-guarantee.png"
+                      alt="Membership Guarantee"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
                     <Stack gap="md" align="center" className="pb-4 md:pb-6">
                       <Heading level={3} className="text-base md:text-lg lg:text-xl text-white text-center">
-                        Membership Guarantee
-                      </Heading>
-                      <div className="text-center mb-2">
+                      Membership Guarantee
+                    </Heading>
+                    <div className="text-center mb-2">
                         <p className="text-sm md:text-base text-[#8B5CF6] font-semibold flex items-center justify-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          Clock starts today
-                        </p>
-                      </div>
+                        <Clock className="w-4 h-4" />
+                        Clock starts today
+                      </p>
+                    </div>
                       <Text size="sm" className="md:text-base text-white text-center">
-                        28‑Day Plan: 12‑week satisfaction guarantee from today.
-                      </Text>
+                      28‑Day Plan: 12‑week satisfaction guarantee from today.
+                    </Text>
                       <Text size="sm" className="md:text-base text-white text-center">
-                        Annual Plan: 16‑week satisfaction guarantee from today.
-                      </Text>
+                      Annual Plan: 16‑week satisfaction guarantee from today.
+                    </Text>
                       <Text size="sm" className="md:text-base text-white text-center">
-                        Not satisfied within your window? We'll refund the plan and cancel future renewals.
-                      </Text>
-                    </Stack>
-                  </Card>
+                      Not satisfied within your window? We'll refund the plan and cancel future renewals.
+                    </Text>
+                </Stack>
+              </Card>
                 </Grid>
               </Stack>
-            </div>
-        </Section>
+          </div>
+          </Container>
+        </section>
 
         {/* Pricing Section */}
-        <Section id="pricing">
+        <section id="pricing">
+          <Container size="xl">
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="xl" className="md:gap-12">
                 
@@ -1492,8 +1566,9 @@ export default function HomePage() {
                     </Card>
                   </Stack>
               </Stack>
-            </div>
-        </Section>
+          </div>
+          </Container>
+        </section>
 
         {/* FAQ Section - Full FAQ */}
         <section id="faq">
@@ -1501,7 +1576,8 @@ export default function HomePage() {
         </section>
 
         {/* The Problem: Vibrational Chaos */}
-        <Section id="problem">
+        <section id="problem">
+          <Container size="xl">
             <div className="border-[#FF0040]/30 bg-[#FF0040]/5 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
                 <div className="text-center">
@@ -1768,35 +1844,7 @@ export default function HomePage() {
                 </Stack>
               </Stack>
             </div>
-        </Section>
-
-        {/* Visual Comparison - Before moving to Solution */}
-        <section>
-          <Stack gap="lg" align="center">
-            <Card variant="elevated" className="border-[#333] bg-[#1F1F1F] max-w-4xl">
-                <Stack gap="md" className="md:gap-8">
-                  <div className="text-center">
-                  <Text size="base" className="text-neutral-400 mb-4">
-                    "These opposing thoughts continuously are in battle, if unchecked."
-                    </Text>
-                  <Badge variant="error">Vibrational Tug-of-War</Badge>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="text-center">
-                      <Icon icon={Target} size="xl" color="#39FF14" className="mx-auto mb-4" />
-                      <Heading level={4} className="text-[#39FF14] mb-2">Thoughts in Harmony</Heading>
-                      <Text size="sm" className="text-neutral-400">Desires aligned with your goals</Text>
-                    </div>
-                    <div className="text-center">
-                      <Icon icon={Shield} size="xl" color="#FF0040" className="mx-auto mb-4" />
-                      <Heading level={4} className="text-[#FF0040] mb-2">Thoughts of Self-Doubt</Heading>
-                      <Text size="sm" className="text-neutral-400">Limiting beliefs holding you back</Text>
-                    </div>
-                  </div>
-                </Stack>
-            </Card>
-          </Stack>
+          </Container>
         </section>
 
         {/* The Solution: Conscious Creation System */}

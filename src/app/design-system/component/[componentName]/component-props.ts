@@ -50,6 +50,18 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
     { name: 'className', type: 'string', required: false },
   ],
 
+  'feature-card': [
+    { name: 'icon', type: 'React.ElementType', required: true, description: 'Icon component from lucide-react' },
+    { name: 'title', type: 'string', required: true, description: 'Title text displayed under icon' },
+    { name: 'children', type: 'React.ReactNode', required: true, description: 'Body text content' },
+    { name: 'iconColor', type: 'string', required: false, defaultValue: "'#39FF14'", description: 'Icon color (hex or CSS color)' },
+    { name: 'iconSize', type: "'xs' | 'sm' | 'md' | 'lg' | 'xl'", required: false, defaultValue: "'lg'", description: 'Icon size' },
+    { name: 'variant', type: "'default' | 'elevated' | 'outlined' | 'glass'", required: false, defaultValue: "'default'", description: 'Card style variant' },
+    { name: 'hover', type: 'boolean', required: false, defaultValue: 'false', description: 'Enable hover effect' },
+    { name: 'number', type: 'number', required: false, description: 'Optional number to display above icon' },
+    { name: 'className', type: 'string', required: false },
+  ],
+
   'button': [
     { name: 'children', type: 'React.ReactNode', required: true, description: 'Button content (text or icon)' },
     { name: 'variant', type: "'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'danger'", required: false, defaultValue: "'primary'", description: 'Visual style variant' },
@@ -217,6 +229,12 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
     { name: 'items', type: 'string[]', required: true, description: 'Array of items to display' },
     { name: 'iconColor', type: 'string', required: false, defaultValue: "'#39FF14'", description: 'Color for check icons' },
     { name: 'variant', type: "'default' | 'elevated'", required: false, defaultValue: "'default'", description: 'Card style variant' },
+    { name: 'className', type: 'string', required: false },
+  ],
+
+  'flow-cards': [
+    { name: 'items', type: 'Array<{label: string, description: string, icon?: React.ElementType, iconColor?: string}>', required: true, description: 'Array of flow items with label, description, and optional icon' },
+    { name: 'arrowColor', type: 'string', required: false, defaultValue: "'#39FF14'", description: 'Color for arrows between cards' },
     { name: 'className', type: 'string', required: false },
   ],
 

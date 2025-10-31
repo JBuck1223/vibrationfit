@@ -6,6 +6,8 @@
 import React, { useState } from 'react'
 import {
   Card,
+  FeatureCard,
+  FlowCards,
   Button,
   Stack,
   Grid,
@@ -81,6 +83,9 @@ import {
   BookOpen,
   CalendarDays,
   HardDrive,
+  Target,
+  TrendingUp,
+  BarChart3,
 } from 'lucide-react'
 import { type AudioTrack } from '@/lib/design-system/components'
 import type { ComponentMetadata } from '../../components'
@@ -234,6 +239,255 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   <p className="text-neutral-400 text-sm">Card with frosted glass effect.</p>
                 </Card>
               </Grid>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
+    case 'feature-card':
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">FeatureCard - Icon, Title, Body</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">Card with icon on top, title under icon, and body text under title. Perfect for feature lists and mechanism explanations.</p>
+              <Grid minWidth="200px" gap="sm">
+                <FeatureCard 
+                  icon={Heart} 
+                  title="Gratitude Opening" 
+                  iconColor="#39FF14"
+                  variant="outlined"
+                  number={1}
+                >
+                  Access the frequency with thanks
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Eye} 
+                  title="Sensory Expansion" 
+                  iconColor="#39FF14"
+                  variant="outlined"
+                  number={2}
+                >
+                  Make it tangible with sight/sound/feel
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Brain} 
+                  title="Mental Lifestyle Embodiment" 
+                  iconColor="#39FF14"
+                  variant="outlined"
+                  number={3}
+                >
+                  Live it now in present tense
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Target} 
+                  title="Essence Summarization" 
+                  iconColor="#39FF14"
+                  variant="outlined"
+                  number={4}
+                >
+                  Lock in the core emotion
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Sparkles} 
+                  title="Universal Surrender" 
+                  iconColor="#39FF14"
+                  variant="outlined"
+                  number={5}
+                >
+                  Release it to unfold
+                </FeatureCard>
+              </Grid>
+            </Stack>
+          </Card>
+          
+          {/* Variant Examples */}
+          <Card variant="elevated" className="p-4 md:p-6 bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30">
+            <Stack gap="md">
+              <h5 className="text-sm md:text-base font-semibold text-white">All Variants</h5>
+              <Grid minWidth="200px" gap="md">
+                <FeatureCard 
+                  icon={Zap} 
+                  title="Default Variant" 
+                  iconColor="#39FF14"
+                  variant="default"
+                >
+                  Standard card styling
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Zap} 
+                  title="Elevated Variant" 
+                  iconColor="#00FFFF"
+                  variant="elevated"
+                >
+                  Enhanced shadow
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Zap} 
+                  title="Outlined Variant" 
+                  iconColor="#BF00FF"
+                  variant="outlined"
+                >
+                  Transparent background
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Zap} 
+                  title="Glass Variant" 
+                  iconColor="#FFFF00"
+                  variant="glass"
+                >
+                  Frosted glass effect
+                </FeatureCard>
+              </Grid>
+            </Stack>
+          </Card>
+          
+          {/* Icon Size Examples */}
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h5 className="text-sm md:text-base font-semibold text-white">Icon Sizes</h5>
+              <Grid minWidth="200px" gap="md">
+                <FeatureCard 
+                  icon={Star} 
+                  title="Extra Small" 
+                  iconColor="#39FF14"
+                  iconSize="xs"
+                  variant="outlined"
+                >
+                  16px icon
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Star} 
+                  title="Small" 
+                  iconColor="#00FFFF"
+                  iconSize="sm"
+                  variant="outlined"
+                >
+                  20px icon
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Star} 
+                  title="Medium" 
+                  iconColor="#BF00FF"
+                  iconSize="md"
+                  variant="outlined"
+                >
+                  24px icon
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Star} 
+                  title="Large" 
+                  iconColor="#39FF14"
+                  iconSize="lg"
+                  variant="outlined"
+                >
+                  32px icon (default)
+                </FeatureCard>
+                <FeatureCard 
+                  icon={Star} 
+                  title="Extra Large" 
+                  iconColor="#FFFF00"
+                  iconSize="xl"
+                  variant="outlined"
+                >
+                  48px icon
+                </FeatureCard>
+              </Grid>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
+    case 'flow-cards':
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">FlowCards - 3-Step Process</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">Vertically stacked cards with arrows showing a flow or process. Cards span full width.</p>
+              <FlowCards
+                items={[
+                  {
+                    label: 'Train',
+                    description: 'Complete profile + 84‑Q assessment + first Life Vision draft (with VIVA)',
+                    icon: Brain,
+                    iconColor: '#39FF14'
+                  },
+                  {
+                    label: 'Tune',
+                    description: 'Refine your vision, build your Vision Board, start the Activation Protocol',
+                    icon: Target,
+                    iconColor: '#14B8A6'
+                  },
+                  {
+                    label: 'Track',
+                    description: 'Journal daily, log iterations, watch streaks and wins grow',
+                    icon: TrendingUp,
+                    iconColor: '#8B5CF6'
+                  }
+                ]}
+                arrowColor="#39FF14"
+              />
+            </Stack>
+          </Card>
+
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">FlowCards - 4-Step Journey</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">Multi-step progression with custom colors.</p>
+              <FlowCards
+                items={[
+                  {
+                    label: 'Discover',
+                    description: 'Take the 84‑Q assessment to understand your vibrational patterns',
+                    icon: Eye,
+                    iconColor: '#14B8A6'
+                  },
+                  {
+                    label: 'Design',
+                    description: 'Build your 12‑category Life Vision with AI guidance',
+                    icon: Sparkles,
+                    iconColor: '#8B5CF6'
+                  },
+                  {
+                    label: 'Activate',
+                    description: 'Listen to your personalized audio tracks morning and evening',
+                    icon: Zap,
+                    iconColor: '#FFB701'
+                  },
+                  {
+                    label: 'Track',
+                    description: 'Monitor your progress and build consistent habits',
+                    icon: BarChart3,
+                    iconColor: '#39FF14'
+                  }
+                ]}
+                arrowColor="#14B8A6"
+              />
+            </Stack>
+          </Card>
+
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">FlowCards - Simple List</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">No icons, just clean progression.</p>
+              <FlowCards
+                items={[
+                  {
+                    label: 'Week 1',
+                    description: 'Complete your vision assessment and profile setup'
+                  },
+                  {
+                    label: 'Week 2-3',
+                    description: 'Build your vision board and schedule your calibration call'
+                  },
+                  {
+                    label: 'Week 4+',
+                    description: 'Establish daily journaling routine and track progress'
+                  }
+                ]}
+                arrowColor="#8B5CF6"
+              />
             </Stack>
           </Card>
         </Stack>

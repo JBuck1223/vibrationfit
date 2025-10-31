@@ -339,12 +339,7 @@ export const TwoColumn = React.forwardRef<HTMLDivElement, TwoColumnProps>(
         )}
         {...props}
       >
-        {React.Children.map(children, (child) => (
-          // Wrap children to ensure proper 50/50 split on desktop
-          <div className="w-full md:w-1/2">
-            {child}
-          </div>
-        ))}
+        {children}
       </Grid>
     )
   }
@@ -551,6 +546,69 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   }
 )
 Card.displayName = 'Card'
+
+// FeatureCard Component - Icon on top, title under icon, body text under title
+interface FeatureCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  icon: React.ElementType
+  title: string
+  children: React.ReactNode
+  iconColor?: string
+  iconSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  variant?: 'default' | 'elevated' | 'outlined' | 'glass'
+  hover?: boolean
+  number?: number
+}
+
+export const FeatureCard = React.forwardRef<HTMLDivElement, FeatureCardProps>(
+  ({ icon: IconComponent, title, children, iconColor = '#39FF14', iconSize = 'lg', variant = 'default', hover = false, number, className = '', ...props }, ref) => {
+    const variants = {
+      default: 'bg-[#1F1F1F] border-2 border-[#333]',
+      elevated: 'bg-[#1F1F1F] border-2 border-[#333] shadow-xl',
+      outlined: 'bg-transparent border-2 border-[#333]',
+      glass: 'bg-[#1F1F1F]/50 backdrop-blur-lg border border-[#333]/50'
+    }
+    
+    const hoverEffect = hover ? 'hover:border-[#00CC44] hover:shadow-2xl transition-all duration-200' : ''
+    
+    return (
+      <div 
+        ref={ref}
+        className={cn('rounded-2xl p-4 md:p-6 flex flex-col items-center text-center', variants[variant], hoverEffect, className)}
+        {...props}
+      >
+        {/* Number above icon */}
+        {number !== undefined && (
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#39FF14]/20 border-2 border-[#39FF14]/30 flex items-center justify-center mb-2">
+            <span className="text-xs md:text-sm font-bold text-[#39FF14]">
+              {number}
+            </span>
+          </div>
+        )}
+        
+        {/* Icon */}
+        <div className="mb-3 md:mb-4">
+          <IconComponent 
+            size={iconSize === 'xs' ? 16 : iconSize === 'sm' ? 20 : iconSize === 'md' ? 24 : iconSize === 'lg' ? 32 : 48} 
+            color={iconColor} 
+            className="flex-shrink-0"
+            strokeWidth={2}
+          />
+        </div>
+        
+        {/* Title */}
+        <Text size="base" className="text-white mb-2 md:mb-3 font-semibold">
+          {title}
+        </Text>
+        
+        {/* Body text */}
+        <Text size="sm" className="text-neutral-300">
+          {children}
+        </Text>
+      </div>
+    )
+  }
+)
+FeatureCard.displayName = 'FeatureCard'
 
 // Button Component
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -1676,13 +1734,10 @@ export const ItemListCard = React.forwardRef<HTMLDivElement, ItemListCardProps>(
         {...props}
       >
         <div className="flex flex-col gap-6 items-stretch">
-          <h3 className="text-xl font-bold" style={{ color: iconColor }}>
+          <h3 className="text-lg md:text-3xl lg:text-4xl font-bold text-center mb-2 md:mb-3" style={{ color: iconColor }}>
             {title}
           </h3>
-          <div 
-            className="grid gap-4" 
-            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
-          >
+          <div className="flex flex-col gap-4">
             {items.map((item, idx) => (
               <div key={idx} className="flex items-center gap-3">
                 <Check className="w-4 h-4 flex-shrink-0" style={{ color: iconColor }} />
@@ -1696,6 +1751,85 @@ export const ItemListCard = React.forwardRef<HTMLDivElement, ItemListCardProps>(
   }
 )
 ItemListCard.displayName = 'ItemListCard'
+
+// ============================================================================
+// FLOW CARDS COMPONENT - Vertically stacked cards with arrows
+// ============================================================================
+
+interface FlowCardsProps extends React.HTMLAttributes<HTMLDivElement> {
+  items: Array<{
+    label: string
+    description: string
+    icon?: React.ElementType
+    iconColor?: string
+  }>
+  arrowColor?: string
+}
+
+export const FlowCards = React.forwardRef<HTMLDivElement, FlowCardsProps>(
+  ({ items, arrowColor = '#39FF14', className = '', ...props }, ref) => {
+    const ArrowDownIcon = () => (
+      <svg className="w-6 h-6" style={{ color: arrowColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+      </svg>
+    )
+
+    return (
+      <div
+        ref={ref}
+        className={cn('flex flex-col gap-4 w-full', className)}
+        {...props}
+      >
+        {items.map((item, index) => {
+          const IconComponent = item.icon
+          return (
+            <React.Fragment key={index}>
+              <Card variant="default" hover>
+                <Stack gap="sm">
+                  <div className="flex items-start gap-4">
+                    {IconComponent && (
+                      <div 
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ 
+                          backgroundColor: `${item.iconColor || arrowColor}20`,
+                          border: `2px solid ${item.iconColor || arrowColor}30`
+                        }}
+                      >
+                        <IconComponent 
+                          className="w-5 h-5 md:w-6 md:h-6" 
+                          style={{ color: item.iconColor || arrowColor }}
+                          strokeWidth={2}
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <Heading level={4} className="text-white mb-2">
+                        {item.label}
+                      </Heading>
+                      <Text size="sm" className="text-neutral-300">
+                        {item.description}
+                      </Text>
+                    </div>
+                  </div>
+                </Stack>
+              </Card>
+              
+              {/* Arrow between cards (except after last card) */}
+              {index < items.length - 1 && (
+                <div className="flex justify-center my-2">
+                  <div className="animate-bounce">
+                    <ArrowDownIcon />
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
+          )
+        })}
+      </div>
+    )
+  }
+)
+FlowCards.displayName = 'FlowCards'
 
 // ============================================================================
 // PRICING CARD COMPONENT
