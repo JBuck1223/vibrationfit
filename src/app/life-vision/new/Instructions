@@ -1,0 +1,55 @@
+# Life Vision Creation Flow - Instructions
+
+## AI Model Configuration
+
+The Life Vision creation flow uses AI models that are centrally managed through the admin interface:
+
+**Admin Page:** `/admin/ai-models`
+
+### Models Used in Life Vision Creation
+
+1. **LIFE_VISION_CATEGORY_SUMMARY**
+   - Used in: `/api/viva/category-summary`
+   - Purpose: Generate per-category summaries from user input
+   - Default: `gpt-4o` (0.7 temp, 1500 max tokens)
+   - Configuration: `src/lib/ai/config.ts`
+
+2. **LIFE_VISION_MASTER_ASSEMBLY**
+   - Used in: `/api/viva/master-vision`
+   - Purpose: Assemble complete master vision from all categories
+   - Default: `gpt-4-turbo` (0.7 temp, 4000 max tokens)
+   - Configuration: `src/lib/ai/config.ts`
+
+3. **PROMPT_SUGGESTIONS**
+   - Used in: `/api/viva/prompt-suggestions`
+   - Purpose: Generate personalized prompts based on profile/assessment
+   - Default: `gpt-4o` (0.8 temp, 1000 max tokens)
+   - Configuration: `src/lib/ai/config.ts`
+
+### To Change Models
+
+1. Navigate to `/admin/ai-models`
+2. Select the feature you want to modify
+3. Choose a different model from the dropdown
+4. Adjust temperature and max tokens as needed
+5. Click "Save Changes"
+
+### Technical Details
+
+- All AI calls use `getAIModelConfig()` from `@/lib/ai/config`
+- Models are validated against available OpenAI models
+- Token usage is tracked automatically
+- Admin overrides are applied at runtime
+
+### Prompt Files Location
+
+- Category Summary: `src/app/api/viva/category-summary/route.ts` (lines 77-216)
+- Master Assembly: `src/app/api/viva/master-vision/route.ts` (lines 16-275+)
+- Prompt Suggestions: `src/app/api/viva/prompt-suggestions/route.ts`
+
+### Reference Documentation
+
+- Full config: `src/lib/ai/config.ts`
+- Admin UI: `src/app/admin/ai-models/page.tsx`
+- Shared system prompt: `src/app/life-vision/new/Prompts/shared-system-prompt.md`
+
