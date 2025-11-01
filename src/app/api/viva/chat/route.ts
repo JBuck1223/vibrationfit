@@ -396,7 +396,9 @@ export async function POST(req: Request) {
       system: systemPrompt,
       messages: chatMessages,
       prompt: isInitialGreeting 
-        ? `Introduce yourself to ${userName} and acknowledge what you see in their profile and assessment. Keep it warm, brief (2-3 sentences), and then ask one powerful opening question related to ${context?.category || 'their vision'} and the ${visionBuildPhase} phase.`
+        ? (context?.refinement && context?.category 
+          ? `Introduce yourself to ${userName} warmly. Acknowledge you're here to help refine their ${context.category} vision section. Reference something specific from their current ${context.category} section above (if provided) or their profile/assessment context. Then ask one powerful question that will help them deepen or elevate this category. Keep it warm, conversational, and focused on refinement. 3-4 sentences total.`
+          : `Introduce yourself to ${userName} and acknowledge what you see in their profile and assessment. Keep it warm, brief (2-3 sentences), and then ask one powerful opening question related to ${context?.category || 'their vision'} and the ${visionBuildPhase} phase.`)
         : undefined,
       temperature: 0.8,
       async onFinish({ text, usage }: { text: string; usage?: any }) {

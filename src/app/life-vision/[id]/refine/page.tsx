@@ -282,6 +282,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [editingDraft, setEditingDraft] = useState<string | null>(null)
   const [showCurrentVision, setShowCurrentVision] = useState(true)
   const [userProfile, setUserProfile] = useState<any>(null)
+  const [isInitializingChat, setIsInitializingChat] = useState(false)
+  const [initializationStep, setInitializationStep] = useState<string>('')
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const supabase = createClient()
@@ -676,9 +678,17 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
     
     setIsTyping(true)
+    setIsInitializingChat(true)
+    setInitializationStep('Loading your vision...')
     
     try {
+      // Brief delay to show first step
+      await new Promise(resolve => setTimeout(resolve, 500))
+      setInitializationStep('Analyzing refinement data...')
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       // Call real VIVA chat API with initial greeting
+      setInitializationStep('Connecting with VIVA...')
       const response = await fetch('/api/viva/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -694,6 +704,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           visionBuildPhase: 'refinement'
         })
       })
+      
+      setIsInitializingChat(false)
 
       if (!response.ok) {
         throw new Error('Failed to start conversation')
@@ -745,6 +757,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setConversationPhase('exploring')
     } catch (error) {
       console.error('Error starting conversation:', error)
+      setIsInitializingChat(false)
       setError('Failed to start conversation. Please try again.')
       
       // Fallback to basic message
@@ -1478,7 +1491,17 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       {/* Chat Interface */}
       {selectedCategory && (
         <div className="space-y-6">
-          {chatMessages.length === 0 ? (
+          {isInitializingChat ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <Spinner className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Preparing VIVA...</h3>
+              <p className="text-neutral-400 mb-6">
+                {initializationStep || 'Getting ready to help you refine your vision'}
+              </p>
+            </div>
+          ) : chatMessages.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MessageCircle className="w-8 h-8 text-white" />
