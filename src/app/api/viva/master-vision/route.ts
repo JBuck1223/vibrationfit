@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAIModelConfig } from '@/lib/ai/config'
 import OpenAI from 'openai'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
+import { flattenProfile, flattenAssessment } from '@/lib/viva/prompt-flatteners'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -77,9 +78,9 @@ Voice Protection Rules (few-shot):
   Output: "I enjoy paying everything on time and watching balances stay at zero."
 
 Forbidden patterns (rewrite before output):
-- /\\bI (want|will|wish|try|hope to)\\b/i
-- /\\bI (don’t|do not|no longer)\\b.*\\b/  (flip to the positive opposite)
-- /\\bbut\\b|\\bhowever\\b|\\beven though\\b/i
+- /\bI (want|will|wish|try|hope to)\b/i
+- /\bI (don’t|do not|no longer)\b.*\b/  (flip to the positive opposite)
+- /\bbut\b|\bhowever\b|\beven though\b/i
 
 Always rephrase to present-tense, positive, ideal state using the member’s original terms.
 `
@@ -116,52 +117,13 @@ ${FLOW_FLEXIBILITY_NOTE}
 ${STYLE_GUARDRAILS}
 
 BACKGROUND CONTEXT (draw voice & specifics from here; transcripts > summaries > profile > assessment):
-${profile ? `Profile Context:
 
-**User's Own Words from Profile Stories (PRIORITY after transcripts):**
-${[
-  { key: 'fun', story: profile.fun_story },
-  { key: 'health', story: profile.health_story },
-  { key: 'travel', story: profile.travel_story },
-  { key: 'love', story: profile.love_story },
-  { key: 'family', story: profile.family_story },
-  { key: 'social', story: profile.social_story },
-  { key: 'home', story: profile.home_story },
-  { key: 'work', story: profile.work_story },
-  { key: 'money', story: profile.money_story },
-  { key: 'stuff', story: profile.stuff_story },
-  { key: 'giving', story: profile.giving_story },
-  { key: 'spirituality', story: profile.spirituality_story }
-]
-  .filter(item => item.story && item.story.trim().length > 0)
-  .map(item => `- ${item.key}: "${item.story}"`)
-  .join('\n')}
-
-**Other Profile Data (top fields):**
-${Object.entries(profile)
-  .filter(([key, value]) =>
-    value !== null &&
-    value !== undefined &&
-    value !== '' &&
-    !['id', 'user_id', 'created_at', 'updated_at', 'completion_percentage'].includes(key) &&
-    !key.includes('_story')
-  )
-  .slice(0, 10)
-  .map(([key, value]) => {
-    const displayValue = Array.isArray(value) ? value.join(', ') : value
-    return `- ${key}: ${displayValue}`
-  })
-  .join('\n')}
+${profile && Object.keys(profile).length ? `PROFILE (flattened; use for facts, not phrasing):
+${flattenProfile(profile)}
 ` : ''}
 
-${assessment ? `Assessment Context:
-- Overall Score: ${assessment.overall_percentage || 0}%
-- Category Scores: ${JSON.stringify(assessment.category_scores || {})}
-${assessment.responses && assessment.responses.length > 0 ? `
-Assessment Q&A (use specifics, not scores):
-${assessment.responses.map((r: any) => `Category: ${r.category}
-Q: ${r.question_text}
-A: ${r.response_text}`).join('\n')}` : ''}
+${assessment ? `ASSESSMENT (compact; use specifics, never output scores):
+${flattenAssessment(assessment)}
 ` : ''}
 
 Category Summaries (structure/insight):
@@ -418,9 +380,9 @@ function extractCategoriesFromMarkdown(markdown: string): any {
     }
   })
 
-  // Get the actual model being used from AI config
+  // prefer the configured model label for meta
   const aiConfig = getAIModelConfig('LIFE_VISION_MASTER_ASSEMBLY')
-  
+
   return {
     ...categories,
     meta: {

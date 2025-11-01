@@ -28,7 +28,6 @@
 ## 🎯 **Life Vision System**
 - `/life-vision` - My Life Visions
 - `/life-vision/new` - Create New Vision
-- `/life-vision/create-with-viva` - Create with VIVA Assistant
 - `/life-vision/[id]` - View Specific Vision
 - `/life-vision/[id]/refine` - Refine Vision
 - `/life-vision/[id]/audio` - Vision Audio

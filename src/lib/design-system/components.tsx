@@ -4,7 +4,7 @@
 // Mobile-First, Neon Cyberpunk Aesthetic
 // Path: /src/lib/design-system/components.tsx
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -3809,10 +3809,30 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   const [originalOrder, setOriginalOrder] = useState<number[]>([])
   
   const audioRef = useRef<HTMLAudioElement>(null)
+  const lastRepeatClickRef = useRef<number>(0)
 
   const currentTrack = tracks[currentTrackIndex]
   
   // Audio mixing handled by server-side Lambda
+  
+  // Define handleNext before useEffects
+  const handleNext = useCallback(() => {
+    setCurrentTrackIndex((currentIndex) => {
+      let newIndex = currentIndex + 1
+
+      if (repeatMode === 'one') {
+        newIndex = currentIndex
+      } else if (repeatMode === 'all' && newIndex >= tracks.length) {
+        newIndex = 0
+      } else if (newIndex >= tracks.length) {
+        setIsPlaying(false)
+        return currentIndex
+      }
+
+      setCurrentTime(0)
+      return newIndex
+    })
+  }, [repeatMode, tracks.length])
 
   useEffect(() => {
     const audio = audioRef.current
@@ -3839,13 +3859,20 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       audio.removeEventListener('timeupdate', setAudioTime)
       audio.removeEventListener('ended', handleEnded)
     }
-  }, [currentTrackIndex])
+  }, [handleNext])
 
   useEffect(() => {
-    if (autoPlay && isPlaying) {
-      audioRef.current?.play()
+    const audio = audioRef.current
+    if (!audio) return
+    
+    // Update audio source when track changes
+    audio.src = currentTrack?.url || ''
+    
+    // Auto-play if currently playing
+    if (isPlaying && currentTrack?.url) {
+      audio.play().catch(() => setIsPlaying(false))
     }
-  }, [currentTrackIndex])
+  }, [currentTrackIndex, currentTrack?.url, isPlaying])
 
   const togglePlayPause = async () => {
     // Use standard HTML audio (server-side mixing handles all mixing)
@@ -3871,22 +3898,6 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
     if (newIndex < 0) {
       newIndex = tracks.length - 1
     }
-    setCurrentTrackIndex(newIndex)
-    setCurrentTime(0)
-  }
-
-  const handleNext = () => {
-    let newIndex = currentTrackIndex + 1
-
-    if (repeatMode === 'one') {
-      newIndex = currentTrackIndex
-    } else if (repeatMode === 'all' && newIndex >= tracks.length) {
-      newIndex = 0
-    } else if (newIndex >= tracks.length) {
-      setIsPlaying(false)
-      return
-    }
-
     setCurrentTrackIndex(newIndex)
     setCurrentTime(0)
   }
@@ -3923,11 +3934,35 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
     }
   }
 
-  const toggleRepeat = () => {
-    const modes: ('off' | 'all' | 'one')[] = ['off', 'all', 'one']
-    const currentIndex = modes.indexOf(repeatMode)
-    const nextIndex = (currentIndex + 1) % modes.length
-    setRepeatMode(modes[nextIndex])
+  const handleRepeatClick = () => {
+    const now = Date.now()
+    const timeSinceLastClick = now - lastRepeatClickRef.current
+    
+    // Double-click detected (within 500ms)
+    if (timeSinceLastClick < 500) {
+      // Restart current track
+      const audio = audioRef.current
+      if (audio) {
+        audio.currentTime = 0
+        if (!isPlaying) {
+          audio.play()
+          setIsPlaying(true)
+        }
+      }
+      lastRepeatClickRef.current = 0 // Reset to prevent triple-click
+    } else {
+      // Single click - cycle repeat mode
+      lastRepeatClickRef.current = now
+      setTimeout(() => {
+        // Check if it's still the same timestamp (no double-click occurred)
+        if (lastRepeatClickRef.current === now) {
+          const modes: ('off' | 'all' | 'one')[] = ['off', 'all', 'one']
+          const currentIndex = modes.indexOf(repeatMode)
+          const nextIndex = (currentIndex + 1) % modes.length
+          setRepeatMode(modes[nextIndex])
+        }
+      }, 500)
+    }
   }
 
   const toggleShuffle = () => {
@@ -3969,7 +4004,6 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
     <div className={cn('w-full', className)}>
       <audio 
         ref={audioRef} 
-        src={currentTrack?.url} 
         preload="metadata"
         onError={(e) => {
           console.warn('Audio failed to load:', currentTrack?.url, e)
@@ -4042,7 +4076,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
 
         {/* Repeat Button */}
         <button
-          onClick={toggleRepeat}
+          onClick={handleRepeatClick}
           className={cn(
             'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
             repeatMode !== 'off'

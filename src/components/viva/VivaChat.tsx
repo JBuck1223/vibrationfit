@@ -4,10 +4,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Loader2 } from 'lucide-react'
-import { Button } from '@/lib/design-system/components'
+import { Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { VivaChatInput } from './VivaChatInput'
 
 interface Message {
   id: string
@@ -19,10 +19,11 @@ interface VivaChatProps {
   visionBuildPhase: 'contrast' | 'peak' | 'specific'
   currentCategory?: string
   onSaveVision?: (content: string) => Promise<void>
+  userInitial?: string // First letter of user's name for avatar
 }
 
 // Individual message component with streaming support
-function Message({ message, onQuickAction }: { message: Message; onQuickAction: (action: string, content?: string) => void }) {
+function Message({ message, onQuickAction, userInitial }: { message: Message; onQuickAction: (action: string, content?: string) => void; userInitial?: string }) {
   const isUser = message.role === 'user'
   
   return (
@@ -42,7 +43,7 @@ function Message({ message, onQuickAction }: { message: Message; onQuickAction: 
         className={cn(
           'max-w-[80%] rounded-2xl px-4 py-3',
           isUser
-            ? 'bg-primary-500 text-white'
+            ? 'bg-neutral-800 text-white border border-neutral-700'
             : 'bg-neutral-900 border border-neutral-800 text-white'
         )}
       >
@@ -71,8 +72,8 @@ function Message({ message, onQuickAction }: { message: Message; onQuickAction: 
       </div>
 
       {isUser && (
-        <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center flex-shrink-0 text-xs font-semibold">
-          You
+        <div className="w-8 h-8 rounded-full bg-[#06B6D4] flex items-center justify-center flex-shrink-0 text-white text-xs font-semibold">
+          {userInitial || 'Y'}
         </div>
       )}
     </div>
@@ -100,10 +101,9 @@ function WelcomeMessage({ phase }: { phase: string }) {
   )
 }
 
-export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVision }: VivaChatProps) {
+export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVision, userInitial }: VivaChatProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -111,19 +111,13 @@ export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVisi
   const [error, setError] = useState<Error | null>(null)
   const [hasInitialized, setHasInitialized] = useState(false)
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!input.trim() || isLoading) return
+  const handleSubmit = async (messageText: string) => {
+    if (!messageText.trim() || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim()
+      content: messageText.trim()
     }
 
     // Add user message optimistically
@@ -277,10 +271,6 @@ export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVisi
     initializeChat()
   }, [hasInitialized, visionBuildPhase, currentCategory])
 
-  // Focus input on mount
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
 
   const handleQuickAction = async (action: string, content?: string) => {
     // Optimistic UI - show action immediately
@@ -310,6 +300,7 @@ export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVisi
             key={message.id}
             message={message}
             onQuickAction={handleQuickAction}
+            userInitial={userInitial}
           />
         ))}
 
@@ -332,29 +323,16 @@ export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVisi
       </div>
 
       {/* Input Area - Fixed at bottom */}
-      <form onSubmit={handleSubmit} className="absolute bottom-0 left-0 right-0 p-4 bg-neutral-900 border-t border-neutral-800">
-        <div className="flex gap-2">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={handleInputChange}
-            placeholder="Share what's on your mind..."
-            className="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            disabled={isLoading}
-          />
-          <Button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="px-6"
-          >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-          </Button>
-        </div>
-      </form>
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-neutral-900 border-t border-neutral-800">
+        <VivaChatInput
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSubmit}
+          placeholder="Share what's on your mind..."
+          disabled={isLoading}
+          isLoading={isLoading}
+        />
+      </div>
     </div>
   )
 }

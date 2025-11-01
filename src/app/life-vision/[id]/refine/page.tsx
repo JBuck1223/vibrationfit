@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { 
   Sparkles, 
   MessageCircle, 
@@ -32,6 +33,7 @@ import {
 } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
+import { VivaChatInput } from '@/components/viva/VivaChatInput'
 
 interface VisionData {
   id: string
@@ -99,7 +101,9 @@ const ChatInterface = ({
   sendMessage, 
   showCopyPrompt, 
   setShowCopyPrompt, 
-  copyToRefinement 
+  copyToRefinement,
+  generateRefinementFromConversation,
+  userProfile
 }: { 
   chatMessages: ChatMessage[], 
   isTyping: boolean, 
@@ -109,7 +113,9 @@ const ChatInterface = ({
   sendMessage: () => void, 
   showCopyPrompt: boolean, 
   setShowCopyPrompt: (value: boolean) => void, 
-  copyToRefinement: () => void 
+  copyToRefinement: () => void,
+  generateRefinementFromConversation: () => void,
+  userProfile?: any
 }) => (
   <div className="space-y-6">
     {/* Chat Interface */}
@@ -142,7 +148,7 @@ const ChatInterface = ({
             <div
               className={`max-w-[80%] p-4 rounded-lg ${
                 message.role === 'user'
-                  ? 'bg-primary-500 text-white'
+                  ? 'bg-neutral-800 text-white border border-neutral-700'
                   : 'bg-neutral-800 text-neutral-100'
               }`}
             >
@@ -153,8 +159,20 @@ const ChatInterface = ({
             </div>
 
             {message.role === 'user' && (
-              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                {userProfile?.profile_picture_url ? (
+                  <Image
+                    src={userProfile.profile_picture_url}
+                    alt="You"
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-[#06B6D4] flex items-center justify-center text-white text-xs font-semibold">
+                    {userProfile?.first_name?.charAt(0).toUpperCase() || 'Y'}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -178,21 +196,29 @@ const ChatInterface = ({
       </div>
 
       {/* Message Input */}
-      <div className="flex gap-3">
-        <Textarea
-          key="viva-input"
+      <div className="space-y-3">
+        <VivaChatInput
           value={currentMessage}
-          onChange={(e) => setCurrentMessage(e.target.value)}
+          onChange={setCurrentMessage}
+          onSubmit={sendMessage}
           placeholder="Type your response..."
-          className="flex-1 bg-neutral-800/50 border-neutral-600"
+          disabled={isTyping}
+          isLoading={isTyping}
+          multiline={true}
         />
-        <Button
-          onClick={sendMessage}
-          disabled={!currentMessage.trim() || isTyping}
-          className="px-4"
-        >
-          <Send className="w-4 h-4" />
-        </Button>
+        
+        {/* Generate Refinement Button - Show after some conversation */}
+        {chatMessages.length >= 2 && (
+          <Button
+            onClick={generateRefinementFromConversation}
+            disabled={isTyping}
+            variant="accent"
+            className="w-full"
+          >
+            <Sparkles className="w-4 h-4" />
+            Generate Refinement from Conversation
+          </Button>
+        )}
       </div>
 
       {/* Copy Prompt */}
@@ -242,6 +268,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [currentRefinement, setCurrentRefinement] = useState('')
   const [showCopyPrompt, setShowCopyPrompt] = useState(false)
   const [lastVivaResponse, setLastVivaResponse] = useState('')
+  const [vivaSections, setVivaSections] = useState<Array<{ id: string, content: string, timestamp: Date }>>([]) // New: collect VIVA sections
+  const [showCombinePreview, setShowCombinePreview] = useState(false) // New: show combined preview
+  const [combinedText, setCombinedText] = useState('') // New: preview combined text
   const [conversationPhase, setConversationPhase] = useState<'initial' | 'exploring' | 'refining' | 'finalizing'>('initial')
   const [draftStatus, setDraftStatus] = useState<'none' | 'draft' | 'committed'>('none')
   const [isDraftSaving, setIsDraftSaving] = useState(false)
@@ -252,6 +281,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [visionId, setVisionId] = useState<string | null>(null)
   const [editingDraft, setEditingDraft] = useState<string | null>(null)
   const [showCurrentVision, setShowCurrentVision] = useState(true)
+  const [userProfile, setUserProfile] = useState<any>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const supabase = createClient()
@@ -331,6 +361,17 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
       setVision(visionData)
       console.log('Vision loaded successfully:', visionData.id)
+      
+      // Also fetch user profile for avatar
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('first_name, profile_picture_url')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (profile) {
+        setUserProfile(profile)
+      }
     } catch (error) {
       console.error('Error loading vision:', error)
       setError('Failed to load vision data')
@@ -859,6 +900,55 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     setShowCopyPrompt(false)
   }
 
+  // Generate refinement from conversation
+  const generateRefinementFromConversation = async () => {
+    if (!selectedCategory || !visionId || chatMessages.length === 0) return
+    
+    setIsTyping(true)
+    try {
+      // Prepare conversation history
+      const conversationHistory = chatMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+      
+      // Call refine-category API
+      const response = await fetch('/api/viva/refine-category', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visionId,
+          category: selectedCategory,
+          currentRefinement: currentRefinement || getCategoryValue(selectedCategory),
+          conversationHistory,
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate refinement')
+      }
+      
+      if (data.success && data.refinedText) {
+        setCombinedText(data.refinedText)
+        setShowCombinePreview(true)
+      }
+    } catch (error) {
+      console.error('Error generating refinement:', error)
+      setError('Failed to generate refinement. Please try again.')
+    } finally {
+      setIsTyping(false)
+    }
+  }
+  
+  // Accept combined preview
+  const acceptCombinedPreview = () => {
+    setCurrentRefinement(combinedText)
+    setShowCombinePreview(false)
+    setCombinedText('')
+  }
+
   // Draft management functions
   const saveDraft = async () => {
     if (!vision || !selectedCategory || !currentRefinement.trim()) return
@@ -1134,7 +1224,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       {allDrafts.length > 0 && (
         <div className="mb-8">
           <Card className="p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
                   <span className="text-yellow-500 text-sm font-bold">{allDrafts.length}</span>
@@ -1418,8 +1508,66 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               showCopyPrompt={showCopyPrompt}
               setShowCopyPrompt={setShowCopyPrompt}
               copyToRefinement={copyToRefinement}
+              generateRefinementFromConversation={generateRefinementFromConversation}
+              userProfile={userProfile}
             />
           )}
+        </div>
+      )}
+
+      {/* Combine Preview Modal */}
+      {showCombinePreview && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-neutral-700">
+              <div className="flex items-center gap-3 mb-2">
+                <Sparkles className="w-8 h-8 text-purple-400" />
+                <h3 className="text-xl font-semibold text-white">Preview Combined Refinement</h3>
+              </div>
+              <p className="text-sm text-neutral-400">
+                Generated from your conversation with VIVA
+              </p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              <AutoResizeTextarea
+                value={combinedText}
+                onChange={setCombinedText}
+                className="bg-neutral-800/50 border-neutral-600 min-h-[300px]"
+                readOnly={false}
+              />
+            </div>
+            
+            <div className="p-6 border-t border-neutral-700 flex gap-3 justify-end">
+              <Button
+                onClick={() => {
+                  setShowCombinePreview(false)
+                  setCombinedText('')
+                }}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowCombinePreview(false)
+                  generateRefinementFromConversation()
+                }}
+                variant="secondary"
+                disabled={isTyping}
+              >
+                {isTyping ? 'Regenerating...' : 'Try Again'}
+              </Button>
+              <Button
+                onClick={acceptCombinedPreview}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                Accept & Update
+              </Button>
+            </div>
+          </Card>
         </div>
       )}
     </div>

@@ -45,7 +45,6 @@ export function Footer({ className = '' }: FooterProps) {
   const userVisionLinks = [
     { href: '/life-vision', label: 'Life Visions', icon: Eye },
     { href: '/life-vision/new', label: 'Create Vision', icon: Plus },
-    { href: '/life-vision/create-with-viva', label: 'Create with VIVA', icon: Zap },
     { href: '/life-vision/[id]', label: 'Vision Details', icon: Eye },
     { href: '/life-vision/[id]/audio', label: 'Vision Audio', icon: MessageCircle },
     { href: '/life-vision/[id]/refine', label: 'Refine Vision', icon: Settings },

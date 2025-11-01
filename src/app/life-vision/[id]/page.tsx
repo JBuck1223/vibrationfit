@@ -891,7 +891,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                           {version.status === 'draft' ? (
                             <>
                               <Button
-                                onClick={() => router.push('/life-vision/create-with-viva')}
+                                onClick={() => router.push('/life-vision/new')}
                                 variant="primary"
                                 size="sm"
                                 className="flex-1 min-w-0 shrink md:flex-none"

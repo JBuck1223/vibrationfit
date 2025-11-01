@@ -195,8 +195,10 @@ export async function POST(request: NextRequest) {
           })
         }
         
-        // Handle $499 Vision Activation Intensive purchases (standalone)
-        else if (session.mode === 'payment' && session.metadata?.purchase_type === 'intensive') {
+        // Handle $499 Vision Activation Intensive purchases (standalone or combined)
+        // This handles both standalone intensive purchases AND combined checkout (full payment mode)
+        if ((session.mode === 'payment' && session.metadata?.purchase_type === 'intensive') ||
+            (session.mode === 'payment' && session.metadata?.product_type === 'combined_intensive_continuity')) {
           const existingUserId = session.metadata.user_id
           const paymentPlan = session.metadata.payment_plan || 'full'
           const customerEmail = session.customer_details?.email
@@ -299,19 +301,156 @@ export async function POST(request: NextRequest) {
             deadline: activationDeadline.toISOString(),
           })
 
+          // Create Vision Pro subscription separately with 56-day trial
+          // This ensures Vision Pro doesn't show in intensive checkout but starts after 56 days
+          const continuityPlan = session.metadata.continuity_plan || 'annual'
+          const continuityPriceId = session.metadata.continuity_price_id || 
+                                     (continuityPlan === 'annual' 
+                                       ? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL 
+                                       : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY)
+
+          if (continuityPriceId) {
+            console.log('Creating Vision Pro subscription with 56-day trial...')
+            
+            try {
+              // Get or create Stripe customer
+              const customerId = session.customer as string || 
+                                 await stripe.customers.create({
+                                   email: customerEmail,
+                                   metadata: { user_id: userId },
+                                 }).then(c => c.id)
+
+              const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
+              const { data: tier } = await supabase
+                .from('membership_tiers')
+                .select('id')
+                .eq('tier_type', tierType)
+                .single()
+
+              if (tier) {
+                // Create Vision Pro subscription with 56-day trial
+                const visionProSubscription = await stripe.subscriptions.create({
+                  customer: customerId,
+                  items: [
+                    {
+                      price: continuityPriceId,
+                      quantity: 1,
+                    },
+                  ],
+                  trial_period_days: 56, // Start billing after 56 days
+                  metadata: {
+                    product_type: 'vision_pro_continuity',
+                    tier_type: tierType,
+                    intensive_payment_plan: paymentPlan,
+                    continuity_plan: continuityPlan,
+                    intensive_purchase_id: intensive.id.toString(),
+                    billing_starts_day: '56',
+                  },
+                })
+
+                console.log('✅ Vision Pro subscription created:', visionProSubscription.id)
+
+                // Create subscription record
+                const { data: newSubscription } = await supabase.from('customer_subscriptions').insert({
+                  user_id: userId,
+                  membership_tier_id: tier.id,
+                  stripe_customer_id: customerId,
+                  stripe_subscription_id: visionProSubscription.id,
+                  stripe_price_id: continuityPriceId,
+                  status: 'trialing' as any,
+                  current_period_start: new Date((visionProSubscription as any).current_period_start * 1000).toISOString(),
+                  current_period_end: new Date((visionProSubscription as any).current_period_end * 1000).toISOString(),
+                  trial_start: new Date().toISOString(),
+                  trial_end: new Date(Date.now() + (56 * 24 * 60 * 60 * 1000)).toISOString(),
+                })
+                .select()
+                .single()
+
+                // Grant trial tokens
+                if (tierType === 'vision_pro_annual') {
+                  await supabase.rpc('grant_trial_tokens', {
+                    p_user_id: userId,
+                    p_subscription_id: newSubscription?.id || null,
+                    p_tokens: 1000000,
+                    p_trial_period_days: 56,
+                  })
+                  await supabase
+                    .from('user_profiles')
+                    .update({ storage_quota_gb: 25 })
+                    .eq('user_id', userId)
+                } else if (tierType === 'vision_pro_28day') {
+                  await supabase.rpc('grant_trial_tokens', {
+                    p_user_id: userId,
+                    p_subscription_id: newSubscription?.id || null,
+                    p_tokens: 500000,
+                    p_trial_period_days: 56,
+                  })
+                  await supabase
+                    .from('user_profiles')
+                    .update({ storage_quota_gb: 25 })
+                    .eq('user_id', userId)
+                }
+              }
+            } catch (visionProError) {
+              console.error('Failed to create Vision Pro subscription:', visionProError)
+              // Don't break - intensive purchase is still valid, Vision Pro can be added manually
+            }
+          }
+
           // TODO: Send welcome email with intensive onboarding instructions
           // TODO: Schedule SMS reminders for 24h, 36h, 72h checkpoints
         }
         
         // Handle Combined Checkout: Intensive + Vision Pro Continuity
-        else if ((session.mode as string) === 'subscription' && session.metadata?.product_type === 'combined_intensive_continuity') {
+        // Vision Pro is NOT in checkout - created separately in webhook with 56-day trial
+        // Supports both payment mode (full) and subscription mode (2pay/3pay)
+        if ((session.mode === 'payment' || session.mode === 'subscription') && 
+            (session.metadata?.product_type === 'combined_intensive_continuity' || 
+             (session.mode === 'payment' && session.metadata?.purchase_type === 'intensive' && session.metadata?.continuity_price_id))) {
           console.log('🔄 Processing combined intensive + continuity checkout...')
           
-          const customerId = session.customer as string
-          const subscriptionId = session.subscription as string
           const customerEmail = session.customer_details?.email
-          const intensivePaymentPlan = session.metadata.intensive_payment_plan || 'full'
+          const intensivePaymentPlan = session.metadata.intensive_payment_plan || session.metadata.payment_plan || 'full'
           const continuityPlan = session.metadata.continuity_plan || 'annual'
+          
+          // Get Vision Pro price ID from metadata (stored in checkout)
+          const continuityPriceId = session.metadata.continuity_price_id || 
+                                     (continuityPlan === 'annual' 
+                                       ? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL 
+                                       : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY)
+          
+          if (!continuityPriceId) {
+            console.error('Continuity price ID not found')
+            break
+          }
+          
+          // Get customer ID (different for payment vs subscription mode)
+          let customerId: string | null = null
+          if (session.mode === 'subscription') {
+            const subscriptionId = session.subscription as string
+            const tempSubscription = await stripe.subscriptions.retrieve(subscriptionId)
+            customerId = tempSubscription.customer as string
+          } else {
+            // Payment mode - need to get customer from payment intent
+            const paymentIntentId = session.payment_intent as string
+            if (paymentIntentId) {
+              const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+              customerId = paymentIntent.customer as string | null
+            }
+            // If no customer yet, we'll create one
+            if (!customerId && customerEmail) {
+              const customer = await stripe.customers.create({
+                email: customerEmail,
+                metadata: { source: 'intensive_checkout' },
+              })
+              customerId = customer.id
+            }
+          }
+          
+          if (!customerId) {
+            console.error('Customer ID not found and could not create')
+            break
+          }
           
           // Handle guest checkout - create user account if needed
           let userId = session.metadata.user_id && session.metadata.user_id !== 'guest' ? session.metadata.user_id : null
@@ -319,7 +458,6 @@ export async function POST(request: NextRequest) {
           if (!userId && customerEmail) {
             console.log('Creating user account for combined checkout:', customerEmail)
             
-            // Create user account in Supabase Auth
             const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
               email: customerEmail,
               email_confirm: true,
@@ -333,7 +471,6 @@ export async function POST(request: NextRequest) {
             userId = authData.user.id
             console.log('Created user account for combined checkout:', userId)
 
-            // Generate magic link for backup
             const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
             const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
               type: 'magiclink',
@@ -355,9 +492,6 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // 1. Create Vision Pro subscription
-          console.log('Creating Vision Pro subscription...')
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId)
           const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
 
           // Get membership tier
@@ -372,82 +506,134 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Create subscription record with delayed billing
-          const { data: newSubscription } = await supabase.from('customer_subscriptions').insert({
-            user_id: userId,
-            membership_tier_id: tier.id,
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscriptionId,
-            stripe_price_id: subscription.items.data[0].price.id,
-            status: 'trialing' as any, // Mark as trialing during 8-week period
-            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-            trial_start: new Date().toISOString(), // Start trial immediately
-            trial_end: new Date(Date.now() + (56 * 24 * 60 * 60 * 1000)).toISOString(), // End trial after 56 days
-          })
-          .select()
-          .single()
+          // Create Vision Pro subscription separately with 56-day trial
+          // This is configured via trial_period_days in Subscription.create API call
+          // (Cannot be configured in Stripe Dashboard per price - trials are subscription-level only)
+          const scheduleStartDate = Math.floor(Date.now() / 1000) + (56 * 24 * 60 * 60) // 56 days from now
+          
+          try {
+            console.log('Creating Vision Pro subscription separately with 56-day trial...')
+            
+            // Create Vision Pro subscription with 56-day trial via API
+            // NOTE: Cannot configure trial_period_days in Stripe Dashboard per price
+            // Must use trial_period_days parameter in Subscription.create API call
+            const visionProSubscription = await stripe.subscriptions.create({
+              customer: customerId,
+              items: [
+                {
+                  price: continuityPriceId,
+                  quantity: 1,
+                },
+              ],
+              trial_period_days: 56, // Vision Pro trial (starts billing in 56 days)
+              metadata: {
+                product_type: 'vision_pro_continuity',
+                tier_type: tierType,
+                intensive_payment_plan: intensivePaymentPlan,
+                continuity_plan: continuityPlan,
+                intensive_checkout_session_id: session.id,
+                billing_starts_day: '56',
+              },
+            })
+            console.log('✅ Vision Pro subscription created separately:', visionProSubscription.id)
+            
+            const visionProSubId = visionProSubscription.id
+            const visionProSub = visionProSubscription
+            
+            // Create subscription record using Vision Pro subscription (has 56-day trial)
+            const { data: newSubscription } = await supabase.from('customer_subscriptions').insert({
+              user_id: userId,
+              membership_tier_id: tier.id,
+              stripe_customer_id: customerId,
+              stripe_subscription_id: visionProSubId,
+              stripe_price_id: continuityPriceId,
+              status: 'trialing' as any,
+              current_period_start: new Date((visionProSub as any).current_period_start * 1000).toISOString(),
+              current_period_end: new Date((visionProSub as any).current_period_end * 1000).toISOString(),
+              trial_start: new Date().toISOString(),
+              trial_end: new Date(scheduleStartDate * 1000).toISOString(),
+            })
+            .select()
+            .single()
 
-          console.log('✅ Vision Pro subscription created:', subscriptionId)
-
-          // Grant trial tokens during 8-week period
-          if (tierType === 'vision_pro_annual') {
-            // During trial: Grant 1M tokens for 8 weeks (scaled down from 5M annual)
-            const { data: result, error: grantError } = await supabase
-              .rpc('grant_trial_tokens', {
+            console.log('✅ Vision Pro subscription record created:', visionProSubId)
+            
+            // Grant trial tokens
+            if (tierType === 'vision_pro_annual') {
+              const { data: result, error: grantError } = await supabase.rpc('grant_trial_tokens', {
                 p_user_id: userId,
                 p_subscription_id: newSubscription?.id || null,
-                p_tokens: 1000000, // 1M tokens for 8-week trial
+                p_tokens: 1000000,
                 p_trial_period_days: 56,
               })
-            
-            if (grantError) {
-              console.error('❌ Failed to grant trial tokens:', grantError)
-            } else {
-              console.log('✅ Trial tokens granted for annual plan:', result)
-            }
-            
-            // Set storage quota to 25GB during trial (will upgrade to 100GB after Day 56)
-            await supabase
-              .from('user_profiles')
-              .update({ storage_quota_gb: 25 })
-              .eq('user_id', userId)
-          } 
-          else if (tierType === 'vision_pro_28day') {
-            // During trial: Grant 500k tokens for 8 weeks (more than normal 375k cycle)
-            const { data: result, error: grantError } = await supabase
-              .rpc('grant_trial_tokens', {
+              
+              if (grantError) {
+                console.error('❌ Failed to grant trial tokens:', grantError)
+              } else {
+                console.log('✅ Trial tokens granted for annual plan:', result)
+              }
+              
+              await supabase
+                .from('user_profiles')
+                .update({ storage_quota_gb: 25 })
+                .eq('user_id', userId)
+            } else if (tierType === 'vision_pro_28day') {
+              const { data: result, error: grantError } = await supabase.rpc('grant_trial_tokens', {
                 p_user_id: userId,
                 p_subscription_id: newSubscription?.id || null,
-                p_tokens: 500000, // 500k tokens for 8-week trial
+                p_tokens: 500000,
                 p_trial_period_days: 56,
               })
-            
-            if (grantError) {
-              console.error('❌ Failed to grant trial tokens:', grantError)
-            } else {
-              console.log('✅ Trial tokens granted for 28-day plan:', result)
+              
+              if (grantError) {
+                console.error('❌ Failed to grant trial tokens:', grantError)
+              } else {
+                console.log('✅ Trial tokens granted for 28-day plan:', result)
+              }
+              
+              await supabase
+                .from('user_profiles')
+                .update({ storage_quota_gb: 25 })
+                .eq('user_id', userId)
             }
-            
-            // Set storage quota to 25GB during trial
-            await supabase
-              .from('user_profiles')
-              .update({ storage_quota_gb: 25 })
-              .eq('user_id', userId)
+          } catch (scheduleError) {
+            console.error('Failed to create subscription schedule:', scheduleError)
+            // Don't break - intensive purchase is still valid
           }
 
-          // 2. Create Intensive Purchase
+          // 2. Create Intensive Purchase (only Intensive is in checkout)
           console.log('Creating intensive purchase...')
           const activationDeadline = new Date()
           activationDeadline.setHours(activationDeadline.getHours() + 72) // 72 hours from now
+
+          // Get payment intent and amount (different for payment vs subscription mode)
+          let paymentIntentId: string | null = null
+          let intensiveAmount = session.amount_total || 49900 // Default from session
+
+          if (session.mode === 'subscription') {
+            // Subscription mode - get payment intent from invoice
+            const subscriptionId = session.subscription as string
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+            const latestInvoiceId = subscription.latest_invoice as string
+            if (latestInvoiceId) {
+              const invoice = await stripe.invoices.retrieve(latestInvoiceId)
+              paymentIntentId = invoice.payment_intent as string | null
+              intensiveAmount = invoice.amount_paid || intensiveAmount
+            }
+          } else {
+            // Payment mode - use session payment intent
+            paymentIntentId = session.payment_intent as string | null
+            intensiveAmount = session.amount_total || 49900
+          }
 
           const { data: intensive, error: intensiveError } = await supabaseAdmin
             .from('intensive_purchases')
             .insert({
               user_id: userId,
-              stripe_payment_intent_id: session.payment_intent as string,
+              stripe_payment_intent_id: paymentIntentId,
               stripe_checkout_session_id: session.id,
-              amount: session.amount_total || 49900, // This will be the intensive portion
+              stripe_subscription_id: session.mode === 'subscription' ? session.subscription as string : null,
+              amount: intensiveAmount,
               payment_plan: intensivePaymentPlan,
               installments_total: intensivePaymentPlan === 'full' ? 1 : intensivePaymentPlan === '2pay' ? 2 : 3,
               installments_paid: 1,

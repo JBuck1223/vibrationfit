@@ -77,7 +77,6 @@ export default function SitemapPage() {
         // Life Vision
         { href: '/life-vision', label: 'Life Visions', icon: Eye, description: 'All life visions' },
         { href: '/life-vision/new', label: 'Create Vision', icon: Plus, description: 'Create new life vision' },
-        { href: '/life-vision/create-with-viva', label: 'Create with VIVA', icon: Zap, description: 'AI-assisted vision creation' },
         { href: '/life-vision/[id]', label: 'Vision Details', icon: Eye, description: 'Individual vision page', isDynamic: true },
         { href: '/life-vision/[id]/audio', label: 'Vision Audio', icon: MessageCircle, description: 'Audio version of vision', isDynamic: true },
         { href: '/life-vision/[id]/refine', label: 'Refine Vision', icon: Settings, description: 'Edit and refine vision', isDynamic: true },

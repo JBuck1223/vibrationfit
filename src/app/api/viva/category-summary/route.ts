@@ -4,6 +4,7 @@ import { getAIModelConfig } from '@/lib/ai/config'
 import OpenAI from 'openai'
 import { analyzeProfile, analyzeAssessment } from '@/lib/viva/profile-analyzer'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
+import { flattenAssessmentResponsesNumbered } from '@/lib/viva/prompt-flatteners'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -104,12 +105,6 @@ function buildCategoryPrompt(
   
   // Get category-specific assessment responses
   const categoryResponses = assessment?.responses?.filter((r: any) => r.category === category) || []
-  const assessmentQAs = categoryResponses.map((r: any) => ({
-    question: r.question_text,
-    answer: r.response_text,
-    greenLine: r.green_line || 'not assessed',
-    score: r.response_value
-  }))
   
   // Build data sections
   let dataSections = ''
@@ -128,13 +123,9 @@ function buildCategoryPrompt(
 `
   }
   
-  if (assessmentQAs.length > 0) {
+  if (categoryResponses.length > 0) {
     dataSections += `## DATA SOURCE 3: Assessment Responses (Their Own Answers)
-${assessmentQAs.map((qa: { question: string; answer: string; greenLine: string; score: number }, i: number) => `Question ${i + 1}: ${qa.question}
-Answer: "${qa.answer}"
-Green Line Status: ${qa.greenLine}
-Score: ${qa.score}
-`).join('\n')}`
+${flattenAssessmentResponsesNumbered(categoryResponses, false)}`
   }
   
   return `${SHARED_SYSTEM_PROMPT}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Sparkles, PartyPopper, Plane, Home, Users, Heart, 
   Activity, DollarSign, Briefcase, UserPlus, Package, 
@@ -64,6 +64,63 @@ export default function HomePage() {
   const [burgerOrderCanceled, setBurgerOrderCanceled] = useState(false)
   const [burgerTimer, setBurgerTimer] = useState<NodeJS.Timeout | null>(null)
   const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
+  const [currentHash, setCurrentHash] = useState<string>('')
+
+  // Track hash changes
+  useEffect(() => {
+    // Set initial hash
+    if (typeof window !== 'undefined') {
+      setCurrentHash(window.location.hash)
+    }
+
+    // Handle hash changes (e.g., navigating to #pricing)
+    const handleHashChange = () => {
+      if (typeof window !== 'undefined') {
+        setCurrentHash(window.location.hash)
+        // Reset checkbox when navigating to pricing
+        if (window.location.hash.includes('pricing')) {
+          setAgreedToTerms(false)
+        }
+      }
+    }
+
+    // Handle popstate (browser back/forward buttons)
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        setCurrentHash(window.location.hash)
+      }
+      setAgreedToTerms(false)
+    }
+
+    // Handle browser back/forward navigation
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (typeof window !== 'undefined') {
+        setCurrentHash(window.location.hash)
+      }
+      setAgreedToTerms(false)
+    }
+
+    // Reset checkbox on mount
+    setAgreedToTerms(false)
+
+    window.addEventListener('pageshow', handlePageShow)
+    window.addEventListener('popstate', handlePopState)
+    window.addEventListener('hashchange', handleHashChange)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow)
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('hashchange', handleHashChange)
+    }
+  }, [])
+
+  // Reset checkbox when hash includes pricing
+  useEffect(() => {
+    if (currentHash.includes('pricing')) {
+      setAgreedToTerms(false)
+    }
+  }, [currentHash])
 
   const calculateChaosScore = () => {
     const total = selfCheckAnswers.filter(Boolean).length
@@ -197,14 +254,37 @@ export default function HomePage() {
 
     setIsLoading(true)
     try {
-      const params = new URLSearchParams({
-        intensivePaymentPlan: paymentPlan,
-        continuityPlan: billingPeriod,
+      // Directly create Stripe checkout session
+      const response = await fetch('/api/stripe/checkout-combined', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          intensivePaymentPlan: paymentPlan,
+          continuityPlan: billingPeriod,
+        })
       })
-      window.location.href = `/checkout?${params.toString()}`
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        console.error('API Error:', data)
+        const errorMessage = data.error || 'Unknown error'
+        const errorDetails = data.details ? `\n\nDetails: ${JSON.stringify(data.details, null, 2)}` : ''
+        throw new Error(`Failed to create checkout session: ${errorMessage}${errorDetails}`)
+      }
+
+      if (!data.url) {
+        console.error('No checkout URL in response:', data)
+        throw new Error('No checkout URL returned from server')
+      }
+
+      // Redirect directly to Stripe checkout
+      window.location.href = data.url
+
     } catch (error) {
       console.error('Checkout error:', error)
-      toast.error('Failed to start checkout. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start checkout. Please try again.'
+      toast.error(errorMessage)
       setIsLoading(false)
     }
   }

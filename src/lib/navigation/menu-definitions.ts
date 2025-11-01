@@ -85,7 +85,6 @@ export const userNavigation: NavItem[] = [
     children: [
       { name: 'My Visions', href: '/life-vision', icon: Eye },
       { name: 'Create Vision', href: '/life-vision/new', icon: Plus },
-      { name: 'Create with VIVA', href: '/life-vision/create-with-viva', icon: Sparkles },
     ]
   },
   {

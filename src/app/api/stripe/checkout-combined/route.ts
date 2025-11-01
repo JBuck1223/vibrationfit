@@ -45,97 +45,169 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create line items for both products
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = []
-
-    // 1. Intensive Product
+    // SOLUTION: Create intensive as one-time payment (clear to customer)
+    // Vision Pro subscription will be created separately in webhook after intensive completes
+    
+    // 1. Intensive Product - One-time payment (shows clearly as "$499 today")
     let intensivePriceId: string
     let intensiveQuantity = 1
 
     if (intensivePaymentPlan === 'full') {
-      // One-time payment of $499
-      intensivePriceId = process.env.STRIPE_PRICE_INTENSIVE_FULL!
+      // One-time payment of $499 - MUST be a one-time price (not subscription)
+      intensivePriceId = process.env.STRIPE_PRICE_INTENSIVE_FULL
+      if (!intensivePriceId) {
+        return NextResponse.json(
+          { error: 'STRIPE_PRICE_INTENSIVE_FULL not configured' },
+          { status: 500 }
+        )
+      }
     } else if (intensivePaymentPlan === '2pay') {
-      // $249.50 × 2 payments
-      intensivePriceId = process.env.STRIPE_PRICE_INTENSIVE_2PAY!
+      // $249.50 × 2 payments (subscription price)
+      intensivePriceId = process.env.STRIPE_PRICE_INTENSIVE_2PAY
+      if (!intensivePriceId) {
+        return NextResponse.json(
+          { error: 'STRIPE_PRICE_INTENSIVE_2PAY not configured' },
+          { status: 500 }
+        )
+      }
     } else { // 3pay
-      // $166.33 × 3 payments  
-      intensivePriceId = process.env.STRIPE_PRICE_INTENSIVE_3PAY!
+      // $166.33 × 3 payments (subscription price)
+      intensivePriceId = process.env.STRIPE_PRICE_INTENSIVE_3PAY
+      if (!intensivePriceId) {
+        return NextResponse.json(
+          { error: 'STRIPE_PRICE_INTENSIVE_3PAY not configured' },
+          { status: 500 }
+        )
+      }
     }
 
-    lineItems.push({
-      price: intensivePriceId,
-      quantity: intensiveQuantity,
-    })
-
-    // 2. Continuity Product
+    // Get Vision Pro price ID for webhook (stored in metadata)
     let continuityPriceId: string
-
     if (continuityPlan === 'annual') {
-      // Vision Pro Annual: $999/year
-      continuityPriceId = process.env.STRIPE_PRICE_VISION_PRO_ANNUAL!
+      continuityPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL || ''
+      if (!continuityPriceId) {
+        return NextResponse.json(
+          { error: 'NEXT_PUBLIC_STRIPE_PRICE_ANNUAL not configured' },
+          { status: 500 }
+        )
+      }
     } else {
-      // Vision Pro 28-Day: $99 every 28 days
-      continuityPriceId = process.env.STRIPE_PRICE_VISION_PRO_28DAY!
+      continuityPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY || ''
+      if (!continuityPriceId) {
+        return NextResponse.json(
+          { error: 'NEXT_PUBLIC_STRIPE_PRICE_28DAY not configured' },
+          { status: 500 }
+        )
+      }
     }
 
-    lineItems.push({
-      price: continuityPriceId,
-      quantity: 1,
-    })
+    // CLEAN SOLUTION: Only include Intensive in checkout (charges immediately)
+    // Vision Pro will be created separately in webhook with 56-day trial
+    // Customer agrees to Vision Pro subscription (shown on your homepage/UI before checkout)
+    
+    const visionProPlanName = continuityPlan === 'annual' 
+      ? 'Vision Pro Annual' 
+      : 'Vision Pro 28-Day'
+    const visionProPrice = continuityPlan === 'annual' 
+      ? '$999/year' 
+      : '$99 every 28 days'
+    
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+      {
+        price: intensivePriceId,
+        quantity: intensiveQuantity,
+      },
+      // Vision Pro is NOT in checkout - it will be created separately in webhook with 56-day trial
+      // Show it as informational note via custom_text and line item description
+    ]
+    
+    // Determine checkout mode based on intensive payment plan
+    const sessionMode = intensivePaymentPlan === 'full' ? 'payment' : 'subscription'
+    
+    // Build Vision Pro subscription disclosure text for checkout
+    // Use markdown formatting for emphasis (Stripe supports basic markdown)
+    const visionProDisclosure = `**${visionProPlanName} subscription (${visionProPrice})** will automatically begin billing in **8 weeks (56 days)** after your purchase.
 
-    // Create checkout session with delayed billing start
+You can cancel anytime before the first billing to avoid charges.`
+    
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
-      mode: 'subscription', // This handles both one-time and recurring items
+      mode: sessionMode as 'payment' | 'subscription',
       payment_method_types: ['card'],
       line_items: lineItems,
+      
+      // Custom text to show Vision Pro subscription included
+      custom_text: {
+        submit: {
+          message: visionProDisclosure,
+        },
+      },
       
       // Customer info
       customer_email: undefined, // Let Stripe collect email
       
       // Success/Cancel URLs
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/auto-login?session_id={CHECKOUT_SESSION_ID}&email={CHECKOUT_SESSION_CUSTOMER_EMAIL}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?cancelled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/auto-login?session_id={CHECKOUT_SESSION_ID}&email={CHECKOUT_SESSION_CUSTOMER_EMAIL}&continuity_plan=${continuityPlan}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/checkout?cancelled=true`,
       
       // Metadata for webhook processing
+      // Note: Vision Pro information stored in metadata (shown in checkout description via line_items)
       metadata: {
         product_type: 'combined_intensive_continuity',
+        purchase_type: 'intensive',
         intensive_payment_plan: intensivePaymentPlan,
         continuity_plan: continuityPlan,
+        continuity_price_id: continuityPriceId, // Store for webhook
         source: 'combined_checkout',
+        payment_plan: intensivePaymentPlan,
       },
       
       // Allow promotion codes
       allow_promotion_codes: true,
       
-      // Subscription settings for continuity with delayed start
-      subscription_data: {
-        // Start billing after 8 weeks (56 days)
-        billing_cycle_anchor: Math.floor(Date.now() / 1000) + (56 * 24 * 60 * 60), // 56 days from now
-        metadata: {
-          product_type: 'vision_pro_continuity',
-          tier_type: continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day',
-          intensive_payment_plan: intensivePaymentPlan,
-          billing_starts_day: '56',
+      // Subscription settings (only for 2pay/3pay plans)
+      ...(sessionMode === 'subscription' ? {
+        subscription_data: {
+          metadata: {
+            product_type: 'combined_intensive_continuity',
+            intensive_payment_plan: intensivePaymentPlan,
+            continuity_plan: continuityPlan,
+            continuity_price_id: continuityPriceId,
+            billing_starts_day: '56',
+          },
+          // No trial - Intensive charges immediately
         },
-      },
+      } : {}),
       
-      // Payment intent metadata for intensive
-      payment_intent_data: {
-        metadata: {
-          product_type: 'intensive',
-          payment_plan: intensivePaymentPlan,
-          continuity_plan: continuityPlan,
+      // For payment mode (full), add payment intent metadata
+      ...(sessionMode === 'payment' ? {
+        payment_intent_data: {
+          metadata: {
+            product_type: 'combined_intensive_continuity',
+            purchase_type: 'intensive',
+            payment_plan: intensivePaymentPlan,
+            continuity_plan: continuityPlan,
+            continuity_price_id: continuityPriceId,
+            billing_starts_day: '56',
+          },
         },
-      },
+      } : {}),
     })
 
     return NextResponse.json({ url: session.url })
 
   } catch (error) {
     console.error('Combined checkout error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorDetails = error instanceof Stripe.errors.StripeError 
+      ? { type: error.type, code: error.code, message: error.message }
+      : { message: errorMessage }
+    
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { 
+        error: 'Failed to create checkout session',
+        details: errorDetails
+      },
       { status: 500 }
     )
   }

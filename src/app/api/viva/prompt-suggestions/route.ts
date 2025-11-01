@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAIModelConfig } from '@/lib/ai/config'
 import OpenAI from 'openai'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
+import { ellipsize, flattenAssessmentResponsesNumbered } from '@/lib/viva/prompt-flatteners'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -110,15 +111,8 @@ export async function POST(request: NextRequest) {
       // ALL assessment responses for this category (not just top 5)
       if (assessmentData.responses && assessmentData.responses.length > 0) {
         context += `**Assessment Questions & Answers (${assessmentData.responses.length} total):**\n\n`
-        assessmentData.responses.forEach((r: any, idx: number) => {
-          context += `${idx + 1}. Q: ${r.question_text}\n`
-          context += `   A: ${r.response_text}\n`
-          context += `   Score: ${r.response_value || 0}/5`
-          if (r.green_line) {
-            context += ` | Green Line: ${r.green_line === 'above' ? 'Above (aligned)' : 'Below (needs work)'}`
-          }
-          context += `\n\n`
-        })
+        context += flattenAssessmentResponsesNumbered(assessmentData.responses, false)
+        context += `\n\n`
       }
     }
 

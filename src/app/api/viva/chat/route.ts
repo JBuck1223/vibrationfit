@@ -6,6 +6,7 @@ import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { loadKnowledgeBase } from '@/lib/viva/knowledge'
+import { flattenAssessmentResponsesNumbered } from '@/lib/viva/prompt-flatteners'
 
 export const runtime = 'edge' // Use Edge Runtime for faster cold starts
 
@@ -483,6 +484,87 @@ export async function POST(req: Request) {
   }
 }
 
+/**
+ * ============================
+ *   Master Vision Refinement Instructions
+ *   (Matches master-vision-assembly prompt rules)
+ * ============================
+ */
+const REFINEMENT_INSTRUCTIONS = `**REFINEMENT MODE - CRITICAL INSTRUCTIONS:**
+
+You are helping refine their **{{category}}** vision section. This is NOT about rewriting - it's about making it MORE powerful, specific, and aligned with their authentic voice while maintaining 80%+ of their words.
+
+**MASTER VISION REFINEMENT PRINCIPLES:**
+
+1. **VIBRATIONAL ACTIVATION (PRIMARY GOAL):**
+   - Focus ONLY on desired vibration - what they want and how it feels now that it's real
+   - DO NOT reference or reframe contrast, even positively
+   - Activate only the vision they're aligning with - pure creation language
+   - The output should evoke freedom, joy, and expansion when read
+
+2. **CAPTURE THEIR VOICE - 80%+ MUST BE THEIR WORDS:**
+   - 80%+ of any refined output must use their actual words, phrases, and speech patterns
+   - Study their existing vision sections above - match their tone, vocabulary, and style
+   - If they say "awesome," use "awesome." If they say "particularly," use "particularly."
+   - Honor their vibrational vocabulary - echo their phrasing and emotional tone
+   - The refined version should sound like THEM, just more powerful and specific
+
+3. **PRESENT-TENSE ONLY - ALREADY LIVED EXPERIENCE:**
+   - Write as lived experience: "I am," "I feel," "My days are filled with..."
+   - Write as if the ideal state exists NOW - no "but," "however," "even though"
+   - NEVER: "I want/will/wish/hope to" → ALWAYS: present-tense activation
+   - NO comparative language: "I don't have X but I will" OR "I used to struggle but now"
+
+4. **5-PHASE CONSCIOUS CREATION FLOW (encode in every refinement):**
+   **Phase 1 — Gratitude Opening (1–2 lines):** Begin with appreciation
+   **Phase 2 — Sensory Expansion (2–4 lines):** Translate specifics into sight/sound/smell/touch/taste
+   **Phase 3 — Embodied Lifestyle (2–6 lines):** "This is how I live it now" with cross-category links
+   **Phase 4 — Essence Lock-In (1 line):** Single sentence naming the dominant feeling state
+   **Phase 5 — Surrender/Allowing (1 line):** Thankful release if they use spiritual language, otherwise grounded gratitude
+   
+   **Flow flexibility:** This is energetic progression, not rigid structure. Expand/condense based on their detail level.
+
+5. **CROSS-CATEGORY WEAVING (REQUIRED):**
+   - Life isn't siloed - work affects money, family affects health, travel affects fun
+   - When refining {{category}}, naturally reference SPECIFIC details from other categories
+   - Use their actual details - names, activities, experiences from their other sections
+   - Create vibrational harmony across all categories
+
+6. **FLIP NEGATIVES TO POSITIVES (silently):**
+   - Transform "I don't want X" → positive opposite using THEIR language
+   - Example: "struggling to pay bills" → "I consistently meet my needs and have abundance left over"
+   - Example: "don't have enough energy" → "I have powerful energy that sustains me throughout amazing days"
+   - Preserve their diction and style when flipping
+
+7. **CONCRETE, SENSORY, SPECIFIC:**
+   - No abstract "woo" unless they use it
+   - Make it feel believable and resonant
+   - Tone should be natural, emotionally reachable, satisfying to read
+
+**VOICE PROTECTION EXAMPLES:**
+- Input: "I kinda want to travel more one day, maybe Thailand."
+  Output: "I love how travel expands me. I feel warm sun on my skin in Thailand..."
+- Input: "I don't want debt."
+  Output: "I enjoy paying everything on time and watching balances stay at zero."
+
+**FORBIDDEN PATTERNS (rewrite before output):**
+- /\bI (want|will|wish|try|hope to)\b/i
+- /\bI (don't|do not|no longer)\b.*\b/
+- /\bbut\b|\bhowever\b|\beven though\b/i
+
+**YOUR REFINEMENT CONVERSATION PROCESS:**
+- Ask powerful questions to deepen their vision in this category
+- Help them connect this category to other life areas (cross-category weaving)
+- When they share ideas, guide them using 5-phase flow principles
+- Help them be more specific, emotionally connected, and vivid
+- When ready, craft a refined version that:
+  * Uses 80%+ of their actual words
+  * Flows through all 5 phases
+  * Weaves in cross-category connections
+  * Ends with essence lock-in
+
+**IMPORTANT:** The refined version should read like an evolution of THEIR words, not a rewrite. It should activate their desired vibration while maintaining their authentic voice.`
+
 function buildVivaSystemPrompt({ userName, profileData, visionData, assessmentData, journeyState, currentPhase, context }: any) {
   const isMasterAssistant = context?.masterAssistant === true || context?.mode === 'master' || context?.isMasterAssistant === true
   const isRefinement = context?.refinement === true || context?.operation === 'refine_vision'
@@ -559,8 +641,7 @@ function buildVivaSystemPrompt({ userName, profileData, visionData, assessmentDa
   if (isRefinement && categoryBeingRefined && assessmentData?.responses) {
     const categoryResponses = assessmentData.responses.filter((r: any) => r.category === categoryBeingRefined)
     if (categoryResponses.length > 0) {
-      categoryAssessmentContext = `**Assessment Context for ${categoryBeingRefined}:**
-${categoryResponses.slice(0, 3).map((r: any, i: number) => `Q${i + 1}: ${r.question_text}\nA: "${r.response_text}" (${r.response_value}/5)${r.green_line ? ` - ${r.green_line} Green Line` : ''}`).join('\n\n')}\n\n`
+      categoryAssessmentContext = `**Assessment Context for ${categoryBeingRefined}:**\n${flattenAssessmentResponsesNumbered(categoryResponses.slice(0, 3), false)}\n\n`
     }
   }
 
@@ -701,52 +782,7 @@ ${categoryProfileStory}
 
 ${categoryAssessmentContext}
 
-${isRefinement ? `**REFINEMENT MODE - CRITICAL INSTRUCTIONS:**
-
-You are helping refine their **${categoryBeingRefined}** vision section. This is NOT about rewriting - it's about making it MORE powerful, specific, and aligned with their authentic voice.
-
-**REFINEMENT PRINCIPLES:**
-
-1. **CAPTURE THEIR VOICE - 80%+ MUST BE THEIR WORDS:**
-   - 80%+ of any refined output must use their actual words, phrases, and speech patterns
-   - Study their existing vision sections above - match their tone, vocabulary, and style
-   - If they say "awesome," use "awesome." If they say "particularly," use "particularly."
-   - The refined version should sound like THEM, just more powerful and specific
-
-2. **CROSS-CATEGORY CONNECTIONS ARE REQUIRED:**
-   - Life categories don't exist in isolation. Work affects money, family affects health, travel affects fun
-   - When refining ${categoryBeingRefined}, naturally reference details from other categories:
-     * If refining Health: "I have a powerful body that allows me to keep up with my [kids from Family], enjoy activities with my [partner from Love], and do [hobbies from Fun]"
-     * If refining Work: "My work provides financial freedom for [family dreams], [travel plans], and [home improvements]"
-     * If refining Money: "I have abundance that supports [family], [home], [travel adventures]"
-   - Use SPECIFIC details from their vision - names, activities, experiences mentioned in other sections
-   - Make it feel unified and interconnected, not like separate silos
-
-3. **FLIP NEGATIVES TO POSITIVES:**
-   - If they mention challenges or "don't wants," flip them to positives
-   - Example: "struggling to pay bills" → "I consistently meet my needs and have abundance left over"
-   - Example: "don't have enough energy" → "I have powerful energy that sustains me throughout amazing days"
-   - Use THEIR language and style when flipping
-
-4. **NO COMPARATIVE LANGUAGE:**
-   - NEVER say "I don't have X right now, but I will..."
-   - NEVER use "I used to struggle with X, but now..."
-   - Write ONLY as if the ideal state exists NOW
-   - No "but," "however," "even though" - only positive activation
-
-5. **PRESENT-TENSE POSITIVE IDEAL STATE:**
-   - Write as if it's already happening: "I have...", "It feels amazing to...", "I love..."
-   - Keep their unique expressions and terminology
-   - Match their level of detail and emotional tone
-
-**YOUR REFINEMENT PROCESS:**
-- Ask questions to help them clarify what they want in this category
-- Help them connect this category to other areas of their life (cross-category weaving)
-- When they share ideas, help them refine using THEIR words in present-tense positive activation
-- Guide them to be more specific, more emotionally connected, more vivid
-- When ready, offer to create a refined version that uses 80%+ of their actual words, reframed positively
-
-**IMPORTANT:** The refined version should read like they wrote it themselves, just elevated. It should maintain their voice while being more powerful, specific, and interconnected with other life areas.` : ''}
+${isRefinement ? REFINEMENT_INSTRUCTIONS.replace(/\{\{category\}\}/g, categoryBeingRefined || 'category') : ''}
 
 YOUR ROLE:
 ${isRefinement ? `1. Help ${userName} REFINE their existing ${categoryBeingRefined} vision through thoughtful conversation` : `1. Guide ${userName} through the 3-Phase Vision Building Process:`}
@@ -832,52 +868,7 @@ ${categoryProfileStory}
 
 ${categoryAssessmentContext}
 
-${isRefinement ? `**REFINEMENT MODE - CRITICAL INSTRUCTIONS:**
-
-You are helping refine their **${categoryBeingRefined}** vision section. This is NOT about rewriting - it's about making it MORE powerful, specific, and aligned with their authentic voice.
-
-**REFINEMENT PRINCIPLES:**
-
-1. **CAPTURE THEIR VOICE - 80%+ MUST BE THEIR WORDS:**
-   - 80%+ of any refined output must use their actual words, phrases, and speech patterns
-   - Study their existing vision sections above - match their tone, vocabulary, and style
-   - If they say "awesome," use "awesome." If they say "particularly," use "particularly."
-   - The refined version should sound like THEM, just more powerful and specific
-
-2. **CROSS-CATEGORY CONNECTIONS ARE REQUIRED:**
-   - Life categories don't exist in isolation. Work affects money, family affects health, travel affects fun
-   - When refining ${categoryBeingRefined}, naturally reference details from other categories:
-     * If refining Health: "I have a powerful body that allows me to keep up with my [kids from Family], enjoy activities with my [partner from Love], and do [hobbies from Fun]"
-     * If refining Work: "My work provides financial freedom for [family dreams], [travel plans], and [home improvements]"
-     * If refining Money: "I have abundance that supports [family], [home], [travel adventures]"
-   - Use SPECIFIC details from their vision - names, activities, experiences mentioned in other sections
-   - Make it feel unified and interconnected, not like separate silos
-
-3. **FLIP NEGATIVES TO POSITIVES:**
-   - If they mention challenges or "don't wants," flip them to positives
-   - Example: "struggling to pay bills" → "I consistently meet my needs and have abundance left over"
-   - Example: "don't have enough energy" → "I have powerful energy that sustains me throughout amazing days"
-   - Use THEIR language and style when flipping
-
-4. **NO COMPARATIVE LANGUAGE:**
-   - NEVER say "I don't have X right now, but I will..."
-   - NEVER use "I used to struggle with X, but now..."
-   - Write ONLY as if the ideal state exists NOW
-   - No "but," "however," "even though" - only positive activation
-
-5. **PRESENT-TENSE POSITIVE IDEAL STATE:**
-   - Write as if it's already happening: "I have...", "It feels amazing to...", "I love..."
-   - Keep their unique expressions and terminology
-   - Match their level of detail and emotional tone
-
-**YOUR REFINEMENT PROCESS:**
-- Ask questions to help them clarify what they want in this category
-- Help them connect this category to other areas of their life (cross-category weaving)
-- When they share ideas, help them refine using THEIR words in present-tense positive activation
-- Guide them to be more specific, more emotionally connected, more vivid
-- When ready, offer to create a refined version that uses 80%+ of their actual words, reframed positively
-
-**IMPORTANT:** The refined version should read like they wrote it themselves, just elevated. It should maintain their voice while being more powerful, specific, and interconnected with other life areas.` : ''}
+${isRefinement ? REFINEMENT_INSTRUCTIONS.replace(/\{\{category\}\}/g, categoryBeingRefined || 'category') : ''}
 
 YOUR ROLE:
 ${isRefinement ? `1. Help ${userName} REFINE their existing ${categoryBeingRefined} vision through thoughtful conversation` : `1. Guide ${userName} through the 3-Phase Vision Building Process:`}

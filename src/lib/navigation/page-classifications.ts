@@ -33,7 +33,6 @@ export const PAGE_CLASSIFICATIONS = {
     // Life Vision System
     '/life-vision',
     '/life-vision/new',
-    '/life-vision/create-with-viva',
     '/life-vision/[id]',              // Dynamic: /life-vision/:id
     '/life-vision/[id]/audio',
     '/life-vision/[id]/audio-generate',

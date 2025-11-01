@@ -18,7 +18,7 @@ export function MessageBubble({ role, content, timestamp, emotionScore }: Messag
     return (
       <div className="flex justify-end mb-6 animate-fadeIn">
         <div className="max-w-[85%]">
-          <div className="bg-[#14B8A6] text-white px-5 py-3 rounded-2xl rounded-br-md">
+          <div className="bg-neutral-800 text-white border border-neutral-700 px-5 py-3 rounded-2xl rounded-br-md">
             <p className="text-base leading-relaxed whitespace-pre-wrap">{content}</p>
           </div>
           {timestamp && (
