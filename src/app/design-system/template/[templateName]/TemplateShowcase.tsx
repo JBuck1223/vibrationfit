@@ -273,6 +273,100 @@ const hasForwardConclusion = VISION_CATEGORIES.some(
   })}
 </div>`
 
+    case 'vision-board-filter-grid':
+      return `// Vision Board Filter Grid Template
+// Uses: Card, Stack, Icon
+// Responsive: 4 cols mobile, 12 cols desktop - perfect for filtering
+
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { Filter } from 'lucide-react'
+
+const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
+
+const toggleCategory = (key: string) => {
+  if (key === 'all') {
+    setSelectedCategories(['all'])
+  } else if (selectedCategories.includes(key)) {
+    const newSelection = selectedCategories.filter(cat => cat !== key)
+    setSelectedCategories(newSelection.length === 0 ? ['all'] : newSelection)
+  } else {
+    const filtered = selectedCategories.filter(cat => cat !== 'all')
+    setSelectedCategories([...filtered, key])
+  }
+}
+
+{/* All Categories button */}
+<div 
+  className={\`rounded-2xl p-4 border-2 cursor-pointer mb-4 \${
+    selectedCategories.includes('all') || selectedCategories.length === 0
+      ? 'border-[#39FF14] bg-[#39FF14]/10'
+      : 'border-[#333] bg-[#1F1F1F]'
+  }\`}
+  onClick={() => toggleCategory('all')}
+>
+  <div className="flex items-center justify-center gap-3 px-4 py-2">
+    <Icon icon={Filter} size="sm" color={selectedCategories.includes('all') ? '#39FF14' : '#00FFFF'} />
+    <h4 className="text-sm font-medium text-neutral-300">All Categories</h4>
+  </div>
+</div>
+
+{/* Category Cards Grid */}
+<div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+  {VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion').map((category) => {
+    const IconComponent = category.icon
+    const isSelected = selectedCategories.includes(category.key)
+    return (
+      <Card 
+        key={category.key} 
+        variant={isSelected ? 'elevated' : 'default'} 
+        hover 
+        className={\`cursor-pointer aspect-square \${
+          isSelected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''
+        }\`}
+        onClick={() => toggleCategory(category.key)}
+      >
+        <Stack align="center" gap="xs" className="text-center px-2 justify-center h-full">
+          <Icon icon={IconComponent} size="sm" color={isSelected ? '#39FF14' : '#00FFFF'} />
+          <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
+        </Stack>
+      </Card>
+    )
+  })}
+</div>`
+
+    case 'single-category-selector':
+      return `// Single Category Selector Template
+// Uses: Card, Stack, Icon
+// Simple single-select picker - no "All" button, no multi-select
+
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+
+const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+{/* Category Cards Grid */}
+<div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+  {VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion').map((category) => {
+    const IconComponent = category.icon
+    const isSelected = selectedCategory === category.key
+    return (
+      <Card 
+        key={category.key} 
+        variant={isSelected ? 'elevated' : 'default'} 
+        hover 
+        className={\`cursor-pointer aspect-square \${
+          isSelected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''
+        }\`}
+        onClick={() => setSelectedCategory(category.key)}
+      >
+        <Stack align="center" gap="xs" className="text-center px-2 justify-center h-full">
+          <Icon icon={IconComponent} size="sm" color={isSelected ? '#39FF14' : '#00FFFF'} />
+          <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
+        </Stack>
+      </Card>
+    )
+  })}
+</div>`
+
     default:
       return `// ${template.name}\n// Full code available in template-examples.tsx`
   }

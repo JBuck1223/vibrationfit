@@ -8,7 +8,8 @@ import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/
 import { loadKnowledgeBase } from '@/lib/viva/knowledge'
 import { flattenAssessmentResponsesNumbered } from '@/lib/viva/prompt-flatteners'
 
-export const runtime = 'edge' // Use Edge Runtime for faster cold starts
+// Using Node.js runtime instead of Edge for proper onFinish callback support
+// Edge runtime terminates the response before onFinish can run
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -89,16 +90,21 @@ export async function POST(req: Request) {
       const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user')
       if (lastUserMessage) {
         try {
-          await supabase.from('ai_conversations').insert({
+          const { data, error } = await supabase.from('ai_conversations').insert({
             user_id: user.id,
             conversation_id: currentConversationId || null,
             message: lastUserMessage.content,
             role: 'user',
             context: { visionBuildPhase, ...context, conversationId: currentConversationId },
             created_at: new Date().toISOString()
-          })
+          }).select()
+          if (error) {
+            console.error('[VIVA CHAT] Error saving user message:', error)
+          } else {
+            console.log('[VIVA CHAT] Saved user message:', data)
+          }
         } catch (err) {
-          console.error('Error saving user message:', err)
+          console.error('[VIVA CHAT] Exception saving user message:', err)
           // Don't fail the request if message save fails
         }
       }
@@ -455,7 +461,7 @@ export async function POST(req: Request) {
         console.log('[VIVA CHAT] Stream finished, text length:', text?.length || 0)
         // Store assistant message in database after completion
         try {
-          await supabase.from('ai_conversations').insert({
+          const { data, error } = await supabase.from('ai_conversations').insert({
             user_id: user.id,
             conversation_id: currentConversationId || null,
             message: text,
@@ -466,7 +472,13 @@ export async function POST(req: Request) {
               conversationId: currentConversationId 
             },
             created_at: new Date().toISOString()
-          })
+          }).select()
+          
+          if (error) {
+            console.error('[VIVA CHAT] Error saving assistant message:', error)
+          } else {
+            console.log('[VIVA CHAT] Saved assistant message:', data)
+          }
           
           // Update conversation session title if this is the first assistant message
           if (currentConversationId && isInitialGreeting) {

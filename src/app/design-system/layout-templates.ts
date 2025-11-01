@@ -3,7 +3,7 @@
 
 import { 
   Layout, CreditCard, Shield, Sparkles, Grid as GridIcon, 
-  Package, Box, Layers
+  Package, Box, Layers, Filter, MousePointer2
 } from 'lucide-react'
 
 export interface LayoutTemplateMetadata {
@@ -57,6 +57,26 @@ export const LAYOUT_TEMPLATES: LayoutTemplateMetadata[] = [
     componentsUsed: ['Card', 'Grid', 'Icon'],
     category: 'Product',
     path: '/design-system/template/category-selection-grid'
+  },
+  {
+    id: 'vision-board-filter-grid',
+    name: 'Vision Board Filter Grid',
+    description: 'Square aspect ratio filter grid - 4 columns mobile, 12 columns desktop (used for vision board category filters)',
+    icon: Filter,
+    sourcePath: '/vision-board (Category Filter)',
+    componentsUsed: ['Card', 'Stack', 'Icon'],
+    category: 'Navigation',
+    path: '/design-system/template/vision-board-filter-grid'
+  },
+  {
+    id: 'single-category-selector',
+    name: 'Single Category Selector',
+    description: 'Simple single-select category picker - no "All" button, no multi-select, just one selection at a time',
+    icon: MousePointer2,
+    sourcePath: 'Generic pattern',
+    componentsUsed: ['Card', 'Stack', 'Icon'],
+    category: 'Navigation',
+    path: '/design-system/template/single-category-selector'
   },
 ]
 

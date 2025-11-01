@@ -870,6 +870,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         timestamp: new Date()
       }
       setChatMessages([placeholderMessage])
+      setIsTyping(false) // Hide typing indicator once placeholder is shown
 
       let chunkCount = 0
       while (true) {
@@ -989,6 +990,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         timestamp: new Date()
       }
       setChatMessages(prev => [...prev, placeholderMessage])
+      setIsTyping(false) // Hide typing indicator once placeholder is shown
 
       if (reader) {
         while (true) {

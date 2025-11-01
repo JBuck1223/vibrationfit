@@ -11,7 +11,7 @@ import {
   Button,
   Badge,
 } from '@/lib/design-system/components'
-import { Clock, Shield, Crown, Zap, Check } from 'lucide-react'
+import { Clock, Shield, Crown, Zap, Check, Filter } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 export function renderTemplateExample(templateId: string) {
@@ -304,6 +304,131 @@ export function renderTemplateExample(templateId: string) {
         )
       }
       return <CategorySelectionGridDemo />
+
+    case 'vision-board-filter-grid':
+      const VisionBoardFilterGridDemo = () => {
+        const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
+
+        const toggleCategory = (key: string) => {
+          if (key === 'all') {
+            setSelectedCategories(['all'])
+          } else if (selectedCategories.includes(key)) {
+            const newSelection = selectedCategories.filter(cat => cat !== key)
+            setSelectedCategories(newSelection.length === 0 ? ['all'] : newSelection)
+          } else {
+            const filtered = selectedCategories.filter(cat => cat !== 'all')
+            setSelectedCategories([...filtered, key])
+          }
+        }
+
+        return (
+          <Stack gap="md">
+            <div>
+              <Heading level={3} className="text-white mb-4">
+                Filter Categories
+              </Heading>
+              <p className="text-sm text-neutral-400 mb-4">
+                4 columns mobile, 12 columns desktop - square aspect ratio cards
+              </p>
+              
+              {/* All Categories button */}
+              <div 
+                className={`rounded-2xl p-4 border-2 cursor-pointer mb-4 transition-all ${
+                  selectedCategories.includes('all') || selectedCategories.length === 0
+                    ? 'border-[#39FF14] bg-[#39FF14]/10'
+                    : 'border-[#333] bg-[#1F1F1F] hover:border-[#333]'
+                }`}
+                onClick={() => toggleCategory('all')}
+              >
+                <div className="flex items-center justify-center gap-3 px-4 py-2">
+                  <Icon 
+                    icon={Filter} 
+                    size="sm" 
+                    color={selectedCategories.includes('all') || selectedCategories.length === 0 ? '#39FF14' : '#00FFFF'} 
+                  />
+                  <h4 className="text-sm font-medium text-neutral-300">All Categories</h4>
+                </div>
+              </div>
+
+              {/* Category Cards Grid */}
+              <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+                {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
+                  const IconComponent = category.icon
+                  const isSelected = selectedCategories.includes(category.key)
+                  return (
+                    <Card 
+                      key={category.key} 
+                      variant={isSelected ? 'elevated' : 'default'} 
+                      hover 
+                      className={`cursor-pointer aspect-square ${isSelected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''}`}
+                      onClick={() => toggleCategory(category.key)}
+                    >
+                      <Stack align="center" gap="xs" className="text-center px-2 justify-center h-full">
+                        <Icon icon={IconComponent} size="sm" color={isSelected ? '#39FF14' : '#00FFFF'} />
+                        <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
+                      </Stack>
+                    </Card>
+                  )
+                })}
+              </div>
+
+              {selectedCategories.length > 0 && !selectedCategories.includes('all') && (
+                <p className="text-sm text-primary-500 mt-4">
+                  Selected {selectedCategories.length} categories
+                </p>
+              )}
+            </div>
+          </Stack>
+        )
+      }
+      return <VisionBoardFilterGridDemo />
+
+    case 'single-category-selector':
+      const SingleCategorySelectorDemo = () => {
+        const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+        return (
+          <Stack gap="md">
+            <div>
+              <Heading level={3} className="text-white mb-4">
+                Select a Category
+              </Heading>
+              <p className="text-sm text-neutral-400 mb-4">
+                Simple single-select picker - one category at a time
+              </p>
+
+              {/* Category Cards Grid */}
+              <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+                {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
+                  const IconComponent = category.icon
+                  const isSelected = selectedCategory === category.key
+                  return (
+                    <Card 
+                      key={category.key} 
+                      variant={isSelected ? 'elevated' : 'default'} 
+                      hover 
+                      className={`cursor-pointer aspect-square ${isSelected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''}`}
+                      onClick={() => setSelectedCategory(category.key)}
+                    >
+                      <Stack align="center" gap="xs" className="text-center px-2 justify-center h-full">
+                        <Icon icon={IconComponent} size="sm" color={isSelected ? '#39FF14' : '#00FFFF'} />
+                        <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
+                      </Stack>
+                    </Card>
+                  )
+                })}
+              </div>
+
+              {selectedCategory && (
+                <p className="text-sm text-primary-500 mt-4">
+                  Selected: {VISION_CATEGORIES.find(c => c.key === selectedCategory)?.label}
+                </p>
+              )}
+            </div>
+          </Stack>
+        )
+      }
+      return <SingleCategorySelectorDemo />
 
     default:
       return (
