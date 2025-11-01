@@ -896,7 +896,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                                 size="sm"
                                 className="flex-1 min-w-0 shrink md:flex-none"
                               >
-                                <Icon icon={Sparkles} size="sm" />
+                                <Icon icon={Sparkles} size="sm" color="#000000" />
                                 <span className="ml-1 truncate">Continue with VIVA</span>
                               </Button>
                               <Button

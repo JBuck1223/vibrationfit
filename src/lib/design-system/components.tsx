@@ -4078,14 +4078,19 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
         <button
           onClick={handleRepeatClick}
           className={cn(
-            'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
+            'w-10 h-10 flex items-center justify-center rounded-full transition-colors relative',
             repeatMode !== 'off'
               ? 'bg-[#39FF14] text-black' 
               : 'text-neutral-400 hover:text-white'
           )}
           aria-label="Repeat"
         >
-          <Repeat className={cn('w-5 h-5', repeatMode === 'one' && 'text-black')} />
+          <Repeat className="w-5 h-5" />
+          {repeatMode === 'one' && (
+            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">
+              1
+            </span>
+          )}
         </button>
       </div>
 
