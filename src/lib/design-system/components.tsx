@@ -4087,7 +4087,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
         >
           <Repeat className="w-5 h-5" />
           {repeatMode === 'one' && (
-            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold leading-none">
               1
             </span>
           )}
