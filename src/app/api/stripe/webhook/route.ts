@@ -316,7 +316,7 @@ export async function POST(request: NextRequest) {
               // Get or create Stripe customer
               const customerId = session.customer as string || 
                                  await stripe.customers.create({
-                                   email: customerEmail,
+                                   email: customerEmail ?? undefined,
                                    metadata: { user_id: userId },
                                  }).then(c => c.id)
 
@@ -440,7 +440,7 @@ export async function POST(request: NextRequest) {
             // If no customer yet, we'll create one
             if (!customerId && customerEmail) {
               const customer = await stripe.customers.create({
-                email: customerEmail,
+                email: customerEmail ?? undefined,
                 metadata: { source: 'intensive_checkout' },
               })
               customerId = customer.id
@@ -510,6 +510,7 @@ export async function POST(request: NextRequest) {
           // This is configured via trial_period_days in Subscription.create API call
           // (Cannot be configured in Stripe Dashboard per price - trials are subscription-level only)
           const scheduleStartDate = Math.floor(Date.now() / 1000) + (56 * 24 * 60 * 60) // 56 days from now
+          let subscriptionId: string | undefined
           
           try {
             console.log('Creating Vision Pro subscription separately with 56-day trial...')
@@ -539,6 +540,7 @@ export async function POST(request: NextRequest) {
             
             const visionProSubId = visionProSubscription.id
             const visionProSub = visionProSubscription
+            subscriptionId = visionProSubId
             
             // Create subscription record using Vision Pro subscription (has 56-day trial)
             const { data: newSubscription } = await supabase.from('customer_subscriptions').insert({
@@ -607,8 +609,11 @@ export async function POST(request: NextRequest) {
           activationDeadline.setHours(activationDeadline.getHours() + 72) // 72 hours from now
 
           // Get payment intent and amount (different for payment vs subscription mode)
+          // Handle free intensive (coupon makes it $0)
           let paymentIntentId: string | null = null
-          let intensiveAmount = session.amount_total || 49900 // Default from session
+          let intensiveAmount = session.amount_total || 0 // Use actual total (may be $0 with coupon)
+          const promoCode = session.metadata.promo_code || ''
+          const isFreeIntensive = session.metadata.is_free_intensive === 'true' || intensiveAmount === 0
 
           if (session.mode === 'subscription') {
             // Subscription mode - get payment intent from invoice
@@ -617,28 +622,31 @@ export async function POST(request: NextRequest) {
             const latestInvoiceId = subscription.latest_invoice as string
             if (latestInvoiceId) {
               const invoice = await stripe.invoices.retrieve(latestInvoiceId)
-              paymentIntentId = invoice.payment_intent as string | null
-              intensiveAmount = invoice.amount_paid || intensiveAmount
+              paymentIntentId = (invoice as any).payment_intent as string | null
+              intensiveAmount = (invoice as any).amount_paid || intensiveAmount
             }
           } else {
-            // Payment mode - use session payment intent
+            // Payment mode - use session payment intent (may be null for free)
             paymentIntentId = session.payment_intent as string | null
-            intensiveAmount = session.amount_total || 49900
+            intensiveAmount = session.amount_total || 0
           }
+
+          console.log(`💰 Intensive amount: $${(intensiveAmount / 100).toFixed(2)} ${isFreeIntensive ? '(FREE with promo: ' + promoCode + ')' : ''}`)
 
           const { data: intensive, error: intensiveError } = await supabaseAdmin
             .from('intensive_purchases')
             .insert({
               user_id: userId,
-              stripe_payment_intent_id: paymentIntentId,
+              stripe_payment_intent_id: paymentIntentId, // May be null for free purchases
               stripe_checkout_session_id: session.id,
               stripe_subscription_id: session.mode === 'subscription' ? session.subscription as string : null,
-              amount: intensiveAmount,
+              amount: intensiveAmount, // May be 0 for free intensive
               payment_plan: intensivePaymentPlan,
               installments_total: intensivePaymentPlan === 'full' ? 1 : intensivePaymentPlan === '2pay' ? 2 : 3,
               installments_paid: 1,
               completion_status: 'pending',
               activation_deadline: activationDeadline.toISOString(),
+              promo_code: promoCode || null, // Store promo code if used
             })
             .select()
             .single()

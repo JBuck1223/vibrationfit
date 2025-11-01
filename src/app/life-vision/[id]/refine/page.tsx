@@ -19,7 +19,8 @@ import {
   Edit,
   Trash2,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Clock
 } from 'lucide-react'
 import { 
   PageLayout, 
@@ -29,7 +30,8 @@ import {
   Spinner,
   Textarea,
   AutoResizeTextarea,
-  Icon
+  Icon,
+  VIVAButton
 } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
@@ -265,6 +267,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [currentMessage, setCurrentMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const [currentRefinement, setCurrentRefinement] = useState('')
   const [showCopyPrompt, setShowCopyPrompt] = useState(false)
   const [lastVivaResponse, setLastVivaResponse] = useState('')
@@ -285,6 +288,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [isInitializingChat, setIsInitializingChat] = useState(false)
   const [initializationStep, setInitializationStep] = useState<string>('')
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const previousCategoryRef = useRef<string | null>(null)
+  const [availableConversations, setAvailableConversations] = useState<any[]>([])
+  const [showConversationSelector, setShowConversationSelector] = useState(false)
 
   const supabase = createClient()
 
@@ -636,6 +642,121 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     }
   }, [searchParams, user, visionId])
 
+  // Reset chat when category changes AND look up existing conversation
+  useEffect(() => {
+    if (previousCategoryRef.current !== null && previousCategoryRef.current !== selectedCategory) {
+      console.log('Category changed from', previousCategoryRef.current, 'to', selectedCategory, '- resetting chat')
+      setChatMessages([])
+      setConversationPhase('initial')
+      setIsInitializingChat(false)
+      setCurrentMessage('')
+      setConversationId(null) // Clear conversation ID for new category
+    }
+    previousCategoryRef.current = selectedCategory
+
+    // Look up existing conversations for this category when it's selected
+    if (selectedCategory && user && visionId && !isInitializingChat) {
+      const lookupConversations = async () => {
+        try {
+          console.log('[LOOKUP] Starting for category:', selectedCategory, 'vision:', visionId)
+          
+          // Try direct lookup first (for new sessions with category/vision_id fields)
+          let { data: sessions, error } = await supabase
+            .from('conversation_sessions')
+            .select('id, created_at, message_count, updated_at, preview_message, category, vision_id')
+            .eq('user_id', user.id)
+            .eq('mode', 'refinement')
+            .eq('category', selectedCategory)
+            .eq('vision_id', visionId)
+            .order('updated_at', { ascending: false })
+            .limit(10)
+
+          console.log('[LOOKUP] Direct query results:', sessions?.length || 0, 'error:', error)
+
+          // Fallback for old sessions without category/vision_id fields
+          if (!sessions || sessions.length === 0) {
+            console.log('[LOOKUP] No direct matches, checking old format sessions...')
+            const { data: allRefinementSessions } = await supabase
+              .from('conversation_sessions')
+              .select('id, created_at, message_count, updated_at, preview_message, category, vision_id')
+              .eq('user_id', user.id)
+              .eq('mode', 'refinement')
+              .order('updated_at', { ascending: false })
+              .limit(50) // Check more sessions for old format
+
+            console.log('[LOOKUP] Found', allRefinementSessions?.length || 0, 'total refinement sessions')
+
+            if (allRefinementSessions && allRefinementSessions.length > 0) {
+              // Filter by checking ai_conversations context for category/visionId match
+              const matchingSessions = []
+              for (const session of allRefinementSessions) {
+                const { data: messages } = await supabase
+                  .from('ai_conversations')
+                  .select('*')
+                  .eq('conversation_id', session.id)
+                  .limit(1)
+
+                if (messages && messages.length > 0) {
+                  const context = messages[0]?.context as any
+                  console.log('[LOOKUP] Session', session.id, 'context:', { category: context?.category, visionId: context?.visionId })
+                  if (context?.category === selectedCategory && context?.visionId === visionId) {
+                    console.log('[LOOKUP] Match found!', session.id)
+                    matchingSessions.push(session)
+                  }
+                }
+              }
+              console.log('[LOOKUP] Total matching sessions:', matchingSessions.length)
+              sessions = matchingSessions
+            }
+          }
+
+          if (sessions && sessions.length > 0) {
+            console.log('[LOOKUP] Processing', sessions.length, 'sessions to get message counts')
+            
+            // Get the last message and count from each session for preview
+            const sessionsWithPreviews = await Promise.all(
+              sessions.map(async (session) => {
+                // Get count first
+                const { count } = await supabase
+                  .from('ai_conversations')
+                  .select('*', { count: 'exact', head: true })
+                  .eq('conversation_id', session.id)
+
+                // Then get last message
+                const { data: messages } = await supabase
+                  .from('ai_conversations')
+                  .select('*')
+                  .eq('conversation_id', session.id)
+                  .order('created_at', { ascending: false })
+                  .limit(1)
+
+                console.log('[LOOKUP] Session', session.id, 'count:', count, 'lastMessage:', !!messages?.[0])
+
+                return {
+                  ...session,
+                  lastMessage: messages?.[0]?.message || null,
+                  preview: session.preview_message,
+                  message_count: count || session.message_count || 0 // Use actual count or fallback
+                }
+              })
+            )
+
+            console.log('[LOOKUP] Final sessions:', sessionsWithPreviews.map(s => ({ id: s.id, count: s.message_count })))
+
+            setAvailableConversations(sessionsWithPreviews)
+            setConversationId(sessionsWithPreviews[0].id) // Auto-select most recent
+            console.log('[LOOKUP] Found', sessionsWithPreviews.length, 'conversations for category:', selectedCategory)
+          } else {
+            console.log('[LOOKUP] No conversations found for category:', selectedCategory)
+          }
+        } catch (error) {
+          console.error('Error looking up existing conversations:', error)
+        }
+      }
+      lookupConversations()
+    }
+  }, [selectedCategory, user, visionId, isInitializingChat])
+
   // Auto-scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -689,33 +810,57 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       
       // Call real VIVA chat API with initial greeting
       setInitializationStep('Connecting with VIVA...')
+      const requestBody = {
+        messages: [{ role: 'user', content: 'START_SESSION' }],
+        context: {
+          refinement: true,
+          operation: 'refine_vision',
+          category: selectedCategory,
+          visionId: visionId,
+          isInitialGreeting: true
+        },
+        visionBuildPhase: 'refinement',
+        conversationId: conversationId || undefined // Pass existing conversation ID if found
+      }
+      console.log('[REFINE] Calling VIVA chat with:', requestBody)
       const response = await fetch('/api/viva/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: 'START_SESSION' }],
-          context: {
-            refinement: true,
-            operation: 'refine_vision',
-            category: selectedCategory,
-            visionId: visionId,
-            isInitialGreeting: true
-          },
-          visionBuildPhase: 'refinement'
-        })
+        body: JSON.stringify(requestBody),
+        cache: 'no-store' // Prevent turbopack caching issues in dev
       })
+      console.log('[REFINE] Response status:', response.status, response.statusText)
       
       setIsInitializingChat(false)
 
+      // Check for JSON error responses
+      const ct = response.headers.get('content-type') || ''
+      if (ct.includes('application/json')) {
+        const json = await response.json()
+        console.error('API returned JSON error:', json)
+        throw new Error(json?.error || 'AI route returned JSON instead of a stream')
+      }
+
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API response not OK:', response.status, errorText)
         throw new Error('Failed to start conversation')
       }
 
+      if (!response.body) {
+        console.error('No response body - stream was not created')
+        throw new Error('No response body - stream was not created')
+      }
+
+      console.log('Response OK, starting to read stream...')
+
       // Handle streaming response
-      const reader = response.body?.getReader()
+      const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let assistantMessageContent = ''
       const assistantMessageId = Date.now().toString()
+
+      console.log('Reader created, starting to read...')
 
       // Add placeholder message for streaming
       const placeholderMessage: ChatMessage = {
@@ -726,26 +871,37 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       }
       setChatMessages([placeholderMessage])
 
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          const chunk = decoder.decode(value, { stream: true })
-          // AI SDK streams plain text chunks, so just append them
-          assistantMessageContent += chunk
-          
-          // Update the message in real-time
-          setChatMessages(prev => 
-            prev.map(msg => 
-              msg.id === assistantMessageId 
-                ? { ...msg, content: assistantMessageContent }
-                : msg
-            )
-          )
+      let chunkCount = 0
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
+          console.log('Stream done, total chunks:', chunkCount, 'final content length:', assistantMessageContent.length)
+          break
         }
+
+        const chunk = decoder.decode(value)
+        chunkCount++
+        if (chunkCount <= 3) { // Log first 3 chunks
+          console.log(`Chunk ${chunkCount}:`, chunk)
+        }
+        assistantMessageContent += chunk
+        
+        // Update the message in real-time
+        setChatMessages(prev => 
+          prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { ...msg, content: assistantMessageContent }
+              : msg
+          )
+        )
       }
 
+      if (assistantMessageContent.length === 0) {
+        console.error('No content received from stream - throwing error')
+        throw new Error('Stream produced no chunks')
+      }
+
+      // Update with received content
       setChatMessages(prev => 
         prev.map(msg => 
           msg.id === assistantMessageId 
@@ -758,7 +914,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     } catch (error) {
       console.error('Error starting conversation:', error)
       setIsInitializingChat(false)
-      setError('Failed to start conversation. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      setError(`Failed to start conversation: ${errorMessage}`)
       
       // Fallback to basic message
       const fallbackMessage: ChatMessage = {
@@ -808,8 +965,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             category: selectedCategory,
             visionId: visionId
           },
-          visionBuildPhase: 'refinement'
-        })
+          visionBuildPhase: 'refinement',
+          conversationId: conversationId || undefined
+        }),
+        cache: 'no-store' // Prevent turbopack caching issues in dev
       })
 
       if (!response.ok) {
@@ -836,8 +995,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           const { done, value } = await reader.read()
           if (done) break
 
-          const chunk = decoder.decode(value, { stream: true })
-          // AI SDK streams plain text chunks, so just append them
+          const chunk = decoder.decode(value)
           assistantMessageContent += chunk
           
           // Update the message in real-time
@@ -1502,24 +1660,93 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               </p>
             </div>
           ) : chatMessages.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageCircle className="w-8 h-8 text-white" />
-                      </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Ready to Start?</h3>
-              <p className="text-neutral-400 mb-6">
-                VIVA will help you refine your {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label.toLowerCase()} vision through intelligent conversation.
-              </p>
-              <Button
-                onClick={startConversation}
-                variant="primary"
-                size="lg"
-                className="flex items-center gap-2"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Start Conversation with VIVA
-              </Button>
+            availableConversations.length > 0 ? (
+              <Card className="p-8">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageCircle className="w-8 h-8 text-white" />
                   </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">Continue or Start Fresh?</h3>
+                  <p className="text-neutral-400">
+                    You have {availableConversations.length} previous conversation{availableConversations.length > 1 ? 's' : ''} for this category.
+                  </p>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  {availableConversations.map((conv, idx) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => {
+                        setConversationId(conv.id)
+                        setShowConversationSelector(false)
+                        startConversation()
+                      }}
+                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                        conversationId === conv.id
+                          ? 'border-purple-500 bg-purple-500/10'
+                          : 'border-neutral-700 hover:border-neutral-600 bg-neutral-800/30'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-neutral-400" />
+                          <span className="text-sm text-neutral-400">
+                            {new Date(conv.updated_at).toLocaleDateString()} at {new Date(conv.updated_at).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <Badge variant="info" className="text-xs">
+                          {conv.message_count} messages
+                        </Badge>
+                      </div>
+                      {conv.lastMessage && (
+                        <p className="text-sm text-neutral-300 line-clamp-2">
+                          {conv.lastMessage.substring(0, 120)}...
+                        </p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={startConversation}
+                    variant="primary"
+                    className="flex-1"
+                    size="lg"
+                  >
+                    Continue Previous
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setConversationId(null)
+                      setAvailableConversations([])
+                      startConversation()
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                    size="lg"
+                  >
+                    Start Fresh
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">Ready to Start?</h3>
+                <p className="text-neutral-400 mb-6">
+                  VIVA will help you refine your {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label.toLowerCase()} vision through intelligent conversation.
+                </p>
+                <VIVAButton
+                  onClick={startConversation}
+                  size="lg"
+                >
+                  Start Conversation with VIVA
+                </VIVAButton>
+              </div>
+            )
           ) : (
             <ChatInterface 
               chatMessages={chatMessages}

@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { intensivePaymentPlan, continuityPlan } = await request.json()
+    const { intensivePaymentPlan, continuityPlan, promoCode } = await request.json()
 
     // Validate inputs
     if (!intensivePaymentPlan || !continuityPlan) {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     // Vision Pro subscription will be created separately in webhook after intensive completes
     
     // 1. Intensive Product - One-time payment (shows clearly as "$499 today")
-    let intensivePriceId: string
+    let intensivePriceId: string | undefined
     let intensiveQuantity = 1
 
     if (intensivePaymentPlan === 'full') {
@@ -160,10 +160,18 @@ You can cancel anytime before the first billing to avoid charges.`
         continuity_price_id: continuityPriceId, // Store for webhook
         source: 'combined_checkout',
         payment_plan: intensivePaymentPlan,
+        promo_code: promoCode || '', // Store promo code for webhook
+        is_free_intensive: promoCode ? 'true' : 'false', // Flag for free intensive
       },
       
-      // Allow promotion codes
-      allow_promotion_codes: true,
+      // Apply promo code if provided, otherwise allow manual entry
+      ...(promoCode ? {
+        discounts: [{
+          coupon: promoCode,
+        }],
+      } : {
+        allow_promotion_codes: true,
+      }),
       
       // Subscription settings (only for 2pay/3pay plans)
       ...(sessionMode === 'subscription' ? {

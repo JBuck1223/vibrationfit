@@ -9,6 +9,10 @@ import { loadKnowledgeBase } from '@/lib/viva/knowledge'
 import { flattenAssessmentResponsesNumbered } from '@/lib/viva/prompt-flatteners'
 
 export const runtime = 'edge' // Use Edge Runtime for faster cold starts
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const MODEL = process.env.VIVA_MODEL || 'gpt-4-turbo' // Consistent model name
 
 export async function POST(req: Request) {
   try {
@@ -30,13 +34,27 @@ export async function POST(req: Request) {
     const isInitialGreeting = context?.isInitialGreeting === true || 
                               (messages.length === 1 && messages[0].content === 'START_SESSION')
     
+    // Determine mode from context
+    let mode = context?.mode || 'master'
+    if (context?.refinement === true) {
+      mode = 'refinement'
+    } else if (visionBuildPhase) {
+      mode = visionBuildPhase
+    }
+
+    // Extract category and visionId from context if available
+    const category = context?.category || null
+    const visionIdForSession = context?.visionId || null
+
     if (!currentConversationId && !isInitialGreeting) {
       // Create new conversation session
       const { data: newSession, error: sessionError } = await supabase
         .from('conversation_sessions')
         .insert({
           user_id: user.id,
-          mode: context?.mode || 'master',
+          mode: mode,
+          category: category,
+          vision_id: visionIdForSession,
           preview_message: messages[messages.length - 1]?.content?.slice(0, 100) || '',
           message_count: 0
         })
@@ -52,7 +70,9 @@ export async function POST(req: Request) {
         .from('conversation_sessions')
         .insert({
           user_id: user.id,
-          mode: context?.mode || 'master',
+          mode: mode,
+          category: category,
+          vision_id: visionIdForSession,
           preview_message: 'New conversation',
           message_count: 0
         })
@@ -367,14 +387,15 @@ export async function POST(req: Request) {
       : messages
 
     // Filter out the START_SESSION message if present
+    // For initial greetings with prompt, don't use messages array
     const chatMessages = isInitialGreeting 
-      ? [] 
+      ? undefined 
       : allMessagesForContext
 
     // Estimate tokens and validate balance before starting stream
-    const messagesText = chatMessages.map((m: { content: string }) => m.content).join('\n')
+    const messagesText = chatMessages ? chatMessages.map((m: { content: string }) => m.content).join('\n') : ''
     const promptText = systemPrompt + (isInitialGreeting ? `\nIntroduce yourself to ${userName}...` : messagesText)
-    const estimatedTokens = estimateTokensForText(promptText, 'gpt-4-turbo')
+    const estimatedTokens = estimateTokensForText(promptText, MODEL)
     const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
     
     if (tokenValidation) {
@@ -391,17 +412,47 @@ export async function POST(req: Request) {
     }
 
     // Create streaming completion using AI SDK
-    const result = streamText({
-      model: openai('gpt-4-turbo'),
+    const initialPrompt = isInitialGreeting 
+      ? (context?.refinement && context?.category 
+        ? `Introduce yourself to ${userName} warmly. Acknowledge you're here to help refine their ${context.category} vision section. Reference something specific from their current ${context.category} section above (if provided) or their profile/assessment context. Then ask one powerful question that will help them deepen or elevate this category. Keep it warm, conversational, and focused on refinement. 3-4 sentences total.`
+        : `Introduce yourself to ${userName} and acknowledge what you see in their profile and assessment. Keep it warm, brief (2-3 sentences), and then ask one powerful opening question related to ${context?.category || 'their vision'} and the ${visionBuildPhase} phase.`)
+      : undefined
+
+    console.log('[VIVA CHAT] Starting stream:', {
+      isInitialGreeting,
+      isRefinement: context?.refinement,
+      category: context?.category,
+      hasPrompt: !!initialPrompt,
+      hasMessages: chatMessages ? chatMessages.length > 0 : false
+    })
+
+    // Bail if empty prompt/messages
+    if (!initialPrompt && (!chatMessages || chatMessages.length === 0)) {
+      return new Response(JSON.stringify({ error: 'Empty prompt/messages' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Build streamText params - don't include messages if we have a prompt
+    const streamParams: any = {
+      model: openai(MODEL),
       system: systemPrompt,
-      messages: chatMessages,
-      prompt: isInitialGreeting 
-        ? (context?.refinement && context?.category 
-          ? `Introduce yourself to ${userName} warmly. Acknowledge you're here to help refine their ${context.category} vision section. Reference something specific from their current ${context.category} section above (if provided) or their profile/assessment context. Then ask one powerful question that will help them deepen or elevate this category. Keep it warm, conversational, and focused on refinement. 3-4 sentences total.`
-          : `Introduce yourself to ${userName} and acknowledge what you see in their profile and assessment. Keep it warm, brief (2-3 sentences), and then ask one powerful opening question related to ${context?.category || 'their vision'} and the ${visionBuildPhase} phase.`)
-        : undefined,
       temperature: 0.8,
+    }
+    
+    if (initialPrompt) {
+      streamParams.prompt = initialPrompt
+    }
+    
+    if (chatMessages) {
+      streamParams.messages = chatMessages
+    }
+
+    const result = streamText({
+      ...streamParams,
       async onFinish({ text, usage }: { text: string; usage?: any }) {
+        console.log('[VIVA CHAT] Stream finished, text length:', text?.length || 0)
         // Store assistant message in database after completion
         try {
           await supabase.from('ai_conversations').insert({
@@ -452,7 +503,7 @@ export async function POST(req: Request) {
               await trackTokenUsage({
                 user_id: user.id,
                 action_type: 'chat_conversation',
-                model_used: 'gpt-4-turbo',
+                model_used: MODEL,
                 tokens_used: totalTokens,
                 input_tokens: promptTokens,
                 output_tokens: completionTokens,
@@ -475,14 +526,21 @@ export async function POST(req: Request) {
       },
     })
 
-    return result.toTextStreamResponse({
+    console.log('[VIVA CHAT] Returning stream response')
+    // Return plain text stream that works with our manual decoder
+    return new Response(result.textStream, {
       headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
         'X-Conversation-Id': currentConversationId || ''
       }
     })
   } catch (error) {
     console.error('VIVA Chat Error:', error)
-    return new Response('Error processing request', { status: 500 })
+    return new Response(JSON.stringify({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 }
 
