@@ -480,7 +480,14 @@ export default function VisionBoardPage() {
                     onClick={() => openLightbox(index)}
                   >
                     <div className="relative overflow-hidden rounded-lg bg-neutral-800 shadow-lg hover:shadow-xl transition-all duration-300">
-                      {item.image_url ? (
+                      {(item.status === 'actualized' && item.actualized_image_url) ? (
+                        <img
+                          src={item.actualized_image_url}
+                          alt={item.name}
+                          className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : item.image_url ? (
                         <img
                           src={item.image_url}
                           alt={item.name}
@@ -594,7 +601,14 @@ export default function VisionBoardPage() {
 
                       {/* Image - Consistent 4:3 aspect ratio */}
                       <div className="flex-shrink-0 w-full md:w-40 aspect-[4/3] rounded-lg overflow-hidden bg-neutral-800">
-                        {item.image_url ? (
+                        {(item.status === 'actualized' && item.actualized_image_url) ? (
+                          <img
+                            src={item.actualized_image_url}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : item.image_url ? (
                           <img
                             src={item.image_url}
                             alt={item.name}
@@ -723,17 +737,24 @@ export default function VisionBoardPage() {
 
               {/* Image Content */}
               <div className="max-w-4xl max-h-full w-full h-full flex items-center justify-center">
-                {filteredItems[lightboxIndex]?.image_url ? (
-                  <img
-                    src={filteredItems[lightboxIndex].image_url}
-                    alt={filteredItems[lightboxIndex].name}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                ) : (
-                  <div className="w-96 h-96 bg-neutral-800 rounded-lg flex items-center justify-center">
-                    <Grid3X3 className="w-24 h-24 text-neutral-600" />
-                  </div>
-                )}
+                {(() => {
+                  const currentItem = filteredItems[lightboxIndex]
+                  const imageUrl = (currentItem?.status === 'actualized' && currentItem?.actualized_image_url) 
+                    ? currentItem.actualized_image_url 
+                    : currentItem?.image_url
+                  
+                  return imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={currentItem.name}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : (
+                    <div className="w-96 h-96 bg-neutral-800 rounded-lg flex items-center justify-center">
+                      <Grid3X3 className="w-24 h-24 text-neutral-600" />
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Image Counter */}
@@ -746,27 +767,33 @@ export default function VisionBoardPage() {
               {/* Thumbnail Strip */}
               {filteredItems.length > 1 && (
                 <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4">
-                  {filteredItems.map((item, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setLightboxIndex(index)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                        index === lightboxIndex ? 'border-green-500' : 'border-neutral-600'
-                      }`}
-                    >
-                      {item.image_url ? (
-                        <img
-                          src={item.image_url}
-                          alt={`Thumbnail ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
-                          <Grid3X3 className="w-4 h-4 text-neutral-600" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                  {filteredItems.map((item, index) => {
+                    const thumbnailUrl = (item.status === 'actualized' && item.actualized_image_url) 
+                      ? item.actualized_image_url 
+                      : item.image_url
+                    
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => setLightboxIndex(index)}
+                        className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                          index === lightboxIndex ? 'border-green-500' : 'border-neutral-600'
+                        }`}
+                      >
+                        {thumbnailUrl ? (
+                          <img
+                            src={thumbnailUrl}
+                            alt={`Thumbnail ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
+                            <Grid3X3 className="w-4 h-4 text-neutral-600" />
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>

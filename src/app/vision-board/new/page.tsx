@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { PageLayout, Card, Input, Button, Textarea, Badge } from '@/lib/design-system'
+import { PageLayout, Card, Input, Button, Badge } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload, CheckCircle, XCircle, Filter } from 'lucide-react'
@@ -64,14 +65,19 @@ export default function NewVisionBoardItemPage() {
   const [file, setFile] = useState<File | null>(null)
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
+  const [actualizedFile, setActualizedFile] = useState<File | null>(null)
+  const [actualizedAiGeneratedImageUrl, setActualizedAiGeneratedImageUrl] = useState<string | null>(null)
+  const [actualizedImageSource, setActualizedImageSource] = useState<'upload' | 'ai' | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    actualization_story: '',
     status: 'active',
     categories: [] as string[]
   })
   
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const actualizedFileInputRef = React.useRef<HTMLInputElement>(null)
 
   // Load existing vision board items to check which categories are covered
   useEffect(() => {
@@ -145,6 +151,22 @@ export default function NewVisionBoardItemPage() {
         }
       }
 
+      // Get actualized image URL if status is actualized
+      let actualizedImageUrl = ''
+      if (formData.status === 'actualized') {
+        if (actualizedImageSource === 'ai' && actualizedAiGeneratedImageUrl) {
+          actualizedImageUrl = actualizedAiGeneratedImageUrl
+        } else if (actualizedImageSource === 'upload' && actualizedFile) {
+          try {
+            const uploadResult = await uploadUserFile('visionBoardUploaded', actualizedFile, user.id)
+            actualizedImageUrl = uploadResult.url
+          } catch (error) {
+            alert(`Actualized image upload failed: ${error}`)
+            return
+          }
+        }
+      }
+
       // Create vision board item
       const { error } = await supabase
         .from('vision_board_items')
@@ -153,6 +175,8 @@ export default function NewVisionBoardItemPage() {
           name: formData.name,
           description: formData.description,
           image_url: imageUrl,
+          actualized_image_url: formData.status === 'actualized' && actualizedImageUrl ? actualizedImageUrl : null,
+          actualization_story: formData.status === 'actualized' ? formData.actualization_story : null,
           status: formData.status,
           categories: formData.categories,
           actualized_at: formData.status === 'actualized' ? new Date().toISOString() : null
@@ -235,12 +259,14 @@ export default function NewVisionBoardItemPage() {
               />
 
               {/* Description */}
-              <Textarea
+              <RecordingTextarea
                 label="Description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, description: value })}
+                placeholder="Describe this creation. Click the microphone icon to record audio."
                 rows={4}
-                placeholder="Describe this creation."
+                storageFolder="visionBoard"
+                recordingPurpose="quick"
               />
 
               {/* Image Source Toggle */}
@@ -417,6 +443,191 @@ export default function NewVisionBoardItemPage() {
                 )}
               </div>
 
+              {/* Actualized Image - Only show when status is actualized */}
+              {formData.status === 'actualized' && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-200 mb-3">
+                    Evidence of Actualization (Optional)
+                  </label>
+                  
+                  {/* Toggle Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                    <Button
+                      type="button"
+                      variant={actualizedImageSource === 'upload' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        if (actualizedImageSource === 'upload') {
+                          actualizedFileInputRef.current?.click()
+                        } else {
+                          setActualizedImageSource('upload')
+                          setActualizedAiGeneratedImageUrl(null)
+                        }
+                      }}
+                      className="w-full sm:flex-1"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Evidence
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={actualizedImageSource === 'ai' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setActualizedImageSource('ai')
+                        setActualizedFile(null)
+                      }}
+                      className="w-full sm:flex-1"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate with VIVA
+                    </Button>
+                  </div>
+
+                  {/* Hidden file input for actualized image */}
+                  <input
+                    ref={actualizedFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                    onChange={(e) => {
+                      const selectedFile = e.target.files?.[0]
+                      if (selectedFile) {
+                        setActualizedFile(selectedFile)
+                        setActualizedImageSource('upload')
+                      }
+                    }}
+                    className="hidden"
+                  />
+
+                  {/* Show drag-drop zone or selected file */}
+                  {actualizedImageSource === 'upload' && !actualizedFile && (
+                    <div
+                      onClick={() => actualizedFileInputRef.current?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.currentTarget.classList.add('border-primary-500', 'bg-primary-500/5')
+                      }}
+                      onDragLeave={(e) => {
+                        e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
+                        const droppedFile = e.dataTransfer.files[0]
+                        if (droppedFile && droppedFile.type.startsWith('image/')) {
+                          setActualizedFile(droppedFile)
+                        }
+                      }}
+                      className="border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary-500 hover:bg-neutral-900/50 transition-all"
+                    >
+                      <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                      <p className="text-neutral-300 font-medium mb-1">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        PNG, JPG, WEBP, or HEIC (max 10MB)
+                      </p>
+                    </div>
+                  )}
+
+                  {actualizedImageSource === 'upload' && actualizedFile && (
+                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        {actualizedFile.type === 'image/heic' || actualizedFile.type === 'image/heif' ? (
+                          <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mx-auto sm:mx-0">
+                            <div className="text-white text-center">
+                              <div className="text-2xl font-bold">HEIC</div>
+                              <div className="text-xs opacity-80">Apple</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={URL.createObjectURL(actualizedFile)}
+                            alt="Preview"
+                            className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                          />
+                        )}
+                        <div className="flex-1 text-center sm:text-left">
+                          <p className="text-sm font-medium text-white break-words">{actualizedFile.name}</p>
+                          <p className="text-xs text-neutral-400">
+                            {(actualizedFile.size / 1024 / 1024).toFixed(2)} MB
+                            {(actualizedFile.type === 'image/heic' || actualizedFile.type === 'image/heif') && (
+                              <span className="ml-2 text-purple-400">• HEIC Format</span>
+                            )}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setActualizedFile(null)}
+                          className="w-full sm:w-auto"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {actualizedImageSource === 'ai' && (
+                    <>
+                      <AIImageGenerator
+                        type="vision_board"
+                        onImageGenerated={(url) => setActualizedAiGeneratedImageUrl(url)}
+                        title={`Actualized: ${formData.name}`}
+                        description={`Evidence of actualization: ${formData.description}`}
+                        visionText={
+                          formData.name && formData.description
+                            ? `Actualized: ${formData.name}. Evidence: ${formData.description}`
+                            : `Actualized: ${formData.description || formData.name || ''}`
+                        }
+                      />
+                      
+                      {actualizedAiGeneratedImageUrl && (
+                        <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mt-4">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                            <img
+                              src={actualizedAiGeneratedImageUrl}
+                              alt="AI Generated Evidence Preview"
+                              className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                            />
+                            <div className="flex-1 text-center sm:text-left">
+                              <p className="text-sm font-medium text-white">AI Generated Evidence</p>
+                              <p className="text-xs text-neutral-400">
+                                Generated with VIVA
+                                <span className="ml-2 text-green-400">• Auto-Selected</span>
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setActualizedAiGeneratedImageUrl(null)}
+                              className="w-full sm:w-auto"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Actualization Story - Only show when status is actualized */}
+              {formData.status === 'actualized' && (
+                <RecordingTextarea
+                  label="Actualization Story"
+                  value={formData.actualization_story}
+                  onChange={(value) => setFormData({ ...formData, actualization_story: value })}
+                  placeholder="Tell the story of how this vision was actualized. Click the microphone icon to record audio."
+                  rows={6}
+                  storageFolder="visionBoard"
+                  recordingPurpose="quick"
+                />
+              )}
+
               {/* Status */}
               <div>
                 <p className="text-sm text-neutral-400 mb-3 text-center">
@@ -427,7 +638,12 @@ export default function NewVisionBoardItemPage() {
                   {STATUS_OPTIONS.map((status) => (
                     <button
                       key={status.value}
-                      onClick={() => setFormData({ ...formData, status: status.value })}
+                      type="button"
+                      onClick={() => setFormData({ 
+                        ...formData, 
+                        status: status.value,
+                        actualization_story: status.value === 'actualized' ? formData.actualization_story : ''
+                      })}
                       className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-1 ${
                         formData.status === status.value
                           ? status.value === 'active' 

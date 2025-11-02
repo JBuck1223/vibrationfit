@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Input, Button, Textarea, Icon } from '@/lib/design-system'
+import { PageLayout, Card, Input, Button, Icon } from '@/lib/design-system'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import Link from 'next/link'
 
 const STATUS_OPTIONS = [
@@ -41,6 +42,8 @@ interface VisionBoardItem {
   name: string
   description: string
   image_url: string
+  actualized_image_url: string | null
+  actualization_story: string | null
   status: string
   categories: string[]
   created_at: string
@@ -58,16 +61,21 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [item, setItem] = useState<VisionBoardItem | null>(null)
   const [file, setFile] = useState<File | null>(null)
+  const [actualizedFile, setActualizedFile] = useState<File | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    actualization_story: '',
     status: 'active',
     categories: [] as string[]
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const actualizedFileInputRef = useRef<HTMLInputElement>(null)
   const [imageSource, setImageSource] = useState<'upload' | 'ai'>('upload')
+  const [actualizedImageSource, setActualizedImageSource] = useState<'upload' | 'ai'>('upload')
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
+  const [actualizedAiGeneratedImageUrl, setActualizedAiGeneratedImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
     fetchItem()
@@ -88,9 +96,14 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
       setFormData({
         name: data.name,
         description: data.description || '',
+        actualization_story: data.actualization_story || '',
         status: data.status,
         categories: data.categories || []
       })
+      // Reset actualized image state when loading
+      setActualizedFile(null)
+      setActualizedAiGeneratedImageUrl(null)
+      setActualizedImageSource('upload')
     } catch (error) {
       console.error('Error fetching item:', error)
       alert('Failed to load vision board item')
@@ -125,7 +138,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
       const resolvedParams = await params
       let imageUrl = item.image_url
 
-      // Handle new image (uploaded file or AI-generated)
+      // Handle new vision image (uploaded file or AI-generated)
       if (file || aiGeneratedImageUrl) {
         // Delete old image if it exists
         if (item.image_url) {
@@ -156,6 +169,48 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
         }
       }
 
+      // Handle actualized image if status is actualized
+      let actualizedImageUrl = item.actualized_image_url
+      if (formData.status === 'actualized') {
+        if (actualizedFile || actualizedAiGeneratedImageUrl) {
+          // Delete old actualized image if it exists
+          if (item.actualized_image_url) {
+            try {
+              const url = new URL(item.actualized_image_url)
+              const oldPath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+              console.log('Replacing old actualized S3 file:', oldPath)
+              await deleteUserFile(oldPath)
+            } catch (error) {
+              console.warn('Failed to delete old actualized image file:', error)
+            }
+          }
+
+          if (actualizedFile) {
+            try {
+              const uploadResult = await uploadUserFile('visionBoardUploaded', actualizedFile, user.id)
+              actualizedImageUrl = uploadResult.url
+            } catch (error) {
+              alert(`Actualized image upload failed: ${error}`)
+              return
+            }
+          } else if (actualizedAiGeneratedImageUrl) {
+            actualizedImageUrl = actualizedAiGeneratedImageUrl
+          }
+        }
+      } else {
+        // If status is not actualized, clear actualized image
+        if (item.actualized_image_url) {
+          try {
+            const url = new URL(item.actualized_image_url)
+            const oldPath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+            await deleteUserFile(oldPath)
+          } catch (error) {
+            console.warn('Failed to delete actualized image file:', error)
+          }
+        }
+        actualizedImageUrl = null
+      }
+
       // Update vision board item
       const { error } = await supabase
         .from('vision_board_items')
@@ -163,6 +218,8 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
           name: formData.name,
           description: formData.description,
           image_url: imageUrl,
+          actualized_image_url: actualizedImageUrl,
+          actualization_story: formData.status === 'actualized' ? formData.actualization_story : null,
           status: formData.status,
           categories: formData.categories,
           actualized_at: formData.status === 'actualized' && item.status !== 'actualized' 
@@ -206,17 +263,26 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
 
       const resolvedParams = await params
 
-      // Delete image file if it exists
+      // Delete image files if they exist
       if (item.image_url) {
         try {
-          // Extract S3 key from CDN URL more safely
           const url = new URL(item.image_url)
           const imagePath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
           console.log('Deleting S3 file:', imagePath)
           await deleteUserFile(imagePath)
         } catch (error) {
           console.warn('Failed to delete image file:', error)
-          // Continue with database deletion even if image deletion fails
+        }
+      }
+      
+      if (item.actualized_image_url) {
+        try {
+          const url = new URL(item.actualized_image_url)
+          const imagePath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+          console.log('Deleting actualized S3 file:', imagePath)
+          await deleteUserFile(imagePath)
+        } catch (error) {
+          console.warn('Failed to delete actualized image file:', error)
         }
       }
 
@@ -340,15 +406,15 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
               </div>
 
               {/* Description */}
-              <div>
-                <Textarea
-                  label="Description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe this creation."
-                  rows={4}
-                />
-              </div>
+              <RecordingTextarea
+                label="Description"
+                value={formData.description}
+                onChange={(value) => setFormData({ ...formData, description: value })}
+                placeholder="Describe this creation. Click the microphone icon to record audio."
+                rows={4}
+                storageFolder="visionBoard"
+                recordingPurpose="quick"
+              />
 
               {/* Image Section */}
               <div>
@@ -524,6 +590,193 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                 )}
               </div>
 
+              {/* Actualized Image - Only show when status is actualized */}
+              {formData.status === 'actualized' && (
+                <div>
+                  <p className="text-sm text-neutral-400 mb-3 text-center">
+                    Evidence of Actualization (Optional)
+                  </p>
+                  
+                  {/* Upload/Generate Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                    <Button
+                      type="button"
+                      variant={actualizedImageSource === 'upload' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        if (actualizedImageSource === 'upload') {
+                          actualizedFileInputRef.current?.click()
+                        } else {
+                          setActualizedImageSource('upload')
+                          setActualizedAiGeneratedImageUrl(null)
+                        }
+                      }}
+                      className="w-full sm:flex-1"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Evidence
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={actualizedImageSource === 'ai' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setActualizedImageSource('ai')
+                        setActualizedFile(null)
+                      }}
+                      className="w-full sm:flex-1"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate with VIVA
+                    </Button>
+                  </div>
+
+                  {/* Hidden file input for actualized image */}
+                  <input
+                    ref={actualizedFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                    onChange={(e) => {
+                      const selectedFile = e.target.files?.[0]
+                      if (selectedFile) {
+                        setActualizedFile(selectedFile)
+                        setActualizedImageSource('upload')
+                      }
+                    }}
+                    className="hidden"
+                  />
+
+                  {/* Show current actualized image */}
+                  {item.actualized_image_url && !actualizedFile && !actualizedAiGeneratedImageUrl && (
+                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mb-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <img
+                          src={item.actualized_image_url}
+                          alt="Current Actualized Image"
+                          className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                        />
+                        <div className="flex-1 text-center sm:text-left">
+                          <p className="text-sm font-medium text-white">Current Evidence Image</p>
+                          <p className="text-xs text-neutral-400">Will be replaced when you upload/generate new image</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show drag-drop zone or selected file */}
+                  {actualizedImageSource === 'upload' && !actualizedFile && (
+                    <div
+                      onClick={() => actualizedFileInputRef.current?.click()}
+                      className="border-2 border-dashed border-neutral-600 rounded-xl p-8 text-center cursor-pointer hover:border-neutral-500 transition-colors"
+                    >
+                      <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                      <p className="text-neutral-300 font-medium mb-1">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        PNG, JPG, WEBP, or HEIC (max 10MB)
+                      </p>
+                    </div>
+                  )}
+
+                  {actualizedImageSource === 'upload' && actualizedFile && (
+                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        {actualizedFile.type === 'image/heic' || actualizedFile.type === 'image/heif' ? (
+                          <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mx-auto sm:mx-0">
+                            <div className="text-white text-center">
+                              <div className="text-2xl font-bold">HEIC</div>
+                              <div className="text-xs opacity-80">Apple</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={URL.createObjectURL(actualizedFile)}
+                            alt="Preview"
+                            className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                          />
+                        )}
+                        <div className="flex-1 text-center sm:text-left">
+                          <p className="text-sm font-medium text-white break-words">{actualizedFile.name}</p>
+                          <p className="text-xs text-neutral-400">
+                            {(actualizedFile.size / 1024 / 1024).toFixed(2)} MB
+                            {(actualizedFile.type === 'image/heic' || actualizedFile.type === 'image/heif') && (
+                              <span className="ml-2 text-purple-400">• HEIC Format</span>
+                            )}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setActualizedFile(null)}
+                          className="w-full sm:w-auto"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {actualizedImageSource === 'ai' && (
+                    <>
+                      <AIImageGenerator
+                        type="vision_board"
+                        onImageGenerated={(url) => setActualizedAiGeneratedImageUrl(url)}
+                        title={`Actualized: ${formData.name}`}
+                        description={`Evidence of actualization: ${formData.description}`}
+                        visionText={
+                          formData.name && formData.description
+                            ? `Actualized: ${formData.name}. Evidence: ${formData.description}`
+                            : `Actualized: ${formData.description || formData.name || ''}`
+                        }
+                      />
+                      
+                      {actualizedAiGeneratedImageUrl && (
+                        <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mt-4">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                            <img
+                              src={actualizedAiGeneratedImageUrl}
+                              alt="AI Generated Evidence Preview"
+                              className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                            />
+                            <div className="flex-1 text-center sm:text-left">
+                              <p className="text-sm font-medium text-white">AI Generated Evidence</p>
+                              <p className="text-xs text-neutral-400">
+                                Generated with VIVA
+                                <span className="ml-2 text-purple-400">• AI Created</span>
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setActualizedAiGeneratedImageUrl(null)}
+                              className="w-full sm:w-auto"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Actualization Story - Only show when status is actualized */}
+              {formData.status === 'actualized' && (
+                <RecordingTextarea
+                  label="Actualization Story"
+                  value={formData.actualization_story}
+                  onChange={(value) => setFormData({ ...formData, actualization_story: value })}
+                  placeholder="Tell the story of how this vision was actualized. Click the microphone icon to record audio."
+                  rows={6}
+                  storageFolder="visionBoard"
+                  recordingPurpose="quick"
+                />
+              )}
+
               {/* Status */}
               <div>
                 <p className="text-sm text-neutral-400 mb-3 text-center">
@@ -534,7 +787,12 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   {STATUS_OPTIONS.map((status) => (
                     <button
                       key={status.value}
-                      onClick={() => setFormData({ ...formData, status: status.value })}
+                      type="button"
+                      onClick={() => setFormData({ 
+                        ...formData, 
+                        status: status.value,
+                        actualization_story: status.value === 'actualized' ? formData.actualization_story : ''
+                      })}
                       className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-1 ${
                         formData.status === status.value
                           ? status.value === 'active' 
@@ -602,34 +860,34 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             </form>
           ) : (
             <div className="space-y-6">
-              {/* Image */}
-              {item.image_url && (
-                <div>
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="w-full h-auto object-cover rounded-lg"
-                    onError={(e) => {
-                      console.error('Image failed to load:', item.image_url)
-                      console.error('Error details:', e)
-                    }}
-                    onLoad={() => {
-                      console.log('Image loaded successfully:', item.image_url)
-                    }}
-                  />
-                  <div className="mt-2 text-xs text-neutral-500">
-                    <p>Testing image URL: {item.image_url}</p>
-                    <a 
-                      href={item.image_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300"
-                    >
-                      Open image in new tab
-                    </a>
+              {/* Image - Show actualized image if status is actualized, otherwise show vision image */}
+              {(() => {
+                const displayImageUrl = (item.status === 'actualized' && item.actualized_image_url)
+                  ? item.actualized_image_url
+                  : item.image_url
+                
+                return displayImageUrl ? (
+                  <div>
+                    <img
+                      src={displayImageUrl}
+                      alt={item.name}
+                      className="w-full h-auto object-cover rounded-lg"
+                      onError={(e) => {
+                        console.error('Image failed to load:', displayImageUrl)
+                        console.error('Error details:', e)
+                      }}
+                      onLoad={() => {
+                        console.log('Image loaded successfully:', displayImageUrl)
+                      }}
+                    />
+                    {item.status === 'actualized' && item.actualized_image_url && (
+                      <div className="mt-2 text-xs text-purple-400">
+                        Showing evidence of actualization
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                ) : null
+              })()}
 
               {/* Content */}
               <div className="space-y-4">
@@ -639,6 +897,14 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                     <p className="text-neutral-300">{item.description}</p>
                   )}
                 </div>
+
+                {/* Actualization Story - Show when status is actualized */}
+                {item.status === 'actualized' && item.actualization_story && (
+                  <div className="p-6 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                    <h3 className="text-lg font-semibold text-purple-400 mb-3">Actualization Story</h3>
+                    <p className="text-neutral-200 whitespace-pre-wrap">{item.actualization_story}</p>
+                  </div>
+                )}
 
                 {/* Categories */}
                 {item.categories && item.categories.length > 0 && (
