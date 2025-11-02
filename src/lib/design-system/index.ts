@@ -55,6 +55,8 @@ export {
   ItemListCard,
   PricingCard,
   FlowCards,
+  ProofWall,
+  SwipeableCards,
   
   // Navigation Components
   Sidebar,

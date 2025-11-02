@@ -6,7 +6,7 @@ import {
   Activity, Play, Monitor, CreditCard, List, CheckCircle, 
   Sparkles, Smartphone, PanelTop, FileText, Music, Type, 
   Users, Eye, Trash2, Zap, HardDrive, Headphones, Palette,
-  ArrowRight
+  ArrowRight, Image
 } from 'lucide-react'
 
 export interface ComponentMetadata {
@@ -220,6 +220,24 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: ArrowRight,
     exportName: 'FlowCards',
     path: '/design-system/component/flow-cards'
+  },
+  {
+    id: 'proof-wall',
+    name: 'Proof Wall',
+    description: 'Interactive carousel with before/after photos and actualization stories',
+    category: 'UI',
+    icon: Image,
+    exportName: 'ProofWall',
+    path: '/design-system/component/proof-wall'
+  },
+  {
+    id: 'swipeable-cards',
+    name: 'Swipeable Cards',
+    description: 'Mobile-optimized swipeable card stack with touch gestures, haptic feedback, and responsive grid',
+    category: 'UI',
+    icon: Smartphone,
+    exportName: 'SwipeableCards',
+    path: '/design-system/component/swipeable-cards'
   },
   {
     id: 'pricing-card',

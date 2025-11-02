@@ -8,6 +8,9 @@ import {
   Card,
   FeatureCard,
   FlowCards,
+  ProofWall,
+  SwipeableCards,
+  type SwipeableCard,
   Button,
   Stack,
   Grid,
@@ -56,6 +59,7 @@ import {
   Image,
   MousePointer,
   ArrowRight,
+  ArrowDown,
   Star,
   Heart,
   Share,
@@ -487,6 +491,259 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   }
                 ]}
                 arrowColor="#8B5CF6"
+              />
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
+    case 'proof-wall':
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">ProofWall - Before/After Carousel</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">Interactive carousel with swipe support for mobile. Each set has before/after photos and an actualization story button.</p>
+              <ProofWall
+                title="Proof Wall"
+                items={[
+                  {
+                    id: '1',
+                    beforeImage: 'https://via.placeholder.com/400x400/FF0040/FFFFFF?text=Before',
+                    afterImage: 'https://via.placeholder.com/400x400/39FF14/000000?text=After',
+                    beforeAlt: 'Before transformation',
+                    afterAlt: 'After transformation',
+                    story: 'This is an example actualization story. In just 72 hours, I completely transformed my mindset and started seeing real results. The VIVA Vision process helped me clarify exactly what I wanted and gave me the structure to make it happen.',
+                    storyTitle: 'Sarah\'s Transformation'
+                  },
+                  {
+                    id: '2',
+                    beforeImage: 'https://via.placeholder.com/400x400/FF0040/FFFFFF?text=Before',
+                    afterImage: 'https://via.placeholder.com/400x400/39FF14/000000?text=After',
+                    beforeAlt: 'Before transformation',
+                    afterAlt: 'After transformation',
+                    story: 'Another powerful story of transformation. The 5-Phase Flow inside VIVA helped me align my thoughts with my goals and create the life I always wanted.',
+                    storyTitle: 'Michael\'s Success Story'
+                  },
+                  {
+                    id: '3',
+                    beforeImage: 'https://via.placeholder.com/400x400/FF0040/FFFFFF?text=Vision',
+                    afterImage: 'https://via.placeholder.com/400x400/39FF14/000000?text=Actualized',
+                    beforeAlt: 'Before transformation',
+                    afterAlt: 'After transformation',
+                    story: 'The Activation Intensive gave me the tools I needed to break through my limiting beliefs and create real change in my life. I\'m so grateful for this journey.',
+                    storyTitle: 'Emma\'s Journey'
+                  },
+                  {
+                    id: '4',
+                    beforeImage: 'https://via.placeholder.com/400x400/FF0040/FFFFFF?text=Vision',
+                    afterImage: 'https://via.placeholder.com/400x400/39FF14/000000?text=Actualized',
+                    beforeAlt: 'Before transformation',
+                    afterAlt: 'After transformation',
+                    story: 'Another amazing transformation story that showcases the power of VIVA Vision and the Activation Intensive.',
+                    storyTitle: 'James\' Success'
+                  }
+                ]}
+              />
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
+    case 'swipeable-cards':
+      const proofWallCards: SwipeableCard[] = [
+        {
+          id: '1',
+          title: 'Sarah\'s Transformation',
+          badge: 'Above Green Line',
+          badgeVariant: 'success',
+          image: 'https://via.placeholder.com/400x300/39FF14/000000?text=Success',
+          imageAlt: 'Sarah\'s transformation',
+          content: (
+            <Text size="sm" className="text-neutral-300">
+              "In just 72 hours, I completely transformed my mindset and started seeing real results. The VIVA Vision process helped me clarify exactly what I wanted and gave me the structure to make it happen."
+            </Text>
+          ),
+          footer: (
+            <Button variant="ghost" size="sm" className="w-full">
+              Read Full Story
+            </Button>
+          )
+        },
+        {
+          id: '2',
+          title: 'Michael\'s Success Story',
+          badge: 'Actualized',
+          badgeVariant: 'success',
+          image: 'https://via.placeholder.com/400x300/14B8A6/FFFFFF?text=Clarity',
+          imageAlt: 'Michael\'s success',
+          content: (
+            <Text size="sm" className="text-neutral-300">
+              "Another powerful story of transformation. The 5-Phase Flow inside VIVA helped me align my thoughts with my goals and create the life I always wanted."
+            </Text>
+          ),
+          footer: (
+            <Button variant="ghost" size="sm" className="w-full">
+              Read Full Story
+            </Button>
+          )
+        },
+        {
+          id: '3',
+          title: 'Emma\'s Journey',
+          badge: 'In Progress',
+          badgeVariant: 'info',
+          image: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=Vision',
+          imageAlt: 'Emma\'s journey',
+          content: (
+            <Text size="sm" className="text-neutral-300">
+              "The Activation Intensive gave me the tools I needed to break through my limiting beliefs and create real change in my life. I'm so grateful for this journey."
+            </Text>
+          ),
+          footer: (
+            <Button variant="ghost" size="sm" className="w-full">
+              Read Full Story
+            </Button>
+          )
+        },
+        {
+          id: '4',
+          title: 'James\' Success',
+          badge: 'Premium Member',
+          badgeVariant: 'premium',
+          image: 'https://via.placeholder.com/400x300/601B9F/FFFFFF?text=Power',
+          imageAlt: 'James\' success',
+          content: (
+            <Text size="sm" className="text-neutral-300">
+              "Another amazing transformation story that showcases the power of VIVA Vision and the Activation Intensive. I went from chaos to clarity in just 72 hours."
+            </Text>
+          ),
+          footer: (
+            <Button variant="ghost" size="sm" className="w-full">
+              Read Full Story
+            </Button>
+          )
+        }
+      ]
+
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">SwipeableCards - Mobile-Optimized Card Stack</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Touch-optimized swipeable cards for mobile. Swipe left/right to navigate through cards. 
+                On desktop, displays as a responsive grid. Perfect for proof walls, testimonials, and success stories.
+              </p>
+              <div className="text-xs text-neutral-500 mb-4">
+                <p className="mb-2">Features:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Native touch gestures with swipe threshold</li>
+                  <li>Haptic feedback on swipe (mobile)</li>
+                  <li>Auto-snap cards after swipe</li>
+                  <li>Visual indicators for navigation</li>
+                  <li>Responsive: grid on desktop, swipeable stack on mobile</li>
+                  <li>Card stack effect with scale and opacity</li>
+                  <li>Click/tap support for card actions</li>
+                </ul>
+              </div>
+              <SwipeableCards
+                title="Proof Wall"
+                subtitle="Stories of Transformation"
+                cards={proofWallCards}
+                mobileOnly={true}
+                desktopCardsPerView={3}
+                swipeThreshold={0.25}
+                hapticFeedback={true}
+                autoSnap={true}
+                showIndicators={true}
+                cardVariant="elevated"
+                onCardSwiped={(cardId, direction) => {
+                  console.log(`Card ${cardId} swiped ${direction}`)
+                }}
+                onCardClick={(cardId) => {
+                  console.log(`Card ${cardId} clicked`)
+                }}
+              />
+            </Stack>
+          </Card>
+
+          {/* Second Example: Vision Transformation Cards */}
+          <Card variant="default" className="p-4 md:p-6 mt-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">SwipeableCards - Vision Transformation (Top/Bottom Images)</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Swipeable cards with Active vision on top and Actualized result on bottom, separated by a pulsing arrow. 
+                Perfect for showcasing transformation journeys and proof of actualization.
+              </p>
+              <div className="text-xs text-neutral-500 mb-4">
+                <p className="mb-2">Features:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Active badge (green with pulsing dot) on top image</li>
+                  <li>Actualized badge (purple with checkmark) on bottom image</li>
+                  <li>Pulsing arrow animation between images</li>
+                  <li>Visual transformation story flow</li>
+                  <li>Mobile-optimized swipeable stack</li>
+                </ul>
+              </div>
+              <SwipeableCards
+                title="Vision Transformations"
+                subtitle="From Vision to Actualized Reality"
+                cards={[
+                  {
+                    id: 'vision-1',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-active-2.jpg',
+                    activeImageAlt: 'Active vision - Italy Dream',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-actualized-2.jpg',
+                    actualizedImageAlt: 'Actualized result - Italy Dream',
+                    content: null
+                  },
+                  {
+                    id: 'vision-2',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/work/1000000-1.jpg',
+                    activeImageAlt: 'Active vision - One Million Dollar',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/work/1000000-2.jpg',
+                    actualizedImageAlt: 'Actualized result - One Million Dollar Business',
+                    content: null
+                  },
+                  {
+                    id: 'vision-3',
+                    activeImage: 'https://via.placeholder.com/400x300/39FF14/000000?text=Active+Vision',
+                    activeImageAlt: 'Active vision - Dream Home',
+                    actualizedImage: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=Actualized',
+                    actualizedImageAlt: 'Actualized result - Dream Home',
+                    content: null
+                  },
+                  {
+                    id: 'vision-4',
+                    activeImage: 'https://via.placeholder.com/400x300/14B8A6/FFFFFF?text=Active+Vision',
+                    activeImageAlt: 'Active vision - Business',
+                    actualizedImage: 'https://via.placeholder.com/400x300/601B9F/FFFFFF?text=Actualized',
+                    actualizedImageAlt: 'Actualized result - Business',
+                    content: null
+                  },
+                  {
+                    id: 'vision-5',
+                    activeImage: 'https://via.placeholder.com/400x300/39FF14/000000?text=Active+Vision',
+                    activeImageAlt: 'Active vision - Financial',
+                    actualizedImage: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=Actualized',
+                    actualizedImageAlt: 'Actualized result - Financial',
+                    content: null
+                  }
+                ]}
+                mobileOnly={true}
+                desktopCardsPerView={3}
+                swipeThreshold={0.25}
+                hapticFeedback={true}
+                autoSnap={true}
+                showIndicators={true}
+                cardVariant="elevated"
+                onCardSwiped={(cardId, direction) => {
+                  console.log(`Vision card ${cardId} swiped ${direction}`)
+                }}
+                onCardClick={(cardId) => {
+                  console.log(`Vision card ${cardId} clicked`)
+                }}
               />
             </Stack>
           </Card>

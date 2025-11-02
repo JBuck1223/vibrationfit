@@ -10,7 +10,7 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useStorageData } from '@/hooks/useStorageData'
 import { userNavigation, adminNavigation as centralAdminNav, mobileNavigation as centralMobileNav, isNavItemActive, type NavItem as CentralNavItem } from '@/lib/navigation'
-import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2, Save, AlertTriangle, Volume2, Play, File, Mic, Video as VideoIcon, Loader2, SkipBack, SkipForward, Pause, PlayCircle, Repeat, Shuffle, MoreHorizontal } from 'lucide-react'
+import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2, Save, AlertTriangle, Volume2, Play, File, Mic, Video as VideoIcon, Loader2, SkipBack, SkipForward, Pause, PlayCircle, Repeat, Shuffle, MoreHorizontal, ArrowDown } from 'lucide-react'
 
 // ============================================================================
 // UTILITY FUNCTION
@@ -4409,3 +4409,1180 @@ export function Toggle<T extends string>({
     </div>
   )
 }
+
+// ============================================================================
+// PROOF WALL COMPONENT - Before/After Carousel
+// ============================================================================
+
+interface ProofWallItem {
+  id: string
+  beforeImage: string
+  afterImage: string
+  beforeAlt?: string
+  afterAlt?: string
+  story: string
+  storyTitle?: string
+}
+
+interface ProofWallProps extends React.HTMLAttributes<HTMLDivElement> {
+  items: ProofWallItem[]
+  title?: string
+  className?: string
+}
+
+export const ProofWall = React.forwardRef<HTMLDivElement, ProofWallProps>(
+  ({ items, title, className = '', ...props }, ref) => {
+    const [currentIndex, setCurrentIndex] = useState(1) // Start at 1 to account for duplicate slide
+    const [selectedStory, setSelectedStory] = useState<ProofWallItem | null>(null)
+    const [isDragging, setIsDragging] = useState(false)
+    const [startX, setStartX] = useState(0)
+    const [scrollLeft, setScrollLeft] = useState(0)
+    const carouselRef = useRef<HTMLDivElement>(null)
+    const isTransitioning = useRef(false)
+
+    const totalSlides = items.length
+
+    // Create infinite scroll by duplicating first and last slides
+    const getSlidesToRender = useCallback(() => {
+      if (items.length === 0) return []
+      
+      // Duplicate last slide at beginning and first slide at end for seamless loop
+      return [
+        items[items.length - 1], // Clone of last item
+        ...items,                 // All original items
+        items[0]                  // Clone of first item
+      ]
+    }, [items])
+
+    const slidesToRender = getSlidesToRender()
+    const adjustedSlidesCount = slidesToRender.length
+
+    const goToSlide = useCallback((index: number, skipAnimation = false) => {
+      if (isTransitioning.current) return
+      
+      setCurrentIndex(index)
+      
+      if (carouselRef.current && !skipAnimation) {
+        isTransitioning.current = true
+        carouselRef.current.scrollTo({
+          left: index * carouselRef.current.offsetWidth,
+          behavior: 'smooth'
+        })
+        
+        setTimeout(() => {
+          isTransitioning.current = false
+        }, 500)
+      }
+    }, [])
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+      setIsDragging(true)
+      setStartX(e.touches[0].pageX - (carouselRef.current?.offsetLeft || 0))
+      setScrollLeft(carouselRef.current?.scrollLeft || 0)
+    }
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (!isDragging) return
+      e.preventDefault()
+      const x = e.touches[0].pageX - (carouselRef.current?.offsetLeft || 0)
+      const walk = (x - startX) * 2
+      if (carouselRef.current) {
+        carouselRef.current.scrollLeft = scrollLeft - walk
+      }
+    }
+
+    const handleTouchEnd = () => {
+      if (!isDragging) return
+      setIsDragging(false)
+      
+      if (carouselRef.current) {
+        const containerWidth = carouselRef.current.offsetWidth
+        const scrollPosition = carouselRef.current.scrollLeft
+        const slideWidth = containerWidth
+        const newIndex = Math.round(scrollPosition / slideWidth)
+        goToSlide(newIndex)
+      }
+    }
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      setIsDragging(true)
+      setStartX(e.pageX - (carouselRef.current?.offsetLeft || 0))
+      setScrollLeft(carouselRef.current?.scrollLeft || 0)
+    }
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (!isDragging) return
+      e.preventDefault()
+      const x = e.pageX - (carouselRef.current?.offsetLeft || 0)
+      const walk = (x - startX) * 2
+      if (carouselRef.current) {
+        carouselRef.current.scrollLeft = scrollLeft - walk
+      }
+    }
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+      
+      if (carouselRef.current) {
+        const containerWidth = carouselRef.current.offsetWidth
+        const scrollPosition = carouselRef.current.scrollLeft
+        const slideWidth = containerWidth
+        const newIndex = Math.round(scrollPosition / slideWidth)
+        goToSlide(newIndex)
+      }
+    }
+
+    useEffect(() => {
+      if (carouselRef.current && !isTransitioning.current) {
+        isTransitioning.current = true
+        carouselRef.current.scrollTo({
+          left: currentIndex * carouselRef.current.offsetWidth,
+          behavior: 'smooth'
+        })
+        setTimeout(() => {
+          isTransitioning.current = false
+        }, 500)
+      }
+    }, [currentIndex])
+
+    // Handle infinite scroll looping
+    useEffect(() => {
+      const handleScroll = () => {
+        if (!carouselRef.current || isTransitioning.current) return
+        
+        const containerWidth = carouselRef.current.offsetWidth
+        const scrollPosition = carouselRef.current.scrollLeft
+        const slideWidth = containerWidth
+        
+        // If at the last duplicate slide (cloned first slide), jump to the real first slide
+        if (scrollPosition >= slideWidth * (adjustedSlidesCount - 1)) {
+          carouselRef.current.scrollTo({
+            left: slideWidth, // Jump to real first slide
+            behavior: 'auto' // Instant jump, no animation
+          })
+          setCurrentIndex(1)
+        }
+        // If at the first duplicate slide (cloned last slide), jump to the real last slide
+        else if (scrollPosition < slideWidth) {
+          carouselRef.current.scrollTo({
+            left: slideWidth * totalSlides, // Jump to real last slide
+            behavior: 'auto' // Instant jump, no animation
+          })
+          setCurrentIndex(totalSlides)
+        } else {
+          const newIndex = Math.round(scrollPosition / slideWidth)
+          setCurrentIndex(newIndex)
+        }
+      }
+
+      const carousel = carouselRef.current
+      if (carousel) {
+        carousel.addEventListener('scroll', handleScroll)
+        return () => carousel.removeEventListener('scroll', handleScroll)
+      }
+    }, [adjustedSlidesCount, totalSlides])
+
+    // Initialize scroll position to the first real slide
+    useEffect(() => {
+      if (carouselRef.current) {
+        carouselRef.current.scrollLeft = carouselRef.current.offsetWidth
+      }
+    }, [])
+
+    return (
+      <div
+        ref={ref}
+        className={cn('w-full', className)}
+        {...props}
+      >
+        {title && (
+          <Heading level={2} className="text-white text-center mb-6">
+            {title}
+          </Heading>
+        )}
+        
+        <div className="relative">
+          {/* Carousel Container */}
+          <div
+            ref={carouselRef}
+            className="flex overflow-x-hidden scroll-smooth snap-x snap-mandatory scrollbar-hide"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            {/* Render slides with infinite scroll duplication */}
+            {slidesToRender.map((item, slideIndex) => (
+              <div
+                key={`slide-${slideIndex}`}
+                className="min-w-full snap-center px-2 md:px-4"
+              >
+                <Card variant="default" className="overflow-hidden">
+                  <Stack gap="md">
+                    {/* Before/After Images */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-neutral-800">
+                        <img
+                          src={item.beforeImage}
+                          alt={item.beforeAlt || 'Vision'}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-2 left-2 bg-red-500/80 text-white text-xs font-semibold px-2 py-1 rounded">
+                          Vision
+                        </div>
+                      </div>
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-neutral-800">
+                        <img
+                          src={item.afterImage}
+                          alt={item.afterAlt || 'Actualized'}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-2 right-2 bg-[#39FF14]/80 text-black text-xs font-semibold px-2 py-1 rounded">
+                          Actualized
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Story Button */}
+                    <div className="text-center">
+                      <Button
+                        variant="primary"
+                        onClick={() => setSelectedStory(item)}
+                        size="md"
+                      >
+                        Actualization Story
+                      </Button>
+                    </div>
+                  </Stack>
+                </Card>
+              </div>
+            ))}
+          </div>
+
+          {/* Navigation Arrows */}
+          {totalSlides > 1 && (
+            <>
+              <button
+                onClick={() => goToSlide(currentIndex - 1)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#1F1F1F]/90 border-2 border-[#39FF14] rounded-full flex items-center justify-center text-[#39FF14] hover:bg-[#39FF14] hover:text-black transition-all duration-200 z-10"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => goToSlide(currentIndex + 1)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#1F1F1F]/90 border-2 border-[#39FF14] rounded-full flex items-center justify-center text-[#39FF14] hover:bg-[#39FF14] hover:text-black transition-all duration-200 z-10"
+                aria-label="Next"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
+          )}
+
+          {/* Dots Indicator */}
+          {totalSlides > 1 && (
+            <div className="flex justify-center gap-2 mt-4">
+              {Array.from({ length: totalSlides }).map((_, index) => {
+                // Map currentIndex (1-3 for 3 slides) to display index (0-2)
+                const adjustedIndex = index + 1 // dot 0 = slide 1, dot 1 = slide 2, etc.
+                const isActive = currentIndex === adjustedIndex
+                
+                return (
+                  <button
+                    key={index}
+                    onClick={() => goToSlide(adjustedIndex)}
+                    className={cn(
+                      'w-2 h-2 rounded-full transition-all duration-200',
+                      isActive
+                        ? 'bg-[#39FF14] w-8'
+                        : 'bg-neutral-600 hover:bg-neutral-500'
+                    )}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Story Modal */}
+        <Modal
+          isOpen={!!selectedStory}
+          onClose={() => setSelectedStory(null)}
+          title={selectedStory?.storyTitle || 'Actualization Story'}
+          size="lg"
+          variant="default"
+        >
+          <div className="p-4">
+            <Text size="base" className="text-neutral-200 whitespace-pre-line">
+              {selectedStory?.story}
+            </Text>
+          </div>
+        </Modal>
+      </div>
+    )
+  }
+)
+ProofWall.displayName = 'ProofWall'
+
+// ============================================================================
+// SWIPEABLE CARDS COMPONENT - Mobile-Optimized Swipeable Card Stack
+// ============================================================================
+
+export interface SwipeableCard {
+  id: string
+  title?: string
+  content: React.ReactNode
+  image?: string
+  imageAlt?: string
+  badge?: string
+  badgeVariant?: 'success' | 'info' | 'warning' | 'error' | 'premium'
+  /**
+   * Active image for vision transformation cards (top image with "Active" badge)
+   */
+  activeImage?: string
+  activeImageAlt?: string
+  /**
+   * Actualized image for vision transformation cards (bottom image with "Actualized" badge)
+   */
+  actualizedImage?: string
+  actualizedImageAlt?: string
+  footer?: React.ReactNode
+  onClick?: () => void
+}
+
+export interface SwipeableCardsProps extends React.HTMLAttributes<HTMLDivElement> {
+  cards: SwipeableCard[]
+  title?: string
+  subtitle?: string
+  /**
+   * Enable on mobile only, desktop shows grid
+   * @default true
+   */
+  mobileOnly?: boolean
+  /**
+   * Cards per view on desktop
+   * @default 3
+   */
+  desktopCardsPerView?: number
+  /**
+   * Threshold for swipe (0-1)
+   * @default 0.25
+   */
+  swipeThreshold?: number
+  /**
+   * Enable haptic feedback on swipe
+   * @default true
+   */
+  hapticFeedback?: boolean
+  /**
+   * Auto-snap cards to center after swipe
+   * @default true
+   */
+  autoSnap?: boolean
+  /**
+   * Show card indicators
+   * @default true
+   */
+  showIndicators?: boolean
+  /**
+   * Card variant
+   * @default 'default'
+   */
+  cardVariant?: 'default' | 'elevated' | 'outlined'
+  /**
+   * Callback when card is swiped
+   */
+  onCardSwiped?: (cardId: string, direction: 'left' | 'right') => void
+  /**
+   * Callback when card is clicked/tapped
+   */
+  onCardClick?: (cardId: string) => void
+}
+
+export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsProps>(
+  ({ 
+    cards, 
+    title,
+    subtitle,
+    mobileOnly = true,
+    desktopCardsPerView = 3,
+    swipeThreshold = 0.25,
+    hapticFeedback = true,
+    autoSnap = true,
+    showIndicators = true,
+    cardVariant = 'default',
+    onCardSwiped,
+    onCardClick,
+    className = '',
+    ...props 
+  }, ref) => {
+    const [currentIndex, setCurrentIndex] = useState(0)
+    const [isDragging, setIsDragging] = useState(false)
+    const [startX, setStartX] = useState(0)
+    const [startY, setStartY] = useState(0)
+    const [translateX, setTranslateX] = useState(0)
+    const [translateY, setTranslateY] = useState(0)
+    const [isMobile, setIsMobile] = useState(false)
+    const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+    const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; type: 'active' | 'actualized' } | null>(null)
+    
+    const containerRef = useRef<HTMLDivElement>(null)
+    const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+
+    // Detect mobile viewport
+    useEffect(() => {
+      const checkMobile = () => {
+        setIsMobile(window.innerWidth < 768)
+      }
+      
+      checkMobile()
+      window.addEventListener('resize', checkMobile)
+      return () => window.removeEventListener('resize', checkMobile)
+    }, [])
+
+    // Haptic feedback helper
+    const triggerHaptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
+      if (!hapticFeedback || typeof navigator === 'undefined' || !navigator.vibrate) {
+        return
+      }
+      
+      const patterns = {
+        light: [10],
+        medium: [20, 10, 20],
+        heavy: [30, 20, 30]
+      }
+      
+      navigator.vibrate(patterns[type])
+    }
+
+    // Touch handlers
+    const handleTouchStart = (e: React.TouchEvent) => {
+      if (!isMobile && mobileOnly) return
+      
+      setIsDragging(true)
+      setStartX(e.touches[0].clientX)
+      setStartY(e.touches[0].clientY)
+      setTranslateX(0)
+      setTranslateY(0)
+    }
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (!isDragging || (!isMobile && mobileOnly)) return
+
+      const currentX = e.touches[0].clientX
+      const currentY = e.touches[0].clientY
+      const deltaX = currentX - startX
+      const deltaY = currentY - startY
+
+      // Only allow horizontal swiping if horizontal movement is greater than vertical
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        e.preventDefault()
+        setTranslateX(deltaX)
+      } else {
+        setTranslateY(deltaY)
+      }
+    }
+
+    const handleTouchEnd = () => {
+      if (!isDragging) return
+
+      const threshold = containerRef.current 
+        ? containerRef.current.offsetWidth * swipeThreshold 
+        : 100
+
+      // Determine swipe direction
+      if (Math.abs(translateX) > threshold) {
+        const direction = translateX > 0 ? 'right' : 'left'
+        
+        if (direction === 'left' && currentIndex < cards.length - 1) {
+          // Swipe left - next card
+          triggerHaptic('medium')
+          const newIndex = currentIndex + 1
+          setCurrentIndex(newIndex)
+          onCardSwiped?.(cards[currentIndex].id, 'left')
+        } else if (direction === 'right' && currentIndex > 0) {
+          // Swipe right - previous card
+          triggerHaptic('medium')
+          const newIndex = currentIndex - 1
+          setCurrentIndex(newIndex)
+          onCardSwiped?.(cards[currentIndex].id, 'right')
+        } else {
+          // Snap back
+          triggerHaptic('light')
+          if (autoSnap) {
+            // Reset position
+            setTranslateX(0)
+            setTranslateY(0)
+          }
+        }
+      } else {
+        // Snap back - didn't reach threshold
+        if (autoSnap) {
+          setTranslateX(0)
+          setTranslateY(0)
+        }
+      }
+
+      setIsDragging(false)
+    }
+
+    // Mouse handlers (for desktop testing)
+    const handleMouseDown = (e: React.MouseEvent) => {
+      if (!isMobile && mobileOnly) return
+      
+      setIsDragging(true)
+      setStartX(e.clientX)
+      setStartY(e.clientY)
+      setTranslateX(0)
+      setTranslateY(0)
+    }
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (!isDragging || (!isMobile && mobileOnly)) return
+
+      const currentX = e.clientX
+      const currentY = e.clientY
+      const deltaX = currentX - startX
+      const deltaY = currentY - startY
+
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        e.preventDefault()
+        setTranslateX(deltaX)
+      } else {
+        setTranslateY(deltaY)
+      }
+    }
+
+    const handleMouseUp = () => {
+      if (!isDragging) return
+
+      const threshold = containerRef.current 
+        ? containerRef.current.offsetWidth * swipeThreshold 
+        : 100
+
+      if (Math.abs(translateX) > threshold) {
+        const direction = translateX > 0 ? 'right' : 'left'
+        
+        if (direction === 'left' && currentIndex < cards.length - 1) {
+          triggerHaptic('medium')
+          const newIndex = currentIndex + 1
+          setCurrentIndex(newIndex)
+          onCardSwiped?.(cards[currentIndex].id, 'left')
+        } else if (direction === 'right' && currentIndex > 0) {
+          triggerHaptic('medium')
+          const newIndex = currentIndex - 1
+          setCurrentIndex(newIndex)
+          onCardSwiped?.(cards[currentIndex].id, 'right')
+        } else {
+          triggerHaptic('light')
+          if (autoSnap) {
+            setTranslateX(0)
+            setTranslateY(0)
+          }
+        }
+      } else {
+        if (autoSnap) {
+          setTranslateX(0)
+          setTranslateY(0)
+        }
+      }
+
+      setIsDragging(false)
+    }
+
+    // Navigate to specific card
+    const goToCard = (index: number) => {
+      if (index < 0 || index >= cards.length) return
+      setCurrentIndex(index)
+      setTranslateX(0)
+      setTranslateY(0)
+      triggerHaptic('light')
+    }
+
+    // Reset position when index changes
+    useEffect(() => {
+      setTranslateX(0)
+      setTranslateY(0)
+    }, [currentIndex])
+
+    // Handle ESC key for lightbox
+    useEffect(() => {
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && lightboxImage) {
+          setLightboxImage(null)
+        }
+      }
+      
+      if (lightboxImage) {
+        document.addEventListener('keydown', handleEscape)
+        document.body.style.overflow = 'hidden'
+      }
+      
+      return () => {
+        document.removeEventListener('keydown', handleEscape)
+        document.body.style.overflow = 'unset'
+      }
+    }, [lightboxImage])
+
+    // Show grid on desktop if not mobile-only
+    const showDesktopGrid = !mobileOnly || !isMobile
+
+    // Desktop scrollable view ref (used only in desktop view)
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+    
+    const scrollCards = React.useCallback((direction: 'left' | 'right') => {
+        if (!scrollContainerRef.current) return
+        
+        const container = scrollContainerRef.current
+        const cardWidth = container.clientWidth / desktopCardsPerView
+        const scrollAmount = cardWidth * desktopCardsPerView + (24 * (desktopCardsPerView - 1)) // card width * cards + gaps
+        const currentScroll = container.scrollLeft
+        
+        if (direction === 'left') {
+          container.scrollTo({
+            left: Math.max(0, currentScroll - scrollAmount),
+            behavior: 'smooth'
+          })
+        } else {
+          container.scrollTo({
+            left: Math.min(container.scrollWidth - container.clientWidth, currentScroll + scrollAmount),
+            behavior: 'smooth'
+          })
+        }
+    }, [desktopCardsPerView])
+    
+    if (showDesktopGrid && !isMobile) {
+      // Desktop scrollable view - 3 cards at a time
+      return (
+        <div
+          ref={ref}
+          className={cn('w-full', className)}
+          {...props}
+        >
+          {title && (
+            <Heading level={2} className="text-white text-center mb-4 md:mb-6">
+              {title}
+            </Heading>
+          )}
+          {subtitle && (
+            <Text size="base" className="text-neutral-400 text-center mb-6 md:mb-8">
+              {subtitle}
+            </Text>
+          )}
+          
+          <div className="relative overflow-hidden">
+            {/* Scrollable container - shows 3 cards at a time */}
+            <div
+              ref={scrollContainerRef}
+              className="overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory"
+              style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch',
+              }}
+            >
+              <div className="flex gap-6">
+                {cards.map((card, index) => (
+                  <div
+                    key={card.id}
+                    className="flex-shrink-0 snap-start"
+                    style={{ 
+                      width: `calc((100% - ${(desktopCardsPerView - 1) * 1.5}rem) / ${desktopCardsPerView})`,
+                      minWidth: `calc((100% - ${(desktopCardsPerView - 1) * 1.5}rem) / ${desktopCardsPerView})`,
+                    }}
+                  >
+                    <Card
+                      variant={cardVariant}
+                      className={cn(
+                        'overflow-hidden transition-all duration-300 h-full',
+                        'hover:-translate-y-1 hover:border-primary-500',
+                        card.onClick && 'cursor-pointer'
+                      )}
+                      onClick={() => {
+                        card.onClick?.()
+                        onCardClick?.(card.id)
+                      }}
+                    >
+                <Stack gap="md" className="h-full">
+                  {/* Vision Transformation: Active/Actualized Images */}
+                  {(card.activeImage || card.actualizedImage) ? (
+                    <Stack gap="sm" className="w-full">
+                      {/* Active Image (Top) */}
+                      {card.activeImage && (
+                        <div 
+                          className="relative w-full aspect-[3/2] overflow-hidden rounded-2xl cursor-pointer group"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setLightboxImage({ 
+                              src: card.activeImage!, 
+                              alt: card.activeImageAlt || card.title || 'Active vision',
+                              type: 'active'
+                            })
+                          }}
+                        >
+                          <img
+                            src={card.activeImage}
+                            alt={card.activeImageAlt || card.title || 'Active vision'}
+                            className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
+                          />
+                          {/* Active Badge - top right corner */}
+                          <div className="absolute top-2 right-2 bg-green-600 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
+                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                            <span className="text-white text-xs font-semibold">Active</span>
+                          </div>
+                          {/* Click hint overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
+                        </div>
+                      )}
+
+                      {/* Pulsing Arrow - centered */}
+                      {(card.activeImage && card.actualizedImage) && (
+                        <div className="flex items-center justify-center py-1">
+                          <Icon icon={ArrowDown} size="md" color="#39FF14" className="animate-pulse" />
+                        </div>
+                      )}
+
+                      {/* Actualized Image (Bottom) */}
+                      {card.actualizedImage && (
+                        <div 
+                          className="relative w-full aspect-[3/2] overflow-hidden rounded-2xl cursor-pointer group"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setLightboxImage({ 
+                              src: card.actualizedImage!, 
+                              alt: card.actualizedImageAlt || card.title || 'Actualized result',
+                              type: 'actualized'
+                            })
+                          }}
+                        >
+                          <img
+                            src={card.actualizedImage}
+                            alt={card.actualizedImageAlt || card.title || 'Actualized result'}
+                            className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
+                          />
+                          {/* Actualized Badge - top right corner */}
+                          <div className="absolute top-2 right-2 bg-purple-500 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
+                            <CheckCircle className="w-4 h-4 text-white" />
+                            <span className="text-white text-xs font-semibold">Actualized</span>
+                          </div>
+                          {/* Click hint overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
+                        </div>
+                      )}
+                    </Stack>
+                  ) : card.image ? (
+                    /* Standard Single Image */
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-neutral-800 -mx-4 -mt-4 mb-0">
+                      <img
+                        src={card.image}
+                        alt={card.imageAlt || card.title || 'Card image'}
+                        className="w-full h-full object-cover"
+                      />
+                      {card.badge && (
+                        <div className="absolute top-2 right-2">
+                          <Badge variant={card.badgeVariant || 'success'}>
+                            {card.badge}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                  
+                  {card.title && (
+                    <Heading level={4} className="text-white text-base md:text-lg">
+                      {card.title}
+                    </Heading>
+                  )}
+                  
+                  {card.content && (
+                    <div className="flex-1">
+                      {card.content}
+                    </div>
+                  )}
+                  
+                  {card.footer && (
+                    <div 
+                      className={cn(card.title || card.content ? "border-t border-neutral-700 pt-2" : "pt-4")}
+                      onClick={(e) => {
+                        // Check if the click target is a button
+                        const target = e.target as HTMLElement
+                        if (target.tagName === 'BUTTON' || target.closest('button')) {
+                          e.stopPropagation()
+                          setSelectedCardId(card.id)
+                        }
+                      }}
+                    >
+                      {card.footer}
+                    </div>
+                  )}
+                </Stack>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Navigation buttons */}
+            {cards.length > desktopCardsPerView && (
+              <>
+                <button
+                  onClick={() => scrollCards('left')}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-[#1F1F1F] border-2 border-[#333] rounded-full flex items-center justify-center hover:border-primary-500 transition-colors z-10"
+                  aria-label="Scroll left"
+                >
+                  <Icon icon={ChevronLeft} size="md" />
+                </button>
+                <button
+                  onClick={() => scrollCards('right')}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-[#1F1F1F] border-2 border-[#333] rounded-full flex items-center justify-center hover:border-primary-500 transition-colors z-10"
+                  aria-label="Scroll right"
+                >
+                  <Icon icon={ChevronRight} size="md" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    // Mobile swipeable view
+    if (cards.length === 0) {
+      return null
+    }
+
+    return (
+      <div
+        ref={ref}
+        className={cn('w-full', className)}
+        {...props}
+      >
+        {title && (
+          <Heading level={2} className="text-white text-center mb-4 text-xl md:text-2xl">
+            {title}
+          </Heading>
+        )}
+        {subtitle && (
+          <Text size="sm" className="text-neutral-400 text-center mb-4 md:mb-6">
+            {subtitle}
+          </Text>
+        )}
+
+        <div className="relative">
+          {/* Swipeable Cards Container */}
+          <div
+            ref={containerRef}
+            className="relative w-full overflow-hidden"
+            style={{ touchAction: 'pan-y pinch-zoom' }}
+          >
+            {/* Card Stack */}
+            <div className="relative w-full">
+              {cards.map((card, index) => {
+                const isActive = index === currentIndex
+                const isNext = index === currentIndex + 1
+                const isPrev = index === currentIndex - 1
+                
+                // Calculate position and scale
+                let position = 0
+                let scale = 0.9
+                let opacity = 0.5
+                let zIndex = 0
+
+                if (isActive) {
+                  position = translateX
+                  scale = 1
+                  opacity = 1
+                  zIndex = 10
+                } else if (isNext) {
+                  position = containerRef.current ? containerRef.current.offsetWidth * 0.05 : 20
+                  scale = 0.95
+                  opacity = 0.8
+                  zIndex = 5
+                } else if (isPrev) {
+                  position = containerRef.current ? -containerRef.current.offsetWidth * 0.05 : -20
+                  scale = 0.95
+                  opacity = 0.8
+                  zIndex = 5
+                } else {
+                  // Cards further away
+                  scale = 0.85
+                  opacity = 0.3
+                  zIndex = 1
+                }
+
+                return (
+                  <div
+                    key={card.id}
+                    ref={(el) => {
+                      cardRefs.current[index] = el
+                    }}
+                    className={cn(
+                      'transition-transform duration-300 ease-out',
+                      isActive ? 'relative w-full' : 'absolute inset-0'
+                    )}
+                    style={{
+                      transform: `translateX(${position}px) scale(${scale})`,
+                      opacity,
+                      zIndex,
+                      touchAction: isActive ? 'pan-x' : 'none',
+                      pointerEvents: isActive ? 'auto' : 'none',
+                    }}
+                    onTouchStart={isActive ? handleTouchStart : undefined}
+                    onTouchMove={isActive ? handleTouchMove : undefined}
+                    onTouchEnd={isActive ? handleTouchEnd : undefined}
+                    onMouseDown={isActive ? handleMouseDown : undefined}
+                    onMouseMove={isActive ? handleMouseMove : undefined}
+                    onMouseUp={isActive ? handleMouseUp : undefined}
+                    onMouseLeave={isActive ? handleMouseUp : undefined}
+                    onClick={() => {
+                      if (isActive && !isDragging) {
+                        card.onClick?.()
+                        onCardClick?.(card.id)
+                      }
+                    }}
+                  >
+                    <Card
+                      variant={cardVariant}
+                      className={cn(
+                        'w-full overflow-hidden transition-all duration-300',
+                        isActive && 'border-primary-500',
+                        card.onClick && !isDragging && 'cursor-pointer'
+                      )}
+                    >
+                      <div className="w-full space-y-2">
+                        {/* Vision Transformation: Active/Actualized Images */}
+                        {(card.activeImage || card.actualizedImage) ? (
+                          <>
+                            {/* Active Image (Top) */}
+                            {card.activeImage && (
+                              <div 
+                                className="relative w-full aspect-[3/2] overflow-hidden rounded-2xl cursor-pointer group"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setLightboxImage({ 
+                                    src: card.activeImage!, 
+                                    alt: card.activeImageAlt || card.title || 'Active vision',
+                                    type: 'active'
+                                  })
+                                }}
+                              >
+                                <img
+                                  src={card.activeImage}
+                                  alt={card.activeImageAlt || card.title || 'Active vision'}
+                                  className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
+                                />
+                                {/* Active Badge - top right corner */}
+                                <div className="absolute top-2 right-2 bg-green-600 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
+                                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                                  <span className="text-white text-xs font-semibold">Active</span>
+                                </div>
+                                {/* Click hint overlay */}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
+                              </div>
+                            )}
+
+                            {/* Pulsing Arrow - centered */}
+                            {(card.activeImage && card.actualizedImage) && (
+                              <div className="flex items-center justify-center">
+                                <Icon icon={ArrowDown} size="md" color="#39FF14" className="animate-pulse" />
+                              </div>
+                            )}
+
+                            {/* Actualized Image (Bottom) */}
+                            {card.actualizedImage && (
+                              <div 
+                                className="relative w-full aspect-[3/2] overflow-hidden rounded-2xl cursor-pointer group"
+                                onClick={() => setLightboxImage({ 
+                                  src: card.actualizedImage!, 
+                                  alt: card.actualizedImageAlt || card.title || 'Actualized result',
+                                  type: 'actualized'
+                                })}
+                              >
+                                <img
+                                  src={card.actualizedImage}
+                                  alt={card.actualizedImageAlt || card.title || 'Actualized result'}
+                                  className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
+                                />
+                                {/* Actualized Badge - top right corner */}
+                                <div className="absolute top-2 right-2 bg-purple-500 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
+                                  <CheckCircle className="w-4 h-4 text-white" />
+                                  <span className="text-white text-xs font-semibold">Actualized</span>
+                                </div>
+                                {/* Click hint overlay */}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
+                              </div>
+                            )}
+                          </>
+                        ) : card.image ? (
+                          /* Standard Single Image */
+                          <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-neutral-800 -mx-4 -mt-4 mb-0">
+                            <img
+                              src={card.image}
+                              alt={card.imageAlt || card.title || 'Card image'}
+                              className="w-full h-full object-cover"
+                            />
+                            {card.badge && (
+                              <div className="absolute top-2 right-2">
+                                <Badge variant={card.badgeVariant || 'success'}>
+                                  {card.badge}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                        
+                        {card.title && (
+                          <Heading level={4} className="text-white text-lg md:text-xl">
+                            {card.title}
+                          </Heading>
+                        )}
+                        
+                        {card.content && (
+                          <div className="flex-1 overflow-y-auto">
+                            {card.content}
+                          </div>
+                        )}
+                        
+                        {card.footer && (
+                          <div 
+                            className={cn(card.title || card.content ? "border-t border-neutral-700 pt-2" : "pt-[7px]")}
+                            onClick={(e) => {
+                              // Check if the click target is a button
+                              const target = e.target as HTMLElement
+                              if (target.tagName === 'BUTTON' || target.closest('button')) {
+                                e.stopPropagation()
+                                setSelectedCardId(card.id)
+                              }
+                            }}
+                          >
+                            {card.footer}
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Card Indicators */}
+          {showIndicators && cards.length > 1 && (
+            <div className="flex justify-center gap-2 mt-4">
+              {cards.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToCard(index)}
+                  className={cn(
+                    'h-2 rounded-full transition-all duration-200 min-w-[44px]',
+                    index === currentIndex
+                      ? 'bg-primary-500 w-8'
+                      : 'bg-neutral-600 hover:bg-neutral-500 w-2'
+                  )}
+                  aria-label={`Go to card ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+
+        </div>
+
+        {/* Story Modal */}
+        {selectedCardId && (() => {
+          const selectedCard = cards.find(card => card.id === selectedCardId)
+          if (!selectedCard) return null
+          
+          return (
+            <Modal
+              isOpen={!!selectedCardId}
+              onClose={() => setSelectedCardId(null)}
+              title={selectedCard.title || 'Full Story'}
+              size="lg"
+              variant="default"
+            >
+              <div className="space-y-4">
+                {selectedCard.activeImage && selectedCard.actualizedImage && (
+                  <div className="space-y-4">
+                    <div className="relative w-full aspect-[3/2] overflow-hidden rounded-2xl">
+                      <img
+                        src={selectedCard.activeImage}
+                        alt={selectedCard.activeImageAlt || 'Active vision'}
+                        className="w-full h-full object-contain"
+                      />
+                      <div className="absolute top-2 right-2 bg-green-600 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                        <span className="text-white text-xs font-semibold">Active</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <Icon icon={ArrowDown} size="md" color="#39FF14" className="animate-pulse" />
+                    </div>
+                    <div className="relative w-full aspect-[3/2] overflow-hidden rounded-2xl">
+                      <img
+                        src={selectedCard.actualizedImage}
+                        alt={selectedCard.actualizedImageAlt || 'Actualized result'}
+                        className="w-full h-full object-contain"
+                      />
+                      <div className="absolute top-2 right-2 bg-purple-500 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg">
+                        <CheckCircle className="w-4 h-4 text-white" />
+                        <span className="text-white text-xs font-semibold">Actualized</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {selectedCard.content && (
+                  <div className="text-neutral-300">
+                    {selectedCard.content}
+                  </div>
+                )}
+                {!selectedCard.content && !selectedCard.activeImage && (
+                  <Text size="base" className="text-neutral-300">
+                    This story is coming soon!
+                  </Text>
+                )}
+              </div>
+            </Modal>
+          )
+        })()}
+
+        {/* Image Lightbox */}
+        {lightboxImage && (
+          <div 
+            className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 cursor-pointer"
+            onClick={() => setLightboxImage(null)}
+          >
+            {/* Close Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setLightboxImage(null)
+              }}
+              className="absolute top-4 right-4 z-10 p-3 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+              aria-label="Close lightbox"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Image Container */}
+            <div 
+              className="relative max-w-7xl max-h-full w-full h-full flex items-center justify-center cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={lightboxImage.src}
+                alt={lightboxImage.alt}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+)
+SwipeableCards.displayName = 'SwipeableCards'

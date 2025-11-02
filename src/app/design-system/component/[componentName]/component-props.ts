@@ -238,6 +238,28 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
     { name: 'className', type: 'string', required: false },
   ],
 
+  'proof-wall': [
+    { name: 'items', type: 'Array<ProofWallItem>', required: true, description: 'Array of before/after items with images and stories' },
+    { name: 'title', type: 'string', required: false, description: 'Optional title for the proof wall' },
+    { name: 'className', type: 'string', required: false },
+  ],
+
+  'swipeable-cards': [
+    { name: 'cards', type: 'Array<SwipeableCard>', required: true, description: 'Array of swipeable card items with content, images, and optional badges' },
+    { name: 'title', type: 'string', required: false, description: 'Optional title for the card stack' },
+    { name: 'subtitle', type: 'string', required: false, description: 'Optional subtitle text' },
+    { name: 'mobileOnly', type: 'boolean', required: false, defaultValue: 'true', description: 'Enable swipeable behavior on mobile only (desktop shows grid)' },
+    { name: 'desktopCardsPerView', type: 'number', required: false, defaultValue: '3', description: 'Number of cards per view on desktop grid' },
+    { name: 'swipeThreshold', type: 'number', required: false, defaultValue: '0.25', description: 'Swipe threshold (0-1) for triggering card change' },
+    { name: 'hapticFeedback', type: 'boolean', required: false, defaultValue: 'true', description: 'Enable haptic feedback on swipe (mobile)' },
+    { name: 'autoSnap', type: 'boolean', required: false, defaultValue: 'true', description: 'Auto-snap cards to center after swipe' },
+    { name: 'showIndicators', type: 'boolean', required: false, defaultValue: 'true', description: 'Show card navigation indicators' },
+    { name: 'cardVariant', type: "'default' | 'elevated' | 'outlined'", required: false, defaultValue: "'default'", description: 'Card style variant' },
+    { name: 'onCardSwiped', type: '(cardId: string, direction: "left" | "right") => void', required: false, description: 'Callback when card is swiped' },
+    { name: 'onCardClick', type: '(cardId: string) => void', required: false, description: 'Callback when card is clicked/tapped' },
+    { name: 'className', type: 'string', required: false },
+  ],
+
   'pricing-card': [
     { name: 'title', type: 'string', required: true, description: 'Plan title' },
     { name: 'price', type: 'string', required: true, description: 'Price display string' },
