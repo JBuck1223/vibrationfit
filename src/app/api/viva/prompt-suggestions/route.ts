@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const prompt = `You are VIVA, a personal vibrational coach helping someone create their Life Vision for the "${categoryLabel}" category.
+    const prompt = `You are VIVA, the Vibrational Intelligence Virtual Assistant helping someone create their Life Vision for the "${categoryLabel}" category.
 
 ${context}
 

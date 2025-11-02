@@ -30,10 +30,13 @@ export async function POST(req: Request) {
     
     // Get or create conversation session
     let currentConversationId = conversationId
+    console.log('[VIVA CHAT] conversationId from request:', conversationId, 'type:', typeof conversationId)
     
     // If no conversation ID and not initial greeting, create new session
     const isInitialGreeting = context?.isInitialGreeting === true || 
                               (messages.length === 1 && messages[0].content === 'START_SESSION')
+    
+    console.log('[VIVA CHAT] isInitialGreeting:', isInitialGreeting, 'currentConversationId:', currentConversationId)
     
     // Determine mode from context
     let mode = context?.mode || 'master'
@@ -47,43 +50,56 @@ export async function POST(req: Request) {
     const category = context?.category || null
     const visionIdForSession = context?.visionId || null
 
-    if (!currentConversationId && !isInitialGreeting) {
-      // Create new conversation session
-      const { data: newSession, error: sessionError } = await supabase
-        .from('conversation_sessions')
-        .insert({
-          user_id: user.id,
-          mode: mode,
-          category: category,
-          vision_id: visionIdForSession,
-          preview_message: messages[messages.length - 1]?.content?.slice(0, 100) || '',
-          message_count: 0
-        })
-        .select()
-        .single()
-      
-      if (!sessionError && newSession) {
-        currentConversationId = newSession.id
+    console.log('[VIVA CHAT] Mode:', mode, 'Category:', category, 'VisionId:', visionIdForSession)
+
+    if (!currentConversationId) {
+      // Only create new session if we don't have one
+      if (isInitialGreeting) {
+        console.log('[VIVA CHAT] Creating new session for initial greeting')
+        const { data: newSession, error: sessionError } = await supabase
+          .from('conversation_sessions')
+          .insert({
+            user_id: user.id,
+            mode: mode,
+            category: category,
+            vision_id: visionIdForSession,
+            preview_message: 'New conversation',
+            message_count: 0
+          })
+          .select()
+          .single()
+        
+        console.log('[VIVA CHAT] Initial greeting session created:', newSession?.id, 'error:', sessionError)
+        
+        if (!sessionError && newSession) {
+          currentConversationId = newSession.id
+        }
+      } else {
+        console.log('[VIVA CHAT] Creating new session for non-greeting message')
+        const { data: newSession, error: sessionError } = await supabase
+          .from('conversation_sessions')
+          .insert({
+            user_id: user.id,
+            mode: mode,
+            category: category,
+            vision_id: visionIdForSession,
+            preview_message: messages[messages.length - 1]?.content?.slice(0, 100) || '',
+            message_count: 0
+          })
+          .select()
+          .single()
+        
+        console.log('[VIVA CHAT] New session created:', newSession?.id, 'error:', sessionError)
+        
+        if (!sessionError && newSession) {
+          currentConversationId = newSession.id
+        }
       }
-    } else if (!currentConversationId && isInitialGreeting) {
-      // For initial greeting, create a new session
-      const { data: newSession, error: sessionError } = await supabase
-        .from('conversation_sessions')
-        .insert({
-          user_id: user.id,
-          mode: mode,
-          category: category,
-          vision_id: visionIdForSession,
-          preview_message: 'New conversation',
-          message_count: 0
-        })
-        .select()
-        .single()
-      
-      if (!sessionError && newSession) {
-        currentConversationId = newSession.id
-      }
+    } else {
+      console.log('[VIVA CHAT] Using existing conversation:', currentConversationId)
     }
+    
+    console.log('[VIVA CHAT] Final currentConversationId:', currentConversationId)
     
     // Save user message to database (the last one in the messages array)
     if (messages.length > 0 && !isInitialGreeting) {
@@ -420,7 +436,7 @@ export async function POST(req: Request) {
     // Create streaming completion using AI SDK
     const initialPrompt = isInitialGreeting 
       ? (context?.refinement && context?.category 
-        ? `Introduce yourself to ${userName} warmly. Acknowledge you're here to help refine their ${context.category} vision section. Reference something specific from their current ${context.category} section above (if provided) or their profile/assessment context. Then ask one powerful question that will help them deepen or elevate this category. Keep it warm, conversational, and focused on refinement. 3-4 sentences total.`
+        ? `Say hi to ${userName} and ask: "What refinements would you like to make?" Keep it brief and direct.`
         : `Introduce yourself to ${userName} and acknowledge what you see in their profile and assessment. Keep it warm, brief (2-3 sentences), and then ask one powerful opening question related to ${context?.category || 'their vision'} and the ${visionBuildPhase} phase.`)
       : undefined
 
@@ -907,7 +923,7 @@ Current conversation context: ${JSON.stringify(context)}
 
 Remember: ${isMasterAssistant ? `You're the master guide helping ${userName} become a master of VibrationFit and live a powerful, vibrationally aligned life. Be their expert coach, guide, and supporter.` : isRefinement ? `You're helping refine their existing vision to be MORE powerful while maintaining their authentic voice. Make it feel like an evolution of THEIR words, not a rewrite.` : `You're here to help ${userName} articulate the Life They Choose™. Make it feel like magic. ✨`}
 `
-    : `You are VIVA, the VibrationFit Vibrational Assistant. ${isRefinement ? `You're helping ${userName} REFINE their existing Life Vision for the **${categoryBeingRefined}** category.` : `You help ${userName} create their Life Vision through natural, flowing conversation.`}
+    : `You are VIVA, the Vibrational Intelligence Virtual Assistant. ${isRefinement ? `You're helping ${userName} REFINE their existing Life Vision for the **${categoryBeingRefined}** category.` : `You help ${userName} create their Life Vision through natural, flowing conversation.`}
 
 ABOUT ${userName.toUpperCase()}:
 ${profileData ? `- Age: ${profileSummary.age}

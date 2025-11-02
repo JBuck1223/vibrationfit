@@ -31,7 +31,8 @@ import {
   Layers,
   Globe,
   Shield,
-  Code
+  Code,
+  Upload
 } from 'lucide-react'
 import { Card, Badge, Container } from '@/lib/design-system'
 
@@ -136,7 +137,10 @@ export default function SitemapPage() {
         { href: '/admin/users', label: 'User Management', icon: Users, description: 'Manage all users' },
         { href: '/admin/ai-models', label: 'AI Model Management', icon: Zap, description: 'Configure AI models' },
         { href: '/admin/token-usage', label: 'Token Usage Analytics', icon: BarChart3, description: 'Token usage analytics' },
+        { href: '/admin/assets', label: 'Site Assets', icon: Upload, description: 'Manage site assets and media' },
+        { href: '/admin/audio-mixer', label: 'Audio Mixer', icon: Zap, description: 'Audio mixing tracks' },
         { href: '/design-system', label: 'Design System', icon: Palette, description: 'Design system showcase' },
+        { href: '/sitemap', label: 'Sitemap', icon: Layers, description: 'Complete site map' },
       ]
     },
     {

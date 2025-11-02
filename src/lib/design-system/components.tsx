@@ -995,6 +995,24 @@ export const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResi
       autoResize()
     }, [autoResize])
 
+    // Auto-resize when container width changes (e.g., grid toggles)
+    React.useEffect(() => {
+      const textarea = textareaRef.current
+      if (!textarea) return
+
+      const resizeObserver = new ResizeObserver(() => {
+        requestAnimationFrame(() => {
+          autoResize()
+        })
+      })
+
+      resizeObserver.observe(textarea)
+
+      return () => {
+        resizeObserver.disconnect()
+      }
+    }, [autoResize])
+
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       onChange(e.target.value)
       // Use requestAnimationFrame for smoother resize

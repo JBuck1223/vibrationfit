@@ -29,7 +29,7 @@ export default function VIVALifeVisionLandingPage() {
           </h1>
           
           <p className="text-base md:text-xl text-neutral-300 max-w-2xl mx-auto mb-6 md:mb-8">
-            Your AI Vibrational Assistant is here to help you articulate and activate the life you choose. 
+            Your Vibrational Intelligence Virtual Assistant is here to help you articulate and activate the life you choose. 
             We'll guide you through 12 key life areas, capturing your voice and energy to create a unified vision.
           </p>
           

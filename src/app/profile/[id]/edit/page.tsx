@@ -954,7 +954,7 @@ export default function ProfileEditPage() {
             <div className="text-4xl mb-4">🎉</div>
             <h3 className="text-2xl font-bold text-white mb-2">Profile Complete!</h3>
             <p className="text-neutral-300">
-              Your AI Vibrational Assistant now has a complete understanding of your life context. 
+              Your Vibrational Intelligence Virtual Assistant now has a complete understanding of your life context. 
               Expect more personalized and relevant guidance in all your interactions.
             </p>
           </div>

@@ -169,7 +169,7 @@ export function PersonalInfoSection({ profile, onProfileChange, onError }: Perso
 
         <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
           <p className="text-sm text-neutral-400">
-            <span className="font-medium text-primary-400">Privacy Note:</span> This information helps your AI Vibrational Assistant provide more personalized guidance. All data is encrypted and never shared with third parties.
+            <span className="font-medium text-primary-400">Privacy Note:</span> This information helps your Vibrational Intelligence Virtual Assistant provide more personalized guidance. All data is encrypted and never shared with third parties.
           </p>
         </div>
       </Card>

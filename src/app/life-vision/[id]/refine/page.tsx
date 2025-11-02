@@ -284,6 +284,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [visionId, setVisionId] = useState<string | null>(null)
   const [editingDraft, setEditingDraft] = useState<string | null>(null)
   const [showCurrentVision, setShowCurrentVision] = useState(true)
+  const [showRefinement, setShowRefinement] = useState(true)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isInitializingChat, setIsInitializingChat] = useState(false)
   const [initializationStep, setInitializationStep] = useState<string>('')
@@ -291,6 +292,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const previousCategoryRef = useRef<string | null>(null)
   const [availableConversations, setAvailableConversations] = useState<any[]>([])
   const [showConversationSelector, setShowConversationSelector] = useState(false)
+  const isLoadingConversationRef = useRef(false)
 
   const supabase = createClient()
 
@@ -644,7 +646,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   // Reset chat when category changes AND look up existing conversation
   useEffect(() => {
-    if (previousCategoryRef.current !== null && previousCategoryRef.current !== selectedCategory) {
+    if (previousCategoryRef.current !== null && previousCategoryRef.current !== selectedCategory && !isLoadingConversationRef.current) {
       console.log('Category changed from', previousCategoryRef.current, 'to', selectedCategory, '- resetting chat')
       setChatMessages([])
       setConversationPhase('initial')
@@ -655,7 +657,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     previousCategoryRef.current = selectedCategory
 
     // Look up existing conversations for this category when it's selected
-    if (selectedCategory && user && visionId && !isInitializingChat) {
+    if (selectedCategory && user && visionId && !isInitializingChat && !isLoadingConversationRef.current) {
       const lookupConversations = async () => {
         try {
           console.log('[LOOKUP] Starting for category:', selectedCategory, 'vision:', visionId)
@@ -744,8 +746,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             console.log('[LOOKUP] Final sessions:', sessionsWithPreviews.map(s => ({ id: s.id, count: s.message_count })))
 
             setAvailableConversations(sessionsWithPreviews)
-            setConversationId(sessionsWithPreviews[0].id) // Auto-select most recent
-            console.log('[LOOKUP] Found', sessionsWithPreviews.length, 'conversations for category:', selectedCategory)
+            // Auto-select most recent conversation
+            const mostRecentConvId = sessionsWithPreviews[0].id
+            setConversationId(mostRecentConvId)
+            console.log('[LOOKUP] Found', sessionsWithPreviews.length, 'conversations for category:', selectedCategory, 'auto-selected:', mostRecentConvId)
           } else {
             console.log('[LOOKUP] No conversations found for category:', selectedCategory)
           }
@@ -792,7 +796,54 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     return vision[category as keyof VisionData] as string || ''
   }
 
-  const startConversation = async () => {
+  // Load existing conversation messages
+  const loadConversation = async (conversationIdToLoad: string) => {
+    console.log('[LOAD] Loading conversation:', conversationIdToLoad)
+    isLoadingConversationRef.current = true
+    setIsTyping(true)
+    
+    try {
+      const { data: messages, error } = await supabase
+        .from('ai_conversations')
+        .select('*')
+        .eq('conversation_id', conversationIdToLoad)
+        .order('created_at', { ascending: true })
+      
+      if (error) {
+        console.error('Error loading conversation:', error)
+        throw error
+      }
+      
+      console.log('[LOAD] Loaded', messages?.length || 0, 'messages')
+      
+      if (messages && messages.length > 0) {
+        // Convert database messages to ChatMessage format
+        const chatMessagesData: ChatMessage[] = messages.map(msg => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.message,
+          timestamp: new Date(msg.created_at)
+        }))
+        
+        console.log('[LOAD] About to set', chatMessagesData.length, 'messages')
+        setChatMessages(chatMessagesData)
+        setConversationPhase('exploring')
+        console.log('[LOAD] Conversation loaded successfully')
+      } else {
+        console.log('[LOAD] No messages found, starting new conversation')
+        // No messages, treat as new conversation
+        await startConversation(conversationIdToLoad)
+      }
+    } catch (error) {
+      console.error('Failed to load conversation, starting new one:', error)
+      await startConversation(conversationIdToLoad)
+    } finally {
+      setIsTyping(false)
+      isLoadingConversationRef.current = false
+    }
+  }
+
+  const startConversation = async (explicitConversationId?: string | null) => {
     if (!selectedCategory || !vision || !visionId) return
 
     const categoryValue = getCategoryValue(selectedCategory)
@@ -808,6 +859,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setInitializationStep('Analyzing refinement data...')
       await new Promise(resolve => setTimeout(resolve, 500))
       
+      // Use explicit ID if provided, otherwise use state value
+      const conversationIdToUse = explicitConversationId !== undefined ? explicitConversationId : conversationId
+      console.log('[REFINE] startConversation - explicitConversationId:', explicitConversationId, 'state conversationId:', conversationId, 'using:', conversationIdToUse)
+      
       // Call real VIVA chat API with initial greeting
       setInitializationStep('Connecting with VIVA...')
       const requestBody = {
@@ -820,9 +875,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           isInitialGreeting: true
         },
         visionBuildPhase: 'refinement',
-        conversationId: conversationId || undefined // Pass existing conversation ID if found
+        conversationId: conversationIdToUse || undefined // Pass existing conversation ID if found
       }
-      console.log('[REFINE] Calling VIVA chat with:', requestBody)
+      console.log('[REFINE] Calling VIVA chat with conversationId:', conversationIdToUse, 'body:', requestBody)
       const response = await fetch('/api/viva/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1507,31 +1562,53 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       {/* Current Vision & Refinement Display */}
       {selectedCategory && (
         <div className="mb-8">
-          {/* Mobile Toggle Button */}
-          <div className="lg:hidden mb-4">
+          {/* Mobile Toggle Buttons */}
+          <div className="lg:hidden mb-4 space-y-2">
             <Button
               onClick={() => setShowCurrentVision(!showCurrentVision)}
               variant="outline"
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              {showCurrentVision ? (
-                <>
-                  <ChevronDown className="w-4 h-4" />
-                  Hide Current Vision
-                </>
-              ) : (
-                <>
-                  <ChevronRight className="w-4 h-4" />
-                  Show Current Vision
-                </>
-              )}
+              {showCurrentVision ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              {showCurrentVision ? 'Hide' : 'Show'} Current Vision
+            </Button>
+            <Button
+              onClick={() => setShowRefinement(!showRefinement)}
+              variant="outline"
+              size="sm"
+              className="w-full flex items-center justify-center gap-2"
+            >
+              {showRefinement ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              {showRefinement ? 'Hide' : 'Show'} Refinement
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Current Vision Card - Hidden on mobile when toggled */}
-            <div className={`${showCurrentVision ? 'block' : 'hidden lg:block'}`}>
+          {/* Desktop Toggle Buttons - Above the grid */}
+          <div className="hidden lg:flex gap-4 mb-4">
+            <Button
+              onClick={() => setShowCurrentVision(!showCurrentVision)}
+              variant={showCurrentVision ? "primary" : "outline"}
+              size="sm"
+              className="flex-1 flex items-center justify-center gap-2"
+            >
+              {showCurrentVision ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              {showCurrentVision ? 'Hide' : 'Show'} Current Vision
+            </Button>
+            <Button
+              onClick={() => setShowRefinement(!showRefinement)}
+              variant={showRefinement ? "accent" : "outline"}
+              size="sm"
+              className="flex-1 flex items-center justify-center gap-2"
+            >
+              {showRefinement ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              {showRefinement ? 'Hide' : 'Show'} Refinement
+            </Button>
+          </div>
+
+          <div className={`space-y-6 ${showCurrentVision && showRefinement ? 'lg:grid lg:grid-cols-2' : ''} lg:gap-6 lg:space-y-0`}>
+            {/* Current Vision Card - Toggle visibility */}
+            <div className={`${showCurrentVision ? 'block' : 'hidden'}`}>
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -1558,33 +1635,39 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     Copy to Refinement
                   </Button>
                 </div>
-                <div className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
-                  <div className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">
-                    {getCategoryValue(selectedCategory) || "No vision content available for this category."}
-                  </div>
-                </div>
+                <AutoResizeTextarea
+                  value={getCategoryValue(selectedCategory) || "No vision content available for this category."}
+                  onChange={() => {}}
+                  readOnly
+                  className="!bg-neutral-800/50 !border-neutral-600 text-sm cursor-default !rounded-lg !px-4 !py-3"
+                  minHeight={120}
+                />
               </Card>
             </div>
 
-            <Card className="p-6" data-refinement-section>
-              <div className="flex items-center gap-3 mb-4">
-                <Wand2 className="w-8 h-8 text-purple-400" />
-                <div>
-                <h3 className="text-lg font-semibold text-white">
-                  Refinement - {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label}
-                </h3>
-                  <p className="text-sm text-neutral-400">
-                    Your refined version of this vision
-                  </p>
+            {/* Refinement Card - Toggle visibility */}
+            <div className={`${showRefinement ? 'block' : 'hidden'}`}>
+              <Card className="p-6" data-refinement-section>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <Wand2 className="w-8 h-8 text-purple-400" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">
+                        Refinement - {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label}
+                      </h3>
+                      <p className="text-sm text-neutral-400">
+                        Your refined version of this vision
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <AutoResizeTextarea
-                value={currentRefinement}
-                onChange={setCurrentRefinement}
-                placeholder="Start refining your vision here, or let VIVA help you through conversation..."
-                className="bg-neutral-800/50 border-neutral-600"
-                minHeight={120}
-              />
+                <AutoResizeTextarea
+                  value={currentRefinement}
+                  onChange={setCurrentRefinement}
+                  placeholder="Start refining your vision here, or let VIVA help you through conversation..."
+                  className="!bg-neutral-800/50 !border-neutral-600 text-sm !rounded-lg !px-4 !py-3"
+                  minHeight={120}
+                />
               
               {/* Draft Status & Actions */}
               <div className="mt-4 flex items-center justify-between">
@@ -1644,8 +1727,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   </div>
                 </div>
               </Card>
-                    </div>
-                    </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Chat Interface */}
@@ -1653,8 +1737,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         <div className="space-y-6">
           {isInitializingChat ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                <Spinner className="w-8 h-8 text-white" />
+              <div className="flex items-center justify-center mx-auto mb-4">
+                <Spinner variant="accent" size="lg" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">Preparing VIVA...</h3>
               <p className="text-neutral-400 mb-6">
@@ -1681,7 +1765,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                       onClick={() => {
                         setConversationId(conv.id)
                         setShowConversationSelector(false)
-                        startConversation()
+                        loadConversation(conv.id)
                       }}
                       className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                         conversationId === conv.id
@@ -1711,7 +1795,13 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
                 <div className="flex gap-3">
                   <Button
-                    onClick={startConversation}
+                    onClick={() => {
+                      if (availableConversations[0]) {
+                        loadConversation(availableConversations[0].id)
+                      } else {
+                        void startConversation()
+                      }
+                    }}
                     variant="primary"
                     className="flex-1"
                     size="lg"
@@ -1720,9 +1810,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   </Button>
                   <Button
                     onClick={() => {
-                      setConversationId(null)
+                      console.log('[REFINE] Start Fresh clicked')
                       setAvailableConversations([])
-                      startConversation()
+                      // Pass explicit null to ensure fresh start
+                      void startConversation(null)
                     }}
                     variant="outline"
                     className="flex-1"
@@ -1742,7 +1833,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   VIVA will help you refine your {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label.toLowerCase()} vision through intelligent conversation.
                 </p>
                 <VIVAButton
-                  onClick={startConversation}
+                  onClick={() => void startConversation()}
                   size="lg"
                 >
                   Start Conversation with VIVA

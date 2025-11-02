@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Input } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search } from 'lucide-react'
+import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2 } from 'lucide-react'
 
 interface AssetFile {
   key: string
@@ -47,6 +47,9 @@ function AssetsAdminContent() {
   const [successMessage, setSuccessMessage] = useState<{ title: string; details?: string[] } | null>(null)
   const [errorMessage, setErrorMessage] = useState<{ title: string; details?: string[] } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedFileKeys, setSelectedFileKeys] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
+  const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchAssets()
@@ -258,6 +261,111 @@ function AssetsAdminContent() {
     }
   }
 
+  const toggleFileSelection = (fileKey: string) => {
+    setSelectedFileKeys(prev => {
+      const next = new Set(prev)
+      if (next.has(fileKey)) {
+        next.delete(fileKey)
+      } else {
+        next.add(fileKey)
+      }
+      return next
+    })
+  }
+
+  const selectAllFiles = () => {
+    if (selectedFileKeys.size === filteredFiles.length) {
+      setSelectedFileKeys(new Set())
+    } else {
+      setSelectedFileKeys(new Set(filteredFiles.map(f => f.key)))
+    }
+  }
+
+  const handleDeleteFiles = async () => {
+    if (selectedFileKeys.size === 0) {
+      setErrorMessage({
+        title: 'No files selected',
+        details: ['Please select at least one file to delete'],
+      })
+      setTimeout(() => setErrorMessage(null), 3000)
+      return
+    }
+
+    if (!confirm(`Delete ${selectedFileKeys.size} file(s)? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      setDeleting(true)
+      const filesToDelete = Array.from(selectedFileKeys)
+      const deletedFiles: string[] = []
+      const errors: string[] = []
+
+      for (const fileKey of filesToDelete) {
+        try {
+          setDeletingKeys(prev => new Set(prev).add(fileKey))
+          
+          const response = await fetch('/api/upload', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ s3Key: fileKey }),
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.error || 'Delete failed')
+          }
+
+          deletedFiles.push(fileKey)
+        } catch (error) {
+          console.error(`Delete error for ${fileKey}:`, error)
+          const fileName = files.find(f => f.key === fileKey)?.name || fileKey
+          errors.push(`${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        } finally {
+          setDeletingKeys(prev => {
+            const next = new Set(prev)
+            next.delete(fileKey)
+            return next
+          })
+        }
+      }
+
+      // Refresh current view
+      await fetchCurrentPathAssets()
+      
+      // Clear selection
+      setSelectedFileKeys(new Set())
+      
+      // Show results
+      if (errors.length === 0) {
+        setSuccessMessage({
+          title: `✨ ${deletedFiles.length} file${deletedFiles.length > 1 ? 's' : ''} deleted successfully!`,
+        })
+        setTimeout(() => setSuccessMessage(null), 4000)
+      } else if (deletedFiles.length > 0) {
+        setSuccessMessage({
+          title: `✨ ${deletedFiles.length} file${deletedFiles.length > 1 ? 's' : ''} deleted successfully!`,
+          details: [`${errors.length} file${errors.length > 1 ? 's' : ''} failed to delete`, ...errors],
+        })
+      } else {
+        setErrorMessage({
+          title: `Delete failed`,
+          details: errors,
+        })
+        setTimeout(() => setErrorMessage(null), 5000)
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
+      setErrorMessage({
+        title: 'Delete failed',
+        details: [error instanceof Error ? error.message : 'Unknown error'],
+      })
+      setTimeout(() => setErrorMessage(null), 5000)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -447,6 +555,35 @@ function AssetsAdminContent() {
           </p>
         )}
       </div>
+
+      {/* Selection Toolbar */}
+      {filteredFiles.length > 0 && (
+        <div className="mb-6 flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selectAllFiles}
+            >
+              {selectedFileKeys.size === filteredFiles.length ? 'Deselect All' : 'Select All'}
+            </Button>
+            <span className="text-sm text-neutral-400">
+              {selectedFileKeys.size > 0 ? `${selectedFileKeys.size} selected` : 'No files selected'}
+            </span>
+          </div>
+          {selectedFileKeys.size > 0 && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleDeleteFiles}
+              disabled={deleting}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {deleting ? 'Deleting...' : `Delete ${selectedFileKeys.size} File(s)`}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Breadcrumb Navigation */}
       {currentPath.length > 0 && (
@@ -769,9 +906,12 @@ function AssetsAdminContent() {
                 const fileType = getFileType(file.name)
                 const dimensions = imageDimensions[file.key]
 
+                const isSelected = selectedFileKeys.has(file.key)
+                const isDeleting = deletingKeys.has(file.key)
+
                 return (
-                  <Card key={file.key} variant="elevated" className="overflow-hidden">
-                    <div className="relative aspect-square bg-neutral-800 flex items-center justify-center mb-3 overflow-hidden">
+                  <Card key={file.key} variant="elevated" className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''} ${isDeleting ? 'opacity-50' : ''}`}>
+                    <div className="relative aspect-square bg-neutral-800 flex items-center justify-center mb-3 overflow-hidden group cursor-pointer" onClick={() => toggleFileSelection(file.key)}>
                       {isImage ? (
                         <img
                           src={file.url}
@@ -794,6 +934,14 @@ function AssetsAdminContent() {
                       ) : (
                         <FileIcon className="w-16 h-16 text-neutral-600" />
                       )}
+                      {/* Checkbox overlay */}
+                      <div className={`absolute top-2 left-2 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+                        isSelected 
+                          ? 'bg-primary-500 border-primary-500' 
+                          : 'bg-black/50 border-neutral-500 group-hover:border-primary-500'
+                      }`}>
+                        {isSelected && <Check className="w-4 h-4 text-black" />}
+                      </div>
                     </div>
                     
                     <div className="space-y-2">
@@ -820,7 +968,10 @@ function AssetsAdminContent() {
                         variant="primary"
                         size="sm"
                         className="w-full"
-                        onClick={() => copyToClipboard(file.url)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          copyToClipboard(file.url)
+                        }}
                       >
                         {isCopied ? (
                           <>

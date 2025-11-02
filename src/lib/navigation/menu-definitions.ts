@@ -35,6 +35,7 @@ import {
   Palette,
   Shield,
   Layers,
+  Upload,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -126,7 +127,7 @@ export const userNavigation: NavItem[] = [
     href: '/viva',
     icon: Sparkles,
     hasDropdown: true,
-    description: 'AI vibrational assistant',
+    description: 'Vibrational Intelligence Virtual Assistant',
     children: [
       { name: 'Chat with VIVA', href: '/viva', icon: Sparkles },
       { name: 'Create Life Vision', href: '/life-vision/new', icon: Target },
@@ -210,6 +211,20 @@ export const adminNavigation: NavItem[] = [
     icon: Zap,
     requiresAdmin: true,
     description: 'Token usage analytics',
+  },
+  {
+    name: 'Site Assets',
+    href: '/admin/assets',
+    icon: Upload,
+    requiresAdmin: true,
+    description: 'Manage site assets and media',
+  },
+  {
+    name: 'Audio Mixer',
+    href: '/admin/audio-mixer',
+    icon: Zap,
+    requiresAdmin: true,
+    description: 'Audio mixing tracks',
   },
   {
     name: 'Design System',
