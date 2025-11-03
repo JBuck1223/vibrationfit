@@ -27,6 +27,7 @@ export default function ProfilePage() {
   const isIntensiveMode = searchParams.get('intensive') === 'true'
   
   const [profile, setProfile] = useState<Partial<UserProfile>>({})
+  const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState('personal')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -191,6 +192,9 @@ export default function ProfilePage() {
         console.log('Profile page: Data received', data)
         setProfile(data.profile || {})
         setCompletionPercentage(data.completionPercentage || 0)
+        if (data.profile?.id) {
+          setCurrentVersionId(data.profile.id)
+        }
       } catch (error) {
         console.error('Error fetching profile:', error)
         setError('Failed to load profile data')
@@ -237,7 +241,8 @@ export default function ProfilePage() {
         body: JSON.stringify({ 
           profileData: profile, 
           saveAsVersion: true, 
-          isDraft 
+          isDraft,
+          sourceProfileId: currentVersionId
         }),
       })
 
@@ -249,6 +254,11 @@ export default function ProfilePage() {
 
       const data = await response.json()
       console.log('Version save response:', data)
+      
+      // Update current version if provided
+      if (data.version?.id) {
+        setCurrentVersionId(data.version.id)
+      }
       
       setSaveStatus('saved')
       setLastSaved(new Date())
