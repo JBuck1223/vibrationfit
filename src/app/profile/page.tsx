@@ -330,10 +330,10 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
       // Check if a draft already exists for this user
       const { data: existingDrafts, error: checkError } = await supabase
-        .from('refinements')
-        .select('id')
+        .from('user_profiles')
+        .select('id, version_number')
         .eq('user_id', userId)
-        .eq('operation_type', 'refine_profile')
+        .eq('is_draft', true)
 
       if (checkError) {
         console.error('Error checking existing drafts:', checkError)
@@ -342,31 +342,36 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
       console.log('Existing drafts found:', existingDrafts?.length || 0)
 
-      // If draft exists, update it; otherwise create new one
-      const draftData: any = {
-        user_id: userId,
-        profile_data: profileDraft,
-        operation_type: 'refine_profile',
-        created_at: new Date().toISOString()
-      }
+      // Get next version number
+      const nextVersionNumber = existingDrafts && existingDrafts.length > 0 
+        ? existingDrafts[0].version_number 
+        : ((profile as any)?.version_number || 0) + 1
 
+      // If draft exists, update it; otherwise create new one
       let result
       if (existingDrafts && existingDrafts.length > 0) {
         // Update existing draft
         console.log('Updating existing draft:', existingDrafts[0].id)
         result = await supabase
-          .from('refinements')
+          .from('user_profiles')
           .update({
-            profile_data: profileDraft,
-            created_at: new Date().toISOString()
+            ...profileDraft,
+            updated_at: new Date().toISOString()
           })
           .eq('id', existingDrafts[0].id)
       } else {
         // Create new draft
         console.log('Creating new profile draft')
         result = await supabase
-          .from('refinements')
-          .insert(draftData)
+          .from('user_profiles')
+          .insert({
+            user_id: userId,
+            ...profileDraft,
+            is_draft: true,
+            version_number: nextVersionNumber,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
       }
 
       if (result.error) {
@@ -382,7 +387,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     } finally {
       setIsDraftSaving(false)
     }
-  }, [profileDraft, userId])
+  }, [profileDraft, userId, profile])
 
   const commitDraft = useCallback(async () => {
     if (!profileDraft || !userId) return
@@ -394,34 +399,23 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
       console.log('Committing profile draft for user:', userId)
 
-      // Create new profile version with draft data
+      // Update draft to remove is_draft flag
       const { data: newVersion, error: versionError } = await supabase
         .from('user_profiles')
-        .insert({
-          user_id: userId,
-          ...profileDraft,
-          version_number: ((profile as any).version_number || 0) + 1,
-          created_at: new Date().toISOString()
+        .update({
+          is_draft: false,
+          is_active: true,
+          updated_at: new Date().toISOString()
         })
+        .eq('user_id', userId)
+        .eq('is_draft', true)
         .select()
         .single()
 
       if (versionError) {
-        console.error('Error creating new profile version:', versionError)
+        console.error('Error committing profile draft:', versionError)
         alert(`Failed to commit draft: ${versionError.message}`)
         return
-      }
-
-      // Delete the committed draft
-      const { error: deleteError } = await supabase
-        .from('refinements')
-        .delete()
-        .eq('user_id', userId)
-        .eq('operation_type', 'refine_profile')
-
-      if (deleteError) {
-        console.error('Error deleting draft:', deleteError)
-        // Don't fail the commit if we can't delete the draft
       }
 
       // Update local state
@@ -442,7 +436,7 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
     } finally {
       setIsDraftSaving(false)
     }
-  }, [profileDraft, userId, profile])
+  }, [profileDraft, userId])
 
   const loadDraft = useCallback(async () => {
     if (!userId) return
@@ -454,10 +448,10 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
       console.log('Loading profile draft for user:', userId)
       
       const { data, error } = await supabase
-        .from('refinements')
+        .from('user_profiles')
         .select('*')
         .eq('user_id', userId)
-        .eq('operation_type', 'refine_profile')
+        .eq('is_draft', true)
         .order('created_at', { ascending: false })
         .limit(1)
         .single()
@@ -472,8 +466,8 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
       }
 
       console.log('Loaded profile draft:', data)
-      if (data && data.profile_data) {
-        setProfileDraft(data.profile_data)
+      if (data) {
+        setProfileDraft(data)
         setDraftStatus('draft')
       }
     } catch (error) {
