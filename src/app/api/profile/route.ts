@@ -286,34 +286,80 @@ export async function POST(request: NextRequest) {
         }
 
         // Create a new profile version using our database function
-        const { data: newDraftId, error: versionError } = await supabase
-          .rpc('create_draft_from_version', {
-            p_source_profile_id: sourceProfileId,
-            p_user_id: user.id,
-            p_version_notes: isDraft ? 'Draft version' : 'Committed version'
-          })
+        let newDraftId: string
+        if (sourceProfileId) {
+          // Create version from existing source
+          const { data: draftId, error: versionError } = await supabase
+            .rpc('create_draft_from_version', {
+              p_source_profile_id: sourceProfileId,
+              p_user_id: user.id,
+              p_version_notes: isDraft ? 'Draft version' : 'Committed version'
+            })
 
-        if (versionError) {
-          console.error('Version creation error:', versionError)
-          throw versionError
+          if (versionError) {
+            console.error('Version creation error:', versionError)
+            throw versionError
+          }
+          newDraftId = draftId
+        } else {
+          // Create new profile from scratch
+          const completionPercentage = calculateCompletionManually(profileData)
+          const { data: newProfile, error: insertError } = await supabase
+            .from('user_profiles')
+            .insert({
+              user_id: user.id,
+              ...profileData,
+              completion_percentage: completionPercentage,
+              is_draft: isDraft,
+              is_active: !isDraft,
+              version_number: 1,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select('id')
+            .single()
+
+          if (insertError) {
+            console.error('Profile creation error:', insertError)
+            throw insertError
+          }
+          newDraftId = newProfile.id
         }
 
-        // Update the new draft with the provided data
-        const completionPercentage = calculateCompletionManually(profileData)
-        const { data: updatedVersion, error: updateError } = await supabase
-          .from('user_profiles')
-          .update({
-            ...profileData,
-            completion_percentage: completionPercentage,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', newDraftId)
-          .select()
-          .single()
+        // Get the version we just created
+        let updatedVersion: any
+        if (sourceProfileId) {
+          // Update with profileData changes if created from source
+          const completionPercentage = calculateCompletionManually(profileData)
+          const { data: updated, error: updateError } = await supabase
+            .from('user_profiles')
+            .update({
+              ...profileData,
+              completion_percentage: completionPercentage,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', newDraftId)
+            .select()
+            .single()
 
-        if (updateError) {
-          console.error('Version update error:', updateError)
-          throw updateError
+          if (updateError) {
+            console.error('Version update error:', updateError)
+            throw updateError
+          }
+          updatedVersion = updated
+        } else {
+          // Fetch the version we just created
+          const { data: fetched, error: fetchError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', newDraftId)
+            .single()
+
+          if (fetchError) {
+            console.error('Version fetch error:', fetchError)
+            throw fetchError
+          }
+          updatedVersion = fetched
         }
 
         // If committing (not draft), make it active
