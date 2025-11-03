@@ -287,11 +287,29 @@ export async function POST(request: NextRequest) {
 
         // Create a new profile version using our database function
         let newDraftId: string
-        if (sourceProfileId) {
+        let actualSourceId = sourceProfileId
+        
+        // If no sourceProfileId provided, find existing active profile to use as source
+        if (!actualSourceId) {
+          const { data: existingProfile } = await supabase
+            .from('user_profiles')
+            .select('id, is_active, is_draft')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
+          
+          if (existingProfile) {
+            actualSourceId = existingProfile.id
+            console.log('No sourceProfileId provided, using existing profile as source:', actualSourceId)
+          }
+        }
+        
+        if (actualSourceId) {
           // Create version from existing source
           const { data: draftId, error: versionError } = await supabase
             .rpc('create_draft_from_version', {
-              p_source_profile_id: sourceProfileId,
+              p_source_profile_id: actualSourceId,
               p_user_id: user.id,
               p_version_notes: isDraft ? 'Draft version' : 'Committed version'
             })
@@ -302,7 +320,7 @@ export async function POST(request: NextRequest) {
           }
           newDraftId = draftId
         } else {
-          // Create new profile from scratch
+          // Create new profile from scratch (first profile ever)
           const completionPercentage = calculateCompletionManually(profileData)
           const { data: newProfile, error: insertError } = await supabase
             .from('user_profiles')
@@ -328,7 +346,7 @@ export async function POST(request: NextRequest) {
 
         // Get the version we just created
         let updatedVersion: any
-        if (sourceProfileId) {
+        if (actualSourceId) {
           // Update with profileData changes if created from source
           const completionPercentage = calculateCompletionManually(profileData)
           const { data: updated, error: updateError } = await supabase
@@ -348,7 +366,7 @@ export async function POST(request: NextRequest) {
           }
           updatedVersion = updated
         } else {
-          // Fetch the version we just created
+          // Fetch the version we just created (first profile ever)
           const { data: fetched, error: fetchError } = await supabase
             .from('user_profiles')
             .select('*')
