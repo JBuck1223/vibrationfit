@@ -399,12 +399,36 @@ export default function ProfileViewPage({}: ProfileViewPageProps) {
 
       console.log('Committing profile draft for user:', userId)
 
-      // Update draft to remove is_draft flag
+      // First, deactivate current active version
+      await supabase
+        .from('user_profiles')
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .eq('is_draft', false)
+
+      // Get next version number
+      const { data: allVersions } = await supabase
+        .from('user_profiles')
+        .select('version_number')
+        .eq('user_id', userId)
+        .order('version_number', { ascending: false })
+        .limit(1)
+
+      const nextVersionNumber = allVersions && allVersions.length > 0 
+        ? allVersions[0].version_number + 1 
+        : 1
+
+      // Update draft to be active
       const { data: newVersion, error: versionError } = await supabase
         .from('user_profiles')
         .update({
           is_draft: false,
           is_active: true,
+          version_number: nextVersionNumber,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', userId)
