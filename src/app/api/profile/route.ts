@@ -463,8 +463,10 @@ export async function POST(request: NextRequest) {
       }
     } catch (dbError) {
       console.error('Database error:', dbError)
+      console.error('Database error details:', JSON.stringify(dbError, null, 2))
       return NextResponse.json({ 
         message: 'Error occurred - cannot save profile',
+        error: dbError instanceof Error ? dbError.message : String(dbError),
         profile: {}
       }, { status: 500 })
     }
