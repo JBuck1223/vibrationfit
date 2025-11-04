@@ -191,3 +191,57 @@ export async function deleteUserProfile(userId: string): Promise<boolean> {
 
   return true
 }
+
+/**
+ * Get the active profile for a user (single source of truth)
+ * This is the ONLY function that should be used to fetch the active profile
+ * Filters by is_active = true to ensure we get the correct profile
+ */
+export async function getActiveProfile(userId: string): Promise<UserProfile | null> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (error) {
+    // Only log if it's not a "no rows" error
+    if (error.code && error.code !== 'PGRST116') {
+      console.error('Error fetching active profile:', error)
+    }
+    return null
+  }
+
+  return data
+}
+
+/**
+ * Get active profile with specific fields only (for lightweight queries)
+ * Useful for components that only need basic info like Header
+ */
+export async function getActiveProfileFields(
+  userId: string, 
+  fields: Array<keyof UserProfile>
+): Promise<Partial<UserProfile> | null> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select(fields.join(', '))
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (error) {
+    // Only log if it's not a "no rows" error
+    if (error.code && error.code !== 'PGRST116') {
+      console.error('Error fetching active profile fields:', error)
+    }
+    return null
+  }
+
+  return data
+}

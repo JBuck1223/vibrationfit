@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getActiveProfileClient } from '@/lib/supabase/profile-client'
 import { useStorageData } from '@/hooks/useStorageData'
 import { userNavigation, adminNavigation as centralAdminNav, mobileNavigation as centralMobileNav, isNavItemActive, type NavItem as CentralNavItem } from '@/lib/navigation'
 import { LucideIcon, Check, Sparkles, Home, User, Target, FileText, Image, Brain, BarChart3, CreditCard, Users, Zap, ChevronLeft, ChevronRight, ChevronDown, Plus, Eye, Edit, ShoppingCart, HardDrive, X, Settings, CheckCircle, Rocket, Lock, CheckCircle2, Save, AlertTriangle, Volume2, Play, File, Mic, Video as VideoIcon, Loader2, SkipBack, SkipForward, Pause, PlayCircle, Repeat, Shuffle, MoreHorizontal, ArrowDown } from 'lucide-react'
@@ -2335,36 +2336,12 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         const { data: { user } } = await supabase.auth.getUser()
         setUser(user)
         
-        // Fetch profile data if user is logged in
+        // Fetch active profile using single source of truth
         if (user) {
-          const { data: profileData, error } = await supabase
-            .from('user_profiles')
-            .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
-            .eq('user_id', user.id)
-            .single()
-          
-          if (error) {
-            console.error('Error fetching profile:', error)
-            // If profile doesn't exist, create one with default values
-            if (error.code === 'PGRST116') {
-              const { data: newProfile, error: createError } = await supabase
-                .from('user_profiles')
-                .insert({
-                  user_id: user.id,
-                  vibe_assistant_tokens_remaining: 100
-                })
-                .select()
-                .single()
-              
-              if (createError) {
-                console.error('Error creating profile:', createError)
-              } else {
-                setProfile(newProfile)
-              }
-            }
-          } else {
-            setProfile(profileData)
-          }
+          const profileData = await getActiveProfileClient(user.id)
+          setProfile(profileData)
+        } else {
+          setProfile(null)
         }
         
         setLoading(false)
@@ -2372,15 +2349,19 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
 
       getUser()
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
         setUser(session?.user ?? null)
-        if (!session?.user) {
+        if (session?.user) {
+          // Refetch active profile when user changes
+          const profileData = await getActiveProfileClient(session.user.id)
+          setProfile(profileData)
+        } else {
           setProfile(null)
         }
       })
 
       return () => subscription.unsubscribe()
-    }, [supabase.auth])
+    }, [supabase])
 
     const toggleExpanded = (itemName: string) => {
       setExpandedItems(prev => 

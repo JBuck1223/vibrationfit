@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import { PageLayout } from '@/lib/design-system'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { SidebarLayout } from '@/components/Sidebar'
 import { getPageType } from '@/lib/navigation'
 
 interface GlobalLayoutProps {
@@ -16,7 +15,6 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   const pathname = usePathname()
   
   // Only exclude the /html route from layout (for clean PDF generation)
-  // Preview pages should have normal layout with sidebar
   if (pathname?.endsWith('/html')) {
     return <>{children}</>
   }
@@ -25,23 +23,19 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   
   // Render based on page type
   if (pageType === 'USER' || pageType === 'ADMIN') {
-    // User and Admin pages: Use SidebarLayout
-    // Print pages: SidebarLayout without PageLayout padding (full-screen interface)
+    // User and Admin pages: Use PageLayout without sidebar
+    // Print pages: No PageLayout padding (full-screen interface)
     if (pathname?.includes('/print') && !pathname?.endsWith('/html')) {
-      return (
-        <SidebarLayout isAdmin={pageType === 'ADMIN'}>
-          {children}
-        </SidebarLayout>
-      )
+      return <>{children}</>
     }
     
-    // Regular user/admin pages: Use SidebarLayout with PageLayout
+    // Regular user/admin pages: Use PageLayout
     return (
-      <SidebarLayout isAdmin={pageType === 'ADMIN'}>
+      <div className="min-h-screen bg-black text-white">
         <PageLayout containerSize="xl">
           {children}
         </PageLayout>
-      </SidebarLayout>
+      </div>
     )
   }
   

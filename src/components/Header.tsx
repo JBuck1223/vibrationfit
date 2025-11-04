@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
@@ -10,6 +10,7 @@ import { Container } from '@/lib/design-system/components'
 import { cn } from '@/lib/utils'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
+import { getActiveProfileClient } from '@/lib/supabase/profile-client'
 import { User } from '@supabase/supabase-js'
 import { ChevronDown, LogOut, Zap } from 'lucide-react'
 import { getPageType, headerAccountMenu } from '@/lib/navigation'
@@ -22,7 +23,8 @@ export function Header() {
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null)
   const router = useRouter()
   const pathname = usePathname()
-  const supabase = createClient()
+  // Memoize supabase client to prevent dependency array issues
+  const supabase = useMemo(() => createClient(), [])
 
   // Page classification using centralized system
   const pageType = getPageType(pathname)
@@ -39,13 +41,10 @@ export function Header() {
       
       // Fetch profile data if user is logged in
       if (user) {
-        const { data: profileData } = await supabase
-          .from('user_profiles')
-          .select('first_name, last_name, profile_picture_url, vibe_assistant_tokens_remaining')
-          .eq('user_id', user.id)
-          .single()
-        
+        const profileData = await getActiveProfileClient(user.id)
         setProfile(profileData)
+      } else {
+        setProfile(null)
       }
       
       setLoading(false)
@@ -53,15 +52,19 @@ export function Header() {
 
     getUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
-      if (!session?.user) {
+      if (session?.user) {
+        // Refetch profile when user changes
+        const profileData = await getActiveProfileClient(session.user.id)
+        setProfile(profileData)
+      } else {
         setProfile(null)
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase.auth])
+  }, [supabase])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -119,7 +122,7 @@ export function Header() {
                   
                   {/* Name */}
                   <span className="text-white font-medium">
-                    {profile?.first_name || user.email?.split('@')[0]}
+                    {profile?.first_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]}
                   </span>
                   
                   <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${openDropdown === 'account' ? 'rotate-180' : ''}`} />
