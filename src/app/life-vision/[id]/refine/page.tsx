@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 import { 
   Sparkles, 
@@ -20,7 +21,8 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
-  Clock
+  Clock,
+  Eye
 } from 'lucide-react'
 import { 
   PageLayout, 
@@ -346,14 +348,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const loadVisionById = async () => {
     try {
       const resolvedParams = await params
-      const { data: { user } } = await supabase.auth.getUser()
         
       if (!user) {
-        setError('Please log in to access this page')
+        console.log('loadVisionById: No user available yet')
         return
       }
 
-      setUser(user)
       setVisionId(resolvedParams.id)
 
       // Get the vision data by ID
@@ -563,10 +563,48 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     }
   }
 
-  // Load vision by ID when component mounts
+  // Initialize user auth state first (before loading vision)
   useEffect(() => {
-    loadVisionById()
-  }, [params])
+    const initializeAuth = async () => {
+      try {
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+        if (authError) {
+          console.error('Auth error in refine page:', authError)
+          setError('Please log in to access this page')
+          return
+        }
+        if (authUser) {
+          console.log('Refine page: User authenticated:', authUser.id)
+          setUser(authUser)
+        }
+      } catch (err) {
+        console.error('Error initializing auth:', err)
+        setError('Failed to authenticate')
+      }
+    }
+
+    initializeAuth()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        console.log('Refine page: Auth state changed - user:', session.user.id)
+        setUser(session.user)
+      } else {
+        console.log('Refine page: Auth state changed - no user')
+        setUser(null)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  // Load vision by ID when component mounts and user is available
+  useEffect(() => {
+    if (user) {
+      loadVisionById()
+    }
+  }, [params, user])
 
   // Load all drafts when vision loads
   useEffect(() => {
@@ -1356,7 +1394,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   }
 
   return (
-    <div className="py-8">
+    <div>
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
@@ -1466,6 +1504,17 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <Button
+                  asChild
+                  variant="accent"
+                  size="sm"
+                  className="flex items-center justify-center gap-1 w-full sm:w-auto"
+                >
+                  <Link href={`/life-vision/${visionId}/refine/draft`}>
+                    <Eye className="w-4 h-4" />
+                    View Draft Vision
+                  </Link>
+                </Button>
+                <Button
                   onClick={() => setShowAllDrafts(!showAllDrafts)}
                   variant="outline"
                   size="sm"
@@ -1491,7 +1540,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </div>
             
             {showAllDrafts && (
-              <div className="space-y-3">
+              <div className="mt-4 space-y-3">
                 {allDrafts.map((draft) => {
                   const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === draft.category)
                   return (
@@ -1523,7 +1572,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                               onClick={() => editDraft(draft)}
                               variant="ghost"
                               size="sm"
-                              className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px] flex-1 sm:flex-none"
+                              className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px] flex-1 sm:flex-none bg-[#FFB701]/20 hover:bg-[#FFB701]/30 text-[#FFB701] border border-[#FFB701]/30 hover:border-[#FFB701]/50"
                             >
                               <Edit className="w-4 h-4" />
                               View

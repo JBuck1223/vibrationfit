@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap, Target, Gem, Volume2, Download, VolumeX, Diamond } from 'lucide-react'
 import { Card, Button, Badge, ProgressBar, Spinner, Grid } from '@/lib/design-system/components'
+import { VisionVersionCard } from './components/VisionVersionCard'
 import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 import { LifeVisionSidebar } from './components/LifeVisionSidebar'
@@ -137,109 +138,95 @@ export default function VisionListPage() {
 
   const fetchVision = async () => {
     setLoading(true)
+    setError(null)
+    
     try {
-      // Check if Supabase environment variables are available
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        throw new Error('Supabase configuration missing - please check environment variables')
-      }
+      // Use API route instead of direct Supabase calls (like profile pages do)
+      const response = await fetch('/api/vision?includeVersions=true')
       
-      const supabase = createClient()
-      
-      // Test Supabase connection first
-      console.log('Testing Supabase connection...')
-      const { data: { user }, error: authError } = await withTimeout(supabase.auth.getUser(), 4000, 'auth')
-      
-      if (authError) {
-        console.error('Auth error:', authError)
-        throw new Error(`Authentication failed: ${authError.message}`)
-      }
-      
-      if (!user) {
-        console.log('No user found, redirecting to login')
-        router.push('/auth/login')
-        return
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.log('Unauthorized, redirecting to login')
+          router.push('/auth/login')
+          return
+        }
+        const errorText = await response.text()
+        throw new Error(`Failed to fetch vision: ${response.status} ${response.statusText}`)
       }
 
-      console.log('User authenticated:', user.id)
-
-      // Get the latest (active) vision version - EXCLUDE drafts
-      const activeVisionResult = await withTimeout(
-        async () => await supabase
-          .from('vision_versions')
-          .select('*')
-          .eq('user_id', user.id)
-          .neq('status', 'draft') // Exclude drafts from active vision
-          .order('version_number', { ascending: false })
-          .limit(1)
-          .single(),
-        8000,
-        'fetch active vision'
-      )
-      const { data: activeVisionData } = activeVisionResult
-
-      // Get all versions for the versions list
-      const versionsResult = await withTimeout(
-        async () => await supabase
-          .from('vision_versions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('version_number', { ascending: false }),
-        8000,
-        'fetch versions list'
-      )
-      const { data: versionsData } = versionsResult
-
-      if (activeVisionData) {
-        const actualCompletion = calculateCompletionPercentage(activeVisionData)
-        setActiveVision(activeVisionData)
+      const data = await response.json()
+      
+      // Set active vision
+      if (data.vision) {
+        const actualCompletion = calculateCompletionPercentage(data.vision)
+        setActiveVision(data.vision)
         setCompletionPercentage(actualCompletion)
+        setCurrentVersionId(data.vision.id)
         
         // Calculate completed sections
         const completed: string[] = []
         VISION_SECTIONS.forEach(sectionKey => {
-          const value = activeVisionData[sectionKey as keyof VisionData]
+          const value = data.vision[sectionKey as keyof VisionData]
           if (typeof value === 'string' && value.trim()) {
             completed.push(sectionKey)
           }
         })
         setCompletedSections(completed)
+      } else {
+        setActiveVision(null)
+        setCurrentVersionId(null)
+        setCompletionPercentage(0)
+        setCompletedSections([])
       }
       
-      setVersions(versionsData || [])
+      // Set versions list
+      if (data.versions && Array.isArray(data.versions)) {
+        setVersions(data.versions)
+      } else {
+        setVersions([])
+      }
       
-      // Fetch refinements count
-      const refinementsResult = await withTimeout(
-        async () => await supabase
-          .from('refinements')
-          .select('id', { count: 'exact' })
-          .eq('user_id', user.id)
-          .eq('action_type', 'vision_refinement'),
-        5000,
-        'fetch refinements count'
-      )
-      setRefinementsCount(refinementsResult.count || 0)
+      // Fetch refinements count (using direct Supabase call for count - lightweight)
+      try {
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          const { count } = await supabase
+            .from('refinements')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('action_type', 'vision_refinement')
+          
+          setRefinementsCount(count || 0)
+        }
+      } catch (err) {
+        console.warn('Could not fetch refinements count:', err)
+      }
       
-      // Fetch audios count
-      const audiosResult = await withTimeout(
-        async () => await supabase
-          .from('audio_tracks')
-          .select('id', { count: 'exact' })
-          .eq('user_id', user.id),
-        5000,
-        'fetch audios count'
-      )
-      setAudiosCount(audiosResult.count || 0)
+      // Fetch audio tracks count (using direct Supabase call for count - lightweight)
+      try {
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          const { count } = await supabase
+            .from('audio_tracks')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+          
+          setAudiosCount(count || 0)
+        }
+      } catch (err) {
+        console.warn('Could not fetch audio tracks count:', err)
+      }
       
-      setError(null)
     } catch (err) {
       console.error('Error fetching vision:', err)
       const message = err instanceof Error ? err.message : 'Failed to load vision data'
       setError(message)
-      
-      // If it's an auth timeout, suggest checking network/Supabase
-      if (message.includes('auth timed out')) {
-        setError('Connection timeout - please check your network connection and try refreshing the page.')
-      }
     } finally {
       setLoading(false)
     }
@@ -478,48 +465,17 @@ export default function VisionListPage() {
                 const isActive = version.id === activeVision?.id
                 
                 return (
-                  <Card key={version.id} variant="outlined" className="p-4">
-                    <div className="flex flex-col md:flex-row md:items-center gap-3">
-                      {/* Version Info */}
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-lg font-semibold text-white">
-                            Version {version.version_number}
-                          </h3>
-                          {version.status === 'draft' && (
-                            <Badge variant="warning">
-                              Draft
-                            </Badge>
-                          )}
-                          {version.status === 'complete' && isActive && (
-                            <Badge variant="success">
-                              Active
-                            </Badge>
-                          )}
-                          {version.status === 'complete' && !isActive && (
-                            <Badge variant="neutral">
-                              Complete
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-1 text-sm text-neutral-400">
-                          <p>
-                            <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                          </p>
-                          <p className="text-xs text-neutral-500 font-mono">
-                            ID: {version.id}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex flex-row gap-2 md:w-auto w-full">
+                  <VisionVersionCard
+                    key={version.id}
+                    version={version}
+                    isActive={isActive}
+                    actions={
+                      <>
                         <Button
                           onClick={() => router.push(`/life-vision/${version.id}`)}
                           variant="primary"
                           size="sm"
-                          className="flex items-center gap-2 flex-1 md:flex-none"
+                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
                         >
                           <Eye className="w-4 h-4" />
                           View
@@ -528,19 +484,21 @@ export default function VisionListPage() {
                           onClick={() => deleteVersion(version.id)}
                           variant="danger"
                           size="sm"
-                          className="flex items-center gap-2 flex-1 md:flex-none"
+                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
                           disabled={deletingVersion === version.id}
                         >
                           {deletingVersion === version.id ? (
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <Trash2 className="w-4 h-4" />
+                            <>
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </>
                           )}
-                          Delete
                         </Button>
-                      </div>
-                    </div>
-                  </Card>
+                      </>
+                    }
+                  />
                 )
               })}
             </div>

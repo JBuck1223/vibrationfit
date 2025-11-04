@@ -3418,7 +3418,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           className="text-xs md:text-sm flex-1 min-w-0 shrink"
         >
           <Link href={editHref || viewHref}>
-            <Edit className="w-4 h-4" />
+            <Edit className="w-4 h-4 flex-shrink-0" />
             {showLabels && <span className="ml-1">Edit</span>}
           </Link>
         </Button>
@@ -3431,7 +3431,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           className="text-xs md:text-sm flex-1 min-w-0 shrink"
         >
           <Link href={viewHref}>
-            <Eye className="w-4 h-4" />
+            <Eye className="w-4 h-4 flex-shrink-0" />
             {showLabels && <span className="ml-1">View</span>}
           </Link>
         </Button>
@@ -3445,9 +3445,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           className="text-xs md:text-sm flex-1 min-w-0 shrink"
         >
           {isCommitting ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
           ) : (
-            <CheckCircle2 className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
           )}
           {showLabels && <span className="ml-1">Commit</span>}
         </Button>
@@ -3466,7 +3466,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         className="text-xs md:text-sm flex-1 min-w-0 shrink"
       >
         <Link href={editHref || viewHref}>
-          <Edit className="w-4 h-4" />
+          <Edit className="w-4 h-4 flex-shrink-0" />
           {showLabels && <span className="ml-1">Edit</span>}
         </Link>
       </Button>
@@ -3479,7 +3479,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         className="text-xs md:text-sm flex-1 min-w-0 shrink"
       >
         <Link href={viewHref}>
-          <Eye className="w-4 h-4" />
+          <Eye className="w-4 h-4 flex-shrink-0" />
           {showLabels && <span className="ml-1">View</span>}
         </Link>
       </Button>
@@ -3491,7 +3491,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         onClick={onDelete}
         className="text-xs md:text-sm flex-1 min-w-0 shrink"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4 flex-shrink-0" />
         {showLabels && <span className="ml-1">Delete</span>}
       </Button>
     </div>

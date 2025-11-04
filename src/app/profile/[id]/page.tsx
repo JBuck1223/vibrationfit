@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, Badge, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack } from '@/lib/design-system/components'
+import { VersionCard } from '../components/VersionCard'
 import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
 import { ProfileField } from '../components/ProfileField'
@@ -127,12 +128,6 @@ export default function ProfileDetailPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   
-  // Draft system state
-  const [draftStatus, setDraftStatus] = useState<'none' | 'draft' | 'committed'>('none')
-  const [isDraftSaving, setIsDraftSaving] = useState(false)
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const [profileDraft, setProfileDraft] = useState<Partial<UserProfile> | null>(null)
-  
   // Delete confirmation state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [versionToDelete, setVersionToDelete] = useState<any>(null)
@@ -166,51 +161,12 @@ export default function ProfileDetailPage() {
     if (!profileId) {
       setIsViewingVersion(false)
       setCurrentVersionId(null)
-    } else if (versions.length > 0) {
-      // Check if the profileId matches the latest version (which is the current)
-      const latestVersion = versions[0] // versions are ordered by version_number desc
-      if (profileId === latestVersion?.id) {
-        // This is actually the current version, even though it has a profileId
-        setIsViewingVersion(false)
-        setCurrentVersionId(profileId) // Keep the profileId so version info card shows
-      } else {
-        // This is a historical version
-        setIsViewingVersion(true)
-        setCurrentVersionId(profileId)
-      }
+    } else {
+      // When viewing a specific profile ID, set the version ID but allow editing
+      setIsViewingVersion(false) // Allow editing on view pages
+      setCurrentVersionId(profileId)
     }
-  }, [versions, profileId])
-
-  // Load draft when user is available
-  useEffect(() => {
-    if (userId) {
-      loadDraft()
-    }
-  }, [userId])
-
-  // Check if profile has changes (draft detection)
-  useEffect(() => {
-    if (!profileDraft || !profile) return
-    
-    const hasChanges = JSON.stringify(profileDraft) !== JSON.stringify(profile)
-    
-    if (hasChanges && draftStatus === 'none') {
-      setDraftStatus('draft')
-    } else if (!hasChanges && draftStatus === 'draft') {
-      setDraftStatus('none')
-    }
-  }, [profileDraft, profile, draftStatus])
-
-  // Auto-save draft when profile changes
-  useEffect(() => {
-    if (draftStatus === 'draft' && profileDraft) {
-      const timeoutId = setTimeout(() => {
-        saveDraft()
-      }, 2000) // Auto-save after 2 seconds of no changes
-      
-      return () => clearTimeout(timeoutId)
-    }
-  }, [profileDraft, draftStatus])
+  }, [profileId])
 
   const fetchProfile = async () => {
     try {
@@ -243,10 +199,8 @@ export default function ProfileDetailPage() {
   }
 
   const deleteVersion = async (versionId: string) => {
-    if (!confirm('Are you sure you want to delete this version? This action cannot be undone.')) {
-      return
-    }
-
+    // Note: Confirmation is handled by confirmDeleteVersion via DeleteConfirmationDialog
+    // No browser confirm() needed here
     setDeletingVersion(versionId)
     try {
       const response = await fetch(`/api/profile?versionId=${versionId}`, {
@@ -254,14 +208,15 @@ export default function ProfileDetailPage() {
       })
       
       if (!response.ok) {
-        throw new Error('Failed to delete version')
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete version' }))
+        throw new Error(errorData.error || 'Failed to delete version')
       }
 
       // Refresh the profile to get updated versions list
       await fetchProfile()
     } catch (error) {
       console.error('Error deleting version:', error)
-      alert('Failed to delete version. Please try again.')
+      throw error // Re-throw so confirmDeleteVersion can handle it
     } finally {
       setDeletingVersion(null)
     }
@@ -278,7 +233,16 @@ export default function ProfileDetailPage() {
       setProfile(data.profile || {})
       setCompletionPercentage(data.completionPercentage || 0)
       setCurrentVersionId(versionId)
-      setIsViewingVersion(true)
+      
+      // Always set as viewing version when viewing a specific ID
+      setIsViewingVersion(false) // Allow editing on view pages
+      
+      // Also fetch versions list to get full version info
+      const versionsResponse = await fetch(`/api/profile?includeVersions=true`)
+      if (versionsResponse.ok) {
+        const versionsData = await versionsResponse.json()
+        setVersions(versionsData.versions || [])
+      }
     } catch (error) {
       console.error('Error fetching profile version:', error)
       setError('Failed to load profile version')
@@ -289,206 +253,67 @@ export default function ProfileDetailPage() {
 
   const handleFieldSave = async (fieldKey: string, newValue: any) => {
     try {
-      // Update the draft instead of directly saving to profile
-      setProfileDraft(prev => ({
-        ...prev,
-        [fieldKey]: newValue,
-      }))
+      // Save to database via API - include profileId to update the correct profile
+      const response = await fetch(`/api/profile?profileId=${profileId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          [fieldKey]: newValue
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to save field' }))
+        throw new Error(errorData.error || 'Failed to save field')
+      }
+
+      const data = await response.json()
       
-      // Also update the local profile state for immediate UI feedback
+      // Update the local profile state with the saved data
       setProfile(prev => ({
         ...prev,
         [fieldKey]: newValue,
       }))
       
-      console.log('Field updated in draft:', fieldKey, newValue)
+      // Update completion percentage if provided
+      if (data.completionPercentage !== undefined) {
+        setCompletionPercentage(data.completionPercentage)
+      }
+      
+      console.log('Field saved successfully:', fieldKey, newValue)
     } catch (error) {
-      console.error('Error updating field:', error)
+      console.error('Error saving field:', error)
       throw error // Re-throw so the ProfileField component can handle it
     }
   }
 
-  // Draft management functions
-  const saveDraft = useCallback(async () => {
-    if (!profileDraft || !userId) return
-    
-    setIsDraftSaving(true)
-    try {
-      const { createClient } = await import('@/lib/supabase/client')
-      const supabase = createClient()
-
-      console.log('Saving profile draft for user:', userId)
-
-      // Check if a draft already exists for this user
-      const { data: existingDrafts, error: checkError } = await supabase
-        .from('user_profiles')
-        .select('id, version_number')
-        .eq('user_id', userId)
-        .eq('is_draft', true)
-
-      if (checkError) {
-        console.error('Error checking existing drafts:', checkError)
-        return
-      }
-
-      console.log('Existing drafts found:', existingDrafts?.length || 0)
-
-      // Get next version number
-      const nextVersionNumber = existingDrafts && existingDrafts.length > 0 
-        ? existingDrafts[0].version_number 
-        : ((profile as any)?.version_number || 0) + 1
-
-      // If draft exists, update it; otherwise create new one
-      let result
-      if (existingDrafts && existingDrafts.length > 0) {
-        // Update existing draft
-        console.log('Updating existing draft:', existingDrafts[0].id)
-        result = await supabase
-          .from('user_profiles')
-          .update({
-            ...profileDraft,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingDrafts[0].id)
-      } else {
-        // Create new draft
-        console.log('Creating new profile draft')
-        result = await supabase
-          .from('user_profiles')
-          .insert({
-            user_id: userId,
-            ...profileDraft,
-            is_draft: true,
-            version_number: nextVersionNumber,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-      }
-
-      if (result.error) {
-        console.error('Error saving draft:', result.error)
-        alert(`Failed to save draft: ${result.error.message}`)
-        return
-      }
-
-      setLastSaved(new Date())
-      console.log('Profile draft saved successfully')
-    } catch (error) {
-      console.error('Error saving draft:', error)
-    } finally {
-      setIsDraftSaving(false)
-    }
-  }, [profileDraft, userId, profile])
-
+  // Commit draft handler - uses API endpoint
   const commitDraft = useCallback(async () => {
-    if (!profileDraft || !userId) return
-    
-    setIsDraftSaving(true)
     try {
-      const { createClient } = await import('@/lib/supabase/client')
-      const supabase = createClient()
+      const response = await fetch('/api/profile/versions', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          commitDraft: true
+        }),
+      })
 
-      console.log('Committing profile draft for user:', userId)
-
-      // First, deactivate current active version
-      await supabase
-        .from('user_profiles')
-        .update({
-          is_active: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .eq('is_draft', false)
-
-      // Get next version number
-      const { data: allVersions } = await supabase
-        .from('user_profiles')
-        .select('version_number')
-        .eq('user_id', userId)
-        .order('version_number', { ascending: false })
-        .limit(1)
-
-      const nextVersionNumber = allVersions && allVersions.length > 0 
-        ? allVersions[0].version_number + 1 
-        : 1
-
-      // Update draft to be active
-      const { data: newVersion, error: versionError } = await supabase
-        .from('user_profiles')
-        .update({
-          is_draft: false,
-          is_active: true,
-          version_number: nextVersionNumber,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('is_draft', true)
-        .select()
-        .single()
-
-      if (versionError) {
-        console.error('Error committing profile draft:', versionError)
-        alert(`Failed to commit draft: ${versionError.message}`)
-        return
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to commit draft' }))
+        throw new Error(errorData.error || 'Failed to commit draft')
       }
 
-      // Update local state
-      setProfile(newVersion)
-      setProfileDraft(null)
-      setDraftStatus('committed')
-      setLastSaved(new Date())
-      
-      // Reset draft status after showing success
-      setTimeout(() => {
-        setDraftStatus('none')
-      }, 2000)
-
-      console.log('Profile draft committed successfully')
+      // Refresh the profile to get updated versions list
+      await fetchProfile()
     } catch (error) {
       console.error('Error committing draft:', error)
-      alert(`Failed to commit draft: ${error}`)
-    } finally {
-      setIsDraftSaving(false)
+      alert(error instanceof Error ? error.message : 'Failed to commit draft')
     }
-  }, [profileDraft, userId])
-
-  const loadDraft = useCallback(async () => {
-    if (!userId) return
-
-    try {
-      const { createClient } = await import('@/lib/supabase/client')
-      const supabase = createClient()
-
-      console.log('Loading profile draft for user:', userId)
-      
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('is_draft', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          console.log('No profile draft found')
-          return
-        }
-        console.error('Error loading profile draft:', error)
-        return
-      }
-
-      console.log('Loaded profile draft:', data)
-      if (data) {
-        setProfileDraft(data)
-        setDraftStatus('draft')
-      }
-    } catch (error) {
-      console.error('Error loading profile draft:', error)
-    }
-  }, [userId])
+  }, [])
 
   // Delete confirmation handlers
   const handleDeleteVersion = (version: any) => {
@@ -501,10 +326,15 @@ export default function ProfileDetailPage() {
     
     try {
       await deleteVersion(versionToDelete.id)
+      // Only close dialog on success
       setDeleteDialogOpen(false)
       setVersionToDelete(null)
     } catch (error) {
       console.error('Error deleting version:', error)
+      // Show error message to user
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete version. Please try again.'
+      alert(errorMessage)
+      // Keep dialog open so user can try again or cancel
     }
   }
 
@@ -549,8 +379,25 @@ export default function ProfileDetailPage() {
   }
 
   const getCurrentVersionInfo = () => {
-    if (!isViewingVersion || !currentVersionId) return null
-    return versions.find(v => v.id === currentVersionId)
+    if (!profileId) return null
+    // Find the version info for the current profileId
+    const versionInfo = versions.find(v => v.id === profileId)
+    if (versionInfo) return versionInfo
+    
+    // If not in versions list yet, use profile data directly
+    if (profile && profile.id === profileId) {
+      const profileAny = profile as any
+      return {
+        id: profile.id,
+        version_number: profileAny.version_number,
+        is_draft: profileAny.is_draft,
+        is_active: profileAny.is_active,
+        created_at: profile.created_at,
+        updated_at: profile.updated_at
+      }
+    }
+    
+    return null
   }
 
   const openLightbox = (index: number) => {
@@ -851,6 +698,31 @@ export default function ProfileDetailPage() {
                 { value: '5-10 years', label: '5-10 years' },
                 { value: '10+ years', label: '10+ years' },
               ]}
+            />
+            <ProfileField 
+              label="Education" 
+              value={profile.education}
+              editable={!isViewingVersion}
+              fieldKey="education"
+              onSave={handleFieldSave}
+              type="select"
+              selectOptions={[
+                { value: 'High School', label: 'High School' },
+                { value: 'Some College', label: 'Some College' },
+                { value: 'Associate Degree', label: 'Associate Degree' },
+                { value: 'Bachelor\'s Degree', label: 'Bachelor\'s Degree' },
+                { value: 'Master\'s Degree', label: 'Master\'s Degree' },
+                { value: 'Doctorate', label: 'Doctorate' },
+                { value: 'Prefer not to say', label: 'Prefer not to say' },
+              ]}
+            />
+            <ProfileField 
+              label="Education Description" 
+              value={profile.education_description}
+              editable={!isViewingVersion}
+              fieldKey="education_description"
+              onSave={handleFieldSave}
+              type="story"
             />
             <ProfileField 
               label="My Current Story Around Career & Work" 
@@ -1284,74 +1156,54 @@ export default function ProfileDetailPage() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-2xl font-bold text-white">My Profile</h1>
-                {isViewingVersion && getCurrentVersionInfo() && (
+                {getCurrentVersionInfo() && (
                   <div className="flex items-center gap-2">
                     <Badge variant="info">
                       Version {getCurrentVersionInfo()?.version_number}
                     </Badge>
-                    {getCurrentVersionInfo()?.is_draft && (
+                    {getCurrentVersionInfo()?.is_draft ? (
                       <Badge variant="warning">
                         Draft
+                      </Badge>
+                    ) : getCurrentVersionInfo()?.is_active ? (
+                      <Badge variant="success">
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="info">
+                        Complete
                       </Badge>
                     )}
                   </div>
                 )}
-                {!isViewingVersion && (
-                  <Badge variant="success">
-                    Current Version
-                  </Badge>
-                )}
               </div>
               <p className="text-neutral-400 text-sm">
-                {isViewingVersion 
-                  ? `Viewing saved version from ${getCurrentVersionInfo() ? new Date(getCurrentVersionInfo().created_at).toLocaleDateString() : ''}`
-                  : 'This is your current active profile.'
+                {getCurrentVersionInfo()?.created_at 
+                  ? `Saved on ${new Date(getCurrentVersionInfo().created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo().created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+                  : 'This is your profile information.'
                 }
               </p>
             </div>
 
             {/* Action Buttons - Stacked */}
             <div className="space-y-2">
-              {isViewingVersion && currentVersionId ? (
-                <Button
-                  onClick={() => {
-                    router.push('/profile')
-                  }}
-                  variant="primary"
-                  className="w-full"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Profile Dashboard
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => router.push('/profile/edit')}
-                  variant="primary"
-                  className="w-full"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
-              )}
+              <Button
+                onClick={() => router.push(`/profile/${profileId}/edit`)}
+                variant="primary"
+                className="w-full"
+              >
+                <Edit3 className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
               
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  onClick={() => setShowVersions(!showVersions)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Star className="w-4 h-4 mr-1" />
-                  {showVersions ? 'Hide' : 'Show'} Versions
-                </Button>
-                <Button
-                  onClick={() => router.push('/profile/new')}
-                  variant="secondary"
-                  size="sm"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  New Version
-                </Button>
-              </div>
+              <Button
+                onClick={() => setShowVersions(!showVersions)}
+                variant="outline"
+                className="w-full"
+              >
+                <Star className="w-4 h-4 mr-2" />
+                {showVersions ? 'Hide' : 'Show'} Versions
+              </Button>
             </div>
           </div>
 
@@ -1360,52 +1212,42 @@ export default function ProfileDetailPage() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl font-bold text-white">My Profile</h1>
-                {isViewingVersion && getCurrentVersionInfo() && (
+                {getCurrentVersionInfo() && (
                   <div className="flex items-center gap-2">
                     <Badge variant="info">
                       Version {getCurrentVersionInfo()?.version_number}
                     </Badge>
-                    {getCurrentVersionInfo()?.is_draft && (
+                    {getCurrentVersionInfo()?.is_draft ? (
                       <Badge variant="warning">
                         Draft
+                      </Badge>
+                    ) : getCurrentVersionInfo()?.is_active ? (
+                      <Badge variant="success">
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="info">
+                        Complete
                       </Badge>
                     )}
                   </div>
                 )}
-                {!isViewingVersion && (
-                  <Badge variant="success">
-                    Current Version
-                  </Badge>
-                )}
               </div>
               <p className="text-neutral-400">
-                {isViewingVersion 
-                  ? `Viewing saved version from ${getCurrentVersionInfo() ? new Date(getCurrentVersionInfo().created_at).toLocaleDateString() : ''}`
-                  : 'Complete overview of your current personal information'
+                {getCurrentVersionInfo()?.created_at 
+                  ? `Saved on ${new Date(getCurrentVersionInfo().created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo().created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+                  : 'Complete overview of your profile information'
                 }
               </p>
             </div>
-            {isViewingVersion && currentVersionId ? (
-              <Button
-                onClick={() => {
-                  router.push('/profile')
-                }}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Profile Dashboard
-              </Button>
-            ) : (
-              <Button
-                onClick={() => router.push('/profile/edit')}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Edit3 className="w-4 h-4" />
-                Edit Profile
-              </Button>
-            )}
+            <Button
+              onClick={() => router.push(`/profile/${profileId}/edit`)}
+              variant="primary"
+              className="flex items-center gap-2"
+            >
+              <Edit3 className="w-4 h-4" />
+              Edit Profile
+            </Button>
             <Button
               onClick={() => setShowVersions(!showVersions)}
               variant="outline"
@@ -1413,14 +1255,6 @@ export default function ProfileDetailPage() {
             >
               <Star className="w-4 h-4" />
               {showVersions ? 'Hide' : 'Show'} Versions
-            </Button>
-            <Button
-              onClick={() => router.push('/profile/new')}
-              variant="secondary"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              New Version
             </Button>
           </div>
 
@@ -1430,65 +1264,57 @@ export default function ProfileDetailPage() {
         <div>
           {/* Versions List */}
           {showVersions && (
-            <Card className="p-6 mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4">Profile Versions</h2>
+            <Card className="p-4 md:p-6 mb-6 md:mb-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
+                <Heading level={3} className="text-white text-lg md:text-xl">Profile Versions</Heading>
+                <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
+              </div>
               {versions.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
-                  <p className="text-neutral-400 mb-2">No saved versions yet</p>
-                  <p className="text-sm text-neutral-500">Create your first version to get started</p>
+                  <Text size="sm" className="text-neutral-400 mb-2">No saved versions yet</Text>
+                  <Text size="xs" className="text-neutral-500">Create your first version to get started</Text>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {versions.map((version) => (
-                    <Card key={version.id} variant="outlined" className="p-4">
-                      <div className="flex flex-col md:flex-row md:items-center gap-3">
-                        {/* Version Info */}
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-lg font-semibold text-white">
-                              Version {version.version_number}
-                            </h3>
-                            {version.is_draft && (
-                              <Badge variant="warning">
-                                Draft
-                              </Badge>
-                            )}
-                            <Badge variant="success" className="px-1 text-xs">
-                              {version.completion_percentage}%
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-1 text-sm text-neutral-400">
-                            <p>
-                              <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                            </p>
-                            <p className="text-xs text-neutral-500 font-mono">
-                              ID: {version.id}
-                            </p>
-                          </div>
-                        </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-row gap-2 md:w-auto w-full">
-              <ActionButtons
-                versionType={version.is_draft ? 'draft' : 'completed'}
-                editHref={`/profile/${version.id}/edit`}
-                viewHref={`/profile/${version.id}`}
-                onCommit={commitDraft}
-                onDelete={() => handleDeleteVersion(version)}
-                size="sm"
-                variant="outline"
-                deleteVariant="danger"
-                className="flex-1 md:flex-none"
-                showLabels={true}
-                isCommitting={isDraftSaving}
-              />
-            </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+                <Stack gap="md">
+                  {versions.map((version) => {
+                    return (
+                      <VersionCard
+                        key={version.id}
+                        version={version}
+                        actions={
+                          <>
+                            <Button
+                              onClick={() => router.push(`/profile/${version.id}`)}
+                              variant="primary"
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Button>
+                            <Button
+                              onClick={() => handleDeleteVersion(version)}
+                              variant="danger"
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                              disabled={deletingVersion === version.id}
+                            >
+                              {deletingVersion === version.id ? (
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <>
+                                  <Trash2 className="w-4 h-4" />
+                                  Delete
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        }
+                      />
+                    )
+                  })}
+                </Stack>
               )}
             </Card>
           )}
@@ -1548,24 +1374,22 @@ export default function ProfileDetailPage() {
                 Personal Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
-                  <Mail className="w-4 h-4 text-neutral-400" />
-                  <div>
-                    <p className="text-sm text-neutral-400">Email</p>
-                    <p className="text-white font-medium">
-                      {profile.email || 'Not specified'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-neutral-400" />
-                  <div>
-                    <p className="text-sm text-neutral-400">Date of Birth</p>
-                    <p className="text-white font-medium">
-                      {profile.date_of_birth ? formatDate(profile.date_of_birth) : 'Not specified'}
-                    </p>
-                  </div>
-                </div>
+                <ProfileField
+                  label="Email"
+                  value={profile.email}
+                  editable={!isViewingVersion}
+                  fieldKey="email"
+                  onSave={handleFieldSave}
+                  type="text"
+                />
+                <ProfileField
+                  label="Date of Birth"
+                  value={profile.date_of_birth}
+                  editable={!isViewingVersion}
+                  fieldKey="date_of_birth"
+                  onSave={handleFieldSave}
+                  type="text"
+                />
                 <div className="flex items-center gap-3">
                   <User className="w-4 h-4 text-neutral-400" />
                   <div>
@@ -1575,33 +1399,47 @@ export default function ProfileDetailPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-neutral-400" />
-                  <div>
-                    <p className="text-sm text-neutral-400">Gender</p>
-                    <p className="text-white font-medium">
-                      {profile.gender || 'Not specified'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 text-neutral-400" />
-                  <div>
-                    <p className="text-sm text-neutral-400">Phone</p>
-                    <p className="text-white font-medium">
-                      {profile.phone || 'Not specified'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-neutral-400" />
-                  <div>
-                    <p className="text-sm text-neutral-400">Ethnicity</p>
-                    <p className="text-white font-medium">
-                      {profile.ethnicity || 'Not specified'}
-                    </p>
-                  </div>
-                </div>
+                <ProfileField
+                  label="Gender"
+                  value={profile.gender}
+                  editable={!isViewingVersion}
+                  fieldKey="gender"
+                  onSave={handleFieldSave}
+                  type="select"
+                  selectOptions={[
+                    { value: 'Male', label: 'Male' },
+                    { value: 'Female', label: 'Female' },
+                    { value: 'Prefer not to say', label: 'Prefer not to say' },
+                  ]}
+                />
+                <ProfileField
+                  label="Phone"
+                  value={profile.phone}
+                  editable={!isViewingVersion}
+                  fieldKey="phone"
+                  onSave={handleFieldSave}
+                  type="text"
+                />
+                <ProfileField
+                  label="Ethnicity"
+                  value={profile.ethnicity}
+                  editable={!isViewingVersion}
+                  fieldKey="ethnicity"
+                  onSave={handleFieldSave}
+                  type="select"
+                  selectOptions={[
+                    { value: 'Asian', label: 'Asian' },
+                    { value: 'Black', label: 'Black' },
+                    { value: 'Hispanic', label: 'Hispanic' },
+                    { value: 'Middle Eastern', label: 'Middle Eastern' },
+                    { value: 'Multi-ethnic', label: 'Multi-ethnic' },
+                    { value: 'Native American', label: 'Native American' },
+                    { value: 'Pacific Islander', label: 'Pacific Islander' },
+                    { value: 'White', label: 'White' },
+                    { value: 'Other', label: 'Other' },
+                    { value: 'Prefer not to say', label: 'Prefer not to say' },
+                  ]}
+                />
               </div>
             </Card>
           </div>
@@ -1755,36 +1593,6 @@ export default function ProfileDetailPage() {
           })}
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-          <Button
-            onClick={() => router.push('/profile/edit')}
-            variant="primary"
-            className="flex items-center gap-2 w-full sm:w-auto"
-          >
-            <Edit3 className="w-4 h-4" />
-            <span className="sm:hidden">Edit</span>
-            <span className="hidden sm:inline">Edit Profile</span>
-          </Button>
-          <Button
-            onClick={() => router.push('/profile/new')}
-            variant="secondary"
-            className="flex items-center gap-2 w-full sm:w-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="sm:hidden">New Version</span>
-            <span className="hidden sm:inline">Create New Version</span>
-          </Button>
-          <Button
-            onClick={() => router.push('/dashboard')}
-            variant="outline"
-            className="flex items-center gap-2 w-full sm:w-auto"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="sm:hidden">Dashboard</span>
-            <span className="hidden sm:inline">Back to Dashboard</span>
-          </Button>
-        </div>
 
       {/* Lightbox */}
       {lightboxOpen && profile.progress_photos && (

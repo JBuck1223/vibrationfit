@@ -33,7 +33,13 @@ export async function GET(request: NextRequest) {
           // If vision doesn't exist, create a new one
           if (visionError.code === 'PGRST116') {
             console.log('Vision not found, creating new vision...')
-            const { data: newVision, error: createError } = await supabase
+            
+            // Try creating with new fields first, fallback to status if columns don't exist
+            let newVision = null
+            let createError = null
+            
+            // Try creating with status only (reliable)
+            const result = await supabase
               .from('vision_versions')
               .insert({
                 id: visionId,
@@ -47,13 +53,35 @@ export async function GET(request: NextRequest) {
               .select()
               .single()
             
+            newVision = result.data
+            createError = result.error
+            
             if (createError) {
               console.error('Error creating new vision:', createError)
               return NextResponse.json({ error: 'Failed to create vision' }, { status: 500 })
             }
             
+            if (!newVision) {
+              return NextResponse.json({ error: 'Failed to create vision' }, { status: 500 })
+            }
+            
+            // Calculate version number based on chronological order
+            let versionNumber = newVision.version_number || 1
+            try {
+              const { data: calculatedVersionNumber } = await supabase
+                .rpc('get_vision_version_number', { p_vision_id: newVision.id })
+              
+              versionNumber = calculatedVersionNumber || newVision.version_number || 1
+            } catch (error) {
+              // If RPC function doesn't exist yet, use stored version_number
+              console.warn('Could not calculate version number, using stored:', error)
+            }
+            
             return NextResponse.json({
-              vision: newVision,
+              vision: {
+                ...newVision,
+                version_number: versionNumber
+              },
               versions: []
             })
           }
@@ -68,13 +96,43 @@ export async function GET(request: NextRequest) {
             .from('vision_versions')
             .select('*')
             .eq('user_id', user.id)
-            .order('version_number', { ascending: false })
+            .order('created_at', { ascending: false })
           
-          versions = versionsData || []
+          // Calculate version numbers based on chronological order
+          if (versionsData) {
+            versions = await Promise.all(
+              versionsData.map(async (v: any) => {
+                const { data: calculatedVersionNumber } = await supabase
+                  .rpc('get_vision_version_number', { p_vision_id: v.id })
+                
+                const versionNumber = calculatedVersionNumber || v.version_number || 1
+                
+                return {
+                  ...v,
+                  version_number: versionNumber
+                }
+              })
+            )
+          }
+        }
+
+        // Calculate version number for the current vision
+        let visionVersionNumber = vision.version_number || 1
+        try {
+          const { data: calculatedVersionNumber } = await supabase
+            .rpc('get_vision_version_number', { p_vision_id: vision.id })
+          
+          visionVersionNumber = calculatedVersionNumber || vision.version_number || 1
+        } catch (error) {
+          // If RPC function doesn't exist yet, use stored version_number
+          console.warn('Could not calculate version number, using stored:', error)
         }
 
         return NextResponse.json({
-          vision,
+          vision: {
+            ...vision,
+            version_number: visionVersionNumber
+          },
           versions
         })
       } catch (dbError) {
@@ -83,19 +141,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // If no specific vision requested, get the latest vision for the user
+    // If no specific vision requested, get the active vision for the user
     try {
-      const { data: latestVision, error: latestError } = await supabase
+      // Use status-based query (reliable - columns definitely exist)
+      let latestVision = null
+      
+      // Get latest non-draft vision
+      const { data: fallbackVision } = await supabase
         .from('vision_versions')
         .select('*')
         .eq('user_id', user.id)
-        .order('version_number', { ascending: false })
+        .neq('status', 'draft')
+        .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
-      if (latestError && latestError.code !== 'PGRST116') {
-        console.error('Latest vision fetch error:', latestError)
-        return NextResponse.json({ error: 'Failed to fetch latest vision' }, { status: 500 })
+      if (fallbackVision) {
+        latestVision = fallbackVision
+      } else {
+        // Last resort: get any vision
+        const { data: anyVision } = await supabase
+          .from('vision_versions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        latestVision = anyVision || null
       }
 
       // Load versions if requested
@@ -105,13 +178,57 @@ export async function GET(request: NextRequest) {
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
-          .order('version_number', { ascending: false })
+          .order('created_at', { ascending: false })
         
-        versions = versionsData || []
+        // Calculate version numbers based on chronological order
+        if (versionsData) {
+          versions = await Promise.all(
+            versionsData.map(async (v: any) => {
+              try {
+                const { data: calculatedVersionNumber } = await supabase
+                  .rpc('get_vision_version_number', { p_vision_id: v.id })
+                
+                const versionNumber = calculatedVersionNumber || v.version_number || 1
+                
+                return {
+                  ...v,
+                  version_number: versionNumber
+                }
+              } catch (error) {
+                // If RPC function doesn't exist yet, use stored version_number
+                console.warn('Could not calculate version number, using stored:', error)
+                return {
+                  ...v,
+                  version_number: v.version_number || 1
+                }
+              }
+            })
+          )
+        }
+      }
+
+      // Calculate version number for the latest vision
+      let visionWithVersionNumber = latestVision
+      if (latestVision) {
+        let visionVersionNumber = latestVision.version_number || 1
+        try {
+          const { data: calculatedVersionNumber } = await supabase
+            .rpc('get_vision_version_number', { p_vision_id: latestVision.id })
+          
+          visionVersionNumber = calculatedVersionNumber || latestVision.version_number || 1
+        } catch (error) {
+          // If RPC function doesn't exist yet, use stored version_number
+          console.warn('Could not calculate version number, using stored:', error)
+        }
+        
+        visionWithVersionNumber = {
+          ...latestVision,
+          version_number: visionVersionNumber
+        }
       }
 
       return NextResponse.json({
-        vision: latestVision,
+        vision: visionWithVersionNumber,
         versions
       })
     } catch (dbError) {

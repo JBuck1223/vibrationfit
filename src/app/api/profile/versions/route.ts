@@ -50,14 +50,27 @@ export async function GET(request: NextRequest) {
         updated_at
       `)
       .eq('user_id', user.id)
-      .order('version_number', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching profile versions:', error)
       return NextResponse.json({ error: 'Failed to fetch versions' }, { status: 500 })
     }
 
-    return NextResponse.json({ versions: profiles })
+    // Calculate version numbers based on chronological order
+    const versionsWithCalculatedNumbers = await Promise.all((profiles || []).map(async (profile: any) => {
+      const { data: calculatedVersion } = await supabase
+        .rpc('get_profile_version_number', { p_profile_id: profile.id })
+      return {
+        ...profile,
+        version_number: calculatedVersion || profile.version_number || 1
+      }
+    }))
+    
+    // Sort by calculated version number (descending)
+    versionsWithCalculatedNumbers.sort((a: any, b: any) => b.version_number - a.version_number)
+
+    return NextResponse.json({ versions: versionsWithCalculatedNumbers })
   } catch (error) {
     console.error('Unexpected error in GET /api/profile/versions:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -127,9 +140,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch created draft' }, { status: 500 })
     }
 
+    // Calculate version number based on chronological order
+    const { data: calculatedVersion } = await supabase
+      .rpc('get_profile_version_number', { p_profile_id: draft.id })
+    const draftWithVersion = {
+      ...draft,
+      version_number: calculatedVersion || draft.version_number || 1
+    }
+
     return NextResponse.json({ 
       success: true, 
-      draft,
+      draft: draftWithVersion,
       message: 'Draft created successfully' 
     })
   } catch (error) {
@@ -204,9 +225,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch updated profile' }, { status: 500 })
     }
 
+    // Calculate version number based on chronological order
+    const { data: calculatedVersion } = await supabase
+      .rpc('get_profile_version_number', { p_profile_id: updatedProfile.id })
+    const profileWithVersion = {
+      ...updatedProfile,
+      version_number: calculatedVersion || updatedProfile.version_number || 1
+    }
+
     return NextResponse.json({ 
       success: true, 
-      profile: updatedProfile,
+      profile: profileWithVersion,
       message: 'Draft committed successfully' 
     })
   } catch (error) {
@@ -285,9 +314,17 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch updated profile' }, { status: 500 })
     }
 
+    // Calculate version number based on chronological order
+    const { data: calculatedVersion } = await supabase
+      .rpc('get_profile_version_number', { p_profile_id: updatedProfile.id })
+    const profileWithVersion = {
+      ...updatedProfile,
+      version_number: calculatedVersion || updatedProfile.version_number || 1
+    }
+
     return NextResponse.json({ 
       success: true, 
-      profile: updatedProfile,
+      profile: profileWithVersion,
       message: 'Version set as active successfully' 
     })
   } catch (error) {

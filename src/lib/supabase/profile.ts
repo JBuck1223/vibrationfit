@@ -33,6 +33,8 @@ export interface UserProfile {
   occupation?: string | null
   company?: string | null
   time_in_role?: string | null
+  education?: string | null
+  education_description?: string | null
   currency?: string | null
   household_income?: string | null
   savings_retirement?: string | null

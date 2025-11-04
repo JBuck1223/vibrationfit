@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Card, Input } from '@/lib/design-system/components'
+import { Card, Input, Textarea } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -31,6 +31,16 @@ const timeInRoleOptions = [
   { value: '3-5 years', label: '3-5 years' },
   { value: '5-10 years', label: '5-10 years' },
   { value: '10+ years', label: '10+ years' }
+]
+
+const educationOptions = [
+  { value: 'High School', label: 'High School' },
+  { value: 'Some College', label: 'Some College' },
+  { value: 'Associate Degree', label: 'Associate Degree' },
+  { value: 'Bachelor\'s Degree', label: 'Bachelor\'s Degree' },
+  { value: 'Master\'s Degree', label: 'Master\'s Degree' },
+  { value: 'Doctorate', label: 'Doctorate' },
+  { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
 export function CareerSection({ profile, onProfileChange, onProfileReload }: CareerSectionProps) {
@@ -136,6 +146,39 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Education */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-200 mb-2">
+            Education *
+          </label>
+          <select
+            value={profile.education || ''}
+            onChange={(e) => handleInputChange('education', e.target.value)}
+            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          >
+            <option value="">Select education level</option>
+            {educationOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Education Description */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-200 mb-2">
+            Education Description
+          </label>
+          <Textarea
+            value={profile.education_description || ''}
+            onChange={(e) => handleInputChange('education_description', e.target.value)}
+            placeholder="Additional education details (optional)"
+            rows={4}
+            className="w-full"
+          />
         </div>
 
         {/* Career Insights */}

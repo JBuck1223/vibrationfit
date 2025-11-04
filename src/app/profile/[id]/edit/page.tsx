@@ -138,7 +138,7 @@ export default function ProfileEditPage() {
     // Health, Location, Career, Financial Fields
     const healthFields: (keyof UserProfile)[] = ['units', 'height', 'weight', 'exercise_frequency']
     const locationFields: (keyof UserProfile)[] = ['living_situation', 'time_at_location', 'city', 'state', 'postal_code', 'country']
-    const careerFields: (keyof UserProfile)[] = ['employment_type', 'occupation', 'company', 'time_in_role']
+    const careerFields: (keyof UserProfile)[] = ['employment_type', 'occupation', 'company', 'time_in_role', 'education']
     const financialFields: (keyof UserProfile)[] = ['currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt']
 
     ;[...healthFields, ...locationFields, ...careerFields, ...financialFields].forEach(field => {

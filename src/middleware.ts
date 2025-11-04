@@ -41,11 +41,15 @@ export async function middleware(req: NextRequest) {
         }
       )
       
-      const { data: { user } } = await supabase.auth.getUser()
+      // Use getSession() instead of getUser() - faster and more reliable
+      // getSession() reads from cookies, getUser() makes a network request
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      if (!user) {
+      if (sessionError || !session?.user) {
         return createAdminResponse(req)
       }
+
+      const user = session.user
 
       // Check if user is admin (email check + metadata check)
       const adminEmails = ['buckinghambliss@gmail.com', 'admin@vibrationfit.com']

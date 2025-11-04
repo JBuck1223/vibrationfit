@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Button, Card, Badge, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Badge, Spinner, Heading, Text, Stack } from '@/lib/design-system/components'
+import { VersionCard } from '@/app/profile/components/VersionCard'
 import { 
   GitBranch, 
   Save, 
@@ -138,10 +139,8 @@ export const ProfileVersionManager: React.FC<VersionManagerProps> = ({
   }
 
   const handleDeleteVersion = async (versionId: string) => {
-    if (!confirm('Are you sure you want to delete this version? This action cannot be undone.')) {
-      return
-    }
-
+    // Note: Confirmation is handled by the parent component via DeleteConfirmationDialog
+    // No browser confirm() needed here
     try {
       setActionLoading(versionId)
       const response = await fetch(`/api/profile/versions/${versionId}`, {
@@ -198,72 +197,45 @@ export const ProfileVersionManager: React.FC<VersionManagerProps> = ({
   }
 
   return (
-    <Card className={`p-6 ${className}`}>
-      <div className="flex items-center justify-between mb-6">
+    <Card className={`p-4 md:p-6 ${className}`}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
         <div className="flex items-center gap-3">
-          <GitBranch className="w-6 h-6 text-primary-500" />
-          <h3 className="text-xl font-semibold text-white">Profile Versions</h3>
+          <GitBranch className="w-5 h-5 md:w-6 md:h-6 text-primary-500" />
+          <Heading level={3} className="text-white text-lg md:text-xl">Profile Versions</Heading>
         </div>
-        <Badge variant="info" className="text-sm">
-          {versions.length} version{versions.length !== 1 ? 's' : ''}
-        </Badge>
+        <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
       </div>
 
       {versions.length === 0 ? (
         <div className="text-center py-8 text-neutral-400">
           <GitBranch className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No versions found</p>
-          <p className="text-sm">Create your first profile version to get started</p>
+          <Text size="sm">No versions found</Text>
+          <Text size="xs" className="text-neutral-500">Create your first profile version to get started</Text>
         </div>
       ) : (
-        <div className="space-y-4">
+        <Stack gap="md">
           {versions.map((version) => {
             const status = getVersionStatus(version)
             const isSelected = selectedVersionId === version.id
             const isLoading = actionLoading === version.id
 
             return (
-              <div
+              <VersionCard
                 key={version.id}
-                className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                  isSelected 
-                    ? 'border-primary-500 bg-primary-500/10' 
-                    : 'border-neutral-700 hover:border-neutral-600'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={status.variant} className="text-xs">
-                        {status.label}
-                      </Badge>
-                      <span className="text-sm text-neutral-400">
-                        v{version.version_number}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-sm text-neutral-300">
-                      <Clock className="w-4 h-4" />
-                      <span>{formatDate(version.updated_at)}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-neutral-300">
-                      <div className="w-2 h-2 bg-primary-500 rounded-full" />
-                      <span>{version.completion_percentage}% complete</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
+                version={version}
+                className={isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''}
+                actions={
+                  <>
                     {/* View/Select Button */}
                     <Button
-                      variant="ghost"
+                      variant="primary"
                       size="sm"
                       onClick={() => {
                         setSelectedVersionId(version.id)
                         onVersionSelect?.(version.id)
                       }}
                       disabled={isLoading}
-                      className="gap-2"
+                      className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
                     >
                       <Eye className="w-4 h-4" />
                       {isSelected ? 'Selected' : 'View'}
@@ -277,84 +249,82 @@ export const ProfileVersionManager: React.FC<VersionManagerProps> = ({
                         size="sm"
                         onClick={() => handleCreateDraft(version.id)}
                         disabled={isLoading}
-                        className="gap-2"
+                        className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
                       >
                         <Copy className="w-4 h-4" />
                         Create Draft
                       </Button>
                     ) : version.is_draft ? (
                       // Draft version actions
-                      <div className="flex gap-2">
+                      <>
                         <Button
                           variant="primary"
                           size="sm"
                           onClick={() => handleCommitDraft(version.id)}
                           disabled={isLoading}
-                          className="gap-2"
+                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
                         >
                           {isLoading ? (
-                            <Spinner variant="primary" size="sm" />
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <CheckCircle className="w-4 h-4" />
+                            <>
+                              <CheckCircle className="w-4 h-4" />
+                              Commit
+                            </>
                           )}
-                          Commit
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="danger"
                           size="sm"
                           onClick={() => handleDeleteVersion(version.id)}
                           disabled={isLoading}
-                          className="gap-2 text-red-400 hover:text-red-300"
+                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
                         >
                           <Trash2 className="w-4 h-4" />
+                          Delete
                         </Button>
-                      </div>
+                      </>
                     ) : (
                       // Complete version actions
-                      <div className="flex gap-2">
+                      <>
                         <Button
                           variant="secondary"
                           size="sm"
                           onClick={() => handleSetActive(version.id)}
                           disabled={isLoading}
-                          className="gap-2"
+                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
                         >
                           <CheckCircle className="w-4 h-4" />
                           Set Active
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleCreateDraft(version.id)}
                           disabled={isLoading}
-                          className="gap-2"
+                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
                         >
                           <Copy className="w-4 h-4" />
                           Create Draft
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="danger"
                           size="sm"
                           onClick={() => handleDeleteVersion(version.id)}
                           disabled={isLoading}
-                          className="gap-2 text-red-400 hover:text-red-300"
+                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
                         >
                           <Trash2 className="w-4 h-4" />
+                          Delete
                         </Button>
-                      </div>
+                      </>
                     )}
-                  </div>
-                </div>
-
-                {version.version_notes && (
-                  <div className="mt-3 p-3 bg-neutral-800 rounded-lg">
-                    <p className="text-sm text-neutral-300">{version.version_notes}</p>
-                  </div>
-                )}
-              </div>
+                  </>
+                }
+              />
             )
           })}
-        </div>
+        </Stack>
       )}
     </Card>
   )

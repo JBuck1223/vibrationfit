@@ -71,7 +71,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
       'relationship_status', 'partner_name', 'number_of_children', 'children_ages',
       'units', 'height', 'weight', 'exercise_frequency', 'living_situation',
       'time_at_location', 'city', 'state', 'postal_code', 'country',
-      'employment_type', 'occupation', 'company', 'time_in_role', 'household_income',
+      'employment_type', 'occupation', 'company', 'time_in_role', 'education', 'household_income',
       'profile_picture_url']
 
     coreFields.forEach(field => {

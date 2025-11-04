@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AlertCircle, Edit2, Check, X } from 'lucide-react'
 import { Input, Textarea, Button } from '@/lib/design-system/components'
 
@@ -34,6 +34,13 @@ export function ProfileField({
   const [isSaving, setIsSaving] = useState(false)
   const [arrayInput, setArrayInput] = useState('')
 
+  // Sync editValue when value prop changes (when not editing)
+  useEffect(() => {
+    if (!isEditing) {
+      setEditValue(value)
+    }
+  }, [value, isEditing])
+
   const isEmpty = () => {
     if (Array.isArray(value)) return value.length === 0
     if (typeof value === 'boolean') return false // Booleans are never empty
@@ -58,11 +65,24 @@ export function ProfileField({
     
     setIsSaving(true)
     try {
-      await onSave(fieldKey, editValue)
+      // Normalize empty strings to null for select fields (but allow actual values)
+      let valueToSave = editValue
+      if (type === 'select') {
+        // Convert empty string to null, but keep actual selected values
+        if (editValue === '' || editValue === null || editValue === undefined) {
+          valueToSave = null
+        } else {
+          // Ensure we're saving the actual string value
+          valueToSave = String(editValue)
+        }
+      }
+      
+      await onSave(fieldKey, valueToSave)
       setIsEditing(false)
       setArrayInput('')
     } catch (error) {
       console.error('Failed to save:', error)
+      throw error // Re-throw so the component can show error state
     } finally {
       setIsSaving(false)
     }

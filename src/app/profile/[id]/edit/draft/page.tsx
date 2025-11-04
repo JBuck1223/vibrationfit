@@ -1,33 +1,35 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { PageLayout, Button, Badge, Card } from '@/lib/design-system/components'
-import { ProfileSidebar } from '../components/ProfileSidebar'
-import { PersonalInfoSection } from '../components/PersonalInfoSection'
-import { RelationshipSection } from '../components/RelationshipSection'
-import { FamilySection } from '../components/FamilySection'
-import { HealthSection } from '../components/HealthSection'
-import { LocationSection } from '../components/LocationSection'
-import { CareerSection } from '../components/CareerSection'
-import { FinancialSection } from '../components/FinancialSection'
-import { PhotosAndNotesSection } from '../components/PhotosAndNotesSection'
-import { FunRecreationSection } from '../components/FunRecreationSection'
-import { TravelAdventureSection } from '../components/TravelAdventureSection'
-import { SocialFriendsSection } from '../components/SocialFriendsSection'
-import { PossessionsLifestyleSection } from '../components/PossessionsLifestyleSection'
-import { SpiritualityGrowthSection } from '../components/SpiritualityGrowthSection'
-import { GivingLegacySection } from '../components/GivingLegacySection'
+import { useRouter, useParams } from 'next/navigation'
+import { PageLayout, Button, Badge, Card, WarningConfirmationDialog } from '@/lib/design-system/components'
+import ProfileVersionManager from '@/components/ProfileVersionManager'
+import VersionStatusIndicator from '@/components/VersionStatusIndicator'
+import VersionActionToolbar from '@/components/VersionActionToolbar'
+import { ProfileSidebar } from '../../../components/ProfileSidebar'
+import { PersonalInfoSection } from '../../../components/PersonalInfoSection'
+import { RelationshipSection } from '../../../components/RelationshipSection'
+import { FamilySection } from '../../../components/FamilySection'
+import { HealthSection } from '../../../components/HealthSection'
+import { LocationSection } from '../../../components/LocationSection'
+import { CareerSection } from '../../../components/CareerSection'
+import { FinancialSection } from '../../../components/FinancialSection'
+import { PhotosAndNotesSection } from '../../../components/PhotosAndNotesSection'
+import { FunRecreationSection } from '../../../components/FunRecreationSection'
+import { TravelAdventureSection } from '../../../components/TravelAdventureSection'
+import { SocialFriendsSection } from '../../../components/SocialFriendsSection'
+import { PossessionsLifestyleSection } from '../../../components/PossessionsLifestyleSection'
+import { SpiritualityGrowthSection } from '../../../components/SpiritualityGrowthSection'
+import { GivingLegacySection } from '../../../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, FileText } from 'lucide-react'
 
-export default function ProfilePage() {
+export default function ProfileEditPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const isIntensiveMode = searchParams.get('intensive') === 'true'
+  const params = useParams()
+  const profileId = params.id as string
   
   const [profile, setProfile] = useState<Partial<UserProfile>>({})
-  const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState('personal')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -37,11 +39,15 @@ export default function ProfilePage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [versions, setVersions] = useState<any[]>([])
   const [showVersions, setShowVersions] = useState(false)
-  const [intensiveId, setIntensiveId] = useState<string | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [hasExistingDraft, setHasExistingDraft] = useState(false)
-  const [existingDraftId, setExistingDraftId] = useState<string | null>(null)
-  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false)
+  const [versionStatus, setVersionStatus] = useState({
+    isDraft: false,
+    isActive: false,
+    versionNumber: 1
+  })
+  const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
+  const [showDraftWarning, setShowDraftWarning] = useState(false)
+  const [showCommitWarning, setShowCommitWarning] = useState(false)
 
   // Profile sections for mobile dropdown (matching ProfileSidebar)
   const profileSections = [
@@ -171,9 +177,9 @@ export default function ProfilePage() {
   useEffect(() => {
     async function fetchProfile() {
       try {
-        console.log('Profile page: Starting fetch to /api/profile')
+        console.log('Profile edit page: Starting fetch to /api/profile')
         const response = await fetch('/api/profile')
-        console.log('Profile page: Response received', { 
+        console.log('Profile edit page: Response received', { 
           status: response.status, 
           ok: response.ok,
           statusText: response.statusText 
@@ -181,22 +187,54 @@ export default function ProfilePage() {
         
         if (!response.ok) {
           if (response.status === 401) {
-            console.log('Profile page: Unauthorized, redirecting to login')
+            console.log('Profile edit page: Unauthorized, redirecting to login')
             router.push('/auth/login')
             return
           }
           const errorText = await response.text()
-          console.error('Profile page: API error response', errorText)
+          console.error('Profile edit page: API error response', errorText)
           throw new Error(`Failed to fetch profile: ${response.status} ${response.statusText}`)
         }
         
 
         const data = await response.json()
-        console.log('Profile page: Data received', data)
-        setProfile(data.profile || {})
-        setCompletionPercentage(data.completionPercentage || 0)
-        if (data.profile?.id) {
-          setCurrentVersionId(data.profile.id)
+        console.log('Profile edit page: Data received', data)
+        
+        // Load the specific profile version if we have a profileId
+        if (profileId && data.versions) {
+          const targetVersion = data.versions.find((v: any) => v.id === profileId)
+          if (targetVersion) {
+            setProfile(targetVersion)
+            setCompletionPercentage(targetVersion.completion_percentage || 0)
+            setCurrentVersionId(targetVersion.id)
+            
+            setVersionStatus({ 
+              isDraft: targetVersion.is_draft || false, 
+              isActive: targetVersion.is_active || false,
+              versionNumber: targetVersion.version_number || 1
+            })
+            setVersions(data.versions || [])
+            
+            console.log('Profile version loaded:', {
+              id: targetVersion.id,
+              is_draft: targetVersion.is_draft,
+              is_active: targetVersion.is_active,
+              version_number: targetVersion.version_number,
+              created_at: targetVersion.created_at
+            })
+          } else {
+            setProfile(data.profile || {})
+            setCompletionPercentage(data.completionPercentage || 0)
+            setCurrentVersionId(null)
+            setVersionStatus({ isDraft: false, isActive: false, versionNumber: 1 })
+            setVersions(data.versions || [])
+          }
+        } else {
+          setProfile(data.profile || {})
+          setCompletionPercentage(data.completionPercentage || 0)
+          setCurrentVersionId(null)
+          setVersionStatus({ isDraft: false, isActive: false, versionNumber: 1 })
+          setVersions(data.versions || [])
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
@@ -207,7 +245,7 @@ export default function ProfilePage() {
     }
 
     fetchProfile()
-  }, [router])
+  }, [router, profileId])
 
   // Recalculate completion percentage whenever profile changes
   useEffect(() => {
@@ -224,40 +262,10 @@ export default function ProfilePage() {
       if (response.ok) {
         const data = await response.json()
         setVersions(data.versions || [])
-        
-        // Check for existing draft
-        const existingDraft = data.versions?.find((v: any) => v.is_draft === true)
-        if (existingDraft) {
-          setHasExistingDraft(true)
-          setExistingDraftId(existingDraft.id)
-        } else {
-          setHasExistingDraft(false)
-          setExistingDraftId(null)
-        }
       }
     } catch (error) {
       console.error('Error fetching versions:', error)
     }
-  }
-
-  // Save as draft handler with override check
-  const handleSaveAsDraft = async () => {
-    // Check for existing draft
-    if (hasExistingDraft && existingDraftId) {
-      // Show override dialog
-      setOverrideDialogOpen(true)
-      return
-    }
-    
-    // No existing draft, proceed with save
-    await saveAsVersion(true)
-  }
-
-  // Handle override confirmation
-  const handleOverrideDraft = async () => {
-    setOverrideDialogOpen(false)
-    // The API will automatically delete the old draft when creating a new one
-    await saveAsVersion(true)
   }
 
   // Save as version function
@@ -288,9 +296,14 @@ export default function ProfilePage() {
       const data = await response.json()
       console.log('Version save response:', data)
       
-      // Update current version if provided
-      if (data.version?.id) {
+      // Update current version info
+      if (data.version) {
         setCurrentVersionId(data.version.id)
+        setVersionStatus({
+          isDraft: data.version.is_draft,
+          isActive: data.version.is_active,
+          versionNumber: data.version.version_number
+        })
       }
       
       setSaveStatus('saved')
@@ -312,11 +325,6 @@ export default function ProfilePage() {
       setIsSaving(false)
     }
   }
-
-  // Fetch versions on mount
-  useEffect(() => {
-    fetchVersions()
-  }, [])
 
   // Auto-save function
   const saveProfile = useCallback(async (profileData: Partial<UserProfile>) => {
@@ -362,12 +370,6 @@ export default function ProfilePage() {
       setLastSaved(new Date())
       setError(null)
 
-      // If in intensive mode and profile is sufficiently complete, mark as done
-      if (isIntensiveMode && data.completionPercentage >= 70) {
-        const { markIntensiveStep } = await import('@/lib/intensive/checklist')
-        await markIntensiveStep('profile_completed')
-      }
-
       // Clear save status after 2 seconds
       setTimeout(() => {
         setSaveStatus('idle')
@@ -388,6 +390,53 @@ export default function ProfilePage() {
     // No auto-save - user must click "Save Edits" button
   }, [profile])
 
+  // Version management handlers
+  const handleVersionSelect = (versionId: string) => {
+    router.push(`/profile/${versionId}/edit`)
+  }
+
+  const handleVersionCreate = async (sourceVersionId: string, isDraft: boolean) => {
+    await saveAsVersion(isDraft)
+  }
+
+  const handleVersionCommit = async (draftId: string) => {
+    try {
+      const response = await fetch('/api/profile/versions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftProfileId: draftId })
+      })
+
+      if (!response.ok) throw new Error('Failed to commit draft')
+      
+      await fetchVersions()
+      // Refresh current page
+      window.location.reload()
+    } catch (error) {
+      console.error('Error committing draft:', error)
+      setError('Failed to commit draft')
+    }
+  }
+
+  const handleVersionDelete = async (versionId: string) => {
+    try {
+      const response = await fetch(`/api/profile/versions/${versionId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) throw new Error('Failed to delete version')
+      
+      await fetchVersions()
+      // If we deleted the current version, redirect to main profile
+      if (versionId === currentVersionId) {
+        router.push('/profile')
+      }
+    } catch (error) {
+      console.error('Error deleting version:', error)
+      setError('Failed to delete version')
+    }
+  }
+
   // Reload profile from database
   const reloadProfile = useCallback(async () => {
     try {
@@ -398,17 +447,56 @@ export default function ProfilePage() {
         console.log('✅ Profile reloaded', {
           recordingsCount: data.profile?.story_recordings?.length || 0
         })
-        setProfile(data.profile || {})
-        if (data.completionPercentage !== undefined) {
-          setCompletionPercentage(data.completionPercentage)
+        
+        // Load the specific profile version if we have a profileId
+        if (profileId && data.versions) {
+          const targetVersion = data.versions.find((v: any) => v.id === profileId)
+          if (targetVersion) {
+            setProfile(targetVersion)
+            setCompletionPercentage(targetVersion.completion_percentage || 0)
+          } else {
+            setProfile(data.profile || {})
+            setCompletionPercentage(data.completionPercentage || 0)
+          }
+        } else {
+          setProfile(data.profile || {})
+          setCompletionPercentage(data.completionPercentage || 0)
         }
       }
     } catch (error) {
       console.error('Failed to reload profile:', error)
     }
-  }, [])
+  }, [profileId, router])
 
   // Manual save function
+  const handleSaveClick = () => {
+    handleManualSave()
+  }
+
+  const handleDraftClick = () => {
+    setShowDraftWarning(true)
+  }
+
+  const handleCommitClick = () => {
+    console.log('Commit button clicked, versionStatus:', versionStatus)
+    setShowCommitWarning(true)
+  }
+
+  const confirmSave = () => {
+    handleManualSave()
+  }
+
+  const confirmDraft = () => {
+    setShowDraftWarning(false)
+    saveAsVersion(true)
+  }
+
+  const confirmCommit = () => {
+    console.log('Confirming commit, versionStatus:', versionStatus)
+    setShowCommitWarning(false)
+    saveAsVersion(false)
+  }
+
   const handleManualSave = async () => {
     await saveProfile(profile)
   }
@@ -561,7 +649,7 @@ export default function ProfilePage() {
             className="flex items-center gap-2"
           >
             <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? 'Saving...' : 'Save Draft'}
           </Button>
         </div>
         
@@ -617,13 +705,26 @@ export default function ProfilePage() {
       <div className="mb-8">
         {/* Mobile Header */}
         <div className="md:hidden space-y-4 mb-4">
-          {/* Title and Badge */}
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-white">Complete Your Profile</h1>
+              <h1 className="text-2xl font-bold text-white">Edit Draft Profile</h1>
+              {currentVersionId && (
+                <VersionStatusIndicator
+                  isActive={versionStatus.isActive}
+                  isDraft={versionStatus.isDraft}
+                  versionNumber={versionStatus.versionNumber}
+                  completionPercentage={completionPercentage}
+                  showIcon={true}
+                  showCompletion={true}
+                />
+              )}
             </div>
             <p className="text-neutral-400 text-sm">
-              Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
+              {profileId ? (
+                versionStatus.isActive ? 'Editing active profile version' :
+                versionStatus.isDraft ? 'Editing draft version' :
+                `Editing version ${versionStatus.versionNumber}`
+              ) : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
             </p>
           </div>
         </div>
@@ -632,10 +733,24 @@ export default function ProfilePage() {
         <div className="hidden md:flex items-center gap-4 mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-white">Complete Your Profile</h1>
+              <h1 className="text-3xl font-bold text-white">Edit Draft Profile</h1>
+              {currentVersionId && (
+                <VersionStatusIndicator
+                  isActive={versionStatus.isActive}
+                  isDraft={versionStatus.isDraft}
+                  versionNumber={versionStatus.versionNumber}
+                  completionPercentage={completionPercentage}
+                  showIcon={true}
+                  showCompletion={true}
+                />
+              )}
             </div>
             <p className="text-neutral-400">
-              Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
+              {profileId ? (
+                versionStatus.isActive ? 'Editing active profile version' :
+                versionStatus.isDraft ? 'Editing draft version' :
+                `Editing version ${versionStatus.versionNumber}`
+              ) : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
             </p>
           </div>
         </div>
@@ -688,32 +803,50 @@ export default function ProfilePage() {
             {/* Action Buttons */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
               <Button
-                onClick={() => router.push('/profile')}
+                onClick={() => router.push(`/profile/${profileId}`)}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2 font-semibold w-full sm:w-auto"
               >
                 <Eye className="w-4 h-4" />
-                View Profile
+                View
               </Button>
+              
               <Button
-                onClick={handleManualSave}
+                onClick={handleSaveClick}
                 disabled={isSaving}
                 size="sm"
                 className="flex items-center gap-2 font-semibold w-full sm:w-auto"
               >
                 <Save className="w-4 h-4" />
-                {isSaving ? 'Saving...' : 'Save Edits'}
+                {isSaving ? 'Saving...' : 'Save Draft'}
               </Button>
+              
+              {currentVersionId && (
+                <VersionActionToolbar
+                  versionId={currentVersionId}
+                  versionNumber={versionStatus.versionNumber}
+                  isActive={versionStatus.isActive}
+                  isDraft={versionStatus.isDraft}
+                  onSaveAsDraft={() => saveAsVersion(true)}
+                  onCommitAsActive={() => saveAsVersion(false)}
+                  onCreateDraft={() => saveAsVersion(true)}
+                  onSetActive={() => {
+                    // This would be handled by the toolbar
+                  }}
+                  onDelete={() => handleVersionDelete(currentVersionId)}
+                  isLoading={isSaving}
+                />
+              )}
+              
               <Button
-                onClick={handleSaveAsDraft}
-                disabled={isSaving}
+                onClick={() => setShowVersions(!showVersions)}
                 variant="secondary"
                 size="sm"
                 className="flex items-center gap-2 font-semibold w-full sm:w-auto"
               >
-                <Save className="w-4 h-4" />
-                Save as Draft
+                <History className="w-4 h-4" />
+                Versions
               </Button>
             </div>
           </div>
@@ -731,69 +864,14 @@ export default function ProfilePage() {
 
         {/* Versions List */}
         {showVersions && (
-          <div className="mb-6 p-6 bg-neutral-800/50 border border-neutral-700 rounded-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Profile Versions</h3>
-              <Button
-                onClick={fetchVersions}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <History className="w-4 h-4" />
-                Refresh
-              </Button>
-            </div>
-            {versions.length > 0 ? (
-              <div className="space-y-3">
-                {versions.map((version) => (
-                  <div
-                    key={version.id}
-                    className="flex items-center justify-between p-4 bg-neutral-700/50 rounded-lg border border-neutral-600"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">
-                            Version {version.version_number}
-                          </span>
-                          {version.is_draft && (
-                            <Badge variant="neutral">Draft</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-neutral-400">
-                          {new Date(version.created_at).toLocaleDateString()} at{' '}
-                          {new Date(version.created_at).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="info">
-                        {version.completion_percentage}% Complete
-                      </Badge>
-                      <Button
-                        onClick={() => router.push(`/profile?versionId=${version.id}`)}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <History className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
-                <p className="text-neutral-400 mb-4">No versions saved yet</p>
-                <p className="text-sm text-neutral-500">
-                  Save a version to track your profile changes over time
-                </p>
-              </div>
-            )}
-          </div>
+          <ProfileVersionManager
+            userId={profileId}
+            onVersionSelect={handleVersionSelect}
+            onVersionCreate={handleVersionCreate}
+            onVersionCommit={handleVersionCommit}
+            onVersionDelete={handleVersionDelete}
+            className="mb-6"
+          />
         )}
 
         {/* Mobile Dropdown Navigation */}
@@ -882,56 +960,28 @@ export default function ProfilePage() {
           </div>
         )}
         
-        {/* Override Draft Dialog */}
-        {overrideDialogOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-md w-full p-6">
-              <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <AlertCircle className="w-8 h-8 text-yellow-500" />
-                </div>
-                
-                <h3 className="text-xl font-semibold text-white mb-3">
-                  Override Existing Draft?
-                </h3>
-                
-                <p className="text-neutral-300 mb-6 leading-relaxed">
-                  You already have an active draft. Creating a new draft will replace your existing draft. This action cannot be undone.
-                </p>
-                
-                <div className="flex gap-3 justify-center">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setOverrideDialogOpen(false)}
-                    disabled={isSaving}
-                    className="px-6"
-                  >
-                    Cancel
-                  </Button>
-                  
-                  <Button
-                    variant="secondary"
-                    onClick={handleOverrideDraft}
-                    disabled={isSaving}
-                    className="gap-2 px-6"
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4" />
-                        Override Draft
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
+        {/* Warning Dialogs */}
+        <WarningConfirmationDialog
+          isOpen={showDraftWarning}
+          onClose={() => setShowDraftWarning(false)}
+          onConfirm={confirmDraft}
+          title="Save as Draft?"
+          message="Only one draft at a time. This will override any other draft."
+          confirmText="Save as Draft"
+          type="draft"
+          isLoading={isSaving}
+        />
+        
+        <WarningConfirmationDialog
+          isOpen={showCommitWarning}
+          onClose={() => setShowCommitWarning(false)}
+          onConfirm={confirmCommit}
+          title="Commit as Active Version?"
+          message="This will become your active profile version."
+          confirmText="Commit as Active"
+          type="commit"
+          isLoading={isSaving}
+        />
       </>
     )
   }

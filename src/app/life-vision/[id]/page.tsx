@@ -19,6 +19,7 @@ import {
   Stack,
   Inline
 } from '@/lib/design-system/components'
+import { VisionVersionCard } from '../components/VisionVersionCard'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { generateVisionPDF } from '@/lib/pdf'
 
@@ -524,9 +525,28 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
-          .order('version_number', { ascending: false })
+          .order('created_at', { ascending: false })
         
-        setVersions(versionsData || [])
+        // Calculate version numbers for all versions
+        if (versionsData) {
+          const versionsWithCalculatedNumbers = await Promise.all(
+            versionsData.map(async (v: VisionData) => {
+              const { data: calculatedVersionNumber } = await supabase
+                .rpc('get_vision_version_number', { p_vision_id: v.id })
+              
+              const versionNumber = calculatedVersionNumber || v.version_number || 1
+              
+              return {
+                ...v,
+                version_number: versionNumber
+              }
+            })
+          )
+          
+          setVersions(versionsWithCalculatedNumbers)
+        } else {
+          setVersions([])
+        }
       }
 
       // If we deleted the current version, go back to main vision
@@ -593,24 +613,17 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     try {
       const completionPercentage = calculateCompletion(vision)
       
-      // Get the highest version number for this user
+      // Get user ID
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: latestVersion } = await supabase
-        .from('vision_versions')
-        .select('version_number')
-        .eq('user_id', user.id)
-        .order('version_number', { ascending: false })
-        .limit(1)
-        .single()
-
-      const newVersionNumber = (latestVersion?.version_number || 0) + 1
-
-      // Create new version with only the necessary fields
+      if (!user) {
+        alert('Please log in to save a version')
+        return
+      }
+      
+      // Create new version - version_number will be calculated by database function
       const insertData = {
         user_id: user.id,
-        version_number: newVersionNumber,
+        version_number: 1, // Placeholder - will be recalculated
         forward: vision.forward || '',
         fun: vision.fun || '',
         travel: vision.travel || '',
@@ -640,17 +653,41 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         throw error
       }
 
+      // Calculate version number for the newly created vision
+      const { data: calculatedVersionNumber } = await supabase
+        .rpc('get_vision_version_number', { p_vision_id: newVersion.id })
+      
+      const actualVersionNumber = calculatedVersionNumber || newVersion.version_number || 1
+
       // Refresh versions list
       const { data: versionsData } = await supabase
         .from('vision_versions')
         .select('*')
         .eq('user_id', user.id)
-        .order('version_number', { ascending: false })
+        .order('created_at', { ascending: false })
       
-      setVersions(versionsData || [])
+      // Calculate version numbers for all versions
+      let versionsWithCalculatedNumbers: VisionData[] = []
+      if (versionsData) {
+        versionsWithCalculatedNumbers = await Promise.all(
+          versionsData.map(async (v: VisionData) => {
+            const { data: calculatedVersionNumber } = await supabase
+              .rpc('get_vision_version_number', { p_vision_id: v.id })
+            
+            const versionNumber = calculatedVersionNumber || v.version_number || 1
+            
+            return {
+              ...v,
+              version_number: versionNumber
+            }
+          })
+        )
+      }
+      
+      setVersions(versionsWithCalculatedNumbers)
       setLastSaved(new Date())
       
-      alert(isDraft ? 'Vision saved as draft version!' : 'Vision saved as new version!')
+      alert(isDraft ? `Vision saved as draft version ${actualVersionNumber}!` : `Vision saved as new version ${actualVersionNumber}!`)
     } catch (error) {
       console.error('Error saving version:', error)
       alert('Failed to save version. Please try again.')
@@ -854,47 +891,19 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 <h3 className="text-base md:text-lg font-semibold text-white mb-4">Version History</h3>
                 <Stack gap="sm">
                   {versions.map((version) => (
-                    <Card key={version.id} variant="outlined" className="p-4 md:p-6">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        {/* Left side - Version Info */}
-                        <div className="flex-1 min-w-0">
-                          <Stack gap="sm">
-                            <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                              <span className="text-xs md:text-sm font-medium text-white">
-                                Version {version.version_number}
-                              </span>
-                              {version.status === 'draft' && (
-                                <Badge variant="warning">Draft</Badge>
-                              )}
-                              {version.status === 'complete' && (
-                                <Badge variant="success">Complete</Badge>
-                              )}
-                              <span className="text-xs md:text-sm text-neutral-400">
-                                {version.completion_percent}% complete
-                              </span>
-                            </div>
-                            <Stack gap="xs">
-                              <p className="text-xs text-neutral-500 truncate">
-                                <span className="font-mono">ID:</span> {version.id}
-                              </p>
-                              <p className="text-xs text-neutral-500">
-                                <span className="font-medium">Version:</span> v{version.version_number}
-                              </p>
-                              <p className="text-xs text-neutral-500">
-                                <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                              </p>
-                            </Stack>
-                          </Stack>
-                        </div>
-                        {/* Right side - Action Buttons */}
-                        <div className="flex flex-row flex-wrap gap-2 md:gap-4 shrink-0">
+                    <VisionVersionCard
+                      key={version.id}
+                      version={version}
+                      isActive={version.id === vision?.id}
+                      actions={
+                        <>
                           {version.status === 'draft' ? (
                             <>
                               <Button
                                 onClick={() => router.push('/life-vision/new')}
                                 variant="primary"
                                 size="sm"
-                                className="flex-1 min-w-0 shrink md:flex-none"
+                                className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
                               >
                                 <Icon icon={Sparkles} size="sm" color="#000000" />
                                 <span className="ml-1 truncate">Continue with VIVA</span>
@@ -903,7 +912,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                                 onClick={() => router.push(`/life-vision/${version.id}`)}
                                 variant="secondary"
                                 size="sm"
-                                className="flex-1 min-w-0 shrink md:flex-none"
+                                className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
                               >
                                 <Icon icon={Edit3} size="sm" />
                                 <span className="ml-1 truncate">Edit On My Own</span>
@@ -920,41 +929,32 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                                 }}
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 min-w-0 shrink md:flex-none"
+                                className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
                               >
                                 <Icon icon={Eye} size="sm" />
                                 <span className="ml-1">View</span>
                               </Button>
-                              {version.status === 'draft' && (
-                                <Button
-                                  onClick={() => router.push(`/life-vision/${version.id}`)}
-                                  variant="secondary"
-                                  size="sm"
-                                  className="flex-1 min-w-0 shrink md:flex-none"
-                                >
-                                  <Icon icon={Edit3} size="sm" />
-                                  <span className="ml-1">Edit</span>
-                                </Button>
-                              )}
                             </>
                           )}
                           <Button
                             onClick={() => deleteVersion(version.id)}
-                            variant="outline"
+                            variant="danger"
                             size="sm"
-                            className="flex-1 min-w-0 shrink md:flex-none text-red-400 hover:text-red-300 hover:border-red-400"
+                            className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
                             disabled={deletingVersion === version.id}
                           >
                             {deletingVersion === version.id ? (
-                              <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                             ) : (
-                              <Icon icon={Trash2} size="sm" />
+                              <>
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </>
                             )}
-                            <span className="ml-1">Delete</span>
                           </Button>
-                        </div>
-                      </div>
-                    </Card>
+                        </>
+                      }
+                    />
                   ))}
                 </Stack>
               </Card>
