@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -12,10 +12,8 @@ import {
   ChevronDown,
   X,
   Zap,
-  HardDrive,
 } from 'lucide-react'
 import { userNavigation, adminNavigation, mobileNavigation, isNavItemActive, type NavItem } from '@/lib/navigation'
-import { useStorageData } from '@/hooks/useStorageData'
 
 interface SidebarProps {
   className?: string
@@ -27,189 +25,72 @@ export function Sidebar({ className, isAdmin = false }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(false) // Start as false to render immediately
+  const [loading, setLoading] = useState(true)
   const [profileLoaded, setProfileLoaded] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
-  
-  // Create Supabase client - create fresh instance (similar to Header component)
   const supabase = createClient()
   
   // Use admin or user navigation based on isAdmin prop
   const navigation = isAdmin ? adminNavigation : userNavigation
 
-  // Fetch real-time storage data (hook must be called unconditionally)
-  const { data: storageData, loading: storageLoading } = useStorageData()
-
-  // Track if component is mounted (for client-side only rendering)
   useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Helper function to format bytes to GB
-  const formatBytesToGB = (bytes: number): string => {
-    const gb = bytes / (1024 * 1024 * 1024)
-    return gb.toFixed(2)
-  }
-
-  useEffect(() => {
-    // Function to fetch profile data (defined inside useEffect to capture current supabase client)
-    const fetchProfile = async (userId: string) => {
-      try {
-        console.log('Sidebar: ===== fetchProfile called =====')
-        console.log('Sidebar: Fetching profile for user:', userId)
-        
-        // First, try to get the active profile (non-draft)
-        let { data: profileData, error } = await supabase
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      
+      // Fetch profile data if user is logged in
+      if (user) {
+        const { data: profileData, error } = await supabase
           .from('user_profiles')
-          .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining, storage_quota_gb, is_active, is_draft')
-          .eq('user_id', userId)
-          .eq('is_active', true)
-          .eq('is_draft', false)
-          .maybeSingle()
-        
-        // If no active profile found, fall back to any non-draft profile (most recent)
-        if (!profileData && !error) {
-          console.log('Sidebar: No active profile found, falling back to latest non-draft profile')
-          const fallbackResult = await supabase
-            .from('user_profiles')
-            .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining, storage_quota_gb, is_active, is_draft')
-            .eq('user_id', userId)
-            .eq('is_draft', false)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          
-          profileData = fallbackResult.data
-          error = fallbackResult.error
-        }
-        
-        console.log('Sidebar: Profile query result:', { 
-          hasData: !!profileData, 
-          error: error?.code, 
-          is_active: profileData?.is_active,
-          is_draft: profileData?.is_draft 
-        })
+          .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
+          .eq('user_id', user.id)
+          .single()
         
         if (error) {
-          // Log any unexpected errors
-          const errorDetails: any = {}
-          if (error.code) errorDetails.code = error.code
-          if (error.message) errorDetails.message = error.message
-          if (error.details) errorDetails.details = error.details
-          if (error.hint) errorDetails.hint = error.hint
-          
-          if (Object.keys(errorDetails).length > 0) {
-            console.error('Sidebar: Error fetching profile:', errorDetails)
+          console.error('Error fetching profile:', error)
+          // If profile doesn't exist, create one with default values
+          if (error.code === 'PGRST116') {
+            const { data: newProfile, error: createError } = await supabase
+              .from('user_profiles')
+              .insert({
+                user_id: user.id,
+                vibe_assistant_tokens_remaining: 100
+              })
+              .select()
+              .single()
+            
+            if (createError) {
+              console.error('Error creating profile:', createError)
+              setProfileLoaded(false)
+            } else if (newProfile) {
+              setProfile(newProfile)
+              setProfileLoaded(true)
+            } else {
+              setProfileLoaded(false)
+            }
           } else {
-            console.error('Sidebar: Error fetching profile (empty error object):', error)
+            setProfileLoaded(false)
           }
-          
-          setProfile(null)
-          setProfileLoaded(true) // Mark as loaded even on error so UI stops pulsing
         } else if (profileData) {
-          // Profile found
-          console.log('Sidebar: Profile loaded successfully:', {
-            hasName: !!profileData.first_name,
-            hasPicture: !!profileData.profile_picture_url,
-            tokens: profileData.vibe_assistant_tokens_remaining
-          })
           setProfile(profileData)
           setProfileLoaded(true)
         } else {
-          // No profile found (maybeSingle returns null, not an error)
-          console.log('Sidebar: No profile found for user - this is expected for new users')
-          setProfile(null)
-          setProfileLoaded(true) // Mark as loaded even when no profile found so UI stops pulsing
+          setProfileLoaded(false)
         }
-      } catch (err) {
-        console.error('Sidebar: Unexpected error fetching profile:', err)
-        setProfile(null)
-        setProfileLoaded(true) // Mark as loaded even on exception so UI stops pulsing
+      } else {
+        setProfileLoaded(false)
       }
-    }
-
-    const getUser = async () => {
-      try {
-        // Don't set loading to true here - we want to render immediately
-        // Only set loading for user-specific content areas
-        console.log('Sidebar: Initializing auth...')
-        
-        // Check if supabase client is available
-        if (!supabase || !supabase.auth) {
-          console.error('Sidebar: Supabase client not available')
-          setUser(null)
-          setProfile(null)
-          setProfileLoaded(true)
-          setLoading(false)
-          return
-        }
-        
-        // Try getSession() first (reads from localStorage, faster)
-        // This is more reliable than getUser() which makes a network request
-        console.log('Sidebar: Calling supabase.auth.getSession()...')
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        
-        if (sessionError) {
-          console.warn('Sidebar: Session error (non-critical):', {
-            code: sessionError.code,
-            message: sessionError.message
-          })
-          setUser(null)
-          setProfile(null)
-          setProfileLoaded(true)
-          setLoading(false)
-          return
-        }
-        
-        const user = session?.user ?? null
-        console.log('Sidebar: Session check complete:', { 
-          hasUser: !!user, 
-          userId: user?.id,
-          email: user?.email 
-        })
-        setUser(user)
-        
-        // Fetch profile if user exists
-        if (user) {
-          console.log('Sidebar: User found, calling fetchProfile with userId:', user.id)
-          // Await to ensure profile loads properly
-          await fetchProfile(user.id)
-        } else {
-          console.log('Sidebar: No user found')
-          setProfile(null)
-          setProfileLoaded(true) // Mark as loaded so UI stops pulsing
-        }
-      } catch (err) {
-        console.warn('Sidebar: Unexpected error in getUser (non-critical):', err)
-        setUser(null)
-        setProfile(null)
-        setProfileLoaded(true) // Mark as loaded so UI stops pulsing
-      } finally {
-        setLoading(false)
-        console.log('Sidebar: Initialization complete, loading set to false')
-      }
+      
+      setLoading(false)
     }
 
     getUser()
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Sidebar: Auth state changed:', event, { 
-        hasSession: !!session, 
-        userId: session?.user?.id 
-      })
-      
-      if (session?.user) {
-        setUser(session.user)
-        // Re-fetch profile when user logs in or auth state changes
-        await fetchProfile(session.user.id)
-      } else {
-        // User logged out
-        console.log('Sidebar: User logged out')
-        setUser(null)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (!session?.user) {
         setProfile(null)
-        setProfileLoaded(true) // Mark as loaded so UI stops pulsing
+        setProfileLoaded(false)
       }
     })
 
@@ -233,7 +114,7 @@ export function Sidebar({ className, isAdmin = false }: SidebarProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-neutral-800">
         {!collapsed && (
-          <div className="flex items-center gap-3 min-w-0" suppressHydrationWarning>
+          <div className="flex items-center gap-3 min-w-0">
             {/* Profile Picture */}
             {loading || !profileLoaded ? (
               <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
@@ -273,6 +154,32 @@ export function Sidebar({ className, isAdmin = false }: SidebarProps) {
           )}
         </button>
       </div>
+
+      {/* Token Balance - Top */}
+      {!collapsed && (
+        <div className="px-4 py-3 border-b border-neutral-800">
+          <div className="px-3 py-2 bg-neutral-800/50 rounded-lg border border-neutral-700">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                Token Balance
+              </span>
+              <Zap className="w-3 h-3 text-[#FFB701]" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              {!profileLoaded ? (
+                <div className="w-16 h-6 bg-neutral-700 rounded animate-pulse" />
+              ) : (
+                <>
+                  <span className="text-lg font-bold text-white">
+                    {(profile?.vibe_assistant_tokens_remaining ?? 0).toLocaleString()}
+                  </span>
+                  <span className="text-xs text-neutral-500">tokens</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
@@ -379,57 +286,6 @@ export function Sidebar({ className, isAdmin = false }: SidebarProps) {
           )
         })}
       </nav>
-
-      {/* Token Balance and Storage Cards - Only render after mount to prevent hydration issues */}
-      {!collapsed && mounted && (
-        <div className="px-4 py-3 space-y-3 border-t border-neutral-800" suppressHydrationWarning>
-          {/* Token Balance Card */}
-          <div className="px-3 py-2 bg-neutral-800/50 rounded-lg border border-neutral-700">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                Token Balance
-              </span>
-              <Zap className="w-3 h-3 text-[#FFB701]" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              {loading || !profileLoaded ? (
-                <div className="w-16 h-6 bg-neutral-700 rounded animate-pulse" />
-              ) : (
-                <>
-                  <span className="text-lg font-bold text-white">
-                    {(profile?.vibe_assistant_tokens_remaining ?? 0).toLocaleString()}
-                  </span>
-                  <span className="text-xs text-neutral-500">tokens</span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Storage Card */}
-          <div className="px-3 py-2 bg-neutral-800/50 rounded-lg border border-neutral-700">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                Storage
-              </span>
-              <HardDrive className="w-3 h-3 text-[#14B8A6]" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              {loading || !profileLoaded || storageLoading ? (
-                <div className="w-20 h-6 bg-neutral-700 rounded animate-pulse" />
-              ) : (
-                <>
-                  <span className="text-lg font-bold text-white">
-                    {storageData?.totalSize ? formatBytesToGB(storageData.totalSize) : '0.00'}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    / {profile?.storage_quota_gb ?? 5} GB
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       {!collapsed && (
