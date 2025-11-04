@@ -34,75 +34,30 @@ export function Header() {
 
   useEffect(() => {
     const getUser = async () => {
-      try {
-        // Use getSession() instead of getUser() - reads from localStorage, faster
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      
+      // Fetch profile data if user is logged in
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('user_profiles')
+          .select('first_name, last_name, profile_picture_url, vibe_assistant_tokens_remaining')
+          .eq('user_id', user.id)
+          .single()
         
-        if (sessionError) {
-          console.warn('Header: Session error (non-critical):', sessionError)
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-          return
-        }
-        
-        const user = session?.user ?? null
-        setUser(user)
-        
-        // Fetch profile data if user is logged in
-        if (user) {
-          try {
-            const { data: profileData } = await supabase
-              .from('user_profiles')
-              .select('first_name, last_name, profile_picture_url, vibe_assistant_tokens_remaining')
-              .eq('user_id', user.id)
-              .eq('is_active', true)
-              .eq('is_draft', false)
-              .maybeSingle()
-            
-            setProfile(profileData)
-          } catch (profileError) {
-            console.warn('Header: Error fetching profile (non-critical):', profileError)
-            setProfile(null)
-          }
-        } else {
-          setProfile(null)
-        }
-      } catch (err) {
-        console.warn('Header: Unexpected error in getUser (non-critical):', err)
-        setUser(null)
-        setProfile(null)
-      } finally {
-        setLoading(false)
+        setProfile(profileData)
       }
+      
+      setLoading(false)
     }
 
     getUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const user = session?.user ?? null
-      setUser(user)
-      
-      if (user) {
-        try {
-          const { data: profileData } = await supabase
-            .from('user_profiles')
-            .select('first_name, last_name, profile_picture_url, vibe_assistant_tokens_remaining')
-            .eq('user_id', user.id)
-            .eq('is_active', true)
-            .eq('is_draft', false)
-            .maybeSingle()
-          
-          setProfile(profileData)
-        } catch (profileError) {
-          console.warn('Header: Error fetching profile on auth change (non-critical):', profileError)
-          setProfile(null)
-        }
-      } else {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (!session?.user) {
         setProfile(null)
       }
-      
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
