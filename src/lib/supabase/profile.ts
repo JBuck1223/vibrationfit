@@ -215,7 +215,7 @@ export async function getActiveProfile(userId: string): Promise<UserProfile | nu
     return null
   }
 
-  return data
+  return data as UserProfile | null
 }
 
 /**
@@ -243,5 +243,5 @@ export async function getActiveProfileFields(
     return null
   }
 
-  return data
+  return data as Partial<UserProfile> | null
 }
