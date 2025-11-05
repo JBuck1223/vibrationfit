@@ -197,6 +197,15 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
         return
       }
 
+      // Sync profile picture URL to user_metadata for instant access in Header
+      fetch('/api/sync/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profilePictureUrl: uploadResult.url })
+      }).catch(err => {
+        console.error('Failed to sync profile picture to metadata (non-blocking):', err)
+      })
+
       // Update parent component first
       console.log('ProfilePictureUpload: Notifying parent of new image URL:', uploadResult.url)
       onImageChange(uploadResult.url)

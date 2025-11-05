@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
+import { syncProfilePictureToMetadata } from '@/lib/supabase/sync-metadata'
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,6 +67,11 @@ export async function POST(request: NextRequest) {
       console.error('Error updating profile with new picture:', updateError)
       return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
     }
+
+    // Sync profile picture URL to user_metadata for instant access in Header
+    syncProfilePictureToMetadata(user.id, uploadResult.url).catch(err => {
+      console.error('Failed to sync profile picture to metadata (non-blocking):', err)
+    })
 
     return NextResponse.json({ 
       success: true,

@@ -118,15 +118,25 @@ export function Header() {
                   }}
                   className="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-neutral-800 transition-colors"
                 >
-                  {/* Simple Avatar - initials from name or email */}
-                  <div className="w-8 h-8 rounded-full bg-[#39FF14] flex items-center justify-center text-black font-semibold text-sm">
-                    {(() => {
-                      // Extract first initial from full_name if available
-                      const fullName = user.user_metadata?.full_name || ''
-                      const firstName = user.user_metadata?.first_name || fullName.split(' ')[0] || ''
-                      return (firstName[0] || user.email?.[0] || 'U').toUpperCase()
-                    })()}
-                  </div>
+                  {/* Avatar - profile picture from metadata or initials */}
+                  {user.user_metadata?.profile_picture_url ? (
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-neutral-800 flex items-center justify-center">
+                      <img 
+                        src={user.user_metadata.profile_picture_url} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-[#39FF14] flex items-center justify-center text-black font-semibold text-sm">
+                      {(() => {
+                        // Extract first initial from full_name if available
+                        const fullName = user.user_metadata?.full_name || ''
+                        const firstName = user.user_metadata?.first_name || fullName.split(' ')[0] || ''
+                        return (firstName[0] || user.email?.[0] || 'U').toUpperCase()
+                      })()}
+                    </div>
+                  )}
                   
                   {/* Name - from metadata or email */}
                   <span className="text-white font-medium">
