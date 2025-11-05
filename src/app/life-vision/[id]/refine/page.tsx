@@ -38,6 +38,7 @@ import {
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { VivaChatInput } from '@/components/viva/VivaChatInput'
+import { colors } from '@/lib/design-system/tokens'
 
 interface VisionData {
   id: string
@@ -1551,42 +1552,37 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                           <span className="font-medium text-white">{categoryInfo?.label}</span>
                           <Badge variant="warning" className="text-xs">Draft</Badge>
                         </div>
-                        {/* Commit, Edit and Delete buttons - responsive layout */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        {/* View button with primary styling in neon yellow */}
+                        <div className="flex items-center gap-2">
                           <Button
-                            onClick={() => commitSingleDraft(draft)}
-                            disabled={isDraftSaving}
+                            onClick={() => editDraft(draft)}
                             variant="primary"
                             size="sm"
-                            className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px]"
+                            className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px] flex-1 sm:flex-none font-semibold"
+                            style={{
+                              backgroundColor: colors.energy.yellow[500],
+                              color: '#000000',
+                              border: `2px solid ${colors.energy.yellow[500]}`
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = `${colors.energy.yellow[500]}E6`
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
+                            }}
                           >
-                            {isDraftSaving ? (
-                              <Spinner variant="primary" size="sm" />
-                            ) : (
-                              <Check className="w-4 h-4" />
-                            )}
-                            Commit
+                            <Eye className="w-4 h-4" />
+                            View
                           </Button>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              onClick={() => editDraft(draft)}
-                              variant="ghost"
-                              size="sm"
-                              className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px] flex-1 sm:flex-none bg-[#FFB701]/20 hover:bg-[#FFB701]/30 text-[#FFB701] border border-[#FFB701]/30 hover:border-[#FFB701]/50"
-                            >
-                              <Edit className="w-4 h-4" />
-                              View
-                            </Button>
-                            <Button
-                              onClick={() => deleteDraft(draft.id)}
-                              variant="danger"
-                              size="sm"
-                              className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px] flex-1 sm:flex-none"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete
-                            </Button>
-                          </div>
+                          <Button
+                            onClick={() => deleteDraft(draft.id)}
+                            variant="danger"
+                            size="sm"
+                            className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px] flex-1 sm:flex-none"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </Button>
                         </div>
                       </div>
                       
