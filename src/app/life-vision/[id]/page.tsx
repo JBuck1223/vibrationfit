@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye } from 'lucide-react'
+import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye, FileText } from 'lucide-react'
 import { 
   Button, 
   Card, 
@@ -18,10 +18,15 @@ import {
   AudioPlayer,
   Stack,
   Inline,
-  CreatedDateBadge
+  CreatedDateBadge,
+  Heading,
+  Text
 } from '@/lib/design-system/components'
+import { VersionCard } from '@/app/profile/components/VersionCard'
 import { VisionVersionCard } from '../components/VisionVersionCard'
+import { VisionCategoryCard } from '../components/VisionCategoryCard'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { colors } from '@/lib/design-system/tokens'
 import { generateVisionPDF } from '@/lib/pdf'
 
 interface VisionData {
@@ -50,149 +55,6 @@ interface VisionData {
 
 // Use centralized vision categories
 const VISION_SECTIONS = VISION_CATEGORIES
-
-// VisionCard component moved outside to prevent re-creation on every render
-const VisionCard = ({ 
-  category, 
-  content, 
-  isEditing, 
-  onSave, 
-  onCancel, 
-  onUpdate, 
-  saving,
-  onEditCategory,
-  vision,
-  audioTrack
-}: { 
-  category: any, 
-  content: string, 
-  isEditing: boolean, 
-  onSave: () => void, 
-  onCancel: () => void, 
-  onUpdate: (content: string) => void, 
-  saving: boolean,
-  onEditCategory: (categoryKey: string) => void,
-  vision: any,
-  audioTrack?: { url: string; title: string }
-}) => {
-  const isCompleted = content?.trim().length > 0
-  
-  return (
-    <Card className="transition-all duration-300 hover:shadow-lg">
-      <div className="px-1 py-4 md:p-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCompleted ? 'bg-primary-500' : 'bg-neutral-700'}`}>
-            <Icon icon={category.icon} size="sm" color={isCompleted ? '#FFFFFF' : '#14B8A6'} />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-white">{category.label}</h3>
-            <p className="text-sm text-neutral-400">{category.description}</p>
-          </div>
-        </div>
-
-        {/* Content or Edit Mode */}
-        {isEditing ? (
-          <div className="space-y-4">
-            <AutoResizeTextarea
-              value={content || ''}
-              onChange={onUpdate}
-              placeholder={`Describe your vision for ${category.label.toLowerCase()}...`}
-              className="w-full bg-neutral-800 border-neutral-700 text-white placeholder-neutral-400 focus:border-primary-500 focus:outline-none"
-              minHeight={200}
-            />
-            <div className="flex justify-end gap-3">
-              <Button
-                onClick={onCancel}
-                variant="ghost"
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={onSave}
-                variant="primary"
-                disabled={saving}
-                className="flex items-center gap-2"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Content Display */}
-            <div className="mb-4">
-              {content?.trim() ? (
-                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg px-1 py-3 md:p-4">
-                  <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
-                    {content}
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg px-2 py-4 md:p-8 text-center">
-                  <p className="text-neutral-500 mb-3">No content for this section yet</p>
-                  <Button
-                    onClick={() => onEditCategory(category.key)}
-                    variant="primary"
-                    size="sm"
-                    className="flex items-center gap-2 mx-auto"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Add Content
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Audio Player */}
-            {audioTrack?.url && !isEditing && (
-              <div className="mb-4">
-                <AudioPlayer 
-                  track={{
-                    id: category.key,
-                    title: audioTrack.title || category.label,
-                    artist: '',
-                    duration: 180,
-                    url: audioTrack.url,
-                    thumbnail: ''
-                  }}
-                  showInfo={false}
-                />
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            {content?.trim() && (
-              <div className="flex justify-end gap-2">
-                <Button
-                  onClick={() => onEditCategory(category.key)}
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Edit
-                </Button>
-                <Button
-                  asChild
-                  variant="primary"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Link href={`/life-vision/${vision?.id}/refine?category=${category.key}`}>
-                    <Gem className="w-4 h-4" />
-                    Refine
-                  </Link>
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </Card>
-  )
-}
 
 export default function VisionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -870,73 +732,97 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
 
           {/* Versions Dropdown */}
-          {showVersions && versions.length > 0 && (
-            <div className="mt-6">
-              <Card className="p-4 md:p-6">
-                <h3 className="text-base md:text-lg font-semibold text-white mb-4">Version History</h3>
-                <Stack gap="sm">
-                  {versions.map((version) => (
-                    <VisionVersionCard
-                      key={version.id}
-                      version={version}
-                      isActive={version.id === vision?.id}
-                      actions={
-                        <>
-                          {version.id?.startsWith('draft-') ? (
-                            // Draft version - link to draft page
-                            // Extract vision ID from draft version ID (format: draft-{visionId})
-                            <Button
-                              asChild
-                              variant="outline"
-                              size="sm"
-                              className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
-                            >
-                              <Link href={`/life-vision/${version.id.replace('draft-', '')}/refine/draft`}>
-                                <Icon icon={Eye} size="sm" />
-                                <span className="ml-1 truncate">View Draft</span>
-                              </Link>
-                            </Button>
-                          ) : version.status === 'draft' ? (
+          {showVersions && (
+            <Card className="p-4 md:p-6 mb-6 md:mb-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
+                <Heading level={3} className="text-white text-lg md:text-xl">Version History</Heading>
+                <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
+              </div>
+              {versions.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                  <Text size="sm" className="text-neutral-400 mb-2">No saved versions yet</Text>
+                  <Text size="xs" className="text-neutral-500">Create your first version to get started</Text>
+                </div>
+              ) : (
+                <Stack gap="md">
+                  {versions.map((version) => {
+                    const isDraftVersion = version.id?.startsWith('draft-') || version.isDraft
+                    
+                    return (
+                      <div key={version.id} style={isDraftVersion ? { border: `2px solid ${colors.energy.yellow[500]}`, borderRadius: '0.75rem' } : undefined}>
+                        <VisionVersionCard
+                          version={version}
+                          isActive={version.id === vision?.id}
+                          actions={
                             <>
-                              <Button
-                                onClick={() => router.push('/life-vision/new')}
-                                variant="primary"
-                                size="sm"
-                                className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
-                              >
-                                <Icon icon={Sparkles} size="sm" color="#000000" />
-                                <span className="ml-1 truncate">Continue with VIVA</span>
-                              </Button>
-                              <Button
-                                onClick={() => router.push(`/life-vision/${version.id}`)}
-                                variant="secondary"
-                                size="sm"
-                                className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
-                              >
-                                <Icon icon={Edit3} size="sm" />
-                                <span className="ml-1 truncate">Edit On My Own</span>
-                              </Button>
+                              {version.id?.startsWith('draft-') ? (
+                                // Draft version - link to draft page with neon yellow button
+                                <Button
+                                  asChild
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
+                                  style={{
+                                    backgroundColor: colors.energy.yellow[500],
+                                    color: '#000000',
+                                    border: `2px solid ${colors.energy.yellow[500]}`
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = `${colors.energy.yellow[500]}E6`
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
+                                  }}
+                                >
+                                  <Link href={`/life-vision/${version.id.replace('draft-', '')}/refine/draft`}>
+                                    <Eye className="w-4 h-4" />
+                                    <span className="ml-1 truncate">View Draft</span>
+                                  </Link>
+                                </Button>
+                              ) : version.status === 'draft' ? (
+                                <>
+                                  <Button
+                                    onClick={() => router.push('/life-vision/new')}
+                                    variant="primary"
+                                    size="sm"
+                                    className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                                  >
+                                    <Sparkles className="w-4 h-4" />
+                                    <span className="ml-1 truncate">Continue with VIVA</span>
+                                  </Button>
+                                  <Button
+                                    onClick={() => router.push(`/life-vision/${version.id}`)}
+                                    variant="secondary"
+                                    size="sm"
+                                    className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                    <span className="ml-1 truncate">Edit On My Own</span>
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    onClick={() => router.push(`/life-vision/${version.id}`)}
+                                    variant="primary"
+                                    size="sm"
+                                    className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    View
+                                  </Button>
+                                </>
+                              )}
                             </>
-                          ) : (
-                            <>
-                              <Button
-                                onClick={() => router.push(`/life-vision/${version.id}`)}
-                                variant="outline"
-                                size="sm"
-                                className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
-                              >
-                                <Icon icon={Eye} size="sm" />
-                                <span className="ml-1">View</span>
-                              </Button>
-                            </>
-                          )}
-                        </>
-                      }
-                    />
-                  ))}
+                          }
+                        />
+                      </div>
+                    )
+                  })}
                 </Stack>
-              </Card>
-            </div>
+              )}
+            </Card>
           )}
         </div>
 
@@ -991,7 +877,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   const content = isEditing ? editingContent : originalContent
                   
                   return (
-                    <VisionCard
+                    <VisionCategoryCard
                       key={categoryKey}
                       category={category}
                       content={content}
@@ -1003,6 +889,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       onEditCategory={handleEditCategory}
                       vision={vision}
                       audioTrack={audioTracks[categoryKey]}
+                      editable={!isViewingVersion}
                     />
                   )
                 })}

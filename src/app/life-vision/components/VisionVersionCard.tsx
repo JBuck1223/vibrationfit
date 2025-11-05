@@ -67,14 +67,6 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
                 Complete
               </Badge>
             )}
-            <Badge variant="success" className="px-1 text-xs">
-              {version.completion_percent || 0}%
-            </Badge>
-            {isDraftVersion && version.draftCategories !== undefined && (
-              <Badge variant="info" className="px-1 text-xs">
-                {version.draftCategories} of {version.totalCategories || 14} categories drafted
-              </Badge>
-            )}
           </div>
           
           <div className="space-y-1">

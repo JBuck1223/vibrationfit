@@ -9,6 +9,7 @@ import { VisionVersionCard } from './components/VisionVersionCard'
 import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 import { LifeVisionSidebar } from './components/LifeVisionSidebar'
+import { colors } from '@/lib/design-system/tokens'
 
 // Use centralized vision categories
 const VISION_SECTIONS = getVisionCategoryKeys()
@@ -468,42 +469,54 @@ export default function VisionListPage() {
               {versions.map((version, index) => {
                 // Most recent complete version is "Active"
                 const isActive = version.id === activeVision?.id
+                const isDraftVersion = version.id?.startsWith('draft-') || (version as any).isDraft
                 
                 return (
-                  <VisionVersionCard
-                    key={version.id}
-                    version={version}
-                    isActive={isActive}
-                    actions={
-                      <>
-                        <Button
-                          onClick={() => router.push(`/life-vision/${version.id}`)}
-                          variant="primary"
-                          size="sm"
-                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View
-                        </Button>
-                        <Button
-                          onClick={() => deleteVersion(version.id)}
-                          variant="danger"
-                          size="sm"
-                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
-                          disabled={deletingVersion === version.id}
-                        >
-                          {deletingVersion === version.id ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div key={version.id} style={isDraftVersion ? { border: `2px solid ${colors.energy.yellow[500]}`, borderRadius: '0.75rem' } : undefined}>
+                    <VisionVersionCard
+                      version={version}
+                      isActive={isActive}
+                      actions={
+                        <>
+                          {isDraftVersion ? (
+                            // Draft version - link to draft page with neon yellow button
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
+                              style={{
+                                backgroundColor: colors.energy.yellow[500],
+                                color: '#000000',
+                                border: `2px solid ${colors.energy.yellow[500]}`
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = `${colors.energy.yellow[500]}E6`
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
+                              }}
+                            >
+                              <Link href={`/life-vision/${version.id.replace('draft-', '')}/refine/draft`}>
+                                <Eye className="w-4 h-4" />
+                                <span className="ml-1 truncate">View Draft</span>
+                              </Link>
+                            </Button>
                           ) : (
-                            <>
-                              <Trash2 className="w-4 h-4" />
-                              Delete
-                            </>
+                            <Button
+                              onClick={() => router.push(`/life-vision/${version.id}`)}
+                              variant="primary"
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Button>
                           )}
-                        </Button>
-                      </>
-                    }
-                  />
+                        </>
+                      }
+                    />
+                  </div>
                 )
               })}
             </div>
