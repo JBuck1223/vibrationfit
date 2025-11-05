@@ -36,7 +36,15 @@ export function useStorageData(): UseStorageDataReturn {
       setLoading(true)
       setError(null)
       
-      const response = await fetch('/api/storage/usage')
+      // Add timeout to prevent hanging (5 seconds)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      
+      const response = await fetch('/api/storage/usage', {
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
       
       if (!response.ok) {
         // Don't throw error, just set error state and return empty data
@@ -53,9 +61,13 @@ export function useStorageData(): UseStorageDataReturn {
 
       const storageData = await response.json()
       setData(storageData)
-    } catch (err) {
-      console.warn('Error fetching storage data:', err)
-      // Set empty data instead of throwing error
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.warn('Storage fetch timed out after 5 seconds')
+      } else {
+        console.warn('Error fetching storage data:', err)
+      }
+      // Set empty data instead of throwing error - don't block UI
       setData({
         totalFiles: 0,
         totalSize: 0,
@@ -69,6 +81,7 @@ export function useStorageData(): UseStorageDataReturn {
   }
 
   useEffect(() => {
+    // Don't block initial render - fetch storage data asynchronously
     fetchStorageData()
   }, [])
 

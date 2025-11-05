@@ -38,38 +38,40 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
   const { data: storageData, loading: storageLoading } = useStorageData()
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Parallelize all queries - don't wait for each one
+    const loadData = async () => {
+      // Set loading to false immediately so UI can render
+      // We'll update profile/storage as data comes in
+      setLoading(false)
       
-      if (userError) {
-        console.error('Sidebar: Error getting user:', userError)
+      // Parallel fetch: getUser and profile at the same time
+      const [userResult] = await Promise.allSettled([
+        supabase.auth.getUser()
+      ])
+      
+      if (userResult.status === 'fulfilled' && userResult.value.data?.user) {
+        const user = userResult.value.data.user
+        setUser(user)
+        
+        // Fetch profile (non-blocking - UI already rendered)
+        getActiveProfileClient(user.id)
+          .then(profileData => setProfile(profileData))
+          .catch(err => console.error('Sidebar: Error fetching profile:', err))
+      } else {
         setUser(null)
         setProfile(null)
-        setLoading(false)
-        return
       }
-      
-      setUser(user)
-      
-      // Fetch active profile using single source of truth
-      if (user) {
-        const profileData = await getActiveProfileClient(user.id)
-        setProfile(profileData)
-      } else {
-        setProfile(null)
-      }
-      
-      setLoading(false)
     }
 
-    getUser()
+    loadData()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        // Refetch active profile when user changes
-        const profileData = await getActiveProfileClient(session.user.id)
-        setProfile(profileData)
+        // Refetch active profile when user changes (non-blocking)
+        getActiveProfileClient(session.user.id)
+          .then(profileData => setProfile(profileData))
+          .catch(err => console.error('Sidebar: Error fetching profile:', err))
       } else {
         setProfile(null)
       }
