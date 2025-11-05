@@ -3,10 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Card, Button, Badge, DeleteConfirmationDialog, Spinner, Container, Stack, Grid, Heading, Text } from '@/lib/design-system/components'
+import { Card, Button, Badge, DeleteConfirmationDialog, Spinner, Container, Stack, Grid, Heading, Text, CreatedDateBadge } from '@/lib/design-system/components'
 import { VersionCard } from './components/VersionCard'
 import { 
-  User, 
   Edit3,
   FileText,
   Plus,
@@ -17,7 +16,6 @@ import {
   Activity,
   GitCompare
 } from 'lucide-react'
-import NextImage from 'next/image'
 
 interface ProfileData {
   id: string
@@ -258,24 +256,7 @@ export default function ProfileDashboardPage() {
             <Stack gap="md">
               {/* Profile Header */}
               <div className="text-center">
-                <div className="flex items-center justify-center mb-4">
-                  {activeProfile.profile_picture_url ? (
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-neutral-800 border-4 border-primary-500/20">
-                      <NextImage
-                        src={activeProfile.profile_picture_url}
-                        alt="Profile picture"
-                        width={96}
-                        height={96}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 border-4 border-primary-500/20 flex items-center justify-center">
-                      <User className="w-10 h-10 md:w-12 md:h-12 text-white" />
-                    </div>
-                  )}
-                </div>
-                <Heading level={2} className="text-white mb-3 text-2xl md:text-4xl">
+                <Heading level={2} className="text-white mb-3 text-4xl font-bold">
                   {activeProfile.first_name && activeProfile.last_name
                     ? `${activeProfile.first_name} ${activeProfile.last_name}`
                     : 'My Profile'}
@@ -293,12 +274,10 @@ export default function ProfileDashboardPage() {
                 </div>
                 
                 {/* Metadata */}
-                <div className="text-center mb-4 md:mb-6">
-                  <Text size="xs" className="text-neutral-500 mb-1">Created</Text>
-                  <Text size="sm" className="text-white">
-                    {new Date(activeProfile.created_at).toLocaleDateString()} at {new Date(activeProfile.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                  </Text>
-                </div>
+                <CreatedDateBadge 
+                  createdAt={activeProfile.created_at} 
+                  className="mb-4 md:mb-6"
+                />
               </div>
 
               {/* Action Buttons */}

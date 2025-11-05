@@ -33,7 +33,7 @@ export const VersionCard: React.FC<VersionCardProps> = ({
         {/* Version Info */}
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <Heading level={4} className="text-white text-base md:text-lg !mb-0 leading-none pb-0 font-bold">
+            <Heading level={4} className="text-white text-sm md:text-base !mb-0 leading-none pb-0 font-bold">
               Version {version.version_number}
             </Heading>
             {version.is_draft && (

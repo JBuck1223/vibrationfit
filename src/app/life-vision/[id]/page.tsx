@@ -17,7 +17,8 @@ import {
   Icon,
   AudioPlayer,
   Stack,
-  Inline
+  Inline,
+  CreatedDateBadge
 } from '@/lib/design-system/components'
 import { VisionVersionCard } from '../components/VisionVersionCard'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -296,19 +297,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     return completed
   }, [])
 
-  // Check for version parameter in URL
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const versionId = urlParams.get('versionId')
-    if (versionId) {
-      setCurrentVersionId(versionId)
-      fetchVisionVersion(versionId)
-    } else {
-      setCurrentVersionId(null)
-      setIsViewingVersion(false)
-    }
-  }, [])
-
   // Load audio tracks for vision
   const loadAudioTracks = async (visionId: string) => {
     try {
@@ -341,13 +329,16 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         health: 'health',
         family: 'family',
         love: 'love',
+        romance: 'love', // Legacy support: map romance to love
         social: 'social',
         fun: 'fun',
         travel: 'travel',
         home: 'home',
         money: 'money',
         work: 'work',
+        business: 'work', // Legacy support: map business to work
         stuff: 'stuff',
+        possessions: 'stuff', // Legacy support: map possessions to stuff
         giving: 'giving',
         spirituality: 'spirituality',
       }
@@ -476,7 +467,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     loadData()
   }, [params, router, supabase, calculateCompletion, getCompletedSections])
 
-  // Fetch specific version
+  // Fetch specific version (kept for backwards compatibility, but versions now navigate directly)
   const fetchVisionVersion = async (versionId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -829,13 +820,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             {/* Created Date & History */}
             <div className="flex items-center justify-center gap-3 mb-6">
               {/* Created Date Badge */}
-              <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg">
-                <div className="text-xs md:text-sm">
-                  <p className="text-white font-medium">
-                    {new Date(vision.created_at).toLocaleDateString()} at {new Date(vision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                  </p>
-                </div>
-              </div>
+              <CreatedDateBadge createdAt={vision.created_at} />
               
               {/* Version History Button */}
               {versions.length > 0 && (
@@ -897,7 +882,21 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       isActive={version.id === vision?.id}
                       actions={
                         <>
-                          {version.status === 'draft' ? (
+                          {version.id?.startsWith('draft-') ? (
+                            // Draft version - link to draft page
+                            // Extract vision ID from draft version ID (format: draft-{visionId})
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
+                            >
+                              <Link href={`/life-vision/${version.id.replace('draft-', '')}/refine/draft`}>
+                                <Icon icon={Eye} size="sm" />
+                                <span className="ml-1 truncate">View Draft</span>
+                              </Link>
+                            </Button>
+                          ) : version.status === 'draft' ? (
                             <>
                               <Button
                                 onClick={() => router.push('/life-vision/new')}
@@ -921,12 +920,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                           ) : (
                             <>
                               <Button
-                                onClick={() => {
-                                  const url = new URL(window.location.href)
-                                  url.searchParams.set('versionId', version.id)
-                                  window.history.pushState({}, '', url.toString())
-                                  fetchVisionVersion(version.id)
-                                }}
+                                onClick={() => router.push(`/life-vision/${version.id}`)}
                                 variant="outline"
                                 size="sm"
                                 className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
@@ -936,22 +930,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                               </Button>
                             </>
                           )}
-                          <Button
-                            onClick={() => deleteVersion(version.id)}
-                            variant="danger"
-                            size="sm"
-                            className="text-xs md:text-sm flex-1 min-w-0 shrink md:flex-none flex items-center justify-center gap-2"
-                            disabled={deletingVersion === version.id}
-                          >
-                            {deletingVersion === version.id ? (
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4" />
-                                Delete
-                              </>
-                            )}
-                          </Button>
                         </>
                       }
                     />
@@ -1040,13 +1018,40 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Navigation */}
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center space-y-4">
           <Link 
             href="/life-vision" 
             className="text-neutral-400 hover:text-white transition-colors"
           >
             ← Back to Life Visions
           </Link>
+          
+          {/* Delete Button */}
+          <div className="pt-6 border-t border-neutral-800">
+            <Button
+              onClick={() => {
+                if (confirm('Are you sure you want to delete this vision? This action cannot be undone.')) {
+                  deleteVersion(vision.id)
+                }
+              }}
+              variant="danger"
+              size="sm"
+              className="flex items-center gap-2 mx-auto"
+              disabled={deletingVersion === vision.id}
+            >
+              {deletingVersion === vision.id ? (
+                <>
+                  <Spinner variant="primary" size="sm" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Delete Vision
+                </>
+              )}
+            </Button>
+          </div>
         </div>
     </>
   )

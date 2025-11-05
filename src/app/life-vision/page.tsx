@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap, Target, Gem, Volume2, Download, VolumeX, Diamond } from 'lucide-react'
-import { Card, Button, Badge, ProgressBar, Spinner, Grid } from '@/lib/design-system/components'
+import { Card, Button, Badge, ProgressBar, Spinner, Grid, CreatedDateBadge } from '@/lib/design-system/components'
 import { VisionVersionCard } from './components/VisionVersionCard'
 import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
@@ -380,12 +380,10 @@ export default function VisionListPage() {
               </div>
               
               {/* Metadata */}
-              <div className="text-center mb-6">
-                <p className="text-xs text-neutral-500 mb-1">Created</p>
-                <p className="text-sm text-white">
-                  {new Date(activeVision.created_at).toLocaleDateString()} at {new Date(activeVision.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                </p>
-              </div>
+              <CreatedDateBadge 
+                createdAt={activeVision.created_at} 
+                className="mb-6"
+              />
             </div>
 
             {/* Action Buttons - Responsive Grid 2x2 on mobile */}

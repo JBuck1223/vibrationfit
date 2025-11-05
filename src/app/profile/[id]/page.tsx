@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack } from '@/lib/design-system/components'
+import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, CreatedDateBadge } from '@/lib/design-system/components'
 import { VersionCard } from '../components/VersionCard'
 import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -1464,18 +1464,9 @@ export default function ProfileDetailPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-neutral-400">Last Updated:</span>
-                  <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg">
-                    <div className="text-xs md:text-sm">
-                      <p className="text-white font-medium">
-                        {getCurrentVersionInfo()?.created_at 
-                          ? `${new Date(getCurrentVersionInfo()?.created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo()?.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
-                          : versions[0]?.created_at 
-                          ? `${new Date(versions[0].created_at).toLocaleDateString()} at ${new Date(versions[0].created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
-                          : 'Date not available'
-                        }
-                      </p>
-                    </div>
-                  </div>
+                  <CreatedDateBadge 
+                    createdAt={getCurrentVersionInfo()?.created_at || versions[0]?.created_at || new Date().toISOString()} 
+                  />
                 </div>
               </div>
             </Card>

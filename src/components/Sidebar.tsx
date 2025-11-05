@@ -13,10 +13,8 @@ import {
   ChevronDown,
   X,
   Zap,
-  HardDrive,
 } from 'lucide-react'
 import { userNavigation, adminNavigation, mobileNavigation, isNavItemActive, type NavItem } from '@/lib/navigation'
-import { useStorageData } from '@/hooks/useStorageData'
 
 interface SidebarProps {
   className?: string
@@ -33,9 +31,6 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
   const pathname = usePathname()
   // Memoize supabase client to prevent dependency array issues
   const supabase = useMemo(() => createClient(), [])
-  
-  // Fetch real-time storage data
-  const { data: storageData, loading: storageLoading } = useStorageData()
 
   useEffect(() => {
     // Parallelize all queries - don't wait for each one
@@ -245,90 +240,6 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
           )
         })}
       </nav>
-
-      {/* Token Balance and Storage Cards */}
-      {!collapsed && (
-        <div className="p-4 border-t border-neutral-800 space-y-3">
-          {/* Token Balance Card */}
-          <div className="px-3 py-2 bg-neutral-800/50 rounded-lg border border-neutral-700">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                Token Balance
-              </span>
-              <Zap className="w-3 h-3 text-[#FFB701]" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              {loading ? (
-                <div className="w-16 h-6 bg-neutral-700 rounded animate-pulse" />
-              ) : (
-                <>
-                  <span className="text-lg font-bold text-white">
-                    {(profile?.vibe_assistant_tokens_remaining ?? 0).toLocaleString()}
-                  </span>
-                  <span className="text-xs text-neutral-500">tokens</span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Storage Usage Card */}
-          <div className="px-3 py-2 bg-neutral-800/50 rounded-lg border border-neutral-700">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                Storage Usage
-              </span>
-              <HardDrive className="w-3 h-3 text-[#14B8A6]" />
-            </div>
-            
-            {/* Storage Stats */}
-            <div className="space-y-2">
-              {storageLoading ? (
-                <div className="flex items-center justify-center py-2">
-                  <div className="animate-spin w-4 h-4 border-2 border-[#14B8A6] border-t-transparent rounded-full" />
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-lg font-bold text-white">
-                      {storageData ? `${(storageData.totalSize / (1024 * 1024 * 1024)).toFixed(1)}` : '0.0'}
-                    </span>
-                    <span className="text-xs text-neutral-500">GB used</span>
-                  </div>
-                  
-                  {/* Progress Bar */}
-                  <div className="w-full bg-neutral-700 rounded-full h-1.5">
-                    <div 
-                      className="bg-gradient-to-r from-[#14B8A6] to-[#39FF14] h-1.5 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${Math.min((storageData?.totalSize || 0) / (10 * 1024 * 1024 * 1024) * 100, 100)}%` 
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Storage Limit */}
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-neutral-500">of 10 GB limit</span>
-                    <span className={`font-medium ${
-                      (storageData?.totalSize || 0) / (10 * 1024 * 1024 * 1024) > 0.8 
-                        ? 'text-[#FFB701]' 
-                        : 'text-[#14B8A6]'
-                    }`}>
-                      {((storageData?.totalSize || 0) / (10 * 1024 * 1024 * 1024) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  
-                  {/* File Count */}
-                  {storageData?.totalFiles && (
-                    <div className="text-xs text-neutral-500">
-                      {storageData.totalFiles} {storageData.totalFiles === 1 ? 'file' : 'files'}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       {!collapsed && (

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 export async function GET(request: NextRequest) {
   console.log('🚀 VISION API GET REQUEST STARTED')
@@ -89,6 +90,18 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ error: 'Vision not found' }, { status: 404 })
         }
 
+        // Calculate version number for the current vision first
+        let visionVersionNumber = vision.version_number || 1
+        try {
+          const { data: calculatedVersionNumber } = await supabase
+            .rpc('get_vision_version_number', { p_vision_id: vision.id })
+          
+          visionVersionNumber = calculatedVersionNumber || vision.version_number || 1
+        } catch (error) {
+          // If RPC function doesn't exist yet, use stored version_number
+          console.warn('Could not calculate version number, using stored:', error)
+        }
+
         // Load versions if requested
         let versions = []
         if (includeVersions) {
@@ -114,18 +127,67 @@ export async function GET(request: NextRequest) {
               })
             )
           }
-        }
 
-        // Calculate version number for the current vision
-        let visionVersionNumber = vision.version_number || 1
-        try {
-          const { data: calculatedVersionNumber } = await supabase
-            .rpc('get_vision_version_number', { p_vision_id: vision.id })
-          
-          visionVersionNumber = calculatedVersionNumber || vision.version_number || 1
-        } catch (error) {
-          // If RPC function doesn't exist yet, use stored version_number
-          console.warn('Could not calculate version number, using stored:', error)
+          // Check if draft refinements exist and add draft version
+          const { data: refinements } = await supabase
+            .from('refinements')
+            .select('category, output_text, created_at')
+            .eq('user_id', user.id)
+            .eq('vision_id', visionId)
+            .eq('operation_type', 'refine_vision')
+            .order('created_at', { ascending: false })
+
+          if (refinements && refinements.length > 0) {
+            // Build draft vision
+            const draftVision = { ...vision }
+            const draftCategories: string[] = []
+            
+            // Map refinements by category (take the most recent one per category)
+            const refinementMap = new Map<string, string>()
+            refinements.forEach((refinement: any) => {
+              if (refinement.category && refinement.output_text && !refinementMap.has(refinement.category)) {
+                refinementMap.set(refinement.category, refinement.output_text)
+                draftCategories.push(refinement.category)
+              }
+            })
+
+            // Combine vision values with draft refinements
+            VISION_CATEGORIES.forEach(category => {
+              const categoryKey = category.key as keyof typeof vision
+              if (refinementMap.has(category.key)) {
+                draftVision[categoryKey] = refinementMap.get(category.key) as any
+              }
+            })
+
+            // Calculate completion percentage for draft
+            const completedSections = VISION_CATEGORIES.filter(category => {
+              const categoryKey = category.key as keyof typeof draftVision
+              const value = draftVision[categoryKey] as string
+              return value && value.trim().length > 0
+            })
+            const draftCompletionPercentage = Math.round((completedSections.length / VISION_CATEGORIES.length) * 100)
+
+            // Get latest refinement timestamp for draft created_at
+            const latestRefinement = refinements[0]
+            const draftCreatedAt = latestRefinement?.created_at || new Date().toISOString()
+
+            // Create draft version object
+            const draftVersion = {
+              id: `draft-${visionId}`, // Special ID to identify draft
+              user_id: vision.user_id,
+              version_number: visionVersionNumber + 1, // Next version number
+              status: 'draft',
+              completion_percent: draftCompletionPercentage,
+              created_at: draftCreatedAt,
+              updated_at: new Date().toISOString(),
+              isDraft: true, // Flag to identify this is a draft
+              draftCategories: draftCategories.length,
+              totalCategories: VISION_CATEGORIES.length
+            }
+
+            // Add draft at the top of versions list
+            versions = [draftVersion, ...versions]
+          }
         }
 
         return NextResponse.json({
@@ -171,6 +233,27 @@ export async function GET(request: NextRequest) {
         latestVision = anyVision || null
       }
 
+      // Calculate version number for the latest vision first
+      let visionWithVersionNumber = latestVision
+      let visionVersionNumber = 1
+      if (latestVision) {
+        visionVersionNumber = latestVision.version_number || 1
+        try {
+          const { data: calculatedVersionNumber } = await supabase
+            .rpc('get_vision_version_number', { p_vision_id: latestVision.id })
+          
+          visionVersionNumber = calculatedVersionNumber || latestVision.version_number || 1
+        } catch (error) {
+          // If RPC function doesn't exist yet, use stored version_number
+          console.warn('Could not calculate version number, using stored:', error)
+        }
+        
+        visionWithVersionNumber = {
+          ...latestVision,
+          version_number: visionVersionNumber
+        }
+      }
+
       // Load versions if requested
       let versions = []
       if (includeVersions) {
@@ -205,25 +288,68 @@ export async function GET(request: NextRequest) {
             })
           )
         }
-      }
 
-      // Calculate version number for the latest vision
-      let visionWithVersionNumber = latestVision
-      if (latestVision) {
-        let visionVersionNumber = latestVision.version_number || 1
-        try {
-          const { data: calculatedVersionNumber } = await supabase
-            .rpc('get_vision_version_number', { p_vision_id: latestVision.id })
-          
-          visionVersionNumber = calculatedVersionNumber || latestVision.version_number || 1
-        } catch (error) {
-          // If RPC function doesn't exist yet, use stored version_number
-          console.warn('Could not calculate version number, using stored:', error)
-        }
-        
-        visionWithVersionNumber = {
-          ...latestVision,
-          version_number: visionVersionNumber
+        // Check if draft refinements exist for latest vision and add draft version
+        if (latestVision) {
+          const { data: refinements } = await supabase
+            .from('refinements')
+            .select('category, output_text, created_at')
+            .eq('user_id', user.id)
+            .eq('vision_id', latestVision.id)
+            .eq('operation_type', 'refine_vision')
+            .order('created_at', { ascending: false })
+
+          if (refinements && refinements.length > 0) {
+            // Build draft vision
+            const draftVision = { ...latestVision }
+            const draftCategories: string[] = []
+            
+            // Map refinements by category (take the most recent one per category)
+            const refinementMap = new Map<string, string>()
+            refinements.forEach((refinement: any) => {
+              if (refinement.category && refinement.output_text && !refinementMap.has(refinement.category)) {
+                refinementMap.set(refinement.category, refinement.output_text)
+                draftCategories.push(refinement.category)
+              }
+            })
+
+            // Combine vision values with draft refinements
+            VISION_CATEGORIES.forEach(category => {
+              const categoryKey = category.key as keyof typeof latestVision
+              if (refinementMap.has(category.key)) {
+                draftVision[categoryKey] = refinementMap.get(category.key) as any
+              }
+            })
+
+            // Calculate completion percentage for draft
+            const completedSections = VISION_CATEGORIES.filter(category => {
+              const categoryKey = category.key as keyof typeof draftVision
+              const value = draftVision[categoryKey] as string
+              return value && value.trim().length > 0
+            })
+            const draftCompletionPercentage = Math.round((completedSections.length / VISION_CATEGORIES.length) * 100)
+
+            // Get latest refinement timestamp for draft created_at
+            const latestRefinement = refinements[0]
+            const draftCreatedAt = latestRefinement?.created_at || new Date().toISOString()
+
+            // Create draft version object
+            const draftVersion = {
+              id: `draft-${latestVision.id}`, // Special ID to identify draft
+              user_id: latestVision.user_id,
+              version_number: visionVersionNumber + 1, // Next version number
+              status: 'draft',
+              completion_percent: draftCompletionPercentage,
+              created_at: draftCreatedAt,
+              updated_at: new Date().toISOString(),
+              isDraft: true, // Flag to identify this is a draft
+              draftCategories: draftCategories.length,
+              totalCategories: VISION_CATEGORIES.length
+            }
+
+            // Add draft at the top of versions list
+            versions = [draftVersion, ...versions]
+          }
         }
       }
 
