@@ -120,15 +120,18 @@ export function Header() {
                 >
                   {/* Simple Avatar - initials from name or email */}
                   <div className="w-8 h-8 rounded-full bg-[#39FF14] flex items-center justify-center text-black font-semibold text-sm">
-                    {(user.user_metadata?.first_name?.[0] || 
-                      user.user_metadata?.full_name?.[0] || 
-                      user.email?.[0])?.toUpperCase() || 'U'}
+                    {(() => {
+                      // Extract first initial from full_name if available
+                      const fullName = user.user_metadata?.full_name || ''
+                      const firstName = user.user_metadata?.first_name || fullName.split(' ')[0] || ''
+                      return (firstName[0] || user.email?.[0] || 'U').toUpperCase()
+                    })()}
                   </div>
                   
                   {/* Name - from metadata or email */}
                   <span className="text-white font-medium">
                     {user.user_metadata?.first_name || 
-                     user.user_metadata?.full_name || 
+                     (user.user_metadata?.full_name?.split(' ')[0]) || // Extract first name from full_name
                      user.email?.split('@')[0] || 
                      'User'}
                   </span>
