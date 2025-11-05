@@ -4,6 +4,7 @@ import React from 'react'
 import { usePathname } from 'next/navigation'
 import { PageLayout } from '@/lib/design-system'
 import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
 import { SidebarLayout } from '@/components/Sidebar'
 import { getPageType } from '@/lib/navigation'
 
@@ -51,13 +52,14 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     }
   }
   
-  // PUBLIC pages: Use Header + PageLayout (no sidebar, no footer)
+  // PUBLIC pages: Use Header + Footer with PageLayout (no sidebar)
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
       <PageLayout containerSize="xl">
         {children}
       </PageLayout>
+      <Footer />
     </div>
   )
 }
