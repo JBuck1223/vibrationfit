@@ -1506,9 +1506,20 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <Button
                   asChild
-                  variant="accent"
+                  variant="primary"
                   size="sm"
-                  className="flex items-center justify-center gap-1 w-full sm:w-auto"
+                  className="flex items-center justify-center gap-1 w-full sm:w-auto font-semibold"
+                  style={{
+                    backgroundColor: colors.energy.yellow[500],
+                    color: '#000000',
+                    border: `2px solid ${colors.energy.yellow[500]}`
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = `${colors.energy.yellow[500]}E6`
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
+                  }}
                 >
                   <Link href={`/life-vision/${visionId}/refine/draft`}>
                     <Eye className="w-4 h-4" />
