@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { PageLayout } from '@/lib/design-system'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { SidebarLayout } from '@/components/Sidebar'
 import { getPageType } from '@/lib/navigation'
 
 interface GlobalLayoutProps {
@@ -23,23 +24,35 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   
   // Render based on page type
   if (pageType === 'USER' || pageType === 'ADMIN') {
-    // User and Admin pages: Use PageLayout without sidebar
-    // Print pages: No PageLayout padding (full-screen interface)
+    // Print pages: No sidebar, no padding (full-screen interface)
     if (pathname?.includes('/print') && !pathname?.endsWith('/html')) {
       return <>{children}</>
     }
     
-    // Regular user/admin pages: Use PageLayout
-    return (
-      <div className="min-h-screen bg-black text-white">
-        <PageLayout containerSize="xl">
-          {children}
-        </PageLayout>
-      </div>
-    )
+    // USER pages: Use SidebarLayout with UserSidebar
+    if (pageType === 'USER') {
+      return (
+        <SidebarLayout isAdmin={false}>
+          <PageLayout containerSize="xl">
+            {children}
+          </PageLayout>
+        </SidebarLayout>
+      )
+    }
+    
+    // ADMIN pages: Use SidebarLayout with AdminSidebar
+    if (pageType === 'ADMIN') {
+      return (
+        <SidebarLayout isAdmin={true}>
+          <PageLayout containerSize="xl">
+            {children}
+          </PageLayout>
+        </SidebarLayout>
+      )
+    }
   }
   
-  // Public pages: Use Header + Footer with PageLayout
+  // PUBLIC pages: Use Header + Footer with PageLayout (no sidebar)
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
