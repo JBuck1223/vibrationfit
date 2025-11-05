@@ -750,11 +750,11 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                     const isDraftVersion = version.id?.startsWith('draft-') || version.isDraft
                     
                     return (
-                      <div key={version.id} style={isDraftVersion ? { border: `2px solid ${colors.energy.yellow[500]}`, borderRadius: '0.75rem' } : undefined}>
-                        <VisionVersionCard
-                          version={version}
-                          isActive={version.id === vision?.id}
-                          actions={
+                      <VisionVersionCard
+                        key={version.id}
+                        version={version}
+                        isActive={version.id === vision?.id}
+                        actions={
                             <>
                               {version.id?.startsWith('draft-') ? (
                                 // Draft version - link to draft page with neon yellow button
@@ -817,9 +817,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                             </>
                           }
                         />
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
                 </Stack>
               )}
             </Card>

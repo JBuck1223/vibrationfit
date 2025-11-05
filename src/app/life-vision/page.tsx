@@ -472,11 +472,11 @@ export default function VisionListPage() {
                 const isDraftVersion = version.id?.startsWith('draft-') || (version as any).isDraft
                 
                 return (
-                  <div key={version.id} style={isDraftVersion ? { border: `2px solid ${colors.energy.yellow[500]}`, borderRadius: '0.75rem' } : undefined}>
-                    <VisionVersionCard
-                      version={version}
-                      isActive={isActive}
-                      actions={
+                  <VisionVersionCard
+                    key={version.id}
+                    version={version}
+                    isActive={isActive}
+                    actions={
                         <>
                           {isDraftVersion ? (
                             // Draft version - link to draft page with neon yellow button
@@ -516,9 +516,8 @@ export default function VisionListPage() {
                         </>
                       }
                     />
-                  </div>
-                )
-              })}
+                  )
+                })}
             </div>
           </Card>
         )}
