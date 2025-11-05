@@ -36,29 +36,60 @@ export function Header() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      
-      // Fetch profile data if user is logged in
-      if (user) {
-        const profileData = await getActiveProfileClient(user.id)
-        setProfile(profileData)
-      } else {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError) {
+          console.error('Header: Error getting user:', userError)
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+          return
+        }
+        
+        setUser(user)
+        
+        // Fetch profile data if user is logged in
+        if (user) {
+          try {
+            const profileData = await getActiveProfileClient(user.id)
+            setProfile(profileData)
+          } catch (profileError) {
+            console.error('Header: Error fetching profile:', profileError)
+            setProfile(null)
+          }
+        } else {
+          setProfile(null)
+        }
+      } catch (err) {
+        console.error('Header: Unexpected error in getUser:', err)
+        setUser(null)
         setProfile(null)
+      } finally {
+        setLoading(false)
       }
-      
-      setLoading(false)
     }
 
     getUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        // Refetch profile when user changes
-        const profileData = await getActiveProfileClient(session.user.id)
-        setProfile(profileData)
-      } else {
+      try {
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          // Refetch profile when user changes
+          try {
+            const profileData = await getActiveProfileClient(session.user.id)
+            setProfile(profileData)
+          } catch (profileError) {
+            console.error('Header: Error fetching profile on auth change:', profileError)
+            setProfile(null)
+          }
+        } else {
+          setProfile(null)
+        }
+      } catch (err) {
+        console.error('Header: Error in auth state change:', err)
+        setUser(null)
         setProfile(null)
       }
     })
