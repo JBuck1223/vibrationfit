@@ -48,61 +48,27 @@ export function Header() {
           }
         }, 5000) // 5 second timeout
 
-        // Try getSession() first (faster, reads from localStorage)
-        // Fallback to getUser() if getSession() fails or returns no session
-        let user: User | null = null
-        let sessionError: any = null
-
-        try {
-          const { data: { session }, error: sessError } = await supabase.auth.getSession()
-          if (sessError) {
-            console.warn('Header: getSession() error, falling back to getUser():', sessError)
-            sessionError = sessError
-          } else if (session?.user) {
-            user = session.user
-          }
-        } catch (err) {
-          console.warn('Header: getSession() failed, falling back to getUser():', err)
-        }
-
-        // Fallback to getUser() if getSession() didn't work
-        if (!user && !sessionError) {
-          const { data: { user: getUserData }, error: userError } = await supabase.auth.getUser()
-          if (userError) {
-            console.error('Header: Error getting user:', userError)
-            setUser(null)
-            setProfile(null)
-            setLoading(false)
-            if (timeoutId) clearTimeout(timeoutId)
-            return
-          }
-          user = getUserData
-        } else if (sessionError) {
-          // If getSession() had an error, try getUser() as fallback
-          const { data: { user: getUserData }, error: userError } = await supabase.auth.getUser()
-          if (userError) {
-            console.error('Header: Error getting user (fallback):', userError)
-            setUser(null)
-            setProfile(null)
-            setLoading(false)
-            if (timeoutId) clearTimeout(timeoutId)
-            return
-          }
-          user = getUserData
-        }
+        // Use getUser() - reliable and works consistently
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
         
         if (!mounted) return
         
         if (timeoutId) clearTimeout(timeoutId)
+        
+        if (userError) {
+          console.error('Header: Error getting user:', userError)
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+          return
+        }
         
         setUser(user)
         
         // Fetch profile data if user is logged in
         if (user?.id) {
           try {
-            console.log('Header: Fetching profile for user:', user.id)
             const profileData = await getActiveProfileClient(user.id)
-            console.log('Header: Profile data received:', profileData)
             
             if (mounted) {
               setProfile(profileData)
