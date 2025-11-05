@@ -35,9 +35,13 @@ export function Header() {
   }
 
   useEffect(() => {
+    let mounted = true
+    
     const getUser = async () => {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (!mounted) return
         
         if (userError) {
           console.error('Header: Error getting user:', userError)
@@ -50,51 +54,70 @@ export function Header() {
         setUser(user)
         
         // Fetch profile data if user is logged in
-        if (user) {
+        if (user?.id) {
           try {
             const profileData = await getActiveProfileClient(user.id)
-            setProfile(profileData)
+            if (mounted) {
+              setProfile(profileData)
+            }
           } catch (profileError) {
             console.error('Header: Error fetching profile:', profileError)
-            setProfile(null)
+            if (mounted) {
+              setProfile(null)
+            }
           }
         } else {
           setProfile(null)
         }
       } catch (err) {
         console.error('Header: Unexpected error in getUser:', err)
-        setUser(null)
-        setProfile(null)
+        if (mounted) {
+          setUser(null)
+          setProfile(null)
+        }
       } finally {
-        setLoading(false)
+        if (mounted) {
+          setLoading(false)
+        }
       }
     }
 
     getUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return
+      
       try {
         setUser(session?.user ?? null)
-        if (session?.user) {
+        if (session?.user?.id) {
           // Refetch profile when user changes
           try {
             const profileData = await getActiveProfileClient(session.user.id)
-            setProfile(profileData)
+            if (mounted) {
+              setProfile(profileData)
+            }
           } catch (profileError) {
             console.error('Header: Error fetching profile on auth change:', profileError)
-            setProfile(null)
+            if (mounted) {
+              setProfile(null)
+            }
           }
         } else {
           setProfile(null)
         }
       } catch (err) {
         console.error('Header: Error in auth state change:', err)
-        setUser(null)
-        setProfile(null)
+        if (mounted) {
+          setUser(null)
+          setProfile(null)
+        }
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [supabase])
 
   const handleLogout = async () => {
@@ -117,6 +140,7 @@ export function Header() {
               width={200}
               height={40}
               className="h-8 w-auto"
+              style={{ width: 'auto', height: '2rem' }}
               priority
             />
           </Link>
