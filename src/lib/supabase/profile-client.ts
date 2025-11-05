@@ -21,22 +21,49 @@ export interface ActiveProfileFields {
 export async function getActiveProfileClient(userId: string): Promise<ActiveProfileFields | null> {
   const supabase = createClient()
   
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .maybeSingle()
+  try {
+    // Create a timeout promise that rejects after 5 seconds
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+    })
 
-  if (error) {
-    // Only log if it's not a "no rows" error
-    if (error.code && error.code !== 'PGRST116') {
-      console.error('Error fetching active profile:', error)
+    // Create the query promise
+    const queryPromise = supabase
+      .from('user_profiles')
+      .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .maybeSingle()
+      .then((result) => {
+        if (result.error) {
+          throw result.error
+        }
+        return result.data
+      })
+
+    // Race between query and timeout
+    const data = await Promise.race([queryPromise, timeoutPromise])
+
+    return data
+  } catch (err: any) {
+    // Handle timeout or other errors
+    if (err instanceof Error && err.message === 'Profile fetch timeout') {
+      console.warn('Profile fetch timed out after 5 seconds')
+      return null
     }
+    
+    // Handle Supabase errors
+    if (err?.code) {
+      // Only log if it's not a "no rows" error
+      if (err.code !== 'PGRST116') {
+        console.error('Error fetching active profile:', err)
+      }
+    } else {
+      console.error('Unexpected error fetching profile:', err)
+    }
+    
     return null
   }
-
-  return data
 }
 
 /**

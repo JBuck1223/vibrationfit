@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Prevent caching issues in production
+  generateBuildId: async () => {
+    // Use timestamp to ensure unique builds
+    return `build-${Date.now()}`
+  },
 };
 
 export default nextConfig;

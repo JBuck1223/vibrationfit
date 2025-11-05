@@ -36,12 +36,23 @@ export function Header() {
 
   useEffect(() => {
     let mounted = true
+    let timeoutId: NodeJS.Timeout | null = null
     
     const getUser = async () => {
       try {
+        // Set a timeout to prevent infinite loading
+        timeoutId = setTimeout(() => {
+          if (mounted) {
+            console.warn('Header: Profile fetch timeout, setting loading to false')
+            setLoading(false)
+          }
+        }, 10000) // 10 second timeout
+
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         
         if (!mounted) return
+        
+        if (timeoutId) clearTimeout(timeoutId)
         
         if (userError) {
           console.error('Header: Error getting user:', userError)
@@ -56,29 +67,41 @@ export function Header() {
         // Fetch profile data if user is logged in
         if (user?.id) {
           try {
+            // Set timeout for profile fetch
+            const profileTimeout = setTimeout(() => {
+              if (mounted) {
+                console.warn('Header: Profile fetch timed out')
+                setProfile(null)
+                setLoading(false)
+              }
+            }, 5000) // 5 second timeout for profile
+
             const profileData = await getActiveProfileClient(user.id)
+            
             if (mounted) {
+              clearTimeout(profileTimeout)
               setProfile(profileData)
+              setLoading(false)
             }
           } catch (profileError) {
             console.error('Header: Error fetching profile:', profileError)
             if (mounted) {
               setProfile(null)
+              setLoading(false)
             }
           }
         } else {
           setProfile(null)
+          setLoading(false)
         }
       } catch (err) {
         console.error('Header: Unexpected error in getUser:', err)
         if (mounted) {
           setUser(null)
           setProfile(null)
-        }
-      } finally {
-        if (mounted) {
           setLoading(false)
         }
+        if (timeoutId) clearTimeout(timeoutId)
       }
     }
 
@@ -116,6 +139,7 @@ export function Header() {
 
     return () => {
       mounted = false
+      if (timeoutId) clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
   }, [supabase])

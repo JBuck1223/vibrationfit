@@ -38,16 +38,30 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      // Set timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        setLoading(false)
+        setError('Login request timed out. Please try again.')
+      }, 30000) // 30 second timeout
 
-    if (error) {
-      setError(error.message)
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      } else {
+        router.push('/dashboard')
+        // Don't set loading to false here - let navigation handle it
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
       setLoading(false)
-    } else {
-      router.push('/dashboard')
     }
   }
 
@@ -64,12 +78,20 @@ export default function LoginPage() {
     console.log('🔍 Redirect URL:', `${window.location.origin}/auth/callback`)
 
     try {
+      // Set timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        setMagicLinkLoading(false)
+        setError('Request timed out. Please try again.')
+      }, 30000) // 30 second timeout
+
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
+
+      clearTimeout(timeoutId)
 
       console.log('🔍 Supabase response:', { data, error })
 
@@ -100,11 +122,19 @@ export default function LoginPage() {
     setError('')
 
     try {
+      // Set timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        setCodeLoading(false)
+        setError('Verification request timed out. Please try again.')
+      }, 30000) // 30 second timeout
+
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: code,
         type: 'email',
       })
+
+      clearTimeout(timeoutId)
 
       if (error) {
         setError(`Code verification failed: ${error.message}`)
