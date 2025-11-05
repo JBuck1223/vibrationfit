@@ -119,7 +119,7 @@ export function Header() {
                   className="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-neutral-800 transition-colors"
                 >
                   {/* Simple Avatar - just initials from email */}
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-semibold text-sm">
+                  <div className="w-8 h-8 rounded-full bg-[#39FF14] flex items-center justify-center text-black font-semibold text-sm">
                     {user.email?.[0]?.toUpperCase() || 'U'}
                   </div>
                   
