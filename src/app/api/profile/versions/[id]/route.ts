@@ -6,11 +6,6 @@ import { z } from 'zod'
 // Individual Profile Version API Endpoints
 // ============================================================================
 
-// Schema for updating profile completion percentage
-const UpdateCompletionSchema = z.object({
-  completionPercentage: z.number().min(0).max(100)
-})
-
 // ============================================================================
 // GET /api/profile/versions/[id] - Get specific profile version
 // ============================================================================
@@ -93,12 +88,6 @@ export async function PATCH(
       updated_at: new Date().toISOString()
     }
 
-    // Handle completion percentage update
-    if (body.completionPercentage !== undefined) {
-      const { completionPercentage } = UpdateCompletionSchema.parse({ completionPercentage: body.completionPercentage })
-      updateData.completion_percentage = completionPercentage
-    }
-
     // Handle version notes update
     if (body.versionNotes !== undefined) {
       updateData.version_notes = body.versionNotes
@@ -117,7 +106,6 @@ export async function PATCH(
         is_active,
         version_notes,
         parent_version_id,
-        completion_percentage,
         created_at,
         updated_at
       `)

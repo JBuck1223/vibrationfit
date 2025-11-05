@@ -14,7 +14,8 @@ import {
   X,
   Trash2,
   CheckCircle,
-  Activity
+  Activity,
+  GitCompare
 } from 'lucide-react'
 import NextImage from 'next/image'
 
@@ -24,7 +25,6 @@ interface ProfileData {
   first_name?: string
   last_name?: string
   profile_picture_url?: string
-  completion_percentage?: number
   version_number: number
   is_draft: boolean
   is_active: boolean
@@ -385,7 +385,25 @@ export default function ProfileDashboardPage() {
           <Card className="p-4 md:p-6 mb-6 md:mb-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
               <Heading level={3} className="text-white text-lg md:text-xl">Profile Versions</Heading>
-              <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
+              <div className="flex items-center gap-3">
+                {versions.length > 1 && (
+                  <Button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      router.push('/profile/compare')
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <GitCompare className="w-4 h-4" />
+                    Compare Any Two
+                  </Button>
+                )}
+                <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
+              </div>
             </div>
             <Stack gap="md">
               {versions.map((version) => {
@@ -398,7 +416,12 @@ export default function ProfileDashboardPage() {
                     actions={
                       <>
                         <Button
-                          onClick={() => router.push(`/profile/${version.id}`)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            router.push(`/profile/${version.id}`)
+                          }}
                           variant="primary"
                           size="sm"
                           className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
@@ -407,7 +430,12 @@ export default function ProfileDashboardPage() {
                           View
                         </Button>
                         <Button
-                          onClick={() => handleDeleteClick(version)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            handleDeleteClick(version)
+                          }}
                           variant="danger"
                           size="sm"
                           className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"

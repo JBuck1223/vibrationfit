@@ -9,7 +9,6 @@ interface VersionCardProps {
     version_number: number
     is_draft: boolean
     is_active: boolean
-    completion_percentage?: number
     created_at: string
   }
   actions?: React.ReactNode
@@ -22,7 +21,14 @@ export const VersionCard: React.FC<VersionCardProps> = ({
   className = ''
 }) => {
   return (
-    <Card variant="outlined" className={`p-3 md:p-4 ${className}`}>
+    <Card 
+      variant="outlined" 
+      className={`p-3 md:p-4 ${className}`}
+      onClick={(e) => {
+        // Prevent any click events from bubbling up
+        e.stopPropagation()
+      }}
+    >
       <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
         {/* Version Info */}
         <div className="flex-1 space-y-2">
@@ -45,9 +51,6 @@ export const VersionCard: React.FC<VersionCardProps> = ({
                 Complete
               </Badge>
             )}
-            <Badge variant="success" className="px-1 text-xs">
-              {version.completion_percentage || 0}%
-            </Badge>
           </div>
           
           <div className="space-y-1">

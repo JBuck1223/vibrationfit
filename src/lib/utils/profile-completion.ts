@@ -21,13 +21,29 @@ export function calculateProfileCompletion(profileData: ProfileData | null | und
 
   // Helper to check if a field has value
   const hasValue = (field: string) => {
+    // Check if field exists in the data (not just undefined)
+    if (!(field in profileData)) return false
     const value = profileData[field]
+    
+    // Handle arrays
     if (Array.isArray(value)) return value.length > 0
-    if (typeof value === 'boolean') return true // Booleans always count as having a value
-    return value !== null && value !== undefined && value !== ''
+    
+    // Booleans always count as having a value (even false)
+    if (typeof value === 'boolean') return true
+    
+    // Handle numbers (0 is a valid value)
+    if (typeof value === 'number') return true
+    
+    // Handle strings - check for non-empty, non-whitespace strings
+    if (typeof value === 'string') {
+      return value.trim().length > 0
+    }
+    
+    // Handle null/undefined
+    return value !== null && value !== undefined
   }
 
-  // Core Fields (always required)
+  // Core Fields
   const coreFields = ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'profile_picture_url']
   coreFields.forEach(field => {
     totalFields++

@@ -948,18 +948,6 @@ export default function ProfileEditPage() {
           </div>
         </div>
 
-        {/* Completion Celebration */}
-        {completionPercentage === 100 && (
-          <div className="mt-8 p-6 bg-gradient-to-r from-primary-500/20 to-secondary-500/20 border border-primary-500/30 rounded-xl text-center">
-            <div className="text-4xl mb-4">🎉</div>
-            <h3 className="text-2xl font-bold text-white mb-2">Profile Complete!</h3>
-            <p className="text-neutral-300">
-              Your Vibrational Intelligence Virtual Assistant now has a complete understanding of your life context. 
-              Expect more personalized and relevant guidance in all your interactions.
-            </p>
-          </div>
-        )}
-        
         {/* Warning Dialogs */}
         <WarningConfirmationDialog
           isOpen={showDraftWarning}

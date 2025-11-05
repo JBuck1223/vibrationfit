@@ -125,18 +125,30 @@ export default function NewProfileVersionPage() {
           throw new Error('Failed to fetch profile')
         }
         const data = await response.json()
-        setProfile(data.profile || {})
-        setCompletionPercentage(data.completionPercentage || 0)
+        const existingProfile = data.profile && Object.keys(data.profile).length > 0
+        
+        // If profile already exists, redirect to dashboard
+        // /profile/new should ONLY be for creating the first profile
+        if (existingProfile) {
+          router.push('/profile')
+          return
+        }
+        
+        // No profile exists - start with empty profile for first-time creation
+        setProfile({})
+        setCompletionPercentage(0)
       } catch (error) {
         console.error('Error fetching profile:', error)
         setError('Failed to load profile data')
+        // If error, assume no profile exists and start fresh
+        setProfile({})
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchProfile()
-  }, [])
+  }, [router])
 
   // Recalculate completion percentage whenever profile changes
   useEffect(() => {
@@ -152,12 +164,13 @@ export default function NewProfileVersionPage() {
     // No auto-save for new versions - user must click "Create Version" button
   }, [])
 
-  // Save as new version function
+  // Save as new version function (or create first profile)
   const saveAsNewVersion = async (isDraft = false) => {
     setIsSaving(true)
     setSaveStatus('saving')
 
     try {
+      // /profile/new should ONLY create the first profile (never create versions)
       const response = await fetch('/api/profile', {
         method: 'POST',
         headers: {
@@ -165,8 +178,8 @@ export default function NewProfileVersionPage() {
         },
         body: JSON.stringify({ 
           profileData: profile, 
-          saveAsVersion: true, 
-          isDraft 
+          saveAsVersion: false, // Always false - this is for first profile only
+          isDraft: false // First profile cannot be a draft
         }),
       })
 
@@ -343,9 +356,9 @@ export default function NewProfileVersionPage() {
               Back to Profile
             </Button>
             <div className="flex-1">
-              <h1 className="text-4xl font-bold text-white mb-2">Create New Profile Version</h1>
+              <h1 className="text-4xl font-bold text-white mb-2">Create Your Profile</h1>
               <p className="text-neutral-400">
-                Make changes to your profile and save as a new version to track your growth over time.
+                Fill out your profile information to get started with VibrationFit.
               </p>
             </div>
           </div>
@@ -384,23 +397,13 @@ export default function NewProfileVersionPage() {
               {completionPercentage}% Complete
             </Badge>
             <Button
-              onClick={() => saveAsNewVersion(true)}
-              disabled={isSaving}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Save as Draft
-            </Button>
-            <Button
               onClick={handleManualSave}
               disabled={isSaving}
               size="sm"
               className="flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Save As New Version'}
+              {isSaving ? 'Saving...' : 'Create Profile'}
             </Button>
           </div>
         </div>

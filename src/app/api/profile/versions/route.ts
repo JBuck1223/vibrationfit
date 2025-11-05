@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
         is_active,
         version_notes,
         parent_version_id,
-        completion_percentage,
         created_at,
         updated_at
       `)
@@ -128,7 +127,6 @@ export async function POST(request: NextRequest) {
         is_active,
         version_notes,
         parent_version_id,
-        completion_percentage,
         created_at,
         updated_at
       `)
@@ -213,7 +211,6 @@ export async function PUT(request: NextRequest) {
         is_active,
         version_notes,
         parent_version_id,
-        completion_percentage,
         created_at,
         updated_at
       `)
@@ -302,7 +299,6 @@ export async function PATCH(request: NextRequest) {
         is_active,
         version_notes,
         parent_version_id,
-        completion_percentage,
         created_at,
         updated_at
       `)

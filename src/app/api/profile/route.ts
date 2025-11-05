@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
         console.log('🔍 PROFILE API: Fetching versions for user:', user.id)
         const { data: allVersions, error: versionsError } = await supabase
           .from('user_profiles')
-          .select('id, version_number, completion_percentage, is_draft, is_active, version_notes, created_at, updated_at')
+          .select('id, version_number, is_draft, is_active, version_notes, created_at, updated_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
         
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
               // Re-fetch versions after setting active
               const { data: refreshedVersions } = await supabase
                 .from('user_profiles')
-                .select('id, version_number, completion_percentage, is_draft, is_active, version_notes, created_at, updated_at')
+                .select('id, version_number, is_draft, is_active, version_notes, created_at, updated_at')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
               if (refreshedVersions) {
@@ -185,15 +185,15 @@ export async function GET(request: NextRequest) {
               .eq('id', version.id)
               .single()
             
-            // Recalculate completion percentage for accuracy
-            const accurateCompletion = fullVersion ? calculateProfileCompletion(fullVersion) : (version.completion_percentage || 0)
+            // Calculate completion percentage (for response, not stored)
+            const accurateCompletion = fullVersion ? calculateProfileCompletion(fullVersion) : 0
             
             const versionWithNumber = {
               ...version,
-              version_number: calculatedVersion || version.version_number || 1,
-              completion_percentage: accurateCompletion // Always use recalculated value
+              version_number: calculatedVersion || version.version_number || 1
+              // Note: completion_percentage is calculated on-the-fly but not included in version cards
             }
-            console.log(`📊 PROFILE API: Version ${version.id} - is_active: ${version.is_active}, is_draft: ${version.is_draft}, calculated_version: ${calculatedVersion}, completion: ${accurateCompletion}`)
+            console.log(`📊 PROFILE API: Version ${version.id} - calculated completion: ${accurateCompletion}%`)
             return versionWithNumber
           }))
           // Sort by calculated version number (descending)
@@ -348,14 +348,8 @@ export async function POST(request: NextRequest) {
               throw updateError
             }
 
-            // Recalculate completion to ensure accuracy
+            // Calculate completion (for response, not stored)
             const recalculatedCompletion = calculateProfileCompletion(updatedDraft)
-            
-            // Update the database with accurate completion
-            await supabase
-              .from('user_profiles')
-              .update({ completion_percentage: recalculatedCompletion })
-              .eq('id', updatedDraft.id)
             
             // Calculate version number based on chronological order
             const { data: calculatedVersionNumber } = await supabase
@@ -447,7 +441,7 @@ export async function POST(request: NextRequest) {
         }
         newDraftId = draftId
         
-        // Update the draft with the new profileData and recalculate completion_percentage
+        // Calculate completion percentage (for response, not stored)
         const completionPercentage = calculateProfileCompletion(cleanedProfileData)
         
         // Remove id and versioning fields from profileData to avoid conflicts
@@ -457,7 +451,6 @@ export async function POST(request: NextRequest) {
           .from('user_profiles')
           .update({
             ...profileDataToUpdate,
-            completion_percentage: completionPercentage,
             updated_at: new Date().toISOString()
           })
           .eq('id', newDraftId)
@@ -510,14 +503,8 @@ export async function POST(request: NextRequest) {
             .rpc('get_profile_version_number', { p_profile_id: committedVersion.id })
           const versionNumber = calculatedVersionNumber || committedVersion.version_number || 1
 
-          // Recalculate completion for accuracy
+          // Calculate completion (for response, not stored)
           const recalculatedCompletion = calculateProfileCompletion(committedVersion)
-          
-          // Update database with accurate completion
-          await supabase
-            .from('user_profiles')
-            .update({ completion_percentage: recalculatedCompletion })
-            .eq('id', committedVersion.id)
 
           return NextResponse.json({
             profile: committedVersion,
@@ -540,14 +527,8 @@ export async function POST(request: NextRequest) {
           .rpc('get_profile_version_number', { p_profile_id: updatedVersion.id })
         const versionNumber = calculatedVersionNumber || updatedVersion.version_number || 1
 
-        // Recalculate completion for accuracy
+        // Calculate completion (for response, not stored)
         const recalculatedCompletion = calculateProfileCompletion(updatedVersion)
-        
-        // Update database with accurate completion
-        await supabase
-          .from('user_profiles')
-          .update({ completion_percentage: recalculatedCompletion })
-          .eq('id', updatedVersion.id)
 
         return NextResponse.json({
           profile: updatedVersion,
