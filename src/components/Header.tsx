@@ -118,14 +118,19 @@ export function Header() {
                   }}
                   className="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-neutral-800 transition-colors"
                 >
-                  {/* Simple Avatar - just initials from email */}
+                  {/* Simple Avatar - initials from name or email */}
                   <div className="w-8 h-8 rounded-full bg-[#39FF14] flex items-center justify-center text-black font-semibold text-sm">
-                    {user.email?.[0]?.toUpperCase() || 'U'}
+                    {(user.user_metadata?.first_name?.[0] || 
+                      user.user_metadata?.full_name?.[0] || 
+                      user.email?.[0])?.toUpperCase() || 'U'}
                   </div>
                   
-                  {/* Name - just email, no profile data */}
+                  {/* Name - from metadata or email */}
                   <span className="text-white font-medium">
-                    {user.email?.split('@')[0] || 'User'}
+                    {user.user_metadata?.first_name || 
+                     user.user_metadata?.full_name || 
+                     user.email?.split('@')[0] || 
+                     'User'}
                   </span>
                   
                   <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${openDropdown === 'account' ? 'rotate-180' : ''}`} />
