@@ -69,9 +69,11 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
   // Check cache first
   const cached = getCachedProfile(userId)
   if (cached !== undefined) {
+    console.log('Profile cache hit for user:', userId)
     return cached
   }
   
+  console.log('Profile cache miss, fetching from database for user:', userId)
   const supabase = createClient()
   
   try {
@@ -89,8 +91,10 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
       .maybeSingle()
       .then((result) => {
         if (result.error) {
+          console.error('Profile query error:', result.error)
           throw result.error
         }
+        console.log('Profile query result:', result.data)
         return result.data
       })
 
@@ -99,12 +103,13 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
     
     // Cache the result
     setCachedProfile(userId, data)
+    console.log('Profile cached successfully:', data)
     
     return data
   } catch (err: any) {
     // Handle timeout or other errors
     if (err instanceof Error && err.message === 'Profile fetch timeout') {
-      console.warn('Profile fetch timed out after 5 seconds')
+      console.warn('Profile fetch timed out after 5 seconds for user:', userId)
       // Cache null result to prevent repeated timeouts
       setCachedProfile(userId, null)
       return null
@@ -115,6 +120,8 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
       // Only log if it's not a "no rows" error
       if (err.code !== 'PGRST116') {
         console.error('Error fetching active profile:', err)
+      } else {
+        console.log('No active profile found (PGRST116) for user:', userId)
       }
     } else {
       console.error('Unexpected error fetching profile:', err)
