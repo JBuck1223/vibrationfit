@@ -190,6 +190,7 @@ export function Footer({ className = '' }: FooterProps) {
               width={120}
               height={24}
               className="h-6 w-auto"
+              style={{ width: 'auto', height: '1.5rem' }}
             />
           </div>
           <p className="text-neutral-400 text-sm mb-4">
