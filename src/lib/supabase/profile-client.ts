@@ -46,6 +46,20 @@ function setCachedProfile(userId: string, data: ActiveProfileFields | null): voi
 }
 
 /**
+ * Clear cached profile for a user (useful after profile updates)
+ */
+export function clearProfileCache(userId: string): void {
+  profileCache.delete(userId)
+}
+
+/**
+ * Clear all cached profiles (useful on logout)
+ */
+export function clearAllProfileCache(): void {
+  profileCache.clear()
+}
+
+/**
  * Get the active profile for a user (client-side)
  * Single source of truth for fetching active profile on the client
  * Filters by is_active = true to ensure we get the correct profile
