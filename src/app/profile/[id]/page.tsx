@@ -4,10 +4,11 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, CreatedDateBadge } from '@/lib/design-system/components'
 import { VersionCard } from '../components/VersionCard'
-import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
 import { ProfileField } from '../components/ProfileField'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { ProfilePictureUpload } from '../components/ProfilePictureUpload'
 import { 
   User, 
   Heart, 
@@ -131,6 +132,7 @@ export default function ProfileDetailPage() {
   // Delete confirmation state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [versionToDelete, setVersionToDelete] = useState<any>(null)
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -472,11 +474,19 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label="My Current Story Around Romance & Partnership" 
-              value={profile.love_story}
+              label={`What's going well in ${getVisionCategoryLabel('love')}?`}
+              value={profile.clarity_love}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="love_story"
+              fieldKey="clarity_love"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('love')}?`}
+              value={profile.contrast_love}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_love"
               onSave={handleFieldSave}
             />
           </>
@@ -511,11 +521,19 @@ export default function ProfileDetailPage() {
               placeholder="Add child's age (e.g., 5, 12, 16)"
             />
             <ProfileField 
-              label="My Current Story Around Family & Parenting" 
-              value={profile.family_story}
+              label={`What's going well in ${getVisionCategoryLabel('family')}?`}
+              value={profile.clarity_family}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="family_story"
+              fieldKey="clarity_family"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
+              value={profile.contrast_family}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_family"
               onSave={handleFieldSave}
             />
           </>
@@ -568,11 +586,19 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label="My Current Story Around Health & Vitality" 
-              value={profile.health_story}
+              label={`What's going well in ${getVisionCategoryLabel('health')}?`}
+              value={profile.clarity_health}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="health_story"
+              fieldKey="clarity_health"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
+              value={profile.contrast_health}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_health"
               onSave={handleFieldSave}
             />
           </>
@@ -639,11 +665,19 @@ export default function ProfileDetailPage() {
               onSave={handleFieldSave}
             />
             <ProfileField 
-              label="My Current Story Around Home & Environment" 
-              value={profile.home_story}
+              label={`What's going well in ${getVisionCategoryLabel('home')}?`}
+              value={profile.clarity_home}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="home_story"
+              fieldKey="clarity_home"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
+              value={profile.contrast_home}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_home"
               onSave={handleFieldSave}
             />
           </>
@@ -725,11 +759,19 @@ export default function ProfileDetailPage() {
               type="story"
             />
             <ProfileField 
-              label="My Current Story Around Career & Work" 
-              value={profile.work_story}
+              label={`What's going well in ${getVisionCategoryLabel('work')}?`}
+              value={profile.clarity_work}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="work_story"
+              fieldKey="clarity_work"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('work')}?`}
+              value={profile.contrast_work}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_work"
               onSave={handleFieldSave}
             />
           </>
@@ -820,11 +862,19 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label="My Current Story Around Money & Wealth" 
-              value={profile.money_story}
+              label={`What's going well in ${getVisionCategoryLabel('money')}?`}
+              value={profile.clarity_money}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="money_story"
+              fieldKey="clarity_money"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
+              value={profile.contrast_money}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_money"
               onSave={handleFieldSave}
             />
           </>
@@ -857,11 +907,19 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label="My Current Story Around Fun & Recreation" 
-              value={profile.fun_story}
+              label={`What's going well in ${getVisionCategoryLabel('fun')}?`}
+              value={profile.clarity_fun}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="fun_story"
+              fieldKey="clarity_fun"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('fun')}?`}
+              value={profile.contrast_fun}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_fun"
               onSave={handleFieldSave}
             />
           </>
@@ -901,11 +959,19 @@ export default function ProfileDetailPage() {
               onSave={handleFieldSave}
             />
             <ProfileField 
-              label="My Current Story Around Travel & Adventure" 
-              value={profile.travel_story}
+              label={`What's going well in ${getVisionCategoryLabel('travel')}?`}
+              value={profile.clarity_travel}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="travel_story"
+              fieldKey="clarity_travel"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('travel')}?`}
+              value={profile.contrast_travel}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_travel"
               onSave={handleFieldSave}
             />
           </>
@@ -942,11 +1008,19 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label="My Current Story Around Social & Friends" 
-              value={profile.social_story}
+              label={`What's going well in ${getVisionCategoryLabel('social')}?`}
+              value={profile.clarity_social}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="social_story"
+              fieldKey="clarity_social"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
+              value={profile.contrast_social}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_social"
               onSave={handleFieldSave}
             />
           </>
@@ -977,11 +1051,19 @@ export default function ProfileDetailPage() {
               onSave={handleFieldSave}
             />
             <ProfileField 
-              label="My Current Story Around Possessions & Lifestyle" 
-              value={profile.stuff_story}
+              label={`What's going well in ${getVisionCategoryLabel('stuff')}?`}
+              value={profile.clarity_stuff}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="stuff_story"
+              fieldKey="clarity_stuff"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('stuff')}?`}
+              value={profile.contrast_stuff}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_stuff"
               onSave={handleFieldSave}
             />
           </>
@@ -1027,11 +1109,19 @@ export default function ProfileDetailPage() {
               onSave={handleFieldSave}
             />
             <ProfileField 
-              label="My Current Story Around Spirituality & Growth" 
-              value={profile.spirituality_story}
+              label={`What's going well in ${getVisionCategoryLabel('spirituality')}?`}
+              value={profile.clarity_spirituality}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="spirituality_story"
+              fieldKey="clarity_spirituality"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
+              value={profile.contrast_spirituality}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_spirituality"
               onSave={handleFieldSave}
             />
           </>
@@ -1077,11 +1167,19 @@ export default function ProfileDetailPage() {
               onSave={handleFieldSave}
             />
             <ProfileField 
-              label="My Current Story Around Giving & Legacy" 
-              value={profile.giving_story}
+              label={`What's going well in ${getVisionCategoryLabel('giving')}?`}
+              value={profile.clarity_giving}
               type="story"
               editable={!isViewingVersion}
-              fieldKey="giving_story"
+              fieldKey="clarity_giving"
+              onSave={handleFieldSave}
+            />
+            <ProfileField 
+              label={`What's not going well in ${getVisionCategoryLabel('giving')}?`}
+              value={profile.contrast_giving}
+              type="story"
+              editable={!isViewingVersion}
+              fieldKey="contrast_giving"
               onSave={handleFieldSave}
             />
           </>
@@ -1355,14 +1453,35 @@ export default function ProfileDetailPage() {
               </p>
             )}
             <Button
-              onClick={() => router.push('/profile/edit')}
+              onClick={() => setShowPhotoUpload(true)}
               variant="outline"
               size="sm"
               className="w-full"
+              disabled={isViewingVersion}
             >
               <Camera className="w-4 h-4 mr-2" />
               Update Photo
             </Button>
+            {showPhotoUpload && (
+              <div className="mt-4">
+                <ProfilePictureUpload
+                  currentImageUrl={profile.profile_picture_url}
+                  profileId={profileId}
+                  onImageChange={(url) => {
+                    setProfile(prev => ({ ...prev, profile_picture_url: url }))
+                    setShowPhotoUpload(false)
+                  }}
+                  onError={(error) => {
+                    console.error('Photo upload error:', error)
+                    alert(error)
+                  }}
+                  onUploadComplete={() => {
+                    setShowPhotoUpload(false)
+                    fetchProfile() // Refresh profile data
+                  }}
+                />
+              </div>
+            )}
           </Card>
 
           {/* Quick Stats */}

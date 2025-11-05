@@ -14,9 +14,10 @@ interface ProfilePictureUploadProps {
   onImageChange: (url: string) => void
   onError: (error: string) => void
   onUploadComplete?: () => void
+  profileId?: string | null // Optional: specific profile ID to update
 }
 
-export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, onUploadComplete }: ProfilePictureUploadProps) {
+export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, onUploadComplete, profileId }: ProfilePictureUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [showCropper, setShowCropper] = useState(false)
@@ -181,31 +182,17 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
       const uploadResult = await uploadUserFile('profilePicture', croppedFile, user.id)
       console.log('Upload result:', uploadResult)
 
-      // Update the active profile with new picture URL
-      // First, try to find the active profile
-      const { data: activeProfile, error: findError } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .eq('is_draft', false)
-        .maybeSingle()
-
-      if (findError) {
-        console.error('Error finding active profile:', findError)
-        onError('Failed to find active profile')
-        return
-      }
-
-      if (activeProfile?.id) {
-        // Update existing active profile
+      // Update specific profile or active profile
+      if (profileId) {
+        // Update specific profile ID
         const { error: updateError } = await supabase
           .from('user_profiles')
           .update({ 
             profile_picture_url: uploadResult.url,
             updated_at: new Date().toISOString()
           })
-          .eq('id', activeProfile.id)
+          .eq('id', profileId)
+          .eq('user_id', user.id) // Security: ensure user owns this profile
 
         if (updateError) {
           console.error('Error updating profile with new picture:', updateError)
@@ -213,22 +200,52 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
           return
         }
       } else {
-        // No active profile found - create one (shouldn't happen, but handle gracefully)
-        console.warn('No active profile found, creating new profile')
-        const { error: createError } = await supabase
+        // Fallback: Update the active profile
+        const { data: activeProfile, error: findError } = await supabase
           .from('user_profiles')
-          .insert({
-            user_id: user.id,
-            profile_picture_url: uploadResult.url,
-            is_active: true,
-            is_draft: false,
-            version_number: 1
-          })
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .eq('is_draft', false)
+          .maybeSingle()
 
-        if (createError) {
-          console.error('Error creating profile with picture:', createError)
-          onError('Failed to create profile')
+        if (findError) {
+          console.error('Error finding active profile:', findError)
+          onError('Failed to find active profile')
           return
+        }
+
+        if (activeProfile?.id) {
+          const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update({ 
+              profile_picture_url: uploadResult.url,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', activeProfile.id)
+
+          if (updateError) {
+            console.error('Error updating profile with new picture:', updateError)
+            onError('Failed to update profile')
+            return
+          }
+        } else {
+          console.warn('No active profile found, creating new profile')
+          const { error: createError } = await supabase
+            .from('user_profiles')
+            .insert({
+              user_id: user.id,
+              profile_picture_url: uploadResult.url,
+              is_active: true,
+              is_draft: false,
+              version_number: 1
+            })
+
+          if (createError) {
+            console.error('Error creating profile with picture:', createError)
+            onError('Failed to create profile')
+            return
+          }
         }
       }
 
