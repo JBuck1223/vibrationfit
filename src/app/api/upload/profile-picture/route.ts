@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get('file') as File
+    const profileId = formData.get('profileId') as string | null // Optional profile ID
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
@@ -53,50 +54,66 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Upload failed - no result returned' }, { status: 500 })
     }
 
-    // Update the active profile with new picture URL
-    // First, find the active profile
-    const { data: activeProfile, error: findError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .eq('is_draft', false)
-      .maybeSingle()
-
-    if (findError) {
-      console.error('Error finding active profile:', findError)
-      return NextResponse.json({ error: 'Failed to find active profile' }, { status: 500 })
-    }
-
-    if (activeProfile?.id) {
-      // Update existing active profile
+    // Update specific profile or active profile
+    if (profileId) {
+      // Update specific profile ID
       const { error: updateError } = await supabase
         .from('user_profiles')
         .update({ 
           profile_picture_url: uploadResult.url,
           updated_at: new Date().toISOString()
         })
-        .eq('id', activeProfile.id)
+        .eq('id', profileId)
+        .eq('user_id', user.id) // Security: ensure user owns this profile
 
       if (updateError) {
         console.error('Error updating profile with new picture:', updateError)
         return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
       }
     } else {
-      // No active profile found - create one
-      const { error: createError } = await supabase
+      // Fallback: Update the active profile
+      const { data: activeProfile, error: findError } = await supabase
         .from('user_profiles')
-        .insert({
-          user_id: user.id,
-          profile_picture_url: uploadResult.url,
-          is_active: true,
-          is_draft: false,
-          version_number: 1
-        })
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('is_draft', false)
+        .maybeSingle()
 
-      if (createError) {
-        console.error('Error creating profile with picture:', createError)
-        return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 })
+      if (findError) {
+        console.error('Error finding active profile:', findError)
+        return NextResponse.json({ error: 'Failed to find active profile' }, { status: 500 })
+      }
+
+      if (activeProfile?.id) {
+        const { error: updateError } = await supabase
+          .from('user_profiles')
+          .update({ 
+            profile_picture_url: uploadResult.url,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', activeProfile.id)
+
+        if (updateError) {
+          console.error('Error updating profile with new picture:', updateError)
+          return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+        }
+      } else {
+        // No active profile found - create one
+        const { error: createError } = await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: user.id,
+            profile_picture_url: uploadResult.url,
+            is_active: true,
+            is_draft: false,
+            version_number: 1
+          })
+
+        if (createError) {
+          console.error('Error creating profile with picture:', createError)
+          return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 })
+        }
       }
     }
 
