@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, Button, Badge, DeleteConfirmationDialog, Spinner, Container, Stack, Grid, Heading, Text, CreatedDateBadge } from '@/lib/design-system/components'
 import { VersionCard } from './components/VersionCard'
+import { colors } from '@/lib/design-system/tokens'
 import { 
   Edit3,
   FileText,
@@ -252,139 +253,133 @@ export default function ProfileDashboardPage() {
 
         {/* Current Profile Information */}
         {activeProfile && (
-          <Card className="p-4 md:p-6 mb-6 md:mb-8">
-            <Stack gap="md">
-              {/* Profile Header */}
-              <div className="text-center">
-                <Heading level={2} className="text-white mb-3 text-4xl font-bold">
-                  {activeProfile.first_name && activeProfile.last_name
-                    ? `${activeProfile.first_name} ${activeProfile.last_name}`
-                    : 'My Profile'}
-                </Heading>
-                <div className="flex items-center justify-center gap-2 md:gap-3 mb-3 flex-wrap">
-                  <span className="px-2 md:px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs md:text-sm font-medium">
-                    V{activeProfile.version_number}
-                  </span>
-                  {activeProfile.is_active && (
-                    <Badge variant="success">
-                      <CheckCircle className="w-3 h-3 md:w-4 md:h-4 mr-1" />
-                      Active
-                    </Badge>
-                  )}
-                </div>
-                
-                {/* Metadata */}
-                <CreatedDateBadge 
-                  createdAt={activeProfile.created_at} 
-                  className="mb-4 md:mb-6"
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col md:flex-row gap-2 md:gap-4 w-full">
-                <Button
-                  onClick={() => router.push(`/profile/${activeProfile.id}`)}
-                  variant="primary"
-                  size="sm"
-                  className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  View Profile
-                </Button>
-                <Button
-                  onClick={() => router.push('/profile/edit')}
-                  variant="secondary"
-                  size="sm"
-                  className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Edit Profile
-                </Button>
-                {hasActiveDraft && activeDraftId ? (
-                  <Button
-                    onClick={() => router.push(`/profile/${activeDraftId}/edit/draft`)}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2 border-2 border-[#FFFF00] text-[#FFFF00] hover:bg-[#FFFF00]/10 hover:border-[#FFFF00]"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Edit Draft
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleCreateDraft}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create Draft
-                  </Button>
+          <div className="mb-8">
+            <div className="text-center mb-6">
+              <h2 className="text-4xl font-bold text-white mb-3">
+                {activeProfile.first_name && activeProfile.last_name
+                  ? `${activeProfile.first_name} ${activeProfile.last_name}`
+                  : 'My Profile'}
+              </h2>
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+                  V{activeProfile.version_number}
+                </span>
+                {activeProfile.is_active && (
+                  <Badge variant="success">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Active
+                  </Badge>
                 )}
               </div>
-            </Stack>
-          </Card>
+              
+              {/* Metadata */}
+              <CreatedDateBadge 
+                createdAt={activeProfile.created_at} 
+                className="mb-6"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col md:flex-row gap-2 md:gap-4 w-full justify-center">
+              <Button
+                onClick={() => router.push(`/profile/${activeProfile.id}`)}
+                variant="primary"
+                size="sm"
+                className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                View Profile
+              </Button>
+              <Button
+                onClick={() => router.push('/profile/edit')}
+                variant="secondary"
+                size="sm"
+                className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                Edit Profile
+              </Button>
+              {hasActiveDraft && activeDraftId ? (
+                <Button
+                  onClick={() => router.push(`/profile/${activeDraftId}/edit/draft`)}
+                  variant="primary"
+                  size="sm"
+                  className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2 font-semibold border-2"
+                  style={{
+                    backgroundColor: colors.energy.yellow[500],
+                    color: '#000000',
+                    borderColor: colors.energy.yellow[500]
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                    e.currentTarget.style.color = colors.energy.yellow[500]
+                    e.currentTarget.style.borderColor = colors.energy.yellow[500]
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
+                    e.currentTarget.style.color = '#000000'
+                    e.currentTarget.style.borderColor = colors.energy.yellow[500]
+                  }}
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Edit Draft
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleCreateDraft}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Draft
+                </Button>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Stats Cards */}
         {activeProfile && (
-          <Grid responsiveCols={{ mobile: 1, tablet: 3, desktop: 3 }} gap="md" className="mb-6 md:mb-8">
-            <Card className="p-4 md:p-6 text-center">
-              <Stack gap="sm" align="center">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
-                  <FileText className="w-5 h-5 md:w-6 md:h-6 text-primary-500" />
+          <div className="grid grid-cols-3 gap-6 mb-8">
+            <Card className="p-6 text-center">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center mb-3">
+                  <FileText className="w-6 h-6 text-primary-500" />
                 </div>
-                <Text size="lg" className="text-white font-bold text-2xl md:text-3xl">{profileCount}</Text>
-                <Text size="sm" className="text-neutral-400">Profiles</Text>
-              </Stack>
+                <p className="text-3xl font-bold text-white mb-1">{profileCount}</p>
+                <p className="text-sm text-neutral-400 mb-2">Profiles</p>
+              </div>
             </Card>
-            <Card className="p-4 md:p-6 text-center">
-              <Stack gap="sm" align="center">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary-500/20 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-secondary-500" />
+            <Card className="p-6 text-center">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center mb-3">
+                  <CheckCircle className="w-6 h-6 text-secondary-500" />
                 </div>
-                <Text size="lg" className="text-white font-bold text-2xl md:text-3xl">{completedProfiles}</Text>
-                <Text size="sm" className="text-neutral-400">Active</Text>
-              </Stack>
+                <p className="text-3xl font-bold text-white mb-1">{completedProfiles}</p>
+                <p className="text-sm text-neutral-400 mb-2">Active</p>
+              </div>
             </Card>
-            <Card className="p-4 md:p-6 text-center">
-              <Stack gap="sm" align="center">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-accent-500/20 rounded-full flex items-center justify-center">
-                  <Activity className="w-5 h-5 md:w-6 md:h-6 text-accent-500" />
+            <Card className="p-6 text-center">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center mb-3">
+                  <Activity className="w-6 h-6 text-accent-500" />
                 </div>
-                <Text size="lg" className="text-white font-bold text-2xl md:text-3xl">{completionPercentage}%</Text>
-                <Text size="sm" className="text-neutral-400">Complete</Text>
-              </Stack>
+                <p className="text-3xl font-bold text-white mb-1">{completionPercentage}%</p>
+                <p className="text-sm text-neutral-400 mb-2">Complete</p>
+              </div>
             </Card>
-          </Grid>
+          </div>
         )}
 
         {/* All Versions List */}
         {activeProfile && versions.length > 0 && (
-          <Card className="p-4 md:p-6 mb-6 md:mb-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
-              <Heading level={3} className="text-white text-lg md:text-xl">Profile Versions</Heading>
-              <div className="flex items-center gap-3">
-                {versions.length > 1 && (
-                  <Button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      router.push('/profile/compare')
-                    }}
-                    variant="secondary"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <GitCompare className="w-4 h-4" />
-                    Compare Any Two
-                  </Button>
-                )}
-                <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
-              </div>
+          <Card className="p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-white">Profile Versions</h2>
+              <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
             </div>
-            <Stack gap="md">
+            <div className="space-y-4">
               {versions.map((version) => {
                 const isActive = version.id === activeProfile?.id && version.is_active
                 
@@ -393,48 +388,25 @@ export default function ProfileDashboardPage() {
                     key={version.id}
                     version={version}
                     actions={
-                      <>
-                        <Button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            router.push(`/profile/${version.id}`)
-                          }}
-                          variant="primary"
-                          size="sm"
-                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            handleDeleteClick(version)
-                          }}
-                          variant="danger"
-                          size="sm"
-                          className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
-                          disabled={deletingVersion === version.id}
-                        >
-                          {deletingVersion === version.id ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <>
-                              <Trash2 className="w-4 h-4" />
-                              Delete
-                            </>
-                          )}
-                        </Button>
-                      </>
+                      <Button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          router.push(`/profile/${version.id}`)
+                        }}
+                        variant="primary"
+                        size="sm"
+                        className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </Button>
                     }
                   />
                 )
               })}
-            </Stack>
+            </div>
           </Card>
         )}
 

@@ -72,9 +72,8 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Manage your profile',
     children: [
-      { name: 'View Profile', href: '/profile', icon: Eye },
-      { name: 'Edit Profile', href: '/profile/edit', icon: Edit },
-      { name: 'New Profile', href: '/profile/new', icon: Plus },
+      { name: 'My Active Profile', href: '/profile/edit', icon: Zap },
+      { name: 'All Profiles', href: '/profile', icon: Eye },
     ]
   },
   {
@@ -84,8 +83,9 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Create and manage your life vision',
     children: [
-      { name: 'My Visions', href: '/life-vision', icon: Eye },
-      { name: 'Create Vision', href: '/life-vision/new', icon: Plus },
+      { name: 'My Active Vision', href: '/life-vision/new', icon: Zap },
+      { name: 'Refine Vision', href: '/life-vision/refine', icon: Edit },
+      { name: 'All Visions', href: '/life-vision', icon: Eye },
     ]
   },
   {
@@ -95,7 +95,7 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Vibration assessment',
     children: [
-      { name: 'Take Assessment', href: '/assessment', icon: Eye },
+      { name: 'See Assessments', href: '/assessment', icon: Eye },
       { name: 'View Results', href: '/assessment/results', icon: BarChart3 },
     ]
   },
@@ -106,8 +106,7 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Visual vision board',
     children: [
-      { name: 'My Vision Board', href: '/vision-board', icon: Eye },
-      { name: 'Gallery', href: '/vision-board/gallery', icon: Image },
+      { name: 'My Vision Board', href: '/vision-board', icon: Zap },
       { name: 'New Item', href: '/vision-board/new', icon: Plus },
     ]
   },
@@ -118,7 +117,7 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Conscious creation journal',
     children: [
-      { name: 'My Journal', href: '/journal', icon: Eye },
+      { name: 'My Journal', href: '/journal', icon: Zap },
       { name: 'New Entry', href: '/journal/new', icon: Plus },
     ]
   },

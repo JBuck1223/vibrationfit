@@ -434,7 +434,7 @@ export default function VisionListPage() {
                   <Target className="w-6 h-6 text-primary-500" />
                 </div>
                 <p className="text-3xl font-bold text-white mb-1">{versions.length}</p>
-                <p className="text-sm text-neutral-400 mb-2">Life Visions</p>
+                <p className="text-sm text-neutral-400 mb-2">Visions</p>
               </div>
             </Card>
             <Card className="p-6 text-center">

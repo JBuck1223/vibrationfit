@@ -1584,6 +1584,35 @@ export default function ProfileDetailPage() {
           })}
         </div>
 
+        {/* Delete Button */}
+        <div className="mt-8 pt-6 border-t border-neutral-800 text-center">
+          <Button
+            onClick={() => {
+              const currentVersion = getCurrentVersionInfo()
+              if (currentVersion) {
+                handleDeleteVersion(currentVersion)
+              } else if (versions.length > 0) {
+                handleDeleteVersion(versions[0])
+              }
+            }}
+            variant="danger"
+            size="sm"
+            className="flex items-center gap-2 mx-auto"
+            disabled={deletingVersion !== null}
+          >
+            {deletingVersion ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-4 h-4" />
+                Delete Version
+              </>
+            )}
+          </Button>
+        </div>
 
       {/* Lightbox */}
       {lightboxOpen && profile.progress_photos && (
