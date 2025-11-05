@@ -39,7 +39,18 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      // Use getSession() instead of getUser() - faster (reads from cookies vs network request)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError) {
+        console.error('Sidebar: Error getting session:', sessionError)
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+        return
+      }
+      
+      const user = session?.user ?? null
       setUser(user)
       
       // Fetch active profile using single source of truth

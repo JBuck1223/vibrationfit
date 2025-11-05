@@ -43,43 +43,37 @@ export function Header() {
         // Set a timeout to prevent infinite loading
         timeoutId = setTimeout(() => {
           if (mounted) {
-            console.warn('Header: Profile fetch timeout, setting loading to false')
+            console.warn('Header: Auth check timeout, setting loading to false')
             setLoading(false)
           }
-        }, 10000) // 10 second timeout
+        }, 5000) // 5 second timeout
 
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        // Use getSession() instead of getUser() - faster (reads from cookies vs network request)
+        // This is the KEY OPTIMIZATION: getSession() reads from localStorage/cookies
+        // getUser() makes a network request to Supabase every time
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
         if (!mounted) return
         
         if (timeoutId) clearTimeout(timeoutId)
         
-        if (userError) {
-          console.error('Header: Error getting user:', userError)
+        if (sessionError) {
+          console.error('Header: Error getting session:', sessionError)
           setUser(null)
           setProfile(null)
           setLoading(false)
           return
         }
         
+        const user = session?.user ?? null
         setUser(user)
         
-        // Fetch profile data if user is logged in
+        // Fetch profile data if user is logged in (run in parallel if possible)
         if (user?.id) {
           try {
-            // Set timeout for profile fetch
-            const profileTimeout = setTimeout(() => {
-              if (mounted) {
-                console.warn('Header: Profile fetch timed out')
-                setProfile(null)
-                setLoading(false)
-              }
-            }, 5000) // 5 second timeout for profile
-
             const profileData = await getActiveProfileClient(user.id)
             
             if (mounted) {
-              clearTimeout(profileTimeout)
               setProfile(profileData)
               setLoading(false)
             }
