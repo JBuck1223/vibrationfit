@@ -19,6 +19,7 @@ export function Header() {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null)
   const router = useRouter()
@@ -33,6 +34,11 @@ export function Header() {
   if (pageType !== 'PUBLIC') {
     return null
   }
+
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -164,7 +170,7 @@ export function Header() {
 
           {/* Desktop Auth / Account */}
           <div className="hidden md:flex items-center space-x-4">
-            {loading ? (
+            {!mounted || loading ? (
               <div className="w-20 h-8 bg-neutral-800 rounded animate-pulse" />
             ) : user ? (
               <div className="relative">
@@ -275,7 +281,7 @@ export function Header() {
 
           {/* Mobile Auth */}
           <div className="md:hidden flex items-center space-x-2">
-            {loading ? (
+            {!mounted || loading ? (
               <div className="w-16 h-6 bg-neutral-800 rounded animate-pulse" />
             ) : user ? (
               <Button onClick={handleLogout} variant="ghost" size="sm">

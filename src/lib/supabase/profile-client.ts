@@ -75,9 +75,9 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
   const supabase = createClient()
   
   try {
-    // Create a timeout promise that rejects after 5 seconds
+    // Create a timeout promise that rejects after 10 seconds
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+      setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
     })
 
     // Create the query promise
@@ -104,9 +104,9 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
   } catch (err: any) {
     // Handle timeout or other errors
     if (err instanceof Error && err.message === 'Profile fetch timeout') {
-      console.warn('Profile fetch timed out after 5 seconds')
-      // Cache null result to prevent repeated timeouts
-      setCachedProfile(userId, null)
+      console.warn('Profile fetch timed out after 10 seconds for user:', userId)
+      console.warn('This may indicate a database/RLS issue. Check Supabase logs.')
+      // Don't cache null on timeout - might be a temporary issue
       return null
     }
     
