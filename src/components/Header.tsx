@@ -139,6 +139,7 @@ export function Header() {
   }, [supabase])
 
   const handleLogout = async () => {
+    clearAllProfileCache() // Clear profile cache on logout
     await supabase.auth.signOut()
     router.push('/')
     router.refresh()
