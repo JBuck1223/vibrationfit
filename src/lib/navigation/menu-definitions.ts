@@ -77,18 +77,17 @@ export const userNavigation: NavItem[] = [
       { name: 'New Profile', href: '/profile/new', icon: Plus },
     ]
   },
-  // Temporarily removed for testing
-  // {
-  //   name: 'Life Vision',
-  //   href: '/life-vision',
-  //   icon: Target,
-  //   hasDropdown: true,
-  //   description: 'Create and manage your life vision',
-  //   children: [
-  //     { name: 'My Visions', href: '/life-vision', icon: Eye },
-  //     { name: 'Create Vision', href: '/life-vision/new', icon: Plus },
-  //   ]
-  // },
+  {
+    name: 'Life Vision',
+    href: '/life-vision',
+    icon: Target,
+    hasDropdown: true,
+    description: 'Create and manage your life vision',
+    children: [
+      { name: 'My Visions', href: '/life-vision', icon: Eye },
+      { name: 'Create Vision', href: '/life-vision/new', icon: Plus },
+    ]
+  },
   {
     name: 'Assessment',
     href: '/assessment',
@@ -248,13 +247,12 @@ export const adminNavigation: NavItem[] = [
  * Used in: MobileBottomNav component
  */
 export const mobileNavigation: NavItem[] = [
-  // Temporarily removed for testing
-  // {
-  //   name: 'Vision',
-  //   href: '/life-vision',
-  //   icon: Target,
-  //   description: 'Life Vision',
-  // },
+  {
+    name: 'Vision',
+    href: '/life-vision',
+    icon: Target,
+    description: 'Life Vision',
+  },
   {
     name: 'Board',
     href: '/vision-board',

@@ -129,32 +129,6 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
         </button>
       </div>
 
-      {/* Token Balance - Top */}
-      {!collapsed && (
-        <div className="px-4 py-3 border-b border-neutral-800">
-          <div className="px-3 py-2 bg-neutral-800/50 rounded-lg border border-neutral-700">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                Token Balance
-              </span>
-              <Zap className="w-3 h-3 text-[#FFB701]" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              {loading ? (
-                <div className="w-16 h-6 bg-neutral-700 rounded animate-pulse" />
-              ) : (
-                <>
-                  <span className="text-lg font-bold text-white">
-                    {(profile?.vibe_assistant_tokens_remaining ?? 0).toLocaleString()}
-                  </span>
-                  <span className="text-xs text-neutral-500">tokens</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {navigation.map((item) => {
