@@ -53,19 +53,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Upload failed - no result returned' }, { status: 500 })
     }
 
-    // Update user profile with new picture URL
-    const { error: updateError } = await supabase
+    // Update the active profile with new picture URL
+    // First, find the active profile
+    const { data: activeProfile, error: findError } = await supabase
       .from('user_profiles')
-      .upsert({ 
-        user_id: user.id,
-        profile_picture_url: uploadResult.url 
-      }, { 
-        onConflict: 'user_id' 
-      })
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .eq('is_draft', false)
+      .maybeSingle()
 
-    if (updateError) {
-      console.error('Error updating profile with new picture:', updateError)
-      return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+    if (findError) {
+      console.error('Error finding active profile:', findError)
+      return NextResponse.json({ error: 'Failed to find active profile' }, { status: 500 })
+    }
+
+    if (activeProfile?.id) {
+      // Update existing active profile
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ 
+          profile_picture_url: uploadResult.url,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', activeProfile.id)
+
+      if (updateError) {
+        console.error('Error updating profile with new picture:', updateError)
+        return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+      }
+    } else {
+      // No active profile found - create one
+      const { error: createError } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: user.id,
+          profile_picture_url: uploadResult.url,
+          is_active: true,
+          is_draft: false,
+          version_number: 1
+        })
+
+      if (createError) {
+        console.error('Error creating profile with picture:', createError)
+        return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 })
+      }
     }
 
     // Sync profile picture URL to user_metadata for instant access in Header
