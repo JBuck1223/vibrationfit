@@ -10,15 +10,13 @@ import { Container } from '@/lib/design-system/components'
 import { cn } from '@/lib/utils'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { getActiveProfileClient, clearAllProfileCache } from '@/lib/supabase/profile-client'
+import { clearAllProfileCache } from '@/lib/supabase/profile-client'
 import { User } from '@supabase/supabase-js'
-import { ChevronDown, LogOut, Zap } from 'lucide-react'
+import { ChevronDown, LogOut } from 'lucide-react'
 import { getPageType, headerAccountMenu } from '@/lib/navigation'
 
 export function Header() {
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null)
@@ -42,63 +40,25 @@ export function Header() {
 
   useEffect(() => {
     let mounted = true
-    let timeoutId: NodeJS.Timeout | null = null
     
+    // Lightweight auth check only - no profile fetching
     const getUser = async () => {
       try {
-        // Set a timeout to prevent infinite loading
-        timeoutId = setTimeout(() => {
-          if (mounted) {
-            console.warn('Header: Auth check timeout, setting loading to false')
-            setLoading(false)
-          }
-        }, 5000) // 5 second timeout
-
-        // Use getUser() - reliable and works consistently
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         
         if (!mounted) return
         
-        if (timeoutId) clearTimeout(timeoutId)
-        
         if (userError) {
-          console.error('Header: Error getting user:', userError)
           setUser(null)
-          setProfile(null)
-          setLoading(false)
           return
         }
         
         setUser(user)
-        
-        // Fetch profile data if user is logged in
-        if (user?.id) {
-          try {
-            const profileData = await getActiveProfileClient(user.id)
-            
-            if (mounted) {
-              setProfile(profileData)
-              setLoading(false)
-            }
-          } catch (profileError) {
-            console.error('Header: Error fetching profile:', profileError)
-            if (mounted) {
-              setProfile(null)
-              setLoading(false)
-            }
-          }
-        } else {
-          setProfile(null)
-          setLoading(false)
-        }
       } catch (err) {
-        console.error('Header: Unexpected error in getUser:', err)
+        console.error('Header: Error getting user:', err)
         if (mounted) {
           setUser(null)
-          setProfile(null)
-          setLoading(false)
         }
-        if (timeoutId) clearTimeout(timeoutId)
       }
     }
 
@@ -106,37 +66,11 @@ export function Header() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mounted) return
-      
-      try {
-        setUser(session?.user ?? null)
-        if (session?.user?.id) {
-          // Refetch profile when user changes
-          try {
-            const profileData = await getActiveProfileClient(session.user.id)
-            if (mounted) {
-              setProfile(profileData)
-            }
-          } catch (profileError) {
-            console.error('Header: Error fetching profile on auth change:', profileError)
-            if (mounted) {
-              setProfile(null)
-            }
-          }
-        } else {
-          setProfile(null)
-        }
-      } catch (err) {
-        console.error('Header: Error in auth state change:', err)
-        if (mounted) {
-          setUser(null)
-          setProfile(null)
-        }
-      }
+      setUser(session?.user ?? null)
     })
 
     return () => {
       mounted = false
-      if (timeoutId) clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
   }, [supabase])
@@ -170,7 +104,7 @@ export function Header() {
 
           {/* Desktop Auth / Account */}
           <div className="hidden md:flex items-center space-x-4">
-            {!mounted || loading ? (
+            {!mounted ? (
               <div className="w-20 h-8 bg-neutral-800 rounded animate-pulse" />
             ) : user ? (
               <div className="relative">
@@ -184,22 +118,14 @@ export function Header() {
                   }}
                   className="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-neutral-800 transition-colors"
                 >
-                  {/* Profile Picture */}
-                  {profile?.profile_picture_url ? (
-                    <img
-                      src={profile.profile_picture_url}
-                      alt={profile.first_name || 'Profile'}
-                      className="w-8 h-8 rounded-full object-cover border-2 border-primary-500"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-semibold text-sm">
-                      {profile?.first_name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
-                    </div>
-                  )}
+                  {/* Simple Avatar - just initials from email */}
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-semibold text-sm">
+                    {user.email?.[0]?.toUpperCase() || 'U'}
+                  </div>
                   
-                  {/* Name */}
+                  {/* Name - just email, no profile data */}
                   <span className="text-white font-medium">
-                    {profile?.first_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]}
+                    {user.email?.split('@')[0] || 'User'}
                   </span>
                   
                   <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${openDropdown === 'account' ? 'rotate-180' : ''}`} />
@@ -215,28 +141,6 @@ export function Header() {
                       zIndex: 999999
                     }}
                   >
-                    {/* Token Balance */}
-                    <div className="px-4 py-3 border-b border-neutral-800">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                          Token Balance
-                        </span>
-                        <Zap className="w-4 h-4 text-energy-500" />
-                      </div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-white">
-                          {profile?.vibe_assistant_tokens_remaining?.toLocaleString() || '0'}
-                        </span>
-                        <span className="text-sm text-neutral-500">tokens</span>
-                      </div>
-                      <Link
-                        href="/dashboard/tokens"
-                        className="text-xs text-primary-500 hover:text-primary-400 transition-colors inline-flex items-center gap-1 mt-1"
-                      >
-                        View usage →
-                      </Link>
-                    </div>
-
                     {/* Menu Items */}
                     <div className="py-1">
                       {headerAccountMenu.map((item) => {
@@ -281,7 +185,7 @@ export function Header() {
 
           {/* Mobile Auth */}
           <div className="md:hidden flex items-center space-x-2">
-            {!mounted || loading ? (
+            {!mounted ? (
               <div className="w-16 h-6 bg-neutral-800 rounded animate-pulse" />
             ) : user ? (
               <Button onClick={handleLogout} variant="ghost" size="sm">
