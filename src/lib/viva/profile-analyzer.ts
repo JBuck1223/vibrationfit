@@ -748,17 +748,17 @@ function getAssessmentHook(category: string, assessmentInsights: AssessmentInsig
  */
 function extractPersonalStories(profile: any): ProfileInsights['personalStory'] {
   return {
-    romance: profile.romance_partnership_story || '',
-    family: profile.family_parenting_story || '',
-    career: profile.career_work_story || '',
-    money: profile.money_wealth_story || '',
-    home: profile.home_environment_story || '',
-    health: profile.health_vitality_story || '',
-    fun: profile.fun_recreation_story || '',
-    travel: profile.travel_adventure_story || '',
-    social: profile.social_friends_story || '',
-    possessions: profile.possessions_lifestyle_story || '',
-    giving: profile.giving_legacy_story || '',
-    spirituality: profile.spirituality_growth_story || ''
+    romance: profile.clarity_love || '',
+    family: profile.clarity_family || '',
+    career: profile.clarity_work || '',
+    money: profile.clarity_money || '',
+    home: profile.clarity_home || '',
+    health: profile.clarity_health || '',
+    fun: profile.clarity_fun || '',
+    travel: profile.clarity_travel || '',
+    social: profile.clarity_social || '',
+    possessions: profile.clarity_stuff || '',
+    giving: profile.clarity_giving || '',
+    spirituality: profile.clarity_spirituality || ''
   }
 }

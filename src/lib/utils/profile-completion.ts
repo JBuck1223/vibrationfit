@@ -102,22 +102,22 @@ export function calculateProfileCompletion(profileData: ProfileData | null | und
     if (hasValue(field)) completedFields++
   })
 
-  // Life Category Story Fields (12 categories - using NEW field names)
-  const storyFields = [
-    'fun_story',
-    'health_story',
-    'travel_story',
-    'love_story',
-    'family_story',
-    'social_story',
-    'home_story',
-    'work_story',
-    'money_story',
-    'stuff_story',
-    'giving_story',
-    'spirituality_story'
+  // Life Category Clarity Fields (12 categories - using NEW field names)
+  const clarityFields = [
+    'clarity_fun',
+    'clarity_health',
+    'clarity_travel',
+    'clarity_love',
+    'clarity_family',
+    'clarity_social',
+    'clarity_home',
+    'clarity_work',
+    'clarity_money',
+    'clarity_stuff',
+    'clarity_giving',
+    'clarity_spirituality'
   ]
-  storyFields.forEach(field => {
+  clarityFields.forEach(field => {
     totalFields++
     if (hasValue(field)) completedFields++
   })

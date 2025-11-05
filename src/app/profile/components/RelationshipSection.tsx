@@ -5,6 +5,7 @@ import { Card } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 
 interface RelationshipSectionProps {
   profile: Partial<UserProfile>
@@ -51,7 +52,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           story_recordings: updatedRecordings,
-          love_story: updatedText
+          clarity_love: updatedText
         }),
       })
 
@@ -97,7 +98,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Love / Romance</h3>
+      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('love')}</h3>
       
       <div className="space-y-6">
         {/* Relationship Status */}
@@ -165,12 +166,12 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
           </div>
         )}
 
-        {/* Romance & Partnership Story */}
+        {/* Clarity Field */}
         <RecordingTextarea
-          label="My Current Story Around Romance & Partnership"
-          value={profile.love_story || ''}
-          onChange={(value) => handleInputChange('love_story', value)}
-          placeholder="Share your relationship journey, love story, partnership goals, or romantic aspirations... Or click the microphone to record!"
+          label={`What's going well in ${getVisionCategoryLabel('love')}?`}
+          value={profile.clarity_love || ''}
+          onChange={(value) => handleInputChange('clarity_love', value)}
+          placeholder="Share what's going well with your relationship journey, love story, partnership goals... Or click the microphone to record!"
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
@@ -183,6 +184,17 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
           recordings={profile.story_recordings || []}
           categoryFilter="love"
           onDelete={handleDeleteRecording}
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('love')}?`}
+          value={profile.contrast_love || ''}
+          onChange={(value) => handleInputChange('contrast_love', value)}
+          placeholder="Share what's not going well with your relationship or romantic life, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
         />
       </div>
 

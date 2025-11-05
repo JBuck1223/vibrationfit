@@ -6,6 +6,7 @@ import { UserProfile } from '@/lib/supabase/profile'
 import { Package } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 
 interface PossessionsLifestyleSectionProps {
   profile: Partial<UserProfile>
@@ -22,7 +23,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
     const newRecording = { url, transcript, type, category: 'stuff', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, stuff_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_stuff: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -47,7 +48,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
         <Package className="w-6 h-6 text-primary-500" />
-        <h3 className="text-xl font-bold text-white">Possessions / Stuff</h3>
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('stuff')}</h3>
       </div>
       
       <div className="space-y-6">
@@ -83,12 +84,12 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           />
         </div>
 
-        {/* Story Field */}
+        {/* Clarity Field */}
         <RecordingTextarea
-          label="My Current Story Around Possessions & Lifestyle"
-          value={profile.stuff_story || ''}
-          onChange={(value) => handleInputChange('stuff_story', value)}
-          placeholder="Share your lifestyle, what possessions matter to you, how you live... Or record your story!"
+          label={`What's going well in ${getVisionCategoryLabel('stuff')}?`}
+          value={profile.clarity_stuff || ''}
+          onChange={(value) => handleInputChange('clarity_stuff', value)}
+          placeholder="Share what's going well with your lifestyle, what possessions matter to you, how you live... Or record your story!"
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
@@ -100,6 +101,17 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           recordings={profile.story_recordings || []}
           categoryFilter="stuff"
           onDelete={handleDeleteRecording}
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('stuff')}?`}
+          value={profile.contrast_stuff || ''}
+          onChange={(value) => handleInputChange('contrast_stuff', value)}
+          placeholder="Share what's not going well with your lifestyle or possessions, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
         />
       </div>
 

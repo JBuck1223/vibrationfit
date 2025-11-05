@@ -5,6 +5,7 @@ import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 
 interface HealthSectionProps {
   profile: Partial<UserProfile>
@@ -60,7 +61,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
         },
         body: JSON.stringify({
           story_recordings: updatedRecordings,
-          health_story: updatedText // Save the updated story text with transcript
+          clarity_health: updatedText // Save the updated story text with transcript
         }),
       })
 
@@ -71,7 +72,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
       const data = await response.json()
       console.log('✅ Recording auto-saved to database', {
         savedRecordings: data.profile?.story_recordings?.length || 0,
-        storyTextLength: data.profile?.health_story?.length || 0,
+        storyTextLength: data.profile?.clarity_health?.length || 0,
         actualRecordings: data.profile?.story_recordings
       })
 
@@ -172,7 +173,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Health / Vitality</h3>
+      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('health')}</h3>
       
       <div className="space-y-6">
         {/* Units Toggle */}
@@ -289,12 +290,12 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
           </div>
         )}
 
-        {/* Health & Vitality Story */}
+        {/* Clarity Field */}
         <RecordingTextarea
-          label="My Current Story Around Health & Vitality"
-          value={profile.health_story || ''}
-          onChange={(value) => handleInputChange('health_story', value)}
-          placeholder="Share your health journey, fitness goals, wellness practices, or any health-related aspirations... Or click the microphone to record your story!"
+          label={`What's going well in ${getVisionCategoryLabel('health')}?`}
+          value={profile.clarity_health || ''}
+          onChange={(value) => handleInputChange('clarity_health', value)}
+          placeholder="Share what's going well with your health journey, fitness goals, wellness practices... Or click the microphone to record your story!"
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
@@ -307,6 +308,17 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
           recordings={profile.story_recordings || []}
           categoryFilter="health_vitality"
           onDelete={handleDeleteRecording}
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
+          value={profile.contrast_health || ''}
+          onChange={(value) => handleInputChange('contrast_health', value)}
+          placeholder="Share what's not going well with your health, fitness, or wellness, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
         />
       </div>
 

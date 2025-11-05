@@ -6,6 +6,7 @@ import { Plus, X, Minus } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 
 interface FamilySectionProps {
   profile: Partial<UserProfile>
@@ -83,7 +84,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           story_recordings: updatedRecordings,
-          family_story: updatedText
+          clarity_family: updatedText
         }),
       })
       if (onProfileReload) await onProfileReload()
@@ -176,7 +177,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Family / Parenting</h3>
+      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('family')}</h3>
       
       <div className="space-y-6">
         {/* Has Children */}
@@ -288,12 +289,12 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
           </div>
         )}
 
-        {/* Family & Parenting Story */}
+        {/* Clarity Field */}
         <RecordingTextarea
-          label="My Current Story Around Family & Parenting"
-          value={profile.family_story || ''}
-          onChange={(value) => handleInputChange('family_story', value)}
-          placeholder="Share your family journey, parenting experiences, family goals, or aspirations... Or record your story!"
+          label={`What's going well in ${getVisionCategoryLabel('family')}?`}
+          value={profile.clarity_family || ''}
+          onChange={(value) => handleInputChange('clarity_family', value)}
+          placeholder="Share what's going well with your family journey, parenting experiences, family goals... Or record your story!"
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
@@ -306,6 +307,17 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
           recordings={profile.story_recordings || []}
           categoryFilter="family_parenting"
           onDelete={handleDeleteRecording}
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
+          value={profile.contrast_family || ''}
+          onChange={(value) => handleInputChange('contrast_family', value)}
+          placeholder="Share what's not going well with your family or parenting, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
         />
       </div>
 

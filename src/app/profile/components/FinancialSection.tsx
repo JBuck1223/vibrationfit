@@ -5,6 +5,7 @@ import { Card } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 
 interface FinancialSectionProps {
   profile: Partial<UserProfile>
@@ -53,7 +54,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
     const newRecording = { url, transcript, type, category: 'money_wealth', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, money_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_money: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -95,7 +96,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Money / Wealth</h3>
+      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('money')}</h3>
       
       <div className="space-y-6">
         {/* Currency */}
@@ -201,12 +202,12 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
           </p>
         </div>
 
-        {/* Money & Wealth Story */}
+        {/* Clarity Field */}
         <RecordingTextarea
-          label="My Current Story Around Money & Wealth"
-          value={profile.money_story || ''}
-          onChange={(value) => handleInputChange('money_story', value)}
-          placeholder="Share your financial journey, wealth goals, money mindset... Or record your story!"
+          label={`What's going well in ${getVisionCategoryLabel('money')}?`}
+          value={profile.clarity_money || ''}
+          onChange={(value) => handleInputChange('clarity_money', value)}
+          placeholder="Share what's going well with your financial journey, wealth goals, money mindset... Or record your story!"
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
@@ -218,6 +219,17 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
           recordings={profile.story_recordings || []}
           categoryFilter="money_wealth"
           onDelete={handleDeleteRecording}
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
+          value={profile.contrast_money || ''}
+          onChange={(value) => handleInputChange('contrast_money', value)}
+          placeholder="Share what's not going well with your finances or wealth, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
         />
       </div>
 

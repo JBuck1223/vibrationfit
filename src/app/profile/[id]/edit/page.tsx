@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { PageLayout, Button, Badge, Card, WarningConfirmationDialog } from '@/lib/design-system/components'
+import { PageLayout, Button, Badge, Card, WarningConfirmationDialog, Icon } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
-import { ProfileSidebar } from '../../components/ProfileSidebar'
+import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
 import { PersonalInfoSection } from '../../components/PersonalInfoSection'
 import { RelationshipSection } from '../../components/RelationshipSection'
 import { FamilySection } from '../../components/FamilySection'
@@ -22,7 +22,7 @@ import { PossessionsLifestyleSection } from '../../components/PossessionsLifesty
 import { SpiritualityGrowthSection } from '../../components/SpiritualityGrowthSection'
 import { GivingLegacySection } from '../../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, FileText } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, FileText, User, Camera, Check } from 'lucide-react'
 
 export default function ProfileEditPage() {
   const router = useRouter()
@@ -39,7 +39,6 @@ export default function ProfileEditPage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [versions, setVersions] = useState<any[]>([])
   const [showVersions, setShowVersions] = useState(false)
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [versionStatus, setVersionStatus] = useState({
     isDraft: false,
     isActive: false,
@@ -48,10 +47,67 @@ export default function ProfileEditPage() {
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [showDraftWarning, setShowDraftWarning] = useState(false)
   const [showCommitWarning, setShowCommitWarning] = useState(false)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
 
-  // Profile sections for mobile dropdown (matching ProfileSidebar)
+  // Helper function to get category info from design system
+  const getCategoryInfo = (categoryId: string) => {
+    const categoryMapping: Record<string, string> = {
+      'personal': 'personal',
+      'fun-recreation': 'fun',
+      'health': 'health',
+      'travel-adventure': 'travel',
+      'relationship': 'love',
+      'family': 'family',
+      'social-friends': 'social',
+      'location': 'home',
+      'career': 'work',
+      'financial': 'money',
+      'possessions-lifestyle': 'stuff',
+      'giving-legacy': 'giving',
+      'spirituality-growth': 'spirituality'
+    }
+    
+    const visionCategoryKey = categoryMapping[categoryId] || categoryId
+    const category = getVisionCategory(visionCategoryKey)
+    
+    if (category) {
+      return {
+        id: categoryId,
+        title: category.label,
+        icon: category.icon,
+        description: category.description
+      }
+    }
+    
+    if (categoryId === 'personal') {
+      return {
+        id: 'personal',
+        title: 'Personal',
+        icon: User,
+        description: 'Basic information about you'
+      }
+    }
+    
+    if (categoryId === 'photos-notes') {
+      return {
+        id: 'photos-notes',
+        title: 'Media',
+        icon: Camera,
+        description: 'Media and additional notes'
+      }
+    }
+    
+    return {
+      id: categoryId,
+      title: categoryId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      icon: User,
+      description: 'Profile section'
+    }
+  }
+
+  // Profile sections in order (Personal first, Media last)
   const profileSections = [
-    { id: 'personal', title: 'Personal Info', description: 'Basic information about you' },
+    { id: 'personal', title: 'Personal', description: 'Basic information about you' },
     { id: 'fun-recreation', title: 'Fun', description: 'Hobbies and joyful activities' },
     { id: 'health', title: 'Health', description: 'Physical and mental well-being' },
     { id: 'travel-adventure', title: 'Travel', description: 'Places to explore and adventures' },
@@ -64,7 +120,7 @@ export default function ProfileEditPage() {
     { id: 'possessions-lifestyle', title: 'Possessions', description: 'Material belongings and things' },
     { id: 'giving-legacy', title: 'Giving', description: 'Contribution and legacy' },
     { id: 'spirituality-growth', title: 'Spirituality', description: 'Spiritual growth and expansion' },
-    { id: 'photos-notes', title: 'Photos & Notes', description: 'Media and additional notes' }
+    { id: 'photos-notes', title: 'Media', description: 'Media and additional notes' }
   ]
 
   // Navigation functions for previous/next buttons
@@ -146,12 +202,12 @@ export default function ProfileEditPage() {
       if (hasValue(field)) completedFields++
     })
 
-    // Life Category Story Fields (12 categories)
-    const storyFields: (keyof UserProfile)[] = [
-      'fun_story', 'health_story', 'travel_story', 'love_story', 'family_story', 'social_story',
-      'home_story', 'work_story', 'money_story', 'stuff_story', 'giving_story', 'spirituality_story'
+    // Life Category Clarity Fields (12 categories)
+    const clarityFields: (keyof UserProfile)[] = [
+      'clarity_fun', 'clarity_health', 'clarity_travel', 'clarity_love', 'clarity_family', 'clarity_social',
+      'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff', 'clarity_giving', 'clarity_spirituality'
     ]
-    storyFields.forEach(field => {
+    clarityFields.forEach(field => {
       totalFields++
       if (hasValue(field)) completedFields++
     })
@@ -544,30 +600,30 @@ export default function ProfileEditPage() {
         case 'fun-recreation':
           return (profile.hobbies && profile.hobbies.length > 0) || 
                  profile.leisure_time_weekly ||
-                 (profile.fun_story && profile.fun_story.trim().length > 0)
+                 (profile.clarity_fun && profile.clarity_fun.trim().length > 0)
         case 'travel-adventure':
           return profile.travel_frequency || 
                  profile.passport !== undefined || 
                  profile.countries_visited !== undefined ||
-                 (profile.travel_story && profile.travel_story.trim().length > 0)
+                 (profile.clarity_travel && profile.clarity_travel.trim().length > 0)
         case 'social-friends':
           return profile.close_friends_count || 
                  profile.social_preference ||
-                 (profile.social_story && profile.social_story.trim().length > 0)
+                 (profile.clarity_social && profile.clarity_social.trim().length > 0)
         case 'possessions-lifestyle':
           return profile.lifestyle_category || 
                  profile.primary_vehicle ||
-                 (profile.stuff_story && profile.stuff_story.trim().length > 0)
+                 (profile.clarity_stuff && profile.clarity_stuff.trim().length > 0)
         case 'spirituality-growth':
           return profile.spiritual_practice || 
                  profile.meditation_frequency || 
                  profile.personal_growth_focus !== undefined ||
-                 (profile.spirituality_story && profile.spirituality_story.trim().length > 0)
+                 (profile.clarity_spirituality && profile.clarity_spirituality.trim().length > 0)
         case 'giving-legacy':
           return profile.volunteer_status || 
                  profile.charitable_giving || 
                  profile.legacy_mindset !== undefined ||
-                 (profile.giving_story && profile.giving_story.trim().length > 0)
+                 (profile.clarity_giving && profile.clarity_giving.trim().length > 0)
         case 'photos-notes':
           return (profile.version_notes && profile.version_notes.trim().length > 0) || 
                  (profile.progress_photos && profile.progress_photos.length > 0)
@@ -578,6 +634,30 @@ export default function ProfileEditPage() {
   }, [profile])
 
   const completedSections = getCompletedSections()
+
+  // Initialize selected categories with all sections
+  useEffect(() => {
+    if (profileSections.length > 0 && selectedCategories.length === 0) {
+      setSelectedCategories(profileSections.map(s => s.id))
+    }
+  }, [profileSections.length])
+
+  // Category toggle functions
+  const handleCategoryToggle = (categoryKey: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(categoryKey) 
+        ? prev.filter(key => key !== categoryKey)
+        : [...prev, categoryKey]
+    )
+  }
+
+  const handleSelectAll = () => {
+    if (selectedCategories.length === profileSections.length) {
+      setSelectedCategories([])
+    } else {
+      setSelectedCategories(profileSections.map(s => s.id))
+    }
+  }
 
   // Render section content
   const renderSection = () => {
@@ -670,7 +750,7 @@ export default function ProfileEditPage() {
           <div className="flex items-center gap-2 text-sm text-neutral-400">
             <span>{getCurrentSectionIndex() + 1} of {profileSections.length}</span>
             <span>•</span>
-            <span>{profileSections.find(s => s.id === activeSection)?.title}</span>
+            <span>{getCategoryInfo(activeSection).title}</span>
           </div>
           
           <div className="flex-1 flex justify-end">
@@ -874,78 +954,71 @@ export default function ProfileEditPage() {
           />
         )}
 
-        {/* Mobile Dropdown Navigation */}
-        <div className="lg:hidden mb-6">
+        {/* Select Life Areas Bar */}
+        <div className="mb-6">
           <Card className="p-4">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full flex items-center justify-between p-3 rounded-lg bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <span className="font-medium text-white">
-                  {profileSections.find(s => s.id === activeSection)?.title || 'Select Section'}
-                </span>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">Select Life Areas</h3>
+                <p className="text-sm text-neutral-400">
+                  Showing {selectedCategories.length} of {profileSections.length} areas
+                  {completedSections.length > 0 && (
+                    <span className="ml-2 text-green-400">
+                      • {completedSections.length} completed
+                    </span>
+                  )}
+                </p>
               </div>
-              <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {isDropdownOpen && (
-              <div className="mt-3 space-y-1">
-                {profileSections.map((section) => {
-                  const isActive = activeSection === section.id
-                  const isCompleted = completedSections.includes(section.id)
+              <Button
+                onClick={handleSelectAll}
+                variant={selectedCategories.length === profileSections.length ? "primary" : "outline"}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                {selectedCategories.length === profileSections.length ? 'Deselect All' : 'Select All'}
+              </Button>
+            </div>
 
-                  return (
-                    <button
-                      key={section.id}
-                      onClick={() => {
-                        setActiveSection(section.id)
-                        setIsDropdownOpen(false)
-                      }}
-                      className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
-                        isActive
-                          ? 'bg-primary-500/20 border border-primary-500/50 text-primary-400'
-                          : 'hover:bg-neutral-800 border border-transparent text-neutral-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm truncate">
-                              {section.title}
-                            </span>
-                            {isCompleted && (
-                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-xs text-neutral-500 mt-1 truncate">
-                            {section.description}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+            {/* Category Grid */}
+            <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
+              {profileSections.map((section) => {
+                const categoryInfo = getCategoryInfo(section.id)
+                const IconComponent = categoryInfo.icon
+                const isSelected = selectedCategories.includes(section.id)
+                const isCompleted = completedSections.includes(section.id)
+                const isActive = activeSection === section.id
+
+                return (
+                  <Card 
+                    key={section.id}
+                    variant="outlined" 
+                    hover 
+                    className={`cursor-pointer aspect-square transition-all duration-300 ${
+                      isActive ? 'border-2 border-primary-500' : ''
+                    } ${isCompleted ? 'bg-green-500/10' : ''}`}
+                    onClick={() => setActiveSection(section.id)}
+                  >
+                    <div className="flex flex-col items-center gap-1 justify-center h-full">
+                      <Icon 
+                        icon={IconComponent} 
+                        size="sm" 
+                        color={isCompleted ? '#39FF14' : isActive ? '#39FF14' : '#14B8A6'} 
+                      />
+                      <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
+                        {categoryInfo.title}
+                      </span>
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
           </Card>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar - Hidden on mobile, visible on desktop */}
-          <div className="hidden lg:block lg:col-span-1">
-            <ProfileSidebar
-              activeSection={activeSection}
-              onSectionChange={setActiveSection}
-              completedSections={completedSections}
-            />
-          </div>
-
-          {/* Content - Full width on mobile, 3/4 width on desktop */}
-          <div className="col-span-1 lg:col-span-3">
-            {renderSection()}
-          </div>
+        {/* Main Content - Full Width */}
+        <div className="w-full">
+          {renderSection()}
         </div>
 
         {/* Warning Dialogs */}

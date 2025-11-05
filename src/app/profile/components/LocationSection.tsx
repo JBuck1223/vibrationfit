@@ -5,6 +5,7 @@ import { Card, Input } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 
 interface LocationSectionProps {
   profile: Partial<UserProfile>
@@ -50,7 +51,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
     const newRecording = { url, transcript, type, category: 'home_environment', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, home_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_home: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -73,7 +74,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Home / Environment</h3>
+      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('home')}</h3>
       
       <div className="space-y-6">
         {/* Living Situation */}
@@ -177,12 +178,12 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
           </div>
         </div>
 
-        {/* Home & Environment Story */}
+        {/* Clarity Field */}
         <RecordingTextarea
-          label="My Current Story Around Home & Environment"
-          value={profile.home_story || ''}
-          onChange={(value) => handleInputChange('home_story', value)}
-          placeholder="Share your home story, living environment, space goals... Or record your story!"
+          label={`What's going well in ${getVisionCategoryLabel('home')}?`}
+          value={profile.clarity_home || ''}
+          onChange={(value) => handleInputChange('clarity_home', value)}
+          placeholder="Share what's going well with your home story, living environment, space goals... Or record your story!"
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
@@ -194,6 +195,17 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
           recordings={profile.story_recordings || []}
           categoryFilter="home_environment"
           onDelete={handleDeleteRecording}
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
+          value={profile.contrast_home || ''}
+          onChange={(value) => handleInputChange('contrast_home', value)}
+          placeholder="Share what's not going well with your home or living environment, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
         />
       </div>
 

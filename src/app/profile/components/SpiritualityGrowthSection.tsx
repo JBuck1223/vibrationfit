@@ -6,6 +6,7 @@ import { UserProfile } from '@/lib/supabase/profile'
 import { Zap } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 
 interface SpiritualityGrowthSectionProps {
   profile: Partial<UserProfile>
@@ -22,7 +23,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
     const newRecording = { url, transcript, type, category: 'spirituality_growth', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, spirituality_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_spirituality: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -100,12 +101,12 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           </label>
         </div>
 
-        {/* Story Field */}
+        {/* Clarity Field */}
         <RecordingTextarea
-          label="My Current Story Around Spirituality & Growth"
-          value={profile.spirituality_story || ''}
-          onChange={(value) => handleInputChange('spirituality_story', value)}
-          placeholder="Share your spiritual journey, personal growth practices, what you're learning... Or record your story!"
+          label={`What's going well in ${getVisionCategoryLabel('spirituality')}?`}
+          value={profile.clarity_spirituality || ''}
+          onChange={(value) => handleInputChange('clarity_spirituality', value)}
+          placeholder="Share what's going well with your spiritual journey, personal growth practices, what you're learning... Or record your story!"
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
@@ -117,6 +118,17 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           recordings={profile.story_recordings || []}
           categoryFilter="spirituality_growth"
           onDelete={handleDeleteRecording}
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
+          value={profile.contrast_spirituality || ''}
+          onChange={(value) => handleInputChange('contrast_spirituality', value)}
+          placeholder="Share what's not going well with your spiritual or growth journey, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
         />
       </div>
 

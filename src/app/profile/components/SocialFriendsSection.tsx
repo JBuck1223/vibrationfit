@@ -6,6 +6,7 @@ import { UserProfile } from '@/lib/supabase/profile'
 import { UserPlus } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 
 interface SocialFriendsSectionProps {
   profile: Partial<UserProfile>
@@ -22,7 +23,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
     const newRecording = { url, transcript, type, category: 'social_friends', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, social_story: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_social: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -47,7 +48,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
         <UserPlus className="w-6 h-6 text-secondary-500" />
-        <h3 className="text-xl font-bold text-white">Social / Friends</h3>
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('social')}</h3>
       </div>
       
       <div className="space-y-6">
@@ -86,12 +87,12 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           </select>
         </div>
 
-        {/* Story Field */}
+        {/* Clarity Field */}
         <RecordingTextarea
-          label="My Current Story Around Social & Friends"
-          value={profile.social_story || ''}
-          onChange={(value) => handleInputChange('social_story', value)}
-          placeholder="Share your social life, friendships, how you connect with others... Or record your story!"
+          label={`What's going well in ${getVisionCategoryLabel('social')}?`}
+          value={profile.clarity_social || ''}
+          onChange={(value) => handleInputChange('clarity_social', value)}
+          placeholder="Share what's going well with your social life, friendships, how you connect with others... Or record your story!"
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
@@ -103,6 +104,17 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           recordings={profile.story_recordings || []}
           categoryFilter="social_friends"
           onDelete={handleDeleteRecording}
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
+          value={profile.contrast_social || ''}
+          onChange={(value) => handleInputChange('contrast_social', value)}
+          placeholder="Share what's not going well with your social life or friendships, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
         />
       </div>
 

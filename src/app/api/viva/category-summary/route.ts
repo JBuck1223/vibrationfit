@@ -20,18 +20,18 @@ function getCategoryProfileFields(category: string, profile: any): string {
   
   const fields: string[] = []
   const categoryStories: Record<string, string> = {
-    fun: 'fun_story',
-    health: 'health_story',
-    travel: 'travel_story',
-    love: 'love_story',
-    family: 'family_story',
-    social: 'social_story',
-    home: 'home_story',
-    work: 'work_story',
-    money: 'money_story',
-    stuff: 'stuff_story',
-    giving: 'giving_story',
-    spirituality: 'spirituality_story'
+    fun: 'clarity_fun',
+    health: 'clarity_health',
+    travel: 'clarity_travel',
+    love: 'clarity_love',
+    family: 'clarity_family',
+    social: 'clarity_social',
+    home: 'clarity_home',
+    work: 'clarity_work',
+    money: 'clarity_money',
+    stuff: 'clarity_stuff',
+    giving: 'clarity_giving',
+    spirituality: 'clarity_spirituality'
   }
   
   // Add the user's own story text for this category (highest priority context)
@@ -84,18 +84,18 @@ function buildCategoryPrompt(
 ): string {
   // Get category-specific profile story (user's own words)
   const categoryStories: Record<string, string> = {
-    fun: 'fun_story',
-    health: 'health_story',
-    travel: 'travel_story',
-    love: 'love_story',
-    family: 'family_story',
-    social: 'social_story',
-    home: 'home_story',
-    work: 'work_story',
-    money: 'money_story',
-    stuff: 'stuff_story',
-    giving: 'giving_story',
-    spirituality: 'spirituality_story'
+    fun: 'clarity_fun',
+    health: 'clarity_health',
+    travel: 'clarity_travel',
+    love: 'clarity_love',
+    family: 'clarity_family',
+    social: 'clarity_social',
+    home: 'clarity_home',
+    work: 'clarity_work',
+    money: 'clarity_money',
+    stuff: 'clarity_stuff',
+    giving: 'clarity_giving',
+    spirituality: 'clarity_spirituality'
   }
   
   const storyField = categoryStories[category]

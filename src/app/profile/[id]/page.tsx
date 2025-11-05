@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, CreatedDateBadge } from '@/lib/design-system/components'
 import { VersionCard } from '../components/VersionCard'
-import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
 import { ProfileField } from '../components/ProfileField'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -64,6 +64,22 @@ const getCategoryInfo = (categoryId: string) => {
     'giving': 'giving'
   }
   
+  // Map vision category keys to recording category values (used in story_recordings)
+  const recordingCategoryMapping: Record<string, string> = {
+    'love': 'love',
+    'family': 'family_parenting',
+    'health': 'health_vitality',
+    'home': 'home_environment',
+    'work': 'work',
+    'money': 'money_wealth',
+    'fun': 'fun_recreation',
+    'travel': 'travel_adventure',
+    'social': 'social_friends',
+    'stuff': 'stuff',
+    'spirituality': 'spirituality_growth',
+    'giving': 'giving_legacy'
+  }
+  
   const visionCategoryKey = categoryMapping[categoryId] || categoryId
   const category = getVisionCategory(visionCategoryKey)
   
@@ -73,7 +89,8 @@ const getCategoryInfo = (categoryId: string) => {
       title: category.label,
       icon: category.icon,
       color: 'text-primary-500',
-      order: category.order
+      order: category.order,
+      recordingCategory: recordingCategoryMapping[categoryId] || categoryId
     }
   }
   
@@ -83,28 +100,17 @@ const getCategoryInfo = (categoryId: string) => {
     title: categoryId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     icon: User,
     color: 'text-primary-500',
-    order: 999 // High number to put unmapped categories at the end
+    order: 999, // High number to put unmapped categories at the end
+    recordingCategory: categoryId
   }
 }
 
 // Helper function to get profile categories in design system order
+// Uses vision categories directly, filtering out forward/conclusion which aren't profile sections
 const getOrderedProfileCategories = () => {
-  const profileCategories = [
-    'love',
-    'family', 
-    'health',
-    'home',
-    'work',
-    'money',
-    'fun',
-    'travel',
-    'social',
-    'stuff',
-    'spirituality',
-    'giving'
-  ]
+  const profileCategoryKeys = ['love', 'family', 'health', 'home', 'work', 'money', 'fun', 'travel', 'social', 'stuff', 'spirituality', 'giving']
   
-  return profileCategories
+  return profileCategoryKeys
     .map(categoryId => getCategoryInfo(categoryId))
     .sort((a, b) => a.order - b.order)
 }
@@ -1695,7 +1701,7 @@ export default function ProfileDetailPage() {
                   {/* Saved Recordings */}
                   <SavedRecordings
                     recordings={profile.story_recordings || []}
-                    categoryFilter={category.id}
+                    categoryFilter={category.recordingCategory}
                   />
                 </div>
               </Card>

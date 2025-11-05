@@ -5,6 +5,7 @@ import { Card, Input, Textarea } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 
 interface CareerSectionProps {
   profile: Partial<UserProfile>
@@ -55,7 +56,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
       await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ story_recordings: updatedRecordings, work_story: updatedText }),
+        body: JSON.stringify({ story_recordings: updatedRecordings, clarity_work: updatedText }),
       })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
@@ -79,7 +80,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">Business / Career</h3>
+      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('work')}</h3>
       
       <div className="space-y-6">
         {/* Employment Type */}
@@ -189,12 +190,12 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
           </p>
         </div>
 
-        {/* Career & Work Story */}
+        {/* Clarity Field */}
         <RecordingTextarea
-          label="My Current Story Around Career & Work"
-          value={profile.work_story || ''}
-          onChange={(value) => handleInputChange('work_story', value)}
-          placeholder="Share your career journey, professional goals, work experiences... Or record your story!"
+          label={`What's going well in ${getVisionCategoryLabel('work')}?`}
+          value={profile.clarity_work || ''}
+          onChange={(value) => handleInputChange('clarity_work', value)}
+          placeholder="Share what's going well with your career journey, professional goals, work experiences... Or record your story!"
           rows={6}
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
@@ -206,6 +207,17 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
           recordings={profile.story_recordings || []}
           categoryFilter="work"
           onDelete={handleDeleteRecording}
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('work')}?`}
+          value={profile.contrast_work || ''}
+          onChange={(value) => handleInputChange('contrast_work', value)}
+          placeholder="Share what's not going well with your career or work, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
         />
       </div>
 

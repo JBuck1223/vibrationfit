@@ -19,13 +19,13 @@ const getCategoryInfo = (categoryId: string) => {
     'fun-recreation': 'fun',
     'health': 'health',
     'travel-adventure': 'travel',
-    'relationship': 'romance',
+    'relationship': 'love',
     'family': 'family',
     'social-friends': 'social',
     'location': 'home',
-    'career': 'business',
+    'career': 'work',
     'financial': 'money',
-    'possessions-lifestyle': 'possessions',
+    'possessions-lifestyle': 'stuff',
     'giving-legacy': 'giving',
     'spirituality-growth': 'spirituality'
   }

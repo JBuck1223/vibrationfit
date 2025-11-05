@@ -9,7 +9,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 export interface TokenUsage {
   id?: string
   user_id: string
-  action_type: 'assessment_scoring' | 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'admin_grant' | 'admin_deduct' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'prompt_suggestions'
+  action_type: 'assessment_scoring' | 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'admin_grant' | 'admin_deduct' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'prompt_suggestions' | 'frequency_flip'
   model_used: string
   tokens_used: number
   cost_estimate: number // in cents
