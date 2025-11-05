@@ -186,24 +186,8 @@ export default function VisionListPage() {
         setVersions([])
       }
       
-      // Fetch refinements count (using direct Supabase call for count - lightweight)
-      try {
-        const { createClient } = await import('@/lib/supabase/client')
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (user) {
-          const { count } = await supabase
-            .from('refinements')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .eq('action_type', 'vision_refinement')
-          
-          setRefinementsCount(count || 0)
-        }
-      } catch (err) {
-        console.warn('Could not fetch refinements count:', err)
-      }
+      // Refinements count removed - no longer querying refinements table
+      setRefinementsCount(0)
       
       // Fetch audio tracks count (using direct Supabase call for count - lightweight)
       try {
