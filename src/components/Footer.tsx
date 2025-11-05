@@ -189,8 +189,8 @@ export function Footer({ className = '' }: FooterProps) {
               alt="VibrationFit"
               width={120}
               height={24}
+              style={{ width: 'auto', height: '1.5rem' }}
               className="h-6"
-              style={{ width: 'auto' }}
             />
           </div>
           <p className="text-neutral-400 text-sm mb-4">

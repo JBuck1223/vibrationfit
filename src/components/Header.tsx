@@ -139,8 +139,8 @@ export function Header() {
               alt="VibrationFit"
               width={200}
               height={40}
-              className="h-8 w-auto"
               style={{ width: 'auto', height: '2rem' }}
+              className="h-8"
               priority
             />
           </Link>
