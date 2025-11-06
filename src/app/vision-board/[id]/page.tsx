@@ -350,47 +350,74 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-      </div>
+      <PageLayout>
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+        </div>
+      </PageLayout>
     )
   }
 
   if (!item) {
     return (
-      <Card className="text-center py-16">
-        <h2 className="text-2xl font-bold text-white mb-4">Item not found</h2>
-        <p className="text-neutral-400 mb-6">This vision board item doesn't exist or you don't have permission to view it.</p>
-        <Button asChild>
-          <Link href="/vision-board">Back to Vision Board</Link>
-        </Button>
-      </Card>
+      <PageLayout>
+        <Card className="text-center py-16">
+          <h2 className="text-2xl font-bold text-white mb-4">Item not found</h2>
+          <p className="text-neutral-400 mb-6">This vision board item doesn't exist or you don't have permission to view it.</p>
+          <Button asChild>
+            <Link href="/vision-board">Back to Vision Board</Link>
+          </Button>
+        </Card>
+      </PageLayout>
     )
   }
 
   return (
-    <>
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Button variant="ghost" onClick={() => router.back()}>
+    <PageLayout>
+      {/* Header */}
+      <div className="mb-6 md:mb-8">
+        {/* Mobile Header */}
+        <div className="md:hidden space-y-4 mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-2">
+              {isEditing ? 'Edit Creation' : item.name}
+            </h1>
+            <p className="text-neutral-400 text-sm">
+              {isEditing ? 'Update your vision board item' : 'View and manage your creation'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {getStatusBadge(item.status)}
+          </div>
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden md:flex items-center gap-4 mb-4">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-white mb-2">
+              {isEditing ? 'Edit Creation' : item.name}
+            </h1>
+            <p className="text-neutral-400">
+              {isEditing ? 'Update your vision board item' : 'View and manage your creation'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {getStatusBadge(item.status)}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        {!isEditing && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+            <Button variant="ghost" size="sm" onClick={() => router.back()} className="w-full sm:w-auto">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <div className="flex items-center gap-2">
-              {getStatusBadge(item.status)}
-            </div>
           </div>
-          
-          <h1 className="text-3xl font-bold text-white mb-2">
-            {isEditing ? 'Edit Creation' : item.name}
-          </h1>
-          <p className="text-neutral-400">
-            {isEditing ? 'Update your vision board item' : 'View and manage your creation'}
-          </p>
-        </div>
+        )}
+      </div>
 
-        <Card>
+      <Card className="p-4 md:p-6 lg:p-8">
           {isEditing ? (
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-8">
               {/* Name */}
@@ -827,10 +854,10 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Button
                   type="submit"
-                  size="lg"
+                  size="sm"
                   loading={saving}
                   disabled={saving}
                   className="w-full sm:w-auto"
@@ -840,7 +867,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                 <Button
                   type="button"
                   variant="ghost"
-                  size="lg"
+                  size="sm"
                   onClick={() => setIsEditing(false)}
                   className="w-full sm:w-auto"
                 >
@@ -849,7 +876,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                 <Button
                   type="button"
                   variant="ghost"
-                  size="lg"
+                  size="sm"
                   onClick={() => setShowDeleteConfirm(true)}
                   className="w-full sm:w-auto text-red-400 hover:text-red-300 hover:bg-red-500/10"
                 >
@@ -945,25 +972,27 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
               </div>
 
               {/* Actions */}
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Button
-                  size="lg"
+                  size="sm"
                   onClick={() => setIsEditing(true)}
+                  className="w-full sm:w-auto"
                 >
                   Edit Item
                 </Button>
                 <Button
                   variant="ghost"
-                  size="lg"
+                  size="sm"
                   onClick={() => router.push('/vision-board')}
+                  className="w-full sm:w-auto"
                 >
                   Back to Vision Board
                 </Button>
                 <Button
                   variant="ghost"
-                  size="lg"
+                  size="sm"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  className="w-full sm:w-auto text-red-400 hover:text-red-300 hover:bg-red-500/10"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete
@@ -1006,6 +1035,6 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             </Card>
           </div>
         )}
-    </>
+    </PageLayout>
   )
 }

@@ -241,51 +241,72 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <div className="text-center py-16">
-        <div className="text-neutral-400">Loading journal entry...</div>
-      </div>
+      <PageLayout>
+        <div className="text-center py-16">
+          <div className="text-neutral-400">Loading journal entry...</div>
+        </div>
+      </PageLayout>
     )
   }
 
   if (!entry) {
     return (
-      <div className="text-center py-16">
-        <div className="text-neutral-400">Entry not found</div>
-      </div>
+      <PageLayout>
+        <div className="text-center py-16">
+          <div className="text-neutral-400">Entry not found</div>
+        </div>
+      </PageLayout>
     )
   }
 
   return (
-    <>
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <Button variant="ghost" asChild>
-              <Link href="/journal">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Journal
-              </Link>
-            </Button>
-            <div className="flex justify-end">
-              <ActionButtons
-                versionType="completed"
-                viewHref={`/journal/${entry.id}/edit`}
-                onDelete={() => setShowDeleteConfirm(true)}
-                showLabels={true}
-              />
-            </div>
-          </div>
-          
-          <h1 className="text-3xl font-bold text-white mb-2">{entry.title}</h1>
-          <div className="flex items-center gap-4 text-neutral-400 text-sm">
-            <div className="flex items-center gap-1">
+    <PageLayout>
+      {/* Header */}
+      <div className="mb-6 md:mb-8">
+        {/* Mobile Header */}
+        <div className="md:hidden space-y-4 mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-2">{entry.title}</h1>
+            <div className="flex items-center gap-1 text-neutral-400 text-sm">
               <Calendar className="w-4 h-4" />
               {new Date(entry.date).toLocaleDateString()}
             </div>
           </div>
         </div>
 
-        <Card>
+        {/* Desktop Header */}
+        <div className="hidden md:flex items-center gap-4 mb-4">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-white mb-2">{entry.title}</h1>
+            <div className="flex items-center gap-4 text-neutral-400 text-sm">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                {new Date(entry.date).toLocaleDateString()}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <Button variant="ghost" size="sm" asChild className="w-full sm:w-auto">
+            <Link href="/journal">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Journal
+            </Link>
+          </Button>
+          <div className="flex gap-2 sm:ml-auto">
+            <ActionButtons
+              versionType="completed"
+              viewHref={`/journal/${entry.id}/edit`}
+              onDelete={() => setShowDeleteConfirm(true)}
+              showLabels={true}
+            />
+          </div>
+        </div>
+      </div>
+
+      <Card className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             {/* Categories */}
             {entry.categories && entry.categories.length > 0 && (
@@ -347,12 +368,12 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                     </div>
                   ))}
                   
-                  {/* Images - 2x2 Grid */}
+                  {/* Images - Responsive Grid */}
                   {entry.image_urls.filter(url => {
                     const ext = url.split('.').pop()?.toLowerCase()
                     return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
                   }).length > 0 && (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 gap-3 md:gap-4">
                       {entry.image_urls.filter(url => {
                         const ext = url.split('.').pop()?.toLowerCase()
                         return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
@@ -526,6 +547,6 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
         isLoading={deleting}
         loadingText="Deleting..."
       />
-    </>
+    </PageLayout>
   )
 }
