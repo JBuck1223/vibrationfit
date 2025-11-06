@@ -642,23 +642,6 @@ export default function ProfileEditPage() {
     }
   }, [profileSections.length])
 
-  // Category toggle functions
-  const handleCategoryToggle = (categoryKey: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryKey) 
-        ? prev.filter(key => key !== categoryKey)
-        : [...prev, categoryKey]
-    )
-  }
-
-  const handleSelectAll = () => {
-    if (selectedCategories.length === profileSections.length) {
-      setSelectedCategories([])
-    } else {
-      setSelectedCategories(profileSections.map(s => s.id))
-    }
-  }
-
   // Render section content
   const renderSection = () => {
     const commonProps = {
@@ -695,7 +678,7 @@ export default function ProfileEditPage() {
         sectionContent = <PhotosAndNotesSection {...commonProps} />
         break
       case 'fun-recreation':
-        sectionContent = <FunRecreationSection {...commonProps} />
+        sectionContent = <FunRecreationSection {...commonProps} profileId={profileId} />
         break
       case 'travel-adventure':
         sectionContent = <TravelAdventureSection {...commonProps} />
@@ -957,27 +940,16 @@ export default function ProfileEditPage() {
         {/* Select Life Areas Bar */}
         <div className="mb-6">
           <Card className="p-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-1">Select Life Areas</h3>
-                <p className="text-sm text-neutral-400">
-                  Showing {selectedCategories.length} of {profileSections.length} areas
-                  {completedSections.length > 0 && (
-                    <span className="ml-2 text-green-400">
-                      • {completedSections.length} completed
-                    </span>
-                  )}
-                </p>
-              </div>
-              <Button
-                onClick={handleSelectAll}
-                variant={selectedCategories.length === profileSections.length ? "primary" : "outline"}
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                {selectedCategories.length === profileSections.length ? 'Deselect All' : 'Select All'}
-              </Button>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-white mb-1">Select Life Areas</h3>
+              <p className="text-sm text-neutral-400">
+                Showing {selectedCategories.length} of {profileSections.length} areas
+                {completedSections.length > 0 && (
+                  <span className="ml-2 text-green-400">
+                    • {completedSections.length} completed
+                  </span>
+                )}
+              </p>
             </div>
 
             {/* Category Grid */}
@@ -994,11 +966,16 @@ export default function ProfileEditPage() {
                     key={section.id}
                     variant="outlined" 
                     hover 
-                    className={`cursor-pointer aspect-square transition-all duration-300 ${
+                    className={`cursor-pointer aspect-square transition-all duration-300 relative ${
                       isActive ? 'border-2 border-primary-500' : ''
                     } ${isCompleted ? 'bg-green-500/10' : ''}`}
                     onClick={() => setActiveSection(section.id)}
                   >
+                    {isCompleted && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full border-2 border-[#39FF14] bg-transparent flex items-center justify-center z-10">
+                        <Check className="w-3 h-3 text-[#39FF14]" strokeWidth={3} />
+                      </div>
+                    )}
                     <div className="flex flex-col items-center gap-1 justify-center h-full">
                       <Icon 
                         icon={IconComponent} 

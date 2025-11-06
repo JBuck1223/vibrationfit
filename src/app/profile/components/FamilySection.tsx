@@ -299,6 +299,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="family_parenting"
         />
 
         {/* Display Saved Recordings */}
@@ -318,6 +319,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="family_parenting"
         />
       </div>
 

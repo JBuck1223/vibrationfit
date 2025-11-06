@@ -212,6 +212,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="money_wealth"
         />
 
         <SavedRecordings
@@ -230,6 +231,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="money_wealth"
         />
       </div>
 

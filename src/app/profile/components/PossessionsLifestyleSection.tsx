@@ -94,6 +94,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="stuff"
         />
 
         <SavedRecordings
@@ -112,6 +113,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="stuff"
         />
       </div>
 

@@ -90,10 +90,14 @@ export async function uploadFileWithPresignedUrl(
       userId
     )
 
+    // Clone file to avoid "body is disturbed or locked" error
+    // This creates a new File object that can be read independently
+    const fileClone = new File([file], file.name, { type: file.type })
+
     // Upload directly to S3
     const response = await fetch(uploadUrl, {
       method: 'PUT',
-      body: file,
+      body: fileClone,
       headers: {
         'Content-Type': file.type,
       }
@@ -204,8 +208,12 @@ async function uploadViaApiRoute(
       userId = user.id
     }
 
+    // Clone file to avoid "body is disturbed or locked" error
+    // This creates a new File object that can be read independently
+    const fileClone = new File([file], file.name, { type: file.type })
+
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', fileClone)
     formData.append('folder', USER_FOLDERS[folder])
     formData.append('userId', userId)
     // Always use multipart for files larger than 4MB to avoid Vercel body size limit (4.5MB)

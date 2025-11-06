@@ -111,6 +111,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="spirituality_growth"
         />
 
         <SavedRecordings
@@ -129,6 +130,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="spirituality_growth"
         />
       </div>
 

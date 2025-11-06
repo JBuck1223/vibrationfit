@@ -12,9 +12,10 @@ interface FunRecreationSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  profileId?: string // Optional profile ID to target specific profile version
 }
 
-export function FunRecreationSection({ profile, onProfileChange, onProfileReload }: FunRecreationSectionProps) {
+export function FunRecreationSection({ profile, onProfileChange, onProfileReload, profileId }: FunRecreationSectionProps) {
   const [newHobby, setNewHobby] = useState('')
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
@@ -25,24 +26,101 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
     const newRecording = { url, transcript, type, category: 'fun_recreation', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_fun: updatedText }) })
+      // Build API URL with profileId if provided
+      const apiUrl = profileId 
+        ? `/api/profile?profileId=${profileId}`
+        : '/api/profile'
+      
+      await fetch(apiUrl, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ story_recordings: updatedRecordings, clarity_fun: updatedText }) 
+      })
       if (onProfileReload) await onProfileReload()
-    } catch (error) { alert('Failed to save recording.') }
+    } catch (error) { 
+      console.error('Failed to save recording:', error)
+      alert('Failed to save recording.') 
+    }
   }
 
   const handleDeleteRecording = async (index: number) => {
+    console.log('🗑️ handleDeleteRecording called with index:', index)
+    console.log('📋 Current profile.story_recordings:', profile.story_recordings)
+    
     const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'fun_recreation')
+    console.log('🎯 Filtered categoryRecordings:', categoryRecordings)
+    
     const recordingToDelete = categoryRecordings[index]
+    console.log('🎯 Recording to delete:', recordingToDelete)
+    
+    // Validate recording exists
+    if (!recordingToDelete) {
+      console.error('❌ Recording not found at index:', index, 'Available recordings:', categoryRecordings)
+      alert('Recording not found. Please refresh the page and try again.')
+      return
+    }
+
     const allRecordings = profile.story_recordings || []
-    const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
-    if (actualIndex !== -1) {
-      try {
-        const { deleteRecording } = await import('@/lib/services/recordingService')
+    const actualIndex = allRecordings.findIndex(r => 
+      r.url === recordingToDelete.url && 
+      r.created_at === recordingToDelete.created_at &&
+      r.category === recordingToDelete.category
+    )
+    
+    console.log('🔍 Found actual index in all recordings:', actualIndex)
+    
+    if (actualIndex === -1) {
+      console.error('❌ Could not find recording in all recordings array')
+      alert('Could not find recording to delete. Please refresh the page and try again.')
+      return
+    }
+    
+    try {
+      console.log('🗑️ Starting deletion process...')
+      
+      // Delete from S3 (will skip if URL is invalid/empty)
+      const { deleteRecording } = await import('@/lib/services/recordingService')
+      if (recordingToDelete.url) {
+        console.log('🗑️ Deleting from S3:', recordingToDelete.url)
         await deleteRecording(recordingToDelete.url)
-        const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
-        await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings }) })
-        if (onProfileReload) await onProfileReload()
-      } catch (error) { alert('Failed to delete recording.') }
+        console.log('✅ S3 deletion complete')
+      } else {
+        console.warn('⚠️ No URL found for recording, skipping S3 deletion')
+      }
+      
+      // Remove from database
+      const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
+      console.log('💾 Updating database, removing recording at index:', actualIndex)
+      console.log('📊 Updated recordings count:', updatedRecordings.length, '(was:', allRecordings.length, ')')
+      
+      // Build API URL with profileId if provided
+      const apiUrl = profileId 
+        ? `/api/profile?profileId=${profileId}`
+        : '/api/profile'
+      
+      console.log('📡 API URL:', apiUrl)
+      
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ story_recordings: updatedRecordings })
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ API response error:', response.status, errorText)
+        throw new Error(`Failed to update profile: ${response.status} ${response.statusText}`)
+      }
+      
+      console.log('✅ Database update successful')
+      
+      if (onProfileReload) {
+        console.log('🔄 Reloading profile...')
+        await onProfileReload()
+      }
+    } catch (error) {
+      console.error('❌ Failed to delete recording:', error)
+      alert(`Failed to delete recording: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -138,6 +216,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="fun_recreation"
         />
 
         <SavedRecordings
@@ -156,6 +235,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="fun_recreation"
         />
       </div>
 

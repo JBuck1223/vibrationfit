@@ -108,6 +108,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="travel_adventure"
         />
 
         <SavedRecordings
@@ -126,6 +127,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="travel_adventure"
         />
       </div>
 

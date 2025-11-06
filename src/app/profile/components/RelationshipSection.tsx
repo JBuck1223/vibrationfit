@@ -176,6 +176,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="love"
         />
 
         {/* Display Saved Recordings */}
@@ -195,6 +196,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="love"
         />
       </div>
 

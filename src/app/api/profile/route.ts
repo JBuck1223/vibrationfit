@@ -336,7 +336,6 @@ export async function POST(request: NextRequest) {
               .from('user_profiles')
               .update({
                 ...profileDataToUpdate,
-                completion_percentage: completionPercentage,
                 updated_at: new Date().toISOString()
               })
               .eq('id', existingDraft.id)
@@ -570,7 +569,6 @@ export async function POST(request: NextRequest) {
             .from('user_profiles')
             .update({
               ...profileDataToUpdate,
-              completion_percentage: completionPercentage,
               updated_at: new Date().toISOString()
             })
             .eq('id', activeProfile.id)
@@ -606,7 +604,6 @@ export async function POST(request: NextRequest) {
               .from('user_profiles')
               .update({
                 ...profileDataToUpdate,
-                completion_percentage: completionPercentage,
                 updated_at: new Date().toISOString()
               })
               .eq('id', anyProfile.id)
@@ -634,7 +631,6 @@ export async function POST(request: NextRequest) {
               .insert({
                 user_id: user.id,
                 ...profileDataToUpdate,
-                completion_percentage: completionPercentage,
                 is_active: true,
                 is_draft: false,
                 version_number: 1,
@@ -798,27 +794,8 @@ export async function PUT(request: NextRequest) {
         throw profileError
       }
 
-      // Calculate completion percentage using shared utility
+      // Calculate completion percentage using shared utility (for response only, not stored)
       const completionPercentage = calculateProfileCompletion(profile)
-
-      // Save completion percentage back to the database
-      if (completionPercentage !== undefined) {
-        const { error: updateCompletionError } = await supabase
-          .from('user_profiles')
-          .update({ 
-            completion_percentage: completionPercentage,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', profile.id)
-
-        if (updateCompletionError) {
-          console.error('Error updating completion percentage:', updateCompletionError)
-          // Don't fail the request, just log the error
-        } else {
-          // Update the profile object with the new completion percentage
-          profile.completion_percentage = completionPercentage
-        }
-      }
 
       console.log('Profile API PUT: Update successful, completion:', completionPercentage)
 

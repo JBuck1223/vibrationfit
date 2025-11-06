@@ -200,6 +200,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="work"
         />
 
         <SavedRecordings
@@ -218,6 +219,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="work"
         />
       </div>
 

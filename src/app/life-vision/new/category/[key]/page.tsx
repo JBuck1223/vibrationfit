@@ -69,8 +69,11 @@ export default function CategoryPage() {
   const supabase = createClient()
 
   const [loading, setLoading] = useState(true)
-  const [transcript, setTranscript] = useState('')
-  const [content, setContent] = useState('')
+  const [currentClarity, setCurrentClarity] = useState('')
+  const [clarityFromContrast, setClarityFromContrast] = useState('')
+  const [contrastFromProfile, setContrastFromProfile] = useState('')
+  const [showContrastToggle, setShowContrastToggle] = useState(false)
+  const [isFlippingContrast, setIsFlippingContrast] = useState(false)
   const [aiSummary, setAiSummary] = useState('')
   const [editingSummary, setEditingSummary] = useState(false)
   const [editedSummary, setEditedSummary] = useState('')
@@ -78,11 +81,6 @@ export default function CategoryPage() {
   const [vivaStage, setVivaStage] = useState('')
   const [vivaMessage, setVivaMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [promptSuggestions, setPromptSuggestions] = useState<{
-    peakExperiences: string
-    whatFeelsAmazing: string
-    whatFeelsBad: string
-  } | null>(null)
   const [fullProfile, setFullProfile] = useState<any>(null)
   const [fullAssessment, setFullAssessment] = useState<any>(null)
   const [showProfileDetails, setShowProfileDetails] = useState(false)
@@ -96,32 +94,24 @@ export default function CategoryPage() {
     responses: any[]
     hasData: boolean
   } | null>(null)
-  const [loadingPrompts, setLoadingPrompts] = useState(false)
-  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
   const [savedRecordings, setSavedRecordings] = useState<any[]>([])
   const [transcribingRecordingId, setTranscribingRecordingId] = useState<string | null>(null)
 
-  // VIVA prompt generation loading messages
-  const promptLoadingMessages = [
-    "VIVA is analyzing your profile...",
-    "Understanding your assessment insights...",
-    "Crafting personalized prompts for you...",
-    "Weaving your unique story into guidance...",
-    "Almost ready with powerful questions..."
-  ]
-
-  // Cycle through loading messages every 2.5 seconds
-  useEffect(() => {
-    if (loadingPrompts) {
-      const interval = setInterval(() => {
-        setLoadingMessageIndex((prev) => (prev + 1) % promptLoadingMessages.length)
-      }, 2500)
-      return () => clearInterval(interval)
-    } else {
-      // Reset to first message when loading stops
-      setLoadingMessageIndex(0)
-    }
-  }, [loadingPrompts, promptLoadingMessages.length])
+  // Map category keys to profile clarity/contrast fields
+  const categoryFieldMap: Record<string, { clarity: string; contrast: string }> = {
+    fun: { clarity: 'clarity_fun', contrast: 'contrast_fun' },
+    health: { clarity: 'clarity_health', contrast: 'contrast_health' },
+    travel: { clarity: 'clarity_travel', contrast: 'contrast_travel' },
+    love: { clarity: 'clarity_love', contrast: 'contrast_love' },
+    family: { clarity: 'clarity_family', contrast: 'contrast_family' },
+    social: { clarity: 'clarity_social', contrast: 'contrast_social' },
+    home: { clarity: 'clarity_home', contrast: 'contrast_home' },
+    work: { clarity: 'clarity_work', contrast: 'contrast_work' },
+    money: { clarity: 'clarity_money', contrast: 'contrast_money' },
+    stuff: { clarity: 'clarity_stuff', contrast: 'contrast_stuff' },
+    giving: { clarity: 'clarity_giving', contrast: 'contrast_giving' },
+    spirituality: { clarity: 'clarity_spirituality', contrast: 'contrast_spirituality' }
+  }
 
   const category = getVisionCategory(categoryKey)
   if (!category) {
@@ -152,41 +142,40 @@ export default function CategoryPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Check for existing transcript and summary in refinements table
-      const { data: refinements } = await supabase
-        .from('refinements')
-        .select('*')
-        .eq('category', categoryKey)
-        .order('created_at', { ascending: false })
-        .limit(1)
+      // Get active profile (or latest if no active)
+      const { data: activeProfile } = await supabase
+        .from('user_profiles')
+        .select('id, *')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('is_draft', false)
         .single()
 
-      if (refinements) {
-        const savedTranscript = refinements.transcript || ''
-        const savedSummary = refinements.ai_summary || ''
-        
-        // Populate both transcript and content with existing transcript
-        setTranscript(savedTranscript)
-        setContent(savedTranscript)
-        setAiSummary(savedSummary)
-      }
+      const { data: fallbackProfile } = activeProfile 
+        ? { data: null }
+        : await supabase
+          .from('user_profiles')
+          .select('id, *')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single()
 
-      // Load profile and assessment data for personalized prompts
-      await loadPromptSuggestions(user.id)
+      const profile = activeProfile || fallbackProfile
+      setFullProfile(profile)
 
-      // Check for saved recordings without transcripts
-      await checkForUnsavedRecordings()
+      // Get latest assessment
+      const { data: assessment } = await supabase
+        .from('assessment_results')
+        .select('id, *, assessment_responses(*)')
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
-      setLoading(false)
-    } catch (err) {
-      console.error('Error loading data:', err)
-      setLoading(false)
-    }
-  }
+      setFullAssessment(assessment)
 
-  const loadPromptSuggestions = async (userId: string) => {
-    try {
-      // Map category keys to profile story fields
+      // Set profile and assessment data for display
       const categoryStories: Record<string, string> = {
         fun: 'fun_story',
         health: 'health_story',
@@ -201,57 +190,14 @@ export default function CategoryPage() {
         giving: 'giving_story',
         spirituality: 'spirituality_story'
       }
-
       const storyField = categoryStories[categoryKey]
-      
-      // Get active profile (or latest if no active)
-      const { data: activeProfile } = await supabase
-        .from('user_profiles')
-        .select('id, *')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .eq('is_draft', false)
-        .single()
-
-      const { data: fallbackProfile } = activeProfile 
-        ? { data: null }
-        : await supabase
-          .from('user_profiles')
-          .select('id, *')
-          .eq('user_id', userId)
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .single()
-
-      const profile = activeProfile || fallbackProfile
-      const profileId = profile?.id || null
-
-      // Store full profile for detailed display
-      setFullProfile(profile)
-
-      // Get latest assessment
-      const { data: assessment } = await supabase
-        .from('assessment_results')
-        .select('id, *, assessment_responses(*)')
-        .eq('user_id', userId)
-        .order('completed_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      const assessmentId = assessment?.id || null
-      
-      // Store full assessment for detailed display
-      setFullAssessment(assessment)
-
       const profileStory = profile?.[storyField] || ''
-      // category_scores stores raw points (0-35: 5 points each x 7 questions), convert to percentage
       const categoryScoreRaw = assessment?.category_scores?.[categoryKey]
       const categoryScore = categoryScoreRaw !== undefined && categoryScoreRaw !== null 
         ? Math.round((categoryScoreRaw / 35) * 100) 
         : undefined
       const categoryResponses = assessment?.assessment_responses?.filter((r: any) => r.category === categoryKey) || []
 
-      // Store data for display
       setProfileData({
         story: profileStory,
         hasStory: profileStory.trim().length > 0
@@ -263,416 +209,145 @@ export default function CategoryPage() {
         hasData: categoryScore !== undefined || categoryResponses.length > 0
       })
 
-      // Check for cached prompts first
-      // Build query with proper NULL handling
-      let cacheQuery = supabase
-        .from('prompt_suggestions_cache')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('category_key', categoryKey)
+      // Load clarity and contrast fields for this category
+      const fields = categoryFieldMap[categoryKey]
+      if (fields && profile) {
+        const clarityValue = profile[fields.clarity] || ''
+        const contrastValue = profile[fields.contrast] || ''
+        
+        setCurrentClarity(clarityValue)
+        setContrastFromProfile(contrastValue)
 
-      if (profileId) {
-        cacheQuery = cacheQuery.eq('profile_id', profileId)
-      } else {
-        cacheQuery = cacheQuery.is('profile_id', null)
-      }
-
-      if (assessmentId) {
-        cacheQuery = cacheQuery.eq('assessment_id', assessmentId)
-      } else {
-        cacheQuery = cacheQuery.is('assessment_id', null)
-      }
-
-      const { data: cached } = await cacheQuery.single()
-
-      if (cached?.suggestions) {
-        // Use cached prompts
-        setPromptSuggestions(cached.suggestions as {
-          peakExperiences: string
-          whatFeelsAmazing: string
-          whatFeelsBad: string
-        })
-        setLoadingPrompts(false)
-        return
-      }
-
-      // If we have any data, generate AI prompts with ALL profile and assessment data
-      if (profileStory.trim().length > 10 || categoryScore !== undefined || categoryResponses.length > 0 || profile || assessment) {
-        setLoadingPrompts(true)
-        try {
-          const response = await fetch('/api/viva/prompt-suggestions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              categoryKey,
-              categoryLabel: category.label,
-              profileData: profile || null,
-              assessmentData: {
-                categoryScore,
-                overallScore: assessment?.overall_percentage,
-                greenLineStatus: assessment?.green_line_status,
-                allCategoryScores: assessment?.category_scores || {},
-                responses: categoryResponses
-              }
-            })
-          })
-
-          if (response.ok) {
-            const aiSuggestions = await response.json()
-            setPromptSuggestions(aiSuggestions)
-
-            // Cache the prompts with profile_id and assessment_id
-            try {
-              // First, try to find existing cache entry
-              let query = supabase
-                .from('prompt_suggestions_cache')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('category_key', categoryKey)
-
-              if (profileId) {
-                query = query.eq('profile_id', profileId)
-              } else {
-                query = query.is('profile_id', null)
-              }
-
-              if (assessmentId) {
-                query = query.eq('assessment_id', assessmentId)
-              } else {
-                query = query.is('assessment_id', null)
-              }
-
-              const { data: existing } = await query.maybeSingle()
-
-              const cacheData = {
-                user_id: userId,
-                category_key: categoryKey,
-                profile_id: profileId || null,
-                assessment_id: assessmentId || null,
-                suggestions: aiSuggestions,
-                updated_at: new Date().toISOString()
-              }
-
-              if (existing?.id) {
-                // Update existing
-                const { error: updateError } = await supabase
-                  .from('prompt_suggestions_cache')
-                  .update({
-                    suggestions: aiSuggestions,
-                    updated_at: new Date().toISOString()
-                  })
-                  .eq('id', existing.id)
-
-                if (updateError) {
-                  console.error('Error updating cached prompts:', updateError)
-                }
-              } else {
-                // Insert new
-                const { error: insertError } = await supabase
-                  .from('prompt_suggestions_cache')
-                  .insert(cacheData)
-
-                if (insertError) {
-                  console.error('Error inserting cached prompts:', insertError)
-                }
-              }
-            } catch (cacheErr) {
-              // Non-critical error - log but don't fail
-              console.error('Error caching prompts:', cacheErr)
-            }
-          } else {
-            // Fallback to basic prompts
-            const fallbackPrompts = generatePromptSuggestions(categoryKey, category.label, profile, assessment)
-            setPromptSuggestions(fallbackPrompts)
-          }
-        } catch (err) {
-          console.error('Error generating AI prompts:', err)
-          // Fallback to basic prompts
-          const fallbackPrompts = generatePromptSuggestions(categoryKey, category.label, profile, assessment)
-          setPromptSuggestions(fallbackPrompts)
-        } finally {
-          setLoadingPrompts(false)
+        // Auto-flip contrast if it exists
+        if (contrastValue.trim().length > 0) {
+          await flipContrastToClarity(contrastValue)
         }
-      } else {
-        // No data, use default prompts
-        setPromptSuggestions(generatePromptSuggestions(categoryKey, category.label, profile, assessment))
       }
+
+      // Check for existing summary in refinements table
+      const { data: refinements } = await supabase
+        .from('refinements')
+        .select('ai_summary')
+        .eq('category', categoryKey)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (refinements?.ai_summary) {
+        setAiSummary(refinements.ai_summary)
+      }
+
+      setLoading(false)
     } catch (err) {
-      console.error('Error loading prompt suggestions:', err)
-      // Non-critical, continue without personalized prompts
-      setLoadingPrompts(false)
+      console.error('Error loading data:', err)
+      setLoading(false)
     }
   }
 
-  const generatePromptSuggestions = (
-    categoryKey: string,
-    categoryLabel: string,
-    profile: any,
-    assessment: any
-  ): { peakExperiences: string; whatFeelsAmazing: string; whatFeelsBad: string } => {
-    // Map category keys to profile story fields
-    const categoryStories: Record<string, string> = {
-      fun: 'fun_story',
-      health: 'health_story',
-      travel: 'travel_story',
-      love: 'love_story',
-      family: 'family_story',
-      social: 'social_story',
-      home: 'home_story',
-      work: 'work_story',
-      money: 'money_story',
-      stuff: 'stuff_story',
-      giving: 'giving_story',
-      spirituality: 'spirituality_story'
-    }
+  const flipContrastToClarity = async (contrastText: string) => {
+    if (!contrastText.trim()) return
 
-    const storyField = categoryStories[categoryKey]
-    const profileStory = profile?.[storyField] || ''
-    
-    // Get category-specific assessment responses
-    const categoryResponses = assessment?.assessment_responses?.filter((r: any) => r.category === categoryKey) || []
-    // category_scores stores raw points (0-35: 5 points each x 7 questions), convert to percentage
-    const categoryScoreRaw = assessment?.category_scores?.[categoryKey]
-    const categoryScore = categoryScoreRaw !== undefined && categoryScoreRaw !== null 
-      ? Math.round((categoryScoreRaw / 35) * 100) 
-      : undefined
-    
-    // Build context string for peak experiences
-    let peakContext = ''
-    if (profileStory && profileStory.trim().length > 30) {
-      // Extract a meaningful snippet from their profile story (first sentence or ~100 chars)
-      const firstSentence = profileStory.split(/[.!?]\s+/)[0].trim()
-      const snippet = firstSentence.length > 120 
-        ? firstSentence.substring(0, 120).trim() + '...'
-        : firstSentence
-      
-      // Use a more natural reference
-      peakContext = `I can see from your profile that ${snippet.toLowerCase()}. Based on this, `
-    } else if (categoryScore !== undefined) {
-      if (categoryScore >= 80) {
-        peakContext = `I can see from your assessment that you're thriving in ${categoryLabel.toLowerCase()} with a ${categoryScore}% score. `
-      } else if (categoryScore >= 60) {
-        peakContext = `Based on your assessment, you have moderate alignment in ${categoryLabel.toLowerCase()} (${categoryScore}% score). `
-      }
-    }
-    
-    // Build context for what feels amazing
-    let amazingContext = ''
-    if (categoryResponses.length > 0) {
-      const highScoringResponses = categoryResponses.filter((r: any) => (r.response_value || 0) >= 4)
-      if (highScoringResponses.length > 0) {
-        amazingContext = 'Based on your current situation, '
-      }
-    }
-    if (categoryScore !== undefined && categoryScore >= 70) {
-      amazingContext = 'Based on your current situation, you\'re in a strong position. '
-    }
-    
-    // Build context for what feels bad
-    let badContext = ''
-    if (categoryResponses.length > 0) {
-      const lowScoringResponses = categoryResponses.filter((r: any) => (r.response_value || 0) <= 2)
-      if (lowScoringResponses.length > 0) {
-        badContext = 'Based on your current situation, '
-      }
-    }
-    if (categoryScore !== undefined && categoryScore < 60) {
-      badContext = 'Based on your current situation, '
-    }
-
-    return {
-      peakExperiences: peakContext 
-        ? `${peakContext}Let's think about some peak experiences that you've had around ${categoryLabel.toLowerCase()}. Describe one or more experiences that you would deem to have been peak moments in your life.`
-        : `I can see from your profile in ${categoryLabel.toLowerCase()} that you... Let's think about some peak experiences that you've had around this. Describe one or more experiences that you would deem to have been peak moments in your life.`,
-      whatFeelsAmazing: amazingContext
-        ? `${amazingContext}What feels like it's going really well right now? If you have any clarity on what you do want in this area, let it fly!`
-        : `Based on your current situation, what feels like it's going really well right now? If you have any clarity on what you do want in this area, let it fly!`,
-      whatFeelsBad: badContext
-        ? `${badContext}What feels off right now? Anything frustrating? What's not working? Don't hold back—vent it out!`
-        : `Based on your current situation, what feels off right now? Anything frustrating? What's not working? Don't hold back—vent it out!`
-    }
-  }
-
-  const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    console.log('🎯 Category page: handleRecordingSaved called', { url, transcriptLength: transcript.length, type, updatedTextLength: updatedText.length })
-    setTranscript(transcript)
-    setContent(updatedText)
-    console.log('✅ Category page: State updated with transcript and content')
-
-    // Auto-save transcript to refinements table when recording is saved
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      try {
-        // Check if refinement already exists
-        const { data: existing } = await supabase
-          .from('refinements')
-          .select('id')
-          .eq('category', categoryKey)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        if (existing?.id) {
-          // Update existing refinement with new transcript
-          await supabase
-            .from('refinements')
-            .update({
-              transcript: updatedText // Use updatedText which includes transcript
-            })
-            .eq('id', existing.id)
-          console.log('✅ Auto-saved transcript to existing refinement')
-        } else {
-          // Create new refinement with transcript
-          await supabase.from('refinements').insert({
-            user_id: user.id,
-            category: categoryKey,
-            transcript: updatedText
-          })
-          console.log('✅ Auto-saved transcript to new refinement')
-        }
-      } catch (error) {
-        console.error('Failed to auto-save transcript:', error)
-        // Non-critical, continue even if save fails
-      }
-    }
-
-    // Clear any saved recordings from IndexedDB for this category (successful upload means we don't need backups)
-    // Only clear recordings that have transcripts (successfully processed)
+    setIsFlippingContrast(true)
     try {
-      const allRecordings = await getRecordingsForCategory(categoryKey)
-      const processedRecordings = allRecordings.filter(rec => rec.transcript)
-      for (const recording of processedRecordings) {
-        await deleteSavedRecording(recording.id)
-      }
-      // Update savedRecordings state to remove processed ones
-      setSavedRecordings(prev => prev.filter(r => processedRecordings.find(p => p.id === r.id)))
-      console.log('✅ Cleared processed recordings from IndexedDB')
-    } catch (error) {
-      console.error('Failed to clear IndexedDB:', error)
-      // Non-critical, don't fail the save
-    }
-    
-    // Refresh the saved recordings list in case there are still unprocessed ones
-    await checkForUnsavedRecordings()
-  }
-
-  const handleProcessWithVIVA = async () => {
-    // Use content if it exists (contains transcript + any manual edits), otherwise use transcript
-    // Content will have the full text including any edits the user made
-    const textToProcess = content.trim() || transcript.trim()
-    if (!textToProcess) return
-
-    setIsProcessing(true)
-    setVivaStage('evaluating')
-    setVivaMessage('')
-    setError(null) // Clear any previous errors
-
-    // Also refresh saved recordings list in case any got processed
-    await checkForUnsavedRecordings()
-
-    try {
-      const response = await fetch('/api/viva/category-summary', {
+      const response = await fetch('/api/viva/flip-frequency', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          mode: 'text',
+          input: contrastText,
+          save_to_db: false
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setClarityFromContrast(data.clarity_seed || '')
+      } else {
+        console.error('Failed to flip contrast')
+      }
+    } catch (err) {
+      console.error('Error flipping contrast:', err)
+    } finally {
+      setIsFlippingContrast(false)
+    }
+  }
+
+
+  const handleProcessWithVIVA = async () => {
+    // Merge Current Clarity + Clarity from Contrast
+    if (!currentClarity.trim() && !clarityFromContrast.trim()) {
+      setError('Please provide at least one clarity text to merge')
+      return
+    }
+
+    setIsProcessing(true)
+    setVivaStage('creating')
+    setVivaMessage('Merging your clarity statements...')
+    setError(null)
+
+    try {
+      const response = await fetch('/api/viva/merge-clarity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentClarity: currentClarity.trim(),
+          clarityFromContrast: clarityFromContrast.trim(),
           category: categoryKey,
-          transcript: textToProcess,
           categoryName: category.label
         })
       })
 
       if (!response.ok) {
-        throw new Error('Failed to generate summary')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to merge clarity')
       }
 
-      // Handle streaming response
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
+      const data = await response.json()
+      
+      if (data.mergedClarity) {
+        // Save to database
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: existing } = await supabase
+            .from('refinements')
+            .select('id')
+            .eq('category', categoryKey)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
 
-      if (!reader) {
-        throw new Error('No response stream available')
-      }
-
-      while (true) {
-        const { done, value } = await reader.read()
-        
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || '' // Keep incomplete line in buffer
-
-        for (const line of lines) {
-          const trimmedLine = line.trim()
-          if (!trimmedLine || !trimmedLine.startsWith('data: ')) {
-            continue // Skip empty lines or lines that don't start with 'data: '
-          }
-
-          try {
-            // Extract JSON after 'data: '
-            const jsonStr = trimmedLine.slice(6).trim()
-            if (!jsonStr) continue // Skip if no JSON data
-            
-            const data = JSON.parse(jsonStr)
-            
-            if (data.type === 'progress') {
-              setVivaStage(data.stage)
-              setVivaMessage(data.message)
-            } else if (data.type === 'complete') {
-              if (data.summary) {
-                // Only save to database when user explicitly clicks "Process with VIVA"
-                // Don't auto-save on text changes - wait for explicit button click
-                const { data: { user } } = await supabase.auth.getUser()
-                if (user) {
-                  // Update existing refinement or create new one
-                  const { data: existing } = await supabase
-                    .from('refinements')
-                    .select('id')
-                    .eq('category', categoryKey)
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle()
-
-                  if (existing?.id) {
-                    await supabase
-                      .from('refinements')
-                      .update({
-                        transcript: textToProcess,
-                        ai_summary: data.summary
-                      })
-                      .eq('id', existing.id)
-                  } else {
-                    await supabase.from('refinements').insert({
-                      user_id: user.id,
-                      category: categoryKey,
-                      transcript: textToProcess,
-                      ai_summary: data.summary
-                    })
-                  }
-                }
-                // Set summary first, then clear processing state to avoid blank screen
-                setAiSummary(data.summary)
-                setVivaStage('')
-                setVivaMessage('')
-                setIsProcessing(false)
-              }
-            } else if (data.type === 'error') {
-              throw new Error(data.error)
-            }
-          } catch (parseError) {
-            console.error('Error parsing stream data:', parseError, 'Line:', trimmedLine)
-            // Continue processing other lines even if one fails
+          if (existing?.id) {
+            await supabase
+              .from('refinements')
+              .update({
+                ai_summary: data.mergedClarity
+              })
+              .eq('id', existing.id)
+          } else {
+            await supabase.from('refinements').insert({
+              user_id: user.id,
+              category: categoryKey,
+              ai_summary: data.mergedClarity
+            })
           }
         }
+
+        setAiSummary(data.mergedClarity)
+        setVivaStage('')
+        setVivaMessage('')
       }
     } catch (err) {
       console.error('Error processing with VIVA:', err)
-      setError(err instanceof Error ? err.message : 'Failed to process')
+      setError(err instanceof Error ? err.message : 'Failed to merge clarity')
       setVivaStage('')
       setVivaMessage('')
+    } finally {
       setIsProcessing(false)
     }
+  }
+
+  const handleRegenerate = async () => {
+    await handleProcessWithVIVA()
   }
 
   const handleEditSummary = () => {
@@ -706,128 +381,7 @@ export default function CategoryPage() {
 
   const handleCancelEdit = () => {
     setEditingSummary(false)
-    setEditedSummary('')
-  }
-
-  const handleAddToTranscript = () => {
-    // Add the summary to the original transcript so user can add more
-    // Use transcript as base since that's what was originally processed
-    const originalTranscript = transcript.trim() || content.trim()
-    const newContent = originalTranscript 
-      ? `${originalTranscript}\n\n--- Additional Reflection ---\n\n${aiSummary}`
-      : aiSummary
-    setContent(newContent)
-    setTranscript('') // Clear transcript so it doesn't conflict
-    setAiSummary('') // Clear summary to return to input mode
-    setEditingSummary(false) // Make sure we're not in edit mode
-    setEditedSummary('')
-  }
-
-  const checkForUnsavedRecordings = async () => {
-    try {
-      const recordings = await getRecordingsForCategory(categoryKey)
-      // Filter for recordings that have a blob but no transcript
-      const unsavedRecordings = recordings.filter(rec => rec.blob && !rec.transcript)
-      setSavedRecordings(unsavedRecordings)
-      console.log('📼 Found unsaved recordings:', unsavedRecordings.length)
-    } catch (error) {
-      console.error('Error checking for saved recordings:', error)
-    }
-  }
-
-  const handleRetryTranscription = async (recordingId: string) => {
-    setTranscribingRecordingId(recordingId)
-    setError(null)
-    
-    try {
-      // Load the recording from IndexedDB
-      const recording = await loadSavedRecording(recordingId)
-      if (!recording || !recording.blob) {
-        throw new Error('Recording not found or missing audio data')
-      }
-
-      // Create FormData for transcription
-      const formData = new FormData()
-      formData.append('audio', recording.blob, `recording-${recordingId}.webm`)
-
-      // Call transcription API
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || 'Transcription failed')
-      }
-
-      const data = await response.json()
-      const transcriptText = data.transcript
-
-      if (!transcriptText) {
-        throw new Error('No transcript received')
-      }
-
-      // Update the recording in IndexedDB with the transcript
-      await saveRecordingChunks(
-        recordingId,
-        categoryKey,
-        recording.chunks,
-        recording.duration,
-        recording.mode,
-        recording.blob,
-        transcriptText
-      )
-
-      // Update state - add transcript to content
-      const updatedText = content 
-        ? `${content}\n\n${transcriptText}`
-        : transcriptText
-      setContent(updatedText)
-      setTranscript(transcriptText)
-
-      // Save transcript to refinements table
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        try {
-          const { data: existing } = await supabase
-            .from('refinements')
-            .select('id')
-            .eq('category', categoryKey)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-
-          if (existing) {
-            await supabase
-              .from('refinements')
-              .update({ transcript: updatedText })
-              .eq('id', existing.id)
-          } else {
-            await supabase.from('refinements').insert({
-              user_id: user.id,
-              category: categoryKey,
-              transcript: updatedText
-            })
-          }
-        } catch (error) {
-          console.error('Failed to save transcript to refinements:', error)
-        }
-      }
-
-      // Remove from unsaved recordings list
-      setSavedRecordings(prev => prev.filter(r => r.id !== recordingId))
-
-      // Clear any errors
-      setError(null)
-
-      console.log('✅ Transcription successful and saved')
-    } catch (error) {
-      console.error('Transcription error:', error)
-      setError(error instanceof Error ? error.message : 'Failed to transcribe audio')
-    } finally {
-      setTranscribingRecordingId(null)
-    }
+    setEditedSummary(aiSummary)
   }
 
   const handleSaveAndContinue = async () => {
@@ -859,40 +413,6 @@ export default function CategoryPage() {
 
   return (
     <div className="relative">
-      {/* VIVA Prompt Loading Overlay */}
-      {loadingPrompts && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center z-50">
-          <div className="text-center space-y-6 max-w-md px-4">
-            {/* VIVA Logo Spinner */}
-            <div className="flex justify-center">
-              <Spinner size="lg" variant="branded" />
-            </div>
-            
-            {/* Animated Loading Message */}
-            <div className="space-y-2">
-              <h3 className="text-lg sm:text-xl font-bold text-white text-center break-words hyphens-auto">
-                {promptLoadingMessages[loadingMessageIndex]}
-              </h3>
-              <div className="flex justify-center space-x-1">
-                <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-secondary-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-accent-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-              </div>
-            </div>
-            
-            {/* Progress Indicator */}
-            <div className="w-full mx-auto">
-              <div className="bg-neutral-800 rounded-full h-2 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-            
-            <p className="text-sm text-neutral-400">
-              Generating personalized prompts based on your data...
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Progress Indicator */}
       <div className="mb-6 md:mb-8">
@@ -1196,303 +716,108 @@ export default function CategoryPage() {
         </div>
       )}
 
-      {/* Prompt Guidance Card */}
+      {/* Let's Get Clear - Three Text Blocks */}
       {!aiSummary && (
         <Card className="mb-6 border-2 border-[#00FFFF]/30 bg-[#00FFFF]/5">
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-[#00FFFF]/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Sparkles className="w-4 h-4 text-[#00FFFF]" />
               </div>
               <div className="flex-1">
                 <h3 className="text-base md:text-lg font-semibold text-[#00FFFF] mb-2">Let's Get Clear...</h3>
-                <p className="text-sm md:text-base text-neutral-400 leading-relaxed">
-                  Explore peak experiences, what feels amazing, and what feels off. Contrast creates clarity!
-                </p>
               </div>
             </div>
 
-            {promptSuggestions && (
-              <>
-                <div className="flex items-center justify-between gap-4 pt-2 border-t border-[#00FFFF]/10">
-                  <Text size="sm" className="text-neutral-300 flex-1">
-                    These prompts were custom generated for you based on your profile and assessment data by VIVA.
-                  </Text>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={async () => {
-                      // Clear cache and regenerate prompts
-                      const { data: { user } } = await supabase.auth.getUser()
-                      if (!user) return
+            {/* Current Clarity */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-white">Current Clarity</label>
+              <AutoResizeTextarea
+                value={currentClarity}
+                onChange={(value) => setCurrentClarity(value)}
+                placeholder={`Your current clarity about ${category.label.toLowerCase()} from your profile...`}
+                className="w-full bg-neutral-800 border-2 border-[#00FFFF]/30 text-white placeholder-neutral-500"
+                minHeight={120}
+              />
+            </div>
 
-                      // Delete cached prompts for this category
-                      const profile = fullProfile
-                      const assessment = fullAssessment
-                      const profileId = profile?.id || null
-                      const assessmentId = assessment?.id || null
-
-                      // Build query to find and delete cache entry
-                      let deleteQuery = supabase
-                        .from('prompt_suggestions_cache')
-                        .delete()
-                        .eq('user_id', user.id)
-                        .eq('category_key', categoryKey)
-
-                      if (profileId) {
-                        deleteQuery = deleteQuery.eq('profile_id', profileId)
-                      } else {
-                        deleteQuery = deleteQuery.is('profile_id', null)
-                      }
-
-                      if (assessmentId) {
-                        deleteQuery = deleteQuery.eq('assessment_id', assessmentId)
-                      } else {
-                        deleteQuery = deleteQuery.is('assessment_id', null)
-                      }
-
-                      await deleteQuery
-
-                      // Regenerate prompts
-                      setLoadingPrompts(true)
-                      try {
-                        const categoryStories: Record<string, string> = {
-                          fun: 'fun_story',
-                          health: 'health_story',
-                          travel: 'travel_story',
-                          love: 'love_story',
-                          family: 'family_story',
-                          social: 'social_story',
-                          home: 'home_story',
-                          work: 'work_story',
-                          money: 'money_story',
-                          stuff: 'stuff_story',
-                          giving: 'giving_story',
-                          spirituality: 'spirituality_story'
-                        }
-                        const storyField = categoryStories[categoryKey]
-                        const profileStory = profile?.[storyField] || ''
-                        const categoryScoreRaw = assessment?.category_scores?.[categoryKey]
-                        const categoryScore = categoryScoreRaw !== undefined && categoryScoreRaw !== null 
-                          ? Math.round((categoryScoreRaw / 35) * 100) 
-                          : undefined
-                        const categoryResponses = assessment?.assessment_responses?.filter((r: any) => r.category === categoryKey) || []
-
-                        const response = await fetch('/api/viva/prompt-suggestions', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            categoryKey,
-                            categoryLabel: category.label,
-                            profileData: profile || null,
-                            assessmentData: {
-                              categoryScore,
-                              overallScore: assessment?.overall_percentage,
-                              greenLineStatus: assessment?.green_line_status,
-                              allCategoryScores: assessment?.category_scores || {},
-                              responses: categoryResponses
-                            }
-                          })
-                        })
-
-                        if (response.ok) {
-                          const aiSuggestions = await response.json()
-                          setPromptSuggestions(aiSuggestions)
-                          
-                          // Update cache with new prompts
-                          try {
-                            const { data: existingCache } = await supabase
-                              .from('prompt_suggestions_cache')
-                              .select('id')
-                              .eq('user_id', user.id)
-                              .eq('category_key', categoryKey)
-                              .maybeSingle()
-
-                            const cacheData = {
-                              user_id: user.id,
-                              category_key: categoryKey,
-                              profile_id: profileId,
-                              assessment_id: assessmentId,
-                              suggestions: aiSuggestions,
-                              updated_at: new Date().toISOString()
-                            }
-
-                            if (existingCache) {
-                              await supabase
-                                .from('prompt_suggestions_cache')
-                                .update(cacheData)
-                                .eq('id', existingCache.id)
-                            } else {
-                              await supabase
-                                .from('prompt_suggestions_cache')
-                                .insert(cacheData)
-                            }
-                          } catch (cacheError) {
-                            console.error('Error caching prompts:', cacheError)
-                          }
-                        }
-                      } catch (err) {
-                        console.error('Error regenerating prompts:', err)
-                      } finally {
-                        setLoadingPrompts(false)
-                      }
-                    }}
-                    disabled={loadingPrompts}
-                    className="flex-shrink-0"
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${loadingPrompts ? 'animate-spin' : ''}`} />
-                    Regenerate Prompts
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Peak Experiences */}
-                <div className="bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-lg p-4">
-                  <h4 className="text-sm md:text-base font-semibold text-[#8B5CF6] mb-2 uppercase tracking-wide">
-                    Peak Experiences
-                  </h4>
-                  <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-                    {promptSuggestions?.peakExperiences || `Let's think about some peak experiences that you've had around ${category.label.toLowerCase()}. Describe one or more experiences that you would deem to have been peak moments in your life.`}
-                  </p>
-                </div>
-
-                {/* What Feels Amazing */}
-                <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-lg p-4">
-                  <h4 className="text-sm md:text-base font-semibold text-[#39FF14] mb-2 uppercase tracking-wide">
-                    What Feels Amazing
-                  </h4>
-                  <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-                    {promptSuggestions?.whatFeelsAmazing || `Based on your current situation, what feels like it's going really well right now? If you have any clarity on what you do want in this area, let it fly!`}
-                  </p>
-                </div>
-
-                {/* What Feels Bad or Missing */}
-                <div className="bg-[#FFB701]/10 border border-[#FFB701]/30 rounded-lg p-4">
-                  <h4 className="text-sm md:text-base font-semibold text-[#FFB701] mb-2 uppercase tracking-wide">
-                    What Feels Off Or Missing
-                  </h4>
-                  <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-                    {promptSuggestions?.whatFeelsBad || `Based on your current situation, what feels off right now? Anything frustrating? What's not working? Don't hold back—vent it out!`}
-                  </p>
-                </div>
+            {/* Clarity from Contrast */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-white">Clarity from Contrast</label>
+                {isFlippingContrast && (
+                  <Spinner size="sm" variant="primary" />
+                )}
               </div>
-              </>
+              <AutoResizeTextarea
+                value={clarityFromContrast}
+                onChange={(value) => setClarityFromContrast(value)}
+                placeholder="This will be auto-generated from your contrast text below..."
+                className="w-full bg-neutral-800 border-2 border-[#39FF14]/30 text-white placeholder-neutral-500"
+                minHeight={120}
+                disabled={isFlippingContrast}
+              />
+            </div>
+
+            {/* Contrast from Profile (Toggleable) */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowContrastToggle(!showContrastToggle)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <label className="text-sm font-semibold text-white cursor-pointer">
+                  Contrast from Profile (used to create frequency flip above)
+                </label>
+                <ChevronDown 
+                  className={`w-5 h-5 text-white transition-transform duration-300 ${
+                    showContrastToggle ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              {showContrastToggle && (
+                <AutoResizeTextarea
+                  value={contrastFromProfile}
+                  onChange={(value) => {
+                    setContrastFromProfile(value)
+                    // Auto-flip when contrast changes
+                    if (value.trim().length > 0) {
+                      flipContrastToClarity(value)
+                    }
+                  }}
+                  placeholder={`Your contrast text about ${category.label.toLowerCase()} from your profile...`}
+                  className="w-full bg-neutral-800 border-2 border-[#FFB701]/30 text-white placeholder-neutral-500"
+                  minHeight={120}
+                />
+              )}
+            </div>
+
+            {/* Process with VIVA Button */}
+            {(currentClarity.trim() || clarityFromContrast.trim()) && (
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
+                onClick={handleProcessWithVIVA}
+                disabled={isProcessing}
+                loading={isProcessing}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Process with VIVA
+              </Button>
             )}
           </div>
         </Card>
       )}
 
-      {/* Recording/Input Card */}
-      {!aiSummary && (
-        <Card className="mb-8">
-          <div>
-            <div className="mb-4 md:mb-6">
-              <h2 className="text-xl font-semibold text-white mb-2">
-                Share your vision for {category.label.toLowerCase()}
-              </h2>
-              <p className="text-neutral-400 text-sm">
-                Speak naturally about what you envision in this area of your life. 
-                Your authentic voice will be captured and transformed into a resonant summary by VIVA.
-              </p>
+      {/* Error Message */}
+      {error && !aiSummary && (
+        <Card className="mb-8 border-2 border-[#D03739]/30 bg-[#D03739]/10">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-[#D03739] flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-[#D03739] mb-1">Error</h3>
+              <Text size="sm" className="text-neutral-300">{error}</Text>
             </div>
-
-            {/* Error Message */}
-            {error && (
-              <Card className="border-2 border-[#D03739]/30 bg-[#D03739]/10 mb-6">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-[#D03739] flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="text-base font-semibold text-[#D03739] mb-1">Error</h3>
-                    <Text size="sm" className="text-neutral-300">{error}</Text>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Saved Recordings Without Transcripts */}
-            {savedRecordings.length > 0 && (
-              <Card className="border-2 border-[#FFB701]/30 bg-[#FFB701]/10 mb-6">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-[#FFB701]" />
-                    <h3 className="text-base font-semibold text-[#FFB701]">Saved Recording Available</h3>
-                  </div>
-                  <Text size="sm" className="text-neutral-300">
-                    You have {savedRecordings.length} saved recording{savedRecordings.length > 1 ? 's' : ''} that didn't get transcribed. You can retry transcription now.
-                  </Text>
-                  {savedRecordings.map((recording) => (
-                    <div key={recording.id} className="bg-black/30 rounded-lg p-4 border border-[#FFB701]/20">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[#FFB701]/20 rounded-lg flex items-center justify-center">
-                            {recording.mode === 'video' ? (
-                              <Video className="w-5 h-5 text-[#FFB701]" />
-                            ) : (
-                              <Mic className="w-5 h-5 text-[#FFB701]" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-white">
-                              {recording.mode === 'video' ? 'Video' : 'Audio'} Recording
-                            </p>
-                            <p className="text-xs text-neutral-400">
-                              {Math.floor(recording.duration / 60)}:{(recording.duration % 60).toString().padStart(2, '0')} • {new Date(recording.timestamp).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => handleRetryTranscription(recording.id)}
-                          variant="secondary"
-                          size="sm"
-                          disabled={transcribingRecordingId === recording.id}
-                          className="gap-2 flex-shrink-0"
-                        >
-                          {transcribingRecordingId === recording.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Transcribing...
-                            </>
-                          ) : (
-                            <>
-                              <Mic className="w-4 h-4" />
-                              Transcribe
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
-
-            <RecordingTextarea
-              value={content}
-              onChange={(value) => setContent(value)}
-              rows={10}
-              placeholder="Write about your vision or click the microphone/video icon to record!"
-              allowVideo={true}
-              storageFolder="lifeVision"
-              category={categoryKey}
-              onRecordingSaved={handleRecordingSaved}
-              recordingPurpose="transcriptOnly"
-            />
-
-            {/* Submit Button - Shows when there's content */}
-            {(content.trim() || transcript.trim()) && !isProcessing && (
-              <div className="mt-6">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="w-full"
-                  onClick={handleProcessWithVIVA}
-                  disabled={!content.trim() && !transcript.trim()}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Process with VIVA
-                </Button>
-              </div>
-            )}
           </div>
         </Card>
       )}
@@ -1522,7 +847,7 @@ export default function CategoryPage() {
                   value={editedSummary}
                   onChange={(value) => setEditedSummary(value)}
                   minHeight={200}
-                  className="w-full"
+                  className="w-full bg-neutral-800 border-2 border-neutral-700 text-white"
                 />
                 <div className="flex flex-col md:flex-row gap-3">
                   <Button
@@ -1545,28 +870,24 @@ export default function CategoryPage() {
               <>
                 <div className="prose prose-invert max-w-none mb-6">
                   <div className="bg-neutral-800 rounded-lg p-6">
-                    <div 
-                      className="text-neutral-200 whitespace-pre-wrap"
-                    >
-                      {aiSummary}
-                    </div>
+                    <AutoResizeTextarea
+                      value={aiSummary}
+                      onChange={(value) => setAiSummary(value)}
+                      minHeight={200}
+                      className="w-full bg-transparent border-none text-neutral-200 resize-none"
+                    />
                   </div>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-3">
                   <Button
                     variant="outline"
-                    onClick={handleEditSummary}
+                    onClick={handleRegenerate}
+                    disabled={isProcessing}
                     className="w-full md:w-auto md:flex-1"
                   >
-                    Edit this summary
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={handleAddToTranscript}
-                    className="w-full md:w-auto md:flex-1"
-                  >
-                    Add to my transcript
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Regenerate
                   </Button>
                   <Button
                     variant="primary"

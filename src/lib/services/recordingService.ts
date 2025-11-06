@@ -120,6 +120,11 @@ export function estimateTranscriptionCost(durationSeconds: number): number {
  * Returns: user-uploads/123/journal/audio-recordings/file.webm
  */
 export function extractS3KeyFromUrl(url: string): string {
+  // Validate URL is not empty
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    throw new Error('Recording URL is empty or invalid')
+  }
+
   try {
     const urlObj = new URL(url)
     // Remove leading slash if present
@@ -135,8 +140,20 @@ export function extractS3KeyFromUrl(url: string): string {
  * Delete a recording file from S3
  */
 export async function deleteRecording(url: string): Promise<void> {
-  const { deleteUserFile } = await import('@/lib/storage/s3-storage-presigned')
-  const s3Key = extractS3KeyFromUrl(url)
-  await deleteUserFile(s3Key)
+  // Validate URL before attempting deletion
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    console.warn('Skipping deletion: Recording URL is empty or invalid')
+    return // Silently skip if URL is invalid (may already be deleted or never existed)
+  }
+
+  try {
+    const { deleteUserFile } = await import('@/lib/storage/s3-storage-presigned')
+    const s3Key = extractS3KeyFromUrl(url)
+    await deleteUserFile(s3Key)
+  } catch (error) {
+    // If URL is invalid, log but don't throw - the recording entry will still be removed from DB
+    console.warn('Failed to delete recording file (may already be deleted):', url, error)
+    // Don't throw - allow the database update to proceed
+  }
 }
 

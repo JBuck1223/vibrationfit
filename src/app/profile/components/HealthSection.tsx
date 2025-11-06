@@ -300,6 +300,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="health_vitality"
         />
 
         {/* Display Saved Recordings */}
@@ -319,6 +320,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="health_vitality"
         />
       </div>
 

@@ -111,6 +111,7 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload 
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="giving_legacy"
         />
 
         <SavedRecordings
@@ -129,6 +130,7 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload 
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="giving_legacy"
         />
       </div>
 

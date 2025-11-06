@@ -102,7 +102,13 @@ export function SavedRecordings({
               </button>
               {onDelete && (
                 <button
-                  onClick={() => onDelete(index)}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    console.log('🗑️ Delete button clicked for index:', index, 'recording:', filteredRecordings[index])
+                    onDelete(index)
+                  }}
                   className="text-neutral-400 hover:text-red-400 transition-colors"
                   title="Delete recording"
                 >

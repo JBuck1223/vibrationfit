@@ -188,6 +188,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="home_environment"
         />
 
         <SavedRecordings
@@ -206,6 +207,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="home_environment"
         />
       </div>
 

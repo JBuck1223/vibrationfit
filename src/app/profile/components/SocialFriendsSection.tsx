@@ -97,6 +97,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          category="social_friends"
         />
 
         <SavedRecordings
@@ -115,6 +116,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           rows={6}
           allowVideo={true}
           storageFolder="profile"
+          category="social_friends"
         />
       </div>
 
