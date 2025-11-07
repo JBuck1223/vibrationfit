@@ -25,6 +25,7 @@ import {
 import { VersionCard } from '@/app/profile/components/VersionCard'
 import { VisionVersionCard } from '../components/VisionVersionCard'
 import { VisionCategoryCard } from '../components/VisionCategoryCard'
+import { CategoryCard } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { colors } from '@/lib/design-system/tokens'
 import { generateVisionPDF } from '@/lib/pdf'
@@ -623,30 +624,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     )
   }
 
-  // Card-based view components
-  const CategoryCard = ({ category, selected, onClick, className = '' }: { 
-    category: any, 
-    selected: boolean, 
-    onClick: () => void, 
-    className?: string 
-  }) => {
-    const IconComponent = category.icon
-    return (
-      <Card 
-        variant="outlined" 
-        hover 
-        className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500' : ''} ${className}`}
-        onClick={onClick}
-      >
-        <div className="flex flex-col items-center gap-1 justify-center h-full">
-          <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#14B8A6'} />
-          <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-            {category.label}
-          </span>
-        </div>
-      </Card>
-    )
-  }
 
 
   return (
@@ -858,6 +835,10 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       category={category} 
                       selected={selectedCategories.includes(category.key)} 
                       onClick={() => handleCategoryToggle(category.key)}
+                      variant="outlined"
+                      selectionStyle="border"
+                      iconColor="#14B8A6"
+                      selectedIconColor="#39FF14"
                     />
                   ))}
                 </div>

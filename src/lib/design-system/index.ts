@@ -22,6 +22,7 @@ export {
   // UI Components
   Card,
   FeatureCard,
+  CategoryCard,
   Button,
   VIVAButton,
   Icon,

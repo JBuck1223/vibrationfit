@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, ArrowRight, Clock, CheckCircle } from 'lucide-react'
 
 import { 
-  PageLayout, 
   Card, 
   Button, 
   Input, 
@@ -544,112 +543,139 @@ export default function IntensiveIntake() {
   }
 
   return (
-    <>
-        
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => router.push('/intensive/dashboard')}
-              className="mr-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
+    <div className="max-w-7xl mx-auto px-6">
+      {/* Header */}
+      <div className="mb-6 md:mb-12">
+        {/* Mobile Header */}
+        <div className="md:hidden space-y-4 mb-4">
+          <div className="flex flex-col items-center gap-3">
             {timeRemaining && (
               <Badge variant="warning">
                 <Clock className="w-4 h-4 mr-2" />
                 {timeRemaining} remaining
               </Badge>
             )}
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
+              Intensive Intake Form
+            </h1>
+            <p className="text-sm text-neutral-300 text-center px-4">
+              Help us understand your current situation and vision so we can create a personalized activation plan.
+            </p>
           </div>
-          
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden md:block text-center mb-4">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
             Intensive Intake Form
           </h1>
-          <p className="text-xl text-neutral-300 max-w-3xl mx-auto">
+          <p className="text-lg md:text-xl text-neutral-300 max-w-3xl mx-auto">
             Help us understand your current situation and vision so we can create a personalized activation plan.
           </p>
         </div>
 
-        {/* Progress Bar */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-neutral-400">Step {currentStep} of {totalSteps}</span>
-            <span className="text-sm text-neutral-400">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
-          </div>
-          <div className="w-full bg-neutral-800 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-primary-500 to-secondary-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Form */}
-        <Card className="max-w-4xl mx-auto p-8 mb-8">
-          {renderStep()}
-        </Card>
-
-        {/* Navigation */}
-        <div className="max-w-4xl mx-auto flex justify-between">
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mb-4">
           <Button 
-            variant="outline" 
-            onClick={prevStep}
-            disabled={currentStep === 1}
+            variant="ghost" 
+            size="sm"
+            onClick={() => router.push('/intensive/dashboard')}
+            className="w-full sm:w-auto"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Previous
+            Back to Dashboard
           </Button>
-
-          <div className="flex gap-4">
-            {currentStep < totalSteps ? (
-              <Button 
-                variant="primary" 
-                onClick={nextStep}
-                disabled={!canProceed()}
-              >
-                Next
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            ) : (
-              <Button 
-                variant="primary" 
-                onClick={submitForm}
-                disabled={loading || !canProceed()}
-              >
-                {loading ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" />
-                    Generating Vision...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Complete Intake
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
+          {timeRemaining && (
+            <Badge variant="warning" className="w-full sm:w-auto justify-center sm:justify-start">
+              <Clock className="w-4 h-4 mr-2" />
+              {timeRemaining} remaining
+            </Badge>
+          )}
         </div>
+      </div>
 
-        {/* Completion Preview */}
-        {currentStep === totalSteps && (
-          <Card className="max-w-4xl mx-auto p-8 mt-8 border-2 border-primary-500 bg-gradient-to-br from-primary-500/10 to-secondary-500/10">
-            <div className="text-center">
-              <CheckCircle className="w-12 h-12 text-primary-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-white mb-4">Ready to Generate Your Vision!</h2>
-              <p className="text-neutral-300">
-                Once you submit, our AI will analyze your responses and generate a personalized vision draft. 
-                You'll then move to the builder to refine and finalize it.
-              </p>
-            </div>
-          </Card>
-        )}
+      {/* Progress Bar */}
+      <div className="max-w-4xl mx-auto mb-6 md:mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs md:text-sm text-neutral-400">Step {currentStep} of {totalSteps}</span>
+          <span className="text-xs md:text-sm text-neutral-400">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
+        </div>
+        <div className="w-full bg-neutral-800 rounded-full h-2">
+          <div 
+            className="bg-gradient-to-r from-primary-500 to-secondary-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+          />
+        </div>
+      </div>
 
-    </>
+      {/* Form */}
+      <Card className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+        {renderStep()}
+      </Card>
+
+      {/* Navigation */}
+      <div className="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between gap-3">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={prevStep}
+          disabled={currentStep === 1}
+          className="w-full sm:w-auto order-2 sm:order-1"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Previous
+        </Button>
+
+        <div className="flex gap-2 sm:gap-4 order-1 sm:order-2">
+          {currentStep < totalSteps ? (
+            <Button 
+              variant="primary" 
+              size="sm"
+              onClick={nextStep}
+              disabled={!canProceed()}
+              className="flex-1 sm:flex-none"
+            >
+              Next
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button 
+              variant="primary" 
+              size="sm"
+              onClick={submitForm}
+              disabled={loading || !canProceed()}
+              className="flex-1 sm:flex-none"
+            >
+              {loading ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Generating Vision...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Complete Intake
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Completion Preview */}
+      {currentStep === totalSteps && (
+        <Card className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8 mt-6 md:mt-8 border-2 border-primary-500 bg-gradient-to-br from-primary-500/10 to-secondary-500/10">
+          <div className="text-center">
+            <CheckCircle className="w-10 h-10 md:w-12 md:h-12 text-primary-500 mx-auto mb-3 md:mb-4" />
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">Ready to Generate Your Vision!</h2>
+            <p className="text-sm md:text-base text-neutral-300">
+              Once you submit, our AI will analyze your responses and generate a personalized vision draft. 
+              You'll then move to the builder to refine and finalize it.
+            </p>
+          </div>
+        </Card>
+      )}
+      </div>
   )
 
   function canProceed(): boolean {

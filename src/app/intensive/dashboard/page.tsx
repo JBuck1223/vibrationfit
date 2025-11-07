@@ -23,7 +23,6 @@ import {
 } from 'lucide-react'
 
 import { 
-  PageLayout, 
   Container, 
   Card, 
   Button, 
@@ -323,30 +322,26 @@ export default function IntensiveDashboard() {
 
   if (loading) {
     return (
-      <>
-        <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <Spinner size="lg" />
-        </Container>
-      </>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
   if (!intensive || !checklist) {
     return (
-      <>
-        <Container className="py-16">
-          <Card className="text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">No Active Intensive</h2>
-            <p className="text-neutral-400 mb-6">
-              You don't have an active intensive purchase.
-            </p>
-            <Button onClick={() => router.push('/pricing-hormozi')}>
-              View Intensive Options
-            </Button>
-          </Card>
-        </Container>
-      </>
+      <Container>
+        <Card className="text-center p-4 md:p-6 lg:p-8">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl md:text-2xl font-bold mb-2">No Active Intensive</h2>
+          <p className="text-neutral-400 mb-6 text-sm md:text-base">
+            You don't have an active intensive purchase.
+          </p>
+          <Button size="sm" onClick={() => router.push('/pricing-hormozi')}>
+            View Intensive Options
+          </Button>
+        </Card>
+      </Container>
     )
   }
 
@@ -356,40 +351,39 @@ export default function IntensiveDashboard() {
   const currentPhase = getCurrentPhase()
 
   return (
-    <>
-      <Container size="xl" className="py-16">
+    <Container size="xl">
         
         {/* Header */}
-        <div className="text-center mb-12">
-          <Badge variant="premium" className="mb-4">
+        <div className="text-center mb-8 md:mb-12">
+          <Badge variant="premium" className="mb-3 md:mb-4">
             <Clock className="w-4 h-4 inline mr-2" />
             Activation Intensive
           </Badge>
-          <h1 className="text-4xl font-bold mb-4">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
             Your Activation Journey
           </h1>
-          <p className="text-xl text-neutral-400">
+          <p className="text-base md:text-lg lg:text-xl text-neutral-400">
             Current Phase: <span className="text-primary-500">{currentPhase}</span>
           </p>
         </div>
 
         {/* Countdown Timer */}
-        <Card variant="elevated" className="mb-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
-          <div className="flex items-center justify-between">
+        <Card variant="elevated" className="mb-6 md:mb-8 p-4 md:p-6 lg:p-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                <Clock className="w-5 h-5" />
+              <h3 className="text-base md:text-lg font-semibold mb-2 flex items-center gap-2">
+                <Clock className="w-4 h-4 md:w-5 md:h-5" />
                 Time Remaining
               </h3>
-              <p className="text-3xl font-bold text-primary-500">{timeRemaining}</p>
-              <p className="text-sm text-neutral-400 mt-2">
+              <p className="text-2xl md:text-3xl font-bold text-primary-500">{timeRemaining}</p>
+              <p className="text-xs md:text-sm text-neutral-400 mt-2">
                 Deadline: {new Date(intensive.activation_deadline).toLocaleString()}
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-neutral-400 mb-2">Overall Progress</p>
-              <p className="text-4xl font-bold text-secondary-500">{progress}%</p>
-              <p className="text-sm text-neutral-400 mt-2">
+            <div className="text-left sm:text-right">
+              <p className="text-xs md:text-sm text-neutral-400 mb-2">Overall Progress</p>
+              <p className="text-3xl md:text-4xl font-bold text-secondary-500">{progress}%</p>
+              <p className="text-xs md:text-sm text-neutral-400 mt-2">
                 {steps.filter(s => s.completed).length} of {steps.length} steps
               </p>
             </div>
@@ -415,25 +409,26 @@ export default function IntensiveDashboard() {
 
         {/* Next Action */}
         {nextStep && (
-          <Card variant="elevated" className="mb-8 bg-gradient-to-br from-accent-500/10 to-purple-500/10 border-accent-500/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-accent-500 rounded-2xl flex items-center justify-center">
-                  <nextStep.icon className="w-8 h-8 text-white" />
+          <Card variant="elevated" className="mb-6 md:mb-8 p-4 md:p-6 lg:p-8 bg-gradient-to-br from-accent-500/10 to-purple-500/10 border-accent-500/30">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-accent-500 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <nextStep.icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
                 </div>
                 <div>
                   <Badge variant="premium" className="mb-2">Next Step</Badge>
-                  <h3 className="text-2xl font-bold mb-1">{nextStep.title}</h3>
-                  <p className="text-neutral-400">{nextStep.description}</p>
+                  <h3 className="text-xl md:text-2xl font-bold mb-1">{nextStep.title}</h3>
+                  <p className="text-sm md:text-base text-neutral-400">{nextStep.description}</p>
                 </div>
               </div>
               <Button 
                 variant="primary" 
-                size="lg"
+                size="sm"
                 onClick={() => router.push(nextStep.href)}
+                className="w-full sm:w-auto"
               >
                 Continue
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
               </Button>
             </div>
           </Card>
@@ -448,8 +443,8 @@ export default function IntensiveDashboard() {
 
             return (
               <div key={phase}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold">{phase}</h2>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
+                  <h2 className="text-xl md:text-2xl font-bold">{phase}</h2>
                   <Badge variant={phaseProgress === 100 ? 'success' : 'info'}>
                     {phaseCompleted}/{phaseSteps.length} Complete
                   </Badge>
@@ -461,29 +456,29 @@ export default function IntensiveDashboard() {
                       key={step.id}
                       variant={step.completed ? 'default' : 'outlined'}
                       className={`
-                        transition-all duration-300
+                        p-4 md:p-6 transition-all duration-300
                         ${step.locked ? 'opacity-50' : 'hover:-translate-y-1'}
                         ${step.completed ? 'border-primary-500/50 bg-primary-500/5' : ''}
                       `}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                           <div className={`
-                            w-12 h-12 rounded-xl flex items-center justify-center
+                            w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0
                             ${step.completed ? 'bg-primary-500' : step.locked ? 'bg-neutral-700' : 'bg-secondary-500'}
                           `}>
                             {step.completed ? (
-                              <CheckCircle className="w-6 h-6 text-white" />
+                              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
                             ) : (
-                              <step.icon className="w-6 h-6 text-white" />
+                              <step.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                             )}
                           </div>
-                          <div>
-                            <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base md:text-lg font-semibold mb-1 flex items-center gap-2">
                               {step.title}
-                              {step.locked && <Circle className="w-4 h-4 text-neutral-500" />}
+                              {step.locked && <Circle className="w-3 h-3 md:w-4 md:h-4 text-neutral-500" />}
                             </h3>
-                            <p className="text-sm text-neutral-400">{step.description}</p>
+                            <p className="text-xs md:text-sm text-neutral-400">{step.description}</p>
                             {step.completedAt && (
                               <p className="text-xs text-primary-500 mt-1">
                                 Completed {new Date(step.completedAt).toLocaleString()}
@@ -492,26 +487,30 @@ export default function IntensiveDashboard() {
                           </div>
                         </div>
                         
-                        {step.locked && (
-                          <div className="flex items-center gap-2 text-neutral-500">
-                            <Lock className="w-5 h-5" />
-                            <span className="text-sm">Locked</span>
-                          </div>
-                        )}
-                        
-                        {!step.locked && !step.completed && (
-                          <Button 
-                            variant="ghost"
-                            onClick={() => router.push(step.href)}
-                          >
-                            Start
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Button>
-                        )}
-                        
-                        {step.completed && (
-                          <CheckCircle className="w-6 h-6 text-primary-500" />
-                        )}
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          {step.locked && (
+                            <div className="flex items-center gap-2 text-neutral-500">
+                              <Lock className="w-4 h-4 md:w-5 md:h-5" />
+                              <span className="text-xs md:text-sm">Locked</span>
+                            </div>
+                          )}
+                          
+                          {!step.locked && !step.completed && (
+                            <Button 
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => router.push(step.href)}
+                              className="w-full sm:w-auto"
+                            >
+                              Start
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          )}
+                          
+                          {step.completed && (
+                            <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-primary-500 flex-shrink-0" />
+                          )}
+                        </div>
                       </div>
                     </Card>
                   ))}
@@ -523,29 +522,29 @@ export default function IntensiveDashboard() {
 
         {/* Completion Message */}
         {progress === 100 && (
-          <Card variant="elevated" className="mt-8 bg-gradient-to-br from-primary-500 to-secondary-500 text-white">
-            <div className="text-center py-8">
-              <Rocket className="w-16 h-16 mx-auto mb-4" />
-              <h2 className="text-3xl font-bold mb-4">🎉 Intensive Complete!</h2>
-              <p className="text-xl mb-6">
+          <Card variant="elevated" className="mt-6 md:mt-8 p-4 md:p-6 lg:p-8 bg-gradient-to-br from-primary-500 to-secondary-500 text-white">
+            <div className="text-center py-6 md:py-8">
+              <Rocket className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4" />
+              <h2 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4">🎉 Intensive Complete!</h2>
+              <p className="text-base md:text-lg lg:text-xl mb-4 md:mb-6">
                 Congratulations! You've completed your Activation Intensive.
               </p>
-              <p className="text-lg mb-8">
+              <p className="text-sm md:text-base lg:text-lg mb-6 md:mb-8">
                 Your membership is now active. Continue your journey in the dashboard.
               </p>
               <Button 
                 variant="secondary" 
-                size="lg"
+                size="sm"
                 onClick={() => router.push('/dashboard')}
+                className="w-full sm:w-auto"
               >
                 Go to Dashboard
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
               </Button>
             </div>
           </Card>
         )}
 
-      </Container>
-    </>
+    </Container>
   )
 }

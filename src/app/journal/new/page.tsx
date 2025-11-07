@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { PageLayout, Card, Input, Button, Icon } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -12,26 +12,6 @@ import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-
-// CategoryCard component from design system
-const CategoryCard = ({ category, selected = false, onClick, className = '' }: any) => {
-  const IconComponent = category.icon
-  return (
-    <Card 
-      variant={selected ? 'elevated' : 'default'} 
-      hover 
-      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''} ${className}`}
-      onClick={onClick}
-    >
-      <div className="flex flex-col items-center gap-1 p-1 justify-center h-full">
-        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} />
-        <span className="text-[10px] font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-          {category.label}
-        </span>
-      </div>
-    </Card>
-  )
-}
 
 export default function NewJournalEntryPage() {
   const router = useRouter()

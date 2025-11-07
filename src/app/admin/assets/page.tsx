@@ -511,12 +511,12 @@ function AssetsAdminContent() {
         </div>
       )}
 
-      <Container size="xl" className="py-8">
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
+      <Container size="xl">
+      <div className="mb-8 md:mb-12">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 md:mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Site Assets Manager</h1>
-            <p className="text-neutral-400">Upload and manage site assets organized by category</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Site Assets Manager</h1>
+            <p className="text-sm md:text-base text-neutral-400">Upload and manage site assets organized by category</p>
           </div>
           <Button
             variant="primary"
@@ -587,7 +587,7 @@ function AssetsAdminContent() {
 
       {/* Breadcrumb Navigation */}
       {currentPath.length > 0 && (
-        <Card variant="outlined" className="mb-6">
+        <Card variant="outlined" className="p-4 md:p-6 mb-6">
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="ghost"
@@ -615,9 +615,9 @@ function AssetsAdminContent() {
 
       {/* Upload Form */}
       {showUploadForm && (
-        <Card variant="elevated" className="mb-8">
+        <Card variant="elevated" className="p-4 md:p-6 mb-6 md:mb-8">
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-white">Upload New Asset</h2>
+            <h2 className="text-lg md:text-xl font-semibold text-white">Upload New Asset</h2>
             
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-2">
@@ -735,7 +735,7 @@ function AssetsAdminContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Folders Sidebar */}
-        <Card variant="elevated">
+        <Card variant="elevated" className="p-4 md:p-6">
           <div className="space-y-2">
             <h2 className="text-lg font-semibold text-white mb-4">
               {currentPath.length === 0 ? 'Categories' : 'Folders'}

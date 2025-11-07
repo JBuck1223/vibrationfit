@@ -131,7 +131,7 @@ function UsersAdminContent() {
 
   if (loading) {
     return (
-      <Container size="xl" className="py-12">
+      <Container size="xl">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
@@ -143,19 +143,19 @@ function UsersAdminContent() {
   }
 
   return (
-    <Container size="xl" className="py-12">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-4">User Management</h1>
-        <p className="text-lg text-neutral-400">
+    <Container size="xl">
+        <div className="mb-8 md:mb-12">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">User Management</h1>
+        <p className="text-sm md:text-base lg:text-lg text-neutral-400">
           Manage users and admin permissions
         </p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="p-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 md:mb-8">
+        <Card className="p-4 md:p-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-primary-500 mb-2">
+              <div className="text-2xl md:text-3xl font-bold text-primary-500 mb-2">
               {users.length}
             </div>
             <div className="text-sm text-neutral-400">Total Users</div>
@@ -262,7 +262,7 @@ function UsersAdminContent() {
 
       {/* Admin Users */}
       {adminUsers.length > 0 && (
-        <Card className="p-6 mb-8">
+        <Card className="p-4 md:p-6 mb-6 md:mb-8">
           <div className="flex items-center gap-2 mb-6">
             <Shield className="w-5 h-5 text-primary-500" />
             <h2 className="text-xl font-semibold text-white">Admin Users</h2>
@@ -376,11 +376,14 @@ function UsersAdminContent() {
                             // Clear the input only on success
                             setAdjustTokens(prev => ({ ...prev, [user.id]: 0 }))
                           } else {
-                            const errorData = await res.json()
+                            const errorData = await res.json().catch(() => ({ error: 'Failed to parse error response' }))
                             console.error('Token adjustment failed:', errorData)
+                            // Show user-friendly error
+                            alert(`Failed to adjust tokens: ${errorData.error || errorData.details || 'Unknown error'}`)
                           }
-                        } catch (error) {
+                        } catch (error: any) {
                           console.error('Token adjustment error:', error)
+                          alert(`Error: ${error.message || 'Failed to adjust tokens'}`)
                         }
                       }}
                     >{(adjustTokens[user.id] ?? 0) > 0 ? 'Add Tokens' : (adjustTokens[user.id] ?? 0) < 0 ? 'Deduct Tokens' : 'Apply'}</Button>
@@ -424,7 +427,7 @@ function UsersAdminContent() {
       )}
 
       {/* Regular Users */}
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         <div className="flex items-center gap-2 mb-6">
           <UserPlus className="w-5 h-5 text-neutral-400" />
           <h2 className="text-xl font-semibold text-white">Regular Users</h2>
@@ -543,11 +546,14 @@ function UsersAdminContent() {
                             // Clear the input only on success
                             setAdjustTokens(prev => ({ ...prev, [user.id]: 0 }))
                           } else {
-                            const errorData = await res.json()
+                            const errorData = await res.json().catch(() => ({ error: 'Failed to parse error response' }))
                             console.error('Token adjustment failed:', errorData)
+                            // Show user-friendly error
+                            alert(`Failed to adjust tokens: ${errorData.error || errorData.details || 'Unknown error'}`)
                           }
-                        } catch (error) {
+                        } catch (error: any) {
                           console.error('Token adjustment error:', error)
+                          alert(`Error: ${error.message || 'Failed to adjust tokens'}`)
                         }
                       }}
                     >{(adjustTokens[user.id] ?? 0) > 0 ? 'Add' : (adjustTokens[user.id] ?? 0) < 0 ? 'Deduct' : 'Apply'}</Button>

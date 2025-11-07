@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { PageLayout, Container, Card, Button, Spinner } from '@/lib/design-system'
+import {  Container, Card, Button, Spinner } from '@/lib/design-system'
 import { Gem } from 'lucide-react'
 
 export default function RefinePage() {
@@ -60,20 +60,20 @@ export default function RefinePage() {
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-12">
           <Card className="p-8 text-center">
             <Spinner variant="primary" size="lg" className="mx-auto mb-4" />
             <p className="text-neutral-400">Loading your active vision...</p>
           </Card>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 
   if (error) {
     return (
-      <PageLayout>
+      <>
         <Container size="xl" className="py-12">
           <Card className="p-8 text-center">
             <Gem className="w-16 h-16 text-primary-500 mx-auto mb-4" />
@@ -95,7 +95,7 @@ export default function RefinePage() {
             </div>
           </Card>
         </Container>
-      </PageLayout>
+      </>
     )
   }
 

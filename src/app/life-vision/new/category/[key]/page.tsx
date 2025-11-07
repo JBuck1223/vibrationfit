@@ -716,35 +716,54 @@ export default function CategoryPage() {
         </div>
       )}
 
-      {/* Let's Get Clear - Three Text Blocks */}
+      {/* Let's Get Clear - Three Card-Based Text Blocks */}
       {!aiSummary && (
-        <Card className="mb-6 border-2 border-[#00FFFF]/30 bg-[#00FFFF]/5">
-          <div className="space-y-6">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-[#00FFFF]/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-4 h-4 text-[#00FFFF]" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-base md:text-lg font-semibold text-[#00FFFF] mb-2">Let's Get Clear...</h3>
-              </div>
+        <div className="mb-6 space-y-6">
+          {/* Header */}
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-[#00FFFF]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-[#00FFFF]" />
             </div>
+            <div className="flex-1">
+              <h3 className="text-base md:text-lg font-semibold text-[#00FFFF] mb-2">Let's Get Clear...</h3>
+            </div>
+          </div>
 
-            {/* Current Clarity */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-white">Current Clarity</label>
+          {/* Current Clarity Card */}
+          <Card className="border-2 border-[#00FFFF]/30 bg-[#00FFFF]/5">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#00FFFF]/20 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-[#00FFFF]" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-white">Current Clarity</h4>
+                  <p className="text-sm text-neutral-400">From your profile</p>
+                </div>
+              </div>
               <AutoResizeTextarea
                 value={currentClarity}
                 onChange={(value) => setCurrentClarity(value)}
                 placeholder={`Your current clarity about ${category.label.toLowerCase()} from your profile...`}
-                className="w-full bg-neutral-800 border-2 border-[#00FFFF]/30 text-white placeholder-neutral-500"
+                className="w-full bg-neutral-800/50 border-2 border-[#00FFFF]/30 text-white placeholder-neutral-500"
                 minHeight={120}
               />
             </div>
+          </Card>
 
-            {/* Clarity from Contrast */}
-            <div className="space-y-2">
+          {/* Clarity from Contrast Card */}
+          <Card className="border-2 border-[#39FF14]/30 bg-[#39FF14]/5">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-white">Clarity from Contrast</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-[#39FF14]" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-white">Clarity from Contrast</h4>
+                    <p className="text-sm text-neutral-400">Auto-generated from contrast</p>
+                  </div>
+                </div>
                 {isFlippingContrast && (
                   <Spinner size="sm" variant="primary" />
                 )}
@@ -753,21 +772,29 @@ export default function CategoryPage() {
                 value={clarityFromContrast}
                 onChange={(value) => setClarityFromContrast(value)}
                 placeholder="This will be auto-generated from your contrast text below..."
-                className="w-full bg-neutral-800 border-2 border-[#39FF14]/30 text-white placeholder-neutral-500"
+                className="w-full bg-neutral-800/50 border-2 border-[#39FF14]/30 text-white placeholder-neutral-500"
                 minHeight={120}
                 disabled={isFlippingContrast}
               />
             </div>
+          </Card>
 
-            {/* Contrast from Profile (Toggleable) */}
-            <div className="space-y-2">
+          {/* Contrast from Profile Card (Toggleable) */}
+          <Card className="border-2 border-[#FFB701]/30 bg-[#FFB701]/5">
+            <div className="space-y-4">
               <button
                 onClick={() => setShowContrastToggle(!showContrastToggle)}
                 className="flex items-center justify-between w-full text-left"
               >
-                <label className="text-sm font-semibold text-white cursor-pointer">
-                  Contrast from Profile (used to create frequency flip above)
-                </label>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#FFB701]/20 rounded-xl flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-[#FFB701]" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-white">Contrast from Profile</h4>
+                    <p className="text-sm text-neutral-400">Used to create frequency flip above</p>
+                  </div>
+                </div>
                 <ChevronDown 
                   className={`w-5 h-5 text-white transition-transform duration-300 ${
                     showContrastToggle ? 'rotate-180' : ''
@@ -785,14 +812,16 @@ export default function CategoryPage() {
                     }
                   }}
                   placeholder={`Your contrast text about ${category.label.toLowerCase()} from your profile...`}
-                  className="w-full bg-neutral-800 border-2 border-[#FFB701]/30 text-white placeholder-neutral-500"
+                  className="w-full bg-neutral-800/50 border-2 border-[#FFB701]/30 text-white placeholder-neutral-500"
                   minHeight={120}
                 />
               )}
             </div>
+          </Card>
 
-            {/* Process with VIVA Button */}
-            {(currentClarity.trim() || clarityFromContrast.trim()) && (
+          {/* Process with VIVA Button */}
+          {(currentClarity.trim() || clarityFromContrast.trim()) && (
+            <Card className="border-2 border-primary-500/30 bg-primary-500/5">
               <Button
                 variant="primary"
                 size="lg"
@@ -804,9 +833,9 @@ export default function CategoryPage() {
                 <Sparkles className="w-4 h-4 mr-2" />
                 Process with VIVA
               </Button>
-            )}
-          </div>
-        </Card>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Error Message */}

@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Input, Button } from '@/lib/design-system'
+import {  Card, Input, Button } from '@/lib/design-system'
 import Image from 'next/image'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 

@@ -24,7 +24,6 @@ import {
   Activity
 } from 'lucide-react'
 import { 
-  PageLayout, 
   Card, 
   Button, 
   Badge, 
@@ -302,7 +301,7 @@ export default function ActualizationBlueprintsPage() {
 
   return (
     <>
-      <PageLayout>
+      <div>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
@@ -643,7 +642,7 @@ export default function ActualizationBlueprintsPage() {
             )}
           </div>
         </div>
-      </PageLayout>
+      </div>
 
       {/* Insufficient Tokens Dialog */}
       <InsufficientTokensDialog

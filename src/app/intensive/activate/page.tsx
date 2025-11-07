@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 
 import { 
-  PageLayout, 
   Card, 
   Button, 
   Badge,
@@ -373,11 +372,13 @@ export default function IntensiveActivation() {
 
   if (!protocol) {
     return (
-      <div className="text-center">
-        <Spinner size="lg" className="mx-auto mb-6" />
-        <h1 className="text-3xl font-bold text-white mb-4">Loading Activation</h1>
-        <p className="text-neutral-400">Setting up your activation protocol...</p>
-      </div>
+      <>
+        <div className="text-center">
+          <Spinner size="lg" className="mx-auto mb-6" />
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">Loading Activation</h1>
+          <p className="text-sm md:text-base text-neutral-400">Setting up your activation protocol...</p>
+        </div>
+      </>
     )
   }
 
@@ -386,9 +387,9 @@ export default function IntensiveActivation() {
 
   return (
     <>
-        
+      <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="mb-6 md:mb-12">
           <div className="flex items-center justify-center mb-4">
             <Button 
               variant="ghost" 
@@ -616,7 +617,7 @@ export default function IntensiveActivation() {
             </div>
           </div>
         </Card>
-
+      </div>
     </>
   )
 }

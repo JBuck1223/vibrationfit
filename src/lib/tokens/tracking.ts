@@ -9,7 +9,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 export interface TokenUsage {
   id?: string
   user_id: string
-  action_type: 'assessment_scoring' | 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'admin_grant' | 'admin_deduct' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'prompt_suggestions' | 'frequency_flip'
+  action_type: 'assessment_scoring' | 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'transcription' | 'admin_grant' | 'admin_deduct' | 'subscription_grant' | 'trial_grant' | 'token_pack_purchase' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'prompt_suggestions' | 'frequency_flip'
   model_used: string
   tokens_used: number
   cost_estimate: number // in cents
@@ -54,20 +54,41 @@ export async function validateTokenBalance(
   try {
     const supabase = supabaseClient || await createServerClient()
     
-    // Get current token balance
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('vibe_assistant_tokens_remaining')
+    // Calculate balance from transactions (source of truth)
+    // Don't read from user_profiles.vibe_assistant_tokens_remaining - it's unreliable
+    const { data: allTransactions } = await supabase
+      .from('token_transactions')
+      .select('tokens_used, action_type')
       .eq('user_id', userId)
-      .single()
-
-    if (profileError || !profile) {
-      console.error('Failed to fetch user profile for token validation:', profileError)
-      // Allow the request to proceed if we can't check (better than blocking)
-      return null
-    }
-
-    const tokensRemaining = profile.vibe_assistant_tokens_remaining || 0
+    
+    const { data: allUsage } = await supabase
+      .from('token_usage')
+      .select('tokens_used, action_type, success')
+      .eq('user_id', userId)
+    
+    // Calculate grants
+    const totalGrants = (allTransactions || [])
+      .filter((tx: any) => 
+        ['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase'].includes(tx.action_type) &&
+        tx.tokens_used > 0
+      )
+      .reduce((sum: number, tx: any) => sum + tx.tokens_used, 0)
+    
+    // Calculate usage
+    const totalUsed = (allUsage || [])
+      .filter((u: any) => 
+        !['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase', 'admin_deduct'].includes(u.action_type) &&
+        u.tokens_used > 0 &&
+        u.success !== false
+      )
+      .reduce((sum: number, u: any) => sum + u.tokens_used, 0)
+    
+    // Calculate deductions
+    const totalDeductions = (allTransactions || [])
+      .filter((tx: any) => tx.action_type === 'admin_deduct' || tx.tokens_used < 0)
+      .reduce((sum: number, tx: any) => sum + Math.abs(tx.tokens_used), 0)
+    
+    const tokensRemaining = Math.max(0, totalGrants - totalUsed - totalDeductions)
 
     // Check if user has sufficient tokens
     if (tokensRemaining < estimatedTokens) {
@@ -146,7 +167,9 @@ export async function getDefaultTokenEstimate(
  */
 export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at'>, supabaseClient?: any): Promise<void> {
   try {
-    const supabase = supabaseClient || createClient()
+    // Default to server client for API routes (has proper permissions)
+    // If supabaseClient is provided, use it (allows override for testing)
+    const supabase = supabaseClient || await createServerClient()
     
     // Calculate cost based on model and token usage (in cents)
     const costEstimate = calculateTokenCost(usage.model_used, usage.input_tokens || 0, usage.output_tokens || 0)
@@ -191,60 +214,85 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
       console.error('Failed to insert audit trail:', auditError)
     }
 
-    // 2. Update user balance (single source of truth) - only if successful
+    // 2. Update user balance in user_profiles (for backwards compatibility only)
+    // NOTE: We still update this field, but we NEVER read from it - always calculate from transactions
     if (usage.success && effectiveTokens > 0) {
-      // Get current balance first
-      const { data: currentProfile } = await supabase
-        .from('user_profiles')
-        .select('vibe_assistant_tokens_used, vibe_assistant_tokens_remaining, vibe_assistant_total_cost')
+      // Calculate new balance from all transactions (source of truth)
+      const { data: allTransactions } = await supabase
+        .from('token_transactions')
+        .select('tokens_used, action_type')
         .eq('user_id', usage.user_id)
-        .single()
+      
+      const { data: allUsage } = await supabase
+        .from('token_usage')
+        .select('tokens_used, action_type, success')
+        .eq('user_id', usage.user_id)
+      
+      // Calculate grants
+      const totalGrants = (allTransactions || [])
+        .filter((tx: any) => 
+          ['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase'].includes(tx.action_type) &&
+          tx.tokens_used > 0
+        )
+        .reduce((sum: number, tx: any) => sum + tx.tokens_used, 0)
+      
+      // Calculate usage (including this new record)
+      const totalUsed = (allUsage || [])
+        .filter((u: any) => 
+          !['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase', 'admin_deduct'].includes(u.action_type) &&
+          u.tokens_used > 0 &&
+          u.success !== false
+        )
+        .reduce((sum: number, u: any) => sum + u.tokens_used, 0)
+      
+      // Calculate deductions
+      const totalDeductions = (allTransactions || [])
+        .filter((tx: any) => tx.action_type === 'admin_deduct' || tx.tokens_used < 0)
+        .reduce((sum: number, tx: any) => sum + Math.abs(tx.tokens_used), 0)
+      
+      const newTokensRemaining = Math.max(0, totalGrants - totalUsed - totalDeductions)
+      
+      // Calculate tokens_used (only AI operations, not grants)
+      const newTokensUsed = (allUsage || [])
+        .filter((u: any) => 
+          !['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase', 'admin_deduct'].includes(u.action_type) &&
+          u.tokens_used > 0 &&
+          u.success !== false
+        )
+        .reduce((sum: number, u: any) => sum + u.tokens_used, 0)
+      
+      // Calculate total cost
+      const { data: costData } = await supabase
+        .from('token_usage')
+        .select('estimated_cost_usd')
+        .eq('user_id', usage.user_id)
+        .not('estimated_cost_usd', 'is', null)
+      
+      const newTotalCost = Math.round(
+        ((costData || []).reduce((sum: number, u: any) => sum + (u.estimated_cost_usd || 0), 0) * 100)
+      )
 
-      if (currentProfile) {
-        let newTokensUsed = currentProfile.vibe_assistant_tokens_used || 0
-        let newTokensRemaining = currentProfile.vibe_assistant_tokens_remaining || 0
-        
-        // Handle different action types
-        if (usage.action_type === 'admin_grant') {
-          // Admin grants: add to remaining (don't touch tokens_used)
-          newTokensRemaining += effectiveTokens
-          // Don't modify tokens_used for grants
-        } else if (usage.action_type === 'admin_deduct') {
-          // Admin deductions: subtract from remaining, add to used
-          newTokensRemaining = Math.max(0, newTokensRemaining - effectiveTokens)
-          newTokensUsed += effectiveTokens
-        } else {
-          // Regular AI usage: subtract from remaining, add to used
-          newTokensRemaining = Math.max(0, newTokensRemaining - effectiveTokens)
-          newTokensUsed += effectiveTokens
-        }
-        
-        const newTotalCost = (currentProfile.vibe_assistant_total_cost || 0) + Math.round(costEstimate * 100)
+      console.log('Updating user balance (calculated from transactions):', {
+        user_id: usage.user_id,
+        new_tokens_remaining: newTokensRemaining,
+        new_tokens_used: newTokensUsed,
+        action_type: usage.action_type,
+        effective_tokens: effectiveTokens
+      })
 
-        console.log('Updating user balance:', {
-          user_id: usage.user_id,
-          old_tokens_remaining: currentProfile.vibe_assistant_tokens_remaining,
-          new_tokens_remaining: newTokensRemaining,
-          old_tokens_used: currentProfile.vibe_assistant_tokens_used,
-          new_tokens_used: newTokensUsed,
-          action_type: usage.action_type,
-          effective_tokens: effectiveTokens
+      const { error: balanceError } = await supabase
+        .from('user_profiles')
+        .update({
+          vibe_assistant_tokens_used: newTokensUsed,
+          vibe_assistant_tokens_remaining: newTokensRemaining,
+          vibe_assistant_total_cost: newTotalCost
         })
+        .eq('user_id', usage.user_id)
 
-        const { error: balanceError } = await supabase
-          .from('user_profiles')
-          .update({
-            vibe_assistant_tokens_used: newTokensUsed,
-            vibe_assistant_tokens_remaining: newTokensRemaining,
-            vibe_assistant_total_cost: newTotalCost
-          })
-          .eq('user_id', usage.user_id)
-
-        if (balanceError) {
-          console.error('Failed to update user balance:', balanceError)
-        } else {
-          console.log('User balance updated successfully')
-        }
+      if (balanceError) {
+        console.error('Failed to update user balance:', balanceError)
+      } else {
+        console.log('User balance updated successfully (calculated from transactions)')
       }
     }
 

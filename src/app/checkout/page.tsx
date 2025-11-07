@@ -4,7 +4,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { PageLayout, Container, Card, Button, Badge } from '@/lib/design-system/components'
+import {  Container, Card, Button, Badge } from '@/lib/design-system/components'
 import { Check, Clock, Crown, Zap, ArrowRight, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 

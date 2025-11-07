@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Rocket, CheckCircle, Music, ImageIcon, BookOpen, Calendar } from 'lucide-react'
 
 import { 
-  PageLayout, 
+   
   Container, 
   Card, 
   Button,
@@ -99,7 +99,7 @@ export default function ActivationProtocolPage() {
 
   return (
     <>
-      <Container size="lg" className="py-16">
+      <Container size="lg">
         
         <div className="mb-8">
           <Button 
@@ -126,7 +126,7 @@ export default function ActivationProtocolPage() {
 
         {/* Hero Card */}
         <Card variant="elevated" className="mb-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
-          <div className="text-center py-8">
+          <div className="text-center">
             <Rocket className="w-16 h-16 text-primary-500 mx-auto mb-4" />
             <h2 className="text-3xl font-bold mb-4">Congratulations! 🎉</h2>
             <p className="text-xl text-neutral-300 mb-2">

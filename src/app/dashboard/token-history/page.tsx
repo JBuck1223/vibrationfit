@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Spinner } from '@/lib/design-system/components'
-import { PageLayout } from '@/lib/design-system/components'
 import { ArrowLeft, Activity, Brain, Calendar, Filter } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -106,49 +105,43 @@ export default function TokenHistoryPage() {
 
   if (loading) {
     return (
-      <>
-        <Container size="xl" className="py-8">
-          <div className="flex items-center justify-center py-16">
-            <Spinner variant="primary" size="lg" />
-            <span className="ml-3 text-neutral-400">Loading token history...</span>
-          </div>
-        </Container>
-      </>
+      <Container size="xl" className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner variant="primary" size="lg" />
+        <span className="ml-3 text-neutral-400">Loading token history...</span>
+      </Container>
     )
   }
 
   if (error) {
     return (
-      <>
-        <Container size="xl" className="py-8">
-          <div className="text-center py-16">
-            <div className="text-red-400 mb-4">⚠️ Error loading token history</div>
-            <p className="text-neutral-300 mb-6">{error}</p>
-            <Button variant="primary" onClick={fetchTokenHistory}>
-              Try Again
-            </Button>
-          </div>
-        </Container>
-      </>
+      <Container size="xl">
+        <Card className="text-center p-4 md:p-6 lg:p-8">
+          <div className="text-red-400 mb-4">⚠️ Error loading token history</div>
+          <p className="text-neutral-300 mb-6">{error}</p>
+          <Button variant="primary" size="sm" onClick={fetchTokenHistory}>
+            Try Again
+          </Button>
+        </Card>
+      </Container>
     )
   }
 
   return (
-    <>
-      <Container size="xl" className="py-8">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+    <Container size="xl">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8 md:mb-12">
           <Button
             onClick={() => router.back()}
             variant="ghost"
+            size="sm"
             className="text-neutral-400 hover:text-white"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
+            <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2" />
             Back
           </Button>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-white mb-2">Token Usage History</h1>
-            <p className="text-neutral-400">Track where your AI tokens are being used</p>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Token Usage History</h1>
+            <p className="text-sm md:text-base text-neutral-400">Track where your AI tokens are being used</p>
           </div>
         </div>
 
@@ -186,7 +179,7 @@ export default function TokenHistoryPage() {
 
         {/* Usage List */}
         {usage.length === 0 ? (
-          <Card className="p-8 text-center">
+          <Card className="p-4 md:p-6 lg:p-8 text-center">
             <Brain className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">No Token Usage Found</h3>
             <p className="text-neutral-400">
@@ -237,7 +230,6 @@ export default function TokenHistoryPage() {
             ))}
           </div>
         )}
-      </Container>
-    </>
+    </Container>
   )
 }

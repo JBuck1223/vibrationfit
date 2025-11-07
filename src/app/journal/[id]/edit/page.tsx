@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button, Input, Icon } from '@/lib/design-system'
+import { Card, Button, Input, CategoryCard } from '@/lib/design-system'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { FileUpload } from '@/components/FileUpload'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -28,25 +28,6 @@ interface JournalEntry {
   updated_at: string
 }
 
-// CategoryCard component from design system
-const CategoryCard = ({ category, selected = false, onClick, className = '' }: any) => {
-  const IconComponent = category.icon
-  return (
-    <Card 
-      variant={selected ? 'elevated' : 'default'} 
-      hover 
-      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''} ${className}`}
-      onClick={onClick}
-    >
-      <div className="flex flex-col items-center gap-1 p-1 justify-center h-full">
-        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} />
-        <span className="text-[10px] font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-          {category.label}
-        </span>
-      </div>
-    </Card>
-  )
-}
 
 export default function EditJournalEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -255,26 +236,26 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <div className="text-center py-16">
           <div className="text-neutral-400">Loading journal entry...</div>
         </div>
-      </PageLayout>
+      </>
     )
   }
 
   if (!entry) {
     return (
-      <PageLayout>
+      <>
         <div className="text-center py-16">
           <div className="text-neutral-400">Entry not found</div>
         </div>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       {/* Header */}
       <div className="mb-6 md:mb-8">
         {/* Mobile Header */}
@@ -619,6 +600,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
           </div>
         </form>
       </Card>
-    </PageLayout>
+    </>
   )
 }

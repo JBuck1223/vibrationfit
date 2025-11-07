@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { PageLayout, Container, Card, Button, Input } from '@/lib/design-system/components'
+import {  Container, Card, Button, Input } from '@/lib/design-system/components'
 
 export default function EmailDebugPage() {
   const [email, setEmail] = useState('')

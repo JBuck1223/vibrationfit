@@ -91,34 +91,7 @@ export function AdminWrapper({ children, fallback }: AdminWrapperProps) {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900">
-      {/* Admin Header */}
-      <div className="bg-gradient-to-r from-primary-900/80 to-primary-800/80 border-b border-primary-600/30">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className="w-5 h-5 text-primary-400" />
-              <span className="text-sm font-medium text-primary-300">
-                Admin Panel
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-neutral-400">
-                {user?.email}
-              </span>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => router.push('/dashboard')}
-              >
-                Exit Admin
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-black">
       {/* Admin Content */}
       {children}
     </div>

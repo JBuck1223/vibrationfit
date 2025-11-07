@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PageLayout, Card, Button, Badge, ProgressBar } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, ProgressBar } from '@/lib/design-system/components'
 import { HardDrive, Image, Video, Music, FileText, Folder, Clock, Trash2, ExternalLink, X } from 'lucide-react'
 import Link from 'next/link'
 
@@ -78,11 +78,11 @@ export default function StoragePage() {
   const usagePercentage = data ? (data.totalSize / STORAGE_LIMIT) * 100 : 0
 
   return (
-    <>
+    <Container size="xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Storage Usage</h1>
-          <p className="text-neutral-400">
+        <div className="mb-8 md:mb-12">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">Storage Usage</h1>
+          <p className="text-sm md:text-base text-neutral-400">
             Track your file storage across all features
           </p>
         </div>
@@ -95,7 +95,7 @@ export default function StoragePage() {
         ) : (
           <>
             {/* Overview Card */}
-            <Card className="p-8 mb-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-2 border-primary-500/30">
+            <Card className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-2 border-primary-500/30">
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <div className="flex items-center gap-3 mb-4">
@@ -111,11 +111,11 @@ export default function StoragePage() {
                   <div className="grid grid-cols-2 gap-6 mb-6">
                     <div>
                       <p className="text-sm text-neutral-400 mb-1">Total Files</p>
-                      <p className="text-3xl font-bold text-white">{data?.totalFiles || 0}</p>
+                      <p className="text-2xl md:text-3xl font-bold text-white">{data?.totalFiles || 0}</p>
                     </div>
                     <div>
                       <p className="text-sm text-neutral-400 mb-1">Total Storage Used</p>
-                      <p className="text-3xl font-bold text-white">{formatBytes(data?.totalSize || 0)}</p>
+                      <p className="text-2xl md:text-3xl font-bold text-white">{formatBytes(data?.totalSize || 0)}</p>
                       <p className="text-xs text-neutral-500 mt-1">
                         of {formatBytes(STORAGE_LIMIT)} limit
                       </p>
@@ -141,7 +141,7 @@ export default function StoragePage() {
 
             {/* Storage by Type */}
             <Card className="p-6 mb-8">
-              <h2 className="text-2xl font-bold text-white mb-6">Storage by Type</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">Storage by Type</h2>
               
               {data?.storageByType && Object.keys(data.storageByType).length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -206,7 +206,7 @@ export default function StoragePage() {
             {data?.recentFiles && data.recentFiles.length > 0 && (
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-white">Recent Uploads</h2>
+                  <h2 className="text-xl md:text-2xl font-bold text-white">Recent Uploads</h2>
                   <Badge variant="info">{data.recentFiles.length} files</Badge>
                 </div>
 
@@ -406,7 +406,7 @@ export default function StoragePage() {
             </div>
           </div>
         )}
-    </>
+    </Container>
   )
 }
 

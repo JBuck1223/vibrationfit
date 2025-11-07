@@ -94,6 +94,9 @@ export const PAGE_CLASSIFICATIONS = {
   /**
    * ADMIN PAGES - Admin panel and management tools
    * Layout: SidebarLayout (admin nav) + MobileBottomNav + PageLayout
+   * 
+   * NOTE: All routes starting with /admin are automatically classified as ADMIN
+   * by the getPageType() function. This list is kept for reference and explicit routes.
    */
   ADMIN: [
     '/admin/users',
@@ -101,6 +104,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/admin/token-usage',
     '/admin/assets',
     '/admin/audio-mixer',
+    '/admin/intensive/schedule-call', // Explicitly listed for reference
     '/sitemap',
     '/design-system',
     '/design-system/component/[componentName]',
@@ -156,20 +160,26 @@ export const PAGE_CLASSIFICATIONS = {
  * const pageType = getPageType('/dashboard') // 'USER'
  * const pageType = getPageType('/auth/login') // 'PUBLIC'
  * const pageType = getPageType('/life-vision/abc-123') // 'USER' (matches /life-vision/[id])
+ * const pageType = getPageType('/admin/users') // 'ADMIN' (automatic /admin classification)
  * ```
  */
 export function getPageType(pathname: string): PageType {
   // Normalize pathname
   const normalized = pathname.split('?')[0] // Remove query params
   
-  // Check USER pages first (most common)
+  // AUTOMATIC ADMIN CLASSIFICATION: All routes starting with /admin are ADMIN
+  if (normalized.startsWith('/admin')) {
+    return 'ADMIN'
+  }
+  
+  // Check USER pages (most common)
   for (const page of PAGE_CLASSIFICATIONS.USER) {
     if (matchesRoute(normalized, page)) {
       return 'USER'
     }
   }
   
-  // Check ADMIN pages
+  // Check ADMIN pages (for explicit routes, though /admin prefix already covers most)
   for (const page of PAGE_CLASSIFICATIONS.ADMIN) {
     if (matchesRoute(normalized, page)) {
       return 'ADMIN'

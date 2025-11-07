@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     
     await trackTokenUsage({
       user_id: user.id,
-      action_type: 'audio_generation', // Using audio_generation as closest match
+      action_type: 'transcription',
       model_used: 'whisper-1',
       tokens_used: Math.ceil(transcription.duration * 60), // Estimate tokens based on duration
       input_tokens: Math.ceil(transcription.duration * 60),

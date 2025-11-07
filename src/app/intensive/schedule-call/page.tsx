@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Calendar, Clock, CheckCircle, Video } from 'lucide-react'
 
 import { 
-  PageLayout, 
+   
   Container, 
   Card, 
   Button, 
@@ -16,9 +16,13 @@ import {
 } from '@/lib/design-system/components'
 
 interface TimeSlot {
+  id?: string
   date: string
   time: string
   available: boolean
+  max_bookings?: number
+  current_bookings?: number
+  event_type?: string
 }
 
 export default function ScheduleCallPage() {
@@ -37,7 +41,7 @@ export default function ScheduleCallPage() {
 
   useEffect(() => {
     loadIntensiveData()
-    generateTimeSlots()
+    loadAvailableSlots()
   }, [])
 
   const loadIntensiveData = async () => {
@@ -66,16 +70,27 @@ export default function ScheduleCallPage() {
       setIntensiveId(intensiveData.id)
 
       // Get user profile for contact info
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('email, full_name')
-        .eq('id', user.id)
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('email, phone, first_name, last_name')
+        .eq('user_id', user.id)
         .single()
+
+      if (profileError) {
+        console.log('Profile error:', profileError)
+      }
 
       if (profileData) {
         setContactInfo(prev => ({
           ...prev,
-          email: profileData.email || user.email || ''
+          email: profileData.email || user.email || '',
+          phone: profileData.phone || prev.phone || ''
+        }))
+      } else {
+        // Fallback to auth user email
+        setContactInfo(prev => ({
+          ...prev,
+          email: user.email || prev.email || ''
         }))
       }
     } catch (error) {
@@ -85,7 +100,66 @@ export default function ScheduleCallPage() {
     }
   }
 
-  const generateTimeSlots = () => {
+  const loadAvailableSlots = async () => {
+    try {
+      const supabase = createClient()
+      
+      // Try generic time_slots table first, fallback to intensive_time_slots
+      const { data: genericSlots, error: genericError } = await supabase
+        .from('time_slots')
+        .select('*')
+        .eq('event_type', 'intensive_calibration')
+        .eq('available', true)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .order('date', { ascending: true })
+        .order('time', { ascending: true })
+
+      if (!genericError && genericSlots) {
+        const formattedSlots: TimeSlot[] = genericSlots.map(slot => ({
+          id: slot.id,
+          date: slot.date,
+          time: slot.time,
+          available: slot.available && (slot.current_bookings || 0) < (slot.max_bookings || 1),
+          max_bookings: slot.max_bookings,
+          current_bookings: slot.current_bookings,
+          event_type: slot.event_type
+        }))
+        setAvailableSlots(formattedSlots)
+        return
+      }
+
+      // Fallback to intensive_time_slots
+      const { data: intensiveSlots, error: intensiveError } = await supabase
+        .from('intensive_time_slots')
+        .select('*')
+        .eq('available', true)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .order('date', { ascending: true })
+        .order('time', { ascending: true })
+
+      if (!intensiveError && intensiveSlots) {
+        const formattedSlots: TimeSlot[] = intensiveSlots.map(slot => ({
+          id: slot.id,
+          date: slot.date,
+          time: slot.time,
+          available: slot.available && (slot.current_bookings || 0) < (slot.max_bookings || 1),
+          max_bookings: slot.max_bookings,
+          current_bookings: slot.current_bookings
+        }))
+        setAvailableSlots(formattedSlots)
+        return
+      }
+
+      // If both fail, generate client-side slots as fallback
+      console.warn('Could not load slots from database, using fallback')
+      generateTimeSlotsFallback()
+    } catch (error) {
+      console.error('Error loading available slots:', error)
+      generateTimeSlotsFallback()
+    }
+  }
+
+  const generateTimeSlotsFallback = () => {
     const slots: TimeSlot[] = []
     const now = new Date()
     
@@ -109,7 +183,7 @@ export default function ScheduleCallPage() {
         slots.push({
           date: dateStr,
           time: time,
-          available: true // In real app, check availability from backend
+          available: true
         })
       })
     }
@@ -132,6 +206,64 @@ export default function ScheduleCallPage() {
 
       // Combine date and time
       const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}:00`)
+
+      // Find the selected slot and update its booking count
+      const selectedSlot = availableSlots.find(
+        slot => slot.date === selectedDate && slot.time === selectedTime && slot.available
+      )
+
+      if (!selectedSlot) {
+        alert('This time slot is no longer available. Please select another.')
+        setSaving(false)
+        return
+      }
+
+      // Update time slot booking count (try generic table first)
+      if (selectedSlot.id) {
+        // Try to update generic time_slots
+        const { data: genericSlot } = await supabase
+          .from('time_slots')
+          .select('current_bookings, max_bookings')
+          .eq('id', selectedSlot.id)
+          .single()
+
+        if (genericSlot) {
+          const newCount = (genericSlot.current_bookings || 0) + 1
+          if (newCount >= (genericSlot.max_bookings || 1)) {
+            await supabase
+              .from('time_slots')
+              .update({ available: false, current_bookings: newCount })
+              .eq('id', selectedSlot.id)
+          } else {
+            await supabase
+              .from('time_slots')
+              .update({ current_bookings: newCount })
+              .eq('id', selectedSlot.id)
+          }
+        } else {
+          // Try intensive_time_slots
+          const { data: intensiveSlot } = await supabase
+            .from('intensive_time_slots')
+            .select('current_bookings, max_bookings')
+            .eq('id', selectedSlot.id)
+            .single()
+
+          if (intensiveSlot) {
+            const newCount = (intensiveSlot.current_bookings || 0) + 1
+            if (newCount >= (intensiveSlot.max_bookings || 1)) {
+              await supabase
+                .from('intensive_time_slots')
+                .update({ available: false, current_bookings: newCount })
+                .eq('id', selectedSlot.id)
+            } else {
+              await supabase
+                .from('intensive_time_slots')
+                .update({ current_bookings: newCount })
+                .eq('id', selectedSlot.id)
+            }
+          }
+        }
+      }
 
       // Update checklist
       const { error } = await supabase
@@ -179,7 +311,7 @@ export default function ScheduleCallPage() {
 
   return (
     <>
-      <Container size="lg" className="py-16">
+      <Container size="lg">
         
         {/* Header */}
         <div className="mb-8">

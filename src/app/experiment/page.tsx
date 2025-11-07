@@ -16,7 +16,6 @@ import {
   Target
 } from 'lucide-react'
 import { 
-  PageLayout, 
   Card, 
   Button, 
   Badge, 
@@ -448,8 +447,7 @@ Would you like to refine another category, or are you satisfied with this refine
   )
 
   return (
-    <PageLayout>
-      <div className="py-8">
+    <div className="py-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -538,6 +536,5 @@ Would you like to refine another category, or are you satisfied with this refine
           </Button>
         </div>
       </div>
-    </PageLayout>
   )
 }

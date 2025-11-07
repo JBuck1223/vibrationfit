@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { PageLayout, Container, Card, Button, Badge, Stack, Icon } from '@/lib/design-system'
+import {  Container, Card, Button, Badge, Stack, Icon } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { Image as ImageIcon, ArrowLeft, Trash2, Plus } from 'lucide-react'
 import Link from 'next/link'
@@ -40,7 +40,7 @@ export default function GeneratedGalleryPage() {
   }
 
   return (
-    <PageLayout>
+    <>
       <Container size="xl" className="py-8">
         {/* Header */}
         <div className="mb-8">
@@ -168,7 +168,7 @@ export default function GeneratedGalleryPage() {
           </div>
         )}
       </Container>
-    </PageLayout>
+    </>
   )
 }
 

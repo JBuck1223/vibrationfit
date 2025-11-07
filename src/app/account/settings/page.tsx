@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PageLayout, Card, Button, Input } from '@/lib/design-system/components'
+import {  Card, Button, Input } from '@/lib/design-system/components'
 import { User, Mail, Bell, Shield, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'

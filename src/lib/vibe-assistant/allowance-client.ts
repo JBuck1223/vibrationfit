@@ -237,7 +237,7 @@ export async function checkVibeAssistantAllowance(): Promise<VibeAssistantAllowa
     }
 
     return {
-      tokensRemaining: (profile.vibe_assistant_tokens_remaining ?? 100),
+      tokensRemaining: (profile.vibe_assistant_tokens_remaining ?? 0),
       tokensUsed: (profile.vibe_assistant_tokens_used ?? 0),
       monthlyLimit: (tier?.monthly_vibe_assistant_tokens ?? 100),
       costLimit: (tier?.monthly_vibe_assistant_cost_limit ?? 1.00),

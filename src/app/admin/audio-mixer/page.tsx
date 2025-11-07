@@ -127,12 +127,12 @@ export default function AudioMixerAdminPage() {
   }
 
   return (
-    <Container size="xl" className="py-8">
+    <Container size="xl">
       <Stack gap="lg">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Audio Mixer Admin</h1>
-            <p className="text-neutral-400 mt-2">Manage background tracks and audio variants</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Audio Mixer Admin</h1>
+            <p className="text-sm md:text-base text-neutral-400">Manage background tracks and audio variants</p>
           </div>
           <Button onClick={() => {
             setFormData({ id: '', name: '', voiceVolume: 50, bgVolume: 50, backgroundTrack: '' })
@@ -146,7 +146,7 @@ export default function AudioMixerAdminPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {variants.map((variant) => (
-            <Card key={variant.id} variant="elevated" className="p-6">
+            <Card key={variant.id} variant="elevated" className="p-4 md:p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary-500/20 rounded-xl flex items-center justify-center">
@@ -205,7 +205,7 @@ export default function AudioMixerAdminPage() {
           ))}
         </div>
 
-        <Card variant="glass" className="p-6">
+        <Card variant="glass" className="p-4 md:p-6">
           <h3 className="text-lg font-semibold text-white mb-3">How to use</h3>
           <div className="space-y-2 text-sm text-neutral-400">
             <p>• Upload background tracks to: <code className="text-primary-500">s3://vibration-fit-client-storage/site-assets/audio/mixing-tracks/</code></p>

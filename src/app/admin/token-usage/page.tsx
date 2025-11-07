@@ -86,13 +86,13 @@ export default function AdminTokenUsagePage() {
 
   return (
     <AdminWrapper>
-      <Container size="xl" className="py-12">
+      <Container size="xl">
         <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">Token Usage Analytics</h1>
-            <p className="text-neutral-400 mt-1">Track AI token consumption and costs across the platform</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Token Usage Analytics</h1>
+            <p className="text-sm md:text-base text-neutral-400">Track AI token consumption and costs across the platform</p>
           </div>
           
           <div className="flex items-center gap-4">
@@ -139,7 +139,7 @@ export default function AdminTokenUsagePage() {
             <span className="ml-3 text-neutral-400">Loading token usage data...</span>
           </div>
         ) : error ? (
-          <Card variant="outlined" className="p-6 text-center">
+          <Card variant="outlined" className="p-4 md:p-6 text-center">
             <div className="text-red-400 mb-4">⚠️ Error loading data</div>
             <p className="text-neutral-300 mb-4">{error}</p>
             <Button 
@@ -152,15 +152,15 @@ export default function AdminTokenUsagePage() {
         ) : activeTab === 'summary' && summary ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Total Tokens */}
-            <Card variant="elevated">
-              <div className="p-6">
+            <Card variant="elevated" className="p-4 md:p-6">
+              <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">Total Tokens</h3>
                   <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
                     <span className="text-white text-sm">🔢</span>
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-primary-500 mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-primary-500 mb-1">
                   {formatNumber(summary.total_tokens)}
                 </div>
                 <div className="text-sm text-neutral-400">
@@ -170,8 +170,8 @@ export default function AdminTokenUsagePage() {
             </Card>
 
             {/* Total Cost */}
-            <Card variant="elevated">
-              <div className="p-6">
+            <Card variant="elevated" className="p-4 md:p-6">
+              <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">Total Cost</h3>
                   <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
@@ -188,8 +188,8 @@ export default function AdminTokenUsagePage() {
             </Card>
 
             {/* Actions Count */}
-            <Card variant="elevated">
-              <div className="p-6">
+            <Card variant="elevated" className="p-4 md:p-6">
+              <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">Total Actions</h3>
                   <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
@@ -206,8 +206,8 @@ export default function AdminTokenUsagePage() {
             </Card>
 
             {/* Average Cost per Action */}
-            <Card variant="elevated">
-              <div className="p-6">
+            <Card variant="elevated" className="p-4 md:p-6">
+              <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">Avg Cost/Action</h3>
                   <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
@@ -224,9 +224,9 @@ export default function AdminTokenUsagePage() {
             </Card>
           </div>
         ) : activeTab === 'users' && userUsage.length > 0 ? (
-          <Card variant="elevated">
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-white mb-6">Top Users by Token Usage</h3>
+          <Card variant="elevated" className="p-4 md:p-6">
+            <div>
+              <h3 className="text-lg md:text-xl font-semibold text-white mb-4 md:mb-6">Top Users by Token Usage</h3>
               
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -275,7 +275,7 @@ export default function AdminTokenUsagePage() {
             </div>
           </Card>
         ) : activeTab === 'users' ? (
-          <Card variant="outlined" className="p-6 text-center">
+          <Card variant="outlined" className="p-4 md:p-6 text-center">
             <div className="text-neutral-400 mb-4">📊 No user data available</div>
             <p className="text-neutral-300">No token usage data found for the selected period.</p>
           </Card>
@@ -283,9 +283,9 @@ export default function AdminTokenUsagePage() {
 
         {/* Model Breakdown (if summary available) */}
         {activeTab === 'summary' && summary && Object.keys(summary.model_breakdown).length > 0 && (
-          <Card variant="elevated">
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-white mb-6">Usage by Model</h3>
+          <Card variant="elevated" className="p-4 md:p-6">
+            <div>
+              <h3 className="text-lg md:text-xl font-semibold text-white mb-4 md:mb-6">Usage by Model</h3>
               
               <div className="space-y-4">
                 {Object.entries(summary.model_breakdown)

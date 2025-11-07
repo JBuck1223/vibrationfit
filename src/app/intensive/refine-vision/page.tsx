@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Wand2, Sparkles, ArrowRight } from 'lucide-react'
 
 import { 
-  PageLayout, 
+   
   Container, 
   Card, 
   Button,
@@ -109,41 +109,42 @@ export default function RefineVisionPage() {
 
   return (
     <>
-      <Container size="lg" className="py-16">
+      <Container size="lg">
         
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <Button 
             variant="ghost" 
+            size="sm"
             onClick={() => router.push('/intensive/dashboard')}
-            className="mb-4"
+            className="mb-3 md:mb-4 w-full sm:w-auto"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
           
-          <Badge variant="premium" className="mb-4">
+          <Badge variant="premium" className="mb-3 md:mb-4">
             <Wand2 className="w-4 h-4 inline mr-2" />
             Step 5 of 10
           </Badge>
           
-          <h1 className="text-4xl font-bold mb-4">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
             Refine Your Vision with VIVA
           </h1>
-          <p className="text-xl text-neutral-400">
+          <p className="text-base md:text-lg lg:text-xl text-neutral-400">
             Enhance your vision with specific details and deeper clarity
           </p>
         </div>
 
-        <Card>
-          <div className="text-center py-12">
-            <Sparkles className="w-16 h-16 text-secondary-500 mx-auto mb-6" />
-            <h2 className="text-2xl font-bold mb-4">Vision Refinement Session</h2>
-            <p className="text-neutral-400 mb-8 max-w-2xl mx-auto">
+        <Card className="p-4 md:p-6 lg:p-8">
+          <div className="text-center">
+            <Sparkles className="w-12 h-12 md:w-16 md:h-16 text-secondary-500 mx-auto mb-4 md:mb-6" />
+            <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">Vision Refinement Session</h2>
+            <p className="text-sm md:text-base text-neutral-400 mb-6 md:mb-8 max-w-2xl mx-auto">
               This feature will allow you to have an interactive session with VIVA to deepen and clarify your vision. 
               VIVA will ask targeted questions about each area of your life vision to add richness and specificity.
             </p>
             
-            <div className="max-w-xl mx-auto mb-8">
+            <div className="max-w-xl mx-auto mb-6 md:mb-8">
               <Textarea
                 placeholder="For now, add any refinement notes or additional thoughts about your vision..."
                 value={refinementNotes}
@@ -154,12 +155,13 @@ export default function RefineVisionPage() {
 
             <Button
               variant="primary"
-              size="lg"
+              size="sm"
               onClick={handleRefine}
               disabled={saving}
+              className="w-full sm:w-auto"
             >
               {saving ? 'Saving...' : 'Continue to Next Step'}
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
             </Button>
           </div>
         </Card>

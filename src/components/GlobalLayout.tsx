@@ -33,7 +33,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     if (pageType === 'USER') {
       return (
         <SidebarLayout isAdmin={false}>
-          <PageLayout containerSize="xl">
+          <PageLayout>
             {children}
           </PageLayout>
         </SidebarLayout>
@@ -44,7 +44,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     if (pageType === 'ADMIN') {
       return (
         <SidebarLayout isAdmin={true}>
-          <PageLayout containerSize="xl">
+          <PageLayout>
             {children}
           </PageLayout>
         </SidebarLayout>
@@ -56,7 +56,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
-      <PageLayout containerSize="xl">
+      <PageLayout>
         {children}
       </PageLayout>
       <Footer />

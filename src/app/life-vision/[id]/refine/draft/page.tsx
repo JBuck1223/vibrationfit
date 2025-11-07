@@ -10,7 +10,8 @@ import {
   Card, 
   Badge, 
   Spinner,
-  Icon
+  Icon,
+  CategoryCard as SharedCategoryCard
 } from '@/lib/design-system/components'
 import { colors } from '@/lib/design-system/tokens'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -400,7 +401,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
     )
   }
 
-  // CategoryCard component
+  // CategoryCard with draft indicator support
   const CategoryCard = ({ category, selected, onClick, className = '' }: { 
     category: any, 
     selected: boolean, 
@@ -408,28 +409,18 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
     className?: string 
   }) => {
     const isDraft = draftCategories.includes(category.key)
-    const IconComponent = category.icon
     return (
-      <Card 
-        variant="outlined" 
-        hover 
-        className={`cursor-pointer aspect-square transition-all duration-300 ${
-          !isDraft && selected ? 'border border-primary-500' : ''
-        } ${className}`}
-        style={isDraft ? { border: `2px solid ${NEON_YELLOW}` } : undefined}
+      <SharedCategoryCard
+        category={category}
+        selected={!isDraft && selected}
         onClick={onClick}
-      >
-        <div className="flex flex-col items-center gap-1 justify-center h-full">
-          <Icon 
-            icon={IconComponent} 
-            size="sm" 
-            color={isDraft ? NEON_YELLOW : selected ? '#39FF14' : '#14B8A6'} 
-          />
-          <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-            {category.label}
-          </span>
-        </div>
-      </Card>
+        variant="outlined"
+        selectionStyle="border"
+        iconColor={isDraft ? NEON_YELLOW : '#14B8A6'}
+        selectedIconColor="#39FF14"
+        className={`${isDraft ? '!border-2' : ''} ${className}`}
+        style={isDraft ? { borderColor: NEON_YELLOW } : undefined}
+      />
     )
   }
 

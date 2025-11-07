@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
         last_sign_in_at: authUser.last_sign_in_at,
         is_admin: isEmailAdmin || isMetadataAdmin,
         user_metadata: authUser.user_metadata,
-        tokens_remaining: profile?.vibe_assistant_tokens_remaining ?? 100,
+        tokens_remaining: profile?.vibe_assistant_tokens_remaining ?? 0,
         tokens_used: profile?.vibe_assistant_tokens_used ?? 0,
         storage_quota_gb: profile?.storage_quota_gb ?? 1,
         profile_photo_url: profile?.profile_picture_url

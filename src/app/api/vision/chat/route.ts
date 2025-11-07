@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { 
   DISCOVERY_TEMPLATES, 
   getDrillDownQuestionsForCategory, 
@@ -133,7 +134,7 @@ export async function POST(request: Request) {
         .eq('category', category)
 
       // Generate AI insight message about their selections
-      const insightMessage = await generateInsightMessage(selections, category, customInput)
+      const insightMessage = await generateInsightMessage(selections, category, customInput, user.id, supabase)
 
       return NextResponse.json({
         type: 'drill_down_questions',
@@ -168,7 +169,7 @@ export async function POST(request: Request) {
       ]
 
       // Detect patterns across selections
-      const patternAnalysis = await detectPatterns(existingMessages[0]?.selections || [], step2Data, category)
+      const patternAnalysis = await detectPatterns(existingMessages[0]?.selections || [], step2Data, category, user.id, supabase)
 
       // Update vibrational state to elevated (user is getting specific and energized)
       await supabase
@@ -181,7 +182,7 @@ export async function POST(request: Request) {
         .eq('category', category)
 
       // Generate AI message that NAMES THE PATTERN
-      const patternMessage = await generatePatternMessage(patternAnalysis, category)
+      const patternMessage = await generatePatternMessage(patternAnalysis, category, user.id, supabase)
 
       return NextResponse.json({
         type: 'rhythm_question',
@@ -235,7 +236,7 @@ export async function POST(request: Request) {
       }
 
       // Generate vision
-      const generatedVision = await generateVisionFromDiscovery(discoveryData, user.id, vision_id)
+      const generatedVision = await generateVisionFromDiscovery(discoveryData, user.id, vision_id, supabase)
 
       // Save generated vision
       await supabase
@@ -274,7 +275,9 @@ export async function POST(request: Request) {
 async function generateInsightMessage(
   selections: string[],
   category: string,
-  customInput?: string
+  customInput: string | undefined,
+  userId: string,
+  supabase: any
 ): Promise<string> {
   const prompt = `The user is discovering their vision for "${category}".
 
@@ -292,6 +295,15 @@ Example: "Love it! Creative, adventurous, and playful - that's a beautiful combi
 
 Write the response now:`
 
+  // Estimate tokens and validate balance
+  const estimatedTokens = estimateTokensForText(prompt, 'gpt-4')
+  const tokenValidation = await validateTokenBalance(userId, estimatedTokens, supabase)
+  
+  if (tokenValidation) {
+    // Return fallback message if insufficient tokens
+    return "Great choices! Let's explore these more deeply..."
+  }
+
   const completion = await openai.chat.completions.create({
     model: 'gpt-4',
     messages: [{ role: 'user', content: prompt }],
@@ -299,7 +311,28 @@ Write the response now:`
     max_tokens: 150,
   })
 
-  return completion.choices[0]?.message?.content || "Great choices! Let's explore these more deeply..."
+  const insightMessage = completion.choices[0]?.message?.content || "Great choices! Let's explore these more deeply..."
+
+  // Track token usage
+  if (completion.usage) {
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'vision_generation',
+      model_used: 'gpt-4',
+      tokens_used: completion.usage.total_tokens || 0,
+      input_tokens: completion.usage.prompt_tokens || 0,
+      output_tokens: completion.usage.completion_tokens || 0,
+      cost_estimate: 0, // Will be calculated by trackTokenUsage
+      success: true,
+      metadata: {
+        category: category,
+        step: 'discovery_insight',
+        action: 'generateInsightMessage',
+      },
+    })
+  }
+
+  return insightMessage
 }
 
 /**
@@ -308,7 +341,9 @@ Write the response now:`
 async function detectPatterns(
   step1Selections: string[],
   step2Selections: Record<string, string[]>,
-  category: string
+  category: string,
+  userId: string,
+  supabase: any
 ): Promise<{ theme: string; evidence: string[] }> {
   // Flatten all selections
   const allSelections = [
@@ -334,12 +369,43 @@ Return ONLY a JSON object:
 
 Be specific and insightful. This is about seeing the pattern they might not see themselves.`
 
+  // Estimate tokens and validate balance
+  const estimatedTokens = estimateTokensForText(prompt, 'gpt-4')
+  const tokenValidation = await validateTokenBalance(userId, estimatedTokens, supabase)
+  
+  if (tokenValidation) {
+    // Return fallback if insufficient tokens
+    return {
+      theme: 'variety and exploration',
+      evidence: ['Multiple interests selected', 'Diverse preferences shown']
+    }
+  }
+
   const completion = await openai.chat.completions.create({
     model: 'gpt-4',
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.5,
     max_tokens: 200,
   })
+
+  // Track token usage
+  if (completion.usage) {
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'vision_generation',
+      model_used: 'gpt-4',
+      tokens_used: completion.usage.total_tokens || 0,
+      input_tokens: completion.usage.prompt_tokens || 0,
+      output_tokens: completion.usage.completion_tokens || 0,
+      cost_estimate: 0, // Will be calculated by trackTokenUsage
+      success: true,
+      metadata: {
+        category: category,
+        step: 'discovery_pattern_detection',
+        action: 'detectPatterns',
+      },
+    })
+  }
 
   try {
     const response = completion.choices[0]?.message?.content || '{}'
@@ -361,7 +427,9 @@ Be specific and insightful. This is about seeing the pattern they might not see 
  */
 async function generatePatternMessage(
   patternAnalysis: { theme: string; evidence: string[] },
-  category: string
+  category: string,
+  userId: string,
+  supabase: any
 ): Promise<string> {
   const prompt = `The user is discovering their vision for "${category}".
 
@@ -380,6 +448,15 @@ Example: "I'm seeing something beautiful here! 🌟\n\nYou're drawn to creative 
 
 Write the message now:`
 
+  // Estimate tokens and validate balance
+  const estimatedTokens = estimateTokensForText(prompt, 'gpt-4')
+  const tokenValidation = await validateTokenBalance(userId, estimatedTokens, supabase)
+  
+  if (tokenValidation) {
+    // Return fallback message if insufficient tokens
+    return `I see a clear pattern emerging! Let's capture how this integrates into your life:`
+  }
+
   const completion = await openai.chat.completions.create({
     model: 'gpt-4',
     messages: [{ role: 'user', content: prompt }],
@@ -387,7 +464,28 @@ Write the message now:`
     max_tokens: 250,
   })
 
-  return completion.choices[0]?.message?.content || `I see a clear pattern emerging! Let's capture how this integrates into your life:`
+  const patternMessage = completion.choices[0]?.message?.content || `I see a clear pattern emerging! Let's capture how this integrates into your life:`
+
+  // Track token usage
+  if (completion.usage) {
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'vision_generation',
+      model_used: 'gpt-4',
+      tokens_used: completion.usage.total_tokens || 0,
+      input_tokens: completion.usage.prompt_tokens || 0,
+      output_tokens: completion.usage.completion_tokens || 0,
+      cost_estimate: 0, // Will be calculated by trackTokenUsage
+      success: true,
+      metadata: {
+        category: category,
+        step: 'discovery_pattern_message',
+        action: 'generatePatternMessage',
+      },
+    })
+  }
+
+  return patternMessage
 }
 
 /**
@@ -401,10 +499,10 @@ async function generateVisionFromDiscovery(
     category: string
   },
   userId: string,
-  visionId: string
+  visionId: string,
+  supabase: any
 ): Promise<string> {
   // Get previous visions for pattern recognition
-  const supabase = await createClient()
   const { data: previousConversations } = await supabase
     .from('vision_conversations')
     .select('category, generated_vision')
@@ -412,7 +510,7 @@ async function generateVisionFromDiscovery(
     .eq('user_id', userId)
     .not('generated_vision', 'is', null)
 
-  const previousVisions = previousConversations?.map(conv => ({
+  const previousVisions = previousConversations?.map((conv: any) => ({
     category: conv.category,
     vision: conv.generated_vision
   })) || []
@@ -425,7 +523,7 @@ Specific preferences: ${JSON.stringify(discoveryData.step2)}
 Rhythm preference: ${discoveryData.step3}
 
 ${previousVisions.length > 0 ? `PREVIOUS VISIONS (for pattern recognition):
-${previousVisions.map(pv => `${pv.category}: ${pv.vision}`).join('\n\n')}` : ''}
+${previousVisions.map((pv: any) => `${pv.category}: ${pv.vision}`).join('\n\n')}` : ''}
 
 VISION REQUIREMENTS:
 1. Write in PRESENT TENSE, first person ("I am", "I have", "I experience")
@@ -439,6 +537,15 @@ VISION REQUIREMENTS:
 
 Generate the vision now:`
 
+  // Estimate tokens and validate balance
+  const estimatedTokens = estimateTokensForText(prompt, 'gpt-4')
+  const tokenValidation = await validateTokenBalance(userId, estimatedTokens, supabase)
+  
+  if (tokenValidation) {
+    // Return fallback message if insufficient tokens
+    return 'Your vision is being created...'
+  }
+
   const completion = await openai.chat.completions.create({
     model: 'gpt-4',
     messages: [{ role: 'user', content: prompt }],
@@ -446,5 +553,29 @@ Generate the vision now:`
     max_tokens: 500,
   })
 
-  return completion.choices[0]?.message?.content || 'Your vision is being created...'
+  const generatedVision = completion.choices[0]?.message?.content || 'Your vision is being created...'
+
+  // Track token usage
+  if (completion.usage) {
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'vision_generation',
+      model_used: 'gpt-4',
+      tokens_used: completion.usage.total_tokens || 0,
+      input_tokens: completion.usage.prompt_tokens || 0,
+      output_tokens: completion.usage.completion_tokens || 0,
+      cost_estimate: 0, // Will be calculated by trackTokenUsage
+      success: true,
+      metadata: {
+        category: discoveryData.category,
+        vision_id: visionId,
+        step: 'discovery_vision_generation',
+        action: 'generateVisionFromDiscovery',
+        previous_visions_count: previousVisions.length,
+        generated_vision_length: generatedVision.length,
+      },
+    })
+  }
+
+  return generatedVision
 }

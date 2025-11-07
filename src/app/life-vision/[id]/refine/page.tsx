@@ -25,7 +25,7 @@ import {
   Eye
 } from 'lucide-react'
 import { 
-  PageLayout, 
+   
   Card, 
   Button, 
   Badge, 
@@ -33,7 +33,8 @@ import {
   Textarea,
   AutoResizeTextarea,
   Icon,
-  VIVAButton
+  VIVAButton,
+  CategoryCard
 } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
@@ -71,30 +72,6 @@ interface ChatMessage {
   timestamp: Date
 }
 
-// CategoryCard component moved outside to prevent re-creation on every render
-const CategoryCard = ({ category, selected, onClick, className = '' }: { 
-  category: any, 
-  selected: boolean, 
-  onClick: () => void, 
-  className?: string 
-}) => {
-  const IconComponent = category.icon
-  return (
-    <Card 
-      variant="outlined" 
-      hover 
-      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500' : ''} ${className}`}
-      onClick={onClick}
-    >
-      <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
-        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#14B8A6'} />
-        <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-          {category.label}
-        </span>
-      </div>
-    </Card>
-  )
-}
 
 // ChatInterface component moved outside to prevent re-creation on every render
 const ChatInterface = ({ 
@@ -1367,17 +1344,17 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <div className="flex items-center justify-center py-16">
           <Spinner variant="primary" size="lg" />
         </div>
-      </PageLayout>
+      </>
     )
   }
 
   if (error || !vision) {
     return (
-      <PageLayout>
+      <>
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <div className="text-red-500 mb-4">
@@ -1390,7 +1367,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </Button>
           </div>
         </div>
-      </PageLayout>
+      </>
     )
   }
 
@@ -1428,6 +1405,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                       key={category.key}
               category={category} 
               selected={selectedCategory === category.key} 
+                      variant="outlined"
+                      selectionStyle="border"
+                      iconColor="#14B8A6"
+                      selectedIconColor="#39FF14"
                       onClick={async () => {
                         setSelectedCategory(category.key)
                         // Load any existing draft for this category

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Button, Badge, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system'
+import {  Card, Button, Badge, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, FileText, Tag, X, Download, Play, Volume2, Edit, Trash2 } from 'lucide-react'
@@ -241,26 +241,26 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <div className="text-center py-16">
           <div className="text-neutral-400">Loading journal entry...</div>
         </div>
-      </PageLayout>
+      </>
     )
   }
 
   if (!entry) {
     return (
-      <PageLayout>
+      <>
         <div className="text-center py-16">
           <div className="text-neutral-400">Entry not found</div>
         </div>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       {/* Header */}
       <div className="mb-6 md:mb-8">
         {/* Mobile Header */}
@@ -547,6 +547,6 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
         isLoading={deleting}
         loadingText="Deleting..."
       />
-    </PageLayout>
+    </>
   )
 }

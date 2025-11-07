@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { PageLayout, Button, Badge, Card, WarningConfirmationDialog, Icon } from '@/lib/design-system/components'
+import {  Button, Badge, Card, WarningConfirmationDialog, Icon } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'

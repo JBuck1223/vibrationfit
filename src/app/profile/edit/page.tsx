@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { PageLayout, Button, Badge, Card } from '@/lib/design-system/components'
+import {  Button, Badge, Card } from '@/lib/design-system/components'
 import { ProfileSidebar } from '../components/ProfileSidebar'
 import { PersonalInfoSection } from '../components/PersonalInfoSection'
 import { RelationshipSection } from '../components/RelationshipSection'

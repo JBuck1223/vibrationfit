@@ -4,7 +4,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { PageLayout, Container, Card, Button } from '@/lib/design-system/components'
+import {  Container, Card, Button } from '@/lib/design-system/components'
 import { CheckCircle, Sparkles, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'

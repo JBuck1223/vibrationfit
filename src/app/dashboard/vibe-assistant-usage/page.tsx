@@ -23,7 +23,6 @@ import {
   XCircle
 } from 'lucide-react'
 import { 
-  PageLayout, 
   Container, 
   Card, 
   Button, 
@@ -210,61 +209,53 @@ export default function VibeAssistantUsageDashboard() {
 
   if (loading) {
     return (
-      <>
-        <Container size="xl" className="py-8">
-          <div className="flex items-center justify-center py-16">
-            <Spinner variant="primary" size="lg" />
-          </div>
-        </Container>
-      </>
+      <Container size="xl" className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner variant="primary" size="lg" />
+      </Container>
     )
   }
 
   if (error) {
     return (
-      <>
-        <Container size="xl" className="py-8">
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="text-red-500 mb-4">
-                <Sparkles className="w-16 h-16 mx-auto" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Usage Error</h2>
-              <p className="text-neutral-400 mb-6">{error}</p>
-              <Button onClick={() => window.location.reload()} variant="primary">
-                Try Again
-              </Button>
-            </div>
+      <Container size="xl">
+        <Card className="text-center p-4 md:p-6 lg:p-8">
+          <div className="text-red-500 mb-4">
+            <Sparkles className="w-12 h-12 mx-auto" />
           </div>
-        </Container>
-      </>
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-2">Usage Error</h2>
+          <p className="text-neutral-400 mb-6">{error}</p>
+          <Button onClick={() => window.location.reload()} variant="primary" size="sm">
+            Try Again
+          </Button>
+        </Card>
+      </Container>
     )
   }
 
   return (
-    <>
-      <Container size="xl" className="py-6">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              onClick={() => router.back()}
-              variant="ghost"
-              className="text-neutral-400 hover:text-white"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back
-            </Button>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <Sparkles className="w-8 h-8 text-purple-400" />
-                <h1 className="text-3xl font-bold text-white">VIVA Assistant Usage</h1>
+    <Container size="xl">
+      {/* Header */}
+      <div className="mb-8 md:mb-12">
+        <div className="flex items-center gap-4 mb-4 md:mb-6">
+          <Button
+            onClick={() => router.back()}
+            variant="ghost"
+            size="sm"
+            className="text-neutral-400 hover:text-white"
+          >
+            <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+            Back
+          </Button>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-purple-400" />
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">VIVA Assistant Usage</h1>
                 <Badge variant="premium" className="flex items-center gap-1">
                   <Zap className="w-4 h-4" />
                   AI Powered
                 </Badge>
               </div>
-              <p className="text-neutral-400">
+              <p className="text-sm md:text-base text-neutral-400">
                 Track your AI-powered vision refinement usage and costs
               </p>
             </div>
@@ -564,7 +555,6 @@ export default function VibeAssistantUsageDashboard() {
             </div>
           </div>
         </Card>
-      </Container>
-    </>
+    </Container>
   )
 }

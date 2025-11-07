@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PageLayout, Card, Badge, Button } from '@/lib/design-system/components'
+import { Container, Card, Badge, Button } from '@/lib/design-system/components'
 import { 
   Activity, 
   Target, 
@@ -92,14 +92,14 @@ export default function ActivityFeedPage() {
   ]
 
   return (
-    <>
+    <Container size="xl">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Activity className="w-8 h-8 text-primary-500" />
-            <h1 className="text-4xl font-bold text-white">My Activity Feed</h1>
+        <div className="mb-8 md:mb-12">
+          <div className="flex items-center gap-3 mb-2 md:mb-4">
+            <Activity className="w-6 h-6 md:w-8 md:h-8 text-primary-500" />
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">My Activity Feed</h1>
           </div>
-          <p className="text-neutral-400">
+          <p className="text-sm md:text-base text-neutral-400">
             Your transformation journey in real-time
           </p>
         </div>
@@ -110,7 +110,7 @@ export default function ActivityFeedPage() {
             <p className="text-neutral-400 mt-4">Loading your activity...</p>
           </div>
         ) : (
-          <>
+          <div>
             {/* Filter Tabs */}
             <div className="flex flex-wrap gap-2 mb-8">
               {activityTypes.map((type) => (
@@ -133,7 +133,7 @@ export default function ActivityFeedPage() {
 
             {/* Activity Timeline */}
             {filteredActivities.length === 0 ? (
-              <Card className="p-12 text-center">
+              <Card className="p-4 md:p-6 lg:p-8 text-center">
                 <Activity className="w-16 h-16 text-neutral-700 mx-auto mb-4" />
                 <p className="text-neutral-400">No activity yet</p>
                 <p className="text-sm text-neutral-500 mt-2">
@@ -265,9 +265,9 @@ export default function ActivityFeedPage() {
                 })}
               </div>
             )}
-          </>
+          </div>
         )}
-    </>
+    </Container>
   )
 }
 

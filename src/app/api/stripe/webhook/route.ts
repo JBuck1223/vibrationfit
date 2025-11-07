@@ -166,27 +166,22 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Grant tokens to the user using centralized tracking
-          const { trackTokenUsage } = await import('@/lib/tokens/tracking')
-          await trackTokenUsage({
-            user_id: userId,
-            action_type: 'admin_grant',
-            model_used: 'stripe',
-            tokens_used: tokensAmount,
-            cost_estimate: 0, // Token pack purchases don't count as AI cost
-            input_tokens: 0,
-            output_tokens: 0,
-            success: true,
-            metadata: {
-              stripe_payment_intent: session.payment_intent,
-              token_pack_id: packId,
+          // Record token pack purchase as a transaction (financial)
+          const { recordTokenPackPurchase } = await import('@/lib/tokens/transactions')
+          await recordTokenPackPurchase(
+            userId,
+            packId,
+            tokensAmount,
+            session.amount_total || 0,
+            session.payment_intent as string,
+            session.id,
+            {
               purchase_amount: session.amount_total,
               purchase_currency: session.currency,
               pack_id: packId,
-              stripe_session_id: session.id,
-              amount_paid: session.amount_total
-            }
-          })
+            },
+            supabase
+          )
 
           console.log('✅ Token pack granted:', {
             userId,

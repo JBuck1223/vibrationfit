@@ -57,9 +57,10 @@ const cn = (...classes: (string | undefined | false)[]) => {
  *    ✅ USE Grid minWidth="200px" for small items
  * 
  * 6. CONTAINER RULES:
- *    ✅ ALWAYS use PageLayout component for consistent container sizing
- *    ✅ USE containerSize="xl" (1408px) as the standard default for all pages
- *    ✅ USE containerSize="lg" (1280px) for narrower content if needed
+ *    ✅ NEVER use PageLayout in individual pages (GlobalLayout provides it automatically)
+ *    ✅ USE Container with size="xl" (1600px) as the standard default for all pages
+ *    ✅ Container has NO padding - uses PageLayout's padding automatically
+ *    ✅ USE size="lg" (1400px) or size="default" (1280px) for narrower content if needed
  * 
  * 7. TESTING CHECKLIST:
  *    ✅ Test on iPhone SE (375px width) - smallest common mobile
@@ -449,7 +450,35 @@ export const Frame = React.forwardRef<HTMLDivElement, FrameProps>(
 )
 Frame.displayName = 'Frame'
 
-// Container - Page width container
+// Container - Apple.com Style Width Constraint
+// Provides max-width constraint and centering ONLY (no padding)
+// 
+// Apple.com Pattern:
+// - PageLayout = Padding only (no width constraint)
+// - Container = Width constraint only (no padding)
+//
+// PageLayout provides all padding. Container only constrains width.
+//
+// Usage Examples:
+//
+// Inside PageLayout (uses PageLayout padding):
+//   <PageLayout>
+//     <Container size="xl">
+//       <section>...</section>
+//     </Container>
+//   </PageLayout>
+//
+// Standalone (add padding manually if needed):
+//   <div className="px-4 sm:px-6 lg:px-8">
+//     <Container size="xl">
+//       <section>...</section>
+//     </Container>
+//   </div>
+//
+// Or use PageLayout even for standalone:
+//   <PageLayout>
+//     <Container size="xl">...</Container>
+//   </PageLayout>
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   size?: 'sm' | 'md' | 'default' | 'lg' | 'xl' | 'full'
@@ -469,7 +498,7 @@ export const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
     return (
       <div 
         ref={ref}
-        className={cn('mx-auto px-4 sm:px-6 lg:px-8 w-full', sizes[size], className)}
+        className={cn('mx-auto w-full', sizes[size], className)}
         {...props}
       >
         {children}
@@ -610,6 +639,89 @@ export const FeatureCard = React.forwardRef<HTMLDivElement, FeatureCardProps>(
   }
 )
 FeatureCard.displayName = 'FeatureCard'
+
+// CategoryCard Component - Square category selection card with icon and label
+// Optimized for mobile with minimal padding to maintain square aspect ratio
+interface CategoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  category: {
+    key: string
+    label: string
+    icon: LucideIcon
+  }
+  selected?: boolean
+  onClick?: () => void
+  variant?: 'default' | 'elevated' | 'outlined'
+  hover?: boolean
+  iconColor?: string
+  selectedIconColor?: string
+  textSize?: 'xs' | 'sm'
+  selectionStyle?: 'ring' | 'border'
+}
+
+export const CategoryCard = React.forwardRef<HTMLDivElement, CategoryCardProps>(
+  ({ 
+    category, 
+    selected = false, 
+    onClick, 
+    variant = 'default',
+    hover = true,
+    iconColor = '#00FFFF',
+    selectedIconColor = '#39FF14',
+    textSize = 'xs',
+    selectionStyle = 'ring',
+    className = '', 
+    ...props 
+  }, ref) => {
+    const IconComponent = category.icon
+    const variants = {
+      default: 'bg-[#1F1F1F] border-2 border-[#333]',
+      elevated: 'bg-[#1F1F1F] border-2 border-[#333] shadow-xl',
+      outlined: 'bg-transparent border-2 border-[#333]',
+    }
+    
+    const hoverEffect = hover ? 'hover:border-[#00CC44] hover:shadow-2xl transition-all duration-200' : ''
+    
+    const selectionClass = selected 
+      ? selectionStyle === 'ring' 
+        ? 'ring-2 ring-[#39FF14] border-[#39FF14]'
+        : 'border border-primary-500'
+      : ''
+    
+    const textSizeClass = textSize === 'xs' ? 'text-[10px]' : 'text-xs'
+    
+    return (
+      <Card 
+        ref={ref}
+        variant={variant} 
+        hover={hover}
+        className={cn(
+          'cursor-pointer aspect-square transition-all duration-300',
+          // Override Card's default padding with minimal padding for square aspect ratio
+          '!p-1 md:!p-2',
+          selectionClass,
+          className
+        )}
+        onClick={onClick}
+        {...props}
+      >
+        <div className="flex flex-col items-center gap-0.5 md:gap-1 justify-center h-full">
+          <Icon 
+            icon={IconComponent} 
+            size="sm" 
+            color={selected ? selectedIconColor : iconColor} 
+          />
+          <span className={cn(
+            textSizeClass,
+            'font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto'
+          )}>
+            {category.label}
+          </span>
+        </div>
+      </Card>
+    )
+  }
+)
+CategoryCard.displayName = 'CategoryCard'
 
 // Button Component
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -1090,23 +1202,44 @@ export const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResi
 Textarea.displayName = 'Textarea'
 AutoResizeTextarea.displayName = 'AutoResizeTextarea'
 
-// Page Layout Component - Standardized site-wide layout
+// Page Layout Component - Apple.com Style Pattern
+// Provides outer shell with consistent padding ONLY (no width constraint)
+// Pattern: PageLayout = Padding | Container = Width Constraint
+// 
+// Usage Examples:
+// 
+// Full-width section (no Container):
+//   <PageLayout>
+//     <section className="w-full">...</section>
+//   </PageLayout>
+//
+// Constrained content (with Container):
+//   <PageLayout>
+//     <Container size="xl">
+//       <section>...</section>
+//     </Container>
+//   </PageLayout>
+//
+// Mixed (Apple.com style):
+//   <PageLayout>
+//     <section className="w-full bg-gradient">...</section>  {/* Full width */}
+//     <Container size="xl">
+//       <section>...</section>  {/* Constrained */}
+//     </Container>
+//   </PageLayout>
 interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
-  containerSize?: 'sm' | 'md' | 'default' | 'lg' | 'xl' | 'full'
 }
 
 export const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
-  ({ children, containerSize = 'xl', className = '', ...props }, ref) => {
+  ({ children, className = '', ...props }, ref) => {
     return (
       <div
         ref={ref}
-        className={cn('min-h-screen bg-black text-white', className)}
+        className={cn('min-h-screen bg-black text-white pt-6 pb-12 md:py-12 px-4 sm:px-6 lg:px-8', className)}
         {...props}
       >
-        <Container size={containerSize} className="pt-6 pb-12 md:py-12">
-          {children}
-        </Container>
+        {children}
       </div>
     )
   }

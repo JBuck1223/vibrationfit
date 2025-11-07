@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageLayout, Card, Input, Button, Icon } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard } from '@/lib/design-system'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter } from 'lucide-react'
@@ -16,26 +16,6 @@ const STATUS_OPTIONS = [
   { value: 'actualized', label: 'Actualized' },
   { value: 'inactive', label: 'Inactive' },
 ]
-
-// CategoryCard component (copied from main form)
-const CategoryCard = ({ category, selected = false, onClick, className = '' }: any) => {
-  const IconComponent = category.icon
-  return (
-    <Card 
-      variant={selected ? 'elevated' : 'default'} 
-      hover 
-      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''} ${className}`}
-      onClick={onClick}
-    >
-      <div className="flex flex-col items-center gap-1 p-1 justify-center h-full">
-        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} />
-        <span className="text-[10px] font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-          {category.label}
-        </span>
-      </div>
-    </Card>
-  )
-}
 
 interface VisionBoardItem {
   id: string
@@ -350,17 +330,17 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
 
   if (loading) {
     return (
-      <PageLayout>
+      <>
         <div className="flex items-center justify-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
         </div>
-      </PageLayout>
+      </>
     )
   }
 
   if (!item) {
     return (
-      <PageLayout>
+      <>
         <Card className="text-center py-16">
           <h2 className="text-2xl font-bold text-white mb-4">Item not found</h2>
           <p className="text-neutral-400 mb-6">This vision board item doesn't exist or you don't have permission to view it.</p>
@@ -368,12 +348,12 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             <Link href="/vision-board">Back to Vision Board</Link>
           </Button>
         </Card>
-      </PageLayout>
+      </>
     )
   }
 
   return (
-    <PageLayout>
+    <>
       {/* Header */}
       <div className="mb-6 md:mb-8">
         {/* Mobile Header */}
@@ -1035,6 +1015,6 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             </Card>
           </div>
         )}
-    </PageLayout>
+    </>
   )
 }

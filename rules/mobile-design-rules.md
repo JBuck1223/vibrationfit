@@ -45,9 +45,9 @@
 - **ALWAYS** test icon + text combinations on mobile
 
 ### 5. Container Rules
-- **ALWAYS** use `Container` with proper sizing
-- **ALWAYS** add responsive padding: `p-4 md:p-6` or `px-4 md:px-6`
-- **ALWAYS** ensure content doesn't touch screen edges
+- **ALWAYS** use `Container` with proper sizing (`size="xl"` for standard pages)
+- **NEVER** add padding to Container (PageLayout provides padding automatically)
+- **ALWAYS** ensure content doesn't touch screen edges (PageLayout handles this)
 
 ### 6. Stack/Flex Rules
 - **ALWAYS** use responsive flex direction: `flex-col md:flex-row`

@@ -2,17 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Container, Card, Button, Badge } from '@/lib/design-system/components'
-import { AI_MODELS, getFeaturesUsingModel, type AIModelConfig } from '@/lib/ai/config'
+import { Container, Card, Button, Badge, Input, Textarea } from '@/lib/design-system/components'
+import { AI_MODELS, type AIModelConfig } from '@/lib/ai/config'
+import { API_ROUTES_REGISTRY, type APIRouteConfig } from '@/lib/ai/api-routes-registry'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { ExternalLink, Target } from 'lucide-react'
+import { ExternalLink, Target, Code, Settings, CheckCircle, AlertCircle } from 'lucide-react'
 
 function AIModelsAdminContent() {
   const [models, setModels] = useState<typeof AI_MODELS>(AI_MODELS)
   const [overrides, setOverrides] = useState<Array<{ action_type: string; token_value: number }>>([])
   const [newOverride, setNewOverride] = useState<{ action_type: string; token_value: number }>({ action_type: '', token_value: 0 })
-  const [selectedFeature, setSelectedFeature] = useState<keyof typeof AI_MODELS | null>(null)
+  const [selectedRoute, setSelectedRoute] = useState<APIRouteConfig | null>(null)
   const [editConfig, setEditConfig] = useState<Partial<AIModelConfig>>({})
+  const [filterCategory, setFilterCategory] = useState<'all' | 'text' | 'audio' | 'image' | 'admin'>('all')
 
   // Available models for selection
   const availableModels = [
@@ -24,59 +26,71 @@ function AIModelsAdminContent() {
     'gpt-4-turbo',
     'gpt-3.5-turbo',
     'dall-e-3',
-    'dall-e-2'
+    'dall-e-2',
+    'whisper-1',
+    'tts-1'
   ]
 
-  const handleEditFeature = (feature: keyof typeof AI_MODELS) => {
-    setSelectedFeature(feature)
-    setEditConfig(models[feature])
+  // Filter routes by category
+  const filteredRoutes = filterCategory === 'all' 
+    ? API_ROUTES_REGISTRY 
+    : API_ROUTES_REGISTRY.filter(route => route.category === filterCategory)
+
+  // Group routes by category
+  const routesByCategory = {
+    text: API_ROUTES_REGISTRY.filter(r => r.category === 'text'),
+    audio: API_ROUTES_REGISTRY.filter(r => r.category === 'audio'),
+    image: API_ROUTES_REGISTRY.filter(r => r.category === 'image'),
+    admin: API_ROUTES_REGISTRY.filter(r => r.category === 'admin'),
   }
 
-  const handleSaveChanges = () => {
-    if (!selectedFeature) return
+  const handleEditRoute = (route: APIRouteConfig) => {
+    setSelectedRoute(route)
+    if (route.modelConfig) {
+      setEditConfig(route.modelConfig)
+    } else {
+      // For non-text routes, create a basic config
+      setEditConfig({
+        model: route.model || '',
+        temperature: 0.7,
+        maxTokens: 1000,
+      })
+    }
+  }
+
+  const handleSaveChanges = async () => {
+    if (!selectedRoute) return
     
-    setModels(prev => ({
-      ...prev,
-      [selectedFeature]: {
-        ...prev[selectedFeature],
-        ...editConfig
+    // If it's a text route with modelConfig, update AI_MODELS
+    if (selectedRoute.modelConfig && selectedRoute.routePath.startsWith('/api/')) {
+      // Find the matching AI_MODELS key
+      const modelKey = Object.keys(AI_MODELS).find(key => {
+        const config = AI_MODELS[key as keyof typeof AI_MODELS]
+        return config.model === selectedRoute.modelConfig?.model
+      })
+      
+      if (modelKey) {
+        // Update the model config (this is client-side only - would need API to persist)
+        setModels(prev => ({
+          ...prev,
+          [modelKey]: {
+            ...prev[modelKey as keyof typeof AI_MODELS],
+            ...editConfig
+          }
+        }))
       }
-    }))
+    }
     
-    setSelectedFeature(null)
+    // TODO: Save to database via API endpoint
+    console.log('Saving config for route:', selectedRoute.routePath, editConfig)
+    
+    setSelectedRoute(null)
     setEditConfig({})
   }
 
   const handleCancelEdit = () => {
-    setSelectedFeature(null)
+    setSelectedRoute(null)
     setEditConfig({})
-  }
-
-  const resetToDefaults = () => {
-    setModels(AI_MODELS)
-    setSelectedFeature(null)
-    setEditConfig({})
-  }
-
-  const getModelUsageCount = (model: string) => {
-    return getFeaturesUsingModel(model).length
-  }
-
-  const getTotalCostEstimate = () => {
-    // Simple cost estimation based on model types
-    const costs: Record<string, number> = {
-      'gpt-5': 5,
-      'gpt-4o': 3,
-      'gpt-4o-mini': 1,
-      'gpt-4-turbo': 2,
-      'gpt-3.5-turbo': 0.5,
-      'dall-e-3': 4,
-      'dall-e-2': 2
-    }
-    
-    return Object.values(models).reduce((total, config) => {
-      return total + (costs[config.model] || 1)
-    }, 0)
   }
 
   useEffect(() => {
@@ -92,409 +106,438 @@ function AIModelsAdminContent() {
   }, [])
 
   return (
-    <Container size="xl" className="py-12">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">AI Models Configuration</h1>
-          <p className="text-lg text-neutral-400">
-            Centralized control of AI models across all VibrationFit features
+    <Container size="xl">
+      <div className="mb-8 md:mb-12">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">AI API Routes Management</h1>
+        <p className="text-sm md:text-base lg:text-lg text-neutral-400">
+          Centralized control of ALL AI API calls across VibrationFit - every route, every model, every configuration
+        </p>
+      </div>
+
+      {/* Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 md:mb-8">
+        <Card className="p-4 md:p-6">
+          <div className="text-center">
+            <div className="text-2xl md:text-3xl font-bold text-primary-500 mb-2">
+              {API_ROUTES_REGISTRY.length}
+            </div>
+            <div className="text-sm text-neutral-400">Total API Routes</div>
+          </div>
+        </Card>
+        
+        <Card className="p-4 md:p-6">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-secondary-500 mb-2">
+              {routesByCategory.text.length}
+            </div>
+            <div className="text-sm text-neutral-400">Text Routes</div>
+          </div>
+        </Card>
+        
+        <Card className="p-4 md:p-6">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-accent-500 mb-2">
+              {routesByCategory.audio.length + routesByCategory.image.length}
+            </div>
+            <div className="text-sm text-neutral-400">Media Routes</div>
+          </div>
+        </Card>
+
+        <Card className="p-4 md:p-6">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-[#FFB701] mb-2">
+              {API_ROUTES_REGISTRY.filter(r => r.hasTokenTracking).length}
+            </div>
+            <div className="text-sm text-neutral-400">Routes Tracked</div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Category Filter */}
+      <Card className="p-4 md:p-6 mb-6 md:mb-8">
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className="text-sm font-medium text-neutral-300">Filter by Category:</span>
+          {(['all', 'text', 'audio', 'image', 'admin'] as const).map(cat => (
+            <Button
+              key={cat}
+              variant={filterCategory === cat ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setFilterCategory(cat)}
+            >
+              {cat.charAt(0).toUpperCase() + cat.slice(1)} ({cat === 'all' ? API_ROUTES_REGISTRY.length : routesByCategory[cat].length})
+            </Button>
+          ))}
+        </div>
+      </Card>
+
+      {/* Token Overrides */}
+      <Card className="p-4 md:p-6 mb-6 md:mb-8">
+        <div className="mb-4">
+          <h3 className="text-lg md:text-xl font-semibold text-white mb-2">Token Overrides (Non-Tokenized Actions)</h3>
+          <p className="text-sm text-neutral-400 mb-4">
+            Set custom token values for AI features that don't use traditional tokens (DALL-E, TTS, Whisper). 
+            These values are used for user billing while real costs are tracked separately.
           </p>
         </div>
+        
+        {overrides.length > 0 && (
+          <div className="space-y-3 mb-6">
+            <h4 className="text-sm font-medium text-neutral-300 mb-3">Current Overrides</h4>
+            {overrides.map((o) => (
+              <div key={o.action_type} className="flex items-center gap-3 p-3 bg-neutral-800 rounded-lg">
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-white">{o.action_type}</div>
+                  <div className="text-xs text-neutral-400">
+                    {o.action_type === 'image_generation' && 'DALL-E image generation'}
+                    {o.action_type === 'audio_generation' && 'Text-to-speech audio generation'}
+                    {o.action_type === 'transcription' && 'Whisper audio transcription'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    className="bg-neutral-700 border border-neutral-600 rounded px-3 py-2 w-20 text-white text-center"
+                    value={o.token_value}
+                    onChange={async (e) => {
+                      const val = parseInt(e.target.value || '0', 10)
+                      await fetch('/api/admin/ai-overrides', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ action_type: o.action_type, token_value: val })
+                      })
+                      setOverrides(prev => prev.map(x => x.action_type === o.action_type ? { ...x, token_value: val } : x))
+                    }}
+                  />
+                  <span className="text-xs text-neutral-400">tokens</span>
+                </div>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={async () => {
+                    await fetch(`/api/admin/ai-overrides?action_type=${encodeURIComponent(o.action_type)}`, { method: 'DELETE', credentials: 'include' })
+                    setOverrides(prev => prev.filter(x => x.action_type !== o.action_type))
+                  }}
+                >Delete</Button>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="border-t border-neutral-700 pt-4">
+          <h4 className="text-sm font-medium text-neutral-300 mb-3">Add New Override</h4>
+          <div className="flex items-center gap-3">
+            <select
+              className="bg-neutral-800 border border-neutral-600 rounded px-3 py-2 text-white flex-1"
+              value={newOverride.action_type}
+              onChange={(e) => setNewOverride({ ...newOverride, action_type: e.target.value })}
+            >
+              <option value="">Select action type...</option>
+              <option value="image_generation">Image Generation (DALL-E)</option>
+              <option value="audio_generation">Audio Generation (TTS)</option>
+              <option value="transcription">Audio Transcription (Whisper)</option>
+            </select>
+            <Input
+              type="number"
+              placeholder="Token value"
+              className="w-32"
+              value={newOverride.token_value || ''}
+              onChange={(e) => setNewOverride({ ...newOverride, token_value: parseInt(e.target.value || '0', 10) })}
+            />
+            <Button
+              onClick={async () => {
+                if (!newOverride.action_type) return
+                const res = await fetch('/api/admin/ai-overrides', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify(newOverride)
+                })
+                if (res.ok) {
+                  const data = await res.json()
+                  setOverrides(prev => [...prev.filter(x => x.action_type !== data.override.action_type), data.override])
+                  setNewOverride({ action_type: '', token_value: 0 })
+                }
+              }}
+            >Add Override</Button>
+          </div>
+          <div className="mt-2 text-xs text-neutral-500">
+            <strong>Recommended values:</strong> Image Generation: 25, Audio Generation: 1, Transcription: 60
+          </div>
+        </div>
+      </Card>
 
-        {/* Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary-500 mb-2">
-                {Object.keys(models).length}
-              </div>
-              <div className="text-sm text-neutral-400">AI Features</div>
-            </div>
-          </Card>
-          
-          <Card className="p-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-secondary-500 mb-2">
-                {new Set(Object.values(models).map(m => m.model)).size}
-              </div>
-              <div className="text-sm text-neutral-400">Unique Models</div>
-            </div>
-          </Card>
-          
-          <Card className="p-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-accent-500 mb-2">
-                {getTotalCostEstimate()}
-              </div>
-              <div className="text-sm text-neutral-400">Cost Index</div>
-            </div>
-          </Card>
+      {/* All API Routes */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">All API Routes ({filteredRoutes.length})</h2>
         </div>
 
-        {/* Token Overrides */}
-        <Card className="p-6 mb-8">
-          <div className="mb-4">
-            <h3 className="text-xl font-semibold text-white mb-2">Token Overrides (Non-Tokenized Actions)</h3>
-            <p className="text-sm text-neutral-400 mb-4">
-              Set custom token values for AI features that don't use traditional tokens (DALL-E, TTS, Whisper). 
-              These values are used for user billing while real costs are tracked separately for business intelligence.
-            </p>
-          </div>
+        {filteredRoutes.map((route) => {
+          const override = overrides.find(o => o.action_type === route.actionType)
+          const modelUsed = route.modelConfig?.model || route.model || 'unknown'
           
-          {overrides.length > 0 && (
-            <div className="space-y-3 mb-6">
-              <h4 className="text-sm font-medium text-neutral-300 mb-3">Current Overrides</h4>
-              {overrides.map((o) => (
-                <div key={o.action_type} className="flex items-center gap-3 p-3 bg-neutral-800 rounded-lg">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-white">{o.action_type}</div>
-                    <div className="text-xs text-neutral-400">
-                      {o.action_type === 'image_generation' && 'DALL-E image generation'}
-                      {o.action_type === 'audio_generation' && 'Text-to-speech audio generation'}
-                      {o.action_type === 'transcription' && 'Whisper audio transcription'}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      className="bg-neutral-700 border border-neutral-600 rounded px-3 py-2 w-20 text-white text-center"
-                      value={o.token_value}
-                      onChange={async (e) => {
-                        const val = parseInt(e.target.value || '0', 10)
-                        await fetch('/api/admin/ai-overrides', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          credentials: 'include',
-                          body: JSON.stringify({ action_type: o.action_type, token_value: val })
-                        })
-                        setOverrides(prev => prev.map(x => x.action_type === o.action_type ? { ...x, token_value: val } : x))
-                      }}
-                    />
-                    <span className="text-xs text-neutral-400">tokens</span>
-                  </div>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={async () => {
-                      await fetch(`/api/admin/ai-overrides?action_type=${encodeURIComponent(o.action_type)}`, { method: 'DELETE', credentials: 'include' })
-                      setOverrides(prev => prev.filter(x => x.action_type !== o.action_type))
-                    }}
-                  >Delete</Button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          <div className="border-t border-neutral-700 pt-4">
-            <h4 className="text-sm font-medium text-neutral-300 mb-3">Add New Override</h4>
-            <div className="flex items-center gap-3">
-              <select
-                className="bg-neutral-800 border border-neutral-600 rounded px-3 py-2 text-white flex-1"
-                value={newOverride.action_type}
-                onChange={(e) => setNewOverride({ ...newOverride, action_type: e.target.value })}
-              >
-                <option value="">Select action type...</option>
-                <option value="image_generation">Image Generation (DALL-E)</option>
-                <option value="audio_generation">Audio Generation (TTS)</option>
-                <option value="transcription">Audio Transcription (Whisper)</option>
-              </select>
-              <input
-                type="number"
-                placeholder="Token value"
-                className="bg-neutral-800 border border-neutral-600 rounded px-3 py-2 text-white w-32"
-                value={newOverride.token_value || ''}
-                onChange={(e) => setNewOverride({ ...newOverride, token_value: parseInt(e.target.value || '0', 10) })}
-              />
-              <Button
-                onClick={async () => {
-                  if (!newOverride.action_type) return
-                  const res = await fetch('/api/admin/ai-overrides', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify(newOverride)
-                  })
-                  if (res.ok) {
-                    const data = await res.json()
-                    setOverrides(prev => [...prev.filter(x => x.action_type !== data.override.action_type), data.override])
-                    setNewOverride({ action_type: '', token_value: 0 })
-                  }
-                }}
-              >Add Override</Button>
-            </div>
-            <div className="mt-2 text-xs text-neutral-500">
-              <strong>Recommended values:</strong> Image Generation: 25, Audio Generation: 1, Transcription: 60
-            </div>
-          </div>
-        </Card>
-
-        {/* Model Usage Summary */}
-        <Card className="p-6 mb-8">
-          <h3 className="text-xl font-semibold text-white mb-4">Model Usage Summary</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {availableModels.map(model => {
-              const usageCount = getModelUsageCount(model)
-              if (usageCount === 0) return null
-              
-              return (
-                <div key={model} className="flex items-center justify-between p-3 bg-neutral-800 rounded-lg">
-                  <span className="font-medium text-white">{model}</span>
-                  <Badge variant={usageCount > 2 ? 'success' : 'info'}>
-                    {usageCount} feature{usageCount !== 1 ? 's' : ''}
-                  </Badge>
-                </div>
-              )
-            })}
-          </div>
-        </Card>
-
-        {/* Features Configuration */}
-        <div className="space-y-6">
-          {Object.entries(models).map(([feature, config]) => {
-            // Map features to their tool access URLs
-            const toolLinks: Record<string, { label: string; href: string }> = {
-              'LIFE_VISION_CATEGORY_SUMMARY': { label: 'Life Vision Creation Tool', href: '/life-vision/new' },
-              'LIFE_VISION_MASTER_ASSEMBLY': { label: 'Life Vision Creation Tool', href: '/life-vision/new/assembly' },
-              'PROMPT_SUGGESTIONS': { label: 'Life Vision Creation Tool', href: '/life-vision/new' },
-              'VISION_GENERATION': { label: 'Vision Builder', href: '/vision/build' },
-              'VISION_REFINEMENT': { label: 'Vision Builder', href: '/vision/build' },
-              'BLUEPRINT_GENERATION': { label: 'VIVA', href: '/viva' },
-              'CHAT_CONVERSATION': { label: 'VIVA', href: '/viva' },
-              'AUDIO_GENERATION': { label: 'Audio Mixer', href: '/admin/audio-mixer' },
-              'IMAGE_GENERATION': { label: 'Vision Board', href: '/vision-board' },
-              'ASSESSMENT_SCORING': { label: 'Assessment', href: '/assessment' },
-            }
-            
-            const toolLink = toolLinks[feature]
-            
-            return (
-            <Card key={feature} className="p-6">
-              <div className="flex items-center justify-between mb-4">
+          return (
+            <Card key={route.routePath} className="p-6">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h3 className="text-xl font-semibold text-white capitalize">
-                      {feature.replace(/_/g, ' ')}
-                    </h3>
-                    {toolLink && (
-                      <Link 
-                        href={toolLink.href}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-[#00FFFF] hover:text-[#39FF14] hover:bg-[#00FFFF]/10 rounded-lg border border-[#00FFFF]/30 hover:border-[#00FFFF]/50 transition-all"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Target className="w-3.5 h-3.5" />
-                        <span>{toolLink.label}</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </Link>
+                    <h3 className="text-lg md:text-xl font-semibold text-white">{route.routeName}</h3>
+                    <Badge variant={route.hasTokenTracking ? 'success' : 'warning'}>
+                      {route.hasTokenTracking ? (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Tracked
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          Not Tracked
+                        </span>
+                      )}
+                    </Badge>
+                    <Badge variant="info">{route.category}</Badge>
+                    {route.multipleCalls && (
+                      <Badge variant="accent">{route.multipleCalls} AI calls</Badge>
+                    )}
+                    {route.usesOverride && (
+                      <Badge variant="neutral">Uses Override</Badge>
                     )}
                   </div>
-                  <p className="text-sm text-neutral-400">
-                    {config.systemPrompt ? 'With system prompt' : 'Simple prompt'}
-                  </p>
+                  <p className="text-sm text-neutral-400 mb-2">{route.description}</p>
+                  <div className="flex items-center gap-4 text-xs text-neutral-500">
+                    <span className="flex items-center gap-1">
+                      <Code className="w-3 h-3" />
+                      {route.routePath}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Target className="w-3 h-3" />
+                      {route.filePath}
+                    </span>
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  <Badge variant="info">{config.model}</Badge>
-                  <Badge variant="neutral">Temp: {config.temperature}</Badge>
-                  {(['IMAGE_GENERATION', 'AUDIO_GENERATION'].includes(feature)) && (
-                    <Button
-                      variant="accent"
-                      size="sm"
-                      onClick={() => {
-                        const actionType = feature === 'IMAGE_GENERATION' ? 'image_generation' : 'audio_generation'
-                        const existingOverride = overrides.find(o => o.action_type === actionType)
-                        if (existingOverride) {
-                          // Edit existing override
-                          const newValue = prompt(`Enter token value for ${feature.replace(/_/g, ' ').toLowerCase()}:`, existingOverride.token_value.toString())
-                          if (newValue && !isNaN(parseInt(newValue))) {
-                            fetch('/api/admin/ai-overrides', {
+                  <Badge variant="info">{modelUsed}</Badge>
+                  {route.modelConfig && (
+                    <>
+                      <Badge variant="neutral">Temp: {route.modelConfig.temperature}</Badge>
+                      <Badge variant="neutral">Max: {route.modelConfig.maxTokens}</Badge>
+                    </>
+                  )}
+                  {route.usesOverride && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-neutral-400">Override:</span>
+                      <input
+                        type="number"
+                        className="bg-neutral-700 border border-neutral-600 rounded px-2 py-1 w-16 text-white text-center text-xs"
+                        value={override?.token_value || ''}
+                        placeholder="Set"
+                        onChange={async (e) => {
+                          const val = parseInt(e.target.value || '0', 10)
+                          if (override) {
+                            await fetch('/api/admin/ai-overrides', {
                               method: 'PUT',
                               headers: { 'Content-Type': 'application/json' },
                               credentials: 'include',
-                              body: JSON.stringify({ action_type: actionType, token_value: parseInt(newValue) })
-                            }).then(() => {
-                              setOverrides(prev => prev.map(x => x.action_type === actionType ? { ...x, token_value: parseInt(newValue) } : x))
+                              body: JSON.stringify({ action_type: route.actionType, token_value: val })
                             })
-                          }
-                        } else {
-                          // Create new override
-                          const newValue = prompt(`Enter token value for ${feature.replace(/_/g, ' ').toLowerCase()}:`, '25')
-                          if (newValue && !isNaN(parseInt(newValue))) {
-                            fetch('/api/admin/ai-overrides', {
+                            setOverrides(prev => prev.map(x => x.action_type === route.actionType ? { ...x, token_value: val } : x))
+                          } else {
+                            const res = await fetch('/api/admin/ai-overrides', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               credentials: 'include',
-                              body: JSON.stringify({ action_type: actionType, token_value: parseInt(newValue) })
-                            }).then(res => res.json()).then(data => {
-                              if (data.override) {
-                                setOverrides(prev => [...prev.filter(x => x.action_type !== actionType), data.override])
-                              }
+                              body: JSON.stringify({ action_type: route.actionType, token_value: val })
                             })
+                            if (res.ok) {
+                              const data = await res.json()
+                              setOverrides(prev => [...prev.filter(x => x.action_type !== route.actionType), data.override])
+                            }
                           }
-                        }
-                      }}
-                    >
-                      Set Tokens
-                    </Button>
+                        }}
+                      />
+                    </div>
                   )}
                   <Button
                     variant="ghost"
-                    onClick={() => handleEditFeature(feature as keyof typeof AI_MODELS)}
+                    size="sm"
+                    onClick={() => handleEditRoute(route)}
                   >
+                    <Settings className="w-4 h-4 mr-1" />
                     Edit
                   </Button>
                 </div>
               </div>
 
               {/* Configuration Details */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-neutral-400">Model:</span>
-                  <span className="text-white ml-2">{config.model}</span>
+              {route.modelConfig && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm mt-4 pt-4 border-t border-neutral-700">
+                  <div>
+                    <span className="text-neutral-400">Model:</span>
+                    <span className="text-white ml-2">{route.modelConfig.model}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400">Temperature:</span>
+                    <span className="text-white ml-2">{route.modelConfig.temperature}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400">Max Tokens:</span>
+                    <span className="text-white ml-2">{route.modelConfig.maxTokens}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400">Action Type:</span>
+                    <span className="text-white ml-2">{route.actionType}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-neutral-400">Temperature:</span>
-                  <span className="text-white ml-2">{config.temperature}</span>
-                </div>
-                <div>
-                  <span className="text-neutral-400">Max Tokens:</span>
-                  <span className="text-white ml-2">{config.maxTokens}</span>
-                </div>
-                <div>
-                  <span className="text-neutral-400">Token Override:</span>
-                  <span className="text-white ml-2">
-                    {(() => {
-                      // Map feature names to action types
-                      const featureToActionType: Record<string, string> = {
-                        'LIFE_VISION_CATEGORY_SUMMARY': 'life_vision_category_summary',
-                        'LIFE_VISION_MASTER_ASSEMBLY': 'life_vision_master_assembly',
-                        'PROMPT_SUGGESTIONS': 'prompt_suggestions',
-                        'ASSESSMENT_SCORING': 'assessment_scoring',
-                        'VISION_GENERATION': 'vision_generation',
-                        'VISION_REFINEMENT': 'vision_refinement',
-                        'BLUEPRINT_GENERATION': 'blueprint_generation',
-                        'CHAT_CONVERSATION': 'chat_conversation',
-                        'AUDIO_GENERATION': 'audio_generation',
-                        'IMAGE_GENERATION': 'image_generation'
-                      }
-                      
-                      const actionType = featureToActionType[feature]
-                      const override = overrides.find(o => o.action_type === actionType)
-                      
-                      if (override) {
-                        return `${override.token_value} tokens`
-                      } else if (['IMAGE_GENERATION', 'AUDIO_GENERATION'].includes(feature)) {
-                        return 'Not set (uses estimation)'
-                      } else {
-                        return 'Uses native tokens'
-                      }
-                    })()}
-                  </span>
-                </div>
-              </div>
+              )}
 
-              {config.systemPrompt && (
-                <div className="mt-4">
+              {route.modelConfig?.systemPrompt && (
+                <div className="mt-4 pt-4 border-t border-neutral-700">
                   <span className="text-neutral-400 text-sm">System Prompt:</span>
                   <div className="mt-2 p-3 bg-neutral-800 rounded-lg text-sm text-neutral-300">
-                    {config.systemPrompt}
+                    {route.modelConfig.systemPrompt}
                   </div>
                 </div>
               )}
             </Card>
-            )
-          })}
-        </div>
+          )
+        })}
+      </div>
 
-        {/* Edit Modal */}
-        {selectedFeature && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-2xl">
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-white mb-4">
-                  Edit {selectedFeature.replace(/_/g, ' ')}
-                </h3>
+      {/* Edit Modal */}
+      {selectedRoute && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h3 className="text-xl font-semibold text-white mb-4">
+                Edit {selectedRoute.routeName}
+              </h3>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-200 mb-2">
-                      Model
-                    </label>
-                    <select
-                      value={editConfig.model || models[selectedFeature].model}
-                      onChange={(e) => setEditConfig(prev => ({ ...prev, model: e.target.value }))}
-                      className="w-full p-3 bg-neutral-800 border border-neutral-600 rounded-lg text-white"
-                    >
-                      {availableModels.map(model => (
-                        <option key={model} value={model}>{model}</option>
-                      ))}
-                    </select>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-200 mb-2">
+                    Route Path
+                  </label>
+                  <div className="p-3 bg-neutral-800 rounded-lg text-sm text-neutral-300 font-mono">
+                    {selectedRoute.routePath}
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-200 mb-2">
-                        Temperature
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="2"
-                        step="0.1"
-                        value={editConfig.temperature ?? models[selectedFeature].temperature}
-                        onChange={(e) => setEditConfig(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
-                        className="w-full p-3 bg-neutral-800 border border-neutral-600 rounded-lg text-white"
-                      />
+                <div>
+                  <label className="block text-sm font-medium text-neutral-200 mb-2">
+                    Model
+                  </label>
+                  <select
+                    value={editConfig.model || selectedRoute.model || ''}
+                    onChange={(e) => setEditConfig(prev => ({ ...prev, model: e.target.value }))}
+                    className="w-full p-3 bg-neutral-800 border border-neutral-600 rounded-lg text-white"
+                  >
+                    {availableModels.map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedRoute.category === 'text' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-200 mb-2">
+                          Temperature
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="2"
+                          step="0.1"
+                          value={editConfig.temperature ?? selectedRoute.modelConfig?.temperature ?? 0.7}
+                          onChange={(e) => setEditConfig(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-200 mb-2">
+                          Max Tokens
+                        </label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="4000"
+                          value={editConfig.maxTokens ?? selectedRoute.modelConfig?.maxTokens ?? 1000}
+                          onChange={(e) => setEditConfig(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
+                        />
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-neutral-200 mb-2">
-                        Max Tokens
+                        System Prompt
                       </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="4000"
-                        value={editConfig.maxTokens ?? models[selectedFeature].maxTokens}
-                        onChange={(e) => setEditConfig(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
-                        className="w-full p-3 bg-neutral-800 border border-neutral-600 rounded-lg text-white"
+                      <Textarea
+                        value={editConfig.systemPrompt ?? selectedRoute.modelConfig?.systemPrompt ?? ''}
+                        onChange={(e) => setEditConfig(prev => ({ ...prev, systemPrompt: e.target.value }))}
+                        rows={6}
+                        className="w-full p-3 bg-neutral-800 border border-neutral-600 rounded-lg text-white font-mono text-sm"
+                        placeholder="System prompt..."
                       />
                     </div>
-                  </div>
+                  </>
+                )}
 
+                {selectedRoute.usesOverride && (() => {
+                  const routeOverride = overrides.find(o => o.action_type === selectedRoute.actionType)
+                  return (
                   <div>
                     <label className="block text-sm font-medium text-neutral-200 mb-2">
-                      System Prompt
+                      Token Override Value
                     </label>
-                    <textarea
-                      value={editConfig.systemPrompt ?? models[selectedFeature].systemPrompt ?? ''}
-                      onChange={(e) => setEditConfig(prev => ({ ...prev, systemPrompt: e.target.value }))}
-                      rows={4}
-                      className="w-full p-3 bg-neutral-800 border border-neutral-600 rounded-lg text-white"
-                      placeholder="Optional system prompt..."
+                    <Input
+                      type="number"
+                      value={routeOverride?.token_value || ''}
+                      placeholder="Set override value"
+                      onChange={async (e) => {
+                        const val = parseInt(e.target.value || '0', 10)
+                        if (routeOverride) {
+                          await fetch('/api/admin/ai-overrides', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ action_type: selectedRoute.actionType, token_value: val })
+                          })
+                            setOverrides(prev => prev.map(x => x.action_type === selectedRoute.actionType ? { ...x, token_value: val } : x))
+                        } else {
+                          const res = await fetch('/api/admin/ai-overrides', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ action_type: selectedRoute.actionType, token_value: val })
+                          })
+                          if (res.ok) {
+                            const data = await res.json()
+                            setOverrides(prev => [...prev.filter(x => x.action_type !== selectedRoute.actionType), data.override])
+                          }
+                        }
+                      }}
                     />
                   </div>
-                </div>
-
-                <div className="flex justify-end gap-3 mt-6">
-                  <Button variant="outline" onClick={handleCancelEdit}>
-                    Cancel
-                  </Button>
-                  <Button variant="primary" onClick={handleSaveChanges}>
-                    Save Changes
-                  </Button>
-                </div>
+                  )
+                })()}
               </div>
-            </Card>
-          </div>
-        )}
 
-        {/* Reset Button */}
-        <div className="mt-8 text-center">
-          <Button variant="outline" onClick={resetToDefaults}>
-            Reset to Defaults
-          </Button>
+              <div className="flex justify-end gap-3 mt-6">
+                <Button variant="outline" onClick={handleCancelEdit}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={handleSaveChanges}>
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
-      </Container>
+      )}
+    </Container>
   )
 }
 

@@ -1,0 +1,272 @@
+// ============================================================================
+// API Routes Registry - Complete List of All AI API Routes
+// ============================================================================
+// This registry contains ALL API routes that make AI calls, not just those
+// in AI_MODELS. Used by /admin/ai-models for comprehensive management.
+
+import { AI_MODELS, type AIModelConfig } from './config'
+
+export interface APIRouteConfig {
+  // Route identification
+  routePath: string // e.g., '/api/viva/chat'
+  routeName: string // Display name
+  actionType: string // Token tracking action_type
+  category: 'text' | 'audio' | 'image' | 'admin' // Category for grouping
+  
+  // Model configuration (for text-based routes)
+  modelConfig?: AIModelConfig
+  
+  // Non-text routes (audio, image, etc.)
+  model?: string // e.g., 'whisper-1', 'dall-e-3', 'tts-1'
+  usesOverride?: boolean // Whether it uses token override system
+  
+  // Metadata
+  description: string
+  filePath: string // Source file path
+  hasTokenTracking: boolean // Whether token tracking is implemented
+  multipleCalls?: number // Number of AI calls in this route (if > 1)
+}
+
+// ============================================================================
+// COMPLETE API ROUTES REGISTRY
+// ============================================================================
+
+export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
+  // ==========================================================================
+  // TEXT-BASED ROUTES (from AI_MODELS)
+  // ==========================================================================
+  {
+    routePath: '/api/viva/chat',
+    routeName: 'VIVA Chat',
+    actionType: 'chat_conversation',
+    category: 'text',
+    modelConfig: AI_MODELS.CHAT_CONVERSATION,
+    description: 'Streaming AI chat endpoint with OpenAI - VIVA conversations',
+    filePath: 'src/app/api/viva/chat/route.ts',
+    hasTokenTracking: true,
+  },
+  {
+    routePath: '/api/viva/category-summary',
+    routeName: 'Life Vision Category Summary',
+    actionType: 'life_vision_category_summary',
+    category: 'text',
+    modelConfig: AI_MODELS.LIFE_VISION_CATEGORY_SUMMARY,
+    description: 'Generates personalized category summaries from user input, profile, and assessment',
+    filePath: 'src/app/api/viva/category-summary/route.ts',
+    hasTokenTracking: true,
+  },
+  {
+    routePath: '/api/viva/master-vision',
+    routeName: 'Life Vision Master Assembly',
+    actionType: 'life_vision_master_assembly',
+    category: 'text',
+    modelConfig: AI_MODELS.LIFE_VISION_MASTER_ASSEMBLY,
+    description: 'Assembles complete life vision document from all category summaries',
+    filePath: 'src/app/api/viva/master-vision/route.ts',
+    hasTokenTracking: true,
+  },
+  {
+    routePath: '/api/viva/prompt-suggestions',
+    routeName: 'Prompt Suggestions',
+    actionType: 'prompt_suggestions',
+    category: 'text',
+    modelConfig: AI_MODELS.PROMPT_SUGGESTIONS,
+    description: 'Generates personalized, creative prompts for life vision reflection',
+    filePath: 'src/app/api/viva/prompt-suggestions/route.ts',
+    hasTokenTracking: true,
+  },
+  {
+    routePath: '/api/viva/flip-frequency',
+    routeName: 'Frequency Flip',
+    actionType: 'frequency_flip',
+    category: 'text',
+    modelConfig: {
+      model: 'gpt-4o-mini',
+      temperature: 0.7,
+      maxTokens: 1000,
+    },
+    description: 'Converts contrast/lack language into clarity seeds',
+    filePath: 'src/app/api/viva/flip-frequency/route.ts',
+    hasTokenTracking: true,
+  },
+  {
+    routePath: '/api/viva/merge-clarity',
+    routeName: 'Merge Clarity',
+    actionType: 'life_vision_category_summary',
+    category: 'text',
+    modelConfig: AI_MODELS.LIFE_VISION_CATEGORY_SUMMARY,
+    description: 'Merges Current Clarity + Clarity from Contrast',
+    filePath: 'src/app/api/viva/merge-clarity/route.ts',
+    hasTokenTracking: true,
+  },
+  {
+    routePath: '/api/viva/refine-category',
+    routeName: 'Refine Category',
+    actionType: 'vision_refinement',
+    category: 'text',
+    modelConfig: AI_MODELS.VISION_REFINEMENT,
+    description: 'One-shot refinement endpoint for individual categories',
+    filePath: 'src/app/api/viva/refine-category/route.ts',
+    hasTokenTracking: true,
+  },
+  {
+    routePath: '/api/vibe-assistant/refine-vision',
+    routeName: 'Vision Refinement',
+    actionType: 'vision_refinement',
+    category: 'text',
+    modelConfig: AI_MODELS.VISION_REFINEMENT,
+    description: 'Vibe Assistant vision refinement using GPT-5',
+    filePath: 'src/app/api/vibe-assistant/refine-vision/route.ts',
+    hasTokenTracking: true,
+  },
+  {
+    routePath: '/api/vibe-assistant/generate-blueprint',
+    routeName: 'Blueprint Generation',
+    actionType: 'blueprint_generation',
+    category: 'text',
+    modelConfig: AI_MODELS.BLUEPRINT_GENERATION,
+    description: 'Generates AI-powered actualization blueprints from vision content',
+    filePath: 'src/app/api/vibe-assistant/generate-blueprint/route.ts',
+    hasTokenTracking: true,
+  },
+  {
+    routePath: '/api/vision/generate',
+    routeName: 'Vision Generation',
+    actionType: 'vision_generation',
+    category: 'text',
+    modelConfig: AI_MODELS.VISION_GENERATION,
+    description: 'Generate vision text from conversation using OpenAI',
+    filePath: 'src/app/api/vision/generate/route.ts',
+    hasTokenTracking: true,
+    multipleCalls: 2, // Main generation + theme detection
+  },
+  {
+    routePath: '/api/vision/chat',
+    routeName: 'Vision Chat Discovery',
+    actionType: 'vision_generation',
+    category: 'text',
+    modelConfig: {
+      model: 'gpt-4',
+      temperature: 0.7,
+      maxTokens: 500,
+    },
+    description: 'Discovery Path Chat Handler - manages 3-step Discovery flow',
+    filePath: 'src/app/api/vision/chat/route.ts',
+    hasTokenTracking: true,
+    multipleCalls: 4, // Insight, patterns, pattern message, vision generation
+  },
+  {
+    routePath: '/api/assessment/ai-score',
+    routeName: 'Assessment Scoring',
+    actionType: 'assessment_scoring',
+    category: 'text',
+    modelConfig: AI_MODELS.ASSESSMENT_SCORING,
+    description: 'AI scoring of assessment responses based on vibrational alignment',
+    filePath: 'src/app/api/assessment/ai-score/route.ts',
+    hasTokenTracking: true,
+  },
+  
+  // ==========================================================================
+  // AUDIO ROUTES
+  // ==========================================================================
+  {
+    routePath: '/api/transcribe',
+    routeName: 'Audio Transcription',
+    actionType: 'transcription',
+    category: 'audio',
+    model: 'whisper-1',
+    usesOverride: true,
+    description: 'Transcribe audio files using OpenAI Whisper',
+    filePath: 'src/app/api/transcribe/route.ts',
+    hasTokenTracking: true,
+  },
+  {
+    routePath: '/lib/services/audioService.ts',
+    routeName: 'Text-to-Speech',
+    actionType: 'audio_generation',
+    category: 'audio',
+    model: 'tts-1',
+    usesOverride: true,
+    description: 'Generate audio from text using OpenAI TTS',
+    filePath: 'src/lib/services/audioService.ts',
+    hasTokenTracking: true,
+  },
+  
+  // ==========================================================================
+  // IMAGE ROUTES
+  // ==========================================================================
+  {
+    routePath: '/lib/services/imageService.ts',
+    routeName: 'Image Generation',
+    actionType: 'image_generation',
+    category: 'image',
+    model: 'dall-e-3',
+    usesOverride: true,
+    description: 'Generate images using DALL-E 3',
+    filePath: 'src/lib/services/imageService.ts',
+    hasTokenTracking: true,
+  },
+  
+  // ==========================================================================
+  // ADMIN ROUTES
+  // ==========================================================================
+  {
+    routePath: '/api/admin/users/adjust-tokens',
+    routeName: 'Admin Token Adjustment',
+    actionType: 'admin_grant', // or admin_deduct
+    category: 'admin',
+    model: 'admin',
+    description: 'Admin token grants and deductions',
+    filePath: 'src/app/api/admin/users/adjust-tokens/route.ts',
+    hasTokenTracking: true,
+  },
+]
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Get all routes by category
+ */
+export function getRoutesByCategory(category: APIRouteConfig['category']): APIRouteConfig[] {
+  return API_ROUTES_REGISTRY.filter(route => route.category === category)
+}
+
+/**
+ * Get route by action type
+ */
+export function getRouteByActionType(actionType: string): APIRouteConfig | undefined {
+  return API_ROUTES_REGISTRY.find(route => route.actionType === actionType)
+}
+
+/**
+ * Get route by path
+ */
+export function getRouteByPath(path: string): APIRouteConfig | undefined {
+  return API_ROUTES_REGISTRY.find(route => route.routePath === path)
+}
+
+/**
+ * Get all routes that use a specific model
+ */
+export function getRoutesUsingModel(model: string): APIRouteConfig[] {
+  return API_ROUTES_REGISTRY.filter(route => 
+    route.modelConfig?.model === model || route.model === model
+  )
+}
+
+/**
+ * Get all routes that need token overrides
+ */
+export function getRoutesNeedingOverrides(): APIRouteConfig[] {
+  return API_ROUTES_REGISTRY.filter(route => route.usesOverride === true)
+}
+
+/**
+ * Get all routes without token tracking
+ */
+export function getRoutesWithoutTracking(): APIRouteConfig[] {
+  return API_ROUTES_REGISTRY.filter(route => route.hasTokenTracking === false)
+}
+

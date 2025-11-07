@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, ArrowRight, Sparkles, Wand2, Save, Eye, Clock } from 'lucide-react'
 
 import { 
-  PageLayout, 
+   
   Card, 
   Button, 
   Textarea,
@@ -347,30 +347,35 @@ My daily routines support my vision and values. I wake up with purpose and energ
 
   if (generating) {
     return (
-      <div className="text-center">
-        <Spinner size="lg" className="mx-auto mb-6" />
-        <h1 className="text-3xl font-bold text-white mb-4">Generating Your Vision</h1>
-        <p className="text-neutral-400">
-          Our AI is analyzing your intake responses and creating a personalized vision draft...
-        </p>
-      </div>
+      <>
+        <div className="text-center">
+          <Spinner size="lg" className="mx-auto mb-6" />
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">Generating Your Vision</h1>
+          <p className="text-sm md:text-base text-neutral-400">
+            Our AI is analyzing your intake responses and creating a personalized vision draft...
+          </p>
+        </div>
+      </>
     )
   }
 
   if (!visionDraft) {
     return (
-      <Card className="max-w-2xl mx-auto p-12 text-center">
-        <h1 className="text-3xl font-bold text-white mb-4">No Vision Found</h1>
-        <p className="text-neutral-400 mb-8">
-          We couldn't find your vision draft. Please try again.
-        </p>
-        <Button 
-          variant="primary" 
-          onClick={() => router.push('/intensive/intake')}
-        >
-          Back to Intake
-        </Button>
-      </Card>
+      <>
+        <Card className="max-w-2xl mx-auto p-4 md:p-6 lg:p-12 text-center">
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white mb-4">No Vision Found</h1>
+          <p className="text-sm md:text-base text-neutral-400 mb-6 md:mb-8">
+            We couldn't find your vision draft. Please try again.
+          </p>
+          <Button 
+            variant="primary" 
+            size="sm"
+            onClick={() => router.push('/intensive/intake')}
+          >
+            Back to Intake
+          </Button>
+        </Card>
+      </>
     )
   }
 
@@ -379,147 +384,176 @@ My daily routines support my vision and values. I wake up with purpose and energ
 
   return (
     <>
-        
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => router.push('/intensive/dashboard')}
-              className="mr-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
+      {/* Header */}
+      <div className="mb-6 md:mb-12">
+        {/* Mobile Header */}
+        <div className="md:hidden space-y-4 mb-4">
+          <div className="flex flex-col items-center gap-3">
             {timeRemaining && (
               <Badge variant="warning">
                 <Clock className="w-4 h-4 mr-2" />
                 {timeRemaining} remaining
               </Badge>
             )}
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
+              Vision Builder
+            </h1>
+            <p className="text-sm text-neutral-300 text-center px-4">
+              Refine and personalize your AI-generated vision. Make it uniquely yours.
+            </p>
           </div>
-          
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden md:block text-center mb-4">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
             Vision Builder
           </h1>
-          <p className="text-xl text-neutral-300 max-w-3xl mx-auto">
+          <p className="text-lg md:text-xl text-neutral-300 max-w-3xl mx-auto">
             Refine and personalize your AI-generated vision. Make it uniquely yours.
           </p>
         </div>
 
-        {/* Progress */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-neutral-400">
-              Section {builderState.currentSection + 1} of {sections.length}
-            </span>
-            <span className="text-sm text-neutral-400">
-              {Math.round(((builderState.currentSection + 1) / sections.length) * 100)}% Complete
-            </span>
-          </div>
-          <div className="w-full bg-neutral-800 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-primary-500 to-secondary-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((builderState.currentSection + 1) / sections.length) * 100}%` }}
-            />
-          </div>
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mb-4">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => router.push('/intensive/dashboard')}
+            className="w-full sm:w-auto"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          {timeRemaining && (
+            <Badge variant="warning" className="w-full sm:w-auto justify-center sm:justify-start">
+              <Clock className="w-4 h-4 mr-2" />
+              {timeRemaining} remaining
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Progress */}
+      <div className="max-w-4xl mx-auto mb-6 md:mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs md:text-sm text-neutral-400">
+            Section {builderState.currentSection + 1} of {sections.length}
+          </span>
+          <span className="text-xs md:text-sm text-neutral-400">
+            {Math.round(((builderState.currentSection + 1) / sections.length) * 100)}% Complete
+          </span>
+        </div>
+        <div className="w-full bg-neutral-800 rounded-full h-2">
+          <div 
+            className="bg-gradient-to-r from-primary-500 to-secondary-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${((builderState.currentSection + 1) / sections.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Current Section */}
+      <Card className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+        <div className="mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-white mb-2">
+            {currentSection.title}
+          </h2>
+          <p className="text-sm md:text-base text-neutral-400">
+            {currentSection.description}
+          </p>
         </div>
 
-        {/* Current Section */}
-        <Card className="max-w-4xl mx-auto p-8 mb-8">
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold text-white mb-2">
-              {currentSection.title}
-            </h2>
-            <p className="text-neutral-400">
-              {currentSection.description}
-            </p>
-          </div>
+        <Textarea
+          value={currentContent}
+          onChange={(e) => updateCurrentSection(e.target.value)}
+          placeholder={`Describe your vision for ${currentSection.title.toLowerCase()}...`}
+          rows={12}
+          className="mb-4 md:mb-6"
+        />
 
-          <Textarea
-            value={currentContent}
-            onChange={(e) => updateCurrentSection(e.target.value)}
-            placeholder={`Describe your vision for ${currentSection.title.toLowerCase()}...`}
-            rows={12}
-            className="mb-6"
-          />
+        <div className="flex flex-col sm:flex-row justify-between gap-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={prevSection}
+            disabled={builderState.currentSection === 0}
+            className="w-full sm:w-auto order-2 sm:order-1"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Previous
+          </Button>
 
-          <div className="flex justify-between">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 order-1 sm:order-2">
             <Button 
-              variant="outline" 
-              onClick={prevSection}
-              disabled={builderState.currentSection === 0}
+              variant="secondary" 
+              size="sm"
+              onClick={saveVision}
+              disabled={loading}
+              className="flex-1 sm:flex-none"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Previous
+              <Save className="w-4 h-4 mr-2" />
+              {loading ? 'Saving...' : 'Save Draft'}
             </Button>
 
-            <div className="flex gap-4">
+            {builderState.currentSection < sections.length - 1 ? (
               <Button 
-                variant="secondary" 
-                onClick={saveVision}
-                disabled={loading}
+                variant="primary" 
+                size="sm"
+                onClick={nextSection}
+                className="flex-1 sm:flex-none"
               >
-                <Save className="w-4 h-4 mr-2" />
-                {loading ? 'Saving...' : 'Save Draft'}
+                Next Section
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-
-              {builderState.currentSection < sections.length - 1 ? (
-                <Button 
-                  variant="primary" 
-                  onClick={nextSection}
-                >
-                  Next Section
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              ) : (
-                <Button 
-                  variant="primary" 
-                  onClick={completeBuilder}
-                  disabled={loading}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Complete Vision
-                </Button>
-              )}
-            </div>
-          </div>
-        </Card>
-
-        {/* Section Overview */}
-        <Card className="max-w-4xl mx-auto p-8">
-          <h3 className="text-xl font-bold text-white mb-6">Vision Sections</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sections.map((section, index) => (
-              <div
-                key={section.key}
-                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  index === builderState.currentSection
-                    ? 'border-primary-500 bg-primary-500/10'
-                    : 'border-neutral-700 hover:border-neutral-600'
-                }`}
-                onClick={() => setBuilderState(prev => ({ ...prev, currentSection: index }))}
+            ) : (
+              <Button 
+                variant="primary" 
+                size="sm"
+                onClick={completeBuilder}
+                disabled={loading}
+                className="flex-1 sm:flex-none"
               >
-                <h4 className="font-semibold text-white mb-1">{section.title}</h4>
-                <p className="text-sm text-neutral-400">{section.description}</p>
-              </div>
-            ))}
+                <Sparkles className="w-4 h-4 mr-2" />
+                Complete Vision
+              </Button>
+            )}
           </div>
-        </Card>
+        </div>
+      </Card>
 
-        {/* Preview */}
-        <Card className="max-w-4xl mx-auto p-8 mt-8 border-2 border-secondary-500 bg-gradient-to-br from-secondary-500/10 to-primary-500/10">
-          <div className="flex items-center gap-3 mb-4">
-            <Eye className="w-6 h-6 text-secondary-500" />
-            <h3 className="text-xl font-bold text-white">Vision Preview</h3>
-          </div>
-          <div className="bg-neutral-900 rounded-xl p-6 max-h-96 overflow-y-auto">
-            <pre className="text-sm text-neutral-300 whitespace-pre-wrap">
-              {visionDraft.content}
-            </pre>
-          </div>
-        </Card>
+      {/* Section Overview */}
+      <Card className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+        <h3 className="text-lg md:text-xl font-bold text-white mb-4 md:mb-6">Vision Sections</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          {sections.map((section, index) => (
+            <div
+              key={section.key}
+              className={`p-3 md:p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                index === builderState.currentSection
+                  ? 'border-primary-500 bg-primary-500/10'
+                  : 'border-neutral-700 hover:border-neutral-600'
+              }`}
+              onClick={() => setBuilderState(prev => ({ ...prev, currentSection: index }))}
+            >
+              <h4 className="text-sm md:text-base font-semibold text-white mb-1">{section.title}</h4>
+              <p className="text-xs md:text-sm text-neutral-400">{section.description}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
 
+      {/* Preview */}
+      <Card className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8 mt-6 md:mt-8 border-2 border-secondary-500 bg-gradient-to-br from-secondary-500/10 to-primary-500/10">
+        <div className="flex items-center gap-3 mb-3 md:mb-4">
+          <Eye className="w-5 h-5 md:w-6 md:h-6 text-secondary-500" />
+          <h3 className="text-lg md:text-xl font-bold text-white">Vision Preview</h3>
+        </div>
+        <div className="bg-neutral-900 rounded-xl p-4 md:p-6 max-h-96 overflow-y-auto">
+          <pre className="text-xs md:text-sm text-neutral-300 whitespace-pre-wrap">
+            {visionDraft.content}
+          </pre>
+        </div>
+      </Card>
     </>
   )
 }

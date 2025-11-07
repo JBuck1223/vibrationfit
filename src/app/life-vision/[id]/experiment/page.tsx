@@ -13,6 +13,7 @@ import {
   Spinner,
   Input,
   Textarea,
+  CategoryCard,
   Icon
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -40,26 +41,6 @@ interface VisionData {
   completion_percent: number
   created_at: string
   updated_at: string
-}
-
-// CategoryCard component for selection
-const CategoryCard = ({ category, selected = false, onClick, className = '' }: any) => {
-  const IconComponent = category.icon
-  return (
-    <Card 
-      variant={selected ? 'elevated' : 'default'} 
-      hover 
-      className={`cursor-pointer aspect-square transition-all duration-300 ${selected ? 'border border-primary-500 md:ring-2 md:ring-primary-500' : ''} ${className}`}
-      onClick={onClick}
-    >
-      <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
-        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#14B8A6'} />
-        <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-          {category.label}
-        </span>
-      </div>
-    </Card>
-  )
 }
 
 // VisionCard component for displaying vision content

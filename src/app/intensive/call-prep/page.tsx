@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Video, CheckCircle, ArrowRight } from 'lucide-react'
 
 import { 
-  PageLayout, 
+   
   Container, 
   Card, 
   Button,
@@ -95,7 +95,7 @@ export default function CallPrepPage() {
 
   return (
     <>
-      <Container size="lg" className="py-16">
+      <Container size="lg">
         
         <div className="mb-8">
           <Button 

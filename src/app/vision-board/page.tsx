@@ -3,45 +3,12 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { PageLayout, Card, Button, Badge, Stack, Icon, DeleteConfirmationDialog, ActionButtons } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, CheckSquare, Square } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
-
-const LIFE_CATEGORIES = [
-  'Fun / Recreation',
-  'Variety / Travel / Adventure',
-  'Home / Environment',
-  'Family / Parenting',
-  'Love / Romance / Partner',
-  'Health / Body / Vitality',
-  'Money / Wealth / Investments',
-  'Business / Career / Work',
-  'Social / Friends',
-  'Giving / Contribution / Legacy',
-  'Things / Belongings / Stuff',
-  'Expansion / Spirituality',
-]
-
-// CategoryCard component from design system
-const CategoryCard = ({ category, selected = false, onClick }: any) => {
-  const IconComponent = category.icon
-  return (
-    <Card 
-      variant={selected ? 'elevated' : 'default'} 
-      hover 
-      className={`cursor-pointer aspect-square ${selected ? 'ring-2 ring-[#39FF14] border-[#39FF14]' : ''}`}
-      onClick={onClick}
-    >
-      <Stack align="center" gap="xs" className="text-center px-2 justify-center h-full">
-        <Icon icon={IconComponent} size="sm" color={selected ? '#39FF14' : '#00FFFF'} />
-        <h4 className="text-xs font-medium text-neutral-300">{category.label}</h4>
-      </Stack>
-    </Card>
-  )
-}
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active', color: 'primary' },
