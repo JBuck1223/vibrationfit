@@ -41,3 +41,5 @@ export default function YourPage() {
 
 **Remember**: Copy the template above, follow the 3 rules, make everything responsive. That's it!
 
+
+

@@ -251,3 +251,5 @@ export function isAlreadyAligned(input: string): boolean {
   return !lackPatterns.some(pattern => pattern.test(input))
 }
 
+
+

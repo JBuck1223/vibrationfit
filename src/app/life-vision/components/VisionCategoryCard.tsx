@@ -50,7 +50,7 @@ export function VisionCategoryCard({
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCompleted ? 'bg-primary-500' : 'bg-neutral-700'}`}>
-            <Icon icon={category.icon} size="sm" color={isCompleted ? '#FFFFFF' : '#14B8A6'} />
+            <Icon icon={category.icon} size="sm" color="#000000" />
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-white">{category.label}</h3>
