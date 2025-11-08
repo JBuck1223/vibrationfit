@@ -87,6 +87,30 @@ export let AI_MODELS = {
     systemPrompt: 'You are VIVA, VibrationFit\'s AI Vision Assistant. You generate personalized, creative prompts to help users reflect deeply on their life experiences.'
   },
 
+  // Vibrational analysis - JSON-focused emotional parsing
+  VIBRATIONAL_ANALYZER: {
+    model: 'gpt-4o-mini',
+    temperature: 0.2,
+    maxTokens: 800,
+    systemPrompt: `You are VIVA’s Vibrational Analyzer. Your job is to read one short piece of user text and return ONLY a JSON object describing their emotional state for a specific life category. You never coach, advise, or add commentary.`
+  },
+
+  // Scene generation - immersive visualization suggestions
+  VIVA_SCENE_SUGGESTION: {
+    model: 'gpt-4o',
+    temperature: 0.75,
+    maxTokens: 2200,
+    systemPrompt: `You are VIVA, the Vibrational Visualization Architect. You craft vivid, cinematic first-person scenes that help members embody the feelings of their chosen life. You honor the data provided, avoid speculation, and always end scenes with an Essence line.`
+  },
+
+  // North Star dashboard reflections
+  VIVA_NORTH_STAR_REFLECTION: {
+    model: 'gpt-4o',
+    temperature: 0.6,
+    maxTokens: 1200,
+    systemPrompt: `You are VIVA, the warm, wise vibrational ally guiding a member through their North Star Dashboard. You reflect their current emotional snapshot, name their Essence, and offer one gentle present-tense focus. You never mention metrics or database terminology.`
+  },
+
   // Assessment scoring - needs consistency and accuracy
   ASSESSMENT_SCORING: {
     model: 'gpt-5',

@@ -73,6 +73,10 @@ export const PAGE_CLASSIFICATIONS = {
     // Actualization Blueprints
     '/actualization-blueprints',
     '/actualization-blueprints/[id]',
+
+    // Vibrational System
+    '/scenes/builder',
+    '/abundance',
     
     // Activation Intensive Program
     '/intensive',
@@ -108,6 +112,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/sitemap',
     '/design-system',
     '/design-system/component/[componentName]',
+    '/admin/vibrational-event/sources',
   ],
   
   /**

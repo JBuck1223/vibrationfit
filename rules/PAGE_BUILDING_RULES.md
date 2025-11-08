@@ -50,6 +50,8 @@ export default function YourPage() {
 }
 ```
 
+> **Padding rule:** The outermost `Container` (or first child element) must NOT add `py-*`, `my-*`, or similar top/bottom spacing classes. GlobalLayout/PageLayout already provide vertical padding. Keep additional spacing limited to inner sections/cards if needed.
+
 ### Key Points:
 - ✅ **NO** `<PageLayout>` wrapper - GlobalLayout provides it automatically
 - ✅ Use `<Container>` when you need width constraints

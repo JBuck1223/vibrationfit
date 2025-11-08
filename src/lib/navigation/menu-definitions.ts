@@ -206,6 +206,13 @@ export const adminNavigation: NavItem[] = [
     ]
   },
   {
+    name: 'Vibrational Sources',
+    href: '/admin/vibrational-event/sources',
+    icon: Layers,
+    requiresAdmin: true,
+    description: 'Manage vibrational ingesters',
+  },
+  {
     name: 'Token Analytics',
     href: '/admin/token-usage',
     icon: Zap,
