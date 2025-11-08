@@ -6,7 +6,8 @@ import {
   Activity, DollarSign, Briefcase, UserPlus, Package, 
   Gift, Zap, CheckCircle, ArrowRight, Star, Target,
   Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check, Clock, User,
-  Headphones, Image, BookOpen, CalendarDays, Lock, HelpCircle, Eye
+  Headphones, Image, BookOpen, CalendarDays, Lock, HelpCircle, Eye,
+  RefreshCw, Maximize2, Minimize2, Layers
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -435,63 +436,60 @@ export default function HomePage() {
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8" align="center">
                 <Heading level={2} className="text-white text-center">
-                  Meet the Mechanism
+                  Meet the Engine Behind VIVA Vision
                 </Heading>
                 <Card variant="outlined" className="w-full border-2 !border-[#39FF14]/30 !bg-[#39FF14]/20 flex items-center justify-center pb-4 md:pb-3">
                   <Heading level={3} className="text-white text-center">
-                    The 5‑Phase Conscious Creation Flow<br className="md:hidden" />(encoded in VIVA)
+                    The 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA)
                   </Heading>
                 </Card>
-                <Grid responsiveCols={{ mobile: 1, desktop: 5 }} minWidth="200px" gap="sm">
+                <Text size="base" className="text-neutral-300 text-center w-full">
+                  In 2011, Jordan wrote his first Life I Choose™. In 2014, he did it again—and the same pattern showed up. When Vanessa joined, structure met soul. We realized our writing always followed a hidden creation rhythm—then we taught VIVA to guide anyone through it.
+                </Text>
+                <Grid responsiveCols={{ mobile: 1, desktop: 4 }} minWidth="200px" gap="sm">
                   <FeatureCard 
-                    icon={Heart} 
-                    title="Gratitude Opening" 
+                    icon={Sparkles} 
+                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 1:</span><br /><span>5‑Phase Flow</span></>}
                     iconColor="#39FF14"
                     variant="outlined"
                     number={1}
                   >
-                    Access the frequency with thanks
+                    Gratitude → Sensory → Embodiment → Essence → Surrender.
                   </FeatureCard>
                   <FeatureCard 
-                    icon={Eye} 
-                    title="Sensory Expansion" 
+                    icon={Image} 
+                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 2:</span><br /><span>Scene Builder</span></>}
                     iconColor="#39FF14"
                     variant="outlined"
                     number={2}
                   >
-                    Make it tangible with sight/sound/feel
+                    Turn vague goals into vivid scenes. VIVA prompts for characters, action, setting, and meaning.
                   </FeatureCard>
                   <FeatureCard 
-                    icon={Brain} 
-                    title="Mental Lifestyle Embodiment" 
+                    icon={RefreshCw} 
+                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 3:</span><br /><span>Flow Loops</span></>}
                     iconColor="#39FF14"
                     variant="outlined"
                     number={3}
                   >
-                    Live it now in present tense
+                    Balance identity, action, and allowing so momentum compounds instead of stalls.
                   </FeatureCard>
                   <FeatureCard 
-                    icon={Target} 
-                    title="Essence Summarization" 
+                    icon={Maximize2} 
+                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 4:</span><br /><span>Breathing Pace</span></>}
                     iconColor="#39FF14"
                     variant="outlined"
                     number={4}
                   >
-                    Lock in the core emotion
-                  </FeatureCard>
-                  <FeatureCard 
-                    icon={Sparkles} 
-                    title="Universal Surrender" 
-                    iconColor="#39FF14"
-                    variant="outlined"
-                    number={5}
-                  >
-                    Release it to unfold
+                    Zoom into sensory detail, zoom out to meaning—writing that feels alive (and sticks).
                   </FeatureCard>
                 </Grid>
-                <Text size="xs" className="text-neutral-400 text-center">
-                  VIVA guides you through all 5 phases across 12 life categories in 72 hours.
-                    </Text>
+                <Text size="base" className="text-neutral-300 text-center w-full">
+                  VIVA now walks you through this 4-Layer Architecture across all 12 life categories—so in 72 hours you finish "active" with your complete vision, AM/PM vision audios, vision board built, 3 journal entries logged, calibration call booked, and your Activation Protocol scheduled.
+                </Text>
+                <Button variant="primary" size="lg">
+                  Start the Activation Intensive
+                </Button>
               </Stack>
             </div>
           </Container>
@@ -2135,6 +2133,88 @@ export default function HomePage() {
                 </Text>
               </Stack>
             </Cover>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="py-12 md:py-16">
+          <Container size="xl">
+            <OfferStack
+              title="Frequently Asked Questions"
+              subtitle="Everything you need to know"
+              items={[
+                {
+                  id: 'skeptical',
+                  title: 'What if I\'m skeptical?',
+                  description: 'Good. That\'s why we stack raw proof, a structured mechanism, and guarantees. See the $0.43 → $1M timeline and screenshots, the Conscious Creation System: Train → Tune → Track, and our 72‑Hour Activation + Membership Guarantees.'
+                },
+                {
+                  id: 'religious',
+                  title: 'Is this religious?',
+                  description: 'No doctrine. It\'s a practical system with tools and habits. We measure observable outputs (vision built, audio generated, board created, journals logged, call completed) and track progress.'
+                },
+                {
+                  id: 'how-fast',
+                  title: 'How fast is "fast"?',
+                  description: '"Active" in 72 hours: 12‑category Life Vision (with VIVA), AM/PM Vision Audio, Vision Board (12 images), 3 journal entries, calibration call booked.'
+                },
+                {
+                  id: 'tried-loa',
+                  title: 'What if I\'ve tried LoA and failed?',
+                  description: 'Most people had belief without structure. We give you the mechanism (Train → Tune → Track), proof it works, and guarantees if you\'re not satisfied.'
+                },
+                {
+                  id: 'dont-know',
+                  title: 'What if I don\'t know what I want?',
+                  description: 'VIVA AI turns contrast into clarity and drafts your 12‑category vision for you. You\'ll have a concrete first draft to refine—less guesswork, more action.'
+                },
+                {
+                  id: 'doesnt-work',
+                  title: 'What if it doesn\'t work for me?',
+                  description: 'Two layers of protection: 72‑Hour Activation Guarantee (complete all 10 steps; not satisfied—full refund) and Membership Satisfaction Guarantee (16 weeks Annual, 12 weeks 28‑Day) from checkout.'
+                },
+                {
+                  id: 'guarantee-start',
+                  title: 'When do guarantees start?'
+                },
+                {
+                  id: 'guarantee-qualify',
+                  title: 'What qualifies for the 72‑Hour Activation Guarantee?'
+                },
+                {
+                  id: 'refunds',
+                  title: 'How do refunds work? (method, timeline, date‑stamped guarantee end dates)'
+                },
+                {
+                  id: 'billing-start',
+                  title: 'When does billing start?'
+                },
+                {
+                  id: 'switch-cancel',
+                  title: 'Can I switch or cancel before billing starts?'
+                },
+                {
+                  id: 'change-plans',
+                  title: 'Can I change plans later? (and annual rate‑lock rules)'
+                },
+                {
+                  id: '5-phase-flow',
+                  title: 'What is the 5‑Phase Flow?'
+                },
+                {
+                  id: 'tokens-storage',
+                  title: 'Token and storage details (rollover limits, annual resets, caps)'
+                },
+                {
+                  id: 'billing-cadence',
+                  title: 'Billing cadence and taxes (every 28 days vs monthly, time zone, taxes/fees)'
+                },
+                {
+                  id: 'community-support',
+                  title: 'Community/support boundaries'
+                }
+              ]}
+            />
+          </Container>
         </section>
 
       </Stack>

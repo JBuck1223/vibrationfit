@@ -578,9 +578,9 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
 Card.displayName = 'Card'
 
 // FeatureCard Component - Icon on top, title under icon, body text under title
-interface FeatureCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface FeatureCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   icon: React.ElementType
-  title: string
+  title: string | React.ReactNode
   children: React.ReactNode
   iconColor?: string
   iconSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
