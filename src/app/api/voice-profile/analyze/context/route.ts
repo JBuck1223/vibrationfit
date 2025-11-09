@@ -98,12 +98,13 @@ export async function GET(request: NextRequest) {
     }> = []
 
     if (activeVision) {
+      const visionRecord = activeVision as unknown as Record<string, string | null | undefined>
       visionParagraphs = VISION_FIELDS.flatMap((field) => {
-        const value = activeVision[field.key as keyof typeof activeVision]
+        const value = visionRecord[field.key]
         if (typeof value === 'string' && value.trim().length > 0) {
           return [
             {
-              id: `${activeVision.id}-${field.key}`,
+              id: `${visionRecord.id}-${field.key}`,
               type: 'vision' as const,
               label: field.label,
               text: value,

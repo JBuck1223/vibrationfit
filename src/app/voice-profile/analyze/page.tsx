@@ -232,16 +232,16 @@ export default function VoiceProfileAnalyzePage() {
   const promptPreview = useMemo(() => {
     if (!profile) return null
     return renderVoiceProfileForPrompt({
-      word_flow: profile.word_flow,
-      emotional_range: profile.emotional_range,
-      detail_level: profile.detail_level,
-      energy_tempo: profile.energy_tempo,
-      woo_level: profile.woo_level,
-      humor_personality: profile.humor_personality,
-      speech_rhythm: profile.speech_rhythm,
-      emotional_intensity_preference: profile.emotional_intensity_preference,
-      narrative_preference: profile.narrative_preference,
-      depth_preference: profile.depth_preference,
+      word_flow: profile.word_flow as any,
+      emotional_range: profile.emotional_range as any,
+      detail_level: profile.detail_level as any,
+      energy_tempo: profile.energy_tempo as any,
+      woo_level: profile.woo_level as any,
+      humor_personality: profile.humor_personality as any,
+      speech_rhythm: profile.speech_rhythm as any,
+      emotional_intensity_preference: profile.emotional_intensity_preference as any,
+      narrative_preference: profile.narrative_preference as any,
+      depth_preference: profile.depth_preference as any,
       style_label: profile.style_label,
       forbidden_styles: profile.forbidden_styles ?? [],
       sample_phrases: profile.sample_phrases ?? [],
@@ -335,7 +335,7 @@ export default function VoiceProfileAnalyzePage() {
               <Stack gap="lg">
                 <Card className="p-6 space-y-6">
                   <Stack gap="sm">
-                    <Inline gap="sm" align="baseline" wrap>
+                    <Inline gap="sm" align="start" wrap>
                       <h2 className="text-xl md:text-2xl font-semibold text-white">Select Samples</h2>
                       <Badge variant="neutral">{selectedCount}/{maxSelectable} selected</Badge>
                     </Inline>

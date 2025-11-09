@@ -242,7 +242,7 @@ export default function VoiceProfilePage() {
       forbidden_styles: parseMultiline(form.forbidden_styles_text),
       sample_phrases: parseMultiline(form.sample_phrases_text),
     }
-    return renderVoiceProfileForPrompt(current)
+    return renderVoiceProfileForPrompt(current as any)
   }, [form])
 
   const handleFormChange = (field: keyof FormState) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
