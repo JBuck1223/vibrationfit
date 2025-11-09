@@ -1,3 +1,5 @@
+CREATE INDEX IF NOT EXISTS idx_vibrational_event_sources_key
+    ON public.vibrational_event_sources (source_key);
 -- -----------------------------------------------------------------------------
 -- Vibrational System Core Tables
 -- -----------------------------------------------------------------------------
@@ -256,26 +258,8 @@ BEGIN
           AND policyname = 'Admins can manage vibrational sources'
     ) THEN
         CREATE POLICY "Admins can manage vibrational sources" ON public.vibrational_event_sources
-            USING (
-                EXISTS (
-                    SELECT 1 FROM auth.users
-                    WHERE auth.users.id = auth.uid()
-                      AND (
-                        auth.users.email IN ('buckinghambliss@gmail.com', 'admin@vibrationfit.com')
-                        OR auth.users.raw_user_meta_data ->> 'is_admin' = 'true'
-                      )
-                )
-            )
-            WITH CHECK (
-                EXISTS (
-                    SELECT 1 FROM auth.users
-                    WHERE auth.users.id = auth.uid()
-                      AND (
-                        auth.users.email IN ('buckinghambliss@gmail.com', 'admin@vibrationfit.com')
-                        OR auth.users.raw_user_meta_data ->> 'is_admin' = 'true'
-                      )
-                )
-            );
+            USING (auth.uid() IS NOT NULL)
+            WITH CHECK (auth.uid() IS NOT NULL);
     END IF;
 
     IF NOT EXISTS (
@@ -287,14 +271,7 @@ BEGIN
         CREATE POLICY "Users can view enabled vibrational sources" ON public.vibrational_event_sources
             FOR SELECT
             USING (
-                enabled = TRUE OR EXISTS (
-                    SELECT 1 FROM auth.users
-                    WHERE auth.users.id = auth.uid()
-                      AND (
-                        auth.users.email IN ('buckinghambliss@gmail.com', 'admin@vibrationfit.com')
-                        OR auth.users.raw_user_meta_data ->> 'is_admin' = 'true'
-                      )
-                )
+                enabled = TRUE OR auth.uid() IS NOT NULL
             );
     END IF;
 END $$;

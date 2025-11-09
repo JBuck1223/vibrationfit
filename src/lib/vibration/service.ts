@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { ensureVibrationalSourceEnabled } from './sources'
 import { isValidVibrationalSourceType } from './sourceTypes'
+import { trackTokenUsage, estimateTokensForText } from '@/lib/tokens/tracking'
 import type {
   EmotionalSnapshotRecord,
   EmotionalValence,
@@ -38,8 +39,21 @@ export async function analyzeVibration(input: AnalyzeVibrationInput): Promise<Vi
   })
 
   const analysis =
-    (await generateJSON<VibrationalAnalysis>(prompt, 'VIBRATIONAL_ANALYZER', validateVibrationalAnalysis)) ??
-    fallbackAnalysis(input.text)
+    (await generateJSON<VibrationalAnalysis>(
+      prompt,
+      'VIBRATIONAL_ANALYZER',
+      validateVibrationalAnalysis,
+      {
+        userId: input.userId,
+        actionType: 'vibrational_analysis',
+        supabaseClient: supabase,
+        metadata: {
+          category: input.category,
+          source_type: input.sourceType,
+          text_length: input.text.length,
+        },
+      }
+    )) ?? fallbackAnalysis(input.text)
 
   return createVibrationalEventFromSource({
     userId: input.userId,
@@ -84,7 +98,18 @@ export async function generateScenesForCategory(input: SceneGenerationInput): Pr
   const scenePayload = await generateJSON<{ scenes: Array<{ title: string; text: string; essence_word?: string }> }>(
     prompt,
     'VIVA_SCENE_SUGGESTION',
-    validateSceneGeneratorResponse
+    validateSceneGeneratorResponse,
+    {
+      userId: input.userId,
+      actionType: 'viva_scene_generation',
+      metadata: {
+        category: input.category,
+        data_richness_tier: input.dataRichnessTier ?? 'C',
+        has_clarity: Boolean(input.profileGoesWellText && input.profileGoesWellText.trim().length > 0),
+        has_contrast_flip: Boolean(input.profileNotWellTextFlipped && input.profileNotWellTextFlipped.trim().length > 0),
+        assessment_snippet_count: input.assessmentSnippets?.length ?? 0,
+      },
+    }
   )
 
   if (!scenePayload || !scenePayload.scenes.length) {
@@ -306,6 +331,33 @@ export async function generateNorthStarReflection(input: NorthStarReflectionInpu
     feature: 'VIVA_NORTH_STAR_REFLECTION',
     messages: [{ role: 'user', content: userPrompt }],
   })
+
+  const modelUsed = response.model || 'gpt-4o-mini'
+  const inputTokens = response.usage?.prompt_tokens ?? 0
+  const outputTokens = response.usage?.completion_tokens ?? 0
+  const totalTokens = response.usage?.total_tokens ?? estimateTokensForText(userPrompt, modelUsed)
+
+  try {
+    await trackTokenUsage({
+      user_id: input.snapshot.user_id,
+      action_type: 'north_star_reflection',
+      model_used: modelUsed,
+      tokens_used: totalTokens,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      cost_estimate: 0,
+      success: !response.error,
+      error_message: response.error,
+      metadata: {
+        category: input.category,
+        snapshot_id: input.snapshot.id,
+        recent_event_count: input.recentEvents.length,
+        primary_essence: input.snapshot.primary_essence,
+      },
+    })
+  } catch (trackingError) {
+    console.error('Failed to track token usage for North Star reflection:', trackingError)
+  }
 
   if (response.error) {
     throw new Error(`Failed to generate North Star reflection: ${response.error}`)

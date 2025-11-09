@@ -42,6 +42,8 @@ const DATA_RICHNESS_OPTIONS = [
   { value: 'C', label: 'Tier C – Minimal data' },
 ]
 
+const CATEGORY_STORAGE_KEY = 'vibrationfit:scene-builder-category'
+
 export default function SceneBuilderPage() {
   const [category, setCategory] = useState('fun')
   const [profileGoesWellText, setProfileGoesWellText] = useState('')
@@ -54,6 +56,9 @@ export default function SceneBuilderPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isContextLoading, setIsContextLoading] = useState(false)
+  const [profileContrastText, setProfileContrastText] = useState('')
+  const [hasLoadedPreference, setHasLoadedPreference] = useState(false)
 
   const formattedSnippets = useMemo(() => {
     return assessmentSnippets
@@ -64,7 +69,6 @@ export default function SceneBuilderPage() {
 
   const fetchScenes = useCallback(async (selectedCategory: string) => {
     setIsLoadingScenes(true)
-    setErrorMessage(null)
     try {
       const response = await fetch(`/api/vibration/scenes?category=${encodeURIComponent(selectedCategory)}`)
       if (!response.ok) {
@@ -86,9 +90,53 @@ export default function SceneBuilderPage() {
     }
   }, [])
 
+  const loadContextForCategory = useCallback(async (selectedCategory: string) => {
+    setIsContextLoading(true)
+    try {
+      const response = await fetch(`/api/vibration/scenes/context?category=${encodeURIComponent(selectedCategory)}`)
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to load scene context.')
+      }
+
+      const data = await response.json()
+      setProfileGoesWellText(data.profileGoesWellText ?? '')
+      setProfileContrastText(data.profileContrastText ?? '')
+      setProfileNotWellTextFlipped(data.clarityStored || data.profileNotWellTextFlipped || '')
+      setExistingVisionParagraph(data.existingVisionParagraph ?? '')
+      setAssessmentSnippets(
+        Array.isArray(data.assessmentSnippets)
+          ? data.assessmentSnippets.join('\n')
+          : data.assessmentSnippets ?? ''
+      )
+      setStatusMessage('Context loaded from your active profile and vision.')
+    } catch (error) {
+      console.error(error)
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to load scene context.')
+    } finally {
+      setIsContextLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const storedCategory = window.localStorage.getItem(CATEGORY_STORAGE_KEY)
+    if (storedCategory && LIFE_CATEGORIES.some((item) => item.value === storedCategory) && storedCategory !== category) {
+      setCategory(storedCategory)
+    }
+    setHasLoadedPreference(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasLoadedPreference || typeof window === 'undefined') return
+    window.localStorage.setItem(CATEGORY_STORAGE_KEY, category)
+  }, [category, hasLoadedPreference])
+
+  useEffect(() => {
+    loadContextForCategory(category)
     fetchScenes(category)
-  }, [category, fetchScenes])
+  }, [category, fetchScenes, loadContextForCategory])
 
   const handleGenerateScenes = async () => {
     setIsGenerating(true)
@@ -120,7 +168,7 @@ export default function SceneBuilderPage() {
       setStatusMessage(
         data.scenes?.length
           ? `✨ Generated ${data.scenes.length} scene${data.scenes.length === 1 ? '' : 's'} and saved them.`
-          : 'No new scenes generated.'
+          : 'No new scenes were added this round, but your inputs are ready—adjust the context or try again when you feel inspired.'
       )
       await fetchScenes(category)
     } catch (error) {
@@ -213,6 +261,12 @@ export default function SceneBuilderPage() {
             Generate cinematic, present-tense scenes per life category and fine-tune them with VIVA’s
             vibrational analyzer.
           </p>
+          {isContextLoading && (
+            <Inline gap="sm" align="center" justify="center" className="text-neutral-400 text-sm">
+              <Spinner size="sm" />
+              <span>Loading context…</span>
+            </Inline>
+          )}
         </Stack>
 
         <Card className="space-y-6">
@@ -241,6 +295,7 @@ export default function SceneBuilderPage() {
                 onClick={handleGenerateScenes}
                 loading={isGenerating}
                 className="w-full md:w-auto"
+                disabled={isContextLoading}
               >
                 {isGenerating ? 'Generating...' : 'Generate Scenes'}
               </Button>
@@ -254,13 +309,20 @@ export default function SceneBuilderPage() {
               rows={4}
             />
 
-            <Textarea
-              label="Contrast Flip"
-              placeholder="Flip contrast notes into desired outcomes (AI-friendly)."
-              value={profileNotWellTextFlipped}
-              onChange={(event) => setProfileNotWellTextFlipped(event.target.value)}
-              rows={4}
-            />
+            <div className="space-y-2">
+              <Textarea
+                label="Contrast Flip"
+                placeholder="Flip contrast notes into desired outcomes (VIVA-friendly)."
+                value={profileNotWellTextFlipped}
+                onChange={(event) => setProfileNotWellTextFlipped(event.target.value)}
+                rows={4}
+              />
+              {profileContrastText && (
+                <p className="text-xs text-neutral-500 whitespace-pre-wrap">
+                  Original contrast: {profileContrastText}
+                </p>
+              )}
+            </div>
 
             <Textarea
               label="Assessment Snippets"
@@ -334,7 +396,11 @@ export default function SceneBuilderPage() {
                             </Badge>
                           ) : null}
                           <Badge variant="premium">
-                            {scene.created_from === 'ai_suggested' ? 'AI Suggested' : scene.created_from === 'hybrid' ? 'Hybrid' : 'User Written'}
+                            {scene.created_from === 'ai_suggested'
+                              ? 'VIVA Generated'
+                              : scene.created_from === 'hybrid'
+                              ? 'Hybrid'
+                              : 'User Written'}
                           </Badge>
                         </Inline>
                       </Stack>

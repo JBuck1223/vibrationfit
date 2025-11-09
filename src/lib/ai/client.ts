@@ -4,6 +4,8 @@
 // Centralized AI client that uses the configuration system
 
 import { AI_MODELS, AI_PROVIDER, getAIModelConfig, type AIModelConfig } from './config'
+import { trackTokenUsage, estimateTokensForText, type TokenUsage } from '@/lib/tokens/tracking'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export interface AIRequest {
   messages: Array<{
@@ -218,32 +220,103 @@ export async function generateTextWithSystem(
 export async function generateJSON<T>(
   prompt: string,
   feature: keyof typeof AI_MODELS,
-  validator?: (data: any) => data is T
+  validator?: (data: any) => data is T,
+  tracking?: {
+    userId: string
+    actionType: TokenUsage['action_type']
+    supabaseClient?: SupabaseClient
+    metadata?: Record<string, any>
+  }
 ): Promise<T | null> {
-  const jsonPrompt = `${prompt}\n\nRespond with ONLY a valid JSON object.`
-  
+  const userPrompt = `${prompt}\n\nRespond with ONLY a valid JSON object. Begin your reply with '{' and end with '}'. Do not wrap the response in backticks.`
+
   const response = await generateText({
-    messages: [{ role: 'user', content: jsonPrompt }],
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You must return strictly valid JSON. Do not include code fences, markdown, commentary, or any text before or after the JSON object.',
+      },
+      { role: 'user', content: userPrompt },
+    ],
     feature,
-    customConfig: { temperature: 0.3 } // Lower temperature for JSON
+    customConfig: { temperature: 0.3 },
   })
-  
+
   if (response.error) {
     console.error('JSON generation error:', response.error)
     return null
   }
-  
+
+  const sanitized = (() => {
+    let output = response.content.trim()
+
+    // Strip common markdown fences
+    output = output.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+
+    // Ensure we only keep the first JSON object in case of stray text
+    const firstBrace = output.indexOf('{')
+    const lastBrace = output.lastIndexOf('}')
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
+      output = output.slice(firstBrace, lastBrace + 1)
+    }
+
+    return output
+  })()
+
+  const baseModel = response.model || getAIModelConfig(feature)?.model || 'unknown'
+  const usageStats = response.usage
+
+  const logUsage = async (success: boolean, errorMessage?: string) => {
+    if (!tracking) return
+
+    const inputTokens = usageStats?.prompt_tokens ?? 0
+    const outputTokens = usageStats?.completion_tokens ?? 0
+    let totalTokens = usageStats?.total_tokens ?? 0
+
+    if (!totalTokens) {
+      totalTokens = estimateTokensForText(userPrompt, baseModel)
+    }
+
+    try {
+      await trackTokenUsage(
+        {
+          user_id: tracking.userId,
+          action_type: tracking.actionType,
+          model_used: baseModel,
+          tokens_used: totalTokens,
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+          cost_estimate: 0,
+          success,
+          error_message: success ? undefined : errorMessage,
+          metadata: {
+            feature,
+            ...tracking.metadata,
+            estimated_tokens: usageStats?.total_tokens ? false : true,
+          },
+        },
+        tracking.supabaseClient
+      )
+    } catch (trackingError) {
+      console.error('Failed to track token usage for generateJSON:', trackingError)
+    }
+  }
+
   try {
-    const parsed = JSON.parse(response.content)
-    
+    const parsed = JSON.parse(sanitized)
+
     if (validator && !validator(parsed)) {
       console.error('JSON validation failed:', parsed)
+      await logUsage(false, 'Validation failed for JSON response.')
       return null
     }
-    
+
+    await logUsage(true)
     return parsed
   } catch (error) {
-    console.error('JSON parsing error:', error)
+    console.error('JSON parsing error:', error, '\nRaw response:', response.content)
+    await logUsage(false, error instanceof Error ? error.message : 'Unknown JSON parsing error')
     return null
   }
 }

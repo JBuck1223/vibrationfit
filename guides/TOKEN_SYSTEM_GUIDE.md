@@ -308,6 +308,20 @@ if (balance <= 0) {
 
 ---
 
+## ✅ Mandatory Tracking Rule
+
+> **Every AI-powered operation that consumes OpenAI credits MUST log a `token_usage` record via `trackTokenUsage`.**
+>
+> - Call `trackTokenUsage` (or the helper that wraps it) immediately after the model response is returned, even when you fall back to heuristic results or encounter errors.
+> - Add a new `action_type` to both TypeScript and the Postgres constraint before shipping a feature.
+> - Include enough metadata (route name, category, context IDs) so finance/customer success can audit usage later.
+> - No shortcut exceptions—console logging or analytics events do not satisfy this requirement.
+> - **Expose model configuration for the feature in `/admin/ai-models` so the model can be swapped without code changes.**
+
+Keep this rule in mind when adding new routes, background jobs, or server utilities. If a feature uses tokens, it must produce a matching ledger entry.
+
+---
+
 ## 📋 **Next Steps**
 
 ### **Phase 1: Tracking Infrastructure** ✅

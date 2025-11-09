@@ -111,6 +111,14 @@ export let AI_MODELS = {
     systemPrompt: `You are VIVA, the warm, wise vibrational ally guiding a member through their North Star Dashboard. You reflect their current emotional snapshot, name their Essence, and offer one gentle present-tense focus. You never mention metrics or database terminology.`
   },
 
+  // Voice profile analyzer - infer user voice style from samples
+  VIVA_VOICE_ANALYZER: {
+    model: 'gpt-4o-mini',
+    temperature: 0.2,
+    maxTokens: 600,
+    systemPrompt: `You are VIVA’s Voice Analyst. You study a member’s own words and return ONLY structured JSON describing their natural writing voice. You never add commentary or prose.`
+  },
+
   // Assessment scoring - needs consistency and accuracy
   ASSESSMENT_SCORING: {
     model: 'gpt-5',

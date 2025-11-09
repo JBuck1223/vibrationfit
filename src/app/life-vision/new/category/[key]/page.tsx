@@ -253,15 +253,17 @@ export default function CategoryPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mode: 'text',
+          mode: 'flip',
           input: contrastText,
-          save_to_db: false
-        })
+          category: categoryKey,
+          save_to_db: true,
+        }),
       })
 
       if (response.ok) {
         const data = await response.json()
-        setClarityFromContrast(data.clarity_seed || '')
+        const claritySeed = data.items?.[0]?.clarity_seed || ''
+        setClarityFromContrast(claritySeed)
       } else {
         console.error('Failed to flip contrast')
       }

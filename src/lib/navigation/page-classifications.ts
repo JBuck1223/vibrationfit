@@ -77,6 +77,11 @@ export const PAGE_CLASSIFICATIONS = {
     // Vibrational System
     '/scenes/builder',
     '/abundance',
+
+    // Voice Profile System
+    '/voice-profile',
+    '/voice-profile/quiz',
+    '/voice-profile/analyze',
     
     // Activation Intensive Program
     '/intensive',

@@ -75,6 +75,8 @@ export const userNavigation: NavItem[] = [
       { name: 'My Active Profile', href: '/profile/active', icon: Zap },
       { name: 'Edit Profile', href: '/profile/edit', icon: Edit },
       { name: 'All Profiles', href: '/profile', icon: Eye },
+      { name: 'Voice Profile', href: '/voice-profile', icon: Palette },
+      { name: 'Voice Quiz', href: '/voice-profile/quiz', icon: Sparkles },
     ]
   },
   {
