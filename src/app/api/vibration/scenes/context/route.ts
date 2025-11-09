@@ -191,7 +191,7 @@ export async function GET(request: Request) {
     }
 
     const visionField = VISION_FIELD_MAP[category] ?? category
-    const existingVisionParagraph = vision ? vision[visionField] ?? '' : ''
+    const existingVisionParagraph = vision ? (vision as Record<string, string | null | undefined>)[visionField] ?? '' : ''
 
     return NextResponse.json({
       category,
