@@ -177,9 +177,10 @@ export async function GET(request: Request) {
     if ((!flippedText || flippedText.trim().length === 0) && profileContrastText && profileContrastText.trim().length > 0) {
       try {
         const flipResult = await flipFrequency({ mode: 'flip', input: profileContrastText })
+        const flipResponse = typeof flipResult === 'string' ? null : flipResult
         const generated =
           (typeof flipResult === 'string' && flipResult.trim().length > 0 ? flipResult : null) ??
-          (flipResult.items?.[0]?.clarity_seed ?? '').trim()
+          flipResponse?.items?.[0]?.clarity_seed?.trim() ?? ''
 
         if (generated) {
           flippedText = generated
