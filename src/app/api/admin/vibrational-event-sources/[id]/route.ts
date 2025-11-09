@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { clearVibrationalSourceCache } from '@/lib/vibration/sources'
 
@@ -30,10 +30,11 @@ async function getAdminSupabase() {
 }
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { supabase, user } = await getAdminSupabase()
 
     if (!user) {
@@ -100,7 +101,7 @@ export async function PATCH(
     const { data, error } = await supabase
       .from('vibrational_event_sources')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -123,10 +124,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { supabase, user } = await getAdminSupabase()
 
     if (!user) {
@@ -136,7 +138,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('vibrational_event_sources')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       if (error.code === 'PGRST116') {

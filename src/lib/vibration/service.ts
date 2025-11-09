@@ -338,10 +338,13 @@ function fallbackAnalysis(text: string): VibrationalAnalysis {
   }
 }
 
-function validateSceneGeneratorResponse(data: any): data is { scenes: Array<{ title: string; text: string; essence_word?: string }> } {
-  if (!data || typeof data !== 'object' || !Array.isArray(data.scenes)) return false
-  return data.scenes.every(
-    (scene) => scene && typeof scene.title === 'string' && typeof scene.text === 'string' && scene.text.length > 0
+type SceneGeneratorResponse = { scenes: Array<{ title: string; text: string; essence_word?: string }> }
+
+function validateSceneGeneratorResponse(data: unknown): data is SceneGeneratorResponse {
+  if (!data || typeof data !== 'object' || !Array.isArray((data as { scenes?: unknown }).scenes)) return false
+  const { scenes } = data as { scenes: Array<{ title?: unknown; text?: unknown }> }
+  return scenes.every(
+    (scene) => typeof scene?.title === 'string' && typeof scene?.text === 'string' && scene.text.length > 0
   )
 }
 
