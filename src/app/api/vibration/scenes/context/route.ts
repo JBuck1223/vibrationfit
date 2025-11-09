@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { flipFrequency } from '@/lib/viva/flip-frequency'
 
@@ -32,7 +33,7 @@ const VISION_FIELD_MAP: Record<string, string> = {
   spirituality: 'spirituality',
 }
 
-async function fetchActiveProfile(supabase: ReturnType<typeof createClient>, userId: string) {
+async function fetchActiveProfile(supabase: SupabaseClient, userId: string) {
   const { data: activeProfile } = await supabase
     .from('user_profiles')
     .select('id, *')
@@ -54,7 +55,7 @@ async function fetchActiveProfile(supabase: ReturnType<typeof createClient>, use
   return fallbackProfile ?? null
 }
 
-async function fetchActiveVision(supabase: ReturnType<typeof createClient>, userId: string) {
+async function fetchActiveVision(supabase: SupabaseClient, userId: string) {
   const selectFields = [
     'id',
     'fun',
@@ -93,7 +94,7 @@ async function fetchActiveVision(supabase: ReturnType<typeof createClient>, user
 }
 
 async function fetchAssessmentSnippets(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   userId: string,
   category: string
 ): Promise<string[]> {
@@ -129,7 +130,7 @@ async function fetchAssessmentSnippets(
 }
 
 async function fetchLatestFlip(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   userId: string,
   category: string
 ) {
