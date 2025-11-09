@@ -2993,7 +2993,7 @@ SidebarLayout.displayName = 'SidebarLayout'
 interface OfferStackItem {
   id: string
   title: string
-  description?: string
+  description?: string | React.ReactNode
   icon?: LucideIcon
   included?: boolean
   locked?: boolean
@@ -3090,7 +3090,7 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                       
                       {/* Title */}
                       <div className="flex-1">
-                        <h4 className="text-base md:text-lg font-semibold text-white">
+                        <h4 className="text-base md:text-lg text-white">
                           {item.title}
                         </h4>
                       </div>
@@ -3118,15 +3118,19 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                 {/* Item Content - Expandable */}
                 {isExpanded && item.description && (
                   <div className="px-2 md:px-6 pb-2 md:pb-4 border-t border-[#333]">
-                    <div className="pt-4">
-                      {item.description.split('\n').map((line, index) => (
-                        <div key={index} className="flex items-start gap-2 mb-2 last:mb-0">
-                          <span className="text-[#39FF14] text-sm mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-neutral-300 text-sm leading-relaxed">
-                            {line.replace(/^•\s*/, '')}
-                          </span>
-                        </div>
-                      ))}
+                    <div className="pt-4 space-y-2 text-neutral-300 text-sm leading-relaxed">
+                      {typeof item.description === 'string' ? (
+                        item.description.split('\n').map((line, index) => (
+                          <div key={index} className="flex items-start gap-2 mb-2 last:mb-0">
+                            <span className="text-[#39FF14] text-sm mt-0.5 flex-shrink-0">•</span>
+                            <span>
+                              {line.replace(/^•\s*/, '')}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        item.description
+                      )}
                     </div>
                   </div>
                 )}
@@ -4912,6 +4916,11 @@ export interface SwipeableCardsProps extends React.HTMLAttributes<HTMLDivElement
    */
   mobileOnly?: boolean
   /**
+   * Force swipe stack on desktop (instead of grid)
+   * @default false
+   */
+  desktopSwipe?: boolean
+  /**
    * Cards per view on desktop
    * @default 3
    */
@@ -4931,6 +4940,16 @@ export interface SwipeableCardsProps extends React.HTMLAttributes<HTMLDivElement
    * @default true
    */
   autoSnap?: boolean
+  /**
+   * Automatically advance cards (carousel)
+   * @default false
+   */
+  autoScroll?: boolean
+  /**
+   * Interval for auto scroll in ms
+   * @default 6000
+   */
+  autoScrollInterval?: number
   /**
    * Show card indicators
    * @default true
@@ -4957,10 +4976,13 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
     title,
     subtitle,
     mobileOnly = true,
+    desktopSwipe = false,
     desktopCardsPerView = 3,
     swipeThreshold = 0.25,
     hapticFeedback = true,
     autoSnap = true,
+    autoScroll = false,
+    autoScrollInterval = 6000,
     showIndicators = true,
     cardVariant = 'default',
     onCardSwiped,
@@ -4974,12 +4996,17 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
     const [startY, setStartY] = useState(0)
     const [translateX, setTranslateX] = useState(0)
     const [translateY, setTranslateY] = useState(0)
-    const [isMobile, setIsMobile] = useState(false)
-    const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
-    const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; type: 'active' | 'actualized' } | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; type: 'active' | 'actualized' } | null>(null)
     
     const containerRef = useRef<HTMLDivElement>(null)
     const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+    const desktopDragState = useRef({
+      isDragging: false,
+      startX: 0,
+      scrollLeft: 0,
+    })
 
     // Detect mobile viewport
     useEffect(() => {
@@ -5009,7 +5036,7 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
 
     // Touch handlers
     const handleTouchStart = (e: React.TouchEvent) => {
-      if (!isMobile && mobileOnly) return
+      if (!isMobile && mobileOnly && !desktopSwipe) return
       
       setIsDragging(true)
       setStartX(e.touches[0].clientX)
@@ -5019,7 +5046,7 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
     }
 
     const handleTouchMove = (e: React.TouchEvent) => {
-      if (!isDragging || (!isMobile && mobileOnly)) return
+      if (!isDragging || (!isMobile && mobileOnly && !desktopSwipe)) return
 
       const currentX = e.touches[0].clientX
       const currentY = e.touches[0].clientY
@@ -5080,7 +5107,7 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
 
     // Mouse handlers (for desktop testing)
     const handleMouseDown = (e: React.MouseEvent) => {
-      if (!isMobile && mobileOnly) return
+      if (!isMobile && mobileOnly && !desktopSwipe) return
       
       setIsDragging(true)
       setStartX(e.clientX)
@@ -5090,7 +5117,7 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
     }
 
     const handleMouseMove = (e: React.MouseEvent) => {
-      if (!isDragging || (!isMobile && mobileOnly)) return
+      if (!isDragging || (!isMobile && mobileOnly && !desktopSwipe)) return
 
       const currentX = e.clientX
       const currentY = e.clientY
@@ -5177,7 +5204,27 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
     }, [lightboxImage])
 
     // Show grid on desktop if not mobile-only
-    const showDesktopGrid = !mobileOnly || !isMobile
+    const showDesktopGrid = (!mobileOnly || !isMobile) && !desktopSwipe
+
+    // Auto-scroll for swipeable modes (mobile and desktopSwipe)
+    useEffect(() => {
+      if (!autoScroll) return
+      if (cards.length <= 1) return
+      if (!isMobile && !desktopSwipe) return
+
+      const interval = setInterval(() => {
+        setCurrentIndex(prev => {
+          const next = (prev + 1) % cards.length
+          if (autoSnap) {
+            setTranslateX(0)
+            setTranslateY(0)
+          }
+          return next
+        })
+      }, autoScrollInterval)
+
+      return () => clearInterval(interval)
+    }, [autoScroll, autoScrollInterval, cards.length, isMobile, desktopSwipe, autoSnap])
 
     // Desktop scrollable view ref (used only in desktop view)
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
@@ -5202,6 +5249,34 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
           })
         }
     }, [desktopCardsPerView])
+
+    const handleDesktopPointerDown = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+      if (isMobile || desktopSwipe) return
+      if (!scrollContainerRef.current) return
+
+      scrollContainerRef.current.setPointerCapture(e.pointerId)
+      desktopDragState.current = {
+        isDragging: true,
+        startX: e.clientX,
+        scrollLeft: scrollContainerRef.current.scrollLeft
+      }
+    }, [isMobile, desktopSwipe])
+
+    const handleDesktopPointerMove = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+      if (!desktopDragState.current.isDragging) return
+      if (!scrollContainerRef.current) return
+
+      e.preventDefault()
+      const deltaX = e.clientX - desktopDragState.current.startX
+      scrollContainerRef.current.scrollLeft = desktopDragState.current.scrollLeft - deltaX
+    }, [])
+
+    const endDesktopDrag = React.useCallback((e?: React.PointerEvent<HTMLDivElement>) => {
+      if (e && scrollContainerRef.current?.hasPointerCapture(e.pointerId)) {
+        scrollContainerRef.current.releasePointerCapture(e.pointerId)
+      }
+      desktopDragState.current.isDragging = false
+    }, [])
     
     if (showDesktopGrid && !isMobile) {
       // Desktop scrollable view - 3 cards at a time
@@ -5222,11 +5297,16 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
             </Text>
           )}
           
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-hidden px-16 xl:px-20">
             {/* Scrollable container - shows 3 cards at a time */}
             <div
               ref={scrollContainerRef}
-              className="overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory"
+              className="overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory cursor-grab active:cursor-grabbing select-none"
+              onPointerDown={handleDesktopPointerDown}
+              onPointerMove={handleDesktopPointerMove}
+              onPointerUp={endDesktopDrag}
+              onPointerLeave={endDesktopDrag}
+              onPointerCancel={endDesktopDrag}
               style={{
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
@@ -5237,17 +5317,19 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                 {cards.map((card, index) => (
                   <div
                     key={card.id}
-                    className="flex-shrink-0 snap-start"
+                    className="flex-shrink-0 snap-start pt-1 md:pt-2 px-3 xl:px-4"
                     style={{ 
-                      width: `calc((100% - ${(desktopCardsPerView - 1) * 1.5}rem) / ${desktopCardsPerView})`,
-                      minWidth: `calc((100% - ${(desktopCardsPerView - 1) * 1.5}rem) / ${desktopCardsPerView})`,
+                      width: `calc((100% - ${(desktopCardsPerView - 1) * 3}rem) / ${desktopCardsPerView})`,
+                      minWidth: `calc((100% - ${(desktopCardsPerView - 1) * 3}rem) / ${desktopCardsPerView})`,
                     }}
                   >
                     <Card
                       variant={cardVariant}
                       className={cn(
-                        'overflow-hidden transition-all duration-300 h-full',
-                        'hover:-translate-y-1 hover:border-primary-500',
+                        'overflow-hidden transition-all duration-300 ease-out h-full',
+                        'shadow-[0_6px_20px_rgba(0,0,0,0.45)]',
+                        'hover:-translate-y-1 hover:shadow-[0_18px_36px_rgba(57,255,20,0.28)]',
+                        'hover:border-[#39FF14]',
                         card.onClick && 'cursor-pointer'
                       )}
                       onClick={() => {
@@ -5379,17 +5461,17 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
               <>
                 <button
                   onClick={() => scrollCards('left')}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-[#1F1F1F] border-2 border-[#333] rounded-full flex items-center justify-center hover:border-primary-500 transition-colors z-10"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:flex w-12 h-12 bg-[#39FF14]/15 border-2 border-[#39FF14]/60 rounded-full items-center justify-center hover:border-[#39FF14] transition-colors z-10"
                   aria-label="Scroll left"
                 >
-                  <Icon icon={ChevronLeft} size="md" />
+                  <Icon icon={ChevronLeft} size="md" className="text-[#39FF14]" />
                 </button>
                 <button
                   onClick={() => scrollCards('right')}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-[#1F1F1F] border-2 border-[#333] rounded-full flex items-center justify-center hover:border-primary-500 transition-colors z-10"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 hidden lg:flex w-12 h-12 bg-[#39FF14] border-2 border-[#39FF14] rounded-full items-center justify-center hover:border-[#39FF14] transition-colors z-10"
                   aria-label="Scroll right"
                 >
-                  <Icon icon={ChevronRight} size="md" />
+                  <Icon icon={ChevronRight} size="md" className="text-black" />
                 </button>
               </>
             )}

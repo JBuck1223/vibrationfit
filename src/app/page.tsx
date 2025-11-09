@@ -5,7 +5,7 @@ import {
   Sparkles, PartyPopper, Plane, Home, Users, Heart, 
   Activity, DollarSign, Briefcase, UserPlus, Package, 
   Gift, Zap, CheckCircle, ArrowRight, Star, Target,
-  Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check, Clock, User,
+  Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check, Clock, User, Dumbbell,
   Headphones, Image, BookOpen, CalendarDays, Lock, HelpCircle, Eye,
   RefreshCw, Maximize2, Minimize2, Layers
 } from 'lucide-react'
@@ -27,6 +27,7 @@ import {
   Badge,
   Video,
   OfferStack,
+  SwipeableCards,
   Heading,
   Text,
   Title,
@@ -296,66 +297,68 @@ export default function HomePage() {
         {/* Hero Section */}
         <section>
           <Cover minHeight="500px" className="!p-0">
-            <div className="w-full">
-              {/* Headline at top */}
-              <div className="text-center mb-4 md:mb-6">
-                <Heading level={1} className="text-white leading-tight">
-                  Thoughts become things…<br />so why isn't it working?
-                </Heading>
-              </div>
-              
-              {/* Two column layout for desktop */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                {/* Left column - Content */}
-                <div className="space-y-6 text-center lg:text-left flex flex-col justify-center">
-                  <Heading level={3} className="text-neutral-200 text-center md:text-center mt-2 md:mt-2 mb-2">
-                    Bridge the woo-woo with the how-to.
+            <Container size="xl" className="w-full">
+              <Stack gap="md" className="items-center">
+                {/* Headline at top */}
+                <div className="text-center">
+                  <Heading level={1} className="text-white leading-tight !mb-0.5 md:!mb-3">
+                    Thoughts become things…<br />so why isn't it working?
                   </Heading>
-                  
-                  <Heading level={4} className="text-[#39FF14] text-center md:text-center mt-4 mb-4">
-                    Activate your Life Vision in <span className="font-bold text-[#39FF14]">72 hours</span>
-                    <br />
-                    with the Activation Intensive.
-                  </Heading>
-                  
-                  <BulletedList className="leading-relaxed lg:text-left lg:ml-6">
-                    <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                      Conscious Creation System: Train → Tune → Track
-                    </ListItem>
-                    <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                      VIVA AI turns contrast into clarity—even if you don't know what you want
-                    </ListItem>
-                    <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                      Powered by the 5‑Phase Flow inside VIVA Vision
-                    </ListItem>
-                  </BulletedList>
-                  
-                  <div className="flex flex-col items-center md:items-center">
-                    <Button variant="primary" size="xl" className="mt-1 mb-2 md:mt-2" asChild>
-                      <a href="#pricing">
-                        Start the Activation Intensive
-                      </a>
-                  </Button>
-                    <Text size="xs" className="text-neutral-400 text-center">
-                      $499 today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
-                    </Text>
-                  </div>
                 </div>
                 
-                {/* Right column - Video */}
-                <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-4xl mx-auto order-last lg:order-last lg:mt-4">
-                  <Video
-                    src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
-                    poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
-                    variant="hero"
-                    quality="auto"
-                    trackingId="homepage-hero-video"
-                    saveProgress={true}
-                    className="w-full h-auto"
-                  />
+                {/* Two column layout for desktop */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                  {/* Left column - Content */}
+                  <div className="space-y-6 text-center lg:text-left flex flex-col justify-center">
+                    <Heading level={3} className="text-neutral-200 text-center md:text-center">
+                      Bridge the woo-woo with the how-to.
+                    </Heading>
+                    
+                    <Heading level={4} className="text-[#39FF14] text-center md:text-center">
+                      Activate your Life Vision in <span className="font-bold text-[#39FF14]">72 hours</span>
+                      <br />
+                      with the Activation Intensive.
+                    </Heading>
+                    
+                    <BulletedList className="leading-relaxed lg:text-left lg:ml-6">
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        Conscious Creation System: Train → Tune → Track
+                      </ListItem>
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        VIVA AI turns contrast into clarity—even if you don't know what you want
+                      </ListItem>
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        Powered by the 5‑Phase Flow inside VIVA Vision
+                      </ListItem>
+                    </BulletedList>
+                    
+                    <div className="flex flex-col items-center md:items-center">
+                      <Button variant="primary" size="xl" className="mt-1 mb-2 md:mt-2" asChild>
+                        <a href="#pricing">
+                          Start the Activation Intensive
+                        </a>
+                      </Button>
+                      <Text size="xs" className="text-neutral-400 text-center">
+                        $499 today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                      </Text>
+                    </div>
+                  </div>
+                  
+                  {/* Right column - Video */}
+                  <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full order-last lg:order-last lg:mt-4">
+                    <Video
+                      src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
+                      poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
+                      variant="hero"
+                      quality="auto"
+                      trackingId="homepage-hero-video"
+                      saveProgress={true}
+                      className="w-full h-auto"
+                    />
+                  </div>
                 </div>
-              </div>
-            </div>
+              </Stack>
+            </Container>
           </Cover>
         </section>
 
@@ -430,77 +433,12 @@ export default function HomePage() {
           </Container>
         </section>
 
-        {/* Meet the Mechanism */}
-        <section>
-          <Container size="xl">
-            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
-              <Stack gap="md" className="md:gap-8" align="center">
-                <Heading level={2} className="text-white text-center">
-                  Meet the Engine Behind VIVA Vision
-                </Heading>
-                <Card variant="outlined" className="w-full border-2 !border-[#39FF14]/30 !bg-[#39FF14]/20 flex items-center justify-center pb-4 md:pb-3">
-                  <Heading level={3} className="text-white text-center">
-                    The 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA)
-                  </Heading>
-                </Card>
-                <Text size="base" className="text-neutral-300 text-center w-full">
-                  In 2011, Jordan wrote his first Life I Choose™. In 2014, he did it again—and the same pattern showed up. When Vanessa joined, structure met soul. We realized our writing always followed a hidden creation rhythm—then we taught VIVA to guide anyone through it.
-                </Text>
-                <Grid responsiveCols={{ mobile: 1, desktop: 4 }} minWidth="200px" gap="sm">
-                  <FeatureCard 
-                    icon={Sparkles} 
-                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 1:</span><br /><span>5‑Phase Flow</span></>}
-                    iconColor="#39FF14"
-                    variant="outlined"
-                    number={1}
-                  >
-                    Gratitude → Sensory → Embodiment → Essence → Surrender.
-                  </FeatureCard>
-                  <FeatureCard 
-                    icon={Image} 
-                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 2:</span><br /><span>Scene Builder</span></>}
-                    iconColor="#39FF14"
-                    variant="outlined"
-                    number={2}
-                  >
-                    Turn vague goals into vivid scenes. VIVA prompts for characters, action, setting, and meaning.
-                  </FeatureCard>
-                  <FeatureCard 
-                    icon={RefreshCw} 
-                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 3:</span><br /><span>Flow Loops</span></>}
-                    iconColor="#39FF14"
-                    variant="outlined"
-                    number={3}
-                  >
-                    Balance identity, action, and allowing so momentum compounds instead of stalls.
-                  </FeatureCard>
-                  <FeatureCard 
-                    icon={Maximize2} 
-                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 4:</span><br /><span>Breathing Pace</span></>}
-                    iconColor="#39FF14"
-                    variant="outlined"
-                    number={4}
-                  >
-                    Zoom into sensory detail, zoom out to meaning—writing that feels alive (and sticks).
-                  </FeatureCard>
-                </Grid>
-                <Text size="base" className="text-neutral-300 text-center w-full">
-                  VIVA now walks you through this 4-Layer Architecture across all 12 life categories—so in 72 hours you finish "active" with your complete vision, AM/PM vision audios, vision board built, 3 journal entries logged, calibration call booked, and your Activation Protocol scheduled.
-                </Text>
-                <Button variant="primary" size="lg">
-                  Start the Activation Intensive
-                </Button>
-              </Stack>
-            </div>
-          </Container>
-        </section>
-
         {/* 72-Hour Activation Path */}
         <section>
           <Container size="xl">
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="md" className="md:gap-8">
-                <Heading level={2} className="text-white text-center">
+                <Heading level={2} className="text-white text-center !mb-0 md:!mb-1">
                   Your 72‑Hour Activation Path
                 </Heading>
                 
@@ -911,7 +849,70 @@ export default function HomePage() {
                     </Button>
                   </div>
                 </Stack>
-          </div>
+            </div>
+          </Container>
+        </section>
+
+        {/* Vision Transformations - From Vision to Actualized Reality */}
+        <section>
+          <Container size="xl">
+            <Card variant="elevated" className="p-4 md:p-6 lg:p-8 bg-black/40 border-[#39FF14]/20 border-2">
+              <SwipeableCards
+                title="Vision Transformations"
+                subtitle="From Vision to Actualized Reality"
+                cards={[
+                  {
+                    id: 'vision-million',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/work/1000000-1.jpg',
+                    activeImageAlt: 'Active vision journal entry about million dollar business',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/work/1000000-2.jpg',
+                    actualizedImageAlt: 'Actualized screenshot of million dollar revenue milestone',
+                    content: null
+                  },
+                  {
+                    id: 'vision-italy',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-active-2.jpg',
+                    activeImageAlt: 'Active vision storyboard showing Italy dream',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-actualized-2.jpg',
+                    actualizedImageAlt: 'Actualized photo from Italy dream trip',
+                    content: null
+                  },
+                  {
+                    id: 'vision-home',
+                    activeImage: 'https://via.placeholder.com/400x300/39FF14/000000?text=Active+Vision',
+                    activeImageAlt: 'Active vision - Dream Home storyboard',
+                    actualizedImage: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=Actualized',
+                    actualizedImageAlt: 'Actualized result - Dream Home realized',
+                    content: null
+                  },
+                  {
+                    id: 'vision-relationship',
+                    activeImage: 'https://via.placeholder.com/400x300/14B8A6/FFFFFF?text=Active+Vision',
+                    activeImageAlt: 'Active vision - Aligned relationship intention',
+                    actualizedImage: 'https://via.placeholder.com/400x300/601B9F/FFFFFF?text=Actualized',
+                    actualizedImageAlt: 'Actualized result - Aligned relationship experience',
+                    content: null
+                  },
+                  {
+                    id: 'vision-wellness',
+                    activeImage: 'https://via.placeholder.com/400x300/39FF14/000000?text=Active+Vision',
+                    activeImageAlt: 'Active vision - Whole-self wellness plan',
+                    actualizedImage: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=Actualized',
+                    actualizedImageAlt: 'Actualized result - Whole-self wellness transformation',
+                    content: null
+                  }
+                ]}
+                mobileOnly={false}
+                autoScroll
+                autoScrollInterval={7000}
+                desktopCardsPerView={3}
+                swipeThreshold={0.25}
+                hapticFeedback={true}
+                autoSnap={true}
+                showIndicators={true}
+                cardVariant="elevated"
+              />
+            </Card>
           </Container>
         </section>
 
@@ -1025,87 +1026,73 @@ export default function HomePage() {
           </Container>
         </section>
 
-        {/* Why this works Section */}
+        {/* Meet the Mechanism */}
         <section>
           <Container size="xl">
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
-              <Stack gap="lg" className="md:gap-12">
-                <div className="text-center">
-                  <Heading level={2} className="text-white mb-4">
-                    Why this works (even if…)
+              <Stack gap="sm" className="md:gap-6" align="center">
+                <Heading level={2} className="text-white text-center">
+                  Meet the Engine Behind VIVA Vision
+                </Heading>
+                <Card variant="outlined" className="w-full border-2 !border-[#39FF14]/30 !bg-[#39FF14]/20 flex items-center justify-center pb-4 md:pb-3">
+                  <Heading level={3} className="text-white text-center">
+                    The 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA)
                   </Heading>
-                </div>
-
-                {/* Value Equation Grid */}
-                <Grid minWidth="250px" gap="lg">
-                  {/* Dream Outcome */}
-                  <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30">
-                    <Stack gap="md">
-                      <div className="flex flex-col items-center gap-3 mb-0">
-                        <Icon icon={Sparkles} size="lg" color="#39FF14" />
-                        <Heading level={4} className="text-white text-center font-bold">Total Clarity</Heading>
-                      </div>
-                      <Text size="sm" className="text-neutral-300 text-center">
-                        Your 12‑category Life Vision, activated in 72 hours.
-                      </Text>
-              </Stack>
-            </Card>
-
-                  {/* Likelihood of Success */}
-                  <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30">
-                    <Stack gap="md">
-                      <div className="flex flex-col items-center gap-3 mb-0">
-                        <Icon icon={TrendingUp} size="lg" color="#14B8A6" />
-                        <Heading level={4} className="text-white text-center font-bold">Proven System</Heading>
-          </div>
-                      <Text size="sm" className="text-neutral-300 text-center">
-                        Conscious Creation System: Train → Tune → Track + proof.
-                      </Text>
-                    </Stack>
-                  </Card>
-
-                  {/* Time Delay */}
-                  <Card variant="elevated" className="bg-gradient-to-br from-[#8B5CF6]/10 to-[#BF00FF]/10 border-[#8B5CF6]/30">
-                    <Stack gap="md">
-                      <div className="flex flex-col items-center gap-3 mb-0">
-                        <Icon icon={Clock} size="lg" color="#8B5CF6" />
-                        <Heading level={4} className="text-white text-center font-bold">72‑Hour Activation</Heading>
-                      </div>
-                      <Text size="sm" className="text-neutral-300 text-center">
-                        Vision, audio, board, journals, and call—done in 3 days.
-                      </Text>
-                    </Stack>
-                  </Card>
-
-                  {/* Effort & Sacrifice */}
-                  <Card variant="elevated" className="bg-gradient-to-br from-[#FFB701]/10 to-[#39FF14]/10 border-[#FFB701]/30">
-                    <Stack gap="md">
-                      <div className="flex flex-col items-center gap-3 mb-0">
-                        <Icon icon={Zap} size="lg" color="#FFB701" />
-                        <Heading level={4} className="text-white text-center font-bold">No Guesswork</Heading>
-                      </div>
-                      <Text size="sm" className="text-neutral-300 text-center">
-                        VIVA AI turns contrast into clarity; simple guided steps.
-                      </Text>
-                    </Stack>
-                  </Card>
+                </Card>
+                <Text size="base" className="text-neutral-300 text-center w-full">
+                  In 2011, Jordan wrote his first Life I Choose™. In 2014, he did it again—and the same pattern showed up. When Vanessa joined, structure met soul. We realized our writing always followed a hidden creation rhythm—then we taught VIVA to guide anyone through it.
+                </Text>
+                <Grid responsiveCols={{ mobile: 1, desktop: 4 }} minWidth="200px" gap="sm">
+                  <FeatureCard 
+                    icon={Sparkles} 
+                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 1:</span><br /><span>5‑Phase Flow</span></>}
+                    iconColor="#39FF14"
+                    variant="outlined"
+                    number={1}
+                  >
+                    Gratitude → Sensory → Embodiment → Essence → Surrender.
+                  </FeatureCard>
+                  <FeatureCard 
+                    icon={Image} 
+                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 2:</span><br /><span>Scene Builder</span></>}
+                    iconColor="#39FF14"
+                    variant="outlined"
+                    number={2}
+                  >
+                    Turn vague goals into vivid scenes. VIVA prompts for characters, action, setting, and meaning.
+                  </FeatureCard>
+                  <FeatureCard 
+                    icon={RefreshCw} 
+                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 3:</span><br /><span>Flow Loops</span></>}
+                    iconColor="#39FF14"
+                    variant="outlined"
+                    number={3}
+                  >
+                    Balance identity, action, and allowing so momentum compounds instead of stalls.
+                  </FeatureCard>
+                  <FeatureCard 
+                    icon={Maximize2} 
+                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 4:</span><br /><span>Breathing Pace</span></>}
+                    iconColor="#39FF14"
+                    variant="outlined"
+                    number={4}
+                  >
+                    Zoom into sensory detail, zoom out to meaning—writing that feels alive (and sticks).
+                  </FeatureCard>
                 </Grid>
-
-                {/* CTA Button */}
-                <div className="text-center">
-                  <Button variant="primary" size="xl" asChild>
-                    <a href="#pricing">
-                      Start the Activation Intensive
-                    </a>
-                  </Button>
-                </div>
+                <Text size="base" className="text-neutral-300 text-center w-full">
+                  VIVA now walks you through this 4-Layer Architecture across all 12 life categories—so in 72 hours you finish "active" with your complete vision, AM/PM vision audios, vision board built, 3 journal entries logged, calibration call booked, and your Activation Protocol scheduled.
+                </Text>
+                <Button variant="primary" size="lg">
+                  Start the Activation Intensive
+                </Button>
               </Stack>
             </div>
           </Container>
         </section>
 
         {/* Guarantees Section */}
-        <section>
+        <section id="our-guarantees">
           <Container size="xl">
             <div className="bg-[#1F1F1F] border-[#333] border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="xs" className="md:gap-3" align="center">
@@ -1187,13 +1174,17 @@ export default function HomePage() {
                 
                 {/* ACTIVATION INTENSIVE TITLE - ENHANCED */}
                 <div className="text-center">
+                  <Heading level={2} className="text-white text-3xl md:text-5xl font-bold mb-6 md:mb-8">
+                    Pricing
+                  </Heading>
+                  <div className="w-full h-px bg-gradient-to-r from-[#39FF14]/0 via-[#39FF14]/60 to-[#39FF14]/0 mx-auto mb-6 md:mb-8"></div>
+                  <Heading level={3} className="mb-3 bg-gradient-to-r from-[#39FF14] via-[#14B8A6] to-[#8B5CF6] bg-clip-text text-transparent">
+                      Vision Activation Intensive
+                  </Heading>
                   <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-gradient-to-r from-[#BF00FF]/20 to-[#8B5CF6]/20 text-[#BF00FF] border-[#BF00FF]/30 mb-4">
                       <Clock className="w-4 h-4 inline mr-2" />
                       72-Hour Activation
                   </span>
-                  <Heading level={2} className="mb-4 bg-gradient-to-r from-[#39FF14] via-[#14B8A6] to-[#8B5CF6] bg-clip-text text-transparent">
-                      Vision Activation Intensive
-                  </Heading>
                   <Text size="xl" className="text-neutral-300 max-w-3xl mx-auto">
                     Go from blank slate to fully activated in 72 hours. Vision drafted, board built, audios recorded, conscious creation system live.
                   </Text>
@@ -1624,10 +1615,6 @@ export default function HomePage() {
                         <div className="text-center mt-4 space-y-4">
                           <a
                             href="#faq"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })
-                            }}
                             className="text-[#39FF14] hover:text-[#5EC49A] underline transition-colors cursor-pointer text-sm md:text-base block mb-6"
                           >
                             See full FAQ
@@ -1649,8 +1636,8 @@ export default function HomePage() {
         </section>
 
         {/* FAQ Section - Full FAQ */}
-        <section id="faq">
-          {/* Full FAQ content can be added here later */}
+        <section id="faq" className="hidden" aria-hidden="true">
+          {/* Reserved for future FAQ content */}
         </section>
 
         {/* The Problem: Vibrational Chaos */}
@@ -1670,25 +1657,25 @@ export default function HomePage() {
                 </div>
                 <Stack gap="md" className="md:gap-8">
                   {/* Symptoms Section */}
-                  <div>
-                    <Heading level={3} className="text-[#FF0040] mb-4 text-center">Symptoms</Heading>
-                    <div className="space-y-3">
-                      <BulletedList>
-                        <ListItem variant="error">Flip‑flop thoughts: "I want it" ⇄ "I can't have it"</ListItem>
-                        <ListItem variant="error">Toddlers‑with‑scissors beliefs running your mind</ListItem>
-                        <ListItem variant="error">Open loops: start, stop, restart—no dominant signal</ListItem>
-                        <ListItem variant="error">Seeking signs instead of setting structure</ListItem>
-                        <ListItem variant="error">Evidence‑hunting for why it won't work</ListItem>
+                  <div className="-mt-4 md:-mt-6">
+                    <Heading level={3} className="text-[#FF0040] text-center mb-4">Symptoms</Heading>
+                    <div className="space-y-3 text-center px-0 md:px-4">
+                      <BulletedList className="inline-flex flex-col items-center gap-2">
+                        <ListItem variant="error" className="text-center max-w-xl">Flip‑flop thoughts: "I want it" ⇄ "I can't have it"</ListItem>
+                        <ListItem variant="error" className="text-center max-w-xl">Toddlers‑with‑scissors beliefs running your mind</ListItem>
+                        <ListItem variant="error" className="text-center max-w-xl">Open loops: start, stop, restart—no dominant signal</ListItem>
+                        <ListItem variant="error" className="text-center max-w-xl">Seeking signs instead of setting structure</ListItem>
+                        <ListItem variant="error" className="text-center max-w-xl">Evidence‑hunting for why it won't work</ListItem>
                       </BulletedList>
                     </div>
               </div>
 
                   {/* 60-Second Self-Check */}
-                  <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#FF0040]/30">
+                  <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#FF0040]/30 w-full max-w-5xl mx-auto">
                     <Heading level={3} className="text-white mb-4 text-center">60‑Second Self‑Check</Heading>
                     <Text size="sm" className="text-neutral-400 text-center mb-4">Tap Yes/No for each. Your score appears instantly.</Text>
                     <Text size="sm" className="text-neutral-300 text-center mb-4 font-semibold">In the past 7 days did you...</Text>
-                    <Stack gap="sm">
+                    <Stack gap="sm" className="items-center">
                       {[
                         'Contradict a key desire with doubt?',
                         'Avoid writing what you want ("I\'m not sure yet")?',
@@ -1696,16 +1683,16 @@ export default function HomePage() {
                         'Consume more than you create (no assets built)?',
                         'Dismiss a small win as "luck"?'
                       ].map((question, index) => (
-                        <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 py-3 border-b border-neutral-700/50 last:border-b-0">
-                          <Text size="sm" className="text-neutral-300 flex-1">{question}</Text>
-                          <div className="flex gap-2 sm:gap-3 flex-shrink-0">
+                        <div key={index} className="flex flex-col items-center gap-3 py-3 border-b border-neutral-700/50 last:border-b-0 w-full">
+                          <Text size="sm" className="text-neutral-300 text-center">{question}</Text>
+                          <div className="flex gap-3">
                             <button
                               onClick={() => {
                                 const newAnswers = [...selfCheckAnswers]
                                 newAnswers[index] = true
                                 setSelfCheckAnswers(newAnswers)
                               }}
-                              className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all min-h-[44px] ${
+                              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all min-h-[44px] ${
                                 selfCheckAnswers[index]
                                   ? 'bg-[#39FF14] text-black scale-105 shadow-lg shadow-[#39FF14]/20'
                                   : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'
@@ -1719,7 +1706,7 @@ export default function HomePage() {
                                 newAnswers[index] = false
                                 setSelfCheckAnswers(newAnswers)
                               }}
-                              className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all min-h-[44px] ${
+                              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all min-h-[44px] ${
                                 selfCheckAnswers[index] === false
                                   ? 'bg-neutral-800 text-white border-2 border-[#333]'
                                   : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'
@@ -1772,133 +1759,9 @@ export default function HomePage() {
                     </Stack>
                   </div>
 
-                  {/* Cheeseburger Test */}
-                  <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#FF0040]/30">
-                    <Heading level={3} className="text-white mb-2 text-center">Cheeseburger Test</Heading>
-                    <Text size="xs" className="text-neutral-400 text-center mb-4">
-                      Tap and hold "Yes" for 3 seconds to place your order. Changing your mind cancels it.
-                    </Text>
-                    <Text size="sm" className="text-neutral-400 text-center mb-6">
-                      Server: "Would you like the cheeseburger?"
-                    </Text>
-
-                    {!burgerOrderPlaced && !burgerOrderCanceled && (
-                      <div className="space-y-4">
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                          <button
-                            onMouseDown={handleYesMouseDown}
-                            onMouseUp={handleYesMouseUp}
-                            onMouseLeave={handleYesMouseUp}
-                            onTouchStart={handleYesMouseDown}
-                            onTouchEnd={handleYesMouseUp}
-                            className={`px-6 py-4 rounded-full text-base sm:text-lg font-semibold text-black transition-all min-h-[44px] sm:min-h-[48px] ${
-                              isYesHeld ? 'bg-[#5EC49A] scale-105' : 'bg-[#39FF14] hover:scale-105'
-                            }`}
-                          >
-                            Yes — Place the order
-                          </button>
-                          <button
-                            onClick={handleNoClick}
-                            className="px-6 py-4 rounded-full text-base sm:text-lg font-semibold bg-neutral-700 text-neutral-300 hover:bg-neutral-600 transition-all min-h-[44px] sm:min-h-[48px]"
-                          >
-                            No — Cancel the order
-                          </button>
-                        </div>
-
-                        {/* Progress ring/circle */}
-                        {isYesHeld && (
-                          <div className="flex flex-col items-center space-y-3">
-                            <div className="relative w-32 h-32">
-                              <svg className="transform -rotate-90" width="128" height="128">
-                                {/* Background circle */}
-                                <circle
-                                  cx="64"
-                                  cy="64"
-                                  r="56"
-                                  fill="none"
-                                  stroke="#333"
-                                  strokeWidth="8"
-                                />
-                                {/* Progress circle */}
-                                <circle
-                                  cx="64"
-                                  cy="64"
-                                  r="56"
-                                  fill="none"
-                                  stroke="#39FF14"
-                                  strokeWidth="8"
-                                  strokeDasharray={`${2 * Math.PI * 56}`}
-                                  strokeDashoffset={`${2 * Math.PI * 56 * (1 - holdProgress / 100)}`}
-                                  className="transition-all duration-50"
-                                />
-                              </svg>
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <Text className="text-2xl font-bold text-[#39FF14]">
-                                  {Math.round(holdProgress)}%
-                                </Text>
-                              </div>
-                            </div>
-                            <Text size="xs" className="text-neutral-400 text-center">
-                              {holdProgress < 100 ? 'Hold Yes to complete order...' : 'Order placed!'}
-                            </Text>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {burgerOrderPlaced && (
-                      <div className="space-y-4" role="status" aria-live="polite">
-                        <div className="flex flex-col items-center bg-[#39FF14]/10 border-2 border-[#39FF14] rounded-lg p-6">
-                          <div className="w-24 h-24 rounded-full bg-[#39FF14]/20 flex items-center justify-center mb-4" role="img" aria-label="Burger delivered">
-                            <span className="text-6xl">🍔</span>
-                          </div>
-                          <Text size="lg" className="text-[#39FF14] font-bold text-center">
-                            Order placed. Consistent signal = burger delivered.
-                          </Text>
-                        </div>
-                      </div>
-                    )}
-
-                    {burgerOrderCanceled && (
-                      <div className="space-y-4" role="status" aria-live="polite">
-                        <div className="flex flex-col items-center bg-[#FF0040]/10 border-2 border-[#FF0040] rounded-lg p-6">
-                          <div className="w-24 h-24 rounded-full bg-neutral-700 flex items-center justify-center mb-4 opacity-50" role="img" aria-label="Order canceled">
-                            <span className="text-6xl">⛔</span>
-                          </div>
-                          <Text size="lg" className="text-[#FF0040] font-bold text-center">
-                            Order canceled. Flip‑flopping signal = no burger.
-                          </Text>
-                        </div>
-                      </div>
-                    )}
-
-                    {(burgerOrderPlaced || burgerOrderCanceled) && (
-                      <div className="space-y-4 mt-6">
-                        <button
-                          onClick={resetBurgerTest}
-                          className="text-center w-full text-[#39FF14] hover:text-[#5EC49A] hover:underline transition-colors text-sm"
-                        >
-                          Try again
-                        </button>
-                        <Text size="sm" className="text-neutral-300 text-center">
-                          Vibrational chaos works the same way—mixed signals cancel outcomes. Structure your signal to get delivery.
-                        </Text>
-                        <div className="text-center">
-                          <Text size="xs" className="text-neutral-400 text-center mb-3">
-                            Ditch chaos in 72 hours
-                          </Text>
-                          <Button variant="primary" size="sm" asChild>
-                            <a href="#pricing">
-                              Start the Activation Intensive
-                            </a>
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
 
                   {/* Bridge Section */}
-                  <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#39FF14]/30">
+                  <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#39FF14]/30 w-full max-w-5xl mx-auto">
                     <Heading level={3} className="text-[#39FF14] mb-3 text-center">The Fix</Heading>
                     <Text size="base" className="text-neutral-300 mb-4">
                       Chaos is an input problem. Structure fixes inputs. Conscious Creation System: Train → Tune → Track turns scattered signals into a dominant point of attraction.
@@ -1927,216 +1790,189 @@ export default function HomePage() {
 
         {/* The Solution: Conscious Creation System */}
         <section id="solution">
-            <Stack gap="lg" align="center">
-              <div className="text-center max-w-3xl">
-                <div className="flex justify-center">
-                  <Heading level={2} className="text-white mb-6 whitespace-nowrap">
-                  The Solution: <span className="text-[#39FF14]">Conscious Creation System</span>
-                </Heading>
+          <Container size="xl">
+            <Card variant="outlined" className="border-[#39FF14] bg-[#0F1612]/70 p-4 md:p-6 shadow-[0_18px_60px_rgba(57,255,20,0.12)]">
+              <Stack gap="lg">
+                <div className="text-center w-full space-y-3">
+                  <Heading level={2} className="text-white mb-4 whitespace-nowrap inline-block">
+                    The Solution: <span className="text-[#39FF14]">Conscious Creation System</span>
+                  </Heading>
+                  <Text size="lg" className="text-neutral-200 max-w-3xl mx-auto">
+                    Structure beats “trying.” Follow a simple path—Train → Tune → Track—to go from no idea to an activated Life Vision in 72 hours.
+                  </Text>
+                  <Text size="sm" className="text-neutral-300 uppercase tracking-wide max-w-3xl mx-auto">
+                    Vibrational fitness = training your inner state to match your chosen life through structure, not guesswork.
+                  </Text>
                 </div>
-                <Text size="xl" className="text-neutral-300">
-                  "A structured way to train, tune and track our vibration so that actualization or manifestation becomes second nature."
-                </Text>
-              </div>
 
-              <Grid minWidth="300px" gap="lg">
-                <Card variant="elevated" className="group hover:scale-105 transition-transform duration-300 border-[#39FF14]/30 bg-[#39FF14]/5">
-                  <Stack gap="md" className="md:gap-8">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#39FF14]/20 to-[#39FF14]/5 rounded-2xl flex items-center justify-center">
-                      <Icon icon={Target} size="lg" color="#39FF14" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-white">TRAIN</h3>
-                    <Text size="base" className="text-neutral-400">
-                      Create your comprehensive <span className="text-[#39FF14] font-semibold">Life I Choose™</span> document 
-                      across 14 life categories. Get crystal clear on your goals and direction with AI-guided prompts.
-                    </Text>
-                    <Badge variant="success">Above the Green Line</Badge>
-                  </Stack>
-                </Card>
+                <Grid responsiveCols={{ mobile: 1, desktop: 3 }} gap="lg">
+                  <Card variant="elevated" className="h-full border-[#39FF14]/30 bg-[#39FF14]/6">
+                    <Stack gap="md" className="h-full">
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#39FF14]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
+                        <Icon icon={Dumbbell} size="lg" color="#39FF14" />
+                      </div>
+                      <Stack gap="sm" className="text-left items-center">
+                        <Heading level={3} className="text-white text-center uppercase tracking-wide">
+                          Train
+                        </Heading>
+                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center">(0–72h)</Text>
+                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Your activation checklist</Text>
+                        <BulletedList className="space-y-1 text-neutral-100">
+                          <ListItem variant="success" icon={Check}>Profile 70%+ complete</ListItem>
+                          <ListItem variant="success" icon={Check}>84‑Q Vibration Assessment submitted</ListItem>
+                          <ListItem variant="success" icon={Check}>VIVA Vision drafted (12 categories)</ListItem>
+                          <ListItem variant="success" icon={Check}>First refinement done</ListItem>
+                          <ListItem variant="success" icon={Check}>AM/PM Vision Audios generated</ListItem>
+                          <ListItem variant="success" icon={Check}>Vision Board built (12 images)</ListItem>
+                          <ListItem variant="success" icon={Check}>3 journal entries logged (Gratitude, Dots, Progress)</ListItem>
+                          <ListItem variant="success" icon={Check}>Calibration Call booked</ListItem>
+                          <ListItem variant="success" icon={Check}>Activation Protocol scheduled</ListItem>
+                        </BulletedList>
+                        <Text size="sm" className="text-neutral-200 text-center">
+                          <strong className="text-[#39FF14]">Done when:</strong> all boxes checked within 72 hours.
+                        </Text>
+                      </Stack>
+                    </Stack>
+                  </Card>
 
-                <Card variant="elevated" className="group hover:scale-105 transition-transform duration-300 border-[#00FFFF]/30 bg-[#00FFFF]/5">
-                  <Stack gap="md">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#00FFFF]/20 to-[#00FFFF]/5 rounded-2xl flex items-center justify-center">
-                      <Icon icon={Brain} size="lg" color="#00FFFF" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-white">TUNE</h3>
-                    <Text size="base" className="text-neutral-400">
-                      Daily check-ins and personalized AI guidance to keep you aligned and in flow. 
-                      Your intelligent companion for staying above the Green Line every single day.
-                    </Text>
-                    <Badge variant="info">VIVA Assistant</Badge>
-                  </Stack>
-                </Card>
+                  <Card variant="elevated" className="h-full border-[#00FFFF]/30 bg-[#00FFFF]/8">
+                    <Stack gap="md" className="h-full">
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#00FFFF]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
+                        <Icon icon={Brain} size="lg" color="#00FFFF" />
+                      </div>
+                      <Stack gap="sm" className="text-left items-center">
+                        <Heading level={3} className="text-white text-center uppercase tracking-wide">
+                          Tune
+                        </Heading>
+                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center">(ongoing)</Text>
+                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Keep your signal aligned as life evolves</Text>
+                        <BulletedList className="space-y-1 text-neutral-100">
+                          <ListItem variant="accent" icon={Check}>Refine your Life Vision when clarity increases (weekly pass)</ListItem>
+                          <ListItem variant="accent" icon={Check}>Regenerate AM/PM Vision Audios to match updates</ListItem>
+                          <ListItem variant="accent" icon={Check}>Follow your Activation Protocol daily (no skipped reps)</ListItem>
+                          <ListItem variant="accent" icon={Check}>Update profile & assessment when major life changes occur (check-in quarterly)</ListItem>
+                          <ListItem variant="accent" icon={Check}>Use VIVA prompts whenever contrast appears</ListItem>
+                        </BulletedList>
+                        <Text size="sm" className="text-neutral-200 text-center">
+                          <strong className="text-[#00FFFF]">Done when:</strong> weekly refinement logged + protocol streak active (7+ days).
+                        </Text>
+                      </Stack>
+                    </Stack>
+                  </Card>
 
-                <Card variant="elevated" className="group hover:scale-105 transition-transform duration-300 border-[#BF00FF]/30 bg-[#BF00FF]/5">
-                  <Stack gap="md">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#BF00FF]/20 to-[#BF00FF]/5 rounded-2xl flex items-center justify-center">
-                      <Icon icon={TrendingUp} size="lg" color="#BF00FF" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-white">TRACK</h3>
-                    <Text size="base" className="text-neutral-400">
-                      Log your wins and track evidence of actualization. See your progress, 
-                      celebrate victories, and prove to yourself that manifestation works.
-                    </Text>
-                    <Badge variant="premium">Premium Feature</Badge>
-                  </Stack>
-                </Card>
-              </Grid>
+                  <Card variant="elevated" className="h-full border-[#BF00FF]/30 bg-[#BF00FF]/8">
+                    <Stack gap="md" className="h-full">
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#BF00FF]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
+                        <Icon icon={TrendingUp} size="lg" color="#BF00FF" />
+                      </div>
+                      <Stack gap="sm" className="text-left items-center">
+                        <Heading level={3} className="text-white text-center uppercase tracking-wide">
+                          Track
+                        </Heading>
+                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center">(ongoing)</Text>
+                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Build visible momentum and proof</Text>
+                        <BulletedList className="space-y-1 text-neutral-100">
+                          <ListItem variant="accent" icon={Check}>Log iterations and wins; watch streaks grow</ListItem>
+                          <ListItem variant="accent" icon={Check}>Journal daily to see vibrational progress</ListItem>
+                          <ListItem variant="accent" icon={Check}>Keep your Vision Board current with on‑signal images and actualization stories</ListItem>
+                          <ListItem variant="accent" icon={Check}>Review your progress weekly (dashboard metrics)</ListItem>
+                          <ListItem variant="accent" icon={Check}>Share a win in the Vibe Tribe for accountability</ListItem>
+                        </BulletedList>
+                        <Text size="sm" className="text-neutral-200 text-center">
+                          <strong className="text-[#BF00FF]">Done when:</strong> 1 weekly review complete + 1 shared win.
+                        </Text>
+                      </Stack>
+                    </Stack>
+                  </Card>
+                </Grid>
 
-            </Stack>
-        </section>
-
-        {/* What is Vibrational Fitness */}
-        <section>
-            <Cover minHeight="300px" className="bg-gradient-to-r from-[#39FF14]/10 via-[#00FFFF]/5 to-[#BF00FF]/10 rounded-3xl border border-[#333]">
-              <Stack align="center" gap="lg" className="text-center">
-                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                  What is Vibrational Fitness?
-                </h2>
-                <Text size="xl" className="md:text-2xl text-neutral-300 max-w-4xl">
-                  <span className="text-[#39FF14] font-semibold">Vibrational fitness is intentionally training your vibration to attract the life you choose.</span>
-                </Text>
-                <Text size="lg" className="text-neutral-400 max-w-3xl">
-                  "By becoming a member, you'll be able to instantly apply our conscious creation system in your reality 
-                  and eliminate confusion around conscious creation, AKA turning thoughts into things."
-                </Text>
-                <Badge variant="premium" className="text-lg px-6 py-3">
-                  <Icon icon={Sparkles} size="md" className="mr-2" />
-                  Decades of Trial & Error → Instant Access
-                </Badge>
+                <div className="text-center">
+                  <Button variant="primary" size="lg" asChild>
+                    <a href="#pricing">
+                      Start the Activation Intensive
+                    </a>
+                  </Button>
+                </div>
               </Stack>
-            </Cover>
-        </section>
-
-        {/* How It Works */}
-        <section>
-            <Stack gap="lg">
-              <div className="text-center">
-                <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                  How It Works
-                </h2>
-                <Text size="xl" className="text-neutral-300 max-w-2xl mx-auto">
-                  Simple, powerful, and designed for real results. Get started in minutes, 
-                  see results in days.
-                </Text>
-              </div>
-
-              <Grid responsiveCols={{mobile: 1, desktop: 3}} gap="lg" className="flex-col md:flex-row">
-                <Card variant="glass" className="flex-1">
-                  <Stack gap="md" className="text-center">
-                    <div className="w-16 h-16 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto text-black font-bold text-xl">
-                      1
-                    </div>
-                    <h3 className="text-2xl font-bold text-white">Craft Your Vision</h3>
-                    <Text size="base" className="text-neutral-400">
-                      Use our guided AI prompts to create your comprehensive Life I Choose™ document 
-                      across all 14 life categories.
-                    </Text>
-                  </Stack>
-                </Card>
-
-                <Card variant="glass" className="flex-1">
-                  <Stack gap="md" className="text-center">
-                    <div className="w-16 h-16 bg-[#00FFFF] rounded-full flex items-center justify-center mx-auto text-black font-bold text-xl">
-                      2
-                    </div>
-                    <h3 className="text-2xl font-bold text-white">Daily Alignment</h3>
-                    <Text size="base" className="text-neutral-400">
-                      Check in daily with your AI Alignment Coach. Stay above the Green Line 
-                      with personalized guidance and support.
-                    </Text>
-                  </Stack>
-                </Card>
-
-                <Card variant="glass" className="flex-1">
-                  <Stack gap="md" className="text-center">
-                    <div className="w-16 h-16 bg-[#BF00FF] rounded-full flex items-center justify-center mx-auto text-white font-bold text-xl">
-                      3
-                    </div>
-                    <h3 className="text-2xl font-bold text-white">Track & Actualize</h3>
-                    <Text size="base" className="text-neutral-400">
-                      Log evidence of your manifestations. Watch your vision come to life 
-                      with our powerful tracking tools.
-                    </Text>
-                  </Stack>
-                </Card>
-              </Grid>
-            </Stack>
+            </Card>
+          </Container>
         </section>
 
         {/* Final CTA */}
         <section>
-            <Cover minHeight="500px" className="bg-gradient-to-br from-[#39FF14]/20 via-[#00FFFF]/10 to-[#BF00FF]/20 rounded-3xl border-2 border-[#333]">
+          <Container size="xl">
+            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/15 via-[#00FFFF]/10 to-[#BF00FF]/15 border-[#39FF14]/30 p-4 md:p-6 shadow-[0_20px_60px_rgba(57,255,20,0.18)]">
               <Stack align="center" gap="lg" className="text-center">
-                <h2 className="text-4xl md:text-6xl font-bold text-white">
+                <Heading level={2} className="text-white">
                   <span className="bg-gradient-to-r from-[#39FF14] via-[#00FFFF] to-[#BF00FF] bg-clip-text text-transparent">Welcome Home</span>
-                </h2>
-                
-                <div className="max-w-4xl">
-                  <Text size="xl" className="md:text-2xl text-neutral-300 mb-6">
-                    "What would happen if I gained clarity on the life that I wanted to live, 
-                    intentionally established vibrational harmony with it, and allowed my vision for a fun and 
-                    emotionally satisfying life experience to become dominant in my point of attraction?"
+                </Heading>
+
+                <div className="w-full max-w-5xl mx-auto space-y-6">
+                  <Text size="lg" className="md:text-xl text-neutral-200">
+                    Ditch vibrational chaos. Activate your Life Vision in 72 hours—then keep compounding with Vision Pro.
                   </Text>
-                  
-                  <Text size="2xl" className="md:text-3xl font-bold text-[#39FF14] mb-8">
-                    We know the answer. You would live a life you love waking up to every day, 
-                    feeling your creative power as you live the life you choose.
-                  </Text>
+
+                  <Grid responsiveCols={{ mobile: 1, desktop: 3 }} gap="lg" className="w-full">
+                    <Card variant="glass" className="text-center">
+                      <Stack gap="sm">
+                        <Icon icon={Target} size="lg" color="#39FF14" className="mx-auto" />
+                        <Text size="sm" className="font-semibold text-white">Gain Clarity</Text>
+                        <Text size="sm" className="text-neutral-400">12‑category Life Vision completed with VIVA</Text>
+                      </Stack>
+                    </Card>
+                    <Card variant="glass" className="text-center">
+                      <Stack gap="sm">
+                        <Icon icon={Brain} size="lg" color="#00FFFF" className="mx-auto" />
+                        <Text size="sm" className="font-semibold text-white">Establish Harmony</Text>
+                        <Text size="sm" className="text-neutral-400">AM/PM Vision Audio + daily Activation Protocol</Text>
+                      </Stack>
+                    </Card>
+                    <Card variant="glass" className="text-center">
+                      <Stack gap="sm">
+                        <Icon icon={Crown} size="lg" color="#BF00FF" className="mx-auto" />
+                        <Text size="sm" className="font-semibold text-white">Lock It In</Text>
+                        <Text size="sm" className="text-neutral-400">Essence set, Vision Board built, 3 journals logged (proof you can see)</Text>
+                      </Stack>
+                    </Card>
+                  </Grid>
+
+                  <Stack gap="sm" align="center">
+                    <Text size="lg" className="text-neutral-300 text-center italic whitespace-nowrap">
+                      “What would happen if my vision became the dominant signal in my life?”
+                    </Text>
+                    <Text size="lg" className="text-[#39FF14] font-semibold text-center">
+                      Answer: You’d wake up excited, living the life you choose.
+                    </Text>
+                  </Stack>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-6 mb-8">
-                  <Card variant="glass" className="text-center">
-                    <Stack gap="sm">
-                      <Icon icon={Target} size="lg" color="#39FF14" className="mx-auto" />
-                      <h4 className="font-bold text-white">Gain Clarity</h4>
-                      <Text size="sm" className="text-neutral-400">On the life you want to live</Text>
-                    </Stack>
-                  </Card>
-                  <Card variant="glass" className="text-center">
-                    <Stack gap="sm">
-                      <Icon icon={Brain} size="lg" color="#00FFFF" className="mx-auto" />
-                      <h4 className="font-bold text-white">Establish Harmony</h4>
-                      <Text size="sm" className="text-neutral-400">With your vibrational point of attraction</Text>
-                    </Stack>
-                  </Card>
-                  <Card variant="glass" className="text-center">
-                    <Stack gap="sm">
-                      <Icon icon={Crown} size="lg" color="#BF00FF" className="mx-auto" />
-                      <h4 className="font-bold text-white">Become Dominant</h4>
-                      <Text size="sm" className="text-neutral-400">In your vision for your life</Text>
-                    </Stack>
-                  </Card>
-                </div>
-
-                <Inline gap="md" className="mt-8">
-                  <Button variant="primary" size="xl" asChild>
-                    <a href="/auth/signup">
-                      Join the Vibe Tribe
-                      <Icon icon={ArrowRight} size="sm" />
-                    </a>
-                  </Button>
-                  <Button variant="secondary" size="xl" asChild>
+                <div className="w-full max-w-xl">
+                  <Button variant="primary" size="xl" className="w-full" asChild>
                     <a href="#pricing">
-                      View Pricing
+                      Start the Activation Intensive
                     </a>
                   </Button>
-                </Inline>
-
-                <Text size="lg" className="text-neutral-300 max-w-2xl">
-                  "If you're ready to ditch vibrational chaos, align with your clarity, and train your vibration 
-                  to attract the life you choose, then <span className="text-[#39FF14] font-semibold">welcome home</span>."
-                </Text>
-
-                <Text size="sm" className="text-neutral-500">
-                  No credit card required • 14-day free trial • Cancel anytime
-                </Text>
+                  <Text size="xs" className="text-neutral-400 text-center mt-2">
+                    $499 today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                  </Text>
+                  <div className="flex flex-col items-center justify-center gap-2 text-xs uppercase tracking-wide text-neutral-400 mt-4">
+                    <div className="flex items-center gap-2">
+                      <Icon icon={Shield} size="sm" className="text-[#39FF14]" />
+                      Covered by the 72‑Hour Activation Guarantee
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Icon icon={Award} size="sm" className="text-[#00FFFF]" />
+                      Membership Guarantee: 16 weeks (Annual) • 12 weeks (Every 28 Days)
+                    </div>
+                  </div>
+                </div>
               </Stack>
-            </Cover>
+            </Card>
+          </Container>
         </section>
 
         {/* FAQ Section */}
-        <section className="py-12 md:py-16">
+        <section id="faq">
           <Container size="xl">
             <OfferStack
               title="Frequently Asked Questions"
@@ -2145,7 +1981,7 @@ export default function HomePage() {
                 {
                   id: 'skeptical',
                   title: 'What if I\'m skeptical?',
-                  description: 'Good. That\'s why we stack raw proof, a structured mechanism, and guarantees. See the $0.43 → $1M timeline and screenshots, the Conscious Creation System: Train → Tune → Track, and our 72‑Hour Activation + Membership Guarantees.'
+                  description: 'Good. That\'s why we stack raw proof, a structured mechanism, and guarantees. See the vision transformations (including $0.43 → $1M screenshots), the Conscious Creation System: Train → Tune → Track, and our 72‑Hour Activation + Membership Guarantees.'
                 },
                 {
                   id: 'religious',
@@ -2155,7 +1991,7 @@ export default function HomePage() {
                 {
                   id: 'how-fast',
                   title: 'How fast is "fast"?',
-                  description: '"Active" in 72 hours: 12‑category Life Vision (with VIVA), AM/PM Vision Audio, Vision Board (12 images), 3 journal entries, calibration call booked.'
+                  description: '"Active" in 72 hours: 12‑category Life Vision completed (with VIVA), AM/PM Vision Audios generated, Vision Board built (12 images, 1 per category), 3 journal entries logged (Gratitude, Connect-the-Dots, Progress), Calibration call booked, Activation Protocol scheduled.'
                 },
                 {
                   id: 'tried-loa',
@@ -2165,7 +2001,7 @@ export default function HomePage() {
                 {
                   id: 'dont-know',
                   title: 'What if I don\'t know what I want?',
-                  description: 'VIVA AI turns contrast into clarity and drafts your 12‑category vision for you. You\'ll have a concrete first draft to refine—less guesswork, more action.'
+                  description: 'VIVA AI turns contrast into clarity and drafts your 12‑category life vision for you using our 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA). You\'ll have a concrete first draft to refine within 72 hours of starting—something that used to take Jordan and Vanessa months to do on their own without VIVA\'s help.'
                 },
                 {
                   id: 'doesnt-work',
@@ -2174,45 +2010,234 @@ export default function HomePage() {
                 },
                 {
                   id: 'guarantee-start',
-                  title: 'When do guarantees start?'
+                  title: 'When do guarantees start?',
+                  description: (
+                    <span>
+                      From checkout (today), not at first renewal. See{' '}
+                      <a
+                        href="#our-guarantees"
+                        className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors"
+                      >
+                        Our Guarantees
+                      </a>{' '}
+                      for more information.
+                    </span>
+                  )
                 },
                 {
                   id: 'guarantee-qualify',
-                  title: 'What qualifies for the 72‑Hour Activation Guarantee?'
+                  title: 'What qualifies for the 72‑Hour Activation Guarantee?',
+                  description: 'Complete all 10 steps in 72 hours. Completion = 70%+ Profile, 84‑Q Assessment, Calibration call booked, 12‑category Life Vision drafted (with VIVA), first Vision Refinement complete, AM/PM Vision Audios generated, Vision Board created (12 images — one per category), 3 journal entries logged, Calibration call attended, Activation Plan in place.'
                 },
                 {
                   id: 'refunds',
-                  title: 'How do refunds work? (method, timeline, date‑stamped guarantee end dates)'
+                  title: 'How do refunds work?',
+                  description: (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What’s covered</p>
+                        <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1 text-sm text-neutral-300">
+                          <li>
+                            72‑Hour Activation Guarantee: if you complete all 10 steps in 72 hours and aren’t satisfied, we refund the $499 Intensive. (Completion = 70%+ Profile, 84‑Q Assessment, Calibration call booked, 12‑category Life Vision drafted (with VIVA), first Vision Refinement complete, AM/PM Vision Audios generated, Vision Board created (with 12 images — 1 per life category), 3 journal entries logged, Calibration call attended, Activation Plan in place.)
+                          </li>
+                          <li>
+                            Membership Satisfaction Guarantee: from checkout date—16 weeks (Annual) or 12 weeks (28‑Day). If your plan hasn’t billed yet (first charge is Day 56), we cancel the upcoming charge. If a plan charge occurred within your window, we refund that charge in full.
+                          </li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to request</p>
+                        <p className="text-sm text-neutral-300">
+                          In-app “Request a refund” or email <a href="mailto:support@vibrationfit.com" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">support@vibrationfit.com</a> with the email you used to buy. Choose Activation or Membership guarantee. We reply within 1 business day.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How it’s paid</p>
+                        <p className="text-sm text-neutral-300">
+                          Refunds go back to the original payment method. Banks typically show the credit in 5–10 business days. (If the original charge is very recent, it can post as a reversal and the original charge disappears.)
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What happens to access</p>
+                        <p className="text-sm text-neutral-300">
+                          When we refund the Intensive, your account downgrades immediately. Membership refunds cancel future renewals and remove paid features tied to that plan.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Limits</p>
+                        <p className="text-sm text-neutral-300">
+                          One refund per customer per product. We don’t cover currency conversion, bank fees, or taxes outside our control. Abuse or duplicate accounts void guarantees.
+                        </p>
+                      </div>
+                    </div>
+                  )
                 },
                 {
                   id: 'billing-start',
-                  title: 'When does billing start?'
+                  title: 'When does billing start?',
+                  description: '$499 today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.'
+                },
+                {
+                  id: 'what-is-vibrational-fitness',
+                  title: 'What is Vibrational Fitness?',
+                  description: 'The skill of aligning your state with your selected outcomes using a repeatable system—Train → Tune → Track—so progress is visible (checklists, artifacts, streaks), not hypothetical.'
                 },
                 {
                   id: 'switch-cancel',
-                  title: 'Can I switch or cancel before billing starts?'
+                  title: 'Can I switch or cancel before billing starts?',
+                  description: 'Yes—1‑click switch/cancel anytime before Day 56.'
                 },
                 {
                   id: 'change-plans',
-                  title: 'Can I change plans later? (and annual rate‑lock rules)'
+                  title: 'Can I change plans later?',
+                  description: (
+                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
+                      <p>
+                        <span className="font-semibold text-[#39FF14]">Short answer:</span> Yes. You can switch plans. Here’s exactly how it works and why we do it this way.
+                      </p>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Before your first plan charge (Day 56)</p>
+                        <p>
+                          You can switch from Annual to Every 28 Days or vice-versa in one click. Your selection updates instantly; the first charge still occurs on Day 56 at the new plan.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">After billing starts (Day 56 and beyond)</p>
+                        <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1">
+                          <li>
+                            <span className="font-semibold text-white">Every 28 Days → Annual:</span> Switch anytime; your annual prepay starts on your next renewal date. If you want to prepay now (to lock the rate and savings immediately), you can start Annual today and we’ll end your current 28-day cycle early with no penalty.
+                          </li>
+                          <li>
+                            <span className="font-semibold text-white">Annual → Every 28 Days:</span> Switch effective at your annual renewal. Annual prepay is not split into partial refunds; you keep access through your paid year, then move to 28-day.
+                          </li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Rate-lock (Annual)</p>
+                        <p>
+                          Annual prepay includes a 12-month rate lock—your price won’t change during your paid year.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Pricing cadence</p>
+                        <p>
+                          Every 28 Days bills every four weeks (13 cycles/year). We display savings using a 28-day equivalent for apples-to-apples comparison with Annual.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Guarantees stay intact when you switch</p>
+                        <p>
+                          Your Membership Satisfaction Guarantee window starts at checkout (today): 16 weeks (Annual) or 12 weeks (Every 28 Days). Switching plans doesn’t reset the clock; it just changes what you’ll be billed at the next renewal.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Why we do it this way</p>
+                        <p>
+                          Pairing continuity with the upfront purchase raises retention and keeps terms explicit; offering Annual as the default increases prepaid uptake without forcing it. Letting you switch at renewal gives flexibility without creating billing confusion.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to switch</p>
+                        <p>
+                          In your Billing settings, choose "Change plan." If you’re pre-Day 56, your first charge will run on Day 56 at the selected plan. If you’re mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p>
+                          We’ll always show your next charge date and amount before you confirm any change.
+                        </p>
+                        <p>
+                          If we ever change prices for new customers, your annual rate-lock protects you through your paid year.
+                        </p>
+                      </div>
+                    </div>
+                  )
                 },
                 {
                   id: '5-phase-flow',
-                  title: 'What is the 5‑Phase Flow?'
+                  title: 'What is the 4‑Layer Conscious Creation Writing Architecture?',
+                  description: (
+                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
+                      <p>
+                        The 4-Layer Conscious Creation Writing Architecture is the energetic blueprint behind The Life I Choose™ vision document. It’s how Vibration Fit transforms words on a page into a living, breathing frequency field that your subconscious can align with.
+                      </p>
+                      <p>
+                        Every Life I Choose document follows four interacting layers:
+                      </p>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The 5-Phase Conscious Creation Flow</p>
+                        <p>
+                          The energetic rhythm of every paragraph. Each section naturally moves from Gratitude → Sensory Detail → Embodiment → Essence → Allowing.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The Who / What / Where / Why Framework</p>
+                        <p>
+                          The narrative orientation that gives your vision shape and clarity. It defines who you are being, what you’re doing, where you are, and why it matters emotionally.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The Being / Doing / Receiving Loops</p>
+                        <p>
+                          The vibrational cycling that keeps your energy balanced. You activate the feeling (Being), express it through aligned action (Doing), and open space to let results flow in (Receiving).
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Micro–Macro Paragraph Breathing</p>
+                        <p>
+                          The emotional pacing that gives your writing life. Your paragraphs expand into vivid sensory scenes (macro) and then contract back into essence (micro), creating a rhythm that feels alive when you read or listen to it.
+                        </p>
+                      </div>
+                      <p>
+                        Together, these four layers turn your writing into a vibrational practice—helping you not just describe your dream life, but tune to it until it becomes your reality.
+                      </p>
+                    </div>
+                  )
                 },
                 {
                   id: 'tokens-storage',
-                  title: 'Token and storage details (rollover limits, annual resets, caps)'
+                  title: 'How do tokens and storage work?',
+                  description: (
+                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Annual token & storage capacity</p>
+                        <p>5M VIVA tokens/year + 100GB storage; tokens reset at renewal.</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">28-Day token & storage capacity</p>
+                        <p>375k VIVA tokens per 28 days + 25GB storage; unused tokens roll over (max 3 cycles).</p>
+                      </div>
+                      <p>Both plans can add-on extra tokens or storage for a fee.</p>
+                    </div>
+                  )
                 },
                 {
                   id: 'billing-cadence',
-                  title: 'Billing cadence and taxes (every 28 days vs monthly, time zone, taxes/fees)'
-                },
-                {
-                  id: 'community-support',
-                  title: 'Community/support boundaries'
+                  title: 'Do you charge sales tax/VAT/GST?',
+                  description: (
+                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Today</p>
+                        <p>We don’t collect sales tax/VAT/GST at checkout right now. The price you see is the price you pay (plus any bank/FX fees your bank may add).</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">If this changes</p>
+                        <p>If a law or your location requires tax in the future, we’ll calculate it from your billing address, show it clearly at checkout before you pay, and itemize it on your receipt. We’ll notify you ahead of any change.</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Receipts</p>
+                        <p>Your receipt will show a $0.00 tax line while tax collection is not enabled.</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">International buyers</p>
+                        <p>Your bank may add currency conversion or cross-border fees—we don’t control those.</p>
+                      </div>
+                      <p>Note: This is not tax advice. If you’re required to self-assess/use tax in your jurisdiction, consult your local guidance.</p>
+                    </div>
+                  )
                 }
               ]}
+              className="w-full max-w-5xl mx-auto"
             />
           </Container>
         </section>
