@@ -502,46 +502,20 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
         <Stack gap="md">
           <Card variant="default" className="p-4 md:p-6">
             <Stack gap="md">
-              <h4 className="text-base md:text-lg font-semibold text-white">ProofWall - Before/After Carousel</h4>
-              <p className="text-xs md:text-sm text-neutral-400 mb-4">Interactive carousel with swipe support for mobile. Each set has before/after photos and an actualization story button.</p>
+              <h4 className="text-base md:text-lg font-semibold text-white">ProofWall - Before/After Showcase</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">Side-by-side before/after comparison with an optional story card beneath.</p>
               <ProofWall
-                title="Proof Wall"
+                className="max-w-5xl mx-auto"
                 items={[
                   {
-                    id: '1',
-                    beforeImage: 'https://via.placeholder.com/400x400/FF0040/FFFFFF?text=Before',
-                    afterImage: 'https://via.placeholder.com/400x400/39FF14/000000?text=After',
-                    beforeAlt: 'Before transformation',
-                    afterAlt: 'After transformation',
-                    story: 'This is an example actualization story. In just 72 hours, I completely transformed my mindset and started seeing real results. The VIVA Vision process helped me clarify exactly what I wanted and gave me the structure to make it happen.',
-                    storyTitle: 'Sarah\'s Transformation'
-                  },
-                  {
-                    id: '2',
-                    beforeImage: 'https://via.placeholder.com/400x400/FF0040/FFFFFF?text=Before',
-                    afterImage: 'https://via.placeholder.com/400x400/39FF14/000000?text=After',
-                    beforeAlt: 'Before transformation',
-                    afterAlt: 'After transformation',
-                    story: 'Another powerful story of transformation. The 5-Phase Flow inside VIVA helped me align my thoughts with my goals and create the life I always wanted.',
-                    storyTitle: 'Michael\'s Success Story'
-                  },
-                  {
-                    id: '3',
-                    beforeImage: 'https://via.placeholder.com/400x400/FF0040/FFFFFF?text=Vision',
-                    afterImage: 'https://via.placeholder.com/400x400/39FF14/000000?text=Actualized',
-                    beforeAlt: 'Before transformation',
-                    afterAlt: 'After transformation',
-                    story: 'The Activation Intensive gave me the tools I needed to break through my limiting beliefs and create real change in my life. I\'m so grateful for this journey.',
-                    storyTitle: 'Emma\'s Journey'
-                  },
-                  {
-                    id: '4',
-                    beforeImage: 'https://via.placeholder.com/400x400/FF0040/FFFFFF?text=Vision',
-                    afterImage: 'https://via.placeholder.com/400x400/39FF14/000000?text=Actualized',
-                    beforeAlt: 'Before transformation',
-                    afterAlt: 'After transformation',
-                    story: 'Another amazing transformation story that showcases the power of VIVA Vision and the Activation Intensive.',
-                    storyTitle: 'James\' Success'
+                    id: 'boa-business-account',
+                    beforeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/boa-screenshot.jpg',
+                    afterImage: 'https://media.vibrationfit.com/site-assets/proof-wall/business-account-1.jpg',
+                    beforeAlt: 'Before - Bank of America screen',
+                    afterAlt: 'After - Business account screenshot',
+                    storyTitle: 'Revenue Flow Actualized',
+                    story:
+                      'From a vision written during the Activation Intensive to a live business account showing the exact numbers imagined. Lock it in, let it flow, and track the proof.'
                   }
                 ]}
               />

@@ -34,6 +34,16 @@ import {
   BulletedList,
   ListItem,
 } from '@/lib/design-system'
+import {
+  ActionButtons,
+  Frame,
+  Input,
+  Modal,
+  PageLayout,
+  PricingCard,
+  ProofWall,
+  Select,
+} from '@/lib/design-system/components'
 
 // Vision Categories
 const VISION_CATEGORIES = [
@@ -328,7 +338,7 @@ export default function HomePage() {
                         VIVA AI turns contrast into clarity—even if you don't know what you want
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        Powered by the 5‑Phase Flow inside VIVA Vision
+                        Powered by the 4‑Layer Conscious Creation Writing Architecture inside VIVA Vision
                       </ListItem>
                     </BulletedList>
                     
@@ -856,49 +866,84 @@ export default function HomePage() {
         {/* Vision Transformations - From Vision to Actualized Reality */}
         <section>
           <Container size="xl">
+            <ProofWall
+              heading="Lock It In and Let It Flow"
+              showHeadingOutside={false}
+              showStoryHighlight={false}
+              items={[
+                {
+                  id: 'homepage-proof',
+                  beforeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/boa-screenshot.jpg',
+                  afterImage: 'https://media.vibrationfit.com/site-assets/proof-wall/business-account-1.jpg',
+                  story: '',
+                },
+              ]}
+            />
+          </Container>
+        </section>
+
+        {/* Vision Transformations - From Vision to Actualized Reality */}
+        <section>
+          <Container size="xl">
             <Card variant="elevated" className="p-4 md:p-6 lg:p-8 bg-black/40 border-[#39FF14]/20 border-2">
               <SwipeableCards
                 title="Vision Transformations"
                 subtitle="From Vision to Actualized Reality"
                 cards={[
                   {
-                    id: 'vision-million',
-                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/work/1000000-1.jpg',
-                    activeImageAlt: 'Active vision journal entry about million dollar business',
-                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/work/1000000-2.jpg',
-                    actualizedImageAlt: 'Actualized screenshot of million dollar revenue milestone',
+                    id: 'vision-profit',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/gross-profit-vision.jpg',
+                    activeImageAlt: 'Active vision journal entry outlining gross profit targets',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/gross-profit-actualized.jpg',
+                    actualizedImageAlt: 'Actualized proof of gross profit aligned with the vision',
                     content: null
                   },
                   {
                     id: 'vision-italy',
-                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-active-2.jpg',
-                    activeImageAlt: 'Active vision storyboard showing Italy dream',
-                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-actualized-2.jpg',
-                    actualizedImageAlt: 'Actualized photo from Italy dream trip',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-active.jpg',
+                    activeImageAlt: 'Active vision storyboard showing the Italy dream experience',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-actualized.jpg',
+                    actualizedImageAlt: 'Actualized photo from the Italy dream trip',
                     content: null
                   },
                   {
                     id: 'vision-home',
-                    activeImage: 'https://via.placeholder.com/400x300/39FF14/000000?text=Active+Vision',
-                    activeImageAlt: 'Active vision - Dream Home storyboard',
-                    actualizedImage: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=Actualized',
-                    actualizedImageAlt: 'Actualized result - Dream Home realized',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/house-vision.jpg',
+                    activeImageAlt: 'Active vision storyboard for the aligned dream home',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/house-actualized.jpg',
+                    actualizedImageAlt: 'Actualized photo of the aligned dream home',
                     content: null
                   },
                   {
-                    id: 'vision-relationship',
-                    activeImage: 'https://via.placeholder.com/400x300/14B8A6/FFFFFF?text=Active+Vision',
-                    activeImageAlt: 'Active vision - Aligned relationship intention',
-                    actualizedImage: 'https://via.placeholder.com/400x300/601B9F/FFFFFF?text=Actualized',
-                    actualizedImageAlt: 'Actualized result - Aligned relationship experience',
+                    id: 'vision-van-life',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/van-board-1.jpg',
+                    activeImageAlt: 'Active vision storyboard featuring the dream van lifestyle',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/van-actualized-2.jpg',
+                    actualizedImageAlt: 'Actualized photo showing the dream van lifestyle realized',
                     content: null
                   },
                   {
-                    id: 'vision-wellness',
-                    activeImage: 'https://via.placeholder.com/400x300/39FF14/000000?text=Active+Vision',
-                    activeImageAlt: 'Active vision - Whole-self wellness plan',
-                    actualizedImage: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=Actualized',
-                    actualizedImageAlt: 'Actualized result - Whole-self wellness transformation',
+                    id: 'vision-beach-wedding',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/beach-wedding-vision.jpg',
+                    activeImageAlt: 'Active vision storyboard for the aligned beach wedding',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/beach-wedding-actualized.jpg',
+                    actualizedImageAlt: 'Actualized photo from the aligned beach wedding',
+                    content: null
+                  },
+                  {
+                    id: 'vision-japan',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/japan-vision.jpg',
+                    activeImageAlt: 'Active vision storyboard for the Japan alignment trip',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/japan-friends.jpg',
+                    actualizedImageAlt: 'Actualized photo from the Japan alignment trip',
+                    content: null
+                  },
+                  {
+                    id: 'vision-australia',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/australia-vision.jpg',
+                    activeImageAlt: 'Active vision storyboard for the Australia alignment adventure',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/australia-actualized.jpg',
+                    actualizedImageAlt: 'Actualized photo from the Australia alignment adventure',
                     content: null
                   }
                 ]}
@@ -1550,6 +1595,30 @@ export default function HomePage() {
                       </Stack>
                     </Card>
 
+                    <Card className="bg-black/80 border-[#39FF14]/30 w-full max-w-5xl mx-auto text-center">
+                      <Stack gap="sm" className="md:gap-4" align="center">
+                        <Heading level={4} className="text-white">
+                          Questions?
+                        </Heading>
+                        <Text size="base" className="text-neutral-300">
+                          Email{' '}
+                          <a
+                            href="mailto:team@vibrationfit.com"
+                            className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors"
+                          >
+                            team@vibrationfit.com
+                          </a>{' '}
+                          — first reply within 1 business day.
+                        </Text>
+                        <a
+                          href="#full-faq"
+                          className="text-[#39FF14] hover:text-[#5EC49A] underline underline-offset-4 transition-colors text-sm md:text-base"
+                        >
+                          See Full FAQ
+                        </a>
+                      </Stack>
+                    </Card>
+
                     {/* FAQ Section */}
                     <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30 w-full max-w-5xl mx-auto">
                       <Stack gap="md">
@@ -1614,7 +1683,7 @@ export default function HomePage() {
                         </Stack>
                         <div className="text-center mt-4 space-y-4">
                           <a
-                            href="#faq"
+                            href="#full-faq"
                             className="text-[#39FF14] hover:text-[#5EC49A] underline transition-colors cursor-pointer text-sm md:text-base block mb-6"
                           >
                             See full FAQ
@@ -1635,8 +1704,8 @@ export default function HomePage() {
           </Container>
         </section>
 
-        {/* FAQ Section - Full FAQ */}
-        <section id="faq" className="hidden" aria-hidden="true">
+        {/* FAQ Section - Full FAQ Placeholder */}
+        <section id="full-faq-placeholder" className="hidden" aria-hidden="true">
           {/* Reserved for future FAQ content */}
         </section>
 
@@ -1794,11 +1863,12 @@ export default function HomePage() {
             <Card variant="outlined" className="border-[#39FF14] bg-[#0F1612]/70 p-4 md:p-6 shadow-[0_18px_60px_rgba(57,255,20,0.12)]">
               <Stack gap="lg">
                 <div className="text-center w-full space-y-3">
-                  <Heading level={2} className="text-white mb-4 whitespace-nowrap inline-block">
-                    The Solution: <span className="text-[#39FF14]">Conscious Creation System</span>
+                  <Heading level={2} className="text-white mb-4 leading-tight">
+                    <span className="block md:inline">The Solution:</span>{' '}
+                    <span className="block md:inline text-[#39FF14]">Conscious Creation System</span>
                   </Heading>
                   <Text size="lg" className="text-neutral-200 max-w-3xl mx-auto">
-                    Structure beats “trying.” Follow a simple path—Train → Tune → Track—to go from no idea to an activated Life Vision in 72 hours.
+                    Structure beats "trying." Follow a simple path—Train → Tune → Track—to go from no idea to an activated Life Vision in 72 hours.
                   </Text>
                   <Text size="sm" className="text-neutral-300 uppercase tracking-wide max-w-3xl mx-auto">
                     Vibrational fitness = training your inner state to match your chosen life through structure, not guesswork.
@@ -1906,6 +1976,7 @@ export default function HomePage() {
                 <Heading level={2} className="text-white">
                   <span className="bg-gradient-to-r from-[#39FF14] via-[#00FFFF] to-[#BF00FF] bg-clip-text text-transparent">Welcome Home</span>
                 </Heading>
+                <div className="w-20 h-[2px] md:h-[3px] bg-gradient-to-r from-[#39FF14] via-[#00FFFF] to-[#BF00FF] rounded-full"></div>
 
                 <div className="w-full max-w-5xl mx-auto space-y-6">
                   <Text size="lg" className="md:text-xl text-neutral-200">
@@ -1915,7 +1986,7 @@ export default function HomePage() {
                   <Grid responsiveCols={{ mobile: 1, desktop: 3 }} gap="lg" className="w-full">
                     <Card variant="glass" className="text-center">
                       <Stack gap="sm">
-                        <Icon icon={Target} size="lg" color="#39FF14" className="mx-auto" />
+                        <Icon icon={Sparkles} size="lg" color="#39FF14" className="mx-auto" />
                         <Text size="sm" className="font-semibold text-white">Gain Clarity</Text>
                         <Text size="sm" className="text-neutral-400">12‑category Life Vision completed with VIVA</Text>
                       </Stack>
@@ -1924,24 +1995,25 @@ export default function HomePage() {
                       <Stack gap="sm">
                         <Icon icon={Brain} size="lg" color="#00FFFF" className="mx-auto" />
                         <Text size="sm" className="font-semibold text-white">Establish Harmony</Text>
-                        <Text size="sm" className="text-neutral-400">AM/PM Vision Audio + daily Activation Protocol</Text>
+                        <Text size="sm" className="text-neutral-400">AM/PM Vision Audios + daily Activation Protocol</Text>
                       </Stack>
                     </Card>
                     <Card variant="glass" className="text-center">
                       <Stack gap="sm">
-                        <Icon icon={Crown} size="lg" color="#BF00FF" className="mx-auto" />
+                        <Icon icon={Target} size="lg" color="#BF00FF" className="mx-auto" />
                         <Text size="sm" className="font-semibold text-white">Lock It In</Text>
-                        <Text size="sm" className="text-neutral-400">Essence set, Vision Board built, 3 journals logged (proof you can see)</Text>
+                        <Text size="sm" className="text-neutral-400">Vision Board built, 3 journals logged, dashboard tracking</Text>
                       </Stack>
                     </Card>
                   </Grid>
 
                   <Stack gap="sm" align="center">
-                    <Text size="lg" className="text-neutral-300 text-center italic whitespace-nowrap">
-                      “What would happen if my vision became the dominant signal in my life?”
+                    <Text size="lg" className="text-neutral-300 text-center italic max-w-xl">
+                      <span className="block md:inline">"What would happen if my vision became the dominant signal</span>{' '}
+                      <span className="block md:inline">in my life?"</span>
                     </Text>
                     <Text size="lg" className="text-[#39FF14] font-semibold text-center">
-                      Answer: You’d wake up excited, living the life you choose.
+                      Answer: You'd wake up excited, living the life you choose.
                     </Text>
                   </Stack>
                 </div>
@@ -1972,12 +2044,20 @@ export default function HomePage() {
         </section>
 
         {/* FAQ Section */}
-        <section id="faq">
+        <section id="full-faq">
           <Container size="xl">
-            <OfferStack
-              title="Frequently Asked Questions"
-              subtitle="Everything you need to know"
-              items={[
+            <Card variant="elevated" className="bg-[#0F1612]/80 border-[#39FF14]/20 p-4 md:p-6 lg:p-8 shadow-[0_24px_60px_rgba(57,255,20,0.12)]">
+              <Stack gap="lg" className="md:gap-10">
+                <div className="text-center space-y-2">
+                  <Heading level={2} className="text-white">
+                    Frequently Asked Questions
+                  </Heading>
+                  <Text size="lg" className="text-neutral-300">
+                    Everything you need to know
+                  </Text>
+                </div>
+                <OfferStack
+                  items={[
                 {
                   id: 'skeptical',
                   title: 'What if I\'m skeptical?',
@@ -2035,24 +2115,24 @@ export default function HomePage() {
                   description: (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What’s covered</p>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What's covered</p>
                         <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1 text-sm text-neutral-300">
                           <li>
-                            72‑Hour Activation Guarantee: if you complete all 10 steps in 72 hours and aren’t satisfied, we refund the $499 Intensive. (Completion = 70%+ Profile, 84‑Q Assessment, Calibration call booked, 12‑category Life Vision drafted (with VIVA), first Vision Refinement complete, AM/PM Vision Audios generated, Vision Board created (with 12 images — 1 per life category), 3 journal entries logged, Calibration call attended, Activation Plan in place.)
+                            72‑Hour Activation Guarantee: if you complete all 10 steps in 72 hours and aren't satisfied, we refund the $499 Intensive. (Completion = 70%+ Profile, 84‑Q Assessment, Calibration call booked, 12‑category Life Vision drafted (with VIVA), first Vision Refinement complete, AM/PM Vision Audios generated, Vision Board created (with 12 images — 1 per life category), 3 journal entries logged, Calibration call attended, Activation Plan in place.)
                           </li>
                           <li>
-                            Membership Satisfaction Guarantee: from checkout date—16 weeks (Annual) or 12 weeks (28‑Day). If your plan hasn’t billed yet (first charge is Day 56), we cancel the upcoming charge. If a plan charge occurred within your window, we refund that charge in full.
+                            Membership Satisfaction Guarantee: from checkout date—16 weeks (Annual) or 12 weeks (28‑Day). If your plan hasn't billed yet (first charge is Day 56), we cancel the upcoming charge. If a plan charge occurred within your window, we refund that charge in full.
                           </li>
                         </ul>
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to request</p>
                         <p className="text-sm text-neutral-300">
-                          In-app “Request a refund” or email <a href="mailto:support@vibrationfit.com" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">support@vibrationfit.com</a> with the email you used to buy. Choose Activation or Membership guarantee. We reply within 1 business day.
+                          In-app "Request a refund" or email <a href="mailto:support@vibrationfit.com" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">support@vibrationfit.com</a> with the email you used to buy. Choose Activation or Membership guarantee. We reply within 1 business day.
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How it’s paid</p>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How it's paid</p>
                         <p className="text-sm text-neutral-300">
                           Refunds go back to the original payment method. Banks typically show the credit in 5–10 business days. (If the original charge is very recent, it can post as a reversal and the original charge disappears.)
                         </p>
@@ -2066,7 +2146,7 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Limits</p>
                         <p className="text-sm text-neutral-300">
-                          One refund per customer per product. We don’t cover currency conversion, bank fees, or taxes outside our control. Abuse or duplicate accounts void guarantees.
+                          One refund per customer per product. We don't cover currency conversion, bank fees, or taxes outside our control. Abuse or duplicate accounts void guarantees.
                         </p>
                       </div>
                     </div>
@@ -2093,7 +2173,7 @@ export default function HomePage() {
                   description: (
                     <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
                       <p>
-                        <span className="font-semibold text-[#39FF14]">Short answer:</span> Yes. You can switch plans. Here’s exactly how it works and why we do it this way.
+                        <span className="font-semibold text-[#39FF14]">Short answer:</span> Yes. You can switch plans. Here's exactly how it works and why we do it this way.
                       </p>
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Before your first plan charge (Day 56)</p>
@@ -2105,7 +2185,7 @@ export default function HomePage() {
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">After billing starts (Day 56 and beyond)</p>
                         <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1">
                           <li>
-                            <span className="font-semibold text-white">Every 28 Days → Annual:</span> Switch anytime; your annual prepay starts on your next renewal date. If you want to prepay now (to lock the rate and savings immediately), you can start Annual today and we’ll end your current 28-day cycle early with no penalty.
+                            <span className="font-semibold text-white">Every 28 Days → Annual:</span> Switch anytime; your annual prepay starts on your next renewal date. If you want to prepay now (to lock the rate and savings immediately), you can start Annual today and we'll end your current 28-day cycle early with no penalty.
                           </li>
                           <li>
                             <span className="font-semibold text-white">Annual → Every 28 Days:</span> Switch effective at your annual renewal. Annual prepay is not split into partial refunds; you keep access through your paid year, then move to 28-day.
@@ -2115,7 +2195,7 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Rate-lock (Annual)</p>
                         <p>
-                          Annual prepay includes a 12-month rate lock—your price won’t change during your paid year.
+                          Annual prepay includes a 12-month rate lock—your price won't change during your paid year.
                         </p>
                       </div>
                       <div>
@@ -2127,7 +2207,7 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Guarantees stay intact when you switch</p>
                         <p>
-                          Your Membership Satisfaction Guarantee window starts at checkout (today): 16 weeks (Annual) or 12 weeks (Every 28 Days). Switching plans doesn’t reset the clock; it just changes what you’ll be billed at the next renewal.
+                          Your Membership Satisfaction Guarantee window starts at checkout (today): 16 weeks (Annual) or 12 weeks (Every 28 Days). Switching plans doesn't reset the clock; it just changes what you'll be billed at the next renewal.
                         </p>
                       </div>
                       <div>
@@ -2139,12 +2219,12 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to switch</p>
                         <p>
-                          In your Billing settings, choose "Change plan." If you’re pre-Day 56, your first charge will run on Day 56 at the selected plan. If you’re mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
+                          In your Billing settings, choose "Change plan." If you're pre-Day 56, your first charge will run on Day 56 at the selected plan. If you're mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
                         </p>
                       </div>
                       <div className="space-y-1">
                         <p>
-                          We’ll always show your next charge date and amount before you confirm any change.
+                          We'll always show your next charge date and amount before you confirm any change.
                         </p>
                         <p>
                           If we ever change prices for new customers, your annual rate-lock protects you through your paid year.
@@ -2159,7 +2239,7 @@ export default function HomePage() {
                   description: (
                     <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
                       <p>
-                        The 4-Layer Conscious Creation Writing Architecture is the energetic blueprint behind The Life I Choose™ vision document. It’s how Vibration Fit transforms words on a page into a living, breathing frequency field that your subconscious can align with.
+                        The 4-Layer Conscious Creation Writing Architecture is the energetic blueprint behind The Life I Choose™ vision document. It's how Vibration Fit transforms words on a page into a living, breathing frequency field that your subconscious can align with.
                       </p>
                       <p>
                         Every Life I Choose document follows four interacting layers:
@@ -2173,7 +2253,7 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The Who / What / Where / Why Framework</p>
                         <p>
-                          The narrative orientation that gives your vision shape and clarity. It defines who you are being, what you’re doing, where you are, and why it matters emotionally.
+                          The narrative orientation that gives your vision shape and clarity. It defines who you are being, what you're doing, where you are, and why it matters emotionally.
                         </p>
                       </div>
                       <div>
@@ -2218,11 +2298,11 @@ export default function HomePage() {
                     <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Today</p>
-                        <p>We don’t collect sales tax/VAT/GST at checkout right now. The price you see is the price you pay (plus any bank/FX fees your bank may add).</p>
+                        <p>We don't collect sales tax/VAT/GST at checkout right now. The price you see is the price you pay (plus any bank/FX fees your bank may add).</p>
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">If this changes</p>
-                        <p>If a law or your location requires tax in the future, we’ll calculate it from your billing address, show it clearly at checkout before you pay, and itemize it on your receipt. We’ll notify you ahead of any change.</p>
+                        <p>If a law or your location requires tax in the future, we'll calculate it from your billing address, show it clearly at checkout before you pay, and itemize it on your receipt. We'll notify you ahead of any change.</p>
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Receipts</p>
@@ -2230,15 +2310,17 @@ export default function HomePage() {
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">International buyers</p>
-                        <p>Your bank may add currency conversion or cross-border fees—we don’t control those.</p>
+                        <p>Your bank may add currency conversion or cross-border fees—we don't control those.</p>
                       </div>
-                      <p>Note: This is not tax advice. If you’re required to self-assess/use tax in your jurisdiction, consult your local guidance.</p>
+                      <p>Note: This is not tax advice. If you're required to self-assess/use tax in your jurisdiction, consult your local guidance.</p>
                     </div>
                   )
                 }
               ]}
-              className="w-full max-w-5xl mx-auto"
-            />
+                  className="w-full max-w-5xl mx-auto"
+                />
+              </Stack>
+            </Card>
           </Container>
         </section>
 
