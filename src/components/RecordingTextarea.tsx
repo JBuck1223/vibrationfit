@@ -150,11 +150,13 @@ export function RecordingTextarea({
   const handleTranscriptComplete = (transcript: string) => {
     // Auto-populate textarea with transcript immediately when transcription completes
     // This allows user to see and edit the transcript right away
-    const newValue = value 
+    const newValue = value
       ? `${value}\n\n${transcript}`
       : transcript
     onChange(newValue)
   }
+
+  const resolvedPlaceholder = placeholder ?? 'Type or transcribe audio.'
 
   return (
     <div className={`space-y-3 ${className}`}>
@@ -173,7 +175,7 @@ export function RecordingTextarea({
             onChange(e.target.value)
             autoResizeTextarea()
           }}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           rows={rows}
           disabled={disabled || isUploading}
           className="w-full min-h-[100px] resize-none overflow-hidden"
@@ -262,13 +264,6 @@ export function RecordingTextarea({
           />
         </div>
       )}
-
-      {/* Helper Text */}
-      <p className="text-xs text-neutral-400">
-        {allowVideo 
-          ? 'Type your story or click the microphone/video icon to record.'
-          : 'Type your story or click the microphone icon to record audio.'}
-      </p>
     </div>
   )
 }

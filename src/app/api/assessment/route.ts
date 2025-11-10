@@ -133,6 +133,29 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { profile_version_id, assessment_version = 1 } = body
 
+    // Prevent multiple in-progress assessments
+    const { data: existingDraft, error: draftError } = await supabase
+      .from('assessment_results')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('status', 'in_progress')
+      .maybeSingle()
+
+    if (draftError) {
+      console.error('Error checking existing draft assessment:', draftError)
+      return NextResponse.json(
+        { error: 'Failed to verify existing assessments' },
+        { status: 500 }
+      )
+    }
+
+    if (existingDraft) {
+      return NextResponse.json(
+        { error: 'Complete or delete your current assessment before starting a new one.' },
+        { status: 409 }
+      )
+    }
+
     // Create new assessment
     const { data: assessment, error } = await supabase
       .from('assessment_results')
@@ -142,7 +165,9 @@ export async function POST(request: NextRequest) {
         status: 'in_progress',
         assessment_version,
         max_possible_score: 420, // 12 categories × 35 max points each (7 questions × 5 max points)
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
+        is_draft: true,
+        is_active: false
       })
       .select()
       .single()
@@ -196,6 +221,42 @@ export async function PATCH(request: NextRequest) {
     if (notes !== undefined) updates.notes = notes
     if (status === 'completed') {
       updates.completed_at = new Date().toISOString()
+      updates.is_draft = false
+      updates.is_active = true
+
+      // Only one active assessment per user (most recent completed)
+      const { error: resetActiveError } = await supabase
+        .from('assessment_results')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .neq('id', id)
+
+      if (resetActiveError) {
+        console.error('Error resetting active assessments:', resetActiveError)
+        return NextResponse.json(
+          { error: 'Failed to finalize assessment' },
+          { status: 500 }
+        )
+      }
+    } else if (status === 'in_progress') {
+      updates.started_at = new Date().toISOString()
+      updates.is_draft = true
+      updates.is_active = false
+
+      // Ensure no other drafts remain
+      const { error: resetDraftError } = await supabase
+        .from('assessment_results')
+        .update({ is_draft: false })
+        .eq('user_id', user.id)
+        .neq('id', id)
+
+      if (resetDraftError) {
+        console.error('Error resetting draft assessments:', resetDraftError)
+        return NextResponse.json(
+          { error: 'Failed to update assessment status' },
+          { status: 500 }
+        )
+      }
     }
 
     const { data: assessment, error } = await supabase

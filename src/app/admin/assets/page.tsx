@@ -155,6 +155,60 @@ function AssetsAdminContent() {
     })
   }
 
+  const uploadFileWithProgress = (file: File, category: string) => {
+    return new Promise<{ url: string }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', '/api/admin/assets/upload')
+
+      xhr.upload.onloadstart = () => {
+        setUploadProgress(prev => ({ ...prev, [file.name]: 0 }))
+      }
+
+      xhr.upload.onprogress = event => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100)
+          setUploadProgress(prev => ({ ...prev, [file.name]: percentComplete }))
+        } else {
+          setUploadProgress(prev => ({ ...prev, [file.name]: 10 }))
+        }
+      }
+
+      xhr.onerror = () => {
+        reject(new Error('Network error during upload'))
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText)
+            resolve(response)
+          } catch (error) {
+            reject(new Error('Invalid response from server'))
+          }
+        } else {
+          let errorMessage = 'Upload failed'
+          try {
+            const parsed = JSON.parse(xhr.responseText)
+            errorMessage = parsed.error || parsed.message || errorMessage
+          } catch {
+            errorMessage = xhr.statusText || errorMessage
+          }
+          reject(new Error(errorMessage))
+        }
+      }
+
+      xhr.onloadend = () => {
+        setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
+      }
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('category', category)
+
+      xhr.send(formData)
+    })
+  }
+
   const handleUpload = async () => {
     if (selectedFiles.length === 0 || !uploadCategory) {
       setErrorMessage({
@@ -176,24 +230,9 @@ function AssetsAdminContent() {
           setUploadStatus(prev => ({ ...prev, [file.name]: 'uploading' }))
           setUploadProgress(prev => ({ ...prev, [file.name]: 0 }))
 
-          const formData = new FormData()
-          formData.append('file', file)
-          formData.append('category', uploadCategory)
-
-          const response = await fetch('/api/admin/assets/upload', {
-            method: 'POST',
-            body: formData,
-          })
-
-          if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.error || 'Upload failed')
-          }
-
-          const result = await response.json()
+          const result = await uploadFileWithProgress(file, uploadCategory)
           uploadedFiles.push(result.url)
           setUploadStatus(prev => ({ ...prev, [file.name]: 'success' }))
-          setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
         } catch (error) {
           console.error(`Upload error for ${file.name}:`, error)
           setUploadStatus(prev => ({ ...prev, [file.name]: 'error' }))

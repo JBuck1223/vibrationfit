@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Badge } from '@/lib/design-system/components'
-import { fetchAssessments, deleteAssessment } from '@/lib/services/assessmentService'
+import { fetchAssessments, deleteAssessment, createAssessment } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import { 
   PlayCircle, 
@@ -20,10 +20,34 @@ export default function AssessmentHub() {
   const [assessments, setAssessments] = useState<AssessmentResult[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const toTimestamp = (value?: Date | string | null) => {
+    if (!value) return 0
+    if (value instanceof Date) {
+      return value.getTime()
+    }
+    return new Date(value).getTime()
+  }
+
+  const incompleteAssessment = assessments.find(a => a.status === 'in_progress')
+  const completedAssessments = assessments.filter(a => a.status === 'completed')
+  const sortedCompletedAssessments = [...completedAssessments].sort((a, b) => {
+    const aDate = toTimestamp(a.completed_at ?? a.updated_at ?? a.created_at)
+    const bDate = toTimestamp(b.completed_at ?? b.updated_at ?? b.created_at)
+    return bDate - aDate
+  })
 
   useEffect(() => {
     loadAssessments()
   }, [])
+
+  useEffect(() => {
+    if (!incompleteAssessment && errorMessage) {
+      setErrorMessage(null)
+    }
+  }, [incompleteAssessment, errorMessage])
 
   const loadAssessments = async () => {
     try {
@@ -36,12 +60,9 @@ export default function AssessmentHub() {
     }
   }
 
-  const incompleteAssessment = assessments.find(a => a.status === 'in_progress')
-  const completedAssessments = assessments.filter(a => a.status === 'completed')
-
   const handleContinueAssessment = () => {
     if (incompleteAssessment) {
-      router.push(`/assessment/in-progress?assessmentId=${incompleteAssessment.id}&resume=true`)
+      router.push(`/assessment/${incompleteAssessment.id}/in-progress`)
     }
   }
 
@@ -63,11 +84,24 @@ export default function AssessmentHub() {
   }
 
   const handleViewResults = (assessmentId: string) => {
-    router.push(`/assessment/results?id=${assessmentId}`)
+    router.push(`/assessment/${assessmentId}/results`)
   }
 
-  const handleStartNew = () => {
-    router.push('/assessment/in-progress?new=true')
+  const handleStartNew = async () => {
+    try {
+      setErrorMessage(null)
+      setIsCreating(true)
+      const { assessment } = await createAssessment()
+      router.push(`/assessment/${assessment.id}/in-progress`)
+    } catch (error: any) {
+      console.error('Failed to create assessment:', error)
+      const message =
+        error?.message ||
+        (error instanceof Error ? error.message : 'Failed to start new assessment. Please try again.')
+      setErrorMessage(message)
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   const formatDate = (date: Date | string) => {
@@ -167,12 +201,12 @@ export default function AssessmentHub() {
             </div>
             <div>
               <h2 className="text-2xl font-semibold">
-                {incompleteAssessment ? 'Start Fresh Assessment' : 'Start New Assessment'}
+                Start New Assessment
               </h2>
               <p className="text-neutral-400">
-                {incompleteAssessment 
-                  ? 'Begin a new assessment to compare your progress over time'
-                  : 'Begin your journey of self-discovery across 12 life areas'
+                {incompleteAssessment
+                  ? 'Complete or delete your current assessment to begin another Vibrational Assessment.'
+                  : 'Begin your journey of self-discovery across 12 life areas.'
                 }
               </p>
             </div>
@@ -200,14 +234,22 @@ export default function AssessmentHub() {
             </ul>
           </div>
 
+          {errorMessage && (
+            <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
+              {errorMessage}
+            </div>
+          )}
+
           <Button 
             onClick={handleStartNew}
             variant="secondary" 
             size="lg"
             className="w-full"
+            loading={isCreating}
+            disabled={Boolean(incompleteAssessment) || isCreating}
           >
             <PlusCircle className="w-5 h-5 mr-2" />
-            {incompleteAssessment ? 'Start Fresh Assessment' : 'Start New Assessment'}
+            {incompleteAssessment ? 'Finish Current Assessment First' : 'Start New Assessment'}
           </Button>
         </Card>
 
@@ -227,15 +269,25 @@ export default function AssessmentHub() {
             </div>
 
             <div className="space-y-4">
-              {completedAssessments.slice(0, 5).map((assessment) => (
+              {sortedCompletedAssessments.slice(0, 5).map((assessment) => {
+                const isActive = assessment.is_active
+                return (
                 <div 
                   key={assessment.id}
-                  className="flex items-center justify-between p-4 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition-colors"
+                  className={`flex items-center justify-between p-4 rounded-lg transition-all ${
+                    isActive
+                      ? 'bg-primary-500/10 border border-primary-500 hover:border-primary-400 hover:bg-primary-500/20'
+                      : 'bg-neutral-800 border border-neutral-700 hover:bg-neutral-700'
+                  }`}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <p className="font-medium">Assessment Completed</p>
-                      <Badge variant="success">Completed</Badge>
+                      <p className="font-medium">
+                        Assessment {isActive ? '(Most Recent)' : 'Completed'}
+                      </p>
+                      <Badge variant={isActive ? 'primary' : 'success'}>
+                        {isActive ? 'Active' : 'Completed'}
+                      </Badge>
                     </div>
                     <p className="text-sm text-neutral-400">
                       Started: {formatDate(assessment.started_at || assessment.created_at)}
@@ -263,12 +315,13 @@ export default function AssessmentHub() {
                     </Button>
                   </div>
                 </div>
-              ))}
+                )
+              })}
               
               {completedAssessments.length > 5 && (
                 <div className="text-center pt-4">
                   <Button 
-                    onClick={() => router.push('/assessment/results')}
+                    onClick={() => router.push('/assessment/history')}
                     variant="outline"
                     size="sm"
                   >

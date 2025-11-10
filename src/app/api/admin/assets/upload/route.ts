@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import {
+  S3Client,
+  PutObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+} from '@aws-sdk/client-s3'
+
+export const runtime = 'nodejs'
+export const maxDuration = 300
+export const maxRequestBodySize = '500mb'
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-east-2',
@@ -7,11 +18,14 @@ const s3Client = new S3Client({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
+  maxAttempts: 3,
 })
 
 const BUCKET_NAME = 'vibration-fit-client-storage'
 const CDN_URL = 'https://media.vibrationfit.com'
 const SITE_ASSETS_PREFIX = 'site-assets/'
+const MULTIPART_THRESHOLD = 50 * 1024 * 1024 // 50MB
+const CHUNK_SIZE = 10 * 1024 * 1024 // 10MB
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,24 +52,27 @@ export async function POST(request: NextRequest) {
     
     // Sanitize filename
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase()
-    
-    // Build S3 key: site-assets/category/path/filename
-    const s3Key = `${SITE_ASSETS_PREFIX}${sanitizedCategory}/${sanitizedName}`
+    const s3Key = sanitizedCategory
+      ? `${SITE_ASSETS_PREFIX}${sanitizedCategory}/${sanitizedName}`
+      : `${SITE_ASSETS_PREFIX}${sanitizedName}`
+    const contentType = file.type || 'application/octet-stream'
 
-    // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    if (file.size > MULTIPART_THRESHOLD) {
+      await multipartUpload(file, s3Key, contentType)
+    } else {
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
 
-    // Upload to S3
-    const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: s3Key,
-      Body: buffer,
-      ContentType: file.type || 'application/octet-stream',
-      CacheControl: 'public, max-age=31536000, immutable',
-    })
+      const command = new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: s3Key,
+        Body: buffer,
+        ContentType: contentType,
+        CacheControl: 'public, max-age=31536000, immutable',
+      })
 
-    await s3Client.send(command)
+      await s3Client.send(command)
+    }
 
     // Return CloudFront URL instead of S3 URL
     const url = `${CDN_URL}/${s3Key}`
@@ -73,6 +90,72 @@ export async function POST(request: NextRequest) {
       { error: 'Upload failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
+  }
+}
+
+async function multipartUpload(
+  file: File,
+  s3Key: string,
+  contentType: string
+) {
+  const createCommand = new CreateMultipartUploadCommand({
+    Bucket: BUCKET_NAME,
+    Key: s3Key,
+    ContentType: contentType,
+    CacheControl: 'public, max-age=31536000, immutable',
+  })
+
+  const { UploadId } = await s3Client.send(createCommand)
+
+  if (!UploadId) {
+    throw new Error('Failed to initiate multipart upload')
+  }
+
+  try {
+    const parts: { ETag: string; PartNumber: number }[] = []
+    const totalParts = Math.ceil(file.size / CHUNK_SIZE)
+
+    for (let i = 0; i < totalParts; i += 1) {
+      const start = i * CHUNK_SIZE
+      const end = Math.min(start + CHUNK_SIZE, file.size)
+      const chunk = file.slice(start, end)
+      const arrayBuffer = await chunk.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+
+      const uploadPartCommand = new UploadPartCommand({
+        Bucket: BUCKET_NAME,
+        Key: s3Key,
+        UploadId,
+        PartNumber: i + 1,
+        Body: buffer,
+      })
+
+      const { ETag } = await s3Client.send(uploadPartCommand)
+
+      if (!ETag) {
+        throw new Error(`Failed to upload part ${i + 1}`)
+      }
+
+      parts.push({ ETag, PartNumber: i + 1 })
+    }
+
+    const completeCommand = new CompleteMultipartUploadCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+      UploadId,
+      MultipartUpload: { Parts: parts },
+    })
+
+    await s3Client.send(completeCommand)
+  } catch (error) {
+    const abortCommand = new AbortMultipartUploadCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+      UploadId,
+    })
+
+    await s3Client.send(abortCommand)
+    throw error
   }
 }
 

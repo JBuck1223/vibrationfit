@@ -72,6 +72,8 @@ export interface AssessmentResult {
   user_id: string
   profile_version_id?: string
   status: 'in_progress' | 'completed'
+  is_active: boolean
+  is_draft: boolean
   category_scores: Record<AssessmentCategory, number>
   total_score: number
   max_possible_score: number

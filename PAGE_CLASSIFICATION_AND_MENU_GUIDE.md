@@ -123,9 +123,11 @@ The system handles dynamic routes automatically:
 
 #### Vibration Assessment
 - `/assessment`
-- `/assessment/in-progress`
-- `/assessment/results`
+- `/assessment/[id]/in-progress` (dynamic)
+- `/assessment/[id]/results` (dynamic)
 - `/assessment/[id]` (dynamic)
+- `/assessment/history`
+- `/assessment/results`
 
 #### Actualization Blueprints
 - `/actualization-blueprints`

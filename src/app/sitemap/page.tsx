@@ -24,7 +24,8 @@ import {
   Rocket,
   Target,
   Image,
-  Brain,
+  Brain, 
+  RefreshCw,
   HardDrive,
   CreditCard,
   ChevronRight,
@@ -103,8 +104,10 @@ export default function SitemapPage() {
 
         // Assessment
         { href: '/assessment', label: 'Vibration Assessment', icon: Brain, description: 'Start assessment' },
-        { href: '/assessment/in-progress', label: 'Assessment Progress', icon: BarChart3, description: 'Assessment in progress' },
-        { href: '/assessment/results', label: 'Assessment Results', icon: CheckCircle, description: 'Assessment results' },
+        { href: '/assessment/[id]/in-progress', label: 'Assessment Progress', icon: BarChart3, description: 'Assessment in progress', isDynamic: true },
+        { href: '/assessment/[id]/results', label: 'Assessment Results', icon: CheckCircle, description: 'Assessment results', isDynamic: true },
+        { href: '/assessment/history', label: 'Assessment History', icon: RefreshCw, description: 'All past assessments' },
+        { href: '/assessment/results', label: 'Assessment Results Overview', icon: BarChart3, description: 'All assessments overview' },
 
         // Blueprints
         { href: '/actualization-blueprints', label: 'Actualization Blueprints', icon: Rocket, description: 'All blueprints' },

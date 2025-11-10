@@ -75,8 +75,10 @@ The Vibration Assessment measures alignment across all 12 life categories, provi
 ## User Paths
 
 - Start: `/assessment`
-- Results: `/assessment/results`
-- In Progress: `/assessment/in-progress`
+- Results: `/assessment/[id]/results`
+- In Progress: `/assessment/[id]/in-progress`
+- History: `/assessment/history`
+- Results Overview: `/assessment/results`
 
 ## Common User Questions
 

@@ -66,8 +66,9 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Vibration Assessment
     '/assessment',
-    '/assessment/in-progress',
-    '/assessment/results',
+    '/assessment/[id]/in-progress',
+    '/assessment/[id]/results',
+    '/assessment/history',
     '/assessment/[id]',
     
     // Actualization Blueprints

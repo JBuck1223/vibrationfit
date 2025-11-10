@@ -33,8 +33,10 @@
 - `/life-vision/[id]/audio` - Vision Audio
 - `/vision/build` - Vision Builder
 - `/assessment` - Vibration Assessment
-- `/assessment/in-progress` - Assessment in Progress
-- `/assessment/results` - Assessment Results
+- `/assessment/[id]/in-progress` - Assessment in Progress (Draft)
+- `/assessment/[id]/results` - Assessment Results
+- `/assessment/history` - Assessment History Overview
+- `/assessment/results` - Assessment Results Overview
 
 ## 🎨 **Vision Board & Gallery**
 - `/vision-board` - Vision Board Gallery

@@ -1,4 +1,4 @@
-// /src/app/assessment/page.tsx
+// /src/app/assessment/[id]/in-progress/page.tsx
 // Main assessment flow page
 
 'use client'
@@ -17,7 +17,7 @@ import {
   fetchAssessment,
   AssessmentProgress
 } from '@/lib/services/assessmentService'
-import ResultsSummary from '../components/ResultsSummary'
+import ResultsSummary from '../../components/ResultsSummary'
 
 export default function AssessmentPage() {
   const router = useRouter()
