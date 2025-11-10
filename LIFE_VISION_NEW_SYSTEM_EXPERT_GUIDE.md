@@ -2,39 +2,110 @@
 
 ## 📝 Prompt Files Reference
 
-✅ **UPDATE (Nov 10, 2025)**: Prompts are now **centralized** in `/src/lib/viva/prompts/`! See `VIVA_RESTRUCTURE_COMPLETE.md` for details.
+✅ **UPDATE (Nov 10, 2025)**: **ALL VIVA prompts are now centralized** in `/src/lib/viva/prompts/`! 
 
-All AI prompts used in the `/life-vision/new` system are now in ONE location:
+See `VIVA_RESTRUCTURE_COMPLETE_ALL_PHASES.md` for complete 3-phase migration details.
+
+All AI prompts used in the `/life-vision/new` system are now in ONE location with a central export index.
 
 ### Core System Prompts (Centralized Location)
 
-**All prompts are now in**: `/src/lib/viva/prompts/`
+**All prompts are now in**: `/src/lib/viva/prompts/`  
+**Central export**: `/src/lib/viva/prompts/index.ts`
 
-1. **Flip Frequency Prompt** (Contrast → Clarity transformation)
-   - **File**: `/src/lib/viva/prompts/flip-frequency-prompt.ts`
-   - **System Prompt Constant**: `FLIP_FREQUENCY_SYSTEM_PROMPT`
-   - **Prompt Builder**: `buildFlipFrequencyPrompt()`
-   - **Used By**: `/api/viva/flip-frequency/route.ts`
-   - **Purpose**: Converts lack/contrast language into present-tense clarity seeds
+#### 1. Vision Composer Prompts
+- **File**: `/src/lib/viva/prompts/vision-composer-prompt.ts`
+- **Exports**:
+  - `VISION_COMPOSER_SYSTEM_PROMPT` - VIVA persona for vision paragraph generation
+  - `VISION_COMPOSER_TASKS_PROMPT` - Task instructions (reflection, flip, paragraph, clarifier)
+- **Used By**: `/src/lib/viva/vision-composer.ts`
+- **Purpose**: Generates 120-150 word vision paragraphs using vibrational grammar
 
-2. **Merge Clarity Prompt** (Combines two clarity texts)
-   - **File**: `/src/lib/viva/prompts/merge-clarity-prompt.ts`
-   - **System Prompt Constant**: `MERGE_CLARITY_SYSTEM_PROMPT`
-   - **Prompt Builder**: `buildMergeClarityPrompt()`
-   - **Used By**: Category pages when "Process with VIVA" is clicked
-   - **Purpose**: Merges Current Clarity + Clarity from Contrast into unified statement
+#### 2. Conversation Generator Prompts
+- **File**: `/src/lib/viva/prompts/conversation-generator-prompt.ts`
+- **Export**: `buildConversationGeneratorPrompt()` - Function that builds personalized opening conversation
+- **Used By**: `/src/lib/viva/conversation-generator.ts`
+- **Purpose**: Creates custom opening greetings based on profile and assessment data
 
-3. **Master Vision Assembly Prompts** (Creates complete Life Vision document)
-   - **File**: `/src/lib/viva/prompts/master-vision-prompts.ts`
-   - **System Prompt Constants**:
-     - `MASTER_VISION_SHARED_SYSTEM_PROMPT` - Core VIVA persona and golden rules
-     - `FIVE_PHASE_INSTRUCTIONS` - 5-Phase Conscious Creation Flow
-     - `FLOW_FLEXIBILITY_NOTE` - Adaptive phase scaling guidance
-     - `STYLE_GUARDRAILS` - Voice protection and transformations
-     - `MICRO_REWRITE_RULE` - Lack language transformations
-   - **Prompt Builder Function**: `buildMasterVisionPrompt()`
-   - **Used By**: `/api/viva/master-vision/route.ts` (assembly page)
-   - **Purpose**: Assembles all 12 category summaries into unified Life Vision
+#### 3. Category Summary Prompts
+- **File**: `/src/lib/viva/prompts/category-summary-prompt.ts`
+- **Exports**:
+  - `CATEGORY_SUMMARY_SYSTEM_PROMPT` - VIVA persona for category summaries
+  - `buildCategorySummaryPrompt()` - Builds data-driven category summary prompt
+- **Used By**: `/api/viva/category-summary/route.ts`
+- **Purpose**: Generates summaries of what's going well / what's challenging per category
+
+#### 4. Prompt Suggestions Prompts
+- **File**: `/src/lib/viva/prompts/prompt-suggestions-prompt.ts`
+- **Exports**:
+  - `PROMPT_SUGGESTIONS_SYSTEM_PROMPT` - VIVA persona for generating prompts
+  - `buildPromptSuggestionsPrompt()` - Builds personalized prompt suggestions
+- **Used By**: `/api/viva/prompt-suggestions/route.ts`
+- **Purpose**: Generates 3 personalized prompts (Peak, Amazing, Bad/Missing)
+
+#### 5. Master Vision Assembly Prompts
+- **File**: `/src/lib/viva/prompts/master-vision-prompts.ts`
+- **Exports**:
+  - `MASTER_VISION_SHARED_SYSTEM_PROMPT` - Core VIVA persona and golden rules
+  - `FIVE_PHASE_INSTRUCTIONS` - 5-Phase Conscious Creation Flow
+  - `FLOW_FLEXIBILITY_NOTE` - Adaptive phase scaling guidance
+  - `STYLE_GUARDRAILS` - Voice protection and transformations
+  - `MICRO_REWRITE_RULE` - Lack language transformations
+  - `buildMasterVisionPrompt()` - Complete prompt assembly function
+- **Used By**: 
+  - `/api/viva/master-vision/route.ts` (assembly)
+  - `/api/viva/refine-category/route.ts` (refinement)
+- **Purpose**: Assembles all 12 category summaries into unified Life Vision
+
+#### 6. Vibrational Analysis Prompts
+- **File**: `/src/lib/viva/prompts/vibrational-prompts.ts`
+- **Exports**:
+  - `buildVibrationalAnalyzerPrompt()` - Analyzes emotional valence and intensity
+  - `buildSceneGenerationPrompt()` - Generates visualization scenes
+  - `buildNorthStarReflectionPrompt()` - Creates North Star reflections
+- **Used By**: `/src/lib/viva/vibrational-prompts.ts` (re-exported from here)
+- **Purpose**: Vibrational event tracking and scene generation
+
+#### 7. Chat System Prompts
+- **File**: `/src/lib/viva/prompts/chat-system-prompt.ts`
+- **Exports**:
+  - `buildVivaSystemPrompt()` - Master function for all VIVA chat system prompts
+  - `REFINEMENT_INSTRUCTIONS` - Instructions for vision refinement mode
+  - `BuildChatSystemPromptInput` - TypeScript interface
+- **Used By**: `/api/viva/chat/route.ts`
+- **Purpose**: Powers the entire VIVA chat interface (master assistant + refinement modes)
+
+#### 8. Merge Clarity Prompts
+- **File**: `/src/lib/viva/prompts/merge-clarity-prompt.ts`
+- **Export**: `MERGE_CLARITY_SYSTEM_PROMPT` - System prompt for merging clarity texts
+- **Used By**: `/api/viva/merge-clarity/route.ts`
+- **Purpose**: Merges Current Clarity + Clarity from Contrast into unified statement
+
+#### 9. Flip Frequency Prompts
+- **File**: `/src/lib/viva/prompts/flip-frequency-prompt.ts`
+- **Exports**:
+  - `FLIP_FREQUENCY_SYSTEM_PROMPT` - System prompt for contrast flipping
+  - `buildFlipFrequencyPrompt()` - Builds flip frequency prompt
+  - `FlipMode` - Type definition
+  - `FlipFrequencyParams` - Type definition
+- **Used By**: `/src/lib/viva/flip-frequency.ts`
+- **Purpose**: Converts lack/contrast language into present-tense clarity seeds
+
+### Shared Prompt Components
+
+Located in `/src/lib/viva/prompts/shared/`:
+
+1. **VIVA Persona** (`viva-persona.ts`)
+   - `VIVA_PERSONA` - Basic VIVA persona definition
+   - `VIVA_PERSONA_WITH_GOLDEN_RULES` - Extended persona with golden rules
+
+2. **Vibrational Grammar** (`vibrational-grammar.ts`)
+   - Rules for present-tense, first-person, positive framing
+   - 120-150 word targets, believability over bravado
+
+3. **Output Format Rules** (`output-format-rules.ts`)
+   - JSON structure requirements
+   - Response formatting guidelines
 
 ### Reference Prompt Documents
 
@@ -51,32 +122,75 @@ These are documentation/reference files (not actively used by code, but guide pr
 - **Status**: Currently contains only Fun and Health categories (incomplete)
 - **Purpose**: Pre-written prompt suggestions for users (not currently used in UI)
 
-### Quick Lookup Table (Updated - Centralized!)
+### Complete Quick Lookup Table
 
-| Prompt Name | File Location | Export Name | Used In |
+| Prompt Name | File Location | Export Name | Purpose |
 |------------|---------------|-------------|---------|
-| Flip Frequency System Prompt | `/src/lib/viva/prompts/flip-frequency-prompt.ts` | `FLIP_FREQUENCY_SYSTEM_PROMPT` | Contrast → Clarity transformation |
-| Flip Frequency Prompt Builder | `/src/lib/viva/prompts/flip-frequency-prompt.ts` | `buildFlipFrequencyPrompt()` | Prompt construction |
-| Merge Clarity System Prompt | `/src/lib/viva/prompts/merge-clarity-prompt.ts` | `MERGE_CLARITY_SYSTEM_PROMPT` | Combining two clarity texts |
-| Merge Clarity Prompt Builder | `/src/lib/viva/prompts/merge-clarity-prompt.ts` | `buildMergeClarityPrompt()` | Prompt construction |
-| Master Vision Shared System Prompt | `/src/lib/viva/prompts/master-vision-prompts.ts` | `MASTER_VISION_SHARED_SYSTEM_PROMPT` | VIVA persona & golden rules |
-| Master Vision 5-Phase Instructions | `/src/lib/viva/prompts/master-vision-prompts.ts` | `FIVE_PHASE_INSTRUCTIONS` | Conscious Creation Flow |
-| Master Vision Flow Flexibility | `/src/lib/viva/prompts/master-vision-prompts.ts` | `FLOW_FLEXIBILITY_NOTE` | Adaptive phase scaling |
-| Master Vision Style Guardrails | `/src/lib/viva/prompts/master-vision-prompts.ts` | `STYLE_GUARDRAILS` | Voice protection rules |
-| Master Vision Micro Rewrite Rule | `/src/lib/viva/prompts/master-vision-prompts.ts` | `MICRO_REWRITE_RULE` | Lack language fixes |
-| Master Vision Prompt Builder | `/src/lib/viva/prompts/master-vision-prompts.ts` | `buildMasterVisionPrompt()` | Complete prompt assembly |
+| **Vision Composer System** | `vision-composer-prompt.ts` | `VISION_COMPOSER_SYSTEM_PROMPT` | Vision paragraph generation persona |
+| **Vision Composer Tasks** | `vision-composer-prompt.ts` | `VISION_COMPOSER_TASKS_PROMPT` | Task instructions for vision generation |
+| **Conversation Generator** | `conversation-generator-prompt.ts` | `buildConversationGeneratorPrompt()` | Custom opening greetings |
+| **Category Summary System** | `category-summary-prompt.ts` | `CATEGORY_SUMMARY_SYSTEM_PROMPT` | Category summary persona |
+| **Category Summary Builder** | `category-summary-prompt.ts` | `buildCategorySummaryPrompt()` | Builds category summary prompt |
+| **Prompt Suggestions System** | `prompt-suggestions-prompt.ts` | `PROMPT_SUGGESTIONS_SYSTEM_PROMPT` | Prompt generation persona |
+| **Prompt Suggestions Builder** | `prompt-suggestions-prompt.ts` | `buildPromptSuggestionsPrompt()` | Builds 3 personalized prompts |
+| **Master Vision Shared System** | `master-vision-prompts.ts` | `MASTER_VISION_SHARED_SYSTEM_PROMPT` | VIVA persona & golden rules |
+| **5-Phase Instructions** | `master-vision-prompts.ts` | `FIVE_PHASE_INSTRUCTIONS` | Conscious Creation Flow |
+| **Flow Flexibility Note** | `master-vision-prompts.ts` | `FLOW_FLEXIBILITY_NOTE` | Adaptive phase scaling |
+| **Style Guardrails** | `master-vision-prompts.ts` | `STYLE_GUARDRAILS` | Voice protection rules |
+| **Micro Rewrite Rule** | `master-vision-prompts.ts` | `MICRO_REWRITE_RULE` | Lack language fixes |
+| **Master Vision Builder** | `master-vision-prompts.ts` | `buildMasterVisionPrompt()` | Complete prompt assembly |
+| **Vibrational Analyzer** | `vibrational-prompts.ts` | `buildVibrationalAnalyzerPrompt()` | Emotional valence analysis |
+| **Scene Generation** | `vibrational-prompts.ts` | `buildSceneGenerationPrompt()` | Visualization scene generation |
+| **North Star Reflection** | `vibrational-prompts.ts` | `buildNorthStarReflectionPrompt()` | North Star reflections |
+| **Chat System Builder** | `chat-system-prompt.ts` | `buildVivaSystemPrompt()` | Master chat system prompt |
+| **Refinement Instructions** | `chat-system-prompt.ts` | `REFINEMENT_INSTRUCTIONS` | Vision refinement mode |
+| **Merge Clarity System** | `merge-clarity-prompt.ts` | `MERGE_CLARITY_SYSTEM_PROMPT` | Clarity merging persona |
+| **Flip Frequency System** | `flip-frequency-prompt.ts` | `FLIP_FREQUENCY_SYSTEM_PROMPT` | Contrast flipping persona |
+| **Flip Frequency Builder** | `flip-frequency-prompt.ts` | `buildFlipFrequencyPrompt()` | Builds flip frequency prompt |
+| **VIVA Persona** | `shared/viva-persona.ts` | `VIVA_PERSONA` | Basic VIVA persona |
+| **VIVA Persona + Rules** | `shared/viva-persona.ts` | `VIVA_PERSONA_WITH_GOLDEN_RULES` | Extended persona |
 
-**Import from central index:**
+**All prompts can be imported from the central index:**
 ```typescript
 import {
-  FLIP_FREQUENCY_SYSTEM_PROMPT,
-  buildFlipFrequencyPrompt,
-  MERGE_CLARITY_SYSTEM_PROMPT,
-  buildMergeClarityPrompt,
+  // Vision Composer
+  VISION_COMPOSER_SYSTEM_PROMPT,
+  VISION_COMPOSER_TASKS_PROMPT,
+  
+  // Conversation Generator
+  buildConversationGeneratorPrompt,
+  
+  // Category Summary
+  CATEGORY_SUMMARY_SYSTEM_PROMPT,
+  buildCategorySummaryPrompt,
+  
+  // Prompt Suggestions
+  buildPromptSuggestionsPrompt,
+  
+  // Master Vision
   MASTER_VISION_SHARED_SYSTEM_PROMPT,
-  buildMasterVisionPrompt
+  FIVE_PHASE_INSTRUCTIONS,
+  buildMasterVisionPrompt,
+  
+  // Vibrational
+  buildVibrationalAnalyzerPrompt,
+  buildSceneGenerationPrompt,
+  buildNorthStarReflectionPrompt,
+  
+  // Chat System
+  buildVivaSystemPrompt,
+  REFINEMENT_INSTRUCTIONS,
+  
+  // Other
+  MERGE_CLARITY_SYSTEM_PROMPT,
+  
+  // Shared
+  VIVA_PERSONA,
+  VIVA_PERSONA_WITH_GOLDEN_RULES
 } from '@/lib/viva/prompts'
 ```
+
+**Note:** `flip-frequency` prompts are still in `/src/lib/viva/flip-frequency.ts` (intentionally left inline as they're self-contained).
 
 ---
 
