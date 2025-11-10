@@ -1855,7 +1855,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
               </h2>
               <button
                 onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#404040] hover:bg-[#FF3366] transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#404040] hover:bg-[#BF00FF] transition-colors"
                 aria-label="Close modal"
               >
                 <span className="text-white text-lg">×</span>
@@ -4688,7 +4688,7 @@ export const ProofWall = React.forwardRef<HTMLDivElement, ProofWallProps>(
 
           <Stack gap="lg">
             <Text size="base" className="text-neutral-400 text-center leading-relaxed">
-              From 6-figures in the hole to 6-figures in the bank. Once we locked in the system, abundance flowed.
+              From no money &amp; 6-figures in the hole to 6-figures in the bank. Once we locked in the system, abundance flowed.
             </Text>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
@@ -4750,6 +4750,26 @@ export interface SwipeableCard {
   actualizedImageAlt?: string
   footer?: React.ReactNode
   onClick?: () => void
+  /**
+   * Control whether the card title appears beneath the images.
+   * @default true
+   */
+  showTitleOnCard?: boolean
+  /**
+   * Control whether the card content appears beneath the images.
+   * @default true
+   */
+  showContentOnCard?: boolean
+  /**
+   * Control whether the modal displays images when opened from the card button.
+   * @default true
+   */
+  showModalImages?: boolean
+  /**
+   * Optional member name to display in the modal header.
+   */
+  memberName?: string
+  memberNames?: string[]
 }
 
 export interface SwipeableCardsProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -5219,8 +5239,8 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                     className={cn(
                       'overflow-hidden transition-all duration-300 ease-out h-full',
                       'shadow-[0_6px_20px_rgba(0,0,0,0.45)]',
-                      'hover:-translate-y-1 hover:shadow-[0_18px_36px_rgba(57,255,20,0.28)]',
-                      'hover:border-[#39FF14]',
+                      'hover:-translate-y-1 hover:shadow-[0_18px_36px_rgba(191,0,255,0.28)]',
+                      'hover:border-[#BF00FF]',
                       'group'
                     )}
                     onClick={(event) => {
@@ -5269,7 +5289,7 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                           {/* Pulsing Arrow - centered */}
                           {(card.activeImage && card.actualizedImage) && (
                             <div className="flex items-center justify-center py-1">
-                              <Icon icon={ArrowDown} size="md" color="#39FF14" className="animate-pulse" />
+                              <Icon icon={ArrowDown} size="md" color="#BF00FF" className="animate-pulse" />
                             </div>
                           )}
 
@@ -5319,17 +5339,28 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                         </div>
                       ) : null}
                       
-                      {card.title && (
+                      {card.title && card.showTitleOnCard !== false && (
                         <Heading level={4} className="text-white text-base md:text-lg">
                           {card.title}
                         </Heading>
                       )}
                       
-                      {card.content && (
+                      {card.content && card.showContentOnCard !== false && (
                         <div className="flex-1">
                           {card.content}
                         </div>
                       )}
+
+                      <VIVAButton
+                        size="sm"
+                        className="self-center mt-auto"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setSelectedCardId(card.id)
+                        }}
+                      >
+                        Actualization Story
+                      </VIVAButton>
                       
                       {card.footer && (
                         <div 
@@ -5358,17 +5389,17 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
             <>
               <button
                 onClick={() => scrollCards('left')}
-                className="group absolute left-0 top-1/2 -translate-y-1/2 hidden lg:flex w-12 h-12 bg-[#39FF14]/15 border-2 border-[#39FF14]/60 rounded-full items-center justify-center hover:border-[#39FF14] transition-all duration-200 z-10"
+                className="group absolute left-0 top-1/2 -translate-y-1/2 hidden lg:flex w-12 h-12 bg-[#BF00FF]/15 border-2 border-[#BF00FF]/60 rounded-full items-center justify-center hover:border-[#BF00FF] transition-all duration-200 z-10"
                 aria-label="Scroll left"
               >
-                <Icon icon={ChevronLeft} size="md" className="text-[#39FF14] transition-transform duration-200 group-hover:-translate-x-1" />
+                <Icon icon={ChevronLeft} size="md" className="text-[#BF00FF] transition-transform duration-200 group-hover:-translate-x-1" />
               </button>
               <button
                 onClick={() => scrollCards('right')}
-                className="group absolute right-0 top-1/2 -translate-y-1/2 hidden lg:flex w-12 h-12 bg-[#39FF14] border-2 border-[#39FF14] rounded-full items-center justify-center hover:border-[#39FF14] transition-all duration-200 z-10"
+                className="group absolute right-0 top-1/2 -translate-y-1/2 hidden lg:flex w-12 h-12 bg-[#BF00FF] border-2 border-[#BF00FF] rounded-full items-center justify-center hover:border-[#BF00FF] transition-all duration-200 z-10"
                 aria-label="Scroll right"
               >
-                <Icon icon={ChevronRight} size="md" className="text-black transition-transform duration-200 group-hover:translate-x-1" />
+                <Icon icon={ChevronRight} size="md" className="text-white transition-transform duration-200 group-hover:translate-x-1" />
               </button>
             </>
           )}
@@ -5505,7 +5536,7 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                             {/* Pulsing Arrow - centered */}
                             {(card.activeImage && card.actualizedImage) && (
                               <div className="flex items-center justify-center">
-                                <Icon icon={ArrowDown} size="md" color="#39FF14" className="animate-pulse" />
+                                <Icon icon={ArrowDown} size="md" color="#BF00FF" className="animate-pulse" />
                               </div>
                             )}
 
@@ -5561,11 +5592,22 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                           </Heading>
                         )}
                         
-                        {card.content && (
-                          <div className="flex-1 overflow-y-auto">
-                            {card.content}
-                          </div>
-                        )}
+                      {card.content && card.showContentOnCard !== false && (
+                        <div className="flex-1 overflow-y-auto">
+                          {card.content}
+                        </div>
+                      )}
+
+                      <VIVAButton
+                        size="sm"
+                        className="self-center mt-auto"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setSelectedCardId(card.id)
+                        }}
+                      >
+                        Actualization Story
+                      </VIVAButton>
                         
                         {card.footer && (
                           <div 
@@ -5629,12 +5671,27 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
             <Modal
               isOpen={!!selectedCardId}
               onClose={() => setSelectedCardId(null)}
-              title={selectedCard.title || 'Full Story'}
-              size="lg"
-              variant="default"
+              title={selectedCard.title || 'Actualization Story'}
+              size={selectedCard.showModalImages === false ? 'md' : 'lg'}
+              variant="card"
+              className="border-[#BF00FF] shadow-[0_0_40px_rgba(191,0,255,0.25)]"
             >
               <div className="space-y-4">
-                {selectedCard.activeImage && selectedCard.actualizedImage && (
+                {(() => {
+                  const memberBadges =
+                    selectedCard.memberNames ??
+                    (selectedCard.memberName ? [selectedCard.memberName] : [])
+                  return memberBadges.length > 0 ? (
+                    <Inline gap="xs" justify="start" className="flex-wrap">
+                      {memberBadges.map((name) => (
+                        <Badge key={name} variant="secondary" className="text-xs md:text-sm">
+                          {name}
+                        </Badge>
+                      ))}
+                    </Inline>
+                  ) : null
+                })()}
+                {selectedCard.showModalImages !== false && selectedCard.activeImage && selectedCard.actualizedImage && (
                   <div className="space-y-4">
                     <div className="relative w-full aspect-[4/3] overflow-hidden rounded-2xl">
                       <img
@@ -5648,7 +5705,7 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                       </div>
                     </div>
                     <div className="flex items-center justify-center">
-                      <Icon icon={ArrowDown} size="md" color="#39FF14" className="animate-pulse" />
+                      <Icon icon={ArrowDown} size="md" color="#BF00FF" className="animate-pulse" />
                     </div>
                     <div className="relative w-full aspect-[4/3] overflow-hidden rounded-2xl">
                       <img
@@ -5664,12 +5721,15 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                   </div>
                 )}
                 {selectedCard.content && (
-                  <div className="text-neutral-300">
+                  <div className="rounded-2xl border border-[#BF00FF]/40 bg-[#BF00FF]/10 p-5 shadow-[0_0_20px_rgba(191,0,255,0.15)] text-justify">
                     {selectedCard.content}
                   </div>
                 )}
-                {!selectedCard.content && !selectedCard.activeImage && (
-                  <Text size="base" className="text-neutral-300">
+                {!selectedCard.content && !(
+                  selectedCard.showModalImages !== false &&
+                  (selectedCard.activeImage || selectedCard.actualizedImage)
+                ) && (
+                  <Text size="base" className="text-neutral-300 text-justify">
                     This story is coming soon!
                   </Text>
                 )}
