@@ -4,16 +4,11 @@ import { getAIModelConfig } from '@/lib/ai/config'
 import OpenAI from 'openai'
 import { analyzeProfile, analyzeAssessment } from '@/lib/viva/profile-analyzer'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
-import { flattenAssessmentResponsesNumbered } from '@/lib/viva/prompt-flatteners'
+import { buildCategorySummaryPrompt, CATEGORY_SUMMARY_SYSTEM_PROMPT } from '@/lib/viva/prompts/category-summary-prompt'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
-
-const SHARED_SYSTEM_PROMPT = `You are VIVA — the Vibrational Intelligence Virtual Assistant for Vibration Fit.
-Your purpose is to help members articulate and activate the life they choose through vibrational alignment.
-You are a warm, wise, intuitive life coach — never a therapist or problem-solver.
-All responses must be in present tense, first person, and vibrationally activating.`
 
 function getCategoryProfileFields(category: string, profile: any): string {
   if (!profile) return ''
@@ -73,137 +68,6 @@ function getCategoryProfileFields(category: string, profile: any): string {
   })
   
   return fields.length > 0 ? `Profile Context (${category}):\n${fields.map(f => `- ${f}`).join('\n')}\n` : ''
-}
-
-function buildCategoryPrompt(
-  category: string, 
-  transcript: string, 
-  categoryName: string,
-  profile: any,
-  assessment: any
-): string {
-  // Get category-specific profile story (user's own words)
-  const categoryStories: Record<string, string> = {
-    fun: 'clarity_fun',
-    health: 'clarity_health',
-    travel: 'clarity_travel',
-    love: 'clarity_love',
-    family: 'clarity_family',
-    social: 'clarity_social',
-    home: 'clarity_home',
-    work: 'clarity_work',
-    money: 'clarity_money',
-    stuff: 'clarity_stuff',
-    giving: 'clarity_giving',
-    spirituality: 'clarity_spirituality'
-  }
-  
-  const storyField = categoryStories[category]
-  const profileStory = profile && storyField && profile[storyField] && profile[storyField].trim()
-    ? profile[storyField].trim()
-    : null
-  
-  // Get category-specific assessment responses
-  const categoryResponses = assessment?.responses?.filter((r: any) => r.category === category) || []
-  
-  // Build data sections
-  let dataSections = ''
-  
-  if (transcript && transcript.trim()) {
-    dataSections += `## DATA SOURCE 1: User's Current Reflection (Spoken/Written Input)
-"${transcript}"
-
-`
-  }
-  
-  if (profileStory) {
-    dataSections += `## DATA SOURCE 2: User's Profile Story (Their Own Words)
-"${profileStory}"
-
-`
-  }
-  
-  if (categoryResponses.length > 0) {
-    dataSections += `## DATA SOURCE 3: Assessment Responses (Their Own Answers)
-${flattenAssessmentResponsesNumbered(categoryResponses, false)}`
-  }
-  
-  return `${SHARED_SYSTEM_PROMPT}
-
-# YOUR TASK: Create a Data-Driven Summary of ${categoryName}
-
-## CRITICAL INSTRUCTIONS:
-
-**PRIMARY GOAL: Capture the user's voice using their own words. 80%+ of the output must be reframed from their actual speech patterns, phrases, and word choices. If it doesn't sound like them, it won't stick.**
-
-**APPROACH:**
-1. First, create THREE separate summaries (one for each data source below)
-2. Then, combine these summaries to identify what's going well and what's challenging
-3. Use their actual words, phrases, and speech patterns throughout - reframe, don't rewrite
-
-${dataSections}
-
-## STEP 1: Create Three Separate Summaries
-
-For EACH data source above, create a brief summary that:
-- Uses their exact words, phrases, and speech patterns
-- Identifies what's going well in their own words
-- Identifies what's challenging in their own words
-- Maintains their voice, tone, and way of expressing themselves
-
-## STEP 2: Combine Into Final Summary
-
-Combine all three summaries to create one unified view that identifies:
-
-**What's Going Really Well** - Things they mentioned that feel positive, aligned, or working well
-- Extract their actual words and phrases
-- Reframe in first person present tense USING THEIR SPEECH PATTERNS
-- Be specific and grounded in what they actually said
-
-**What's Challenging** - Things they mentioned that feel difficult, frustrating, or out of alignment
-- Use their actual words and phrases
-- Reframe in first person present tense USING THEIR SPEECH PATTERNS
-- Be compassionate but honest about what they expressed
-
-## OUTPUT FORMAT (strict - no markdown, no vibrational summary):
-
-CRITICAL: Do NOT use markdown formatting. No asterisks (**), no hash symbols (#), no markdown syntax. Use plain text with clean line breaks.
-
-${categoryName}
-
-The things going really well in this area are...
-- [Item 1 - Use their words, their phrases, reframed in first person]
-- [Item 2 - Use their words, their phrases, reframed in first person]
-- [Item 3 - Use their words, their phrases, reframed in first person]
-- [Additional items as needed]
-
-The challenges currently in this area are...
-- [Challenge 1 - Use their words, their phrases, reframed in first person]
-- [Challenge 2 - Use their words, their phrases, reframed in first person]
-- [Challenge 3 - Use their words, their phrases, reframed in first person]
-- [Additional challenges as needed]
-
-## CRITICAL RULES:
-
-1. **80%+ must be their actual words reframed** - If you're writing in a style that doesn't match their speech patterns, you're doing it wrong.
-
-2. **Match their tone** - If they're casual, be casual. If they're formal, be formal. If they use slang, use similar language.
-
-3. **Use their phrases** - If they say "I'm really struggling with..." use that phrase structure. Don't replace it with generic language.
-
-4. **No "woo" language** - No "vibrational alignment," "raising my frequency," or abstract spiritual concepts. Use concrete, real language THEY would use.
-
-5. **Reframe, don't rewrite** - Take "I'm stressed about money" and reframe it as "Money feels stressful right now" or "I feel stress around my financial situation" - same meaning, their words, first person present.
-
-6. **Be specific** - Include actual details they mentioned (names, places, specific situations, concrete examples).
-
-7. **No overview paragraph** - Just go straight to the two sections.
-
-8. **If they didn't mention something positive, don't make it up** - Only include what they actually said or implied.
-
-9. **NO MARKDOWN FORMATTING** - Do not use asterisks (**), hash symbols (#), or any markdown syntax. Write in plain text with clean formatting. Use line breaks and dashes for bullet points, but no markdown syntax.
-
-Remember: This should read like THEM summarizing their own life, not an AI writing about them. Use their words, their phrasing, and plain text formatting - no markdown.`
 }
 
 function sendProgress(controller: ReadableStreamDefaultController, stage: string, message: string) {
@@ -290,7 +154,7 @@ export async function POST(request: NextRequest) {
         sendProgress(controller, 'reasoning', 'Reasoning and synthesizing your vision...')
 
         // Build prompt with context
-        const prompt = buildCategoryPrompt(category, transcript, categoryName, profile, assessment)
+        const prompt = buildCategorySummaryPrompt(category, transcript, categoryName, profile, assessment)
 
         // Get admin-approved AI model config
         const aiConfig = getAIModelConfig('LIFE_VISION_CATEGORY_SUMMARY')
@@ -317,7 +181,7 @@ export async function POST(request: NextRequest) {
         const completion = await openai.chat.completions.create({
           model: aiConfig.model,
           messages: [
-            { role: 'system', content: aiConfig.systemPrompt || SHARED_SYSTEM_PROMPT },
+            { role: 'system', content: aiConfig.systemPrompt || CATEGORY_SUMMARY_SYSTEM_PROMPT },
             { role: 'user', content: prompt }
           ],
           temperature: aiConfig.temperature,
