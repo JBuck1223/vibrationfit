@@ -13,6 +13,16 @@ interface AssetFile {
   lastModified?: Date
   category: string
   path?: string
+  variants?: VideoVariant[]
+  isVariant?: boolean
+  baseKey?: string
+}
+
+interface VideoVariant {
+  type: 'original' | '1080p' | '720p' | 'thumb'
+  key: string
+  url: string
+  size?: number
 }
 
 interface ImageDimensions {
@@ -50,6 +60,7 @@ function AssetsAdminContent() {
   const [selectedFileKeys, setSelectedFileKeys] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
   const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set())
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     fetchAssets()
@@ -95,10 +106,63 @@ function AssetsAdminContent() {
       
       const data: CategoryData = await response.json()
       setSubfolders(data.subfolders || [])
-      setFiles(data.files || [])
+      
+      // Group video variants together
+      const groupedFiles = groupVideoVariants(data.files || [])
+      setFiles(groupedFiles)
     } catch (error) {
       console.error('Error fetching assets:', error)
     }
+  }
+
+  const groupVideoVariants = (files: AssetFile[]): AssetFile[] => {
+    const fileMap = new Map<string, AssetFile>()
+    const variantMap = new Map<string, VideoVariant[]>()
+
+    files.forEach(file => {
+      // Check if this is a video variant (-original, -1080p, -720p, -thumb)
+      const variantMatch = file.name.match(/^(.+)-(original|1080p|720p|thumb)\.(mp4|jpg|jpeg)$/i)
+      
+      if (variantMatch) {
+        const baseName = variantMatch[1]
+        const variantType = variantMatch[2].toLowerCase() as 'original' | '1080p' | '720p' | 'thumb'
+        const baseKey = file.key.replace(/-(original|1080p|720p|thumb)\.(mp4|jpg|jpeg)$/i, '')
+
+        // Store variant
+        if (!variantMap.has(baseKey)) {
+          variantMap.set(baseKey, [])
+        }
+        variantMap.get(baseKey)!.push({
+          type: variantType,
+          key: file.key,
+          url: file.url,
+          size: file.size
+        })
+
+        // If this is the original or first variant, create the base file entry
+        if (!fileMap.has(baseKey)) {
+          fileMap.set(baseKey, {
+            ...file,
+            name: baseName + (variantType === 'thumb' ? '.jpg' : '.mp4'),
+            key: baseKey,
+            variants: []
+          })
+        }
+      } else {
+        // Not a variant, add as-is
+        fileMap.set(file.key, file)
+      }
+    })
+
+    // Attach variants to their base files
+    variantMap.forEach((variants, baseKey) => {
+      const baseFile = fileMap.get(baseKey)
+      if (baseFile) {
+        baseFile.variants = variants
+      }
+    })
+
+    return Array.from(fileMap.values())
   }
 
   const navigateToPath = (path: string[]) => {
@@ -165,12 +229,16 @@ function AssetsAdminContent() {
       }
 
       xhr.upload.onprogress = event => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100)
-          setUploadProgress(prev => ({ ...prev, [file.name]: percentComplete }))
-        } else {
-          setUploadProgress(prev => ({ ...prev, [file.name]: 10 }))
-        }
+        const totalBytes = event.lengthComputable && event.total ? event.total : file.size
+        const loaded = event.loaded
+        const percentComplete = totalBytes
+          ? Math.min(99, Math.max(0, Math.round((loaded / totalBytes) * 100)))
+          : 0
+
+        setUploadProgress(prev => ({
+          ...prev,
+          [file.name]: Number.isFinite(percentComplete) ? percentComplete : 0,
+        }))
       }
 
       xhr.onerror = () => {
@@ -330,9 +398,12 @@ function AssetsAdminContent() {
       return
     }
 
-    if (!confirm(`Delete ${selectedFileKeys.size} file(s)? This action cannot be undone.`)) {
-      return
-    }
+    // Show custom confirmation dialog
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false)
 
     try {
       setDeleting(true)
@@ -344,7 +415,7 @@ function AssetsAdminContent() {
         try {
           setDeletingKeys(prev => new Set(prev).add(fileKey))
           
-          const response = await fetch('/api/upload', {
+          const response = await fetch('/api/admin/assets/upload', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ s3Key: fileKey }),
@@ -482,6 +553,47 @@ function AssetsAdminContent() {
 
   return (
     <>
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card variant="elevated" className="max-w-md w-full border-red-500/30 shadow-2xl">
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center border-2 border-red-500">
+                  <Trash2 className="w-6 h-6 text-red-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    Delete {selectedFileKeys.size} File{selectedFileKeys.size !== 1 ? 's' : ''}?
+                  </h3>
+                  <p className="text-sm text-neutral-300">
+                    This action cannot be undone. The selected file{selectedFileKeys.size !== 1 ? 's' : ''} will be permanently removed from storage.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  className="flex-1"
+                  onClick={confirmDelete}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Success Notification */}
       {successMessage && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300 max-w-md">
@@ -941,6 +1053,7 @@ function AssetsAdminContent() {
               {filteredFiles.map((file) => {
                 const FileIcon = getFileIcon(file.name)
                 const isImage = file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
+                const isVideo = file.variants && file.variants.length > 0
                 const isCopied = copiedUrl === file.url
                 const fileType = getFileType(file.name)
                 const dimensions = imageDimensions[file.key]
@@ -948,10 +1061,20 @@ function AssetsAdminContent() {
                 const isSelected = selectedFileKeys.has(file.key)
                 const isDeleting = deletingKeys.has(file.key)
 
+                // Get thumbnail URL for videos
+                const thumbnailVariant = file.variants?.find(v => v.type === 'thumb')
+                const thumbnailUrl = thumbnailVariant?.url
+
                 return (
                   <Card key={file.key} variant="elevated" className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''} ${isDeleting ? 'opacity-50' : ''}`}>
                     <div className="relative aspect-square bg-neutral-800 flex items-center justify-center mb-3 overflow-hidden group cursor-pointer" onClick={() => toggleFileSelection(file.key)}>
-                      {isImage ? (
+                      {isVideo && thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={file.name}
+                          className="max-w-full max-h-full object-cover"
+                        />
+                      ) : isImage ? (
                         <img
                           src={file.url}
                           alt={file.name}
@@ -981,6 +1104,15 @@ function AssetsAdminContent() {
                       }`}>
                         {isSelected && <Check className="w-4 h-4 text-black" />}
                       </div>
+                      {/* Video badge */}
+                      {isVideo && (
+                        <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded-lg flex items-center gap-1">
+                          <Video className="w-3 h-3 text-primary-400" />
+                          <span className="text-xs text-white font-medium">
+                            {file.variants?.length} variants
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="space-y-2">
@@ -1003,31 +1135,68 @@ function AssetsAdminContent() {
                         </div>
                       </div>
 
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="w-full"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          copyToClipboard(file.url)
-                        }}
-                      >
-                        {isCopied ? (
-                          <>
-                            <Check className="w-4 h-4 mr-2" />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-4 h-4 mr-2" />
-                            Copy CloudFront Link
-                          </>
-                        )}
-                      </Button>
-
-                      <div className="text-xs text-white font-mono break-all" title={file.url}>
-                        {file.url}
-                      </div>
+                      {/* Video variants dropdown */}
+                      {isVideo && file.variants && file.variants.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-xs text-neutral-400 font-medium">Available Versions:</p>
+                          {file.variants
+                            .sort((a, b) => {
+                              const order = { 'original': 0, '1080p': 1, '720p': 2, 'thumb': 3 }
+                              return order[a.type] - order[b.type]
+                            })
+                            .filter(v => v.type !== 'thumb')
+                            .map((variant) => (
+                              <Button
+                                key={variant.type}
+                                variant="ghost"
+                                size="sm"
+                                className="w-full justify-between"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  copyToClipboard(variant.url)
+                                }}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <Badge variant={variant.type === 'original' ? 'primary' : 'secondary'} className="text-xs">
+                                    {variant.type.toUpperCase()}
+                                  </Badge>
+                                  {variant.size && (
+                                    <span className="text-xs text-neutral-500">
+                                      {formatFileSize(variant.size)}
+                                    </span>
+                                  )}
+                                </span>
+                                {copiedUrl === variant.url ? (
+                                  <Check className="w-4 h-4 text-primary-400" />
+                                ) : (
+                                  <Copy className="w-4 h-4" />
+                                )}
+                              </Button>
+                            ))}
+                        </div>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="w-full"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            copyToClipboard(file.url)
+                          }}
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check className="w-4 h-4 mr-2" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy CloudFront Link
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </Card>
                 )

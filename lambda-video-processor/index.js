@@ -17,6 +17,7 @@ const s3Client = new S3Client({
 });
 
 const BUCKET_NAME = process.env.BUCKET_NAME || 'vibration-fit-client-storage';
+const SITE_ASSETS_PREFIX = 'site-assets';
 const MEDIACONVERT_ROLE_ARN = process.env.MEDIACONVERT_ROLE_ARN;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://nxjhqibnlbwzzphewncj.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -83,13 +84,28 @@ exports.handler = async (event) => {
 
     console.log(`📁 Processing: s3://${bucketName}/${objectKey}`);
 
-    // Check if this is a processed file - if so, update database
-    if (objectKey.includes('/processed/')) {
-      console.log('🎬 This is a processed file, updating database...');
-      console.log('🔍 Object key:', objectKey);
-      const quality = extractQuality(objectKey);
-      console.log('🔍 Detected quality:', quality);
-      await handleProcessedFile(objectKey);
+    const pathParts = objectKey.split('/');
+    const rootPrefix = pathParts[0];
+    const filename = pathParts[pathParts.length - 1] || '';
+    const detectedQuality = extractQuality(filename);
+    const isProcessedPath = objectKey.includes('/processed/');
+    const isGeneratedVariant =
+      Boolean(detectedQuality) && (isProcessedPath || rootPrefix === SITE_ASSETS_PREFIX);
+
+    // Check if this is a processed file - if so, update database for user uploads only
+    if (isProcessedPath || isGeneratedVariant) {
+      console.log('🎬 Detected processed output variant, skipping conversion:', {
+        objectKey,
+        detectedQuality,
+      });
+
+      if (rootPrefix === 'user-uploads' && isProcessedPath) {
+        console.log('📥 Processed user upload detected, updating database...');
+        await handleProcessedFile(objectKey);
+      } else {
+        console.log('ℹ️ Non user-upload processed asset detected, no database update required.');
+      }
+
       continue;
     }
 
@@ -98,9 +114,16 @@ exports.handler = async (event) => {
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
     const isVideo = videoExtensions.some(ext => objectKey.toLowerCase().endsWith(ext));
     const isImage = imageExtensions.some(ext => objectKey.toLowerCase().endsWith(ext));
-    const isProcessed = objectKey.includes('/processed/');
+    const isProcessed = isProcessedPath;
+    const isWebM = objectKey.toLowerCase().endsWith('.webm');
 
-    // If it's a thumbnail or other processed file, let handleProcessedFile handle it above
+    // Skip WebM files - they're already optimized for web playback
+    if (isWebM) {
+      console.log('⏭️  Skipping WebM file (already web-optimized):', objectKey);
+      continue;
+    }
+
+    // If it's a thumbnail or other processed file, handleProcessedFile has already handled it above
     if (!isVideo && (isProcessed || isImage)) {
       console.log('⏭️  Skipping processed image/non-video file:', objectKey);
       continue;
@@ -112,26 +135,45 @@ exports.handler = async (event) => {
       continue;
     }
 
-    // Extract user ID and folder from path
-    // Expected format: user-uploads/{userId}/{folder}/{subfolder}/{filename}
-    const pathParts = objectKey.split('/');
-    if (pathParts.length < 3 || pathParts[0] !== 'user-uploads') {
+    if (pathParts.length < 2) {
       console.log('⚠️  Invalid path format:', objectKey);
       continue;
     }
 
-    const userId = pathParts[1];
-    const folder = pathParts[2];
+    const isSiteAsset = rootPrefix === SITE_ASSETS_PREFIX;
+    const isUserUpload = rootPrefix === 'user-uploads';
+
+    if (!isSiteAsset && !isUserUpload) {
+      console.log('⚠️  Unsupported root prefix, skipping:', rootPrefix);
+      continue;
+    }
+
+    if (isUserUpload && pathParts.length < 3) {
+      console.log('⚠️  Invalid user upload path format:', objectKey);
+      continue;
+    }
+
+    if (isSiteAsset && pathParts.length < 2) {
+      console.log('⚠️  Invalid site asset path format:', objectKey);
+      continue;
+    }
+
+    const userId = isUserUpload ? pathParts[1] : undefined;
+    const folder = isUserUpload ? pathParts[2] : pathParts[1];
     
     // Build destination path based on upload path
     // user-uploads/userId/journal/uploads/file.mov -> user-uploads/userId/journal/uploads/processed/
-    const destinationPath = pathParts.slice(0, -1).join('/') + '/processed/';
+    const basePath = pathParts.slice(0, -1).join('/');
+    const destinationPath = isSiteAsset
+      ? `${basePath}/`
+      : `${basePath}/processed/`;
 
     console.log(`🎬 Triggering MediaConvert for video:`, {
-      userId,
+      userId: userId || 'n/a',
       folder,
       objectKey,
-      destinationPath
+      destinationPath,
+      isSiteAsset
     });
 
     try {
@@ -324,11 +366,16 @@ exports.handler = async (event) => {
             Source: 'ZEROBASED'
           }
         },
-        Tags: {
-          'user-id': userId,
-          'folder': folder,
-          'original-filename': objectKey.split('/').pop()
-        }
+        Tags: isSiteAsset
+          ? {
+              'asset-type': 'site-asset',
+              'original-key': objectKey
+            }
+          : {
+              'user-id': userId,
+              'folder': folder,
+              'original-filename': objectKey.split('/').pop()
+            }
       };
 
       const command = new CreateJobCommand(jobSettings);
@@ -353,6 +400,12 @@ exports.handler = async (event) => {
 
 // Handle processed files - update database
 async function handleProcessedFile(objectKey) {
+  const pathParts = objectKey.split('/');
+  if (pathParts[0] !== 'user-uploads') {
+    console.log('ℹ️ Skipping database update for non user-upload asset:', objectKey);
+    return;
+  }
+
   // Extract quality type
   const quality = extractQuality(objectKey);
   if (!quality) {
@@ -364,7 +417,6 @@ async function handleProcessedFile(objectKey) {
 
   try {
     // Extract user ID from path
-    const pathParts = objectKey.split('/');
     const userId = pathParts[1]; // user-uploads/[userId]/journal/uploads/processed/file.mp4
     
     // Extract filename and base name  

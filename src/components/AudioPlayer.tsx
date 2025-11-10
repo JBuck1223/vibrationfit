@@ -126,7 +126,7 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
           </div>
         </div>
 
-        <audio ref={audioRef} preload="auto" />
+        <audio ref={audioRef} preload="metadata" />
         <ProgressBar value={progress} variant="primary" label="" />
 
         <div className="grid grid-cols-1 gap-3">

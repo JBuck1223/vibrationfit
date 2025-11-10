@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/lib/design-system/components'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { X, Upload, FileImage, Loader2, ChevronLeft, ChevronRight, Play, AlertCircle } from 'lucide-react'
@@ -163,15 +164,13 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
           {photos.map((media, index) => (
             <div key={index} className="relative group">
               {isVideo(media) ? (
-                <div className="relative">
-                  <video
-                    src={media}
-                    className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                    onClick={() => openLightbox(index)}
+                <div className="relative" onClick={() => openLightbox(index)}>
+                  <OptimizedVideo
+                    url={media}
+                    context="list"
+                    lazy={true}
+                    className="w-full aspect-[4/3] rounded-lg"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
-                    <Play className="w-8 h-8 text-white" />
-                  </div>
                 </div>
               ) : (
                 <img

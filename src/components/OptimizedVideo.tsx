@@ -1,115 +1,213 @@
-import { Video } from '@/lib/design-system'
-import { useLazyVideo } from '@/hooks/useLazyLoading'
-import { useState, useEffect } from 'react'
+'use client'
+
+import { Video } from '@/lib/design-system/components'
+import { useEffect, useState, useRef } from 'react'
 
 interface OptimizedVideoProps {
-  src: string
-  trackingId: string
+  url: string
+  thumbnailUrl?: string
+  lazy?: boolean
+  context?: 'list' | 'single' | 'hero'
   className?: string
-  quality?: 'auto' | 'high' | 'medium' | 'low'
+  controls?: boolean
+  autoplay?: boolean
+  muted?: boolean
+  loop?: boolean
+  // Progress tracking
+  trackingId?: string
   saveProgress?: boolean
-  preload?: 'none' | 'metadata' | 'auto'
-  poster?: string
+  // Milestone tracking for marketing
+  onMilestoneReached?: (milestone: 25 | 50 | 75 | 95, currentTime: number) => void
+  // Analytics callbacks
+  onPlay?: () => void
+  onPause?: () => void
+  onComplete?: () => void
 }
 
-export function OptimizedVideo({
-  src,
-  trackingId,
+/**
+ * OptimizedVideo - Intelligent video player with adaptive quality and lazy loading
+ * 
+ * Features:
+ * - Adaptive quality selection based on screen size
+ * - Lazy loading for better performance in lists
+ * - Network-aware quality switching
+ * - Smart preload strategy by context
+ * - WebM optimization (serves as-is)
+ * 
+ * Usage:
+ * <OptimizedVideo url={videoUrl} thumbnailUrl={thumbnail} context="list" lazy />
+ */
+export function OptimizedVideo({ 
+  url, 
+  thumbnailUrl, 
+  lazy = false,
+  context = 'single',
   className = '',
-  quality = 'auto',
-  saveProgress = false,
-  preload = 'metadata',
-  poster
+  controls = true,
+  autoplay = false,
+  muted = false,
+  loop = false,
+  trackingId,
+  saveProgress = true,
+  onMilestoneReached,
+  onPlay,
+  onPause,
+  onComplete
 }: OptimizedVideoProps) {
-  const { elementRef, shouldLoad, videoLoaded, videoError } = useLazyVideo(src, {
-    rootMargin: '200px', // Start loading earlier for videos
-    threshold: 0.1,
-    triggerOnce: true
-  })
+  const [isVisible, setIsVisible] = useState(!lazy)
+  const [quality, setQuality] = useState<'720p' | '1080p' | 'original'>('1080p')
+  const [connectionQuality, setConnectionQuality] = useState<'high' | 'medium' | 'low'>('high')
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const [isLoading, setIsLoading] = useState(true)
-  const [generatedPoster, setGeneratedPoster] = useState<string | null>(null)
-  const [showPoster, setShowPoster] = useState(true)
-
-  // Generate poster from video if not provided
+  // Lazy loading with Intersection Observer
   useEffect(() => {
-    if (!poster && shouldLoad) {
-      // Create a canvas to capture video frame
-      const video = document.createElement('video')
-      video.crossOrigin = 'anonymous'
-      video.preload = 'metadata'
+    if (!lazy || !containerRef.current) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setIsVisible(true)
+        }
+      },
+      { rootMargin: '200px' } // Start loading 200px before visible
+    )
+
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [lazy])
+
+  // Adaptive quality based on screen size
+  useEffect(() => {
+    const updateQuality = () => {
+      const width = window.innerWidth
       
-      video.onloadedmetadata = () => {
-        video.currentTime = 1 // Seek to 1 second
+      if (width < 768) {
+        setQuality('720p') // Mobile
+      } else if (width < 1440) {
+        setQuality('1080p') // Tablet/Laptop
+      } else {
+        setQuality('original') // Desktop
       }
-      
-      video.onseeked = () => {
-        const canvas = document.createElement('canvas')
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        const ctx = canvas.getContext('2d')
-        if (ctx) {
-          ctx.drawImage(video, 0, 0)
-          const posterUrl = canvas.toDataURL('image/jpeg', 0.8)
-          setGeneratedPoster(posterUrl)
+    }
+
+    updateQuality()
+    window.addEventListener('resize', updateQuality)
+    return () => window.removeEventListener('resize', updateQuality)
+  }, [])
+
+  // Network-aware quality (if Network Information API available)
+  useEffect(() => {
+    // @ts-ignore - Network Information API
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection
+    
+    if (connection) {
+      const updateConnectionQuality = () => {
+        const effectiveType = connection.effectiveType
+        
+        if (effectiveType === '4g') {
+          setConnectionQuality('high')
+        } else if (effectiveType === '3g') {
+          setConnectionQuality('medium')
+          // Override to 720p on 3G
+          setQuality('720p')
+        } else {
+          setConnectionQuality('low')
+          // Force 720p on slow connections
+          setQuality('720p')
         }
       }
-      
-      video.src = src
-    }
-  }, [src, poster, shouldLoad])
 
-  // Show loading state
-  if (!shouldLoad || (!videoLoaded && !videoError)) {
-    return (
-      <div
-        ref={elementRef as React.RefObject<HTMLDivElement>}
-        className={`bg-neutral-800 animate-pulse rounded-lg flex items-center justify-center ${className}`}
-      >
-        <div className="text-center text-neutral-500">
-          <div className="w-12 h-12 bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-2">
-            <div className="w-6 h-6 border-2 border-neutral-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-          <div className="text-sm">Loading video...</div>
-        </div>
-      </div>
-    )
+      updateConnectionQuality()
+      connection.addEventListener('change', updateConnectionQuality)
+      
+      return () => {
+        connection.removeEventListener('change', updateConnectionQuality)
+      }
+    }
+  }, [])
+
+  // Get optimized video URL based on quality and format
+  const getVideoUrl = () => {
+    // WebM files are already optimized - serve as-is
+    if (url.endsWith('.webm')) {
+      return url
+    }
+
+    // For processed videos, select quality variant
+    // Check if URL already has a quality suffix
+    if (url.match(/-(720p|1080p|original)\.(mp4|mov)$/i)) {
+      return url // Already has quality suffix
+    }
+
+    // Add quality suffix to base URL
+    return url.replace(/\.(mp4|mov)$/i, `-${quality}.mp4`)
   }
 
-  // Show error state
-  if (videoError) {
-    return (
-      <div
-        className={`bg-neutral-800 rounded-lg flex items-center justify-center ${className}`}
-      >
-        <div className="text-center text-neutral-500">
-          <div className="text-sm">Failed to load video</div>
-        </div>
-      </div>
-    )
+  // Smart preload strategy based on context
+  const getPreload = (): 'none' | 'metadata' | 'auto' => {
+    if (context === 'hero') return 'auto' // Preload entire video for autoplay
+    if (context === 'single') return 'metadata' // Load metadata for quick start
+    return 'none' // Don't preload in lists
+  }
+
+  // Get controls based on context
+  const getControls = () => {
+    if (context === 'hero') return false
+    return controls
+  }
+
+  // Get autoplay based on context
+  const getAutoplay = () => {
+    if (context === 'hero') return true
+    return autoplay
+  }
+
+  // Get muted based on context
+  const getMuted = () => {
+    if (context === 'hero') return true
+    return muted
+  }
+
+  // Get loop based on context
+  const getLoop = () => {
+    if (context === 'hero') return true
+    return loop
   }
 
   return (
-    <div className={`relative group ${className}`}>
-      <Video
-        src={src}
-        trackingId={trackingId}
-        quality={quality}
-        saveProgress={saveProgress}
-        preload={preload}
-        poster={poster || generatedPoster || undefined}
-        className="w-full h-full"
-        onLoadStart={() => setIsLoading(false)}
-        onError={() => setIsLoading(false)}
-      />
-      
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
-          <div className="text-center text-white">
-            <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <div className="text-sm">Loading...</div>
-          </div>
+    <div ref={containerRef} className={className}>
+      {isVisible ? (
+        <Video
+          src={getVideoUrl()}
+          poster={thumbnailUrl}
+          preload={getPreload()}
+          controls={getControls()}
+          autoplay={getAutoplay()}
+          muted={getMuted()}
+          loop={getLoop()}
+          trackingId={trackingId}
+          saveProgress={saveProgress}
+          onMilestoneReached={onMilestoneReached}
+          onPlay={onPlay}
+          onPause={onPause}
+          onComplete={onComplete}
+          className="w-full"
+        />
+      ) : (
+        // Placeholder while lazy loading
+        <div 
+          className="w-full aspect-video bg-neutral-800 rounded-lg flex items-center justify-center border border-neutral-700"
+          style={{ minHeight: '200px' }}
+        >
+          {thumbnailUrl ? (
+            <img 
+              src={thumbnailUrl} 
+              alt="Video thumbnail" 
+              className="w-full h-full object-cover rounded-lg"
+            />
+          ) : (
+            <div className="text-neutral-500 text-sm">Loading video...</div>
+          )}
         </div>
       )}
     </div>
@@ -117,45 +215,53 @@ export function OptimizedVideo({
 }
 
 /**
- * Get optimal video quality based on connection speed
+ * Helper hook to get optimal video quality for manual use
  */
-export function getOptimalVideoQuality(): 'auto' | 'high' | 'medium' | 'low' {
-  if (typeof navigator === 'undefined') return 'auto'
-  
-  // Check connection speed if available
-  const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection
-  
-  if (connection) {
-    const effectiveType = connection.effectiveType
-    
-    switch (effectiveType) {
-      case '4g':
-        return 'high'
-      case '3g':
-        return 'medium'
-      case '2g':
-        return 'low'
-      default:
-        return 'auto'
+export function useVideoQuality() {
+  const [quality, setQuality] = useState<'720p' | '1080p' | 'original'>('1080p')
+
+  useEffect(() => {
+    const updateQuality = () => {
+      const width = window.innerWidth
+      
+      if (width < 768) {
+        setQuality('720p')
+      } else if (width < 1440) {
+        setQuality('1080p')
+      } else {
+        setQuality('original')
+      }
     }
-  }
-  
-  return 'auto'
+
+    updateQuality()
+    window.addEventListener('resize', updateQuality)
+    return () => window.removeEventListener('resize', updateQuality)
+  }, [])
+
+  return quality
 }
 
 /**
- * Generate multiple video qualities for adaptive streaming
+ * Helper function to get optimized video URL (for use outside components)
  */
-export function generateVideoQualities(baseSrc: string): {
-  high: string
-  medium: string
-  low: string
-} {
-  // This would typically involve generating multiple versions during upload
-  // For now, return the same source for all qualities
-  return {
-    high: baseSrc,
-    medium: baseSrc,
-    low: baseSrc
+export function getOptimizedVideoUrl(url: string, preferredQuality?: '720p' | '1080p' | 'original'): string {
+  // WebM files are already optimized
+  if (url.endsWith('.webm')) {
+    return url
   }
+
+  // If URL already has quality suffix, return as-is
+  if (url.match(/-(720p|1080p|original)\.(mp4|mov)$/i)) {
+    return url
+  }
+
+  // Determine quality
+  const quality = preferredQuality || (
+    typeof window !== 'undefined' && window.innerWidth < 768 ? '720p' :
+    typeof window !== 'undefined' && window.innerWidth < 1440 ? '1080p' :
+    'original'
+  )
+
+  // Add quality suffix
+  return url.replace(/\.(mp4|mov)$/i, `-${quality}.mp4`)
 }

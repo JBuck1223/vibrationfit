@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   S3Client,
   PutObjectCommand,
+  DeleteObjectCommand,
   CreateMultipartUploadCommand,
   UploadPartCommand,
   CompleteMultipartUploadCommand,
@@ -88,6 +89,38 @@ export async function POST(request: NextRequest) {
     console.error('Error uploading to S3:', error)
     return NextResponse.json(
       { error: 'Upload failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { s3Key } = await request.json()
+
+    if (!s3Key) {
+      return NextResponse.json({ error: 'Missing s3Key' }, { status: 400 })
+    }
+
+    if (!s3Key.startsWith(SITE_ASSETS_PREFIX)) {
+      return NextResponse.json({ error: 'Invalid key for site assets' }, { status: 400 })
+    }
+
+    const command = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+    })
+
+    await s3Client.send(command)
+
+    return NextResponse.json({
+      success: true,
+      deletedKey: s3Key,
+    })
+  } catch (error) {
+    console.error('Error deleting asset from S3:', error)
+    return NextResponse.json(
+      { error: 'Delete failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

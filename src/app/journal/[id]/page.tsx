@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import {  Card, Button, Badge, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, FileText, Tag, X, Download, Play, Volume2, Edit, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -342,31 +343,25 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                   {entry.image_urls.filter(url => {
                     const ext = url.split('.').pop()?.toLowerCase()
                     return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
-                  }).map((url: string, index: number) => (
-                    <div key={`video-${index}`} className="relative group">
-                      <video
-                        src={processedVideoUrls[url] || url}
-                        className="w-full aspect-video object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                        controls
-                        preload="metadata"
-                        onError={(e) => {
-                          console.error('Video load error:', e, 'URL:', processedVideoUrls[url] || url, 'Original:', url)
-                        }}
-                        onLoadStart={() => {
-                          console.log('Video loading started:', processedVideoUrls[url] || url)
-                        }}
-                        onLoadedMetadata={() => {
-                          console.log('Video metadata loaded:', processedVideoUrls[url] || url)
-                        }}
-                        onClick={() => openLightbox(url, entry.image_urls.indexOf(url))}
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
-                        <Play className="w-8 h-8 text-white" />
+                  }).map((url: string, index: number) => {
+                    // Get thumbnail URL if available
+                    const thumbnailUrl = entry.thumbnail_urls && entry.thumbnail_urls.length > index
+                      ? entry.thumbnail_urls[index]
+                      : entry.thumbnail_urls && entry.thumbnail_urls.length > 0
+                      ? entry.thumbnail_urls[0]
+                      : undefined
+                    
+                    return (
+                      <div key={`video-${index}`} className="relative group">
+                        <OptimizedVideo
+                          url={processedVideoUrls[url] || url}
+                          thumbnailUrl={thumbnailUrl}
+                          context="single"
+                          className="w-full"
+                        />
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                   
                   {/* Images - Responsive Grid */}
                   {entry.image_urls.filter(url => {

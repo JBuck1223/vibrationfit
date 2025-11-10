@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Container, Card, Button, Stack, Inline, Text } from '@/lib/design-system/components'
 import { UploadCloud } from 'lucide-react'
-import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { RecordingInput } from '@/components/RecordingInput'
 import { FileUpload } from '@/components/FileUpload'
 import { UploadProgress } from '@/components/UploadProgress'
@@ -213,14 +212,14 @@ export default function NewDailyPaperPage() {
                 <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                   Gratitude
                 </Text>
-                <RecordingTextarea
+                <RecordingInput
                   label="Today I feel grateful for…"
                   value={gratitude}
                   onChange={setGratitude}
+                  placeholder="Type or transcribe audio."
+                  recordingCategory="dailyPaperGratitude"
+                  multiline
                   rows={5}
-                  allowVideo={false}
-                  storageFolder="journal"
-                  recordingPurpose="quick"
                 />
               </section>
 

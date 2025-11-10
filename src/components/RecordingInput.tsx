@@ -4,8 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Mic, Loader2, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface RecordingInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
+interface RecordingInputProps {
   label?: string
   helperText?: string
   error?: string
@@ -13,6 +12,10 @@ interface RecordingInputProps
   onChange: (value: string) => void
   placeholder?: string
   recordingCategory?: string
+  multiline?: boolean
+  rows?: number
+  disabled?: boolean
+  className?: string
 }
 
 export function RecordingInput({
@@ -25,6 +28,8 @@ export function RecordingInput({
   disabled,
   recordingCategory = 'dailyPaperTask',
   className,
+  multiline = false,
+  rows = 3,
   ...rest
 }: RecordingInputProps) {
   const [isRecording, setIsRecording] = useState(false)
@@ -37,7 +42,12 @@ export function RecordingInput({
   const streamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
+  const valueRef = useRef(value)
+
+  useEffect(() => {
+    valueRef.current = value
+  }, [value])
 
   useEffect(() => {
     return () => {
@@ -164,7 +174,22 @@ export function RecordingInput({
       }
 
       const cleanedTranscript = data.transcript.trim()
-      onChange(cleanedTranscript)
+      const existingValue = valueRef.current ?? ''
+      const hasExisting = existingValue.trim().length > 0
+      const appendedTranscript =
+        hasExisting
+          ? `${existingValue}${
+              multiline
+                ? existingValue.endsWith('\n') || existingValue.endsWith('\n\n')
+                  ? ''
+                  : '\n\n'
+                : existingValue.endsWith(' ')
+                  ? ''
+                  : ' '
+            }${cleanedTranscript}`
+          : cleanedTranscript
+
+      onChange(appendedTranscript)
       setStatusMessage('Transcript added. You can edit it now.')
       requestAnimationFrame(() => {
         inputRef.current?.focus()
@@ -193,23 +218,44 @@ export function RecordingInput({
       )}
 
       <div className="relative">
-        <input
-          ref={inputRef}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          disabled={disabled || isTranscribing}
-          className={cn(
-            'w-full px-4 py-3 pr-14 bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
-            'focus:outline-none focus:ring-2 transition-all duration-200',
-            error || localError
-              ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'
-              : 'border-[#666666] focus:ring-[#199D67] focus:border-[#199D67]',
-            disabled && 'opacity-60 cursor-not-allowed',
-            className,
-          )}
-          {...rest}
-        />
+        {multiline ? (
+          <textarea
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            disabled={disabled || isTranscribing}
+            rows={rows}
+            className={cn(
+              'w-full px-4 py-3 pr-14 bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
+              'focus:outline-none focus:ring-2 transition-all duration-200 resize-none',
+              error || localError
+                ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'
+                : 'border-[#666666] focus:ring-[#199D67] focus:border-[#199D67]',
+              disabled && 'opacity-60 cursor-not-allowed',
+              className,
+            )}
+            {...rest}
+          />
+        ) : (
+          <input
+            ref={inputRef as React.RefObject<HTMLInputElement>}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            disabled={disabled || isTranscribing}
+            className={cn(
+              'w-full px-4 py-3 pr-14 bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
+              'focus:outline-none focus:ring-2 transition-all duration-200',
+              error || localError
+                ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'
+                : 'border-[#666666] focus:ring-[#199D67] focus:border-[#199D67]',
+              disabled && 'opacity-60 cursor-not-allowed',
+              className,
+            )}
+            {...rest}
+          />
+        )}
 
         <button
           type="button"

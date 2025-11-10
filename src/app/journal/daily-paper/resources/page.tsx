@@ -10,6 +10,7 @@ import {
   Text,
   Video,
 } from '@/lib/design-system/components'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowLeft, Download, Heart, Target, Sparkles } from 'lucide-react'
 
 const HALF_PAGE_PDF =
@@ -28,12 +29,10 @@ export default function DailyPaperResourcesPage() {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white">
               Daily Paper resources
             </h1>
-            <Video
-              src={DAILY_PAPER_VIDEO}
-              variant="hero"
-              controls
+            <OptimizedVideo
+              url={DAILY_PAPER_VIDEO}
+              context="single"
               className="mx-auto w-full max-w-3xl"
-              trackingId="daily-paper-resources"
             />
             <Inline gap="sm" justify="center" className="flex-wrap">
               <Button variant="ghost" size="sm" asChild>

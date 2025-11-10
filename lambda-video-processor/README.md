@@ -26,17 +26,47 @@ zip -r function.zip index.js node_modules package.json
    - `AWS_ACCESS_KEY_ID`: (from Vercel env)
    - `AWS_SECRET_ACCESS_KEY`: (from Vercel env)
 
-### 3. Add S3 Event Trigger
-1. Go to S3 Console
-2. Select `vibration-fit-client-storage` bucket
-3. Go to "Properties" → "Event notifications"
-4. Click "Create event notification"
-5. Configure:
-   - Event name: `trigger-video-processing`
+### 3. Add S3 Event Triggers
+**Two triggers are configured:**
+1. **User Uploads Trigger**
    - Prefix: `user-uploads/`
-   - Suffix: (leave empty or add video extensions)
-   - Event types: `PUT` (ObjectCreated)
-6. Destination: Lambda function → `video-processor-trigger`
+   - Processes user-generated videos
+   - Updates database after processing
+   
+2. **Site Assets Trigger**
+   - Prefix: `site-assets/`
+   - Processes marketing/admin videos
+   - No database updates (site assets only)
+
+**To update via CLI:**
+```bash
+aws s3api put-bucket-notification-configuration \
+  --bucket vibration-fit-client-storage \
+  --notification-configuration '{
+    "LambdaFunctionConfigurations": [
+      {
+        "Id": "TriggerMediaConvertUserUploads",
+        "LambdaFunctionArn": "arn:aws:lambda:us-east-2:428923191740:function:video-processor-trigger",
+        "Events": ["s3:ObjectCreated:*"],
+        "Filter": {
+          "Key": {
+            "FilterRules": [{"Name": "prefix", "Value": "user-uploads/"}]
+          }
+        }
+      },
+      {
+        "Id": "TriggerMediaConvertSiteAssets",
+        "LambdaFunctionArn": "arn:aws:lambda:us-east-2:428923191740:function:video-processor-trigger",
+        "Events": ["s3:ObjectCreated:*"],
+        "Filter": {
+          "Key": {
+            "FilterRules": [{"Name": "prefix", "Value": "site-assets/"}]
+          }
+        }
+      }
+    ]
+  }'
+```
 
 ### 4. Set Permissions
 Lambda needs permission to:
@@ -67,8 +97,13 @@ Add IAM policy to Lambda execution role:
 2. S3 triggers Lambda function
 3. Lambda creates MediaConvert job
 4. MediaConvert processes video to 720p
-5. Output goes to `/processed/` folder
+5. Output goes to `/processed/` folder (user uploads) or the same directory with `-1080p` / `-720p` suffixes (site assets)
 6. User sees processing overlay, then processed video appears
+
+### Site Asset Videos
+- Add an additional S3 event notification with prefix `site-assets/`
+- When a video is uploaded under `site-assets/`, MediaConvert generates `-1080p`, `-720p`, and `-original` MP4 variants plus a `-thumb` image in the same folder
+- Processed site asset variants will not trigger database updates
 
 ## 🧪 Testing
 

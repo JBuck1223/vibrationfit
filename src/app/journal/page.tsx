@@ -384,34 +384,13 @@ export default function JournalPage() {
                         
                         return (
                           <div key={`video-${index}`} className="relative group">
-                            {!hasError ? (
-                              <Video
-                                src={url}
-                                poster={thumbnailUrl}
-                                variant="card"
-                                controls={true}
-                                preload="metadata"
-                                className="w-full"
-                              />
-                            ) : (
-                              <div className="w-full aspect-video bg-neutral-800 rounded-lg border border-neutral-700 flex items-center justify-center">
-                                <div className="text-center text-neutral-400 p-6">
-                                  <div className="text-lg mb-2">📹 Video Format Not Supported</div>
-                                  <div className="text-sm mb-4">
-                                    This video format may not be supported by your browser.
-                                  </div>
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
-                                  >
-                                    <Play className="w-4 h-4" />
-                                    Download Video
-                                  </a>
-                                </div>
-                              </div>
-                            )}
+                            <OptimizedVideo
+                              url={url}
+                              thumbnailUrl={thumbnailUrl}
+                              context="list"
+                              lazy={true}
+                              className="w-full"
+                            />
                           </div>
                         )
                       })}

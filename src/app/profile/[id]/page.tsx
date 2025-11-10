@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, CreatedDateBadge } from '@/lib/design-system/components'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VersionCard } from '../components/VersionCard'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -1656,15 +1657,13 @@ export default function ProfileDetailPage() {
                 {profile.progress_photos.map((media, index) => (
                   <div key={index} className="relative group">
                     {isVideo(media) ? (
-                      <div className="relative">
-                        <video
-                          src={media}
-                          className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                          onClick={() => openLightbox(index)}
+                      <div className="relative" onClick={() => openLightbox(index)}>
+                        <OptimizedVideo
+                          url={media}
+                          context="list"
+                          lazy={true}
+                          className="w-full aspect-[4/3] rounded-lg"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
-                          <Play className="w-8 h-8 text-white" />
-                        </div>
                       </div>
                     ) : (
                       <img

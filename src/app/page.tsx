@@ -10,6 +10,7 @@ import {
   RefreshCw, Maximize2, Minimize2, Layers
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
 import {
   Stack,
   Inline,
@@ -356,13 +357,26 @@ export default function HomePage() {
                   
                   {/* Right column - Video */}
                   <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full order-last lg:order-last lg:mt-4">
-                    <Video
-                      src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
-                      poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
-                      variant="hero"
-                      quality="auto"
+                    <OptimizedVideo
+                      url="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active.mp4"
+                      thumbnailUrl="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
+                      context="hero"
                       trackingId="homepage-hero-video"
                       saveProgress={true}
+                      onMilestoneReached={(milestone, time) => {
+                        // Track milestone for marketing analytics
+                        console.log(`Video milestone: ${milestone}% at ${time}s`)
+                        // TODO: Send to your marketing platform (Facebook Pixel, Google Analytics, etc.)
+                        // Example: fbq('track', 'VideoView', { milestone, time })
+                      }}
+                      onPlay={() => {
+                        console.log('Hero video started playing')
+                        // TODO: Track video play event
+                      }}
+                      onComplete={() => {
+                        console.log('Hero video completed')
+                        // TODO: Track video completion
+                      }}
                       className="w-full h-auto"
                     />
                   </div>
