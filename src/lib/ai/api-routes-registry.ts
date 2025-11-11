@@ -164,7 +164,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'AI scoring of assessment responses based on vibrational alignment',
     filePath: 'src/app/api/assessment/ai-score/route.ts',
     hasTokenTracking: true,
-    usedBy: ['/assessment/[id]/in-progress - Vibrational Alignment Scoring'],
+    usedBy: ['❌ UNUSED - Not called by any page. Assessment scoring not implemented.'],
   },
   {
     routePath: '/api/voice-profile/analyze',
