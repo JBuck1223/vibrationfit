@@ -73,6 +73,7 @@ import {
   X,
   Zap,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 // ============================================================================
 // UTILITY FUNCTION
@@ -624,11 +625,11 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     
     const hoverEffect = hover ? 'hover:border-[#00CC44] hover:shadow-2xl transition-all duration-200' : ''
     
-    // Standardized padding: Mobile p-4 (16px all around), Desktop p-6 (24px all around)
+    // Standardized padding: Mobile p-4 (16px), Tablet p-6 (24px), Desktop p-8 (32px)
     return (
       <div 
         ref={ref}
-        className={cn('rounded-2xl p-4 md:p-6', variants[variant], hoverEffect, className)}
+        className={cn('rounded-2xl p-4 md:p-6 lg:p-8', variants[variant], hoverEffect, className)}
         {...props}
       >
         {children}
@@ -1058,7 +1059,9 @@ export const CreatedDateBadge: React.FC<CreatedDateBadgeProps> = ({
       <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg">
         <div className="text-xs md:text-sm">
           <p className="text-white font-medium">
-            {showTime ? `${dateString} at ${timeString}` : dateString}
+            {/* Mobile: date only, Desktop: date + time */}
+            <span className="md:hidden">{dateString}</span>
+            <span className="hidden md:inline">{showTime ? `${dateString} at ${timeString}` : dateString}</span>
           </p>
         </div>
       </div>
@@ -4534,6 +4537,229 @@ export const Title = React.forwardRef<HTMLDivElement, TitleProps>(
 )
 Title.displayName = 'Title'
 
+interface PageTitleMetaItem {
+  label: string
+  value: string
+  icon?: LucideIcon
+}
+
+export interface PageTitleAction {
+  label: string
+  onClick?: () => void
+  href?: string
+  target?: '_self' | '_blank' | '_parent' | '_top'
+  variant?: ButtonProps['variant']
+  size?: ButtonProps['size']
+  icon?: LucideIcon
+  iconPosition?: 'left' | 'right'
+  loading?: boolean
+  className?: string
+}
+
+interface PageTitlesProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+  eyebrow?: React.ReactNode
+  title: React.ReactNode
+  subtitle?: React.ReactNode
+  supportingText?: React.ReactNode
+  breadcrumbs?: React.ReactNode
+  status?: {
+    label: React.ReactNode
+    variant?: BadgeProps['variant']
+  }
+  metaItems?: PageTitleMetaItem[]
+  actions?: PageTitleAction[]
+  alignment?: 'left' | 'center'
+  children?: React.ReactNode
+}
+
+export const PageTitles = React.forwardRef<HTMLDivElement, PageTitlesProps>(
+  (
+    {
+      eyebrow,
+      title,
+      subtitle,
+      supportingText,
+      breadcrumbs,
+      status,
+      metaItems = [],
+      actions = [],
+      alignment = 'left',
+      className = '',
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    const isCenterAligned = alignment === 'center'
+    const alignmentClasses = isCenterAligned ? 'items-center text-center' : 'items-start text-left'
+    const textAlignment = isCenterAligned ? 'text-center' : 'text-left'
+    const hasMetaItems = metaItems.length > 0
+    const hasActions = actions.length > 0
+
+    return (
+      <div
+        ref={ref}
+        className={cn('w-full', className)}
+        {...props}
+      >
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-8">
+          <div className={cn('flex flex-col gap-3 md:gap-4', alignmentClasses)}>
+            {breadcrumbs && (
+              <div className={cn('text-xs md:text-sm text-neutral-500', textAlignment)}>
+                {breadcrumbs}
+              </div>
+            )}
+
+            {eyebrow && (
+              <div className="text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                {eyebrow}
+              </div>
+            )}
+
+            <div className={cn('flex flex-col gap-3 md:gap-4 w-full', isCenterAligned ? 'items-center' : 'items-start')}>
+              <div
+                className={cn(
+                  'flex flex-col md:flex-row md:items-center gap-3 md:gap-4 w-full',
+                  isCenterAligned ? 'items-center' : 'items-start md:items-center'
+                )}
+              >
+                <h1 className={cn('text-3xl md:text-5xl font-bold leading-tight text-white', textAlignment)}>
+                  {title}
+                </h1>
+                {status?.label && (
+                  <Badge
+                    variant={status.variant ?? 'primary'}
+                    className="whitespace-nowrap"
+                  >
+                    {status.label}
+                  </Badge>
+                )}
+              </div>
+
+              {subtitle && (
+                <p className={cn('text-sm md:text-lg text-neutral-300 max-w-3xl', textAlignment)}>
+                  {subtitle}
+                </p>
+              )}
+
+              {supportingText && (
+                <p className={cn('text-xs md:text-sm text-neutral-400 max-w-2xl', textAlignment)}>
+                  {supportingText}
+                </p>
+              )}
+
+              {hasMetaItems && (
+                <div
+                  className={cn(
+                    'flex flex-col sm:flex-row sm:flex-wrap gap-3 md:gap-4 pt-2',
+                    isCenterAligned ? 'items-center justify-center' : 'items-start'
+                  )}
+                >
+                  {metaItems.map((item, index) => (
+                    <div
+                      key={`${item.label}-${item.value}-${index}`}
+                      className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-neutral-700 bg-neutral-900/60"
+                    >
+                      {item.icon && (
+                        <Icon icon={item.icon} size="sm" className="text-primary-500" />
+                      )}
+                      <div className="text-left">
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+                          {item.label}
+                        </div>
+                        <div className="text-sm font-semibold text-white">
+                          {item.value}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {children}
+            </div>
+          </div>
+
+          {hasActions && (
+            <div
+              className={cn(
+                'w-full md:w-auto flex flex-col gap-2 sm:flex-row md:flex-col md:gap-3',
+                isCenterAligned
+                  ? 'items-center sm:items-center md:items-center'
+                  : 'items-stretch sm:items-center md:items-end'
+              )}
+            >
+              {actions.map((action, index) => {
+                const {
+                  label,
+                  variant = 'primary',
+                  size = 'sm',
+                  icon: ActionIcon,
+                  iconPosition = 'left',
+                  href,
+                  target,
+                  onClick,
+                  className: actionClassName = '',
+                  loading,
+                } = action
+
+                const key = `${label}-${index}`
+
+                if (href) {
+                  return (
+                    <Button
+                      key={key}
+                      variant={variant}
+                      size={size}
+                      className={cn('w-full sm:w-auto md:w-full', actionClassName)}
+                      loading={loading}
+                      asChild
+                    >
+                      <Link
+                        href={href}
+                        target={target}
+                        rel={target === '_blank' ? 'noopener noreferrer' : undefined}
+                      >
+                        {ActionIcon && iconPosition === 'left' && (
+                          <Icon icon={ActionIcon} size="sm" className="shrink-0" />
+                        )}
+                        <span className="truncate">{label}</span>
+                        {ActionIcon && iconPosition === 'right' && (
+                          <Icon icon={ActionIcon} size="sm" className="shrink-0" />
+                        )}
+                      </Link>
+                    </Button>
+                  )
+                }
+
+                return (
+                  <Button
+                    key={key}
+                    variant={variant}
+                    size={size}
+                    onClick={onClick}
+                    loading={loading}
+                    className={cn('w-full sm:w-auto md:w-full', actionClassName)}
+                  >
+                    {ActionIcon && iconPosition === 'left' && (
+                      <Icon icon={ActionIcon} size="sm" className="shrink-0" />
+                    )}
+                    <span className="truncate">{label}</span>
+                    {ActionIcon && iconPosition === 'right' && (
+                      <Icon icon={ActionIcon} size="sm" className="shrink-0" />
+                    )}
+                  </Button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+)
+PageTitles.displayName = 'PageTitles'
+
 // ============================================================================
 // TOGGLE COMPONENT
 // ============================================================================
@@ -4857,6 +5083,10 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
     ...props 
   }, ref) => {
     const [currentIndex, setCurrentIndex] = useState(0)
+    const totalCards = cards.length
+    const hasLooping = totalCards > 1
+    const [carouselIndex, setCarouselIndex] = useState(() => (hasLooping ? 1 : 0))
+    const [isTransitionDisabled, setIsTransitionDisabled] = useState(false)
     const [isDragging, setIsDragging] = useState(false)
     const [startX, setStartX] = useState(0)
     const [startY, setStartY] = useState(0)
@@ -4868,6 +5098,93 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
     
     const containerRef = useRef<HTMLDivElement>(null)
     const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+    const extendedCards = React.useMemo(() => {
+      if (totalCards === 0) {
+        return [] as Array<{ card: SwipeableCard; key: string; actualIndex: number }>
+      }
+
+      if (!hasLooping) {
+        return cards.map((card, idx) => ({
+          card,
+          key: card.id ?? `card-${idx}`,
+          actualIndex: idx,
+        }))
+      }
+
+      const lastIdx = totalCards - 1
+      const items: Array<{ card: SwipeableCard; key: string; actualIndex: number }> = [
+        {
+          card: cards[lastIdx],
+          key: `${cards[lastIdx].id}-clone-start`,
+          actualIndex: lastIdx,
+        },
+      ]
+
+      cards.forEach((card, idx) => {
+        items.push({
+          card,
+          key: card.id ?? `card-${idx}`,
+          actualIndex: idx,
+        })
+      })
+
+      items.push({
+        card: cards[0],
+        key: `${cards[0].id}-clone-end`,
+        actualIndex: 0,
+      })
+
+      return items
+    }, [cards, hasLooping, totalCards])
+
+    useEffect(() => {
+      if (totalCards === 0) {
+        setCurrentIndex(0)
+        setCarouselIndex(0)
+        return
+      }
+
+      if (!hasLooping) {
+        setCarouselIndex(0)
+        setCurrentIndex((prev) => Math.min(Math.max(prev, 0), totalCards - 1))
+        return
+      }
+
+      setCarouselIndex((prev) => {
+        if (prev === 0) return 1
+        if (prev > totalCards) return totalCards
+        return prev
+      })
+
+      setCurrentIndex((prev) => {
+        if (prev >= totalCards) return totalCards - 1
+        return Math.max(prev, 0)
+      })
+    }, [hasLooping, totalCards])
+
+    useEffect(() => {
+      if (!hasLooping || totalCards === 0) {
+        return
+      }
+
+      if (carouselIndex === 0) {
+        setIsTransitionDisabled(true)
+        setCarouselIndex(totalCards)
+        return
+      }
+
+      if (carouselIndex === totalCards + 1) {
+        setIsTransitionDisabled(true)
+        setCarouselIndex(1)
+        return
+      }
+
+      setCurrentIndex(carouselIndex - 1)
+
+      if (isTransitionDisabled) {
+        setIsTransitionDisabled(false)
+      }
+    }, [carouselIndex, hasLooping, totalCards, isTransitionDisabled])
 
     // Detect mobile viewport
     useEffect(() => {
@@ -4933,30 +5250,26 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
       // Determine swipe direction
       if (Math.abs(translateX) > threshold) {
         const direction = translateX > 0 ? 'right' : 'left'
-        
-        if (direction === 'left' && currentIndex < cards.length - 1) {
-          // Swipe left - next card
-          triggerHaptic('medium')
-          const newIndex = currentIndex + 1
-          setCurrentIndex(newIndex)
-          onCardSwiped?.(cards[currentIndex].id, 'left')
-        } else if (direction === 'right' && currentIndex > 0) {
-          // Swipe right - previous card
-          triggerHaptic('medium')
-          const newIndex = currentIndex - 1
-          setCurrentIndex(newIndex)
-          onCardSwiped?.(cards[currentIndex].id, 'right')
+        triggerHaptic('medium')
+
+        const nextIndex = direction === 'left'
+          ? currentIndex + 1
+          : currentIndex - 1
+
+        if (cards[currentIndex]) {
+          onCardSwiped?.(cards[currentIndex].id, direction)
+        }
+
+        if (hasLooping) {
+          setCarouselIndex((prev) => prev + (direction === 'left' ? 1 : -1))
+          setTranslateX(0)
+          setTranslateY(0)
         } else {
-          // Snap back
-          triggerHaptic('light')
-          if (autoSnap) {
-            // Reset position
-            setTranslateX(0)
-            setTranslateY(0)
-          }
+          goToCard(nextIndex)
         }
       } else {
         // Snap back - didn't reach threshold
+        triggerHaptic('light')
         if (autoSnap) {
           setTranslateX(0)
           setTranslateY(0)
@@ -5002,25 +5315,25 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
 
       if (Math.abs(translateX) > threshold) {
         const direction = translateX > 0 ? 'right' : 'left'
-        
-        if (direction === 'left' && currentIndex < cards.length - 1) {
-          triggerHaptic('medium')
-          const newIndex = currentIndex + 1
-          setCurrentIndex(newIndex)
-          onCardSwiped?.(cards[currentIndex].id, 'left')
-        } else if (direction === 'right' && currentIndex > 0) {
-          triggerHaptic('medium')
-          const newIndex = currentIndex - 1
-          setCurrentIndex(newIndex)
-          onCardSwiped?.(cards[currentIndex].id, 'right')
+        triggerHaptic('medium')
+
+        const nextIndex = direction === 'left'
+          ? currentIndex + 1
+          : currentIndex - 1
+
+        if (cards[currentIndex]) {
+          onCardSwiped?.(cards[currentIndex].id, direction)
+        }
+
+        if (hasLooping) {
+          setCarouselIndex((prev) => prev + (direction === 'left' ? 1 : -1))
+          setTranslateX(0)
+          setTranslateY(0)
         } else {
-          triggerHaptic('light')
-          if (autoSnap) {
-            setTranslateX(0)
-            setTranslateY(0)
-          }
+          goToCard(nextIndex)
         }
       } else {
+        triggerHaptic('light')
         if (autoSnap) {
           setTranslateX(0)
           setTranslateY(0)
@@ -5032,11 +5345,17 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
 
     // Navigate to specific card
     const goToCard = (index: number) => {
-      if (index < 0 || index >= cards.length) return
-      setCurrentIndex(index)
+      if (totalCards === 0) return
+      const wrappedIndex = ((index % totalCards) + totalCards) % totalCards
+
+      if (hasLooping) {
+        setCarouselIndex(wrappedIndex + 1)
+      } else {
+        setCurrentIndex(wrappedIndex)
+      }
+
       setTranslateX(0)
       setTranslateY(0)
-      triggerHaptic('light')
     }
 
     // Reset position when index changes
@@ -5070,22 +5389,25 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
     // Auto-scroll for swipeable modes (mobile and desktopSwipe)
     useEffect(() => {
       if (!autoScroll) return
-      if (cards.length <= 1) return
-      if (!isMobile && !desktopSwipe) return
+      if (totalCards <= 1) return
+      if (isMobile) return
+      if (!desktopSwipe) return
 
       const interval = setInterval(() => {
-        setCurrentIndex(prev => {
-          const next = (prev + 1) % cards.length
-          if (autoSnap) {
-            setTranslateX(0)
-            setTranslateY(0)
-          }
-          return next
-        })
+        if (hasLooping) {
+          setCarouselIndex((prev) => prev + 1)
+        } else {
+          setCurrentIndex((prev) => (prev + 1) % totalCards)
+        }
+
+        if (autoSnap) {
+          setTranslateX(0)
+          setTranslateY(0)
+        }
       }, autoScrollInterval)
 
       return () => clearInterval(interval)
-    }, [autoScroll, autoScrollInterval, cards.length, isMobile, desktopSwipe, autoSnap])
+    }, [autoScroll, autoScrollInterval, totalCards, isMobile, desktopSwipe, autoSnap, hasLooping])
 
     // Desktop scrollable view ref (used only in desktop view)
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
@@ -5407,85 +5729,54 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
       </>
     )
 
-    const renderMobileContent = () => (
-      <>
-        {title && (
-          <Heading level={2} className="text-white text-center mb-4 text-xl md:text-2xl">
-            {title}
-          </Heading>
-        )}
-        {subtitle && (
-          <Text size="sm" className="text-neutral-400 text-center mb-4 md:mb-6">
-            {subtitle}
-          </Text>
-        )}
+    const renderMobileContent = () => {
+      const trackIndex = hasLooping ? carouselIndex : currentIndex
 
-        <div className="relative">
-          {/* Swipeable Cards Container */}
+      return (
+        <>
+          {title && (
+            <Heading level={2} className="text-white text-center mb-4 text-xl md:text-2xl">
+              {title}
+            </Heading>
+          )}
+          {subtitle && (
+            <Text size="sm" className="text-neutral-400 text-center mb-4 md:mb-6">
+              {subtitle}
+            </Text>
+          )}
+
           <div
             ref={containerRef}
             className="relative w-full overflow-hidden"
             style={{ touchAction: 'pan-y pinch-zoom' }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
           >
-            {/* Card Stack */}
-            <div className="relative w-full">
-              {cards.map((card, index) => {
-                const isActive = index === currentIndex
-                const isNext = index === currentIndex + 1
-                const isPrev = index === currentIndex - 1
-                
-                // Calculate position and scale
-                let position = 0
-                let scale = 0.9
-                let opacity = 0.5
-                let zIndex = 0
-
-                if (isActive) {
-                  position = translateX
-                  scale = 1
-                  opacity = 1
-                  zIndex = 10
-                } else if (isNext) {
-                  position = containerRef.current ? containerRef.current.offsetWidth * 0.05 : 20
-                  scale = 0.95
-                  opacity = 0.8
-                  zIndex = 5
-                } else if (isPrev) {
-                  position = containerRef.current ? -containerRef.current.offsetWidth * 0.05 : -20
-                  scale = 0.95
-                  opacity = 0.8
-                  zIndex = 5
-                } else {
-                  // Cards further away
-                  scale = 0.85
-                  opacity = 0.3
-                  zIndex = 1
-                }
-
+            <div
+              className="flex transition-transform duration-300 ease-out"
+              style={{
+                transform: `translateX(calc(${trackIndex * -100}% + ${translateX}px))`,
+                transition: isDragging || isTransitionDisabled ? 'none' : 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+              }}
+            >
+              {extendedCards.map(({ card, key, actualIndex }, idx) => {
+                const isActive = hasLooping ? idx === trackIndex : actualIndex === currentIndex
                 return (
                   <div
-                    key={card.id}
+                    key={key}
                     ref={(el) => {
-                      cardRefs.current[index] = el
+                      cardRefs.current[idx] = el
                     }}
-                    className={cn(
-                      'transition-transform duration-300 ease-out',
-                      isActive ? 'relative w-full' : 'absolute inset-0'
-                    )}
+                    className="flex-shrink-0 w-full px-1"
                     style={{
-                      transform: `translateX(${position}px) scale(${scale})`,
-                      opacity,
-                      zIndex,
-                      touchAction: isActive ? 'pan-x' : 'none',
+                      opacity: isActive ? 1 : 0.4,
                       pointerEvents: isActive ? 'auto' : 'none',
                     }}
-                    onTouchStart={isActive ? handleTouchStart : undefined}
-                    onTouchMove={isActive ? handleTouchMove : undefined}
-                    onTouchEnd={isActive ? handleTouchEnd : undefined}
-                    onMouseDown={isActive ? handleMouseDown : undefined}
-                    onMouseMove={isActive ? handleMouseMove : undefined}
-                    onMouseUp={isActive ? handleMouseUp : undefined}
-                    onMouseLeave={isActive ? handleMouseUp : undefined}
                     onClick={() => {
                       if (isActive && !isDragging) {
                         card.onClick?.()
@@ -5496,23 +5787,21 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                     <Card
                       variant={cardVariant}
                       className={cn(
-                        'w-full overflow-hidden transition-all duration-300',
-                        isActive && 'border-primary-500',
+                        'w-full overflow-hidden transition-all duration-300 border-2 border-[#BF00FF]/30',
+                        isActive && 'border-[#BF00FF]',
                         card.onClick && !isDragging && 'cursor-pointer'
                       )}
                     >
                       <div className="w-full space-y-2">
-                        {/* Vision Transformation: Active/Actualized Images */}
                         {(card.activeImage || card.actualizedImage) ? (
                           <>
-                            {/* Active Image (Top) */}
                             {card.activeImage && (
-                              <div 
+                              <div
                                 className="relative w-full aspect-[4/3] overflow-hidden rounded-2xl cursor-pointer group"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  setLightboxImage({ 
-                                    src: card.activeImage!, 
+                                  setLightboxImage({
+                                    src: card.activeImage!,
                                     alt: card.activeImageAlt || card.title || 'Active vision',
                                     type: 'active'
                                   })
@@ -5523,31 +5812,27 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                                   alt={card.activeImageAlt || card.title || 'Active vision'}
                                   className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
                                 />
-                                {/* Active Badge - top right corner */}
                                 <div className="absolute top-2 right-2 bg-green-600 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
                                   <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                                   <span className="text-white text-xs font-semibold">Active</span>
                                 </div>
-                                {/* Click hint overlay */}
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
                               </div>
                             )}
 
-                            {/* Pulsing Arrow - centered */}
                             {(card.activeImage && card.actualizedImage) && (
                               <div className="flex items-center justify-center">
                                 <Icon icon={ArrowDown} size="md" color="#BF00FF" className="animate-pulse" />
                               </div>
                             )}
 
-                            {/* Actualized Image (Bottom) */}
                             {card.actualizedImage && (
-                              <div 
-                              className="relative w-full aspect-[4/3] overflow-hidden rounded-2xl cursor-pointer group"
+                              <div
+                                className="relative w-full aspect-[4/3] overflow-hidden rounded-2xl cursor-pointer group"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  setLightboxImage({ 
-                                    src: card.actualizedImage!, 
+                                  setLightboxImage({
+                                    src: card.actualizedImage!,
                                     alt: card.actualizedImageAlt || card.title || 'Actualized result',
                                     type: 'actualized'
                                   })
@@ -5558,18 +5843,15 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                                   alt={card.actualizedImageAlt || card.title || 'Actualized result'}
                                   className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
                                 />
-                                {/* Actualized Badge - top right corner */}
                                 <div className="absolute top-2 right-2 bg-purple-500 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
                                   <CheckCircle className="w-4 h-4 text-white" />
                                   <span className="text-white text-xs font-semibold">Actualized</span>
                                 </div>
-                                {/* Click hint overlay */}
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
                               </div>
                             )}
                           </>
                         ) : card.image ? (
-                          /* Standard Single Image */
                           <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-neutral-800 -mx-4 -mt-4 mb-0">
                             <img
                               src={card.image}
@@ -5585,35 +5867,35 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                             )}
                           </div>
                         ) : null}
-                        
-                        {card.title && (
+
+                        {card.title && card.showTitleOnCard !== false && (
                           <Heading level={4} className="text-white text-lg md:text-xl">
                             {card.title}
                           </Heading>
                         )}
-                        
-                      {card.content && card.showContentOnCard !== false && (
-                        <div className="flex-1 overflow-y-auto">
-                          {card.content}
-                        </div>
-                      )}
 
-                      <VIVAButton
-                        size="sm"
-                        className="self-center mt-auto"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          setSelectedCardId(card.id)
-                        }}
-                      >
-                        Actualization Story
-                      </VIVAButton>
-                        
+                        {card.content && card.showContentOnCard !== false && (
+                          <div className="flex-1 overflow-y-auto">
+                            {card.content}
+                          </div>
+                        )}
+
+                        <div className="flex justify-center pt-2">
+                          <VIVAButton
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setSelectedCardId(card.id)
+                            }}
+                          >
+                            Actualization Story
+                          </VIVAButton>
+                        </div>
+
                         {card.footer && (
-                          <div 
+                          <div
                             className={cn(card.title || card.content ? "border-t border-neutral-700 pt-2" : "pt-[7px]")}
                             onClick={(e) => {
-                              // Check if the click target is a button
                               const target = e.target as HTMLElement
                               if (target.tagName === 'BUTTON' || target.closest('button')) {
                                 e.stopPropagation()
@@ -5632,27 +5914,21 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
             </div>
           </div>
 
-          {/* Card Indicators */}
           {showIndicators && cards.length > 1 && (
-            <div className="flex justify-center gap-2 mt-4">
-              {cards.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToCard(index)}
-                  className={cn(
-                    'h-2 rounded-full transition-all duration-200 min-w-[44px]',
-                    index === currentIndex
-                      ? 'bg-primary-500 w-8'
-                      : 'bg-neutral-600 hover:bg-neutral-500 w-2'
-                  )}
-                  aria-label={`Go to card ${index + 1}`}
-                />
-              ))}
+            <div className="w-full mt-4 px-4 flex items-center justify-center gap-2">
+              <Text size="xs" className="text-neutral-500 uppercase tracking-[0.25em]">
+                Swipe for more
+              </Text>
+              <div className="flex items-center text-neutral-500">
+                <ChevronRight className="w-4 h-4 animate-pulse" />
+                <ChevronRight className="w-4 h-4 -ml-2 animate-pulse delay-150" />
+                <ChevronRight className="w-4 h-4 -ml-2 animate-pulse delay-300" />
+              </div>
             </div>
           )}
-        </div>
-      </>
-    )
+        </>
+      )
+    }
 
     return (
       <div
@@ -5676,7 +5952,7 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
               variant="card"
               className="border-[#BF00FF] shadow-[0_0_40px_rgba(191,0,255,0.25)]"
             >
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                 {(() => {
                   const memberBadges =
                     selectedCard.memberNames ??

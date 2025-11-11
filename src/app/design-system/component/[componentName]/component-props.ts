@@ -309,6 +309,19 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
     { name: 'level', type: "'hero' | 'section' | 'card'", required: false, defaultValue: "'section'", description: 'Title size level' },
     { name: 'className', type: 'string', required: false },
   ],
+  'page-titles': [
+    { name: 'eyebrow', type: 'React.ReactNode', required: false, description: 'Optional overline/kicker text above the title' },
+    { name: 'title', type: 'React.ReactNode', required: true, description: 'Primary page title content' },
+    { name: 'subtitle', type: 'React.ReactNode', required: false, description: 'Supporting subtitle displayed under the title' },
+    { name: 'supportingText', type: 'React.ReactNode', required: false, description: 'Additional helper copy shown below the subtitle' },
+    { name: 'breadcrumbs', type: 'React.ReactNode', required: false, description: 'Breadcrumb navigation rendered above the title' },
+    { name: 'status', type: "{ label: React.ReactNode; variant?: 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'danger' | 'error' | 'info' | 'premium' | 'neutral' }", required: false, description: 'Badge displayed next to the title' },
+    { name: 'metaItems', type: "Array<{ label: string; value: string; icon?: LucideIcon }>", required: false, description: 'Compact metadata chips displayed under the subtitle' },
+    { name: 'actions', type: 'PageTitleAction[]', required: false, description: 'Primary and secondary action buttons rendered alongside the title' },
+    { name: 'alignment', type: "'left' | 'center'", required: false, defaultValue: "'left'", description: 'Controls text alignment and layout' },
+    { name: 'children', type: 'React.ReactNode', required: false, description: 'Additional custom content rendered below the meta items' },
+    { name: 'className', type: 'string', required: false, description: 'Additional CSS classes for the wrapper' },
+  ],
 
   'bulleted-list': [
     { name: 'children', type: 'React.ReactNode', required: true },

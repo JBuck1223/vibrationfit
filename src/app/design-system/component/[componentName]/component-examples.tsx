@@ -37,6 +37,7 @@ import {
   Heading,
   Text,
   Title,
+  PageTitles,
   BulletedList,
   OrderedList,
   ListItem,
@@ -45,6 +46,7 @@ import {
   InsufficientTokensDialog,
   InsufficientStorageDialog,
   Toggle,
+  CreatedDateBadge,
 } from '@/lib/design-system/components'
 import { Copy, Check } from 'lucide-react'
 import {
@@ -90,6 +92,9 @@ import {
   Target,
   TrendingUp,
   BarChart3,
+  History,
+  VolumeX,
+  Gem,
 } from 'lucide-react'
 import { type AudioTrack } from '@/lib/design-system/components'
 import type { ComponentMetadata } from '../../components'
@@ -1592,6 +1597,138 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               <Title level="card">
                 Card Title
               </Title>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
+    case 'page-titles':
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">Primary Page Header - "The Life I Choose" Layout</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Replicates the exact centered header layout from the Life Vision detail page
+              </p>
+              
+              {/* Subtle Gradient Background */}
+              <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+                {/* Modern Enhanced Layout with Card Container */}
+                <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                
+                <div className="relative z-10">
+                  {/* Title Section */}
+                  <div className="text-center mb-4">
+                    <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                      The Life I Choose
+                    </h1>
+                  </div>
+                  
+                  {/* Centered Version Info with Enhanced Styling */}
+                  <div className="text-center mb-6">
+                    {/* Version, Status & Date Badges */}
+                    <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                      <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
+                        V2
+                      </span>
+                      <CreatedDateBadge createdAt={new Date().toISOString()} />
+                      <Badge variant="success" className="!bg-[#39FF14] !text-black !border-[#39FF14]">
+                        <CheckCircle className="w-4 h-4 mr-1 !text-black" />
+                        Active
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons - Enhanced with Hover Effects */}
+                  <div className="flex flex-row flex-wrap gap-2 md:gap-4 max-w-2xl mx-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                    >
+                      <Icon icon={VolumeX} size="sm" className="shrink-0" />
+                      <span>Audio Tracks</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                    >
+                      <Icon icon={Download} size="sm" className="shrink-0" />
+                      <span>Download PDF</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                    >
+                      <Icon icon={Gem} size="sm" className="shrink-0" />
+                      <span>Refine</span>
+                    </Button>
+                  </div>
+                </div>
+                </div>
+              </div>
+            </Stack>
+          </Card>
+
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">Centered Hero Title</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Hero container with gradient border, title, eyebrow, and subtitle only
+              </p>
+              
+              {/* Subtle Gradient Background */}
+              <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+                {/* Modern Enhanced Layout with Card Container */}
+                <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                  
+                  <div className="relative z-10">
+                    {/* Eyebrow */}
+                    <div className="text-center mb-3">
+                      <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                        VISION EXPERIENCE
+                      </div>
+                    </div>
+                    
+                    {/* Title Section */}
+                    <div className="text-center mb-4">
+                      <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                        Actualize Your Next 72 Hours
+                      </h1>
+                    </div>
+                    
+                    {/* Subtitle */}
+                    <div className="text-center">
+                      <h4 className="text-xs md:text-xl text-neutral-300 max-w-3xl mx-auto font-normal">
+                        Tune your energetic state, record your AM/PM audios, and keep your commitment moving Above the Green Line.
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Stack>
+          </Card>
+
+          <Card variant="outlined" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">Compact Page Title</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Gradient container with title only - no eyebrow or subtitle
+              </p>
+              
+              {/* Gradient Container with Title Only */}
+              <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+                <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                  <div className="relative z-10">
+                    <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white text-center">
+                      Vision Script Library
+                    </h1>
+                  </div>
+                </div>
+              </div>
             </Stack>
           </Card>
         </Stack>

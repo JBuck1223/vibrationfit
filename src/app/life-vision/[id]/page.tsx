@@ -20,7 +20,8 @@ import {
   Inline,
   CreatedDateBadge,
   Heading,
-  Text
+  Text,
+  PageTitles
 } from '@/lib/design-system/components'
 import { VersionCard } from '@/app/profile/components/VersionCard'
 import { VisionVersionCard } from '../components/VisionVersionCard'
@@ -630,86 +631,95 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     <>
         {/* Header */}
         <div className="mb-8">
-          {/* Title Section */}
-          <div className="text-center mb-6">
-            <h1 className="text-4xl font-bold text-white">
-              The Life I Choose
-            </h1>
-          </div>
-          
-          {/* Centered Version Info */}
-          <div className="text-center mb-6">
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
-                V{vision.version_number}
-              </span>
-              {vision.status === 'complete' ? (
-                <Badge variant="success">
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Active
-                </Badge>
-              ) : (
-                <Badge variant="warning">
-                  <Circle className="w-4 h-4 mr-1" />
-                  Draft
-                </Badge>
-              )}
-            </div>
-            
-            {/* Created Date & History */}
-            <div className="flex items-center justify-center gap-3 mb-6">
-              {/* Created Date Badge */}
-              <CreatedDateBadge createdAt={vision.created_at} />
+          {/* Subtle Gradient Background */}
+          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+            {/* Modern Enhanced Layout with Card Container */}
+            <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
               
-              {/* Version History Button */}
-              {versions.length > 0 && (
-                <Button
-                  onClick={() => setShowVersions(!showVersions)}
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-2 px-3 py-2 border border-neutral-700 rounded-lg hover:border-neutral-600"
-                >
-                  <Icon icon={History} size="sm" />
-                  {showVersions ? 'Hide' : 'Show'} History
-                </Button>
-              )}
+              <div className="relative z-10">
+                {/* Title Section */}
+                <div className="text-center mb-4">
+                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                    The Life I Choose
+                  </h1>
+                </div>
+                
+                {/* Centered Version Info with Enhanced Styling */}
+                <div className="text-center mb-6">
+                  {/* Version, Status & Date Badges */}
+                  <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                    <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
+                      V{vision.version_number}
+                    </span>
+                    <CreatedDateBadge createdAt={vision.created_at} />
+                    {vision.status === 'complete' ? (
+                      <Badge variant="success" className="!bg-[#39FF14] !text-black !border-[#39FF14]">
+                        <CheckCircle className="w-4 h-4 mr-1 !text-black" />
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="warning">
+                        <Circle className="w-4 h-4 mr-1" />
+                        Draft
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons - Enhanced with Hover Effects */}
+                <div className="flex flex-row flex-wrap gap-2 md:gap-4 max-w-2xl mx-auto mb-6">
+                  <Button
+                    onClick={() => router.push(`/life-vision/${vision.id}/audio`)}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  >
+                    <Icon icon={VolumeX} size="sm" className="shrink-0" />
+                    <span>Audio Tracks</span>
+                  </Button>
+                  <Button
+                    onClick={() => router.push(`/life-vision/${vision.id}/print`)}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  >
+                    <Icon icon={Download} size="sm" className="shrink-0" />
+                    <span>Download PDF</span>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  >
+                    <Link href={`/life-vision/${vision.id}/refine`}>
+                      <Icon icon={Gem} size="sm" className="shrink-0" />
+                      <span>Refine</span>
+                    </Link>
+                  </Button>
+                </div>
+
+                {/* Version History Button */}
+                {versions.length > 0 && (
+                  <div className="text-center">
+                    <Button
+                      onClick={() => setShowVersions(!showVersions)}
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <Icon icon={History} size="sm" />
+                      {showVersions ? 'Hide' : 'Show'} History
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Action Buttons - Responsive Grid 2x2 on mobile */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 justify-center mb-6">
-            <Button
-              onClick={() => router.push(`/life-vision/${vision.id}/audio`)}
-              variant="secondary"
-              className="flex items-center gap-2"
-            >
-              <Icon icon={VolumeX} size="sm" />
-              Audio Tracks
-            </Button>
-            <Button
-              onClick={() => router.push(`/life-vision/${vision.id}/print`)}
-              variant="secondary"
-              className="flex items-center gap-2"
-            >
-              <Icon icon={Download} size="sm" />
-              Download PDF
-            </Button>
-            <Button
-              asChild
-              variant="primary"
-              className="flex items-center gap-2"
-            >
-              <Link href={`/life-vision/${vision.id}/refine`}>
-                <Icon icon={Gem} size="sm" />
-                Refine
-              </Link>
-            </Button>
-          </div>
-
-
-
-          {/* Versions Dropdown */}
-          {showVersions && (
+        {/* Versions Dropdown */}
+        {showVersions && (
             <Card className="p-4 md:p-6 mb-6 md:mb-8">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
                 <Heading level={3} className="text-white text-lg md:text-xl">Version History</Heading>
@@ -800,9 +810,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
               )}
             </Card>
           )}
-        </div>
-
-
 
         {/* Vision Cards */}
         <div className="space-y-6">

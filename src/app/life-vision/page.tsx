@@ -343,6 +343,39 @@ export default function VisionListPage() {
 
   return (
     <>
+        {/* Page Hero - All Life Visions */}
+        <div className="mb-8">
+          {/* Subtle Gradient Background */}
+          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+            {/* Modern Enhanced Layout with Card Container */}
+            <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              
+              <div className="relative z-10">
+                {/* Eyebrow */}
+                <div className="text-center mb-3">
+                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                    THE LIFE I CHOOSE
+                  </div>
+                </div>
+                
+                {/* Title Section */}
+                <div className="text-center mb-4">
+                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                    All Life Visions
+                  </h1>
+                </div>
+                
+                {/* Subtitle */}
+                <div className="text-center">
+                  <h4 className="text-xs md:text-xl text-neutral-300 max-w-3xl mx-auto font-normal">
+                    View your "Active", "Complete", and "Draft" Life Visions below.
+                  </h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Create Button (only when no active vision) */}
         {!activeVision && (
           <div className="flex justify-end mb-8">
@@ -357,102 +390,34 @@ export default function VisionListPage() {
           </div>
         )}
 
-        {/* Current Version Information - No Card Background */}
-        {activeVision && (
-          <div className="mb-8">
-            <div className="text-center mb-6">
-              <h2 className="text-4xl font-bold text-white mb-3">The Life I Choose</h2>
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
-                  V{activeVision.version_number}
-                </span>
-                {activeVision.status === 'complete' && (
-                  <Badge variant="success">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Active
-                  </Badge>
-                )}
-                {activeVision.status === 'draft' && (
-                  <Badge variant="warning">
-                    <Circle className="w-4 h-4 mr-1" />
-                    Draft
-                  </Badge>
-                )}
-              </div>
-              
-              {/* Metadata */}
-              <CreatedDateBadge 
-                createdAt={activeVision.created_at} 
-                className="mb-6"
-              />
-            </div>
-
-            {/* Action Buttons - Responsive Grid 2x2 on mobile */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 justify-center">
-              <Button
-                onClick={() => router.push(`/life-vision/${activeVision.id}`)}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Eye className="w-4 h-4" />
-                View Vision
-              </Button>
-              <Button
-                onClick={() => router.push(`/life-vision/${activeVision.id}/audio`)}
-                variant="secondary"
-                className="flex items-center gap-2"
-              >
-                <VolumeX className="w-4 h-4" />
-                Audio Tracks
-              </Button>
-              <Button
-                onClick={() => router.push(`/life-vision/${activeVision.id}/print`)}
-                variant="secondary"
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download PDF
-              </Button>
-              <Button
-                onClick={() => router.push(`/life-vision/${activeVision.id}/refine`)}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Gem className="w-4 h-4" />
-                Refine
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* Stats Cards */}
         {activeVision && (
           <div className="grid grid-cols-3 gap-6 mb-8">
-            <Card className="p-6 text-center">
+            <Card className="text-center">
               <div className="flex flex-col items-center">
-                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center mb-3">
-                  <Target className="w-6 h-6 text-primary-500" />
+                <div className="w-8 h-8 md:w-12 md:h-12 bg-primary-500/20 rounded-full flex items-center justify-center mb-2 md:mb-3">
+                  <Target className="w-4 h-4 md:w-6 md:h-6 text-primary-500" />
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">{versions.length}</p>
-                <p className="text-sm text-neutral-400 mb-2">Visions</p>
+                <p className="text-xl md:text-3xl font-bold text-white mb-1">{versions.length}</p>
+                <p className="text-xs md:text-sm text-neutral-400 mb-2">Visions</p>
               </div>
             </Card>
-            <Card className="p-6 text-center">
+            <Card className="text-center">
               <div className="flex flex-col items-center">
-                <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center mb-3">
-                  <Gem className="w-6 h-6 text-secondary-500" />
+                <div className="w-8 h-8 md:w-12 md:h-12 bg-secondary-500/20 rounded-full flex items-center justify-center mb-2 md:mb-3">
+                  <Gem className="w-4 h-4 md:w-6 md:h-6 text-secondary-500" />
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">{refinementsCount}</p>
-                <p className="text-sm text-neutral-400 mb-2">Refinements</p>
+                <p className="text-xl md:text-3xl font-bold text-white mb-1">{refinementsCount}</p>
+                <p className="text-xs md:text-sm text-neutral-400 mb-2">Refinements</p>
               </div>
             </Card>
-            <Card className="p-6 text-center">
+            <Card className="text-center">
               <div className="flex flex-col items-center">
-                <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center mb-3">
-                  <Volume2 className="w-6 h-6 text-accent-500" />
+                <div className="w-8 h-8 md:w-12 md:h-12 bg-accent-500/20 rounded-full flex items-center justify-center mb-2 md:mb-3">
+                  <Volume2 className="w-4 h-4 md:w-6 md:h-6 text-accent-500" />
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">{audiosCount}</p>
-                <p className="text-sm text-neutral-400 mb-2">Audios</p>
+                <p className="text-xl md:text-3xl font-bold text-white mb-1">{audiosCount}</p>
+                <p className="text-xs md:text-sm text-neutral-400 mb-2">Audios</p>
               </div>
             </Card>
           </div>
@@ -461,9 +426,8 @@ export default function VisionListPage() {
         {/* All Versions List */}
         {activeVision && versions.length > 0 && (
           <Card className="p-6 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-white">Life Vision Versions</h2>
-              <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-white">Life Vision Versions</h3>
             </div>
             <div className="space-y-4">
               {versions.map((version, index) => {
@@ -479,35 +443,37 @@ export default function VisionListPage() {
                     actions={
                         <>
                           {isDraftVersion ? (
-                            // Draft version - link to draft page with neon yellow button
+                            // Draft version - link to draft page with yellow button matching badge
                             <Button
                               asChild
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
                               style={{
-                                backgroundColor: colors.energy.yellow[500],
-                                color: '#000000',
-                                border: `2px solid ${colors.energy.yellow[500]}`
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = `${colors.energy.yellow[500]}E6`
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
+                                backgroundColor: `${colors.energy.yellow[500]}33`,
+                                color: colors.energy.yellow[500]
                               }}
                             >
                               <Link href={`/life-vision/${version.id.replace('draft-', '')}/refine/draft`}>
                                 <Eye className="w-4 h-4" />
-                                <span className="ml-1 truncate">View Draft</span>
+                                <span className="ml-1 truncate">View</span>
                               </Link>
+                            </Button>
+                          ) : isActive ? (
+                            <Button
+                              onClick={() => router.push(`/life-vision/${version.id}`)}
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 bg-[#39FF14] text-black hover:bg-[#39FF14]/90 border-0"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
                             </Button>
                           ) : (
                             <Button
                               onClick={() => router.push(`/life-vision/${version.id}`)}
-                              variant="primary"
+                              variant="ghost"
                               size="sm"
-                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
                             >
                               <Eye className="w-4 h-4" />
                               View

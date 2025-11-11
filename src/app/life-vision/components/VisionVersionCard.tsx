@@ -3,6 +3,7 @@
 import React from 'react'
 import { Card, Badge, Heading, Text } from '@/lib/design-system/components'
 import { colors } from '@/lib/design-system/tokens'
+import { CheckCircle } from 'lucide-react'
 
 interface VisionVersionCardProps {
   version: {
@@ -34,7 +35,6 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
     <Card 
       variant="outlined" 
       className={`p-3 md:p-4 ${className}`}
-      style={isDraftVersion ? { border: `2px solid ${NEON_YELLOW}` } : undefined}
       onClick={(e) => {
         // Prevent any click events from bubbling up
         e.stopPropagation()
@@ -44,12 +44,33 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
         {/* Version Info */}
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <Heading level={4} className="text-white text-sm md:text-base !mb-0 leading-none pb-0 font-bold">
-              {isDraftVersion ? 'Draft Vision' : `Version ${version.version_number}`}
-            </Heading>
+            {/* Version Circle - color matches badge */}
+            {isDraftVersion ? (
+              <span className="w-7 h-7 flex items-center justify-center text-black rounded-full text-xs font-semibold" style={{ backgroundColor: NEON_YELLOW }}>
+                V{version.version_number}
+              </span>
+            ) : version.status === 'complete' && isActive ? (
+              <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
+                V{version.version_number}
+              </span>
+            ) : (
+              <span className="w-7 h-7 flex items-center justify-center bg-blue-500 text-white rounded-full text-xs font-semibold">
+                V{version.version_number}
+              </span>
+            )}
+            
+            {/* Created Date Badge */}
+            <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+              <span className="text-xs md:text-sm text-white font-medium">
+                {/* Mobile: date only, Desktop: date + time */}
+                <span className="md:hidden">{new Date(version.created_at).toLocaleDateString()}</span>
+                <span className="hidden md:inline">{new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+              </span>
+            </div>
+            
             {isDraftVersion && (
               <Badge variant="warning" style={{ backgroundColor: `${NEON_YELLOW}33`, color: NEON_YELLOW }}>
-                Draft Preview
+                Draft
               </Badge>
             )}
             {version.status === 'draft' && !isDraftVersion && (
@@ -58,7 +79,8 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
               </Badge>
             )}
             {version.status === 'complete' && isActive && !isDraftVersion && (
-              <Badge variant="success">
+              <Badge variant="success" className="!bg-[#39FF14] !text-black !border-[#39FF14]">
+                <CheckCircle className="w-4 h-4 mr-1 !text-black" />
                 Active
               </Badge>
             )}
@@ -66,17 +88,6 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
               <Badge variant="info">
                 Complete
               </Badge>
-            )}
-          </div>
-          
-          <div className="space-y-1">
-            <Text size="sm" className="text-neutral-400">
-              <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-            </Text>
-            {!isDraftVersion && (
-              <Text size="xs" className="text-neutral-500 font-mono truncate">
-                ID: {version.id}
-              </Text>
             )}
           </div>
         </div>

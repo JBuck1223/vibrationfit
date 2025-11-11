@@ -354,6 +354,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     path: '/design-system/component/title'
   },
   {
+    id: 'page-titles',
+    name: 'Page Titles',
+    description: 'Standardized page header with eyebrow, status, metadata, and responsive actions',
+    category: 'Typography',
+    icon: Type,
+    exportName: 'PageTitles',
+    path: '/design-system/component/page-titles'
+  },
+  {
     id: 'bulleted-list',
     name: 'Bulleted List',
     description: 'Unordered list with consistent styling and spacing',
