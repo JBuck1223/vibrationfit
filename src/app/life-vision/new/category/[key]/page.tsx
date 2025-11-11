@@ -387,13 +387,8 @@ export default function CategoryPage() {
   }
 
   const handleSaveAndContinue = async () => {
-    // Summary is already saved, just continue
-    if (nextCategory) {
-      router.push(`/life-vision/new/category/${nextCategory.key}`)
-    } else {
-      // All categories complete - go to assembly
-      router.push('/life-vision/new/assembly')
-    }
+    // Summary is already saved, go to Step 2: Imagination
+    router.push(`/life-vision/new/category/${categoryKey}/imagination`)
   }
 
   const handleContinue = () => {

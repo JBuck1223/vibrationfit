@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Badge } from '@/lib/design-system/components'
-import { Sparkles, CheckCircle, Download } from 'lucide-react'
+import { Sparkles, CheckCircle, Download, ArrowRight, BarChart3 } from 'lucide-react'
 
 function VIVAActionCard({ stage, className = '' }: { stage: string, className?: string }) {
   const stageData = {
@@ -51,8 +51,9 @@ export default function AssemblyPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [vivaStage, setVivaStage] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [masterVision, setMasterVision] = useState<{ markdown: string, json: any } | null>(null)
+  const [masterVision, setMasterVision] = useState<{ markdown: string, json: any, richnessMetadata?: any } | null>(null)
   const [visionId, setVisionId] = useState<string | null>(null)
+  const [showRichnessStats, setShowRichnessStats] = useState(true)
 
   useEffect(() => {
     checkComplete()
@@ -193,7 +194,11 @@ export default function AssemblyPage() {
       const data = await response.json()
 
       if (data.markdown && data.json) {
-        setMasterVision({ markdown: data.markdown, json: data.json })
+        setMasterVision({ 
+          markdown: data.markdown, 
+          json: data.json,
+          richnessMetadata: data.richnessMetadata // V3: Store richness metadata
+        })
         
         // Get the highest version number for this user (like the existing vision system does)
         const { data: latestVersion } = await supabase
@@ -228,7 +233,8 @@ export default function AssemblyPage() {
             spirituality: data.json.spirituality || '',
             conclusion: '',
             completion_percent: 100,
-            status: 'complete'
+            status: 'draft', // V3: Mark as draft until final sections are added
+            richness_metadata: data.richnessMetadata || {} // V3: Save richness metadata
           })
           .select()
           .single()
@@ -318,40 +324,116 @@ export default function AssemblyPage() {
           </Card>
         )}
 
+        {/* Richness Stats (V3) */}
+        {masterVision && masterVision.richnessMetadata && showRichnessStats && (
+          <Card className="mb-6 md:mb-8 p-4 md:p-6 border-2 border-primary-500/30 bg-primary-500/5">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-primary-500" />
+                </div>
+                <div>
+                  <h3 className="text-base md:text-lg font-bold text-white">Input Richness Analysis</h3>
+                  <p className="text-xs md:text-sm text-neutral-400">How your vision scales with your input</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowRichnessStats(false)}>
+                Hide
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              {Object.entries(masterVision.richnessMetadata).map(([category, data]: [string, any]) => {
+                const densityColor = 
+                  data.density === 'rich' ? 'text-primary-500' :
+                  data.density === 'moderate' ? 'text-[#FFB701]' :
+                  'text-neutral-500'
+                
+                const densityBg = 
+                  data.density === 'rich' ? 'bg-primary-500/10 border-primary-500/30' :
+                  data.density === 'moderate' ? 'bg-[#FFB701]/10 border-[#FFB701]/30' :
+                  'bg-neutral-800/50 border-neutral-700/30'
+
+                return (
+                  <Card key={category} className={`p-3 md:p-4 border ${densityBg}`}>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm md:text-base font-semibold text-white capitalize">{category}</h4>
+                        <Badge variant="neutral" className={`text-xs ${densityColor}`}>
+                          {data.density}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1 text-xs md:text-sm">
+                        <div className="flex justify-between text-neutral-400">
+                          <span>Input:</span>
+                          <span className="text-white">{data.inputChars} chars</span>
+                        </div>
+                        <div className="flex justify-between text-neutral-400">
+                          <span>Ideas:</span>
+                          <span className="text-white">{data.distinctIdeas}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
+
+            <div className="mt-4 md:mt-6 p-3 md:p-4 bg-black/30 rounded-lg border border-primary-500/20">
+              <p className="text-xs md:text-sm text-neutral-300 leading-relaxed">
+                <strong className="text-primary-500">V3 Intelligence:</strong> Your vision sections automatically scale to match your input richness. 
+                Rich input = longer, detailed sections. Sparse input = concise, focused sections. No compression, no fluff.
+              </p>
+            </div>
+          </Card>
+        )}
+
         {/* Master Vision Display */}
         {masterVision && !isProcessing && (
-          <Card className="mb-8">
+          <Card className="mb-6 md:mb-8 p-4 md:p-6 lg:p-8">
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary-500 rounded-xl flex items-center justify-center">
-                    <CheckCircle className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">Your Master Vision</h2>
-                    <p className="text-neutral-400">A unified Life Vision Document</p>
+                    <h2 className="text-lg md:text-2xl font-bold text-white">Your Master Vision</h2>
+                    <p className="text-xs md:text-sm text-neutral-400">A unified Life Vision Document</p>
                   </div>
                 </div>
               </div>
 
-              <div className="prose prose-invert max-w-none mb-8 bg-neutral-800 rounded-lg p-6 max-h-96 overflow-y-auto">
-                <div dangerouslySetInnerHTML={{ __html: masterVision.markdown }} />
+              <div className="prose prose-invert max-w-none mb-6 md:mb-8 bg-neutral-800 rounded-lg p-4 md:p-6 max-h-96 overflow-y-auto">
+                <div className="text-sm md:text-base" dangerouslySetInnerHTML={{ __html: masterVision.markdown }} />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col md:flex-row gap-3 md:gap-4">
                 <Button
                   variant="ghost"
+                  size="sm"
                   onClick={handleDownload}
+                  className="flex-1"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download
                 </Button>
                 <Button
-                  variant="primary"
+                  variant="secondary"
+                  size="sm"
                   onClick={handleViewVision}
-                  className="w-full"
+                  className="flex-1"
                 >
                   View Full Vision
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => router.push('/life-vision/new/final')}
+                  className="flex-1"
+                >
+                  Continue to Final
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
             </div>

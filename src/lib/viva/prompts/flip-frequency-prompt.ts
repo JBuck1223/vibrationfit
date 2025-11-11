@@ -4,8 +4,12 @@
  * Converts contrast/lack language into present-tense, first-person, 
  * positive ideal-state phrasing that preserves the member's voice.
  * 
+ * ENHANCED V3: Now includes density awareness to preserve input richness
+ * 
  * Used by: /api/viva/flip-frequency, flip-frequency.ts library
  */
+
+import { computeTargetLengthRange } from '../text-metrics'
 
 export type FlipMode = 'flip' | 'flip+enrich' | 'batch' | 'text'
 
@@ -88,6 +92,8 @@ export interface FlipFrequencyParams {
 
 /**
  * Builds the user prompt for flip frequency operations
+ * 
+ * ENHANCED V3: Now computes target length ranges to preserve input density
  */
 export function buildFlipFrequencyPrompt(params: FlipFrequencyParams): string {
   const parts: string[] = []
@@ -105,6 +111,16 @@ export function buildFlipFrequencyPrompt(params: FlipFrequencyParams): string {
   }
   parts.push(`- debug: ${params.debug || false}`)
   
+  // ENHANCED V3: Compute target length range based on input
+  let sourceText = ''
+  if (params.mode === 'batch' && params.lines && params.lines.length > 0) {
+    sourceText = params.lines.join('\n')
+  } else if (params.input) {
+    sourceText = params.input
+  }
+  
+  const lengthRange = computeTargetLengthRange(sourceText)
+  
   parts.push('\nINPUT:')
   if (params.mode === 'batch' && params.lines && params.lines.length > 0) {
     parts.push('- Provide flips for each line below as separate items in the array:')
@@ -115,18 +131,28 @@ export function buildFlipFrequencyPrompt(params: FlipFrequencyParams): string {
     parts.push(`- Single line to flip:\n"${params.input}"`)
   }
   
+  parts.push('\nDENSITY PRESERVATION (CRITICAL):')
+  parts.push(`- Input length: ${lengthRange.inputChars} characters (${lengthRange.inputWords} words)`)
+  parts.push(`- Target output length: ${lengthRange.minChars}-${lengthRange.maxChars} characters to preserve input richness`)
+  parts.push('- Do NOT compress content. Keep all distinct desires and themes.')
+  parts.push('- Include ALL major ideas mentioned; do not remove any themes.')
+  parts.push('- If the input mentions multiple aspects, ALL must be present in the flip.')
+  parts.push('- Aim for 90-110% of the original length to maintain detail level.')
+  
   parts.push('\nCONSTRAINTS:')
   parts.push('- Present tense. First person. No lack/comparison language.')
   parts.push("- Match the user's voice; keep named entities and phrasing if possible.")
-  parts.push('- Keep it concise and immediately usable as a 1-line clarity seed.')
+  parts.push('- Keep all distinct ideas and themes from the input.')
   parts.push('- If specifics exist (who/what/where/why), use one sensory anchor.')
   parts.push('- If input is already aligned, set "unchanged": true and return it as seed.')
   
   parts.push('\nOUTPUT:')
   if (params.mode === 'text') {
     parts.push('- Return only the 1-line clarity seed(s), each on a new line.')
+    parts.push(`- Each seed should be ${lengthRange.minChars}-${lengthRange.maxChars} characters to preserve richness.`)
   } else {
     parts.push('- Return valid JSON per the schema (no extra commentary).')
+    parts.push(`- Each clarity_seed should be ${lengthRange.minChars}-${lengthRange.maxChars} characters.`)
   }
   
   return parts.join('\n')

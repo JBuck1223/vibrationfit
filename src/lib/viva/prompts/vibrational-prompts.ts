@@ -60,10 +60,18 @@ export interface SceneGenerationPromptInput {
   assessmentSnippets?: string[] | null
   existingVisionParagraph?: string | null
   dataRichnessTier?: 'A' | 'B' | 'C'
+  // ENHANCED V3: Dynamic scene count parameters
+  minScenes?: number
+  maxScenes?: number
+  targetScenes?: number
 }
 
 /**
- * Builds prompt for generating 1-3 present-tense, first-person visualization scenes
+ * Builds prompt for generating visualization scenes with dynamic count
+ * 
+ * ENHANCED V3: Now accepts scene count parameters and supports 140-220 words per scene
+ * with Micro-Macro breathing pattern
+ * 
  * Returns JSON with array of scenes (title, text, essence_word)
  */
 export function buildSceneGenerationPrompt({
@@ -73,6 +81,9 @@ export function buildSceneGenerationPrompt({
   assessmentSnippets,
   existingVisionParagraph,
   dataRichnessTier,
+  minScenes = 1,
+  maxScenes = 3,
+  targetScenes = 2,
 }: SceneGenerationPromptInput): string {
   const snippets = [
     profileGoesWellText ? `• What's going well: ${profileGoesWellText}` : null,
@@ -86,7 +97,11 @@ export function buildSceneGenerationPrompt({
     .join('\n')
 
   return `
-Create 1–3 present-tense, first-person visualization scenes for the "${category}" category.
+Create present-tense, first-person visualization scenes for the "${category}" category.
+
+SCENE COUNT TARGET:
+Aim for ${targetScenes} scenes (minimum ${minScenes}, maximum ${maxScenes}).
+Base count on how many distinct desires/experiences they shared in this category.
 
 Context (member's own words and signals):
 ${snippets || '• Limited data provided. Keep scenes universal yet vivid and emotionally resonant.'}
@@ -94,9 +109,12 @@ ${snippets || '• Limited data provided. Keep scenes universal yet vivid and em
 Data richness tier: ${dataRichnessTier || 'C'} (A = lots of detail available, C = very little detail available)
 
 Instructions:
-- Each scene is 90–140 words, cinematic and sensory:
-  - Include what I see, hear, feel in my body, and the emotional tone.
-  - Naturally touch on who I'm with (if relevant), what I'm doing, where I am, and why this moment matters to me.
+- Each scene is 140–220 words, cinematic and sensory with Micro-Macro breathing:
+  - MICRO (Specific Moment): Start in a specific moment - what I see, hear, feel in my body
+  - MACRO (Zoom-Out): Then zoom out to what this moment represents or why it matters
+  - Naturally touch on who I'm with (if relevant), what I'm doing, where I am
+  - Include the emotional tone throughout
+- CRITICAL: If the member mentions many distinct desires or situations, spread them across multiple scenes instead of compressing them into one.
 - Use only details that are consistent with the context. Do NOT invent specific names, cities, companies, brands, or numbers unless clearly implied.
 - Language rules:
   - First person ("I") and present tense ONLY.
@@ -107,9 +125,14 @@ Instructions:
 - Each scene should end with a separate final line in the text: "Essence: <word>"
   - Essence word = the dominant feeling in that scene (e.g. "ease", "freedom", "connection", "play").
 - For data richness:
-  - Tier A: Feel free to weave in more specific details from the context.
-  - Tier B: Use moderate specificity, staying close to what's given.
-  - Tier C: Keep scenes more general but still vivid and emotionally rich.
+  - Tier A: Feel free to weave in more specific details from the context. Generate ${maxScenes} scenes if warranted.
+  - Tier B: Use moderate specificity, staying close to what's given. Generate 2-4 scenes.
+  - Tier C: Keep scenes more general but still vivid and emotionally rich. Generate 1-3 scenes.
+
+EXAMPLE OF MICRO-MACRO BREATHING (140-220 words):
+"I wake in my sun-lit bedroom, feeling the soft sheets and hearing birds outside (MICRO). This peaceful morning reminds me that I've created a home that nourishes me (MACRO). I move slowly to my kitchen, making coffee in my favorite mug (MICRO), noticing how different this feels from the rushed mornings I used to have (reflection - careful with comparison!). Now, I have space to breathe (MACRO). My mornings set the tone for days that feel aligned (MACRO).
+
+Essence: Peace"
 
 Respond with ONLY valid JSON in this exact shape (no backticks, no comments, no additional keys):
 {

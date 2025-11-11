@@ -52,8 +52,26 @@ export {
   type BuildChatSystemPromptInput,
 } from './chat-system-prompt'
 
+// NEW V3 PROMPTS - Life Vision Process Enhancement
+
+// Ideal State Prompt (Step 2: Unleash Imagination)
+export { buildIdealStatePrompt } from './ideal-state-prompt'
+
+// Blueprint Prompt (Step 3: Being/Doing/Receiving generation)
+export {
+  buildBlueprintPrompt,
+  type BeingDoingReceivingLoop,
+} from './blueprint-prompt'
+
+// Final Assembly Prompt (Step 6: Forward/Conclusion generation)
+export { buildFinalAssemblyPrompt } from './final-assembly-prompt'
+
+// Activation Prompt (Step 6: Celebration & next steps)
+export { buildActivationReflectionPrompt } from './activation-prompt'
+
 // Flip Frequency (already well-structured in flip-frequency.ts)
 // Imported directly from @/lib/viva/flip-frequency
+// ENHANCED V3: Now includes density awareness in flip-frequency-prompt.ts
 
 // Shared Components
 export { VIVA_PERSONA, VIVA_PERSONA_WITH_GOLDEN_RULES } from './shared/viva-persona'

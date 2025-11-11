@@ -5,6 +5,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { ensureVibrationalSourceEnabled } from './sources'
 import { isValidVibrationalSourceType } from './sourceTypes'
 import { trackTokenUsage, estimateTokensForText } from '@/lib/tokens/tracking'
+// ENHANCED V3: Import scene metrics for dynamic scene count
+import { inferSceneCountFromData, determineDataTier } from '@/lib/viva/scenes/scene-metrics'
 import type {
   EmotionalSnapshotRecord,
   EmotionalValence,
@@ -94,7 +96,32 @@ export interface GeneratedSceneResult {
 }
 
 export async function generateScenesForCategory(input: SceneGenerationInput): Promise<GeneratedSceneResult[]> {
-  const prompt = buildSceneGenerationPrompt(input)
+  // ENHANCED V3: Compute dynamic scene count based on input richness
+  const tier = input.dataRichnessTier ?? determineDataTier(
+    Boolean(input.profileGoesWellText),
+    Boolean(input.assessmentSnippets && input.assessmentSnippets.length > 0),
+    Boolean(input.existingVisionParagraph)
+  )
+  
+  const sceneRecommendation = inferSceneCountFromData(
+    input.profileGoesWellText,
+    input.profileNotWellTextFlipped,
+    input.assessmentSnippets,
+    input.existingVisionParagraph,
+    tier
+  )
+
+  console.log(`[Scene Generation V3] Category: ${input.category}, Tier: ${tier}, Target Scenes: ${sceneRecommendation.targetScenes} (${sceneRecommendation.minScenes}-${sceneRecommendation.maxScenes})`)
+
+  // Build prompt with dynamic scene count parameters
+  const prompt = buildSceneGenerationPrompt({
+    ...input,
+    minScenes: sceneRecommendation.minScenes,
+    maxScenes: sceneRecommendation.maxScenes,
+    targetScenes: sceneRecommendation.targetScenes,
+    dataRichnessTier: tier
+  })
+  
   const scenePayload = await generateJSON<{ scenes: Array<{ title: string; text: string; essence_word?: string }> }>(
     prompt,
     'VIVA_SCENE_SUGGESTION',
@@ -104,7 +131,11 @@ export async function generateScenesForCategory(input: SceneGenerationInput): Pr
       actionType: 'viva_scene_generation',
       metadata: {
         category: input.category,
-        data_richness_tier: input.dataRichnessTier ?? 'C',
+        data_richness_tier: tier,
+        target_scene_count: sceneRecommendation.targetScenes,
+        min_scenes: sceneRecommendation.minScenes,
+        max_scenes: sceneRecommendation.maxScenes,
+        distinct_ideas: sceneRecommendation.distinctIdeas,
         has_clarity: Boolean(input.profileGoesWellText && input.profileGoesWellText.trim().length > 0),
         has_contrast_flip: Boolean(input.profileNotWellTextFlipped && input.profileNotWellTextFlipped.trim().length > 0),
         assessment_snippet_count: input.assessmentSnippets?.length ?? 0,

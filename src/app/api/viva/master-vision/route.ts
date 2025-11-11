@@ -5,6 +5,8 @@ import { getAIModelConfig } from '@/lib/ai/config'
 import OpenAI from 'openai'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildMasterVisionPrompt, MASTER_VISION_SHARED_SYSTEM_PROMPT } from '@/lib/viva/prompts'
+// ENHANCED V3: Import richness computation
+import { computeCategoryRichness } from '@/lib/viva/text-metrics'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -98,6 +100,34 @@ export async function POST(request: NextRequest) {
       json = extractCategoriesFromMarkdown(markdown)
     }
 
+    // ENHANCED V3: Compute per-category richness metadata
+    const categoryLabels: Record<string, string> = {
+      fun: 'Fun',
+      health: 'Health',
+      travel: 'Travel',
+      love: 'Love',
+      family: 'Family',
+      social: 'Social',
+      home: 'Home',
+      work: 'Work',
+      money: 'Money',
+      stuff: 'Stuff',
+      giving: 'Giving',
+      spirituality: 'Spirituality'
+    }
+
+    const richnessMetadata: Record<string, any> = {}
+    for (const [categoryKey, categoryLabel] of Object.entries(categoryLabels)) {
+      const transcript = categoryTranscripts[categoryKey] || ''
+      const summary = categorySummaries[categoryKey] || ''
+      const existingVision = activeVision?.[categoryKey] || ''
+      
+      const richness = computeCategoryRichness(transcript, summary, existingVision)
+      richnessMetadata[categoryKey] = richness
+    }
+
+    console.log('[Master Vision V3] Computed richness metadata for', Object.keys(richnessMetadata).length, 'categories')
+
     // Track token usage
     if (completion.usage) {
       try {
@@ -115,6 +145,8 @@ export async function POST(request: NextRequest) {
             markdown_length: markdown.length,
             has_profile: !!profile,
             has_assessment: !!assessment,
+            total_input_chars: Object.values(richnessMetadata).reduce((sum: number, r: any) => sum + r.inputChars, 0),
+            average_density: Object.values(richnessMetadata).reduce((acc: any[], r: any) => [...acc, r.density], [] as string[]).join(','),
           },
         })
       } catch (trackingError) {
@@ -125,7 +157,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       markdown,
       json,
-      model: aiConfig.model
+      model: aiConfig.model,
+      // ENHANCED V3: Include richness metadata in response
+      richnessMetadata
     })
 
   } catch (err) {

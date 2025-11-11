@@ -415,15 +415,29 @@ function AssetsAdminContent() {
         try {
           setDeletingKeys(prev => new Set(prev).add(fileKey))
           
-          const response = await fetch('/api/admin/assets/upload', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ s3Key: fileKey }),
-          })
+          // Find the file to check if it has variants
+          const file = files.find(f => f.key === fileKey)
+          const keysToDelete: string[] = [fileKey]
+          
+          // If this file has variants, collect all variant keys to delete
+          if (file?.variants && file.variants.length > 0) {
+            file.variants.forEach(variant => {
+              keysToDelete.push(variant.key)
+            })
+          }
 
-          if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.error || 'Delete failed')
+          // Delete all keys (main file + variants)
+          for (const key of keysToDelete) {
+            const response = await fetch('/api/admin/assets/upload', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ s3Key: key }),
+            })
+
+            if (!response.ok) {
+              const errorData = await response.json()
+              throw new Error(errorData.error || 'Delete failed')
+            }
           }
 
           deletedFiles.push(fileKey)

@@ -4,10 +4,13 @@
  * Used to assemble all 12 category summaries into a complete, unified Life Vision document
  * following "The Life I Choose" framework with 5-Phase Conscious Creation Flow.
  * 
+ * ENHANCED V3: Now includes per-category richness computation and density-aware assembly
+ * 
  * Used by: /api/viva/master-vision
  */
 
 import { flattenProfile, flattenAssessment } from '../prompt-flatteners'
+import { computeCategoryRichness, formatCategoryRichnessForPrompt } from '../text-metrics'
 
 // ============================================================================
 // SYSTEM PROMPTS
@@ -123,6 +126,8 @@ Examples:
 /**
  * Builds the complete master vision assembly prompt
  * 
+ * ENHANCED V3: Now computes per-category richness and injects density guidance
+ * 
  * @param categorySummaries - AI-generated summaries for each of the 12 categories
  * @param categoryTranscripts - Original user transcripts (if available)
  * @param profile - Full user profile object
@@ -139,6 +144,33 @@ export function buildMasterVisionPrompt(
 ): string {
   const summariesText = Object.entries(categorySummaries)
     .map(([category, summary]) => `## ${category}\n${summary}`)
+    .join('\n\n')
+
+  // ENHANCED V3: Compute per-category richness for density-aware assembly
+  const categoryLabels: Record<string, string> = {
+    fun: 'Fun',
+    health: 'Health',
+    travel: 'Travel',
+    love: 'Love',
+    family: 'Family',
+    social: 'Social',
+    home: 'Home',
+    work: 'Work',
+    money: 'Money',
+    stuff: 'Stuff',
+    giving: 'Giving',
+    spirituality: 'Spirituality'
+  }
+
+  const categoryRichnessGuidance = Object.keys(categoryLabels)
+    .map(categoryKey => {
+      const transcript = categoryTranscripts[categoryKey] || ''
+      const summary = categorySummaries[categoryKey] || ''
+      const existingVision = activeVision?.[categoryKey] || ''
+      
+      const richness = computeCategoryRichness(transcript, summary, existingVision)
+      return formatCategoryRichnessForPrompt(categoryLabels[categoryKey], richness)
+    })
     .join('\n\n')
 
   return `${MASTER_VISION_SHARED_SYSTEM_PROMPT}
@@ -197,6 +229,29 @@ CONTEXT USAGE RULES:
 - Do NOT output scores or numeric values. Use them only to infer what matters most.
 - Never copy field labels verbatim into the vision. Transform to natural first-person language.
 - Prefer concrete details from profile/assessment to replace generic phrases.
+
+DENSITY & LENGTH GUIDANCE (ENHANCED V3 - CRITICAL):
+
+Match the richness of each category to the amount of detail the member provided.
+If they gave LOTS of detail and many ideas, their section should be LONGER, with multiple Being/Doing/Receiving loops and several micro-macro breaths.
+If they gave very little, keep it simple and general, without inventing specifics.
+
+**Per-Category Target Lengths:**
+
+${categoryRichnessGuidance}
+
+Do NOT shrink rich input into generic paragraphs. Preserve breadth and variety of concepts.
+Aim for 90-110% of input length to maintain detail level without excessive padding.
+
+ARCHITECTURE REFERENCE (ENHANCED V3):
+
+Use the 4-Layer Conscious Creation Writing Architecture documented in docs/conscious_creation_architecture.md:
+1. **5-Phase Flow**: Gratitude → Sensory Expansion → Embodied Lifestyle → Essence Lock-In → Surrender/Allowing
+2. **Who/What/Where/Why Framework**: Each paragraph should naturally answer at least 2 of these questions
+3. **Being/Doing/Receiving Loops**: Identity → Actions → Evidence (create dynamic cycles)
+4. **Micro-Macro Paragraph Breathing**: Alternate between vivid moments and zoom-out reflections
+
+This architecture should feel invisible to the reader—it's the underlying structure that makes vision writing powerful.
 
 FOUNDATIONAL PRINCIPLES — CORE PURPOSE:
 1. **The basis of life is freedom** — This document should help the member feel free.
