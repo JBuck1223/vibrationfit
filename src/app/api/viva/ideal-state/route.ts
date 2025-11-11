@@ -113,6 +113,26 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Save generated prompts to database for fine-tuning analysis
+    const { error: saveError } = await supabase
+      .from('ideal_state_prompts')
+      .insert({
+        user_id: user.id,
+        category,
+        prompts: parsedResponse.prompts || [],
+        encouragement: parsedResponse.encouragement || null,
+        model_used: aiConfig.model,
+        tokens_used: completion.usage?.total_tokens || 0,
+        response_time_ms: responseTime
+      })
+
+    if (saveError) {
+      console.error('[Ideal State] Failed to save prompts to database:', saveError)
+      // Don't fail the request if save fails
+    } else {
+      console.log('[Ideal State] Saved prompts to database for fine-tuning')
+    }
+
     console.log('[Ideal State] Successfully generated', parsedResponse.prompts?.length || 0, 'prompts')
 
     return NextResponse.json({
@@ -125,6 +145,67 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to generate ideal state prompts',
+        details: error.message
+      },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * GET /api/viva/ideal-state?category=<category>
+ * Retrieves the most recent generated prompts for a category
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get category from query params
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get('category')
+
+    if (!category) {
+      return NextResponse.json(
+        { error: 'Missing required parameter: category' },
+        { status: 400 }
+      )
+    }
+
+    // Fetch most recent prompts from database
+    const { data, error } = await supabase
+      .from('ideal_state_prompts')
+      .select('id, prompts, encouragement, created_at')
+      .eq('user_id', user.id)
+      .eq('category', category)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+      throw error
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: data ? {
+        prompts: data.prompts,
+        encouragement: data.encouragement,
+        cached: true,
+        cachedAt: data.created_at
+      } : null
+    })
+
+  } catch (error: any) {
+    console.error('[Ideal State GET] Error:', error)
+    return NextResponse.json(
+      {
+        error: 'Failed to retrieve cached prompts',
         details: error.message
       },
       { status: 500 }
