@@ -1700,6 +1700,7 @@ export default function ProfileDetailPage() {
             )}
           </Button>
         </div>
+      </div>
 
       {/* Lightbox */}
       {lightboxOpen && profile.progress_photos && (
