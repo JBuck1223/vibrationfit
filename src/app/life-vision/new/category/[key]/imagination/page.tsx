@@ -158,11 +158,14 @@ export default function ImaginationPage() {
 
       const data = await response.json()
 
-      if (data.prompts && Array.isArray(data.prompts)) {
-        setPrompts(data.prompts)
+      // API returns { success: true, data: { prompts: [...] } }
+      const prompts = data.data?.prompts || data.prompts || []
+      
+      if (prompts && Array.isArray(prompts)) {
+        setPrompts(prompts)
         // Initialize empty answers
         const initialAnswers: Record<string, string> = {}
-        data.prompts.forEach((p: IdealStatePrompt, idx: number) => {
+        prompts.forEach((p: IdealStatePrompt, idx: number) => {
           initialAnswers[`prompt-${idx}`] = ''
         })
         setAnswers(initialAnswers)

@@ -237,6 +237,24 @@ export default function CategoryPage() {
         setAiSummary(refinements.ai_summary)
       }
 
+      // Load previously flipped contrast from frequency_flip table
+      const { data: existingFlip } = await supabase
+        .from('frequency_flip')
+        .select('clarity_seed, input_text')
+        .eq('category', categoryKey)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (existingFlip?.clarity_seed) {
+        setClarityFromContrast(existingFlip.clarity_seed)
+        // If we have the original contrast, set it too (for context)
+        if (existingFlip.input_text && !contrastFromProfile) {
+          setContrastFromProfile(existingFlip.input_text)
+          setShowContrastToggle(true)
+        }
+      }
+
       setLoading(false)
     } catch (err) {
       console.error('Error loading data:', err)
