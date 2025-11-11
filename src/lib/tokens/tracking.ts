@@ -9,7 +9,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 export interface TokenUsage {
   id?: string
   user_id: string
-  action_type: 'assessment_scoring' | 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'transcription' | 'admin_grant' | 'admin_deduct' | 'subscription_grant' | 'trial_grant' | 'token_pack_purchase' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'prompt_suggestions' | 'frequency_flip' | 'vibrational_analysis' | 'viva_scene_generation' | 'north_star_reflection' | 'voice_profile_analysis'
+  action_type: 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'transcription' | 'admin_grant' | 'admin_deduct' | 'subscription_grant' | 'trial_grant' | 'token_pack_purchase' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'prompt_suggestions' | 'frequency_flip' | 'vibrational_analysis' | 'viva_scene_generation' | 'north_star_reflection' | 'voice_profile_analysis'
   model_used: string
   tokens_used: number
   cost_estimate: number // in cents
@@ -151,7 +151,7 @@ export async function getDefaultTokenEstimate(
       image_generation: 25,
       audio_generation: 1,
       transcription: 60,
-      assessment_scoring: 200,
+      // assessment_scoring: 200, // Removed - never implemented (Nov 11, 2025)
     }
 
     return defaults[actionType] || 100

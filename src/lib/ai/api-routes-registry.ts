@@ -150,22 +150,12 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     hasTokenTracking: true,
     usedBy: ['Legacy endpoint - not actively used in V3'],
   },
-  // NOTE: vibe-assistant and old vision generation endpoints removed (Nov 11, 2025)
+  // NOTE: Deprecated/removed endpoints (Nov 11, 2025)
   // - /api/vibe-assistant/refine-vision (deprecated)
   // - /api/vibe-assistant/generate-blueprint (deprecated - breaks actualization-blueprints page)
   // - /api/vision/generate (deprecated)
   // - /api/vision/chat (deprecated)
-  {
-    routePath: '/api/assessment/ai-score',
-    routeName: 'Assessment Scoring',
-    actionType: 'assessment_scoring',
-    category: 'text',
-    modelConfig: AI_MODELS.ASSESSMENT_SCORING,
-    description: 'AI scoring of assessment responses based on vibrational alignment',
-    filePath: 'src/app/api/assessment/ai-score/route.ts',
-    hasTokenTracking: true,
-    usedBy: ['❌ UNUSED - Not called by any page. Assessment scoring not implemented.'],
-  },
+  // - /api/assessment/ai-score (removed - never implemented, unused)
   {
     routePath: '/api/voice-profile/analyze',
     routeName: 'Voice Profile Analyzer',

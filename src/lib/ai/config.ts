@@ -119,13 +119,7 @@ export let AI_MODELS = {
     systemPrompt: `You are VIVA’s Voice Analyst. You study a member’s own words and return ONLY structured JSON describing their natural writing voice. You never add commentary or prose.`
   },
 
-  // Assessment scoring - needs consistency and accuracy
-  ASSESSMENT_SCORING: {
-    model: 'gpt-5',
-    temperature: 0.3,
-    maxTokens: 200,
-    systemPrompt: 'You are an expert at analyzing vibrational alignment and mindset. Score responses based on empowerment vs victim mindset, abundance vs scarcity thinking, and overall energetic alignment.'
-  },
+  // NOTE: ASSESSMENT_SCORING removed - never implemented (Nov 11, 2025)
 
   // Image generation - needs visual creativity
   IMAGE_GENERATION: {
