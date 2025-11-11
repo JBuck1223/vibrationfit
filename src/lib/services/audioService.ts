@@ -265,13 +265,21 @@ export async function generateAudioTracks(params: {
       targetAudioSetId = existingSet.id
     } else {
       // Create new audio set
+      const getDescription = (v: string | undefined) => {
+        if (v === 'standard' || !v) return 'Voice only narration'
+        if (v === 'sleep') return '10% voice, 90% background'
+        if (v === 'energy') return '80% voice, 20% background'
+        if (v === 'meditation') return '50% voice, 50% background'
+        return '50% voice, 50% background'
+      }
+
       const { data: newSet, error: setError } = await supabase
         .from('audio_sets')
         .insert({
           vision_id: visionId,
           user_id: userId,
           name: audioSetName || `${variant || 'Standard'} Version`,
-          description: `Audio version for ${variant || 'standard'} playback`,
+          description: getDescription(variant),
           variant: variant || 'standard',
           voice_id: voice,
         })

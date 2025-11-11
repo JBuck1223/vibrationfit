@@ -213,8 +213,28 @@ export default function AudioSetPlayerPage({
 
         {/* Audio Set Info */}
         {audioSet && vision && (
-          <Card variant="glass" className="p-4">
-            <div className="flex items-start justify-between mb-3">
+          <Card variant="elevated" className="p-4">
+            {/* Mobile: Icon + Title + Badge in one row, Description below */}
+            <div className="md:hidden">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${getVariantColor(audioSet.variant)}`}>
+                    {getVariantIcon(audioSet.variant)}
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">{audioSet.name}</h2>
+                </div>
+                <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-green-500/20 text-green-400 border-green-500/30 !bg-[#39FF14] !text-black !border-[#39FF14]">
+                  <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
+                  {vision.status === 'complete' ? 'Active' : 'Draft'}
+                </span>
+              </div>
+              {audioSet.description && (
+                <p className="text-sm text-neutral-400 mb-3">{audioSet.description}</p>
+              )}
+            </div>
+
+            {/* Desktop: Original layout */}
+            <div className="hidden md:flex items-start justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${getVariantColor(audioSet.variant)}`}>
                   {getVariantIcon(audioSet.variant)}
@@ -224,26 +244,24 @@ export default function AudioSetPlayerPage({
                   <p className="text-sm text-neutral-400">{audioSet.description}</p>
                 </div>
               </div>
-              <Badge variant="success">
-                {vision.status === 'complete' ? 'Active' : 'Draft'} Vision
-              </Badge>
+              <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-green-500/20 text-green-400 border-green-500/30 !bg-[#39FF14] !text-black !border-[#39FF14]">
+                <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
+                {vision.status === 'complete' ? 'Active' : 'Draft'}
+              </span>
             </div>
             
             {/* Audio Set Info Row */}
             <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-3 pb-3 border-b border-neutral-800">
-              <div className="text-xs text-neutral-500 font-mono">
-                {audioSet.id}
-              </div>
-              <div className="text-sm text-neutral-400">
+              <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg text-xs md:text-sm">
                 Created: {new Date(audioSet.created_at).toLocaleDateString()}
               </div>
             </div>
             
-            <div className="flex gap-4 text-sm text-neutral-400">
+            <div className="flex flex-col md:flex-row md:gap-4 text-sm text-neutral-400 gap-0.5 md:gap-4">
               <span>Variant: <span className="text-white capitalize">{audioSet.variant}</span></span>
-              <span>•</span>
+              <span className="hidden md:inline">•</span>
               <span>Voice: <span className="text-white">{audioSet.voice_id}</span></span>
-              <span>•</span>
+              <span className="hidden md:inline">•</span>
               <span>{audioTracks.length} tracks</span>
             </div>
           </Card>

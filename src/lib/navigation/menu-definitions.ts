@@ -258,7 +258,7 @@ export const adminNavigation: NavItem[] = [
 export const mobileNavigation: NavItem[] = [
   {
     name: 'Vision',
-    href: '/life-vision',
+    href: '/life-vision/active',
     icon: Target,
     description: 'Life Vision',
   },
@@ -393,12 +393,27 @@ export function isNavItemActive(
   item: NavItem,
   pathname: string
 ): boolean {
+  // Exact match
   if (item.href === pathname) {
     return true
   }
   
+  // Special handling for /life-vision/{id} paths - should match "My Active Vision"
+  // Check if we're on a specific vision detail page
+  if (pathname.match(/^\/life-vision\/[^\/]+$/) && !pathname.includes('/refine') && !pathname.includes('/active')) {
+    // If this is the "My Active Vision" menu item, mark it as active for vision detail pages
+    if (item.href === '/life-vision/active') {
+      return true
+    }
+    // Don't mark "All Visions" as active for individual vision pages
+    if (item.href === '/life-vision' && !item.children) {
+      return false
+    }
+  }
+  
   // Check if pathname starts with item href (for nested routes)
-  if (pathname.startsWith(item.href + '/')) {
+  // But exclude the case where we're on /life-vision (exact) and checking /life-vision/active
+  if (pathname.startsWith(item.href + '/') && item.href !== '/life-vision') {
     return true
   }
   

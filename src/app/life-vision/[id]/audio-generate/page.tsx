@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { Button, Card, Spinner, Badge, Container, Stack } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones } from 'lucide-react'
+import { Headphones, CheckCircle, Play } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys } from '@/lib/design-system'
 
@@ -22,6 +22,9 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   const previewAudioRef = React.useRef<HTMLAudioElement | null>(null)
   const [showJobQueue, setShowJobQueue] = useState(false)
   const [allJobs, setAllJobs] = useState<Array<{id: string; sectionKey: string; title: string; variant: string; status: string; mixStatus?: string; setName: string}>>([])
+  const [vision, setVision] = useState<any>(null)
+  const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false)
+  const [previewProgress, setPreviewProgress] = useState<number>(0)
 
   useEffect(() => {
     ;(async () => {
@@ -40,6 +43,20 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       } catch {}
     })()
   }, [])
+
+  // Load vision data
+  useEffect(() => {
+    if (!visionId) return
+    ;(async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('id', visionId)
+        .single()
+      setVision(data)
+    })()
+  }, [visionId])
 
   // Load audio variants from database
   useEffect(() => {
@@ -175,10 +192,15 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
         setWorkingOn('creating mixed versions')
         
         for (const variant of selectedVariants.filter(v => v !== 'standard')) {
-          const variantName = variant === 'sleep' ? 'Sleep Edition' :
-                             variant === 'energy' ? 'Energy Mix' :
+          const variantName = variant === 'sleep' ? 'Sleep (Ocean Waves)' :
+                             variant === 'energy' ? 'Energy' :
                              variant === 'meditation' ? 'Meditation' :
                              'Audio Version'
+          
+          const variantDescription = variant === 'sleep' ? '10% voice, 90% background' :
+                                     variant === 'energy' ? '80% voice, 20% background' :
+                                     variant === 'meditation' ? '50% voice, 50% background' :
+                                     '50% voice, 50% background'
 
           const sourceSet = existingStandardSets[0]
           
@@ -188,7 +210,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               vision_id: visionId,
               user_id: (await supabase.auth.getUser()).data.user?.id,
               name: variantName,
-              description: `Mixed version using existing voice with background`,
+              description: variantDescription,
               variant: variant,
               voice_id: sourceSet.voice_id,
             })
@@ -254,9 +276,9 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       const sections = buildFourteenSectionsFromVision(vv)
 
       for (const variant of selectedVariants) {
-        const variantName = variant === 'standard' ? 'Standard Version' :
-                           variant === 'sleep' ? 'Sleep Edition' :
-                           variant === 'energy' ? 'Energy Mix' :
+        const variantName = variant === 'standard' ? 'Voice Only' :
+                           variant === 'sleep' ? 'Sleep (Ocean Waves)' :
+                           variant === 'energy' ? 'Energy' :
                            variant === 'meditation' ? 'Meditation' :
                            'Audio Version'
 
@@ -295,16 +317,59 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-white">Generate Audio</h1>
-          <p className="text-neutral-400 mt-2">Create custom audio versions of your life vision</p>
+        {/* Centered Hero Title */}
+        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+          <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="relative z-10">
+              {/* Eyebrow */}
+              <div className="text-center mb-4">
+                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                  THE LIFE I CHOOSE
+                </div>
+              </div>
+              
+              {/* Title Section */}
+              <div className="text-center mb-4">
+                <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                  Life Vision Audio Studio
+                </h1>
+              </div>
+              
+              {/* Subtitle */}
+              <div className="text-center mb-4">
+                <p className="text-xs md:text-lg text-neutral-300">
+                  Create custom audio sets of your life vision
+                </p>
+              </div>
+              
+              {/* Version Badge at Bottom */}
+              {vision && (
+                <div className="flex justify-center">
+                  <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                    <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
+                      V{vision.version_number}
+                    </span>
+                    <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg text-xs md:text-sm">
+                      {new Date(vision.created_at).toLocaleDateString()}
+                    </div>
+                    <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-green-500/20 text-green-400 border-green-500/30 !bg-[#39FF14] !text-black !border-[#39FF14]">
+                      <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
+                      Active
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Variant Selection */}
         <Card variant="elevated" className="p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Select Audio Versions</h2>
-          <div className="space-y-3">
+          <div className="mb-4 text-center">
+            <h2 className="text-xl font-semibold text-white">Audio Set Selection</h2>
+            <p className="text-sm text-neutral-400 mt-1">(you can choose more than one)</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {audioVariants.map(v => {
               const desc = v.id === 'standard' 
                 ? 'Pure voice narration'
@@ -333,7 +398,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                       }
                     }}
                     disabled={selectedVariants.length === 1 && selectedVariants.includes(v.id)}
-                    className="mt-1"
+                    className="sr-only"
                   />
                   <div className="flex-1">
                     <div className="text-base font-medium text-white">{v.name}</div>
@@ -348,20 +413,66 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
         {/* Voice Selection */}
         {selectedVariants.includes('standard') && (
           <Card variant="elevated" className="p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Voice Selection</h2>
+            <div className="mb-4 text-center">
+              <h2 className="text-xl font-semibold text-white">Voice Selection</h2>
+              <p className="text-sm text-neutral-400 mt-1">(selected voice will be used for all audio sets selected above)</p>
+            </div>
             <div className="flex flex-col md:flex-row gap-4">
-              <select
-                value={voice}
-                onChange={(e) => setVoice(e.target.value)}
-                className="px-4 py-3 rounded-full bg-black/30 text-white text-sm border-2 border-white/30 flex-1"
-              >
-                {voices.map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
+              <div className="relative flex-1">
+                <button
+                  type="button"
+                  onClick={() => setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}
+                  className="w-full pl-6 pr-12 py-3 rounded-full bg-[#1F1F1F] text-white text-sm border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                >
+                  {voices.find(v => v.id === voice)?.name || 'Select a voice'}
+                </button>
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isVoiceDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                
+                {isVoiceDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsVoiceDropdownOpen(false)}
+                    />
+                    <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                      {voices.map(v => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => {
+                            setVoice(v.id)
+                            setIsVoiceDropdownOpen(false)
+                          }}
+                          className={`w-full px-6 py-2 text-left text-sm transition-colors ${
+                            voice === v.id 
+                              ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                              : 'text-white hover:bg-[#333]'
+                          }`}
+                        >
+                          {v.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
               <Button 
-                variant="outline" 
+                variant="ghost"
                 onClick={async () => {
+                  // If already playing, stop it
+                  if (isPreviewing && previewAudioRef.current) {
+                    previewAudioRef.current.pause()
+                    previewAudioRef.current.currentTime = 0
+                    setIsPreviewing(false)
+                    setPreviewProgress(0)
+                    return
+                  }
+
+                  // Otherwise start playing
                   try {
                     const res = await fetch(`/api/audio/voices?preview=${voice}`, { cache: 'no-store' })
                     const data = await res.json()
@@ -371,16 +482,54 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                     const audio = new Audio(data.url)
                     previewAudioRef.current = audio
                     setIsPreviewing(true)
+                    setPreviewProgress(0)
+                    
+                    // Update progress
+                    const interval = setInterval(() => {
+                      if (audio.paused || audio.ended) {
+                        clearInterval(interval)
+                        setPreviewProgress(0)
+                      } else {
+                        const progress = (audio.currentTime / audio.duration) * 100
+                        setPreviewProgress(progress)
+                      }
+                    }, 50)
+                    
                     audio.play().then(() => {
-                      audio.onended = () => setIsPreviewing(false)
-                    }).catch(() => setIsPreviewing(false))
+                      audio.onended = () => {
+                        setIsPreviewing(false)
+                        setPreviewProgress(0)
+                        clearInterval(interval)
+                      }
+                    }).catch(() => {
+                      setIsPreviewing(false)
+                      setPreviewProgress(0)
+                      clearInterval(interval)
+                    })
                   } catch (e) {
                     setIsPreviewing(false)
+                    setPreviewProgress(0)
                   }
                 }}
-                disabled={isPreviewing}
               >
-                {isPreviewing ? 'Playing...' : 'Preview'}
+                <div className="relative w-5 h-5 mr-2 flex items-center justify-center flex-shrink-0">
+                  {isPreviewing && (
+                    <svg className="absolute inset-0 -rotate-90" viewBox="0 0 36 36">
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="16"
+                        fill="none"
+                        stroke="#39FF14"
+                        strokeWidth="2.5"
+                        strokeDasharray={`${previewProgress * 100.53 / 100}, 100.53`}
+                        className="transition-all duration-100"
+                      />
+                    </svg>
+                  )}
+                  <Play className="w-3 h-3 relative z-10" style={{ color: '#39FF14' }} />
+                </div>
+                {isPreviewing ? 'Stop Preview' : 'Preview Voice'}
               </Button>
             </div>
           </Card>
@@ -454,7 +603,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
         {/* Generate Button */}
         <div className="flex gap-4">
-          <Button variant="secondary" asChild className="flex-1">
+          <Button variant="danger" asChild className="flex-1">
             <Link href={`/life-vision/${visionId}/audio`}>Cancel</Link>
           </Button>
           <Button 
@@ -463,7 +612,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
             disabled={generating || selectedVariants.length === 0 || (selectedVariants.includes('standard') && !voice)}
             className="flex-1"
           >
-            {generating ? 'Generating…' : `Generate ${selectedVariants.length} Version${selectedVariants.length > 1 ? 's' : ''}`}
+            {generating ? 'Generating…' : `Generate ${selectedVariants.length} Set${selectedVariants.length > 1 ? 's' : ''}`}
           </Button>
         </div>
       </Stack>

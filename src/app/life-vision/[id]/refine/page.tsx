@@ -1400,16 +1400,19 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             ? 'lg:grid-cols-[repeat(14,minmax(0,1fr))]'
             : 'lg:grid-cols-[repeat(12,minmax(0,1fr))]'
         }`}>
-          {VISION_CATEGORIES.map((category) => (
-            <CategoryCard 
-                      key={category.key}
-              category={category} 
-              selected={selectedCategory === category.key} 
-                      variant="outlined"
-                      selectionStyle="border"
-                      iconColor="#14B8A6"
-                      selectedIconColor="#39FF14"
-                      onClick={async () => {
+          {VISION_CATEGORIES.map((category) => {
+            const isSelected = selectedCategory === category.key
+            return (
+              <CategoryCard 
+                key={category.key}
+                category={category} 
+                selected={isSelected} 
+                variant="outlined"
+                selectionStyle="border"
+                iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                selectedIconColor="#39FF14"
+                className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                onClick={async () => {
                         setSelectedCategory(category.key)
                         // Load any existing draft for this category
                         if (user && visionId) {
@@ -1463,8 +1466,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                           setCurrentRefinement(categoryValue)
                         }
                       }}
-            />
-          ))}
+              />
+            )
+          })}
         </div>
       </div>
 
