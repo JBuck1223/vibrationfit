@@ -29,7 +29,6 @@ import {
   Home,
   Building,
   GraduationCap,
-  Star,
   Plus,
   RefreshCw,
   Trash2,
@@ -129,7 +128,6 @@ export default function ProfileDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [versions, setVersions] = useState<any[]>([])
-  const [showVersions, setShowVersions] = useState(false)
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [isViewingVersion, setIsViewingVersion] = useState(false)
@@ -1302,12 +1300,12 @@ export default function ProfileDetailPage() {
               </Button>
               
               <Button
-                onClick={() => setShowVersions(!showVersions)}
+                onClick={() => router.push('/profile')}
                 variant="outline"
                 className="w-full"
               >
-                <Star className="w-4 h-4 mr-2" />
-                {showVersions ? 'Hide' : 'Show'} Versions
+                <Eye className="w-4 h-4 mr-2" />
+                See All
               </Button>
             </div>
           </div>
@@ -1354,12 +1352,12 @@ export default function ProfileDetailPage() {
               Edit Profile
             </Button>
             <Button
-              onClick={() => setShowVersions(!showVersions)}
+              onClick={() => router.push('/profile')}
               variant="outline"
               className="flex items-center gap-2"
             >
-              <Star className="w-4 h-4" />
-              {showVersions ? 'Hide' : 'Show'} Versions
+              <Eye className="w-4 h-4" />
+              See All
             </Button>
           </div>
 
@@ -1367,63 +1365,6 @@ export default function ProfileDetailPage() {
 
         {/* Main Content */}
         <div>
-          {/* Versions List */}
-          {showVersions && (
-            <Card className="p-4 md:p-6 mb-6 md:mb-8">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
-                <Heading level={3} className="text-white text-lg md:text-xl">Profile Versions</Heading>
-                <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
-              </div>
-              {versions.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
-                  <Text size="sm" className="text-neutral-400 mb-2">No saved versions yet</Text>
-                  <Text size="xs" className="text-neutral-500">Create your first version to get started</Text>
-                </div>
-              ) : (
-                <Stack gap="md">
-                  {versions.map((version) => {
-                    return (
-                      <VersionCard
-                        key={version.id}
-                        version={version}
-                        actions={
-                          <>
-                            <Button
-                              onClick={() => router.push(`/profile/${version.id}`)}
-                              variant="primary"
-                              size="sm"
-                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </Button>
-                            <Button
-                              onClick={() => handleDeleteVersion(version)}
-                              variant="danger"
-                              size="sm"
-                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
-                              disabled={deletingVersion === version.id}
-                            >
-                              {deletingVersion === version.id ? (
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <>
-                                  <Trash2 className="w-4 h-4" />
-                                  Delete
-                                </>
-                              )}
-                            </Button>
-                          </>
-                        }
-                      />
-                    )
-                  })}
-                </Stack>
-              )}
-            </Card>
-          )}
-        </div>
 
 
 
@@ -1495,15 +1436,26 @@ export default function ProfileDetailPage() {
           <div className="lg:col-span-2 space-y-4 h-full">
             
             <Card className="p-6 h-full">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-primary-500" />
-                Personal Information
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <User className="w-5 h-5 text-primary-500" />
+                  Personal Information
+                </h3>
+                <Button
+                  onClick={() => router.push(`/profile/${profileId}/edit#personal`)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Edit
+                </Button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <ProfileField
                   label="Email"
                   value={profile.email}
-                  editable={!isViewingVersion}
+                  editable={false}
                   fieldKey="email"
                   onSave={handleFieldSave}
                   type="text"
@@ -1511,7 +1463,7 @@ export default function ProfileDetailPage() {
                 <ProfileField
                   label="Date of Birth"
                   value={profile.date_of_birth}
-                  editable={!isViewingVersion}
+                  editable={false}
                   fieldKey="date_of_birth"
                   onSave={handleFieldSave}
                   type="text"
@@ -1528,7 +1480,7 @@ export default function ProfileDetailPage() {
                 <ProfileField
                   label="Gender"
                   value={profile.gender}
-                  editable={!isViewingVersion}
+                  editable={false}
                   fieldKey="gender"
                   onSave={handleFieldSave}
                   type="select"
@@ -1541,7 +1493,7 @@ export default function ProfileDetailPage() {
                 <ProfileField
                   label="Phone"
                   value={profile.phone}
-                  editable={!isViewingVersion}
+                  editable={false}
                   fieldKey="phone"
                   onSave={handleFieldSave}
                   type="text"
@@ -1549,7 +1501,7 @@ export default function ProfileDetailPage() {
                 <ProfileField
                   label="Ethnicity"
                   value={profile.ethnicity}
-                  editable={!isViewingVersion}
+                  editable={false}
                   fieldKey="ethnicity"
                   onSave={handleFieldSave}
                   type="select"
@@ -1690,10 +1642,21 @@ export default function ProfileDetailPage() {
             
             return (
               <Card key={category.id} className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <IconComponent className="w-5 h-5 text-primary-500" />
-                  {category.title}
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <IconComponent className="w-5 h-5 text-primary-500" />
+                    {category.title}
+                  </h3>
+                  <Button
+                    onClick={() => router.push(`/profile/${profileId}/edit#${category.id}`)}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Edit
+                  </Button>
+                </div>
                 <div className="space-y-3">
                   {renderCategoryFields(category.id)}
                   
