@@ -25,6 +25,7 @@ export interface APIRouteConfig {
   filePath: string // Source file path
   hasTokenTracking: boolean // Whether token tracking is implemented
   multipleCalls?: number // Number of AI calls in this route (if > 1)
+  usedBy?: string[] // Pages/components that use this feature
 }
 
 // ============================================================================
@@ -44,6 +45,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Streaming AI chat endpoint with OpenAI - VIVA conversations',
     filePath: 'src/app/api/viva/chat/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/viva - Master VIVA Assistant'],
   },
   {
     routePath: '/api/viva/category-summary',
@@ -54,6 +56,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Generates personalized category summaries from user input, profile, and assessment',
     filePath: 'src/app/api/viva/category-summary/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/life-vision/new/category/[key] - Step 1: Category Summary Generation'],
   },
   {
     routePath: '/api/viva/master-vision',
@@ -64,6 +67,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Assembles complete life vision document from all category summaries',
     filePath: 'src/app/api/viva/master-vision/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/life-vision/new/assembly - Step 5: Master Vision Assembly'],
   },
   {
     routePath: '/api/viva/prompt-suggestions',
@@ -74,6 +78,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Generates personalized, creative prompts for life vision reflection',
     filePath: 'src/app/api/viva/prompt-suggestions/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/life-vision/new/category/[key] - Personalized Reflection Prompts'],
   },
   {
     routePath: '/api/viva/flip-frequency',
@@ -88,6 +93,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Converts contrast/lack language into clarity seeds',
     filePath: 'src/app/api/viva/flip-frequency/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/life-vision/new/category/[key] - Contrast to Clarity Transformation'],
   },
   {
     routePath: '/api/viva/merge-clarity',
@@ -98,6 +104,40 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Merges Current Clarity + Clarity from Contrast',
     filePath: 'src/app/api/viva/merge-clarity/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/life-vision/new/category/[key] - Combining Clarity Sources'],
+  },
+  {
+    routePath: '/api/viva/ideal-state',
+    routeName: 'Ideal State Generation',
+    actionType: 'vision_generation',
+    category: 'text',
+    modelConfig: AI_MODELS.VISION_GENERATION,
+    description: 'V3 Step 2: Generates ideal state prompts and processes user imagination',
+    filePath: 'src/app/api/viva/ideal-state/route.ts',
+    hasTokenTracking: true,
+    usedBy: ['/life-vision/new/category/[key]/imagination - Step 2: Unleash Imagination'],
+  },
+  {
+    routePath: '/api/viva/blueprint',
+    routeName: 'Blueprint Generation',
+    actionType: 'blueprint_generation',
+    category: 'text',
+    modelConfig: AI_MODELS.BLUEPRINT_GENERATION,
+    description: 'V3 Step 3: Generates Being/Doing/Receiving loops from ideal state',
+    filePath: 'src/app/api/viva/blueprint/route.ts',
+    hasTokenTracking: true,
+    usedBy: ['/life-vision/new/category/[key]/blueprint - Step 3: Being/Doing/Receiving Blueprint'],
+  },
+  {
+    routePath: '/api/viva/final-assembly',
+    routeName: 'Final Assembly',
+    actionType: 'vision_generation',
+    category: 'text',
+    modelConfig: AI_MODELS.VISION_GENERATION,
+    description: 'V3 Step 6: Generates forward, conclusion, and activation message',
+    filePath: 'src/app/api/viva/final-assembly/route.ts',
+    hasTokenTracking: true,
+    usedBy: ['/life-vision/new/final - Step 6: Final Polish & Activation'],
   },
   {
     routePath: '/api/viva/refine-category',
@@ -108,6 +148,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'One-shot refinement endpoint for individual categories',
     filePath: 'src/app/api/viva/refine-category/route.ts',
     hasTokenTracking: true,
+    usedBy: ['Legacy endpoint - not actively used in V3'],
   },
   // NOTE: vibe-assistant and old vision generation endpoints removed (Nov 11, 2025)
   // - /api/vibe-assistant/refine-vision (deprecated)
@@ -123,6 +164,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'AI scoring of assessment responses based on vibrational alignment',
     filePath: 'src/app/api/assessment/ai-score/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/assessment/[id]/in-progress - Vibrational Alignment Scoring'],
   },
   {
     routePath: '/api/voice-profile/analyze',
@@ -133,6 +175,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Analyzes user writing samples to refine their VIVA voice profile',
     filePath: 'src/app/api/voice-profile/analyze/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/voice-profile/analyze - Voice Pattern Analysis'],
   },
   
   // ==========================================================================
@@ -148,6 +191,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Transcribe audio files using OpenAI Whisper',
     filePath: 'src/app/api/transcribe/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/life-vision/new/category/[key] - Audio Input Transcription', '/journal/new - Voice Journaling', 'RecordingTextarea Component - Voice Input'],
   },
   {
     routePath: '/lib/services/audioService.ts',
@@ -159,6 +203,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Generate audio from text using OpenAI TTS',
     filePath: 'src/lib/services/audioService.ts',
     hasTokenTracking: true,
+    usedBy: ['/life-vision/[id]/audio-generate - Vision Audio Generation', '/life-vision/[id]/audio-sets - Audio Set Creation'],
   },
   
   // ==========================================================================
@@ -174,6 +219,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Generate images using DALL-E 3',
     filePath: 'src/lib/services/imageService.ts',
     hasTokenTracking: true,
+    usedBy: ['/vision-board/new - AI Image Generation', '/vision-board/[id] - Custom Board Images'],
   },
   
   // ==========================================================================
@@ -188,6 +234,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Admin token grants and deductions',
     filePath: 'src/app/api/admin/users/adjust-tokens/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/admin/users - Manual Token Grants/Deductions'],
   },
   {
     routePath: '/api/vibration/scenes/generate',
@@ -199,6 +246,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     filePath: 'src/app/api/vibration/scenes/generate/route.ts',
     hasTokenTracking: true,
     multipleCalls: 2,
+    usedBy: ['/life-vision/new/category/[key]/scenes - Step 4: Creative Visualization Scenes', '/scenes/builder - Dynamic Scene Generation'],
   },
   {
     routePath: '/api/vibration/scenes/[id]',
@@ -209,6 +257,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Analyzes and updates vibrational alignment for edited scenes',
     filePath: 'src/app/api/vibration/scenes/[id]/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/scenes/builder - Scene Editing & Re-analysis'],
   },
   {
     routePath: '/api/vibration/dashboard/category',
@@ -219,6 +268,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Generates a North Star reflection summary for dashboard categories',
     filePath: 'src/app/api/vibration/dashboard/category/route.ts',
     hasTokenTracking: true,
+    usedBy: ['/dashboard/north-star - AI-Generated Category Reflections'],
   },
 ]
 

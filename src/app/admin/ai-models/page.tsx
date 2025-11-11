@@ -392,6 +392,24 @@ function AIModelsAdminContent() {
                 </div>
               )}
 
+              {/* Used By Section */}
+              {route.usedBy && route.usedBy.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-neutral-700">
+                  <div className="flex items-start gap-2">
+                    <span className="text-neutral-400 text-sm font-medium">Used By:</span>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap gap-2">
+                        {route.usedBy.map((page, idx) => (
+                          <Badge key={idx} variant="info" className="text-xs">
+                            {page}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {route.modelConfig?.systemPrompt && (
                 <div className="mt-4 pt-4 border-t border-neutral-700">
                   <span className="text-neutral-400 text-sm">System Prompt:</span>
