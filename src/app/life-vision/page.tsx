@@ -368,7 +368,7 @@ export default function VisionListPage() {
                 {/* Subtitle */}
                 <div className="text-center">
                   <h4 className="text-xs md:text-xl text-neutral-300 max-w-3xl mx-auto font-normal">
-                    View your "Active", "Complete", and "Draft" Life Visions below.
+                    View all of your Life Vision versions below.
                   </h4>
                 </div>
               </div>

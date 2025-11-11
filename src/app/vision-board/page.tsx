@@ -339,25 +339,33 @@ export default function VisionBoardPage() {
 
             {/* Category Cards Grid */}
             <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-              {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => (
-                <CategoryCard 
-                  key={category.key} 
-                  category={category} 
-                  selected={selectedCategories.includes(category.key)} 
-                  onClick={() => {
-                    if (selectedCategories.includes(category.key)) {
-                      // Remove category from selection
-                      setSelectedCategories(prev => prev.filter(cat => cat !== category.key))
-                    } else {
-                      // Add category to selection (remove 'all' if it exists)
-                      setSelectedCategories(prev => {
-                        const filtered = prev.filter(cat => cat !== 'all')
-                        return [...filtered, category.key]
-                      })
-                    }
-                  }} 
-                />
-              ))}
+              {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
+                const isSelected = selectedCategories.includes(category.key)
+                return (
+                  <CategoryCard 
+                    key={category.key} 
+                    category={category} 
+                    selected={isSelected} 
+                    onClick={() => {
+                      if (selectedCategories.includes(category.key)) {
+                        // Remove category from selection
+                        setSelectedCategories(prev => prev.filter(cat => cat !== category.key))
+                      } else {
+                        // Add category to selection (remove 'all' if it exists)
+                        setSelectedCategories(prev => {
+                          const filtered = prev.filter(cat => cat !== 'all')
+                          return [...filtered, category.key]
+                        })
+                      }
+                    }}
+                    variant="outlined"
+                    selectionStyle="border"
+                    iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                    selectedIconColor="#39FF14"
+                    className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                  />
+                )
+              })}
             </div>
           </div>
 

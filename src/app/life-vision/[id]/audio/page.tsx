@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Container, Stack, Badge } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, Play, Clock, CheckCircle, Music, Moon, Zap, Sparkles } from 'lucide-react'
+import { Headphones, Play, Clock, CheckCircle, Music, Moon, Zap, Sparkles, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 export default function VisionAudioPage({ params }: { params: Promise<{ id: string }> }) {
@@ -134,14 +134,43 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
   return (
     <Container size="lg">
       <Stack gap="lg">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">Life Vision Audio</h1>
-          {vision && (
-            <p className="text-neutral-400">
-              Version {vision.version_number} • {new Date(vision.created_at).toLocaleDateString()}
-            </p>
-          )}
+        {/* Centered Hero Title */}
+        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+          <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="relative z-10">
+              {/* Eyebrow */}
+              <div className="text-center mb-4">
+                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                  THE LIFE I CHOOSE
+                </div>
+              </div>
+              
+              {/* Title Section */}
+              <div className="text-center mb-4">
+                <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                  Life Vision Audio Tracks
+                </h1>
+              </div>
+              
+              {/* Version Badge at Bottom */}
+              {vision && (
+                <div className="flex justify-center">
+                  <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                    <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
+                      V{vision.version_number}
+                    </span>
+                    <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg text-xs md:text-sm">
+                      {new Date(vision.created_at).toLocaleDateString()}
+                    </div>
+                    <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-green-500/20 text-green-400 border-green-500/30 !bg-[#39FF14] !text-black !border-[#39FF14]">
+                      <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
+                      Active
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Stats Overview */}
@@ -198,34 +227,41 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         {/* Generate Button */}
         <Card variant="elevated" className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white font-semibold text-lg">Want to create more audio versions?</p>
-              <p className="text-sm text-neutral-300">Generate sleep, meditation, or energy mixes</p>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <Headphones className="w-6 h-6 text-[#39FF14]" />
+              </div>
+              <div>
+                <p className="text-white font-semibold text-lg">Want more?</p>
+                <p className="text-sm text-neutral-300">Go to audio studio</p>
+              </div>
             </div>
             <Button variant="primary" asChild>
               <Link href={`/life-vision/${visionId}/audio-generate`}>
-                Generate Audio
+                Audio Studio
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>
           </div>
         </Card>
 
         {/* Audio Sets Grid */}
-        <div>
-          <h2 className="text-xl font-semibold text-white mb-4">Your Audio Sets</h2>
-          {audioSets.length === 0 ? (
-            <Card variant="glass" className="p-8 text-center">
-              <Music className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-              <p className="text-neutral-400 mb-4">No audio sets yet</p>
-              <Button variant="primary" asChild>
-                <Link href={`/life-vision/${visionId}/audio-generate`}>
-                  Generate Your First Audio Set
-                </Link>
-              </Button>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {audioSets.map((set) => (
+        <Card variant="elevated">
+          <div>
+            <h3 className="text-3xl font-semibold text-[#39FF14] mb-6 text-center">Your Audio Sets</h3>
+            {audioSets.length === 0 ? (
+              <Card variant="glass" className="p-8 text-center">
+                <Music className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+                <p className="text-neutral-400 mb-4">No audio sets yet</p>
+                <Button variant="primary" asChild>
+                  <Link href={`/life-vision/${visionId}/audio-generate`}>
+                    Generate Your First Audio Set
+                  </Link>
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {audioSets.map((set) => (
                 <Card
                   key={set.id}
                   variant="elevated"
@@ -233,67 +269,100 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
                   className="cursor-pointer"
                   onClick={() => router.push(`/life-vision/${visionId}/audio-sets/${set.id}`)}
                 >
-                  <Stack gap="md">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${getVariantColor(set.variant)}`}>
-                          {getVariantIcon(set.variant)}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-white">{set.name}</h3>
-                          {set.description && (
-                            <p className="text-sm text-neutral-400">{set.description}</p>
+                    <Stack gap="md">
+                      {/* Mobile: Icon + Title + Badge in one row, Description below */}
+                      <div className="md:hidden">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${getVariantColor(set.variant)}`}>
+                              {getVariantIcon(set.variant)}
+                            </div>
+                            <h3 className="text-lg font-semibold text-white">{set.name}</h3>
+                          </div>
+                          {set.isReady ? (
+                            <Badge variant="success">Ready</Badge>
+                          ) : set.isMixing ? (
+                            <Badge variant="info">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Mixing
+                            </Badge>
+                          ) : (
+                            <Badge variant="warning">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Processing
+                            </Badge>
                           )}
                         </div>
-                      </div>
-                      {set.isReady ? (
-                        <Badge variant="success">Ready</Badge>
-                      ) : set.isMixing ? (
-                        <Badge variant="info">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Mixing
-                        </Badge>
-                      ) : (
-                        <Badge variant="warning">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Processing
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex gap-4 text-neutral-400">
-                        <span>Variant: <span className="text-white capitalize">{set.variant}</span></span>
-                        {set.voiceId && (
-                          <>
-                            <span>•</span>
-                            <span>Voice: <span className="text-white capitalize">{set.voiceId}</span></span>
-                          </>
+                        {set.description && (
+                          <p className="text-sm text-neutral-400">{set.description}</p>
                         )}
                       </div>
-                      <div className="text-neutral-400">
-                        {set.trackCount} tracks
-                      </div>
-                    </div>
 
-                    <Button 
-                      variant="primary" 
-                      size="sm"
-                      className="w-full"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/life-vision/${visionId}/audio-sets/${set.id}`)
-                      }}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Play Audio
-                    </Button>
-                  </Stack>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+                      {/* Desktop: Original layout */}
+                      <div className="hidden md:flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${getVariantColor(set.variant)}`}>
+                            {getVariantIcon(set.variant)}
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-white">{set.name}</h3>
+                            {set.description && (
+                              <p className="text-sm text-neutral-400">{set.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        {set.isReady ? (
+                          <Badge variant="success">Ready</Badge>
+                        ) : set.isMixing ? (
+                          <Badge variant="info">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Mixing
+                          </Badge>
+                        ) : (
+                          <Badge variant="warning">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Processing
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between text-sm gap-1 md:gap-0">
+                        <div className="flex flex-col md:flex-row md:gap-4 text-neutral-400 gap-0.5 md:gap-4">
+                          <span>Variant: <span className="text-white capitalize">{set.variant}</span></span>
+                          {set.voiceId && (
+                            <>
+                              <span className="hidden md:inline">•</span>
+                              <span>Voice: <span className="text-white capitalize">{set.voiceId}</span></span>
+                            </>
+                          )}
+                        </div>
+                        <div className="text-neutral-400">
+                          {set.trackCount} tracks
+                        </div>
+                      </div>
+
+                      <Button 
+                        variant="primary" 
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/life-vision/${visionId}/audio-sets/${set.id}`)
+                        }}
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        {set.variant === 'meditation' ? 'Meditation Audios' : 
+                         set.variant === 'energy' ? 'Energy Audios' : 
+                         set.variant === 'sleep' ? 'Sleep Audios' : 
+                         'Standard Audios'}
+                      </Button>
+                    </Stack>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
       </Stack>
     </Container>
   )

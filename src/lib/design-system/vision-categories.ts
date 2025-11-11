@@ -33,7 +33,7 @@ export const VISION_CATEGORIES: VisionCategory[] = [
   {
     key: 'forward',
     label: 'Forward',
-    description: 'Opening statement that sets intention and energy',
+    description: 'Opening with intention and energy',
     icon: Sparkles,
     order: 0
   },

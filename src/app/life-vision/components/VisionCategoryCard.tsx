@@ -46,7 +46,7 @@ export function VisionCategoryCard({
   
   return (
     <Card className="transition-all duration-300 hover:shadow-lg">
-      <div className="px-1 py-4 md:p-6">
+      <div className="px-1 py-2 md:px-0 md:py-0">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCompleted ? 'bg-primary-500' : 'bg-neutral-700'}`}>
@@ -101,6 +101,23 @@ export function VisionCategoryCard({
           </div>
         ) : (
           <>
+            {/* Audio Player */}
+            {audioTrack && audioTrack.url && (
+              <div className="mb-4">
+                <AudioPlayer
+                  track={{
+                    id: category.key,
+                    title: audioTrack.title || category.label,
+                    artist: '',
+                    duration: 180,
+                    url: audioTrack.url,
+                    thumbnail: ''
+                  }}
+                  showInfo={false}
+                />
+              </div>
+            )}
+
             <div className="mb-4">
               {content?.trim() ? (
                 <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg px-1 py-3 md:p-4">
@@ -128,32 +145,15 @@ export function VisionCategoryCard({
               )}
             </div>
 
-            {/* Audio Player */}
-            {audioTrack && audioTrack.url && (
-              <div className="mb-4">
-                <AudioPlayer
-                  track={{
-                    id: category.key,
-                    title: audioTrack.title || category.label,
-                    artist: '',
-                    duration: 180,
-                    url: audioTrack.url,
-                    thumbnail: ''
-                  }}
-                  showInfo={false}
-                />
-              </div>
-            )}
-
             {/* Action Buttons */}
             {content?.trim() && editable && (
               <div className="flex justify-end gap-2">
                 {vision && (
                   <Button
                     asChild
-                    variant="primary"
+                    variant="outline"
                     size="sm"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 flex-1 md:flex-initial md:min-w-[100px]"
                   >
                     <Link href={`/life-vision/${vision.id}/refine?category=${category.key}`}>
                       <Gem className="w-4 h-4" />
@@ -164,9 +164,9 @@ export function VisionCategoryCard({
                 {onEditCategory && (
                   <Button
                     onClick={() => onEditCategory(category.key)}
-                    variant="secondary"
+                    variant="outline"
                     size="sm"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 flex-1 md:flex-initial md:min-w-[100px]"
                   >
                     <Edit3 className="w-4 h-4" />
                     Edit

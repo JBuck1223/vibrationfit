@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye, FileText } from 'lucide-react'
+import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye, FileText, ArrowUp } from 'lucide-react'
 import { 
   Button, 
   Card, 
@@ -625,8 +625,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     )
   }
 
-
-
   return (
     <>
         {/* Header */}
@@ -634,12 +632,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           {/* Subtle Gradient Background */}
           <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
             {/* Modern Enhanced Layout with Card Container */}
-            <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
               
               <div className="relative z-10">
                 {/* Title Section */}
                 <div className="text-center mb-4">
-                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                  <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
                     The Life I Choose
                   </h1>
                 </div>
@@ -667,7 +665,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 </div>
 
                 {/* Action Buttons - Enhanced with Hover Effects */}
-                <div className="flex flex-row flex-wrap gap-2 md:gap-4 max-w-2xl mx-auto mb-6">
+                <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
                   <Button
                     onClick={() => router.push(`/life-vision/${vision.id}/audio`)}
                     variant="outline"
@@ -697,22 +695,18 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       <span>Refine</span>
                     </Link>
                   </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  >
+                    <Link href="/life-vision">
+                      <Icon icon={Eye} size="sm" className="shrink-0" />
+                      <span>All Visions</span>
+                    </Link>
+                  </Button>
                 </div>
-
-                {/* Version History Button */}
-                {versions.length > 0 && (
-                  <div className="text-center">
-                    <Button
-                      onClick={() => setShowVersions(!showVersions)}
-                      variant="ghost"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Icon icon={History} size="sm" />
-                      {showVersions ? 'Hide' : 'Show'} History
-                    </Button>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -820,7 +814,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   <div>
                     <h3 className="text-lg font-semibold text-white">Select Life Areas</h3>
                     <p className="text-sm text-neutral-400">
-                      Showing {selectedCategories.length} of {VISION_SECTIONS.length} areas
+                      Showing {selectedCategories.length} of {VISION_SECTIONS.length}
                     </p>
                   </div>
                   <Button
@@ -836,18 +830,22 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
                 {/* Category Grid */}
                 <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
-                  {VISION_SECTIONS.map((category) => (
-                    <CategoryCard 
-                      key={category.key} 
-                      category={category} 
-                      selected={selectedCategories.includes(category.key)} 
-                      onClick={() => handleCategoryToggle(category.key)}
-                      variant="outlined"
-                      selectionStyle="border"
-                      iconColor="#14B8A6"
-                      selectedIconColor="#39FF14"
-                    />
-                  ))}
+                  {VISION_SECTIONS.map((category) => {
+                    const isSelected = selectedCategories.includes(category.key)
+                    return (
+                      <CategoryCard 
+                        key={category.key} 
+                        category={category} 
+                        selected={isSelected} 
+                        onClick={() => handleCategoryToggle(category.key)}
+                        variant="outlined"
+                        selectionStyle="border"
+                        iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                        selectedIconColor="#39FF14"
+                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                      />
+                    )
+                  })}
                 </div>
               </Card>
             </div>
@@ -893,15 +891,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
         {/* Navigation */}
         <div className="mt-8 text-center space-y-4">
-          <Link 
-            href="/life-vision" 
-            className="text-neutral-400 hover:text-white transition-colors"
-          >
-            ← Back to Life Visions
-          </Link>
-          
           {/* Delete Button */}
-          <div className="pt-6 border-t border-neutral-800">
+          <div>
             <Button
               onClick={() => {
                 if (confirm('Are you sure you want to delete this vision? This action cannot be undone.')) {

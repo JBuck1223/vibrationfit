@@ -828,9 +828,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         active:opacity-80
       `,
       danger: `
-        bg-[#FF0040] text-white font-semibold
-        border-2 border-transparent
-        hover:bg-[rgba(255,0,64,0.1)] hover:text-[#FF0040] hover:border-[rgba(255,0,64,0.2)]
+        bg-transparent text-[#FF0040] font-semibold
+        border-2 border-[#FF0040]
+        hover:bg-[#FF0040] hover:text-white hover:border-transparent
         active:opacity-80
       `,
     }
