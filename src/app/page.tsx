@@ -357,10 +357,10 @@ export default function HomePage() {
                   
                   {/* Right column - Video */}
                   <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full order-last lg:order-last lg:mt-4">
-                    <OptimizedVideo
-                      url="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active.mp4"
-                      thumbnailUrl="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
-                      context="hero"
+                    <Video
+                      src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
+                      poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
+                      variant="hero"
                       trackingId="homepage-hero-video"
                       saveProgress={true}
                       onMilestoneReached={(milestone, time) => {

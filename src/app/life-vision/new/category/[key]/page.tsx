@@ -224,17 +224,15 @@ export default function CategoryPage() {
         }
       }
 
-      // Check for existing summary in refinements table
-      const { data: refinements } = await supabase
-        .from('refinements')
+      // Check for existing summary in life_vision_category_state table
+      const { data: categoryState } = await supabase
+        .from('life_vision_category_state')
         .select('ai_summary')
         .eq('category', categoryKey)
-        .order('created_at', { ascending: false })
-        .limit(1)
         .maybeSingle()
 
-      if (refinements?.ai_summary) {
-        setAiSummary(refinements.ai_summary)
+      if (categoryState?.ai_summary) {
+        setAiSummary(categoryState.ai_summary)
       }
 
       // Load previously flipped contrast from frequency_flip table
@@ -328,28 +326,15 @@ export default function CategoryPage() {
         // Save to database
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          const { data: existing } = await supabase
-            .from('refinements')
-            .select('id')
-            .eq('category', categoryKey)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-
-          if (existing?.id) {
-            await supabase
-              .from('refinements')
-              .update({
-                ai_summary: data.mergedClarity
-              })
-              .eq('id', existing.id)
-          } else {
-            await supabase.from('refinements').insert({
+          await supabase
+            .from('life_vision_category_state')
+            .upsert({
               user_id: user.id,
               category: categoryKey,
               ai_summary: data.mergedClarity
+            }, {
+              onConflict: 'user_id,category'
             })
-          }
         }
 
         setAiSummary(data.mergedClarity)
@@ -382,20 +367,15 @@ export default function CategoryPage() {
     // Save edited summary to database
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const { data: existing } = await supabase
-        .from('refinements')
-        .select('id')
-        .eq('category', categoryKey)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (existing?.id) {
-        await supabase
-          .from('refinements')
-          .update({ ai_summary: editedSummary })
-          .eq('id', existing.id)
-      }
+      await supabase
+        .from('life_vision_category_state')
+        .upsert({
+          user_id: user.id,
+          category: categoryKey,
+          ai_summary: editedSummary
+        }, {
+          onConflict: 'user_id,category'
+        })
     }
   }
 

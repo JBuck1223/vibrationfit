@@ -8,6 +8,7 @@ interface OptimizedVideoProps {
   thumbnailUrl?: string
   lazy?: boolean
   context?: 'list' | 'single' | 'hero'
+  variant?: 'default' | 'hero' | 'card'
   className?: string
   controls?: boolean
   autoplay?: boolean
@@ -42,6 +43,7 @@ export function OptimizedVideo({
   thumbnailUrl, 
   lazy = false,
   context = 'single',
+  variant,
   className = '',
   controls = true,
   autoplay = false,
@@ -174,12 +176,21 @@ export function OptimizedVideo({
     return loop
   }
 
+  // Auto-determine variant from context if not explicitly provided
+  const getVariant = (): 'default' | 'hero' | 'card' => {
+    if (variant) return variant
+    if (context === 'hero') return 'hero'
+    if (context === 'list') return 'card'
+    return 'default'
+  }
+
   return (
     <div ref={containerRef} className={className}>
       {isVisible ? (
         <Video
           src={getVideoUrl()}
           poster={thumbnailUrl}
+          variant={getVariant()}
           preload={getPreload()}
           controls={getControls()}
           autoplay={getAutoplay()}

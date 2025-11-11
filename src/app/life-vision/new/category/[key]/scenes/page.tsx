@@ -111,8 +111,8 @@ export default function ScenesPage() {
       if (!user) throw new Error('Unauthorized')
 
       // Get all category data
-      const { data: refinement } = await supabase
-        .from('refinements')
+      const { data: categoryState } = await supabase
+        .from('life_vision_category_state')
         .select('*')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
@@ -152,9 +152,9 @@ export default function ScenesPage() {
           userId: user.id,
           category: categoryKey,
           profileGoesWellText: profileStory,
-          profileNotWellTextFlipped: refinement?.flipped_contrast || '',
+          profileNotWellTextFlipped: '', // Flipped contrast is in frequency_flip table
           assessmentSnippets: categoryResponses.map((r: any) => r.response_text),
-          existingVisionParagraph: refinement?.ai_summary || '',
+          existingVisionParagraph: categoryState?.ai_summary || '',
           dataRichnessTier: 'B' // Will be calculated by API
         })
       })

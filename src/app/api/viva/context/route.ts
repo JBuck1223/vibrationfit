@@ -113,9 +113,9 @@ async function buildRollingContext(userId: string, supabase: any): Promise<Rolli
     .eq('user_id', userId)
     .order('strength', { ascending: false })
 
-  // 6. Get recent refinements as "recent wins"
-  const { data: recentRefinements } = await supabase
-    .from('refinements')
+  // 6. Get recent category states as "recent wins"
+  const { data: recentCategoryStates } = await supabase
+    .from('life_vision_category_state')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -126,7 +126,7 @@ async function buildRollingContext(userId: string, supabase: any): Promise<Rolli
   const relatedCategories = extractRelatedCategories(vibrationalLinks)
   const currentEmotion = extractCurrentEmotion(recentJournals, assessment)
   const desiredState = extractDesiredState(vision, profile)
-  const recentWins = extractRecentWins(recentRefinements, recentJournals)
+  const recentWins = extractRecentWins(recentCategoryStates, recentJournals)
   const emotionalTrends = calculateEmotionalTrends(assessment, recentJournals)
   const crossCategoryInsights = buildCrossCategoryInsights(vibrationalLinks)
 

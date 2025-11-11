@@ -115,9 +115,9 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Save blueprint to refinements table
+    // Save blueprint to life_vision_category_state table
     const { error: dbError } = await supabase
-      .from('refinements')
+      .from('life_vision_category_state')
       .upsert({
         user_id: user.id,
         category,
@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch blueprint from database
     const { data, error } = await supabase
-      .from('refinements')
+      .from('life_vision_category_state')
       .select('blueprint_data')
       .eq('user_id', user.id)
       .eq('category', category)

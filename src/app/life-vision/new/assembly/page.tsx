@@ -66,12 +66,12 @@ export default function AssemblyPage() {
       if (!user) return
 
       // Check if user has completed all 12 categories
-      const { data: refinements } = await supabase
-        .from('refinements')
+      const { data: categoryStates } = await supabase
+        .from('life_vision_category_state')
         .select('*')
         .eq('user_id', user.id)
 
-      if (refinements && refinements.length >= 12) {
+      if (categoryStates && categoryStates.length >= 12) {
         // All categories complete
       } else {
         // Not enough categories
@@ -94,19 +94,19 @@ export default function AssemblyPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Unauthorized')
 
-      const { data: refinements } = await supabase
-        .from('refinements')
+      const { data: categoryStates } = await supabase
+        .from('life_vision_category_state')
         .select('*')
         .eq('user_id', user.id)
 
       const categorySummaries: Record<string, string> = {}
       const categoryTranscripts: Record<string, string> = {}
-      refinements?.forEach(ref => {
-        if (ref.ai_summary) {
-          categorySummaries[ref.category] = ref.ai_summary
+      categoryStates?.forEach(cs => {
+        if (cs.ai_summary) {
+          categorySummaries[cs.category] = cs.ai_summary
         }
-        if (ref.transcript && ref.transcript.trim().length > 0) {
-          categoryTranscripts[ref.category] = ref.transcript
+        if (cs.transcript && cs.transcript.trim().length > 0) {
+          categoryTranscripts[cs.category] = cs.transcript
         }
       })
 

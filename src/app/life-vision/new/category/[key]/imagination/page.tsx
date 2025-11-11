@@ -77,15 +77,15 @@ export default function ImaginationPage() {
       }
 
       // Load existing ideal state if any
-      const { data: refinement } = await supabase
-        .from('refinements')
+      const { data: categoryState } = await supabase
+        .from('life_vision_category_state')
         .select('ideal_state')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
 
-      if (refinement?.ideal_state) {
-        setExistingIdealState(refinement.ideal_state)
+      if (categoryState?.ideal_state) {
+        setExistingIdealState(categoryState.ideal_state)
       }
 
       setLoading(false)
@@ -106,14 +106,14 @@ export default function ImaginationPage() {
       if (!user) throw new Error('Unauthorized')
 
       // Get clarity and contrast data
-      const { data: refinement } = await supabase
-        .from('refinements')
+      const { data: categoryState } = await supabase
+        .from('life_vision_category_state')
         .select('*')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
 
-      if (!refinement?.ai_summary) {
+      if (!categoryState?.ai_summary) {
         setError('Please complete Step 1 (Clarity) first')
         setIsProcessing(false)
         return
@@ -144,8 +144,8 @@ export default function ImaginationPage() {
         body: JSON.stringify({
           category: categoryKey,
           categoryName: category?.label || categoryKey,
-          currentClarity: refinement.ai_summary,
-          flippedContrast: refinement.flipped_contrast || '',
+          currentClarity: categoryState?.ai_summary || '',
+          flippedContrast: '', // Flipped contrast is in frequency_flip table
           profile,
           assessment,
           existingIdealState: existingIdealState || undefined
@@ -198,13 +198,14 @@ export default function ImaginationPage() {
 
       // Save to database
       const { error: updateError } = await supabase
-        .from('refinements')
-        .update({
-          ideal_state: combinedAnswers,
-          updated_at: new Date().toISOString()
+        .from('life_vision_category_state')
+        .upsert({
+          user_id: user.id,
+          category: categoryKey,
+          ideal_state: combinedAnswers
+        }, {
+          onConflict: 'user_id,category'
         })
-        .eq('user_id', user.id)
-        .eq('category', categoryKey)
 
       if (updateError) throw updateError
 

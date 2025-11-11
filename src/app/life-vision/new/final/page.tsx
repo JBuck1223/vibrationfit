@@ -147,12 +147,12 @@ export default function FinalPage() {
         .maybeSingle()
 
       // Get all categories completed
-      const { data: refinements } = await supabase
-        .from('refinements')
+      const { data: categoryStates } = await supabase
+        .from('life_vision_category_state')
         .select('category')
         .eq('user_id', user.id)
 
-      const categoriesCompleted = refinements?.map(r => r.category) || []
+      const categoriesCompleted = categoryStates?.map(cs => cs.category) || []
 
       // Create vision summary
       const visionSummary = `Complete life vision across ${categoriesCompleted.length} categories with ${scenesCount} visualization scenes.`

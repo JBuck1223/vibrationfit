@@ -77,15 +77,15 @@ export default function BlueprintPage() {
       }
 
       // Try to load existing blueprint
-      const { data: refinement } = await supabase
-        .from('refinements')
+      const { data: categoryState } = await supabase
+        .from('life_vision_category_state')
         .select('blueprint_data')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
 
-      if (refinement?.blueprint_data?.loops) {
-        setLoops(refinement.blueprint_data.loops)
+      if (categoryState?.blueprint_data?.loops) {
+        setLoops(categoryState.blueprint_data.loops)
       }
 
       setLoading(false)
@@ -106,14 +106,14 @@ export default function BlueprintPage() {
       if (!user) throw new Error('Unauthorized')
 
       // Get ideal state and other context
-      const { data: refinement } = await supabase
-        .from('refinements')
+      const { data: categoryState } = await supabase
+        .from('life_vision_category_state')
         .select('*')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .single()
 
-      if (!refinement?.ideal_state) {
+      if (!categoryState?.ideal_state) {
         setError('Please complete the Ideal State step first')
         setIsProcessing(false)
         return
@@ -144,8 +144,8 @@ export default function BlueprintPage() {
         body: JSON.stringify({
           category: categoryKey,
           categoryName: category?.label || categoryKey,
-          idealState: refinement.ideal_state,
-          currentClarity: refinement.ai_summary || '',
+          idealState: categoryState.ideal_state,
+          currentClarity: categoryState.ai_summary || '',
           flippedContrast: '', // Optional
           profile,
           assessment
@@ -189,13 +189,14 @@ export default function BlueprintPage() {
 
       // Save to database
       const { error: updateError } = await supabase
-        .from('refinements')
-        .update({
-          blueprint_data: { loops: updatedLoops },
-          updated_at: new Date().toISOString()
+        .from('life_vision_category_state')
+        .upsert({
+          user_id: user.id,
+          category: categoryKey,
+          blueprint_data: { loops: updatedLoops }
+        }, {
+          onConflict: 'user_id,category'
         })
-        .eq('user_id', user.id)
-        .eq('category', categoryKey)
 
       if (updateError) throw updateError
 
