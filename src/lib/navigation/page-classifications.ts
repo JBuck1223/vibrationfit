@@ -39,7 +39,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/life-vision/[id]/audio-sets',
     '/life-vision/[id]/audio-sets/[audioSetId]',
     '/life-vision/[id]/experiment',
-    '/life-vision/[id]/refine',
+    // '/life-vision/[id]/refine', // REMOVED: Deprecated vibe-assistant refine page (Nov 11, 2025)
     '/life-vision/[id]/print',        // PDF preview page (with sidebar)
     '/life-vision/new/assembly',
     '/life-vision/new/category/[key]',

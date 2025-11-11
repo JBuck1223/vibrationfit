@@ -109,52 +109,11 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     filePath: 'src/app/api/viva/refine-category/route.ts',
     hasTokenTracking: true,
   },
-  {
-    routePath: '/api/vibe-assistant/refine-vision',
-    routeName: 'Vision Refinement',
-    actionType: 'vision_refinement',
-    category: 'text',
-    modelConfig: AI_MODELS.VISION_REFINEMENT,
-    description: 'Vibe Assistant vision refinement using GPT-5',
-    filePath: 'src/app/api/vibe-assistant/refine-vision/route.ts',
-    hasTokenTracking: true,
-  },
-  {
-    routePath: '/api/vibe-assistant/generate-blueprint',
-    routeName: 'Blueprint Generation',
-    actionType: 'blueprint_generation',
-    category: 'text',
-    modelConfig: AI_MODELS.BLUEPRINT_GENERATION,
-    description: 'Generates AI-powered actualization blueprints from vision content',
-    filePath: 'src/app/api/vibe-assistant/generate-blueprint/route.ts',
-    hasTokenTracking: true,
-  },
-  {
-    routePath: '/api/vision/generate',
-    routeName: 'Vision Generation',
-    actionType: 'vision_generation',
-    category: 'text',
-    modelConfig: AI_MODELS.VISION_GENERATION,
-    description: 'Generate vision text from conversation using OpenAI',
-    filePath: 'src/app/api/vision/generate/route.ts',
-    hasTokenTracking: true,
-    multipleCalls: 2, // Main generation + theme detection
-  },
-  {
-    routePath: '/api/vision/chat',
-    routeName: 'Vision Chat Discovery',
-    actionType: 'vision_generation',
-    category: 'text',
-    modelConfig: {
-      model: 'gpt-4',
-      temperature: 0.7,
-      maxTokens: 500,
-    },
-    description: 'Discovery Path Chat Handler - manages 3-step Discovery flow',
-    filePath: 'src/app/api/vision/chat/route.ts',
-    hasTokenTracking: true,
-    multipleCalls: 4, // Insight, patterns, pattern message, vision generation
-  },
+  // NOTE: vibe-assistant and old vision generation endpoints removed (Nov 11, 2025)
+  // - /api/vibe-assistant/refine-vision (deprecated)
+  // - /api/vibe-assistant/generate-blueprint (deprecated - breaks actualization-blueprints page)
+  // - /api/vision/generate (deprecated)
+  // - /api/vision/chat (deprecated)
   {
     routePath: '/api/assessment/ai-score',
     routeName: 'Assessment Scoring',

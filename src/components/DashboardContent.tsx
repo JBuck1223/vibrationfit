@@ -221,7 +221,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 AI-powered guidance that knows your journey
               </p>
               <AIButton size="sm" asChild>
-                <Link href="/dashboard/vibe-assistant-usage">Chat with VIVA</Link>
+                <Link href="/viva">Chat with VIVA</Link>
               </AIButton>
             </Card>
           </div>
