@@ -9,10 +9,10 @@
 
 **The vision gets created in two stages:**
 
-1. **Step 5 (Assembly):** Vision created as `status: 'draft'` ⚠️
-2. **Step 6 (Final):** Vision updated to `status: 'complete'` ✅
+1. **Step 5 (Assembly):** Vision created with `is_draft: true, is_active: false` ⚠️
+2. **Step 6 (Final):** Vision updated to `is_draft: false, is_active: true` ✅
 
-**Important:** The `/life-vision/new` flow does NOT use `is_draft` or `is_active` flags! Those are only for the refinement system.
+**Important:** Both `/life-vision/new` (creation) and `/life-vision/[id]/refine` (refinement) now use `is_draft` and `is_active` flags consistently!
 
 ---
 
@@ -59,24 +59,25 @@
      // ... all 12 categories
      forward: '',           // Empty initially
      conclusion: '',        // Empty initially
-     status: 'draft',       // ⚠️ DRAFT status
+     is_draft: true,        // ⚠️ DRAFT status
+     is_active: false,      // ⚠️ Not active yet
      completion_percent: 100,
      richness_metadata: {...}
    }
    ```
 
 **Important Fields:**
-- ✅ `status: 'draft'` - Not complete yet
+- ✅ `is_draft: true` - Not complete yet
+- ✅ `is_active: false` - Not active yet
 - ✅ All 12 categories populated
 - ❌ `forward` and `conclusion` are empty
-- ❌ No `is_draft` flag (not used in creation flow)
-- ❌ No `is_active` flag (not used in creation flow)
 
 **Database State After Step 5:**
 ```sql
 vision_versions:
   id: abc-123
-  status: 'draft'
+  is_draft: true
+  is_active: false
   forward: ''
   conclusion: ''
   activation_message: NULL
@@ -107,23 +108,41 @@ vision_versions:
      conclusion: editedConclusion,
      perspective: 'singular' or 'plural',
      activation_message: 'Your vision is ready...',
-     status: 'complete'      // ✅ NOW COMPLETE
+     is_draft: false,        // ✅ NOW COMPLETE
+     is_active: true         // ✅ NOW ACTIVE
    }
+   ```
+7. **DEACTIVATES other active visions** for this user:
+   ```typescript
+   // Automatic deactivation
+   await supabase
+     .from('vision_versions')
+     .update({ is_active: false })
+     .eq('user_id', user.id)
+     .neq('id', visionId)
+     .eq('is_active', true)
    ```
 
 **Database State After Step 6:**
 ```sql
-vision_versions:
-  id: abc-123
-  status: 'complete'        ✅ Updated
+-- This vision (newly finalized)
+vision_versions (id: abc-123):
+  is_draft: false           ✅ Updated
+  is_active: true           ✅ Now active
   forward: '...'            ✅ Populated
   conclusion: '...'         ✅ Populated
   perspective: 'singular'   ✅ Set
   activation_message: '...' ✅ Set
+
+-- Any previous active visions (automatically deactivated)
+vision_versions (id: old-456):
+  is_draft: false
+  is_active: false          ✅ Auto-deactivated
 ```
 
 **Result:**
-- ✅ Vision is now **complete**
+- ✅ Vision is now **complete and active**
+- ✅ Only one active vision per user
 - ✅ User redirected to `/life-vision/[id]` (view page)
 - ✅ Vision is fully viewable/downloadable
 
@@ -133,19 +152,19 @@ vision_versions:
 
 ### `/life-vision/new` (Creation Flow)
 **Uses:**
-- ✅ `status` field (`'draft'` → `'complete'`)
-- ❌ Does NOT use `is_draft` flag
-- ❌ Does NOT use `is_active` flag
+- ✅ `is_draft` flag (`true` → `false`)
+- ✅ `is_active` flag (`false` → `true`)
 
 **Flow:**
 ```
 Steps 1-4: Build in life_vision_category_state
 ↓
-Step 5: Create vision_versions (status='draft')
+Step 5: Create vision_versions (is_draft=true, is_active=false)
 ↓
-Step 6: Update to (status='complete')
+Step 6: Update to (is_draft=false, is_active=true)
+       + Deactivate other active visions
 ↓
-User views complete vision
+User views complete, active vision
 ```
 
 ---
@@ -174,21 +193,23 @@ Commit: New version (is_draft=false, is_active=true)
 
 | Column | Creation Flow (`/new`) | Refinement Flow (`/refine`) |
 |--------|------------------------|----------------------------|
-| `status` | ✅ 'draft' → 'complete' | ❌ Not used |
-| `is_draft` | ❌ Not set | ✅ true/false |
-| `is_active` | ❌ Not set | ✅ true/false |
+| `is_draft` | ✅ true → false | ✅ true → false |
+| `is_active` | ✅ false → true | ✅ false → true |
 | `refined_categories` | ❌ Not set | ✅ JSONB array |
 | `perspective` | ✅ Set in Step 6 | ✅ Can be updated |
 | `forward` | ✅ Set in Step 6 | ✅ Can be edited |
 | `conclusion` | ✅ Set in Step 6 | ✅ Can be edited |
 
+**Note:** `status` field still exists for legacy compatibility but is no longer used in either flow.
+
 ---
 
 ## 🎯 Important Notes
 
-### 1. **Two Different Draft Systems**
-- **Creation Flow:** Uses `status='draft'` temporarily
-- **Refinement Flow:** Uses `is_draft=true` for editing
+### 1. **Unified Draft System ✅**
+- **Both Flows:** Use `is_draft` and `is_active` flags consistently
+- **Creation Flow:** `is_draft: true` → `false`, `is_active: false` → `true`
+- **Refinement Flow:** `is_draft: true` → `false`, `is_active: false` → `true`
 
 ### 2. **No Version Conflicts**
 - Creation flow creates NEW visions
@@ -196,13 +217,14 @@ Commit: New version (is_draft=false, is_active=true)
 - Both increment `version_number`
 
 ### 3. **When Is Vision "Active"?**
-- **Creation Flow:** When `status='complete'` (no `is_active` flag)
-- **Refinement Flow:** When `is_draft=false` AND `is_active=true`
+- **Both Flows:** When `is_draft=false` AND `is_active=true`
+- **Automatic:** System deactivates other visions when one is made active
 
-### 4. **User Can Have Multiple Visions**
+### 4. **User Can Have Multiple Visions (But Only One Active)**
 - Creation flow can be run multiple times
 - Each creates a new separate vision document
-- User manually sets which one is "active" (feature not yet built)
+- **Only one vision can be active at a time** (automatically enforced)
+- Previous active visions are kept but marked `is_active=false`
 
 ---
 
@@ -217,7 +239,8 @@ await supabase
   .from('vision_versions')
   .insert({
     // ... all category content
-    status: 'draft',  // ⚠️ Created as draft
+    is_draft: true,   // ⚠️ Created as draft
+    is_active: false, // ⚠️ Not active yet
     forward: '',
     conclusion: ''
   })
@@ -226,8 +249,9 @@ await supabase
 ### Final Page (Step 6)
 ```typescript
 // File: src/app/life-vision/new/final/page.tsx
-// Line: 193
+// Line: 190-208
 
+// Mark vision as complete and active
 await supabase
   .from('vision_versions')
   .update({
@@ -235,9 +259,18 @@ await supabase
     conclusion: editedConclusion,
     perspective: perspective,
     activation_message: activationMsg,
-    status: 'complete'  // ✅ Updated to complete
+    is_draft: false,  // ✅ Updated to complete
+    is_active: true   // ✅ Updated to active
   })
   .eq('id', visionId)
+
+// Deactivate any other active visions for this user
+await supabase
+  .from('vision_versions')
+  .update({ is_active: false })
+  .eq('user_id', user.id)
+  .neq('id', visionId)
+  .eq('is_active', true)
 ```
 
 ---
@@ -253,16 +286,17 @@ Steps 1-4: Complete 12 categories
 ↓
 Step 5: Assembly
   → CREATES vision_versions entry
-  → Status: 'draft'
+  → is_draft: true, is_active: false
   → Forward/Conclusion: Empty
 ↓
 Step 6: Final
   → UPDATES vision_versions entry
-  → Status: 'complete'
+  → is_draft: false, is_active: true
   → Forward/Conclusion: Populated
+  → Other active visions deactivated
 ↓
 User views: /life-vision/[id]
-  → Vision is complete and viewable
+  → Vision is complete, active, and viewable
 ```
 
 ---
@@ -270,11 +304,11 @@ User views: /life-vision/[id]
 ## ✅ Summary
 
 **When does the vision get created?**
-- **Step 5 (Assembly):** Vision entry created with `status='draft'`
-- **Step 6 (Final):** Vision updated to `status='complete'`
+- **Step 5 (Assembly):** Vision entry created with `is_draft=true, is_active=false`
+- **Step 6 (Final):** Vision updated to `is_draft=false, is_active=true` + auto-deactivates other visions
 
 **Key Insight:**
-The `/life-vision/new` flow does NOT use the `is_draft`/`is_active` flags. Those are exclusively for the refinement system (`/life-vision/[id]/refine`). The creation flow uses a simpler `status` field that goes from `'draft'` to `'complete'`.
+Both `/life-vision/new` (creation) and `/life-vision/[id]/refine` (refinement) now use the same `is_draft`/`is_active` flags for consistent state management. The system automatically ensures only one vision is active per user.
 
 ---
 
