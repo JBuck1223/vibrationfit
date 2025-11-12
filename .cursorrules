@@ -76,7 +76,13 @@ src/
 **Temporary/Debug Files:**
 1. ❌ NEVER commit debug files to root
 2. ✅ Use `temp/` folder (gitignored)
-3. ✅ Clean up after debugging
+3. ✅ One-off scripts go in `scripts/[category]/`
+4. ✅ Clean up after debugging
+
+**Utility Scripts:**
+1. ✅ Place in `scripts/database/`, `scripts/lambda/`, `scripts/video/`, etc.
+2. ✅ After running successfully, move to `scripts/archive/`
+3. ❌ NEVER commit large zip files (add to .gitignore)
 
 ### Before Creating Any File, Ask:
 1. **Is this documentation?** → `docs/[category]/`

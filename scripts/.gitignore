@@ -1,0 +1,10 @@
+# Large Lambda deployment packages
+lambda/*.zip
+
+# Any large zip files
+*.zip
+
+# Temporary test files
+*.tmp
+*.log
+
