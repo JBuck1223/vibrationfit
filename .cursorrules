@@ -64,8 +64,9 @@ src/
 **Migrations:**
 1. ❌ NEVER create migration files outside `supabase/migrations/`
 2. ✅ Use timestamp format: `YYYYMMDDHHMMSS_description.sql`
-3. ✅ Always update `supabase/COMPLETE_SCHEMA_DUMP.sql` after migrations
-4. ✅ Always update `supabase/CURRENT_SCHEMA.md` with changes
+3. ✅ Create the migration file, then STOP - user will run it manually
+4. ⚠️ NEVER update `supabase/COMPLETE_SCHEMA_DUMP.sql` or `supabase/CURRENT_SCHEMA.md` automatically
+5. ℹ️ User will update schema docs after manually running the migration
 
 **AI Prompts:**
 1. ❌ NEVER embed prompts directly in API routes
