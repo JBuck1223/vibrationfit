@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Container, Card, Button, Spinner, Badge } from '@/lib/design-system/components'
-import { Sparkles, CheckCircle, Download, Play, Image as ImageIcon, ArrowRight, AlertCircle } from 'lucide-react'
+import { Container, Card, Button, Spinner, Badge, Textarea } from '@/lib/design-system/components'
+import { Sparkles, CheckCircle, Download, Play, Image as ImageIcon, ArrowRight, AlertCircle, Edit3 } from 'lucide-react'
+import { getBookendTemplate, determineWooLevel, type Perspective } from '@/lib/viva/bookend-templates'
 
 interface FinalAssemblyData {
   forward: string
@@ -62,6 +63,11 @@ export default function FinalPage() {
   const [visionId, setVisionId] = useState<string | null>(null)
   const [visionPreview, setVisionPreview] = useState<any>(null)
   const [scenesCount, setScenesCount] = useState(0)
+  const [perspective, setPerspective] = useState<Perspective>('plural')
+  const [wooLevel, setWooLevel] = useState<'high' | 'medium' | 'low'>('medium')
+  const [editedForward, setEditedForward] = useState('')
+  const [editedConclusion, setEditedConclusion] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     loadVisionData()
@@ -94,6 +100,23 @@ export default function FinalPage() {
       setVisionId(latestVision.id)
       setVisionPreview(latestVision)
 
+      // Load perspective from vision
+      if (latestVision.perspective) {
+        setPerspective(latestVision.perspective as Perspective)
+      }
+
+      // Get user's voice profile for woo level
+      const { data: voiceProfile } = await supabase
+        .from('voice_profiles')
+        .select('woo')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const woo = determineWooLevel(voiceProfile?.woo)
+      setWooLevel(woo)
+
       // Count total scenes
       const { count } = await supabase
         .from('scenes')
@@ -102,13 +125,22 @@ export default function FinalPage() {
 
       setScenesCount(count || 0)
 
-      // Check if forward/conclusion/activation already exist
-      if (latestVision.forward && latestVision.conclusion && latestVision.activation_message) {
-        setFinalData({
-          forward: latestVision.forward,
-          conclusion: latestVision.conclusion,
-          activationMessage: latestVision.activation_message
-        })
+      // Check if forward/conclusion already exist, otherwise load template
+      if (latestVision.forward && latestVision.conclusion) {
+        setEditedForward(latestVision.forward)
+        setEditedConclusion(latestVision.conclusion)
+        if (latestVision.activation_message) {
+          setFinalData({
+            forward: latestVision.forward,
+            conclusion: latestVision.conclusion,
+            activationMessage: latestVision.activation_message
+          })
+        }
+      } else {
+        // Load template based on woo level and perspective
+        const template = getBookendTemplate(woo, latestVision.perspective || 'plural')
+        setEditedForward(template.forward)
+        setEditedConclusion(template.conclusion)
       }
 
       setLoading(false)
@@ -119,82 +151,55 @@ export default function FinalPage() {
     }
   }
 
-  const handleGenerateFinal = async () => {
+  const handlePerspectiveChange = (newPerspective: Perspective) => {
+    setPerspective(newPerspective)
+    const template = getBookendTemplate(wooLevel, newPerspective)
+    setEditedForward(template.forward)
+    setEditedConclusion(template.conclusion)
+  }
+
+  const handleSaveBookends = async () => {
     if (!visionId) return
 
-    setIsProcessing(true)
-    setVivaStage('generating')
+    setIsSaving(true)
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Unauthorized')
-
-      // Get profile and assessment for context
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single()
-
-      const { data: assessment } = await supabase
-        .from('assessment_results')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      // Get all categories completed
-      const { data: categoryStates } = await supabase
-        .from('life_vision_category_state')
-        .select('category')
-        .eq('user_id', user.id)
-
-      const categoriesCompleted = categoryStates?.map(cs => cs.category) || []
-
-      // Create vision summary
-      const visionSummary = `Complete life vision across ${categoriesCompleted.length} categories with ${scenesCount} visualization scenes.`
-
-      setTimeout(() => setVivaStage('activation'), 2000)
-
-      // Call final assembly API
-      const response = await fetch('/api/viva/final-assembly', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          visionId,
-          assembledVision: visionPreview,
-          visionSummary,
-          scenesCount,
-          categoriesCompleted,
-          profile,
-          assessment
+      const { error: updateError } = await supabase
+        .from('vision_versions')
+        .update({
+          forward: editedForward,
+          conclusion: editedConclusion,
+          perspective: perspective,
+          updated_at: new Date().toISOString()
         })
-      })
+        .eq('id', visionId)
 
-      if (!response.ok) {
-        throw new Error('Failed to generate final sections')
-      }
+      if (updateError) throw updateError
 
-      const data = await response.json()
+      // Set activation message (generic for now)
+      const activationMsg = `Your Life Vision is complete and ready for activation. This is your north star, your decision filter, and your reminder of what matters most. Return to it regularly to stay aligned with your most fun and satisfying life.`
 
       setFinalData({
-        forward: data.forward,
-        conclusion: data.conclusion,
-        activationMessage: data.activationMessage,
-        harmonizationNotes: data.harmonizationNotes
+        forward: editedForward,
+        conclusion: editedConclusion,
+        activationMessage: activationMsg
       })
 
-      setVivaStage('finalizing')
-      setTimeout(() => setVivaStage(''), 1000)
+      // Update vision with activation message
+      await supabase
+        .from('vision_versions')
+        .update({
+          activation_message: activationMsg,
+          status: 'complete'
+        })
+        .eq('id', visionId)
+
     } catch (err) {
-      console.error('Error generating final sections:', err)
-      setError(err instanceof Error ? err.message : 'Failed to generate final sections')
-      setVivaStage('')
+      console.error('Error saving bookends:', err)
+      setError(err instanceof Error ? err.message : 'Failed to save bookends')
     } finally {
-      setIsProcessing(false)
+      setIsSaving(false)
     }
   }
 
@@ -319,28 +324,102 @@ ${finalData.activationMessage}
         <VIVAActionCard stage={vivaStage} className="mb-6 md:mb-8" />
       )}
 
-      {/* Ready to Generate */}
+      {/* Edit Bookends */}
       {!finalData && !isProcessing && (
-        <Card className="mb-6 md:mb-8 p-4 md:p-6 lg:p-8">
-          <div className="text-center">
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-2 md:mb-3">
-              Ready to Polish Your Vision
-            </h2>
-            <p className="text-sm md:text-base text-neutral-400 mb-6 md:mb-8">
-              VIVA will create your personalized Forward, Conclusion, and Activation Message to complete your Life Vision Document.
-            </p>
+        <>
+          {/* Perspective Selector */}
+          <Card className="mb-6 md:mb-8 p-4 md:p-6">
+            <div className="mb-4">
+              <h3 className="text-base md:text-lg font-semibold text-white mb-2">Vision Perspective</h3>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Choose whether your vision uses singular (I/my) or plural (we/our) perspective.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant={perspective === 'singular' ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => handlePerspectiveChange('singular')}
+                  className="flex-1"
+                >
+                  I / My (Singular)
+                </Button>
+                <Button
+                  variant={perspective === 'plural' ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => handlePerspectiveChange('plural')}
+                  className="flex-1"
+                >
+                  We / Our (Plural)
+                </Button>
+              </div>
+              <div className="mt-3 text-xs text-neutral-500">
+                <Badge variant="info" className="mr-2">Woo Level: {wooLevel}</Badge>
+                Templates automatically adapt to your voice profile
+              </div>
+            </div>
+          </Card>
 
+          {/* Forward Editor */}
+          <Card className="mb-6 md:mb-8 p-4 md:p-6 lg:p-8">
+            <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-6">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Edit3 className="w-5 h-5 md:w-6 md:h-6 text-primary-500" />
+              </div>
+              <div>
+                <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-white">Forward</h2>
+                <p className="text-xs md:text-sm text-neutral-400">Opening invocation - Edit as you like</p>
+              </div>
+            </div>
+            <Textarea
+              value={editedForward}
+              onChange={(e) => setEditedForward(e.target.value)}
+              rows={8}
+              className="w-full bg-neutral-800/50 text-neutral-200 text-sm md:text-base leading-relaxed"
+            />
+          </Card>
+
+          {/* Conclusion Editor */}
+          <Card className="mb-6 md:mb-8 p-4 md:p-6 lg:p-8">
+            <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-6">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Edit3 className="w-5 h-5 md:w-6 md:h-6 text-secondary-500" />
+              </div>
+              <div>
+                <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-white">Conclusion</h2>
+                <p className="text-xs md:text-sm text-neutral-400">Closing statement - Edit as you like</p>
+              </div>
+            </div>
+            <Textarea
+              value={editedConclusion}
+              onChange={(e) => setEditedConclusion(e.target.value)}
+              rows={10}
+              className="w-full bg-neutral-800/50 text-neutral-200 text-sm md:text-base leading-relaxed"
+            />
+          </Card>
+
+          {/* Save Button */}
+          <div className="flex justify-center mb-6 md:mb-8">
             <Button
               variant="primary"
               size="lg"
-              onClick={handleGenerateFinal}
+              onClick={handleSaveBookends}
+              disabled={isSaving || !editedForward || !editedConclusion}
               className="w-full md:w-auto"
             >
-              <Sparkles className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-              Generate Final Sections
+              {isSaving ? (
+                <>
+                  <Spinner size="sm" variant="primary" className="mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                  Complete Vision
+                </>
+              )}
             </Button>
           </div>
-        </Card>
+        </>
       )}
 
       {/* Final Sections Display */}
