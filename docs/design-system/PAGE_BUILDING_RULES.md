@@ -13,7 +13,7 @@
 GlobalLayout (automatic - wraps all pages)
   └─ PageLayout (automatic - provides padding)
       └─ Your Page Content
-          └─ Container (optional - for width constraints)
+          └─ Container (optional - for width constraints, NO padding)
               └─ Your actual content
 ```
 
@@ -50,11 +50,13 @@ export default function YourPage() {
 }
 ```
 
+> **Padding rule:** The outermost `Container` (or first child element) must NOT add `py-*`, `my-*`, or similar top/bottom spacing classes. GlobalLayout/PageLayout already provide vertical padding. Keep additional spacing limited to inner sections/cards if needed.
+
 ### Key Points:
 - ✅ **NO** `<PageLayout>` wrapper - GlobalLayout provides it automatically
 - ✅ Use `<Container>` when you need width constraints
 - ✅ Use `size="xl"` for standard content (1600px max-width)
-- ✅ Container automatically uses PageLayout's padding
+- ✅ Container has NO padding - uses PageLayout's padding automatically
 
 ---
 
@@ -316,6 +318,16 @@ if (error) {
 </Container>
 ```
 
+### 6. Adding Padding to Container
+
+```tsx
+// ❌ WRONG - Container doesn't need padding
+<Container className="px-4">...</Container>
+
+// ✅ CORRECT - Container uses PageLayout's padding automatically
+<Container>...</Container>
+```
+
 ---
 
 ## ✅ Pre-Build Checklist
@@ -324,6 +336,7 @@ Before building a new page, ensure:
 
 - [ ] **NO** `<PageLayout>` wrapper (GlobalLayout provides it)
 - [ ] Use `<Container size="xl">` for content width constraints
+- [ ] **NO** padding on Container (uses PageLayout's padding)
 - [ ] All text sizes are responsive (`text-base md:text-lg`)
 - [ ] All spacing is responsive (`p-4 md:p-6 lg:p-8`)
 - [ ] Grid layouts start with `grid-cols-1` for mobile
@@ -396,7 +409,7 @@ export default function YourPage() {
 ## 🚨 Remember
 
 1. **GlobalLayout wraps ALL pages** - Never add PageLayout manually
-2. **Container uses PageLayout's padding** - No double padding
+2. **Container has NO padding** - Uses PageLayout's padding automatically
 3. **Mobile-first always** - Start with mobile, then add desktop styles
 4. **Test on 375px** - Minimum mobile viewport width
 5. **Use design system components** - Don't create custom layouts
@@ -405,4 +418,6 @@ export default function YourPage() {
 
 **Last Updated**: 2025-01-31
 **Version**: 1.0
+
+
 
