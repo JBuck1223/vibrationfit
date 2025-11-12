@@ -13,13 +13,42 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 
-CREATE SCHEMA IF NOT EXISTS "public";
-
-
-ALTER SCHEMA "public" OWNER TO "pg_database_owner";
-
-
 COMMENT ON SCHEMA "public" IS 'standard public schema';
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+
+
+
 
 
 
@@ -2972,6 +3001,43 @@ COMMENT ON COLUMN "public"."journal_entries"."thumbnail_urls" IS 'Array of thumb
 
 
 
+CREATE TABLE IF NOT EXISTS "public"."life_vision_category_state" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "category" character varying(50) NOT NULL,
+    "transcript" "text",
+    "ai_summary" "text",
+    "ideal_state" "text",
+    "blueprint_data" "jsonb",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "life_vision_category_state_category_check" CHECK ((("category")::"text" = ANY ((ARRAY['fun'::character varying, 'health'::character varying, 'travel'::character varying, 'love'::character varying, 'family'::character varying, 'social'::character varying, 'home'::character varying, 'work'::character varying, 'money'::character varying, 'stuff'::character varying, 'giving'::character varying, 'spirituality'::character varying])::"text"[])))
+);
+
+
+ALTER TABLE "public"."life_vision_category_state" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."life_vision_category_state" IS 'V3 Life Vision per-category state storage';
+
+
+
+COMMENT ON COLUMN "public"."life_vision_category_state"."transcript" IS 'Step 1: User audio/text transcript';
+
+
+
+COMMENT ON COLUMN "public"."life_vision_category_state"."ai_summary" IS 'Step 1: VIVA-generated category summary';
+
+
+
+COMMENT ON COLUMN "public"."life_vision_category_state"."ideal_state" IS 'Step 2: User imagination/ideal state answers';
+
+
+
+COMMENT ON COLUMN "public"."life_vision_category_state"."blueprint_data" IS 'Step 3: Being/Doing/Receiving loops as JSONB';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."media_metadata" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "user_id" "uuid",
@@ -3153,33 +3219,18 @@ CREATE TABLE IF NOT EXISTS "public"."refinements" (
     "vision_id" "uuid",
     "category" character varying(50) NOT NULL,
     "operation_type" character varying(50) NOT NULL,
-    "input_tokens" integer DEFAULT 0 NOT NULL,
-    "output_tokens" integer DEFAULT 0 NOT NULL,
-    "total_tokens" integer DEFAULT 0 NOT NULL,
-    "cost_usd" numeric(10,6) DEFAULT 0.00 NOT NULL,
-    "refinement_percentage" integer DEFAULT 0,
-    "tonality" character varying(50) DEFAULT 'balanced'::character varying,
-    "word_count_target" integer,
-    "emotional_intensity" character varying(50) DEFAULT 'moderate'::character varying,
-    "instructions" "text",
     "input_text" "text",
     "output_text" "text",
-    "processing_time_ms" integer,
-    "success" boolean DEFAULT true,
-    "error_message" "text",
     "created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     "viva_notes" "text",
-    "transcript" "text",
-    "ai_summary" "text",
-    "ideal_state" "text",
-    "blueprint_data" "jsonb"
+    "migrated_to_v3" boolean DEFAULT false
 );
 
 
 ALTER TABLE "public"."refinements" OWNER TO "postgres";
 
 
-COMMENT ON TABLE "public"."refinements" IS 'Tracks all vision refinements including costs, tokens, and refinement details';
+COMMENT ON TABLE "public"."refinements" IS 'LEGACY: Old vibe-assistant operations. V3 data moved to life_vision_category_state. Cleaned 2025-11-11 (removed 16 deprecated columns)';
 
 
 
@@ -3191,35 +3242,48 @@ COMMENT ON COLUMN "public"."refinements"."operation_type" IS 'Type of operation:
 
 
 
-COMMENT ON COLUMN "public"."refinements"."refinement_percentage" IS 'Percentage of refinement applied (0-100)';
-
-
-
-COMMENT ON COLUMN "public"."refinements"."tonality" IS 'Tone of the refinement: encouraging, challenging, balanced, celebratory';
-
-
-
-COMMENT ON COLUMN "public"."refinements"."emotional_intensity" IS 'Emotional intensity: gentle, moderate, intense';
-
-
-
 COMMENT ON COLUMN "public"."refinements"."viva_notes" IS 'VIVA Notes: AI explanation of refinement reasoning and approach';
 
 
 
-COMMENT ON COLUMN "public"."refinements"."transcript" IS 'User audio/video transcript for life vision category';
+COMMENT ON COLUMN "public"."refinements"."migrated_to_v3" IS 'TRUE if this row was migrated to life_vision_category_state';
 
 
 
-COMMENT ON COLUMN "public"."refinements"."ai_summary" IS 'AI-generated category summary from VIVA';
+CREATE TABLE IF NOT EXISTS "public"."refinements_backup_20251111" (
+    "id" "uuid",
+    "user_id" "uuid",
+    "vision_id" "uuid",
+    "category" character varying(50),
+    "operation_type" character varying(50),
+    "input_tokens" integer,
+    "output_tokens" integer,
+    "total_tokens" integer,
+    "cost_usd" numeric(10,6),
+    "refinement_percentage" integer,
+    "tonality" character varying(50),
+    "word_count_target" integer,
+    "emotional_intensity" character varying(50),
+    "instructions" "text",
+    "input_text" "text",
+    "output_text" "text",
+    "processing_time_ms" integer,
+    "success" boolean,
+    "error_message" "text",
+    "created_at" timestamp with time zone,
+    "viva_notes" "text",
+    "transcript" "text",
+    "ai_summary" "text",
+    "ideal_state" "text",
+    "blueprint_data" "jsonb",
+    "migrated_to_v3" boolean
+);
 
 
-
-COMMENT ON COLUMN "public"."refinements"."ideal_state" IS 'Step 2: User''s ideal state imagination for this category';
-
+ALTER TABLE "public"."refinements_backup_20251111" OWNER TO "postgres";
 
 
-COMMENT ON COLUMN "public"."refinements"."blueprint_data" IS 'Step 3: Being/Doing/Receiving loops as JSONB array: [{"being": string, "doing": string, "receiving": string, "essence": string}]';
+COMMENT ON TABLE "public"."refinements_backup_20251111" IS 'Backup before dropping deprecated columns';
 
 
 
@@ -3930,6 +3994,10 @@ CREATE TABLE IF NOT EXISTS "public"."vision_conversations" (
 ALTER TABLE "public"."vision_conversations" OWNER TO "postgres";
 
 
+COMMENT ON TABLE "public"."vision_conversations" IS 'LEGACY: Old conversation-based vision gen. May be removable after audit.';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."vision_progress" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "user_id" "uuid" NOT NULL,
@@ -3974,22 +4042,21 @@ CREATE TABLE IF NOT EXISTS "public"."vision_versions" (
     "background_music" "text",
     "created_at" timestamp with time zone DEFAULT "now"(),
     "updated_at" timestamp with time zone DEFAULT "now"(),
-    "vibe_assistant_refinements_count" integer DEFAULT 0,
-    "last_vibe_assistant_refinement" timestamp with time zone,
-    "vibe_assistant_refinement_notes" "text",
     "last_audio_generated_at" timestamp with time zone,
-    "ai_generated" boolean DEFAULT false,
-    "conversation_count" integer DEFAULT 0,
-    "emotional_patterns" "jsonb" DEFAULT '{}'::"jsonb",
-    "cross_category_themes" "text"[] DEFAULT '{}'::"text"[],
     "is_draft" boolean DEFAULT false,
     "is_active" boolean DEFAULT false,
     "activation_message" "text",
-    "richness_metadata" "jsonb"
+    "richness_metadata" "jsonb",
+    "perspective" "text" DEFAULT 'singular'::"text",
+    CONSTRAINT "vision_versions_perspective_check" CHECK (("perspective" = ANY (ARRAY['singular'::"text", 'plural'::"text"])))
 );
 
 
 ALTER TABLE "public"."vision_versions" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."vision_versions" IS 'V3 Life Vision versions - cleaned 2025-11-11 (removed 7 deprecated columns)';
+
 
 
 COMMENT ON COLUMN "public"."vision_versions"."forward" IS 'Forward / Introduction - Vibrational warmup section';
@@ -4048,26 +4115,6 @@ COMMENT ON COLUMN "public"."vision_versions"."conclusion" IS 'Conclusion - Unify
 
 
 
-COMMENT ON COLUMN "public"."vision_versions"."vibe_assistant_refinements_count" IS 'Number of times this vision has been refined by Vibe Assistant';
-
-
-
-COMMENT ON COLUMN "public"."vision_versions"."ai_generated" IS 'Whether this vision was created through AI conversation agent';
-
-
-
-COMMENT ON COLUMN "public"."vision_versions"."conversation_count" IS 'Number of category conversations completed';
-
-
-
-COMMENT ON COLUMN "public"."vision_versions"."emotional_patterns" IS 'Detected emotional patterns across categories';
-
-
-
-COMMENT ON COLUMN "public"."vision_versions"."cross_category_themes" IS 'Recurring themes identified across multiple categories';
-
-
-
 COMMENT ON COLUMN "public"."vision_versions"."is_draft" IS 'True if this is a work-in-progress draft version';
 
 
@@ -4081,6 +4128,60 @@ COMMENT ON COLUMN "public"."vision_versions"."activation_message" IS 'Step 6: Ce
 
 
 COMMENT ON COLUMN "public"."vision_versions"."richness_metadata" IS 'Per-category richness data as JSONB: {"fun": {"inputChars": 500, "ideas": 5, "density": "medium"}, ...}';
+
+
+
+COMMENT ON COLUMN "public"."vision_versions"."perspective" IS 'Whether the vision uses singular (I/my) or plural (we/our) perspective';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."vision_versions_backup_20251111" (
+    "id" "uuid",
+    "user_id" "uuid",
+    "version_number" integer,
+    "title" "text",
+    "status" "text",
+    "completion_percent" integer,
+    "forward" "text",
+    "fun" "text",
+    "travel" "text",
+    "home" "text",
+    "family" "text",
+    "love" "text",
+    "health" "text",
+    "money" "text",
+    "work" "text",
+    "social" "text",
+    "stuff" "text",
+    "giving" "text",
+    "spirituality" "text",
+    "conclusion" "text",
+    "has_audio" boolean,
+    "audio_url" "text",
+    "audio_duration" "text",
+    "voice_type" "text",
+    "background_music" "text",
+    "created_at" timestamp with time zone,
+    "updated_at" timestamp with time zone,
+    "vibe_assistant_refinements_count" integer,
+    "last_vibe_assistant_refinement" timestamp with time zone,
+    "vibe_assistant_refinement_notes" "text",
+    "last_audio_generated_at" timestamp with time zone,
+    "ai_generated" boolean,
+    "conversation_count" integer,
+    "emotional_patterns" "jsonb",
+    "cross_category_themes" "text"[],
+    "is_draft" boolean,
+    "is_active" boolean,
+    "activation_message" "text",
+    "richness_metadata" "jsonb"
+);
+
+
+ALTER TABLE "public"."vision_versions_backup_20251111" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."vision_versions_backup_20251111" IS 'Backup before dropping deprecated columns';
 
 
 
@@ -4260,6 +4361,16 @@ ALTER TABLE ONLY "public"."intensive_purchases"
 
 ALTER TABLE ONLY "public"."journal_entries"
     ADD CONSTRAINT "journal_entries_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."life_vision_category_state"
+    ADD CONSTRAINT "life_vision_category_state_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."life_vision_category_state"
+    ADD CONSTRAINT "life_vision_category_state_user_id_category_key" UNIQUE ("user_id", "category");
 
 
 
@@ -4696,6 +4807,18 @@ CREATE INDEX "idx_intensive_user" ON "public"."intensive_purchases" USING "btree
 
 
 
+CREATE INDEX "idx_lv_category_state_blueprint" ON "public"."life_vision_category_state" USING "gin" ("blueprint_data");
+
+
+
+CREATE INDEX "idx_lv_category_state_created" ON "public"."life_vision_category_state" USING "btree" ("created_at" DESC);
+
+
+
+CREATE INDEX "idx_lv_category_state_user_category" ON "public"."life_vision_category_state" USING "btree" ("user_id", "category");
+
+
+
 CREATE INDEX "idx_media_metadata_bucket" ON "public"."media_metadata" USING "btree" ("bucket");
 
 
@@ -4784,14 +4907,6 @@ CREATE INDEX "idx_prompt_suggestions_user_category" ON "public"."prompt_suggesti
 
 
 
-CREATE INDEX "idx_refinements_ai_summary" ON "public"."refinements" USING "gin" ("to_tsvector"('"english"'::"regconfig", "ai_summary"));
-
-
-
-CREATE INDEX "idx_refinements_blueprint_data" ON "public"."refinements" USING "gin" ("blueprint_data");
-
-
-
 CREATE INDEX "idx_refinements_category" ON "public"."refinements" USING "btree" ("category");
 
 
@@ -4804,19 +4919,11 @@ CREATE INDEX "idx_refinements_operation_type" ON "public"."refinements" USING "b
 
 
 
-CREATE INDEX "idx_refinements_transcript" ON "public"."refinements" USING "gin" ("to_tsvector"('"english"'::"regconfig", "transcript"));
-
-
-
 CREATE INDEX "idx_refinements_user_id" ON "public"."refinements" USING "btree" ("user_id");
 
 
 
 CREATE INDEX "idx_refinements_vision_id" ON "public"."refinements" USING "btree" ("vision_id");
-
-
-
-CREATE INDEX "idx_refinements_viva_notes" ON "public"."refinements" USING "gin" ("to_tsvector"('"english"'::"regconfig", "viva_notes"));
 
 
 
@@ -5032,15 +5139,11 @@ CREATE INDEX "idx_vision_versions_is_draft" ON "public"."vision_versions" USING 
 
 
 
-CREATE INDEX "idx_vision_versions_last_refinement" ON "public"."vision_versions" USING "btree" ("last_vibe_assistant_refinement");
+CREATE INDEX "idx_vision_versions_perspective" ON "public"."vision_versions" USING "btree" ("perspective");
 
 
 
 CREATE INDEX "idx_vision_versions_richness_metadata" ON "public"."vision_versions" USING "gin" ("richness_metadata");
-
-
-
-CREATE INDEX "idx_vision_versions_vibe_assistant_refinements" ON "public"."vision_versions" USING "btree" ("vibe_assistant_refinements_count");
 
 
 
@@ -5153,6 +5256,10 @@ CREATE OR REPLACE TRIGGER "update_customer_subscriptions_updated_at" BEFORE UPDA
 
 
 CREATE OR REPLACE TRIGGER "update_generated_images_updated_at" BEFORE UPDATE ON "public"."generated_images" FOR EACH ROW EXECUTE FUNCTION "public"."update_generated_images_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_lv_category_state_updated_at" BEFORE UPDATE ON "public"."life_vision_category_state" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
@@ -5352,6 +5459,11 @@ ALTER TABLE ONLY "public"."intensive_purchases"
 
 ALTER TABLE ONLY "public"."journal_entries"
     ADD CONSTRAINT "journal_entries_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."life_vision_category_state"
+    ADD CONSTRAINT "life_vision_category_state_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -5638,6 +5750,10 @@ CREATE POLICY "Users can create their own generated images" ON "public"."generat
 
 
 
+CREATE POLICY "Users can delete own category state" ON "public"."life_vision_category_state" FOR DELETE USING (("auth"."uid"() = "user_id"));
+
+
+
 CREATE POLICY "Users can delete own journal entries" ON "public"."journal_entries" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "user_id"));
 
 
@@ -5721,6 +5837,10 @@ CREATE POLICY "Users can delete their own vision versions" ON "public"."vision_v
 
 
 CREATE POLICY "Users can insert media metadata" ON "public"."media_metadata" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "Users can insert own category state" ON "public"."life_vision_category_state" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
@@ -5841,6 +5961,10 @@ CREATE POLICY "Users can select their own audio tracks" ON "public"."audio_track
 
 
 CREATE POLICY "Users can select their own vision audios" ON "public"."vision_audios" FOR SELECT USING (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "Users can update own category state" ON "public"."life_vision_category_state" FOR UPDATE USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
@@ -5977,6 +6101,10 @@ CREATE POLICY "Users can view enabled vibrational sources" ON "public"."vibratio
 
 
 CREATE POLICY "Users can view own AI usage" ON "public"."ai_usage_logs" FOR SELECT TO "authenticated" USING (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "Users can view own category state" ON "public"."life_vision_category_state" FOR SELECT USING (("auth"."uid"() = "user_id"));
 
 
 
@@ -6197,6 +6325,9 @@ ALTER TABLE "public"."intensive_purchases" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."journal_entries" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."life_vision_category_state" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."media_metadata" ENABLE ROW LEVEL SECURITY;
 
 
@@ -6280,11 +6411,166 @@ ALTER TABLE "public"."viva_conversations" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."voice_profiles" ENABLE ROW LEVEL SECURITY;
 
 
+
+
+ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
 GRANT USAGE ON SCHEMA "public" TO "cursor_reader";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6630,6 +6916,21 @@ GRANT ALL ON FUNCTION "public"."user_has_feature"("p_user_id" "uuid", "p_feature
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 GRANT ALL ON TABLE "public"."abundance_events" TO "anon";
 GRANT ALL ON TABLE "public"."abundance_events" TO "authenticated";
 GRANT ALL ON TABLE "public"."abundance_events" TO "service_role";
@@ -6791,6 +7092,13 @@ GRANT ALL ON TABLE "public"."journal_entries" TO "db_admin";
 
 
 
+GRANT ALL ON TABLE "public"."life_vision_category_state" TO "anon";
+GRANT ALL ON TABLE "public"."life_vision_category_state" TO "authenticated";
+GRANT ALL ON TABLE "public"."life_vision_category_state" TO "service_role";
+GRANT SELECT ON TABLE "public"."life_vision_category_state" TO "cursor_reader";
+
+
+
 GRANT ALL ON TABLE "public"."media_metadata" TO "anon";
 GRANT ALL ON TABLE "public"."media_metadata" TO "authenticated";
 GRANT ALL ON TABLE "public"."media_metadata" TO "service_role";
@@ -6843,6 +7151,13 @@ GRANT ALL ON TABLE "public"."refinements" TO "authenticated";
 GRANT ALL ON TABLE "public"."refinements" TO "service_role";
 GRANT ALL ON TABLE "public"."refinements" TO "cursor_reader";
 GRANT ALL ON TABLE "public"."refinements" TO "db_admin";
+
+
+
+GRANT ALL ON TABLE "public"."refinements_backup_20251111" TO "anon";
+GRANT ALL ON TABLE "public"."refinements_backup_20251111" TO "authenticated";
+GRANT ALL ON TABLE "public"."refinements_backup_20251111" TO "service_role";
+GRANT SELECT ON TABLE "public"."refinements_backup_20251111" TO "cursor_reader";
 
 
 
@@ -6975,6 +7290,13 @@ GRANT ALL ON TABLE "public"."vision_versions" TO "db_admin";
 
 
 
+GRANT ALL ON TABLE "public"."vision_versions_backup_20251111" TO "anon";
+GRANT ALL ON TABLE "public"."vision_versions_backup_20251111" TO "authenticated";
+GRANT ALL ON TABLE "public"."vision_versions_backup_20251111" TO "service_role";
+GRANT SELECT ON TABLE "public"."vision_versions_backup_20251111" TO "cursor_reader";
+
+
+
 GRANT ALL ON TABLE "public"."viva_conversations" TO "anon";
 GRANT ALL ON TABLE "public"."viva_conversations" TO "authenticated";
 GRANT ALL ON TABLE "public"."viva_conversations" TO "service_role";
@@ -6986,6 +7308,12 @@ GRANT ALL ON TABLE "public"."voice_profiles" TO "anon";
 GRANT ALL ON TABLE "public"."voice_profiles" TO "authenticated";
 GRANT ALL ON TABLE "public"."voice_profiles" TO "service_role";
 GRANT SELECT ON TABLE "public"."voice_profiles" TO "cursor_reader";
+
+
+
+
+
+
 
 
 
@@ -7015,6 +7343,30 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT SELECT ON TABLES TO "cursor_reader";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
