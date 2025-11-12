@@ -94,7 +94,9 @@ Development session summaries:
 
 Additional documentation can be found:
 
-- **Root:** [README.md](../README.md), [PRODUCT_BRIEF.md](../PRODUCT_BRIEF.md), [ROADMAP.md](../ROADMAP.md)
+- **Root:** [README.md](../README.md), [PRODUCT_BRIEF.md](../PRODUCT_BRIEF.md)
+- **Documentation Index:** [docs/README.md](../docs/README.md) - 91 organized docs
+- **Roadmap:** [docs/misc/ROADMAP.md](../docs/misc/ROADMAP.md)
 - **Design System:** [docs/DESIGN_SYSTEM_GUIDE.md](../docs/DESIGN_SYSTEM_GUIDE.md)
 - **Component Docs:** [src/lib/design-system/README.md](../src/lib/design-system/README.md)
 - **Database:** [supabase/migrations/README_ASSESSMENT.md](../supabase/migrations/README_ASSESSMENT.md)

@@ -51,6 +51,7 @@ import { buildMasterVisionPrompt } from '@/lib/viva/prompts'
 
 ## 📚 Related Documentation
 
-- `VIVA_FILE_STRUCTURE_AUDIT.md` - Full audit and migration plan
-- `LIFE_VISION_NEW_SYSTEM_EXPERT_GUIDE.md` - Life vision system guide
+- `../../../../../docs/viva/VIVA_FILE_STRUCTURE_AUDIT.md` - Full audit and migration plan
+- `../../../../../docs/life-vision-v3/LIFE_VISION_NEW_SYSTEM_EXPERT_GUIDE.md` - Life vision system guide
+- `../../../../../docs/README.md` - Complete documentation index
 

@@ -39,6 +39,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## 📚 Documentation
 
-- [Product Brief](./docs/PRODUCT_BRIEF.md) - Complete SaaS product overview
+- [Product Brief](./PRODUCT_BRIEF.md) - Complete SaaS product overview
+- [Documentation Index](./docs/README.md) - Complete documentation index (91 files organized by topic)
 - [Design System Guide](./docs/DESIGN_SYSTEM_GUIDE.md) - How to change colors, styles, components
 - [Brand Guidelines](./docs/BRAND_GUIDELINES.md) - Colors, typography, design psychology
