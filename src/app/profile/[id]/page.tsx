@@ -441,7 +441,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Status" 
               value={profile.relationship_status}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="relationship_status"
               onSave={handleFieldSave}
               type="select"
@@ -459,14 +459,14 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Partner" 
               value={profile.partner_name}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="partner_name"
               onSave={handleFieldSave}
             />
             <ProfileField 
               label="Relationship Length" 
               value={profile.relationship_length}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="relationship_length"
               onSave={handleFieldSave}
               type="select"
@@ -482,7 +482,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('love')}?`}
               value={profile.clarity_love}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_love"
               onSave={handleFieldSave}
             />
@@ -490,7 +490,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('love')}?`}
               value={profile.contrast_love}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_love"
               onSave={handleFieldSave}
             />
@@ -504,7 +504,7 @@ export default function ProfileDetailPage() {
               label="Has Children" 
               value={profile.has_children} 
               type="boolean"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="has_children"
               onSave={handleFieldSave}
             />
@@ -512,7 +512,7 @@ export default function ProfileDetailPage() {
               label="Number of Children" 
               value={profile.number_of_children}
               type="number"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="number_of_children"
               onSave={handleFieldSave}
             />
@@ -520,7 +520,7 @@ export default function ProfileDetailPage() {
               label="Children's Ages" 
               value={profile.children_ages} 
               type="array"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="children_ages"
               onSave={handleFieldSave}
               placeholder="Add child's age (e.g., 5, 12, 16)"
@@ -529,7 +529,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('family')}?`}
               value={profile.clarity_family}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_family"
               onSave={handleFieldSave}
             />
@@ -537,7 +537,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
               value={profile.contrast_family}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_family"
               onSave={handleFieldSave}
             />
@@ -550,7 +550,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Height" 
               value={profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : null}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="height"
               onSave={handleFieldSave}
               type="number"
@@ -558,7 +558,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Weight" 
               value={profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : null}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="weight"
               onSave={handleFieldSave}
               type="number"
@@ -566,7 +566,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Units" 
               value={profile.units}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="units"
               onSave={handleFieldSave}
               type="select"
@@ -578,7 +578,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Exercise Frequency" 
               value={profile.exercise_frequency}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="exercise_frequency"
               onSave={handleFieldSave}
               type="select"
@@ -594,7 +594,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('health')}?`}
               value={profile.clarity_health}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_health"
               onSave={handleFieldSave}
             />
@@ -602,7 +602,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
               value={profile.contrast_health}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_health"
               onSave={handleFieldSave}
             />
@@ -615,7 +615,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Living Situation" 
               value={profile.living_situation}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="living_situation"
               onSave={handleFieldSave}
               type="select"
@@ -629,7 +629,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Time at Location" 
               value={profile.time_at_location}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="time_at_location"
               onSave={handleFieldSave}
               type="select"
@@ -644,28 +644,28 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="City" 
               value={profile.city}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="city"
               onSave={handleFieldSave}
             />
             <ProfileField 
               label="State" 
               value={profile.state}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="state"
               onSave={handleFieldSave}
             />
             <ProfileField 
               label="Postal Code" 
               value={profile.postal_code}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="postal_code"
               onSave={handleFieldSave}
             />
             <ProfileField 
               label="Country" 
               value={profile.country}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="country"
               onSave={handleFieldSave}
             />
@@ -673,7 +673,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('home')}?`}
               value={profile.clarity_home}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_home"
               onSave={handleFieldSave}
             />
@@ -681,7 +681,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
               value={profile.contrast_home}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_home"
               onSave={handleFieldSave}
             />
@@ -694,7 +694,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Employment Type" 
               value={profile.employment_type}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="employment_type"
               onSave={handleFieldSave}
               type="select"
@@ -712,21 +712,21 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Occupation" 
               value={profile.occupation}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="occupation"
               onSave={handleFieldSave}
             />
             <ProfileField 
               label="Company" 
               value={profile.company}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="company"
               onSave={handleFieldSave}
             />
             <ProfileField 
               label="Time in Role" 
               value={profile.time_in_role}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="time_in_role"
               onSave={handleFieldSave}
               type="select"
@@ -741,7 +741,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Education" 
               value={profile.education}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="education"
               onSave={handleFieldSave}
               type="select"
@@ -758,7 +758,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Education Description" 
               value={profile.education_description}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="education_description"
               onSave={handleFieldSave}
               type="story"
@@ -767,7 +767,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('work')}?`}
               value={profile.clarity_work}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_work"
               onSave={handleFieldSave}
             />
@@ -775,7 +775,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('work')}?`}
               value={profile.contrast_work}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_work"
               onSave={handleFieldSave}
             />
@@ -788,7 +788,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Currency" 
               value={profile.currency}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="currency"
               onSave={handleFieldSave}
               type="select"
@@ -803,7 +803,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Household Income" 
               value={profile.household_income}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="household_income"
               onSave={handleFieldSave}
               type="select"
@@ -820,7 +820,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Savings & Retirement" 
               value={profile.savings_retirement}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="savings_retirement"
               onSave={handleFieldSave}
               type="select"
@@ -837,7 +837,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Assets & Equity" 
               value={profile.assets_equity}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="assets_equity"
               onSave={handleFieldSave}
               type="select"
@@ -854,7 +854,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Consumer Debt" 
               value={profile.consumer_debt}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="consumer_debt"
               onSave={handleFieldSave}
               type="select"
@@ -870,7 +870,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('money')}?`}
               value={profile.clarity_money}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_money"
               onSave={handleFieldSave}
             />
@@ -878,7 +878,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
               value={profile.contrast_money}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_money"
               onSave={handleFieldSave}
             />
@@ -892,7 +892,7 @@ export default function ProfileDetailPage() {
               label="Current Hobbies" 
               value={profile.hobbies} 
               type="array"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="hobbies"
               onSave={handleFieldSave}
               placeholder="Add a hobby"
@@ -900,7 +900,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Leisure Time Per Week" 
               value={profile.leisure_time_weekly}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="leisure_time_weekly"
               onSave={handleFieldSave}
               type="select"
@@ -915,7 +915,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('fun')}?`}
               value={profile.clarity_fun}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_fun"
               onSave={handleFieldSave}
             />
@@ -923,7 +923,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('fun')}?`}
               value={profile.contrast_fun}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_fun"
               onSave={handleFieldSave}
             />
@@ -936,7 +936,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Travel Frequency" 
               value={profile.travel_frequency}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="travel_frequency"
               onSave={handleFieldSave}
               type="select"
@@ -951,7 +951,7 @@ export default function ProfileDetailPage() {
               label="Has Valid Passport" 
               value={profile.passport} 
               type="boolean"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="passport"
               onSave={handleFieldSave}
             />
@@ -959,7 +959,7 @@ export default function ProfileDetailPage() {
               label="Countries Visited" 
               value={profile.countries_visited}
               type="number"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="countries_visited"
               onSave={handleFieldSave}
             />
@@ -967,7 +967,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('travel')}?`}
               value={profile.clarity_travel}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_travel"
               onSave={handleFieldSave}
             />
@@ -975,7 +975,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('travel')}?`}
               value={profile.contrast_travel}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_travel"
               onSave={handleFieldSave}
             />
@@ -988,7 +988,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Close Friends Count" 
               value={profile.close_friends_count}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="close_friends_count"
               onSave={handleFieldSave}
               type="select"
@@ -1002,7 +1002,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Social Preference" 
               value={profile.social_preference}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="social_preference"
               onSave={handleFieldSave}
               type="select"
@@ -1016,7 +1016,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('social')}?`}
               value={profile.clarity_social}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_social"
               onSave={handleFieldSave}
             />
@@ -1024,7 +1024,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
               value={profile.contrast_social}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_social"
               onSave={handleFieldSave}
             />
@@ -1037,7 +1037,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Lifestyle Category" 
               value={profile.lifestyle_category}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="lifestyle_category"
               onSave={handleFieldSave}
               type="select"
@@ -1051,7 +1051,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Primary Vehicle" 
               value={profile.primary_vehicle}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="primary_vehicle"
               onSave={handleFieldSave}
             />
@@ -1059,7 +1059,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('stuff')}?`}
               value={profile.clarity_stuff}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_stuff"
               onSave={handleFieldSave}
             />
@@ -1067,7 +1067,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('stuff')}?`}
               value={profile.contrast_stuff}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_stuff"
               onSave={handleFieldSave}
             />
@@ -1080,7 +1080,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Spiritual Practice" 
               value={profile.spiritual_practice}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="spiritual_practice"
               onSave={handleFieldSave}
               type="select"
@@ -1094,7 +1094,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Meditation Frequency" 
               value={profile.meditation_frequency}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="meditation_frequency"
               onSave={handleFieldSave}
               type="select"
@@ -1109,7 +1109,7 @@ export default function ProfileDetailPage() {
               label="Personal Growth Focus" 
               value={profile.personal_growth_focus} 
               type="boolean"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="personal_growth_focus"
               onSave={handleFieldSave}
             />
@@ -1117,7 +1117,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('spirituality')}?`}
               value={profile.clarity_spirituality}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_spirituality"
               onSave={handleFieldSave}
             />
@@ -1125,7 +1125,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
               value={profile.contrast_spirituality}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_spirituality"
               onSave={handleFieldSave}
             />
@@ -1138,7 +1138,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Volunteer Status" 
               value={profile.volunteer_status}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="volunteer_status"
               onSave={handleFieldSave}
               type="select"
@@ -1152,7 +1152,7 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Annual Charitable Giving" 
               value={profile.charitable_giving}
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="charitable_giving"
               onSave={handleFieldSave}
               type="select"
@@ -1167,7 +1167,7 @@ export default function ProfileDetailPage() {
               label="Legacy Mindset" 
               value={profile.legacy_mindset} 
               type="boolean"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="legacy_mindset"
               onSave={handleFieldSave}
             />
@@ -1175,7 +1175,7 @@ export default function ProfileDetailPage() {
               label={`What's going well in ${getVisionCategoryLabel('giving')}?`}
               value={profile.clarity_giving}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="clarity_giving"
               onSave={handleFieldSave}
             />
@@ -1183,7 +1183,7 @@ export default function ProfileDetailPage() {
               label={`What's not going well in ${getVisionCategoryLabel('giving')}?`}
               value={profile.contrast_giving}
               type="story"
-              editable={!isViewingVersion}
+              editable={false}
               fieldKey="contrast_giving"
               onSave={handleFieldSave}
             />

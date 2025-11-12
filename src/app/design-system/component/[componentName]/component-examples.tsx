@@ -22,6 +22,7 @@ import {
   Icon,
   Badge,
   Input,
+  DatePicker,
   Textarea,
   VIVAButton,
   Spinner,
@@ -1068,6 +1069,81 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
           </Card>
         </Stack>
       )
+
+    case 'date-picker': {
+      const [selectedDate, setSelectedDate] = useState<string>('')
+      const [birthdayDate, setBirthdayDate] = useState<string>('1986-12-17')
+      
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="sm">
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">DatePicker - Custom Branded Calendar</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Beautiful neon-themed calendar with Electric Green selected dates, Neon Cyan today indicator, 
+                month/year navigation, and min/max date support. No more ugly default browser date pickers!
+              </p>
+              <Stack gap="md">
+                <DatePicker
+                  label="Select a Date"
+                  value={selectedDate}
+                  onChange={setSelectedDate}
+                  placeholder="Click to open calendar"
+                  helperText="Try clicking to see the beautiful custom calendar"
+                />
+                <DatePicker
+                  label="Date of Birth"
+                  value={birthdayDate}
+                  onChange={setBirthdayDate}
+                  maxDate={new Date().toISOString().split('T')[0]}
+                  helperText="Can't select future dates"
+                />
+                <DatePicker
+                  label="Future Event"
+                  value={selectedDate}
+                  onChange={setSelectedDate}
+                  minDate={new Date().toISOString().split('T')[0]}
+                  helperText="Can only select future dates"
+                />
+              </Stack>
+            </Stack>
+          </Card>
+          
+          {/* Features Card */}
+          <Card variant="elevated" className="p-4 md:p-6 bg-gradient-to-br from-[#39FF14]/5 to-[#00FFFF]/5 border-[#39FF14]/30">
+            <Stack gap="md">
+              <h5 className="text-sm md:text-base font-semibold text-white">DatePicker Features</h5>
+              <BulletedList>
+                <ListItem icon={CheckCircle} variant="success">
+                  Custom neon-themed calendar dropdown
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Electric Green (#39FF14) selected dates with glow
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Neon Cyan (#00FFFF) border for today
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Month/year navigation with chevrons
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  "Today" quick-select button
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Min/max date support with disabled states
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Click-outside-to-close behavior
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Mobile responsive design
+                </ListItem>
+              </BulletedList>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+    }
 
     case 'textarea':
       return (

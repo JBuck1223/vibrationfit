@@ -116,7 +116,7 @@ export default function AbundanceLogPage() {
               <Select
                 label="Type"
                 value={valueType}
-                onChange={(event) => setValueType(event.target.value as 'money' | 'value')}
+                onChange={(value) => setValueType(value as 'money' | 'value')}
                 options={VALUE_TYPES}
               />
 
@@ -145,7 +145,7 @@ export default function AbundanceLogPage() {
               <Select
                 label="Vision Category"
                 value={visionCategory}
-                onChange={(event) => setVisionCategory(event.target.value)}
+                onChange={(value) => setVisionCategory(value)}
                 options={VISION_CATEGORY_OPTIONS}
                 placeholder="No specific vision category"
               />
@@ -153,7 +153,7 @@ export default function AbundanceLogPage() {
               <Select
                 label="Entry Category"
                 value={entryCategory}
-                onChange={(event) => setEntryCategory(event.target.value)}
+                onChange={(value) => setEntryCategory(value)}
                 options={ENTRY_CATEGORY_OPTIONS}
                 placeholder="Select entry category (optional)"
               />

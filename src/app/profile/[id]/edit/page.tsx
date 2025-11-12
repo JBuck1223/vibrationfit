@@ -49,26 +49,21 @@ export default function ProfileEditPage() {
   const [showCommitWarning, setShowCommitWarning] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
 
+  // Handle URL hash navigation to set active section
+  useEffect(() => {
+    const hash = window.location.hash.slice(1) // Remove the '#'
+    if (hash) {
+      const sectionExists = profileSections.find(section => section.id === hash)
+      if (sectionExists) {
+        setActiveSection(hash)
+      }
+    }
+  }, [])
+
   // Helper function to get category info from design system
   const getCategoryInfo = (categoryId: string) => {
-    const categoryMapping: Record<string, string> = {
-      'personal': 'personal',
-      'fun-recreation': 'fun',
-      'health': 'health',
-      'travel-adventure': 'travel',
-      'relationship': 'love',
-      'family': 'family',
-      'social-friends': 'social',
-      'location': 'home',
-      'career': 'work',
-      'financial': 'money',
-      'possessions-lifestyle': 'stuff',
-      'giving-legacy': 'giving',
-      'spirituality-growth': 'spirituality'
-    }
-    
-    const visionCategoryKey = categoryMapping[categoryId] || categoryId
-    const category = getVisionCategory(visionCategoryKey)
+    // Use vision category directly for all categories except 'personal' and 'photos-notes'
+    const category = getVisionCategory(categoryId)
     
     if (category) {
       return {
@@ -106,20 +101,21 @@ export default function ProfileEditPage() {
   }
 
   // Profile sections in order (Personal first, Media last)
+  // Using vision-categories.ts keys as single source of truth
   const profileSections = [
     { id: 'personal', title: 'Personal', description: 'Basic information about you' },
-    { id: 'fun-recreation', title: 'Fun', description: 'Hobbies and joyful activities' },
+    { id: 'fun', title: 'Fun', description: 'Hobbies and joyful activities' },
     { id: 'health', title: 'Health', description: 'Physical and mental well-being' },
-    { id: 'travel-adventure', title: 'Travel', description: 'Places to explore and adventures' },
-    { id: 'relationship', title: 'Love', description: 'Romantic relationships' },
+    { id: 'travel', title: 'Travel', description: 'Places to explore and adventures' },
+    { id: 'love', title: 'Love', description: 'Romantic relationships' },
     { id: 'family', title: 'Family', description: 'Family relationships and life' },
-    { id: 'social-friends', title: 'Social', description: 'Social connections and friendships' },
-    { id: 'location', title: 'Home', description: 'Living space and environment' },
-    { id: 'career', title: 'Work', description: 'Work and career aspirations' },
-    { id: 'financial', title: 'Money', description: 'Financial goals and wealth' },
-    { id: 'possessions-lifestyle', title: 'Possessions', description: 'Material belongings and things' },
-    { id: 'giving-legacy', title: 'Giving', description: 'Contribution and legacy' },
-    { id: 'spirituality-growth', title: 'Spirituality', description: 'Spiritual growth and expansion' },
+    { id: 'social', title: 'Social', description: 'Social connections and friendships' },
+    { id: 'home', title: 'Home', description: 'Living space and environment' },
+    { id: 'work', title: 'Work', description: 'Work and career aspirations' },
+    { id: 'money', title: 'Money', description: 'Financial goals and wealth' },
+    { id: 'stuff', title: 'Stuff', description: 'Material belongings and things' },
+    { id: 'giving', title: 'Giving', description: 'Contribution and legacy' },
+    { id: 'spirituality', title: 'Spirituality', description: 'Spiritual growth and expansion' },
     { id: 'photos-notes', title: 'Media', description: 'Media and additional notes' }
   ]
 
@@ -580,7 +576,7 @@ export default function ProfileEditPage() {
       switch (section) {
         case 'personal':
           return profile.profile_picture_url && profile.date_of_birth && profile.gender && profile.ethnicity
-        case 'relationship':
+        case 'love':
           return profile.relationship_status && 
                  (profile.relationship_status === 'Single' || profile.relationship_length)
         case 'family':
@@ -589,37 +585,37 @@ export default function ProfileEditPage() {
                   (profile.number_of_children && profile.children_ages?.length))
         case 'health':
           return profile.units && profile.height && profile.weight && profile.exercise_frequency
-        case 'location':
+        case 'home':
           return profile.living_situation && profile.time_at_location && 
                  profile.city && profile.state && profile.postal_code && profile.country
-        case 'career':
+        case 'work':
           return profile.employment_type && profile.occupation && profile.company && profile.time_in_role
-        case 'financial':
+        case 'money':
           return profile.currency && profile.household_income && profile.savings_retirement && 
                  profile.assets_equity && profile.consumer_debt
-        case 'fun-recreation':
+        case 'fun':
           return (profile.hobbies && profile.hobbies.length > 0) || 
                  profile.leisure_time_weekly ||
                  (profile.clarity_fun && profile.clarity_fun.trim().length > 0)
-        case 'travel-adventure':
+        case 'travel':
           return profile.travel_frequency || 
                  profile.passport !== undefined || 
                  profile.countries_visited !== undefined ||
                  (profile.clarity_travel && profile.clarity_travel.trim().length > 0)
-        case 'social-friends':
+        case 'social':
           return profile.close_friends_count || 
                  profile.social_preference ||
                  (profile.clarity_social && profile.clarity_social.trim().length > 0)
-        case 'possessions-lifestyle':
+        case 'stuff':
           return profile.lifestyle_category || 
                  profile.primary_vehicle ||
                  (profile.clarity_stuff && profile.clarity_stuff.trim().length > 0)
-        case 'spirituality-growth':
+        case 'spirituality':
           return profile.spiritual_practice || 
                  profile.meditation_frequency || 
                  profile.personal_growth_focus !== undefined ||
                  (profile.clarity_spirituality && profile.clarity_spirituality.trim().length > 0)
-        case 'giving-legacy':
+        case 'giving':
           return profile.volunteer_status || 
                  profile.charitable_giving || 
                  profile.legacy_mindset !== undefined ||
@@ -656,7 +652,7 @@ export default function ProfileEditPage() {
       case 'personal':
         sectionContent = <PersonalInfoSection {...commonProps} />
         break
-      case 'relationship':
+      case 'love':
         sectionContent = <RelationshipSection {...commonProps} />
         break
       case 'family':
@@ -665,34 +661,34 @@ export default function ProfileEditPage() {
       case 'health':
         sectionContent = <HealthSection {...commonProps} />
         break
-      case 'location':
+      case 'home':
         sectionContent = <LocationSection {...commonProps} />
         break
-      case 'career':
+      case 'work':
         sectionContent = <CareerSection {...commonProps} />
         break
-      case 'financial':
+      case 'money':
         sectionContent = <FinancialSection {...commonProps} />
         break
       case 'photos-notes':
         sectionContent = <PhotosAndNotesSection {...commonProps} />
         break
-      case 'fun-recreation':
+      case 'fun':
         sectionContent = <FunRecreationSection {...commonProps} profileId={profileId} />
         break
-      case 'travel-adventure':
+      case 'travel':
         sectionContent = <TravelAdventureSection {...commonProps} />
         break
-      case 'social-friends':
+      case 'social':
         sectionContent = <SocialFriendsSection {...commonProps} />
         break
-      case 'possessions-lifestyle':
+      case 'stuff':
         sectionContent = <PossessionsLifestyleSection {...commonProps} />
         break
-      case 'spirituality-growth':
+      case 'spirituality':
         sectionContent = <SpiritualityGrowthSection {...commonProps} />
         break
-      case 'giving-legacy':
+      case 'giving':
         sectionContent = <GivingLegacySection {...commonProps} />
         break
       default:

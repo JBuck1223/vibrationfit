@@ -163,8 +163,8 @@ export default function VoiceProfileQuizPage() {
     load()
   }, [])
 
-  const handleSelectChange = (field: keyof VoiceProfileQuizState) => (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setState((prev) => ({ ...prev, [field]: event.target.value }))
+  const handleSelectChange = (field: keyof VoiceProfileQuizState) => (value: string) => {
+    setState((prev) => ({ ...prev, [field]: value }))
   }
 
   const handleInputChange = (field: keyof VoiceProfileQuizState) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

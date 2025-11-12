@@ -29,6 +29,7 @@ export {
   Select,
   Badge,
   Input,
+  DatePicker,
   Textarea,
   Heading,
   Text,

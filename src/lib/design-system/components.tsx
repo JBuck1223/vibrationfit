@@ -950,46 +950,139 @@ export const Icon: React.FC<IconProps> = ({ icon: IconComponent, size = 'md', co
   )
 }
 
-// Select/Dropdown Component
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+// Select/Dropdown Component - Custom styled dropdown
+interface SelectProps {
   label?: string
   options: Array<{ value: string; label: string }>
   placeholder?: string
+  value?: string
+  onChange?: (value: string) => void
+  error?: string
+  helperText?: string
+  disabled?: boolean
+  className?: string
 }
 
-export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, options, placeholder = 'Select...', className = '', ...props }, ref) => {
+export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
+  ({ label, options, placeholder = 'Select...', value, onChange, error, helperText, disabled = false, className = '' }, ref) => {
+    const [isOpen, setIsOpen] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    // Get selected option label
+    const selectedOption = options.find(opt => opt.value === value)
+    const displayValue = selectedOption?.label || placeholder
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+          setIsOpen(false)
+        }
+      }
+      
+      if (isOpen) {
+        document.addEventListener('mousedown', handleClickOutside)
+      }
+      
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }, [isOpen])
+
+    const handleSelect = (optionValue: string) => {
+      onChange?.(optionValue)
+      setIsOpen(false)
+    }
+
     return (
-      <div className={cn('w-full', className)}>
+      <div className={cn('w-full relative', className)} ref={containerRef}>
         {label && (
           <label className="block text-sm font-medium text-[#E5E7EB] mb-2">
             {label}
           </label>
         )}
-        <select
-          ref={ref}
-          className="
-            w-full px-4 py-3 
-            bg-[#404040] 
-            border-2 border-[#666666] 
-            rounded-xl 
-            text-white
-            focus:outline-none 
-            focus:ring-2 
-            focus:ring-[#39FF14]
-            focus:border-[#39FF14]
-            cursor-pointer
-            transition-all duration-200
-          "
-          {...props}
-        >
-          <option value="">{placeholder}</option>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        
+        {/* Select Button */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => !disabled && setIsOpen(!isOpen)}
+            disabled={disabled}
+            className={cn(
+              'w-full px-4 py-3 pr-10',
+              'bg-[#404040]',
+              'border-2',
+              'rounded-xl',
+              'text-left',
+              'focus:outline-none',
+              'focus:ring-2',
+              'transition-all duration-200',
+              'cursor-pointer',
+              disabled && 'opacity-50 cursor-not-allowed',
+              !selectedOption && 'text-[#9CA3AF]',
+              selectedOption && 'text-white',
+              error
+                ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'
+                : 'border-[#666666] focus:ring-[#39FF14] focus:border-[#39FF14]'
+            )}
+          >
+            {displayValue}
+          </button>
+          
+          {/* Custom Chevron */}
+          <ChevronDown 
+            className={cn(
+              'absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#39FF14] pointer-events-none transition-transform duration-200',
+              isOpen && 'rotate-180'
+            )}
+            strokeWidth={2}
+          />
+        </div>
+
+        {/* Custom Dropdown */}
+        {isOpen && !disabled && (
+          <div className="absolute z-50 mt-2 left-0 right-0 bg-[#1F1F1F] border-2 border-[#39FF14] rounded-2xl shadow-[0_0_30px_rgba(57,255,20,0.3)] p-2 max-h-60 overflow-y-auto">
+            <div className="space-y-1">
+              {options.map((option) => {
+                const isSelected = option.value === value
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleSelect(option.value)}
+                    className={cn(
+                      'w-full px-4 py-2 text-left text-sm',
+                      'flex items-center gap-2',
+                      'transition-colors',
+                      'cursor-pointer',
+                      'focus:outline-none',
+                      isSelected
+                        ? 'bg-[#39FF14]/20 text-[#39FF14] font-semibold'
+                        : 'bg-transparent text-white hover:bg-[#404040]'
+                    )}
+                  >
+                    {/* Checkmark Indicator */}
+                    <Check 
+                      className={cn(
+                        'w-4 h-4 flex-shrink-0',
+                        isSelected ? 'opacity-100' : 'opacity-0'
+                      )}
+                      strokeWidth={2.5}
+                    />
+                    <span>{option.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <p className="mt-2 text-sm text-[#FF0040]">{error}</p>
+        )}
+        {!error && helperText && (
+          <p className="mt-2 text-sm text-[#9CA3AF]">{helperText}</p>
+        )}
       </div>
     )
   }
@@ -1108,6 +1201,259 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   }
 )
 Input.displayName = 'Input'
+
+// DatePicker Component - Custom branded calendar
+interface DatePickerProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
+  label?: string
+  error?: string
+  helperText?: string
+  value?: string // ISO date string (YYYY-MM-DD)
+  onChange?: (date: string) => void
+  minDate?: string // ISO date string
+  maxDate?: string // ISO date string
+}
+
+export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
+  ({ label, error, helperText, value, onChange, minDate, maxDate, className = '', ...props }, ref) => {
+    const [isOpen, setIsOpen] = useState(false)
+    const [selectedDate, setSelectedDate] = useState<Date | null>(value ? new Date(value) : null)
+    const [currentMonth, setCurrentMonth] = useState<Date>(value ? new Date(value) : new Date())
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    // Close calendar when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+          setIsOpen(false)
+        }
+      }
+      
+      if (isOpen) {
+        document.addEventListener('mousedown', handleClickOutside)
+      }
+      
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }, [isOpen])
+
+    // Format date for display
+    const formatDisplayDate = (date: Date | null) => {
+      if (!date) return ''
+      return new Intl.DateTimeFormat('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      }).format(date)
+    }
+
+    // Get days in month
+    const getDaysInMonth = (date: Date) => {
+      const year = date.getFullYear()
+      const month = date.getMonth()
+      const firstDay = new Date(year, month, 1)
+      const lastDay = new Date(year, month + 1, 0)
+      const daysInMonth = lastDay.getDate()
+      const startingDayOfWeek = firstDay.getDay()
+      
+      return { daysInMonth, startingDayOfWeek, year, month }
+    }
+
+    const handleDateSelect = (day: number) => {
+      const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+      const isoString = newDate.toISOString().split('T')[0]
+      
+      // Check if date is within min/max range
+      if (minDate && isoString < minDate) return
+      if (maxDate && isoString > maxDate) return
+      
+      setSelectedDate(newDate)
+      onChange?.(isoString)
+      setIsOpen(false)
+    }
+
+    const handlePrevMonth = () => {
+      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
+    }
+
+    const handleNextMonth = () => {
+      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
+    }
+
+    const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth)
+    const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(currentMonth)
+
+    // Check if date is disabled
+    const isDateDisabled = (day: number) => {
+      const dateStr = new Date(year, month, day).toISOString().split('T')[0]
+      if (minDate && dateStr < minDate) return true
+      if (maxDate && dateStr > maxDate) return true
+      return false
+    }
+
+    // Check if date is selected
+    const isDateSelected = (day: number) => {
+      if (!selectedDate) return false
+      return (
+        selectedDate.getDate() === day &&
+        selectedDate.getMonth() === month &&
+        selectedDate.getFullYear() === year
+      )
+    }
+
+    // Check if date is today
+    const isToday = (day: number) => {
+      const today = new Date()
+      return (
+        today.getDate() === day &&
+        today.getMonth() === month &&
+        today.getFullYear() === year
+      )
+    }
+
+    return (
+      <div className={cn('w-full', className)} ref={containerRef}>
+        {label && (
+          <label className="block text-sm font-medium text-[#E5E7EB] mb-2">
+            {label}
+          </label>
+        )}
+        
+        {/* Input Field */}
+        <div className="relative">
+          <input
+            ref={ref}
+            type="text"
+            readOnly
+            value={formatDisplayDate(selectedDate)}
+            onClick={() => setIsOpen(!isOpen)}
+            placeholder="Select date..."
+            className={cn(
+              'w-full px-4 py-3 pr-10',
+              'bg-[#404040]',
+              'border-2',
+              'rounded-xl',
+              'text-white',
+              'placeholder-[#9CA3AF]',
+              'focus:outline-none',
+              'focus:ring-2',
+              'transition-all duration-200',
+              'cursor-pointer',
+              error
+                ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'
+                : 'border-[#666666] focus:ring-[#39FF14] focus:border-[#39FF14]'
+            )}
+            {...props}
+          />
+          <CalendarDays 
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#39FF14] pointer-events-none" 
+            strokeWidth={2.5}
+          />
+        </div>
+
+        {/* Calendar Dropdown */}
+        {isOpen && (
+          <div className="absolute z-50 mt-2 w-full min-w-[320px] bg-[#1F1F1F] border-2 border-[#39FF14] rounded-2xl shadow-[0_0_30px_rgba(57,255,20,0.3)] overflow-hidden">
+            {/* Calendar Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[#333]">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                className="p-2 hover:bg-[#404040] rounded-lg transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-[#00FFFF]" strokeWidth={2.5} />
+              </button>
+              
+              <div className="text-center">
+                <div className="text-lg font-bold text-white">{monthName}</div>
+                <div className="text-sm text-[#9CA3AF]">{year}</div>
+              </div>
+              
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                className="p-2 hover:bg-[#404040] rounded-lg transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 text-[#00FFFF]" strokeWidth={2.5} />
+              </button>
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="p-4">
+              {/* Day Names */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+                  <div
+                    key={day}
+                    className="text-center text-xs font-semibold text-[#9CA3AF] py-2"
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              {/* Days */}
+              <div className="grid grid-cols-7 gap-1">
+                {/* Empty cells for days before month starts */}
+                {Array.from({ length: startingDayOfWeek }).map((_, i) => (
+                  <div key={`empty-${i}`} className="aspect-square" />
+                ))}
+
+                {/* Actual days */}
+                {Array.from({ length: daysInMonth }).map((_, i) => {
+                  const day = i + 1
+                  const selected = isDateSelected(day)
+                  const today = isToday(day)
+                  const disabled = isDateDisabled(day)
+
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => !disabled && handleDateSelect(day)}
+                      disabled={disabled}
+                      className={cn(
+                        'aspect-square rounded-lg text-sm font-medium transition-all duration-200',
+                        'flex items-center justify-center',
+                        disabled && 'opacity-30 cursor-not-allowed',
+                        !disabled && !selected && 'hover:bg-[#404040] text-white',
+                        !disabled && selected && 'bg-[#39FF14] text-black font-bold shadow-[0_0_15px_rgba(57,255,20,0.5)]',
+                        !disabled && !selected && today && 'border-2 border-[#00FFFF] text-[#00FFFF]'
+                      )}
+                    >
+                      {day}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Today Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const today = new Date()
+                  setCurrentMonth(today)
+                  handleDateSelect(today.getDate())
+                }}
+                className="w-full mt-4 px-4 py-2 bg-[#00FFFF] text-black font-semibold rounded-full hover:bg-[#00FFFF]/80 transition-all duration-200"
+              >
+                Today
+              </button>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <p className="mt-2 text-sm text-[#FF0040]">{error}</p>
+        )}
+        {!error && helperText && (
+          <p className="mt-2 text-sm text-[#9CA3AF]">{helperText}</p>
+        )}
+      </div>
+    )
+  }
+)
+DatePicker.displayName = 'DatePicker'
 
 // Textarea Component
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {

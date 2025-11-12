@@ -249,8 +249,8 @@ export default function VoiceProfilePage() {
     setForm((prev) => ({ ...prev, [field]: event.target.value }))
   }
 
-  const handleSelectChange = (field: keyof FormState) => (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setForm((prev) => ({ ...prev, [field]: event.target.value }))
+  const handleSelectChange = (field: keyof FormState) => (value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }))
   }
 
   const handleSave = async () => {
@@ -296,9 +296,9 @@ export default function VoiceProfilePage() {
     }
   }
 
-  const handleVersionSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedVersionId(event.target.value)
-    const version = versions.find((item) => item.id === event.target.value)
+  const handleVersionSelect = (value: string) => {
+    setSelectedVersionId(value)
+    const version = versions.find((item) => item.id === value)
     if (version) {
       setForm({
         word_flow: version.word_flow,

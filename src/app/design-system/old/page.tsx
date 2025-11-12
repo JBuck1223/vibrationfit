@@ -2096,7 +2096,7 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
                       <Select
                         label="Choose an Option"
                         value={selectValue}
-                        onChange={(e) => setSelectValue(e.target.value)}
+                        onChange={(value) => setSelectValue(value)}
                         options={[
                           { value: '', label: 'Select an option' },
                           { value: 'option1', label: 'Option 1' },
@@ -2145,7 +2145,7 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
                     label="Select a Life Category"
                     placeholder="Choose a category..."
                     value={selectedCategory}
-                    onChange={(e: any) => setSelectedCategory(e.target.value)}
+                    onChange={(value) => setSelectedCategory(value)}
                     options={VISION_CATEGORIES.map(cat => ({ value: cat.key, label: cat.label }))}
                   />
                   {selectedCategory && (

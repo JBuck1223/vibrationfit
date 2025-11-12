@@ -83,6 +83,18 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
     { name: 'disabled', type: 'boolean', required: false },
   ],
 
+  'date-picker': [
+    { name: 'label', type: 'string', required: false, description: 'DatePicker label text' },
+    { name: 'value', type: 'string', required: false, description: 'Selected date in ISO format (YYYY-MM-DD)' },
+    { name: 'onChange', type: '(date: string) => void', required: false, description: 'Callback fired when date changes' },
+    { name: 'minDate', type: 'string', required: false, description: 'Minimum selectable date (ISO format)' },
+    { name: 'maxDate', type: 'string', required: false, description: 'Maximum selectable date (ISO format)' },
+    { name: 'error', type: 'string', required: false, description: 'Error message to display' },
+    { name: 'helperText', type: 'string', required: false, description: 'Helper text below picker' },
+    { name: 'placeholder', type: 'string', required: false, defaultValue: "'Select date...'", description: 'Placeholder text' },
+    { name: 'disabled', type: 'boolean', required: false, description: 'Disable date picker' },
+  ],
+
   'textarea': [
     { name: 'label', type: 'string', required: false },
     { name: 'error', type: 'string', required: false },
@@ -143,11 +155,14 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
   ],
 
   'select': [
-    { name: 'label', type: 'string', required: false },
-    { name: 'value', type: 'string', required: false },
-    { name: 'onChange', type: '(e: React.ChangeEvent<HTMLSelectElement>) => void', required: false },
-    { name: 'options', type: '{ value: string; label: string }[]', required: false, description: 'Dropdown options' },
-    { name: 'placeholder', type: 'string', required: false },
+    { name: 'label', type: 'string', required: false, description: 'Select label text' },
+    { name: 'value', type: 'string', required: false, description: 'Currently selected value' },
+    { name: 'onChange', type: '(value: string) => void', required: false, description: 'Callback fired when selection changes' },
+    { name: 'options', type: '{ value: string; label: string }[]', required: true, description: 'Dropdown options array' },
+    { name: 'placeholder', type: 'string', required: false, defaultValue: "'Select...'", description: 'Placeholder text' },
+    { name: 'error', type: 'string', required: false, description: 'Error message to display' },
+    { name: 'helperText', type: 'string', required: false, description: 'Helper text below select' },
+    { name: 'disabled', type: 'boolean', required: false, description: 'Disable select interaction' },
   ],
 
   'video': [

@@ -177,6 +177,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     path: '/design-system/component/input'
   },
   {
+    id: 'date-picker',
+    name: 'DatePicker',
+    description: 'Custom branded date picker with neon calendar, month navigation, and min/max date support',
+    category: 'UI',
+    icon: Edit,
+    exportName: 'DatePicker',
+    path: '/design-system/component/date-picker'
+  },
+  {
     id: 'textarea',
     name: 'Textarea',
     description: 'Multi-line text input with validation and helper text',
@@ -352,15 +361,6 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: Type,
     exportName: 'Title',
     path: '/design-system/component/title'
-  },
-  {
-    id: 'page-titles',
-    name: 'Page Titles',
-    description: 'Standardized page header with eyebrow, status, metadata, and responsive actions',
-    category: 'Typography',
-    icon: Type,
-    exportName: 'PageTitles',
-    path: '/design-system/component/page-titles'
   },
   {
     id: 'bulleted-list',

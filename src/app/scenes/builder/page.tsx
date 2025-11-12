@@ -276,7 +276,7 @@ export default function SceneBuilderPage() {
                 <Select
                   label="Category"
                   value={category}
-                  onChange={(event) => setCategory(event.target.value)}
+                  onChange={(value) => setCategory(value)}
                   options={LIFE_CATEGORIES}
                 />
               </div>
@@ -285,7 +285,7 @@ export default function SceneBuilderPage() {
                 <Select
                   label="Data Richness"
                   value={dataRichnessTier}
-                  onChange={(event) => setDataRichnessTier(event.target.value as 'A' | 'B' | 'C')}
+                  onChange={(value) => setDataRichnessTier(value as 'A' | 'B' | 'C')}
                   options={DATA_RICHNESS_OPTIONS}
                 />
               </div>
