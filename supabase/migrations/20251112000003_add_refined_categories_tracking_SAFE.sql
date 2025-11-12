@@ -124,8 +124,6 @@ CREATE TRIGGER trigger_track_category_refinement
   FOR EACH ROW
   EXECUTE FUNCTION track_category_refinement();
 
-RAISE NOTICE 'Trigger track_category_refinement created/updated successfully';
-
 -- ============================================================================
 -- STEP 6: Add Helper Functions (No Data Loss)
 -- ============================================================================
@@ -270,10 +268,13 @@ COMMENT ON FUNCTION sync_refined_categories_from_active IS
 -- MIGRATION COMPLETE
 -- ============================================================================
 
-RAISE NOTICE '✅ Migration complete: refined_categories tracking added successfully';
-RAISE NOTICE '   - Column added (if not exists)';
-RAISE NOTICE '   - Index created';
-RAISE NOTICE '   - Trigger created/updated';
-RAISE NOTICE '   - Helper functions created';
-RAISE NOTICE '   - No data was modified or deleted';
+DO $$ 
+BEGIN
+  RAISE NOTICE '✅ Migration complete: refined_categories tracking added successfully';
+  RAISE NOTICE '   - Column added (if not exists)';
+  RAISE NOTICE '   - Index created';
+  RAISE NOTICE '   - Trigger created/updated';
+  RAISE NOTICE '   - Helper functions created';
+  RAISE NOTICE '   - No data was modified or deleted';
+END $$;
 

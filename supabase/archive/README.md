@@ -65,8 +65,8 @@
 ## 📋 Reference Rules for AI Agents
 
 ### DO ✅
-1. **Reference `docs/CURRENT_SCHEMA.md`** for schema questions
-2. **Check `docs/COMPLETE_SCHEMA_DUMP.sql`** for exact table definitions
+1. **Reference `supabase/CURRENT_SCHEMA.md`** for schema questions
+2. **Check `supabase/COMPLETE_SCHEMA_DUMP.sql`** for exact table definitions
 3. **Use `supabase/migrations/`** for understanding migration history
 4. **Verify column existence** before writing queries
 
@@ -81,8 +81,8 @@
 
 If you find a script in here that's still useful:
 1. Extract it from `supabase/archive/`
-2. Update it to match current schema (`docs/CURRENT_SCHEMA.md`)
-3. Test it against production dump (`docs/COMPLETE_SCHEMA_DUMP.sql`)
+2. Update it to match current schema (`supabase/CURRENT_SCHEMA.md`)
+3. Test it against production dump (`supabase/COMPLETE_SCHEMA_DUMP.sql`)
 4. Place it in appropriate location (`scripts/` or `supabase/migrations/`)
 5. Document why it's needed
 
@@ -163,5 +163,5 @@ Migration helpers:
 
 ---
 
-**Note:** These files are kept for historical reference only. The actual database state is documented in `docs/CURRENT_SCHEMA.md` and `docs/COMPLETE_SCHEMA_DUMP.sql`.
+**Note:** These files are kept for historical reference only. The actual database state is documented in `supabase/CURRENT_SCHEMA.md` and `supabase/COMPLETE_SCHEMA_DUMP.sql`.
 
