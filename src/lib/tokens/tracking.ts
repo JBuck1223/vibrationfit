@@ -45,6 +45,7 @@ const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
 /**
  * Check if user has sufficient tokens before allowing an AI action (server-side)
  * Returns null if user has enough tokens, or an error response object if insufficient
+ * NOW SUPPORTS HOUSEHOLD TOKEN SHARING
  */
 export async function validateTokenBalance(
   userId: string, 
@@ -90,8 +91,28 @@ export async function validateTokenBalance(
     
     const tokensRemaining = Math.max(0, totalGrants - totalUsed - totalDeductions)
 
-    // Check if user has sufficient tokens
-    if (tokensRemaining < estimatedTokens) {
+    // Check if user has sufficient tokens individually
+    if (tokensRemaining >= estimatedTokens) {
+      return null // User has sufficient tokens from their own balance
+    }
+
+    // ===== NEW: Check household token sharing =====
+    // Get user's household info
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select(`
+        household_id,
+        allow_shared_tokens,
+        household:households!user_profiles_household_id_fkey(
+          admin_user_id,
+          shared_tokens_enabled
+        )
+      `)
+      .eq('user_id', userId)
+      .single()
+
+    if (!profile?.household_id) {
+      // User not in household, cannot use shared tokens
       return {
         error: 'Insufficient tokens remaining',
         tokensRemaining,
@@ -99,7 +120,46 @@ export async function validateTokenBalance(
       }
     }
 
-    return null // User has sufficient tokens
+    const household = profile.household as any
+    
+    // Check if household token sharing is enabled
+    if (!household?.shared_tokens_enabled || !profile.allow_shared_tokens) {
+      return {
+        error: 'Insufficient tokens remaining',
+        tokensRemaining,
+        status: 402
+      }
+    }
+
+    // Don't let admin try to pull from themselves (infinite loop protection)
+    if (household.admin_user_id === userId) {
+      return {
+        error: 'Insufficient tokens remaining',
+        tokensRemaining,
+        status: 402
+      }
+    }
+
+    // Get household token summary
+    const { data: tokenSummary } = await supabase
+      .from('household_token_summary')
+      .select('household_tokens_remaining')
+      .eq('household_id', profile.household_id)
+      .single()
+
+    const householdTokens = tokenSummary?.household_tokens_remaining || 0
+
+    // Check if household has enough cumulative tokens
+    if (householdTokens < estimatedTokens) {
+      return {
+        error: 'Insufficient household tokens remaining',
+        tokensRemaining: householdTokens,
+        status: 402
+      }
+    }
+
+    // Household has enough tokens - allow the operation
+    return null
   } catch (error) {
     console.error('Error validating token balance:', error)
     // On error, allow request to proceed (fail open rather than blocking)
@@ -164,6 +224,7 @@ export async function getDefaultTokenEstimate(
 
 /**
  * Track token usage for an AI action
+ * NOW SUPPORTS HOUSEHOLD TOKEN DEDUCTION
  */
 export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at'>, supabaseClient?: any): Promise<void> {
   try {
@@ -214,8 +275,34 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
       console.error('Failed to insert audit trail:', auditError)
     }
 
-    // 2. Update user balance in user_profiles (for backwards compatibility only)
-    // NOTE: We still update this field, but we NEVER read from it - always calculate from transactions
+    // 2. Deduct tokens using household-aware logic
+    // This handles both individual deduction and household sharing
+    if (usage.success && effectiveTokens > 0) {
+      // Use the deductTokens function from household.ts which handles sharing
+      try {
+        // Import dynamically to avoid circular dependencies
+        const { deductTokens } = await import('@/lib/supabase/household')
+        const deductionResult = await deductTokens(usage.user_id, effectiveTokens)
+        
+        if (!deductionResult.success) {
+          console.error('Failed to deduct tokens (should not happen - validation passed):', deductionResult.error)
+        } else if (deductionResult.usedSharedTokens) {
+          console.log('Tokens deducted using household sharing:', effectiveTokens)
+        } else {
+          console.log('Tokens deducted from user balance:', effectiveTokens)
+        }
+        
+        // Balance is now updated by deductTokens function
+        // No need to manually update user_profiles here
+        return
+      } catch (importError) {
+        console.error('Error importing deductTokens, falling back to old logic:', importError)
+        // Fall through to old logic below
+      }
+    }
+
+    // 3. Fallback: Old logic for backwards compatibility
+    // (Only runs if deductTokens import fails or usage.success is false)
     if (usage.success && effectiveTokens > 0) {
       // Calculate new balance from all transactions (source of truth)
       const { data: allTransactions } = await supabase

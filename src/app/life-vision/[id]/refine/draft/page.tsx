@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Gem, Check, Eye } from 'lucide-react'
+import { getDraftVision, commitDraft, getRefinedCategories, isCategoryRefined } from '@/lib/vision/draft-helpers'
 import { 
   Button, 
   Card, 
@@ -36,6 +37,9 @@ interface VisionData {
   conclusion: string
   status: 'draft' | 'complete' | string
   completion_percent: number
+  is_active?: boolean
+  is_draft?: boolean
+  refined_categories?: string[]
   created_at: string
   updated_at: string
 }
@@ -170,69 +174,30 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
 
   // Commit draft vision as active version
   const commitDraftAsActive = async () => {
-    if (!draftVision || !vision || draftCategories.length === 0) {
-      alert('No draft changes to commit')
+    if (!draftVision) {
+      alert('No draft vision to commit')
       return
     }
 
-    if (!confirm('Are you sure you want to commit this draft vision as your active vision? This will create a new version.')) {
+    const refinedCount = getRefinedCategories(draftVision).length
+    if (refinedCount === 0) {
+      alert('No refined categories to commit')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to commit this draft vision with ${refinedCount} refined ${refinedCount === 1 ? 'category' : 'categories'} as your active vision? This will create a new version.`)) {
       return
     }
 
     setIsCommitting(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        alert('Please log in to commit your vision')
-        return
-      }
-
-      // Create new vision version with draft refinements
-      const { data: newVersion, error: versionError } = await supabase
-        .from('vision_versions')
-        .insert({
-          user_id: user.id,
-          forward: draftVision.forward || '',
-          fun: draftVision.fun || '',
-          travel: draftVision.travel || '',
-          home: draftVision.home || '',
-          family: draftVision.family || '',
-          love: draftVision.love || '',
-          health: draftVision.health || '',
-          money: draftVision.money || '',
-          work: draftVision.work || '',
-          social: draftVision.social || '',
-          stuff: draftVision.stuff || '',
-          giving: draftVision.giving || '',
-          spirituality: draftVision.spirituality || '',
-          conclusion: draftVision.conclusion || '',
-          version_number: (vision.version_number || 0) + 1,
-          status: 'complete',
-          completion_percent: completionPercentage
-        })
-        .select()
-        .single()
-
-      if (versionError) {
-        console.error('Error creating new version:', versionError)
-        throw versionError
-      }
-
-      // Delete all committed refinements
-      const { error: deleteError } = await supabase
-        .from('refinements')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('vision_id', vision.id)
-        .eq('operation_type', 'refine_vision')
-
-      if (deleteError) {
-        console.error('Error deleting refinements:', deleteError)
-        // Don't throw - the version was created successfully
-      }
-
+      // Use the commitDraft helper
+      const newActive = await commitDraft(draftVision.id)
+      
+      console.log('Draft committed successfully:', newActive.id)
+      
       // Redirect to the new active vision
-      router.push(`/life-vision/${newVersion.id}`)
+      router.push(`/life-vision/${newActive.id}`)
     } catch (error) {
       console.error('Error committing draft:', error)
       alert(`Failed to commit draft: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -293,50 +258,44 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         }
 
         const resolvedParams = await params
-        console.log('Loading draft vision with ID:', resolvedParams.id)
+        console.log('Loading draft vision for user:', user.id)
         
-        // Load the active vision first
-        const visionResponse = await fetch(`/api/vision?id=${resolvedParams.id}&includeVersions=true&t=${Date.now()}`)
-        
-        if (!visionResponse.ok) {
-          const errorData = await visionResponse.json()
-          throw new Error(errorData.error || 'Failed to load vision')
-        }
-        
-        const visionData = await visionResponse.json()
-        const { vision: activeVision } = visionData
-        
-        if (!activeVision) {
-          throw new Error('Vision not found')
+        // Load the active vision (the one being refined)
+        const { data: activeVision, error: visionError } = await supabase
+          .from('vision_versions')
+          .select('*')
+          .eq('id', resolvedParams.id)
+          .eq('user_id', user.id)
+          .single()
+
+        if (visionError || !activeVision) {
+          throw new Error('Active vision not found')
         }
 
         setVision(activeVision)
 
-        // Load draft vision (combines active + refinements)
-        const draftResponse = await fetch(`/api/vision/draft?id=${resolvedParams.id}&t=${Date.now()}`)
+        // Load draft vision using helper
+        const draft = await getDraftVision(user.id)
         
-        if (!draftResponse.ok) {
-          const errorData = await draftResponse.json()
-          throw new Error(errorData.error || 'Failed to load draft vision')
+        if (!draft) {
+          throw new Error('No draft vision found. Please start refining your vision first.')
         }
-        
-        const draftData = await draftResponse.json()
-        const { draftVision: combinedDraft, draftCategories, activeCategories } = draftData
 
-        console.log('Loaded draft vision data:', {
-          draftCount: draftCategories.length,
-          activeCount: activeCategories.length,
-          totalCategories: VISION_SECTIONS.length
+        console.log('Loaded draft vision:', {
+          id: draft.id,
+          refinedCount: getRefinedCategories(draft).length,
+          refinedCategories: getRefinedCategories(draft)
         })
 
-        const actualCompletion = calculateCompletion(combinedDraft)
-        const completed = getCompletedSections(combinedDraft)
+        const actualCompletion = calculateCompletion(draft)
+        const completed = getCompletedSections(draft)
+        const refined = getRefinedCategories(draft)
 
-        setDraftVision(combinedDraft)
+        setDraftVision(draft)
         setCompletionPercentage(actualCompletion)
         setCompletedSections(completed)
-        setDraftCategories(draftCategories || [])
-        setActiveCategories(activeCategories || [])
+        setDraftCategories(refined)
+        setActiveCategories(VISION_SECTIONS.map(cat => cat.key).filter(key => !refined.includes(key)))
         
         // Initialize with all categories selected
         setSelectedCategories(VISION_SECTIONS.map(cat => cat.key))
@@ -542,14 +501,24 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
 
             {/* Category Grid */}
             <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
-              {VISION_SECTIONS.map((category) => (
-                <CategoryCard 
-                  key={category.key} 
-                  category={category} 
-                  selected={selectedCategories.includes(category.key)} 
-                  onClick={() => handleCategoryToggle(category.key)}
-                />
-              ))}
+              {VISION_SECTIONS.map((category) => {
+                const isRefined = draftVision ? isCategoryRefined(draftVision, category.key) : false
+                return (
+                  <div key={category.key} className="relative">
+                    {isRefined && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-black z-10">
+                        <Sparkles className="w-2 h-2 text-black absolute top-0.5 left-0.5" />
+                      </div>
+                    )}
+                    <CategoryCard 
+                      category={category} 
+                      selected={selectedCategories.includes(category.key)} 
+                      onClick={() => handleCategoryToggle(category.key)}
+                      iconColor={isRefined ? NEON_YELLOW : undefined}
+                    />
+                  </div>
+                )
+              })}
             </div>
           </Card>
         </div>
@@ -562,7 +531,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
               if (!category) return null
               
               const content = draftVision?.[categoryKey as keyof VisionData] as string || ''
-              const isDraft = draftCategories.includes(categoryKey)
+              const isDraft = draftVision ? isCategoryRefined(draftVision, categoryKey) : false
               
               return (
                 <VisionCard

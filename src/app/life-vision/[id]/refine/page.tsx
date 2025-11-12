@@ -40,6 +40,14 @@ import { VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { VivaChatInput } from '@/components/viva/VivaChatInput'
 import { colors } from '@/lib/design-system/tokens'
+import { 
+  ensureDraftExists,
+  getDraftVision,
+  updateDraftCategory,
+  getRefinedCategories,
+  isCategoryRefined,
+  commitDraft
+} from '@/lib/vision/draft-helpers'
 
 interface VisionData {
   id: string
@@ -61,6 +69,9 @@ interface VisionData {
   status: 'draft' | 'complete' | string
   completion_percent: number
   version_number: number
+  is_active?: boolean
+  is_draft?: boolean
+  refined_categories?: string[]
   created_at: string
   updated_at: string
 }
@@ -242,6 +253,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const searchParams = useSearchParams()
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [vision, setVision] = useState<VisionData | null>(null)
+  const [draftVision, setDraftVision] = useState<VisionData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
@@ -258,11 +270,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [draftStatus, setDraftStatus] = useState<'none' | 'draft' | 'committed'>('none')
   const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const [allDrafts, setAllDrafts] = useState<any[]>([])
-  const [showAllDrafts, setShowAllDrafts] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [visionId, setVisionId] = useState<string | null>(null)
-  const [editingDraft, setEditingDraft] = useState<string | null>(null)
   const [showCurrentVision, setShowCurrentVision] = useState(true)
   const [showRefinement, setShowRefinement] = useState(true)
   const [userProfile, setUserProfile] = useState<any>(null)
@@ -276,51 +285,30 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   const supabase = createClient()
 
-  // Load all drafts for this vision
-  const loadAllDrafts = useCallback(async () => {
-    if (!user || !visionId) {
-      console.log('Skipping loadAllDrafts - missing user or visionId:', { user: !!user, visionId })
+  // Load draft vision for this user
+  const loadDraftVision = useCallback(async () => {
+    if (!user) {
+      console.log('Skipping loadDraftVision - missing user')
       return
     }
 
     try {
-      console.log('Loading drafts for user:', user.id, 'vision:', visionId)
+      console.log('Loading draft vision for user:', user.id)
       
-      // First, let's check if the refinements table exists and what columns it has
-      const { data, error } = await supabase
-        .from('refinements')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('vision_id', visionId)
-        .eq('operation_type', 'refine_vision') // Filter for refinement operations
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Supabase error loading refinements:', error)
-        console.error('Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        })
-        
-        // If the table doesn't exist or has different structure, return empty array
-        if (error.code === '42P01' || error.message.includes('does not exist')) {
-          console.log('Refinements table does not exist yet, returning empty array')
-          setAllDrafts([])
-          return
-        }
-        throw error
+      const draft = await getDraftVision(user.id)
+      
+      if (draft) {
+        console.log('Draft vision loaded:', draft.id, 'Refined categories:', draft.refined_categories)
+        setDraftVision(draft)
+      } else {
+        console.log('No draft vision found for user')
+        setDraftVision(null)
       }
-      
-      console.log('Successfully loaded drafts:', data?.length || 0)
-      setAllDrafts(data || [])
     } catch (error) {
-      console.error('Error loading drafts:', error)
-      // Set empty array on error to prevent UI issues
-      setAllDrafts([])
+      console.error('Error loading draft vision:', error)
+      setDraftVision(null)
     }
-  }, [user, visionId, supabase])
+  }, [user])
 
   // Load vision by ID function
   const loadVisionById = async () => {
@@ -350,6 +338,15 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setVision(visionData)
       console.log('Vision loaded successfully:', visionData.id)
       
+      // Ensure draft exists for this vision
+      try {
+        const draft = await ensureDraftExists(visionData.id)
+        setDraftVision(draft)
+        console.log('Draft ensured:', draft.id)
+      } catch (draftError) {
+        console.error('Error ensuring draft:', draftError)
+      }
+      
       // Also fetch user profile for avatar
       const { data: profile } = await supabase
         .from('user_profiles')
@@ -368,178 +365,38 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     }
   }
 
-  // Commit all drafts to new vision
-  const commitAllDrafts = useCallback(async () => {
-    if (!user || !visionId || !vision || allDrafts.length === 0) return
-
-    try {
-      setIsDraftSaving(true)
-
-      // Create new vision version with all draft refinements
-      const updatedVision = { ...vision } as any
-      allDrafts.forEach((draft: any) => {
-        if (draft.category && (draft.output_text || draft.refinement_text)) {
-          updatedVision[draft.category] = draft.output_text || draft.refinement_text
-        }
-      })
-
-      // Create new vision version
-      const { data: newVersion, error: versionError } = await supabase
-        .from('vision_versions')
-        .insert({
-          user_id: user.id,
-          vision: updatedVision,
-          version_number: (vision.version_number || 0) + 1,
-          status: 'complete'
-        })
-        .select()
-        .single()
-
-      if (versionError) throw versionError
-
-      // Reload vision and drafts
-      await loadVisionById()
-      await loadAllDrafts()
-      
-      setDraftStatus('committed')
-      setTimeout(() => setDraftStatus('none'), 2000)
-
-    } catch (error) {
-      console.error('Error committing all drafts:', error)
-    } finally {
-      setIsDraftSaving(false)
+  // Commit draft vision as new active
+  const commitDraftVision = useCallback(async () => {
+    if (!draftVision) {
+      console.log('No draft vision to commit')
+      return
     }
-  }, [user, visionId, vision, allDrafts, supabase, loadVisionById])
-
-  // Edit a draft
-  const editDraft = (draft: any) => {
-    console.log('Edit draft clicked:', draft.id)
-    setSelectedCategory(draft.category)
-    setCurrentRefinement(draft.output_text || draft.refinement_text || draft.current_refinement || '')
-    setEditingDraft(draft.id)
-    setShowAllDrafts(false) // Hide drafts when editing
-    
-    // Scroll to refinement section
-    setTimeout(() => {
-      const refinementSection = document.querySelector('[data-refinement-section]')
-      if (refinementSection) {
-        refinementSection.scrollIntoView({ behavior: 'smooth' })
-      }
-    }, 100)
-  }
-
-  // Commit a single draft to new vision
-  const commitSingleDraft = async (draft: any) => {
-    console.log('Commit single draft clicked:', draft.id)
-    if (!user || !visionId || !vision) return
 
     try {
       setIsDraftSaving(true)
 
-      // Create new vision version with this draft refinement
-      const updatedVision = { ...vision } as any
-      if (draft.category && (draft.output_text || draft.refinement_text)) {
-        updatedVision[draft.category] = draft.output_text || draft.refinement_text
-      }
-
-      // Create new vision version
-      const { data: newVersion, error: versionError } = await supabase
-        .from('vision_versions')
-        .insert({
-          user_id: user.id,
-          vision: updatedVision,
-          version_number: (vision.version_number || 0) + 1,
-          status: 'complete'
-        })
-        .select()
-        .single()
-
-      if (versionError) throw versionError
-
-      // Delete the committed draft
-      const { error: deleteError } = await supabase
-        .from('refinements')
-        .delete()
-        .eq('id', draft.id)
-
-      if (deleteError) throw deleteError
-
-      // Reload vision and drafts
-      await loadVisionById()
-      await loadAllDrafts()
+      // Use the commitDraft helper to commit the draft
+      const newActive = await commitDraft(draftVision.id)
+      
+      console.log('Draft committed successfully:', newActive.id)
+      
+      // Update vision to the newly committed one
+      setVision(newActive)
+      setDraftVision(null)
       
       setDraftStatus('committed')
       setTimeout(() => setDraftStatus('none'), 2000)
 
+      // Redirect to the new active vision
+      router.push(`/life-vision/${newActive.id}`)
     } catch (error) {
-      console.error('Error committing single draft:', error)
+      console.error('Error committing draft:', error)
       alert(`Failed to commit draft: ${error}`)
     } finally {
       setIsDraftSaving(false)
     }
-  }
+  }, [draftVision, router])
 
-  // Delete a draft
-  const deleteDraft = async (draftId: string) => {
-    console.log('Delete draft clicked:', draftId)
-    if (!confirm('Are you sure you want to delete this draft?')) return
-
-    try {
-      console.log('Attempting to delete draft:', draftId)
-      
-      // First, let's check if the draft exists
-      const { data: checkData, error: checkError } = await supabase
-        .from('refinements')
-        .select('id, category, output_text')
-        .eq('id', draftId)
-        .single()
-
-      if (checkError) {
-        console.error('Error checking draft before delete:', checkError)
-        alert(`Draft not found: ${checkError.message}`)
-        return
-      }
-
-      console.log('Draft found for deletion:', checkData)
-      
-      const { error } = await supabase
-        .from('refinements')
-        .delete()
-        .eq('id', draftId)
-
-      if (error) {
-        console.error('Error deleting draft:', error)
-        console.error('Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        })
-        alert(`Failed to delete draft: ${error.message}`)
-        return
-      }
-
-      console.log('Draft deleted from database successfully')
-      
-      // Immediately update the local state to remove the draft
-      setAllDrafts(prevDrafts => {
-        const filtered = prevDrafts.filter(draft => draft.id !== draftId)
-        console.log('Updated drafts list:', filtered.length, 'drafts remaining')
-        return filtered
-      })
-      
-      // Also reload drafts from database to ensure consistency
-      await loadAllDrafts()
-      
-      console.log('Draft removed from UI successfully')
-      
-      // Show success message
-      alert('Draft deleted successfully!')
-    } catch (error) {
-      console.error('Error in deleteDraft:', error)
-      alert(`Failed to delete draft: ${error}`)
-    }
-  }
 
   // Initialize user auth state first (before loading vision)
   useEffect(() => {
@@ -584,15 +441,15 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     }
   }, [params, user])
 
-  // Load all drafts when vision loads
+  // Load draft vision when user is available
   useEffect(() => {
-    if (visionId && user) {
-      console.log('useEffect triggered - loading drafts for vision:', visionId)
-      loadAllDrafts()
+    if (user) {
+      console.log('useEffect triggered - loading draft vision for user:', user.id)
+      loadDraftVision()
     } else {
-      console.log('useEffect skipped - missing visionId or user:', { visionId, user: !!user })
+      console.log('useEffect skipped - missing user')
     }
-  }, [visionId, user, loadAllDrafts])
+  }, [user, loadDraftVision])
 
   // Read category from URL parameters
   useEffect(() => {
@@ -604,61 +461,19 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         setSelectedCategory(categoryParam)
         console.log('Category selected from URL:', categoryParam)
         
-        // Load any existing draft for this category
-        if (user && visionId) {
-          // Call loadDraftForCategory directly to avoid dependency issues
-          const loadDraft = async () => {
-            try {
-              console.log('Loading draft for category:', categoryParam, 'user:', user.id, 'vision:', visionId)
-              
-              const { data, error } = await supabase
-                .from('refinements')
-                .select('*')
-                .eq('user_id', user.id)
-                .eq('vision_id', visionId)
-                .eq('category', categoryParam)
-                .eq('operation_type', 'refine_vision')
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single()
-
-              if (error) {
-                if (error.code === 'PGRST116') {
-                  console.log('No draft found for category:', categoryParam)
-                  // Reset to original vision content if no draft
-                  const categoryValue = getCategoryValue(categoryParam)
-                  setCurrentRefinement(categoryValue)
-                  return
-                }
-                console.error('Supabase error loading draft for category:', error)
-                // Reset to original vision content on error
-                const categoryValue = getCategoryValue(categoryParam)
-                setCurrentRefinement(categoryValue)
-                return
-              }
-
-              console.log('Loaded draft for category:', categoryParam, data)
-              if (data && data.output_text) {
-                setCurrentRefinement(data.output_text)
-                console.log('Auto-populated draft from URL for category:', categoryParam, data.output_text)
-              } else {
-                // Reset to original vision content if no draft text
-                const categoryValue = getCategoryValue(categoryParam)
-                setCurrentRefinement(categoryValue)
-              }
-            } catch (error) {
-              console.error('Error loading draft for category:', error)
-              // Reset to original vision content on error
-              const categoryValue = getCategoryValue(categoryParam)
-              setCurrentRefinement(categoryValue)
-            }
-          }
-          
-          loadDraft()
+        // Load content from draft vision for this category
+        if (draftVision) {
+          console.log('Loading category from draft vision:', categoryParam)
+          const draftValue = draftVision[categoryParam as keyof VisionData] as string
+          setCurrentRefinement(draftValue || '')
+        } else if (vision) {
+          // Fallback to active vision if no draft yet
+          const categoryValue = getCategoryValue(categoryParam)
+          setCurrentRefinement(categoryValue)
         }
       }
     }
-  }, [searchParams, user, visionId])
+  }, [searchParams, draftVision, vision])
 
   // Reset chat when category changes AND look up existing conversation
   useEffect(() => {
@@ -1195,152 +1010,30 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
   // Draft management functions
   const saveDraft = async () => {
-    if (!vision || !selectedCategory || !currentRefinement.trim()) return
+    if (!draftVision || !selectedCategory || !currentRefinement.trim()) return
     
     setIsDraftSaving(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      console.log('Saving draft for category:', selectedCategory, 'draft:', draftVision.id)
 
-      console.log('Saving draft for category:', selectedCategory, 'user:', user.id, 'vision:', vision.id)
+      // Use the updateDraftCategory helper
+      const updatedDraft = await updateDraftCategory(
+        draftVision.id,
+        selectedCategory,
+        currentRefinement
+      )
 
-      // Check if a draft already exists for this category
-      const { data: existingDrafts, error: checkError } = await supabase
-        .from('refinements')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('vision_id', vision.id)
-        .eq('category', selectedCategory)
-        .eq('operation_type', 'refine_vision')
-
-      if (checkError) {
-        console.error('Error checking existing drafts:', checkError)
-        return
-      }
-
-      console.log('Existing drafts found:', existingDrafts?.length || 0)
-
-      // If draft exists, update it; otherwise create new one
-      const draftData: any = {
-        user_id: user.id,
-        vision_id: vision.id,
-        category: selectedCategory,
-        output_text: currentRefinement,
-        operation_type: 'refine_vision',
-        created_at: new Date().toISOString()
-      }
-
-      let result
-      if (existingDrafts && existingDrafts.length > 0) {
-        // Update existing draft
-        console.log('Updating existing draft:', existingDrafts[0].id)
-        result = await supabase
-          .from('refinements')
-          .update({
-            output_text: currentRefinement,
-            created_at: new Date().toISOString()
-          })
-          .eq('id', existingDrafts[0].id)
-      } else {
-        // Create new draft
-        console.log('Creating new draft')
-        result = await supabase
-          .from('refinements')
-          .insert(draftData)
-      }
-
-      if (result.error) {
-        console.error('Error saving draft:', result.error)
-        console.error('Error details:', {
-          code: result.error.code,
-          message: result.error.message,
-          details: result.error.details,
-          hint: result.error.hint
-        })
-        
-        // If the table doesn't exist, just log and continue
-        if (result.error.code === '42P01' || result.error.message.includes('does not exist')) {
-          console.log('Refinements table does not exist yet, skipping save')
-        } else {
-          alert(`Failed to save draft: ${result.error.message}`)
-        }
-        return
-      }
-
+      setDraftVision(updatedDraft)
       setLastSaved(new Date())
-      console.log('Draft saved successfully')
-      
-      // Reload drafts to show the new one
-      await loadAllDrafts()
+      console.log('Draft saved successfully, refined categories:', updatedDraft.refined_categories)
     } catch (error) {
       console.error('Error saving draft:', error)
+      alert(`Failed to save draft: ${error}`)
     } finally {
       setIsDraftSaving(false)
     }
   }
 
-  const commitDraftToVision = async () => {
-    if (!vision || !selectedCategory || !currentRefinement.trim()) return
-    
-    setIsDraftSaving(true)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Create new vision version with updated category
-      const updatedVision = {
-        ...vision,
-        [selectedCategory]: currentRefinement,
-        version_number: vision.version_number + 1,
-        updated_at: new Date().toISOString()
-      }
-
-      // Insert new version
-      const { data: newVersion, error: versionError } = await supabase
-        .from('vision_versions')
-        .insert(updatedVision)
-        .select()
-        .single()
-
-      if (versionError) {
-        console.error('Error creating new version:', versionError)
-      return
-    }
-
-      // Update refinements table to mark as committed
-      const { error: refinementError } = await supabase
-        .from('refinements')
-        .update({
-          status: 'committed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
-        .eq('vision_id', vision.id)
-        .eq('category', selectedCategory)
-
-      if (refinementError) {
-        console.error('Error updating refinement status:', refinementError)
-        return
-      }
-
-      // Update local state
-      setVision(newVersion)
-      setDraftStatus('committed')
-      setLastSaved(new Date())
-      
-      // Reset refinement to match new vision
-      setTimeout(() => {
-        setCurrentRefinement(currentRefinement)
-        setDraftStatus('none')
-      }, 1000)
-
-      console.log('Draft committed successfully')
-    } catch (error) {
-      console.error('Error committing draft:', error)
-    } finally {
-      setIsDraftSaving(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -1400,196 +1093,126 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             ? 'lg:grid-cols-[repeat(14,minmax(0,1fr))]'
             : 'lg:grid-cols-[repeat(12,minmax(0,1fr))]'
         }`}>
-          {VISION_CATEGORIES.map((category) => (
-            <CategoryCard 
-                      key={category.key}
-              category={category} 
-              selected={selectedCategory === category.key} 
-                      variant="outlined"
-                      selectionStyle="border"
-                      iconColor="#14B8A6"
-                      selectedIconColor="#39FF14"
-                      onClick={async () => {
-                        setSelectedCategory(category.key)
-                        // Load any existing draft for this category
-                        if (user && visionId) {
-                          try {
-                            console.log('Loading draft for category:', category.key, 'user:', user.id, 'vision:', visionId)
-                            
-                            const { data, error } = await supabase
-                              .from('refinements')
-                              .select('*')
-                              .eq('user_id', user.id)
-                              .eq('vision_id', visionId)
-                              .eq('category', category.key)
-                              .eq('operation_type', 'refine_vision')
-                              .order('created_at', { ascending: false })
-                              .limit(1)
-                              .single()
-
-                            if (error) {
-                              if (error.code === 'PGRST116') {
-                                console.log('No draft found for category:', category.key)
-                                // Reset to original vision content if no draft
-                                const categoryValue = getCategoryValue(category.key)
-                                setCurrentRefinement(categoryValue)
-                                return
-                              }
-                              console.error('Supabase error loading draft for category:', error)
-                              // Reset to original vision content on error
-                              const categoryValue = getCategoryValue(category.key)
-                              setCurrentRefinement(categoryValue)
-                              return
-                            }
-
-                            console.log('Loaded draft for category:', category.key, data)
-                            if (data && data.output_text) {
-                              setCurrentRefinement(data.output_text)
-                              console.log('Auto-populated draft for category:', category.key, data.output_text)
-                            } else {
-                              // Reset to original vision content if no draft text
-                              const categoryValue = getCategoryValue(category.key)
-                              setCurrentRefinement(categoryValue)
-                            }
-                          } catch (error) {
-                            console.error('Error loading draft for category:', error)
-                            // Reset to original vision content on error
-                            const categoryValue = getCategoryValue(category.key)
-                            setCurrentRefinement(categoryValue)
-                          }
-                        } else {
-                          // Reset to original vision content if no user/visionId
-                          const categoryValue = getCategoryValue(category.key)
-                          setCurrentRefinement(categoryValue)
-                        }
-                      }}
-            />
-          ))}
+          {VISION_CATEGORIES.map((category) => {
+            const isRefined = draftVision && isCategoryRefined(draftVision, category.key)
+            return (
+              <div key={category.key} className="relative">
+                {isRefined && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-black z-10">
+                    <Sparkles className="w-2 h-2 text-black absolute top-0.5 left-0.5" />
+                  </div>
+                )}
+                <CategoryCard 
+                  category={category} 
+                  selected={selectedCategory === category.key} 
+                  variant="outlined"
+                  selectionStyle="border"
+                  iconColor={isRefined ? colors.energy.yellow[500] : "#14B8A6"}
+                  selectedIconColor="#39FF14"
+                  onClick={() => {
+                    setSelectedCategory(category.key)
+                    // Load content from draft vision
+                    if (draftVision) {
+                      const draftValue = draftVision[category.key as keyof VisionData] as string
+                      setCurrentRefinement(draftValue || '')
+                    } else if (vision) {
+                      const categoryValue = getCategoryValue(category.key)
+                      setCurrentRefinement(categoryValue)
+                    }
+                  }}
+                />
+              </div>
+            )
+          })}
         </div>
       </div>
 
-      {/* All Drafts Dropdown */}
-      {allDrafts.length > 0 && (
+      {/* Draft Vision Status */}
+      {draftVision && (
         <div className="mb-8">
           <Card className="p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                  <span className="text-yellow-500 text-sm font-bold">{allDrafts.length}</span>
+                  <span className="text-yellow-500 text-sm font-bold">
+                    {getRefinedCategories(draftVision).length}
+                  </span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">All Drafts</h3>
+                  <h3 className="text-lg font-semibold text-white">Draft Vision</h3>
                   <p className="text-sm text-neutral-400">
-                    {allDrafts.length} draft{allDrafts.length !== 1 ? 's' : ''} ready to commit
+                    {getRefinedCategories(draftVision).length} {getRefinedCategories(draftVision).length === 1 ? 'category' : 'categories'} refined
                   </p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                <Button
-                  asChild
-                  variant="primary"
-                  size="sm"
-                  className="flex items-center justify-center gap-1 w-full sm:w-auto font-semibold"
-                  style={{
-                    backgroundColor: colors.energy.yellow[500],
-                    color: '#000000',
-                    border: `2px solid ${colors.energy.yellow[500]}`
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = `${colors.energy.yellow[500]}E6`
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
-                  }}
-                >
-                  <Link href={`/life-vision/${visionId}/refine/draft`}>
-                    <Eye className="w-4 h-4" />
-                    View Draft Vision
-                  </Link>
-                </Button>
-                <Button
-                  onClick={() => setShowAllDrafts(!showAllDrafts)}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center justify-center gap-1 w-full sm:w-auto"
-                >
-                  {showAllDrafts ? 'Hide' : 'Show'} Drafts
-                </Button>
-                <Button
-                  onClick={commitAllDrafts}
-                  disabled={isDraftSaving}
-                  variant="primary"
-                  size="sm"
-                  className="flex items-center justify-center gap-1 w-full sm:w-auto"
-                >
-                  {isDraftSaving ? (
-                    <Spinner variant="primary" size="sm" />
-                  ) : (
-                    <Check className="w-4 h-4" />
-                  )}
-                  Commit All Drafts
-                </Button>
+                {getRefinedCategories(draftVision).length > 0 && (
+                  <>
+                    <Button
+                      asChild
+                      variant="primary"
+                      size="sm"
+                      className="flex items-center justify-center gap-1 w-full sm:w-auto font-semibold"
+                      style={{
+                        backgroundColor: colors.energy.yellow[500],
+                        color: '#000000',
+                        border: `2px solid ${colors.energy.yellow[500]}`
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${colors.energy.yellow[500]}E6`
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
+                      }}
+                    >
+                      <Link href={`/life-vision/${visionId}/refine/draft`}>
+                        <Eye className="w-4 h-4" />
+                        View Draft Vision
+                      </Link>
+                    </Button>
+                    <Button
+                      onClick={commitDraftVision}
+                      disabled={isDraftSaving}
+                      variant="primary"
+                      size="sm"
+                      className="flex items-center justify-center gap-1 w-full sm:w-auto"
+                    >
+                      {isDraftSaving ? (
+                        <Spinner variant="primary" size="sm" />
+                      ) : (
+                        <Check className="w-4 h-4" />
+                      )}
+                      Commit Draft
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
             
-            {showAllDrafts && (
-              <div className="mt-4 space-y-3">
-                {allDrafts.map((draft) => {
-                  const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === draft.category)
-                  return (
-                    <div key={draft.id} className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
-                        <div className="flex items-center gap-3">
-                          {categoryInfo && <categoryInfo.icon className="w-5 h-5 text-primary-500" />}
-                          <span className="font-medium text-white">{categoryInfo?.label}</span>
-                          <Badge variant="warning" className="text-xs">Draft</Badge>
-                        </div>
-                        {/* View button with primary styling in neon yellow */}
-                        <div className="flex items-center gap-2">
-                          <Button
-                            onClick={() => editDraft(draft)}
-                            variant="primary"
-                            size="sm"
-                            className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px] flex-1 sm:flex-none font-semibold"
-                            style={{
-                              backgroundColor: colors.energy.yellow[500],
-                              color: '#000000',
-                              border: `2px solid ${colors.energy.yellow[500]}`
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = `${colors.energy.yellow[500]}E6`
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
-                            }}
-                          >
-                            <Eye className="w-4 h-4" />
-                            View
-                          </Button>
-                          <Button
-                            onClick={() => deleteDraft(draft.id)}
-                            variant="danger"
-                            size="sm"
-                            className="flex items-center justify-center gap-1 py-2 px-4 min-h-[40px] flex-1 sm:flex-none"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      {/* ID and Date under the title */}
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mb-3 text-xs text-neutral-500">
-                        <span className="font-mono break-all">ID: {draft.id}</span>
-                        <span className="whitespace-nowrap">Created {new Date(draft.created_at).toLocaleDateString()}</span>
-                      </div>
-                      
-                      <p className="text-sm text-neutral-300 line-clamp-2 break-words">
-                        {draft.output_text || draft.refinement_text || draft.current_refinement || 'No content'}
-                      </p>
-                    </div>
-                  )
-                })}
+            {/* Show refined categories */}
+            {getRefinedCategories(draftVision).length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm text-neutral-400 mb-2">Refined categories:</p>
+                <div className="flex flex-wrap gap-2">
+                  {getRefinedCategories(draftVision).map((categoryKey) => {
+                    const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === categoryKey)
+                    return (
+                      <Badge
+                        key={categoryKey}
+                        variant="warning"
+                        className="text-xs"
+                        style={{
+                          backgroundColor: `${colors.energy.yellow[500]}33`,
+                          color: colors.energy.yellow[500],
+                          border: `1px solid ${colors.energy.yellow[500]}`
+                        }}
+                      >
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        {categoryInfo?.label}
+                      </Badge>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </Card>

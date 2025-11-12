@@ -187,29 +187,34 @@ export default function VisionListPage() {
         setVersions([])
       }
       
-      // Fetch refinements count (count all refinements created by user)
+      // Fetch refined categories count from draft vision
       try {
         const { createClient } = await import('@/lib/supabase/client')
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         
         if (user) {
-          const { count, error } = await supabase
-            .from('refinements')
-            .select('id', { count: 'exact', head: true })
+          // Get draft vision and count refined_categories
+          const { data: draftVision, error } = await supabase
+            .from('vision_versions')
+            .select('refined_categories')
             .eq('user_id', user.id)
+            .eq('is_draft', true)
+            .eq('is_active', false)
+            .maybeSingle()
           
           if (error) {
-            console.warn('Error fetching refinements count:', error)
+            console.warn('Error fetching draft vision for refinements count:', error)
             setRefinementsCount(0)
           } else {
-            setRefinementsCount(count || 0)
+            const refinedCount = draftVision?.refined_categories?.length || 0
+            setRefinementsCount(refinedCount)
           }
         } else {
           setRefinementsCount(0)
         }
       } catch (err) {
-        console.warn('Could not fetch refinements count:', err)
+        console.warn('Could not fetch refined categories count:', err)
         setRefinementsCount(0)
       }
       
@@ -408,7 +413,7 @@ export default function VisionListPage() {
                   <Gem className="w-4 h-4 md:w-6 md:h-6 text-secondary-500" />
                 </div>
                 <p className="text-xl md:text-3xl font-bold text-white mb-1">{refinementsCount}</p>
-                <p className="text-xs md:text-sm text-neutral-400 mb-2">Refinements</p>
+                <p className="text-xs md:text-sm text-neutral-400 mb-2">Categories Refined</p>
               </div>
             </Card>
             <Card className="text-center">

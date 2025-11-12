@@ -1,0 +1,235 @@
+// Household Invitation API
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import {
+  getUserHousehold,
+  createHouseholdInvitation,
+  acceptHouseholdInvitation
+} from '@/lib/supabase/household'
+
+// =====================================================================
+// POST /api/household/invite - Create invitation (admin only)
+// =====================================================================
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Get request body
+    const body = await request.json()
+    const { email } = body
+
+    if (!email || typeof email !== 'string') {
+      return NextResponse.json(
+        { error: 'Email is required' },
+        { status: 400 }
+      )
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      )
+    }
+
+    // Get user's household
+    const household = await getUserHousehold(user.id)
+    if (!household) {
+      return NextResponse.json(
+        { error: 'Household not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if user is admin
+    if (household.admin_user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Only household admin can invite members' },
+        { status: 403 }
+      )
+    }
+
+    // Check if household is at max capacity
+    const { data: members } = await supabase
+      .from('household_members')
+      .select('id')
+      .eq('household_id', household.id)
+      .eq('status', 'active')
+    
+    if (members && members.length >= household.max_members) {
+      return NextResponse.json(
+        { error: `Household is at maximum capacity (${household.max_members} members)` },
+        { status: 400 }
+      )
+    }
+
+    // Check if email is already invited or a member
+    const { data: existingInvite } = await supabase
+      .from('household_invitations')
+      .select('id')
+      .eq('household_id', household.id)
+      .eq('invited_email', email)
+      .eq('status', 'pending')
+      .single()
+
+    if (existingInvite) {
+      return NextResponse.json(
+        { error: 'This email already has a pending invitation' },
+        { status: 400 }
+      )
+    }
+
+    // Check if user with this email is already a member
+    const { data: existingUser } = await supabase
+      .from('auth.users')
+      .select('id')
+      .eq('email', email)
+      .single()
+
+    if (existingUser) {
+      const { data: existingMember } = await supabase
+        .from('household_members')
+        .select('id')
+        .eq('household_id', household.id)
+        .eq('user_id', existingUser.id)
+        .eq('status', 'active')
+        .single()
+
+      if (existingMember) {
+        return NextResponse.json(
+          { error: 'This user is already a member of your household' },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Create invitation
+    const invitation = await createHouseholdInvitation({
+      householdId: household.id,
+      invitedEmail: email,
+      invitedBy: user.id
+    })
+
+    if (!invitation) {
+      return NextResponse.json(
+        { error: 'Failed to create invitation' },
+        { status: 500 }
+      )
+    }
+
+    // TODO: Send invitation email
+    // This would integrate with your email service (Resend, SendGrid, etc.)
+    // await sendInvitationEmail({
+    //   to: email,
+    //   inviterName: user.email,
+    //   householdName: household.name,
+    //   invitationToken: invitation.invitation_token
+    // })
+
+    return NextResponse.json({
+      invitation: {
+        id: invitation.id,
+        invited_email: invitation.invited_email,
+        status: invitation.status,
+        expires_at: invitation.expires_at
+      },
+      // Include invitation URL for now (until email is set up)
+      invitation_url: `${process.env.NEXT_PUBLIC_SITE_URL}/invite/${invitation.invitation_token}`
+    })
+  } catch (error) {
+    console.error('Error in POST /api/household/invite:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// =====================================================================
+// GET /api/household/invite?token={token} - Get invitation details
+// =====================================================================
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    
+    // Get token from query params
+    const { searchParams } = new URL(request.url)
+    const token = searchParams.get('token')
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Invitation token is required' },
+        { status: 400 }
+      )
+    }
+
+    // Get invitation
+    const { data: invitation, error } = await supabase
+      .from('household_invitations')
+      .select(`
+        *,
+        household:households!household_invitations_household_id_fkey(
+          id,
+          name,
+          plan_type
+        ),
+        inviter:auth.users!household_invitations_invited_by_fkey(
+          email
+        )
+      `)
+      .eq('invitation_token', token)
+      .single()
+
+    if (error || !invitation) {
+      return NextResponse.json(
+        { error: 'Invitation not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if expired
+    if (new Date(invitation.expires_at) < new Date()) {
+      return NextResponse.json(
+        { error: 'Invitation has expired' },
+        { status: 410 }
+      )
+    }
+
+    // Check if already accepted
+    if (invitation.status !== 'pending') {
+      return NextResponse.json(
+        { error: `Invitation is ${invitation.status}` },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json({
+      invitation: {
+        household_name: invitation.household.name,
+        invited_by: invitation.inviter.email,
+        invited_email: invitation.invited_email,
+        expires_at: invitation.expires_at
+      }
+    })
+  } catch (error) {
+    console.error('Error in GET /api/household/invite:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+

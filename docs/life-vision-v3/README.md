@@ -29,6 +29,12 @@ Read these documents **in order** for complete understanding:
 8. **[08-VIVA-RESTRUCTURE.md](./08-VIVA-RESTRUCTURE.md)** - VIVA prompt restructuring (all phases)
 9. **[09-AUDIT-REPORT.md](./09-AUDIT-REPORT.md)** - Initial file structure audit
 
+### 🔧 Refinement & Drafting System
+10. **[DRAFT_VISION_EXPERT_GUIDE.md](./DRAFT_VISION_EXPERT_GUIDE.md)** - Draft vision system (replaces old refinements table)
+11. **[REFINED_CATEGORIES_TRACKING_GUIDE.md](./REFINED_CATEGORIES_TRACKING_GUIDE.md)** - How refined_categories tracking works
+12. **[DRAFT_VISION_IMPLEMENTATION_SUMMARY.md](./DRAFT_VISION_IMPLEMENTATION_SUMMARY.md)** - Implementation details
+13. **[DRAFT_VISION_IMPLEMENTATION_PLAN.md](./DRAFT_VISION_IMPLEMENTATION_PLAN.md)** - Original plan
+
 ---
 
 ## 🎯 What is Life Vision V3?
