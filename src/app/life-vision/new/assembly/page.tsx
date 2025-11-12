@@ -162,7 +162,7 @@ export default function AssemblyPage() {
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
-          .neq('status', 'draft') // Only complete visions
+          .eq('is_draft', false) // Only complete visions (not drafts)
           .order('version_number', { ascending: false })
           .limit(1)
           .maybeSingle()
@@ -233,7 +233,8 @@ export default function AssemblyPage() {
             spirituality: data.json.spirituality || '',
             conclusion: '',
             completion_percent: 100,
-            status: 'draft', // V3: Mark as draft until final sections are added
+            is_draft: true,  // V3: Mark as draft until final sections are added
+            is_active: false, // V3: Not active until finalized
             richness_metadata: data.richnessMetadata || {} // V3: Save richness metadata
           })
           .select()

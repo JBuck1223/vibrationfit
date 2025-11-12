@@ -186,14 +186,26 @@ export default function FinalPage() {
         activationMessage: activationMsg
       })
 
-      // Update vision with activation message
+      // Mark vision as complete and active
       await supabase
         .from('vision_versions')
         .update({
           activation_message: activationMsg,
-          status: 'complete'
+          is_draft: false,  // No longer a draft
+          is_active: true    // Now the active vision
         })
         .eq('id', visionId)
+      
+      // Deactivate any other active visions for this user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase
+          .from('vision_versions')
+          .update({ is_active: false })
+          .eq('user_id', user.id)
+          .neq('id', visionId)
+          .eq('is_active', true)
+      }
 
     } catch (err) {
       console.error('Error saving bookends:', err)
