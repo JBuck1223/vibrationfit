@@ -1,5 +1,11 @@
 # 🎯 Expert Guide: /life-vision/new System
 
+**Last Updated:** November 12, 2025  
+**Status:** ✅ Current - Life Vision V3 Creation Flow  
+**Related:** DRAFT_VISION_EXPERT_GUIDE.md (for refinement/editing)
+
+---
+
 ## 📝 Prompt Files Reference
 
 ✅ **UPDATE (Nov 10, 2025)**: **ALL VIVA prompts are now centralized** in `/src/lib/viva/prompts/`! 

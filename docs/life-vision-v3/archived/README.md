@@ -1,5 +1,7 @@
 # Archived Life Vision Docs
 
+**Last Updated:** November 12, 2025
+
 **These documents represent old implementations or migration records.**
 
 ---

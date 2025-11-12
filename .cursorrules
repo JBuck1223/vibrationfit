@@ -60,6 +60,7 @@ src/
 1. ❌ NEVER create `.md` files in project root
 2. ✅ ALWAYS place in appropriate `docs/` subfolder
 3. ✅ Update `docs/README.md` if creating new category
+4. ✅ ALWAYS add date header to guide docs (Last Updated: Month Day, Year)
 
 **Migrations:**
 1. ❌ NEVER create migration files outside `supabase/migrations/`

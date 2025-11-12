@@ -1,5 +1,11 @@
 # Refined Categories Tracking Guide
 
+**Last Updated:** November 12, 2025  
+**Status:** ✅ Current System  
+**Part of:** Draft Vision System (DRAFT_VISION_EXPERT_GUIDE.md)
+
+---
+
 ## Overview
 
 The `refined_categories` system tracks which specific categories have been modified in a draft vision, allowing you to visually indicate refined areas with neon yellow borders and badges.

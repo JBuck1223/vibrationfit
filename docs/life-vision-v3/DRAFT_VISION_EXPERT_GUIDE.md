@@ -1,5 +1,11 @@
 # Draft Vision System - Expert Guide
 
+**Last Updated:** November 12, 2025  
+**Status:** ✅ Current System  
+**Replaces:** REFINEMENT_SYSTEM_EXPERT_GUIDE_OLD.md (archived)
+
+---
+
 ## Overview
 The draft vision system enables intelligent, conversational refinement of life visions. Users can refine individual categories, see visual indicators of changes, and commit all refinements atomically as a new vision version.
 
