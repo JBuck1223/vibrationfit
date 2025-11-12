@@ -84,6 +84,13 @@ src/
 2. ✅ After running successfully, move to `scripts/archive/`
 3. ❌ NEVER commit large zip files (add to .gitignore)
 
+**AWS Deployment:**
+1. ❌ NEVER commit Lambda layers to git (use AWS deployment)
+2. ❌ NEVER commit Lambda functions (functions/) - deploy to AWS
+3. ❌ NEVER commit production data dumps (production-*.json)
+4. ✅ Place AWS configs in `scripts/aws/`
+5. ✅ Keep AWS scripts for deployment automation
+
 ### Before Creating Any File, Ask:
 1. **Is this documentation?** → `docs/[category]/`
 2. **Is this database-related?** → `supabase/`

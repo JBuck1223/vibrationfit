@@ -39,3 +39,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AWS Lambda artifacts (431MB - too large for git)
+lambda-layers/
+lambda-video-processor/
+
+# Temporary AWS configs
+environment.json
+
+# Large deployment zips
+lambda-deploy*.zip
+
+# Old data dumps
+production-*.json
+
+# SSL certificates
+certs/
+
+# S3 backups
+s3-backup/
