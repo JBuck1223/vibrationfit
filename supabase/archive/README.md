@@ -1,5 +1,6 @@
 # 📦 Archived SQL Files
 
+**Location:** `supabase/archive/`  
 **Archive Date:** November 12, 2025  
 **Reason:** Schema cleanup - preventing agents from referencing outdated SQL
 
@@ -70,7 +71,7 @@
 4. **Verify column existence** before writing queries
 
 ### DON'T ❌
-1. ~~Reference files in `archive/old-sql/`~~ (outdated)
+1. ~~Reference files in `supabase/archive/`~~ (outdated)
 2. ~~Trust migration files to show current state~~ (use schema dump)
 3. ~~Assume columns exist based on old scripts~~ (verify in docs)
 
@@ -79,7 +80,7 @@
 ## 🔄 If You Need Something From Archive
 
 If you find a script in here that's still useful:
-1. Extract it from `archive/old-sql/`
+1. Extract it from `supabase/archive/`
 2. Update it to match current schema (`docs/CURRENT_SCHEMA.md`)
 3. Test it against production dump (`docs/COMPLETE_SCHEMA_DUMP.sql`)
 4. Place it in appropriate location (`scripts/` or `supabase/migrations/`)
