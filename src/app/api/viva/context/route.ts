@@ -249,15 +249,15 @@ function extractDesiredState(vision: any, profile: any): string {
 }
 
 /**
- * Extracts recent wins from refinements and journal entries
+ * Extracts recent wins from category states and journal entries
  */
-function extractRecentWins(refinements: any[], journals: any[]): string[] {
+function extractRecentWins(categoryStates: any[], journals: any[]): string[] {
   const wins: string[] = []
   
-  // From refinements (AI iterations)
-  refinements?.slice(0, 3).forEach(refinement => {
-    if (refinement.output_text) {
-      wins.push(`Refined ${refinement.category || 'vision'}`)
+  // From category states (V3 system)
+  categoryStates?.slice(0, 3).forEach(state => {
+    if (state.ai_summary) {
+      wins.push(`Created ${state.category || 'vision'}`)
     }
   })
   
