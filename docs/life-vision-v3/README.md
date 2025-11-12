@@ -13,6 +13,7 @@
 Read these documents **in order** for complete understanding:
 
 ### 🚀 Quick Start (Read First!)
+0. **[LIFE_VISION_FLOWS_OVERVIEW.md](./LIFE_VISION_FLOWS_OVERVIEW.md)** - ⭐ **START HERE** - Two flows explained
 1. **[01-OVERVIEW.md](./01-OVERVIEW.md)** - What Life Vision V3 is and what was built
 2. **[02-BUILD-COMPLETE.md](./02-BUILD-COMPLETE.md)** - Final build summary with metrics
 
