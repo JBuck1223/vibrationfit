@@ -79,6 +79,8 @@
 | **V3 Fields** |
 | `activation_message` | text | Custom activation/next steps |
 | `richness_metadata` | jsonb | Density stats per category |
+| `perspective` | text | 'singular' (I/my) or 'plural' (we/our) |
+| `refined_categories` | jsonb | Array of categories that have been refined |
 | **Timestamps** |
 | `created_at` | timestamptz | Creation timestamp |
 | `updated_at` | timestamptz | Last update |
