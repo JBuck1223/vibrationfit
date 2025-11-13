@@ -225,7 +225,7 @@ export default function AudioSetPlayerPage({
                 </div>
                 <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-green-500/20 text-green-400 border-green-500/30 !bg-[#39FF14] !text-black !border-[#39FF14]">
                   <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
-                  {vision.status === 'complete' ? 'Active' : 'Draft'}
+                  {!vision.is_draft ? (vision.is_active ? 'Active' : 'Complete') : 'Draft'}
                 </span>
               </div>
               {audioSet.description && (

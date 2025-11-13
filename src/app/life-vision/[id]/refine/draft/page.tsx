@@ -35,10 +35,9 @@ interface VisionData {
   giving: string
   spirituality: string
   conclusion: string
-  status: 'draft' | 'complete' | string
+  is_draft: boolean
+  is_active: boolean
   completion_percent: number
-  is_active?: boolean
-  is_draft?: boolean
   refined_categories?: string[]
   created_at: string
   updated_at: string

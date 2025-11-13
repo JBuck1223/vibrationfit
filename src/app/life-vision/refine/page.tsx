@@ -30,7 +30,7 @@ export default function RefinePage() {
         .from('vision_versions')
         .select('*')
         .eq('user_id', user.id)
-        .neq('status', 'draft')
+        .eq('is_draft', false)
         .order('version_number', { ascending: false })
         .limit(1)
         .maybeSingle()

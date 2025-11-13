@@ -49,7 +49,8 @@ interface VisionData {
   giving: string
   spirituality: string
   conclusion: string
-  status: 'draft' | 'complete' | string
+  is_draft: boolean
+  is_active: boolean
   completion_percent: number
   created_at: string
   updated_at: string
@@ -494,7 +495,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         spirituality: vision.spirituality || '',
         conclusion: vision.conclusion || '',
         completion_percent: completionPercentage,
-        status: isDraft ? 'draft' : 'complete'
+        is_draft: isDraft,
+        is_active: !isDraft  // Active if not a draft
       }
 
       const { data: newVersion, error } = await supabase
@@ -650,11 +652,18 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       V{vision.version_number}
                     </span>
                     <CreatedDateBadge createdAt={vision.created_at} />
-                    {vision.status === 'complete' ? (
-                      <Badge variant="success" className="!bg-[#39FF14] !text-black !border-[#39FF14]">
-                        <CheckCircle className="w-4 h-4 mr-1 !text-black" />
-                        Active
-                      </Badge>
+                    {!vision.is_draft ? (
+                      vision.is_active ? (
+                        <Badge variant="success" className="!bg-[#39FF14] !text-black !border-[#39FF14]">
+                          <CheckCircle className="w-4 h-4 mr-1 !text-black" />
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="info">
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Complete
+                        </Badge>
+                      )
                     ) : (
                       <Badge variant="warning">
                         <Circle className="w-4 h-4 mr-1" />

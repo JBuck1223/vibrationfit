@@ -17,8 +17,7 @@ INSERT INTO membership_tiers (
   description,
   monthly_vibe_assistant_tokens,
   features,
-  is_active,
-  max_users
+  is_active
 ) VALUES (
   'Vision Pro Household 28-Day',
   'household_28day',
@@ -27,17 +26,16 @@ INSERT INTO membership_tiers (
   jsonb_build_object(
     'household_enabled', true,
     'included_seats', 2,
+    'max_seats', 6,
     'max_additional_seats', 4,
     'addon_price_28day', 1900,
     'addon_price_annual', 19200
   ),
-  true,
-  6 -- Max 6 total (2 included + 4 add-ons)
+  true
 ) ON CONFLICT (tier_type) DO UPDATE SET
   description = EXCLUDED.description,
   monthly_vibe_assistant_tokens = EXCLUDED.monthly_vibe_assistant_tokens,
-  features = EXCLUDED.features,
-  max_users = EXCLUDED.max_users;
+  features = EXCLUDED.features;
 
 -- Household Annual Plan (2 seats included)
 INSERT INTO membership_tiers (
@@ -46,8 +44,7 @@ INSERT INTO membership_tiers (
   description,
   monthly_vibe_assistant_tokens,
   features,
-  is_active,
-  max_users
+  is_active
 ) VALUES (
   'Vision Pro Household Annual',
   'household_annual',
@@ -56,17 +53,16 @@ INSERT INTO membership_tiers (
   jsonb_build_object(
     'household_enabled', true,
     'included_seats', 2,
+    'max_seats', 6,
     'max_additional_seats', 4,
     'addon_price_28day', 1900,
     'addon_price_annual', 19200
   ),
-  true,
-  6 -- Max 6 total (2 included + 4 add-ons)
+  true
 ) ON CONFLICT (tier_type) DO UPDATE SET
   description = EXCLUDED.description,
   monthly_vibe_assistant_tokens = EXCLUDED.monthly_vibe_assistant_tokens,
-  features = EXCLUDED.features,
-  max_users = EXCLUDED.max_users;
+  features = EXCLUDED.features;
 
 -- =====================================================================
 -- 2. HOUSEHOLDS TABLE (Simplified - No Stripe Fields)

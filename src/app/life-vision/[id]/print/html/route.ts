@@ -12,7 +12,8 @@ interface VisionData {
   user_id: string
   title?: string
   version_number: number
-  status: 'draft' | 'complete' | string
+  is_draft: boolean
+  is_active: boolean
   completion_percent?: number
   forward: string
   fun: string
@@ -248,13 +249,13 @@ export async function GET(
     .cover-badge {
       display: inline-block;
       padding: 8pt 16pt;
-      background: ${vision.status === 'complete' ? primary : '#FFB701'}15;
-      border: 2px solid ${vision.status === 'complete' ? primary : '#FFB701'};
+      background: ${!vision.is_draft && vision.is_active ? primary : (!vision.is_draft ? primary : '#FFB701')}15;
+      border: 2px solid ${!vision.is_draft && vision.is_active ? primary : (!vision.is_draft ? primary : '#FFB701')};
       border-radius: 50px;
       margin: 12pt 0;
       font-size: 11pt;
       font-weight: 600;
-      color: ${vision.status === 'complete' ? primary : '#FFB701'};
+      color: ${!vision.is_draft && vision.is_active ? primary : (!vision.is_draft ? primary : '#FFB701')};
     }
     .cover-meta {
       margin-top: 24pt;
@@ -280,7 +281,7 @@ export async function GET(
       <div class="cover-divider"></div>
       
       <div class="cover-badge">
-        Version ${vision.version_number} • ${vision.status === 'complete' ? 'Complete' : 'Draft'}
+        Version ${vision.version_number} • ${!vision.is_draft ? (vision.is_active ? 'Active' : 'Complete') : 'Draft'}
       </div>
       
       ${userName ? `
@@ -328,8 +329,8 @@ export async function GET(
         </p>
         <p style="margin-bottom: 8pt;">
           <strong style="color: ${secondary};">Status:</strong>
-          <span style="color: ${vision.status === 'complete' ? primary : '#FFB701'}; font-weight: 600;">
-            ${vision.status === 'complete' ? 'Complete' : 'Draft'}
+          <span style="color: ${!vision.is_draft ? primary : '#FFB701'}; font-weight: 600;">
+            ${!vision.is_draft ? (vision.is_active ? 'Active' : 'Complete') : 'Draft'}
           </span>
         </p>
         <p style="margin-bottom: 8pt;">

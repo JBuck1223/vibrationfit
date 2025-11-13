@@ -37,7 +37,8 @@ interface VisionData {
   giving: string
   spirituality: string
   conclusion: string
-  status: 'draft' | 'complete' | string
+  is_draft: boolean
+  is_active: boolean
   completion_percent: number
   created_at: string
   updated_at: string
@@ -414,11 +415,18 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
             <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
               V{vision.version_number}
             </span>
-            {vision.status === 'complete' ? (
-              <Badge variant="success">
-                <CheckCircle className="w-4 h-4 mr-1" />
-                Active
-              </Badge>
+            {!vision.is_draft ? (
+              vision.is_active ? (
+                <Badge variant="success">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Active
+                </Badge>
+              ) : (
+                <Badge variant="info">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Complete
+                </Badge>
+              )
             ) : (
               <Badge variant="warning">
                 <Circle className="w-4 h-4 mr-1" />

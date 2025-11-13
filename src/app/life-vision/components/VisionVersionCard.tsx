@@ -9,10 +9,11 @@ interface VisionVersionCardProps {
   version: {
     id: string
     version_number: number
-    status: 'draft' | 'complete' | string
+    is_draft: boolean
+    is_active: boolean
     completion_percent: number
     created_at: string
-    isDraft?: boolean
+    isDraft?: boolean  // For display override
     draftCategories?: number
     totalCategories?: number
   }
@@ -49,7 +50,7 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
               <span className="w-7 h-7 flex items-center justify-center text-black rounded-full text-xs font-semibold" style={{ backgroundColor: NEON_YELLOW }}>
                 V{version.version_number}
               </span>
-            ) : version.status === 'complete' && isActive ? (
+            ) : !version.is_draft && version.is_active ? (
               <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
                 V{version.version_number}
               </span>
@@ -73,18 +74,18 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
                 Draft
               </Badge>
             )}
-            {version.status === 'draft' && !isDraftVersion && (
+            {version.is_draft && !isDraftVersion && (
               <Badge variant="warning">
                 Draft
               </Badge>
             )}
-            {version.status === 'complete' && isActive && !isDraftVersion && (
+            {!version.is_draft && version.is_active && !isDraftVersion && (
               <Badge variant="success" className="!bg-[#39FF14] !text-black !border-[#39FF14]">
                 <CheckCircle className="w-4 h-4 mr-1 !text-black" />
                 Active
               </Badge>
             )}
-            {version.status === 'complete' && !isActive && !isDraftVersion && (
+            {!version.is_draft && !version.is_active && !isDraftVersion && (
               <Badge variant="info">
                 Complete
               </Badge>

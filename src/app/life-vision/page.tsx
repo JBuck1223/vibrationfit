@@ -41,7 +41,8 @@ interface VisionData {
   giving: string
   spirituality: string
   conclusion: string
-  status: 'draft' | 'complete' | string
+  is_draft: boolean
+  is_active: boolean
   completion_percent: number
   version_number: number
   created_at: string
@@ -311,7 +312,7 @@ export default function VisionListPage() {
   }
 
   const visionCount = versions.length
-  const completedVisions = versions.filter(v => v.status === 'complete').length
+  const completedVisions = versions.filter(v => !v.is_draft).length
 
   if (loading) {
     return (
