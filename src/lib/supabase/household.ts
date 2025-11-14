@@ -101,7 +101,9 @@ export async function getHouseholdById(householdId: string): Promise<Household |
 export async function getUserHousehold(userId: string): Promise<Household | null> {
   const supabase = await createClient()
   
-  // First get the household_id from household_members (using service role to bypass RLS)
+  console.log('[getUserHousehold] Looking up household for user:', userId)
+  
+  // First get the household_id from household_members
   const { data: membership, error: memberError } = await supabase
     .from('household_members')
     .select('household_id')
@@ -109,10 +111,20 @@ export async function getUserHousehold(userId: string): Promise<Household | null
     .eq('status', 'active')
     .single()
 
+  console.log('[getUserHousehold] Membership query result:', { 
+    membership, 
+    error: memberError,
+    errorCode: memberError?.code,
+    errorDetails: memberError?.details,
+    errorMessage: memberError?.message
+  })
+
   if (memberError || !membership) {
-    console.error('Error fetching user household membership:', memberError)
+    console.error('[getUserHousehold] Error fetching user household membership:', memberError)
     return null
   }
+
+  console.log('[getUserHousehold] Found household_id:', membership.household_id)
 
   // Then get the household details
   const { data: household, error: householdError } = await supabase
@@ -121,8 +133,13 @@ export async function getUserHousehold(userId: string): Promise<Household | null
     .eq('id', membership.household_id)
     .single()
 
+  console.log('[getUserHousehold] Household query result:', { 
+    household: household ? `Found: ${household.name}` : 'Not found', 
+    error: householdError 
+  })
+
   if (householdError || !household) {
-    console.error('Error fetching household:', householdError)
+    console.error('[getUserHousehold] Error fetching household:', householdError)
     return null
   }
 

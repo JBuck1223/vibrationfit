@@ -148,9 +148,9 @@ export const userNavigation: NavItem[] = [
     href: '/dashboard/tokens',
     icon: Zap,
     hasDropdown: true,
-    description: 'Manage AI tokens',
+    description: 'Manage Creation Credits',
     children: [
-      { name: 'Token Balance', href: '/dashboard/tokens', icon: Zap },
+      { name: 'Creation Credits', href: '/dashboard/tokens', icon: Zap },
       { name: 'Token History', href: '/dashboard/token-history', icon: BarChart3 },
       { name: 'Buy Tokens', href: '/dashboard/add-tokens', icon: ShoppingCart },
     ]

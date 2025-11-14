@@ -14,11 +14,15 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('[GET /api/household] Starting request...')
     const supabase = await createClient()
     
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    console.log('[GET /api/household] Auth check:', { userId: user?.id, authError })
+    
     if (authError || !user) {
+      console.error('[GET /api/household] Unauthorized:', authError)
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -29,10 +33,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const includeMembers = searchParams.get('includeMembers') === 'true'
     const includeTokens = searchParams.get('includeTokens') === 'true'
+    console.log('[GET /api/household] Query params:', { includeMembers, includeTokens })
 
     // Get household
+    console.log('[GET /api/household] Fetching household for user:', user.id)
     const household = await getUserHousehold(user.id)
+    console.log('[GET /api/household] Household result:', household ? `Found: ${household.id}` : 'Not found')
+    
     if (!household) {
+      console.log('[GET /api/household] No household found for user')
       return NextResponse.json(
         { error: 'Household not found' },
         { status: 404 }
