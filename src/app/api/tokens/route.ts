@@ -4,6 +4,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+interface TokenBalanceData {
+  total_active: number
+  total_expired: number
+  grants_breakdown: any[]
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -13,63 +19,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get current balance from user_profiles
-    let profile: any = null
-    const { data: profileData, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('vibe_assistant_tokens_remaining, vibe_assistant_tokens_used, vibe_assistant_total_cost')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    // Get token balance using new token_balances table
+    const { data: balanceData, error: balanceError } = await supabase
+      .rpc('get_user_token_balance', { p_user_id: user.id })
+      .single()
 
-    if (profileError) {
-      console.error('Error fetching profile:', profileError)
-      // Don't fail - use defaults
-      profile = {
-        vibe_assistant_tokens_remaining: 0, // No default tokens
-        vibe_assistant_tokens_used: 0,
-        vibe_assistant_total_cost: 0
-      }
-    } else if (!profileData) {
-      // Profile doesn't exist - create it with defaults
-      console.log('Profile does not exist, creating default profile for user:', user.id)
-      const { data: newProfile, error: createError } = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: user.id,
-          vibe_assistant_tokens_remaining: 0, // No default tokens
-          vibe_assistant_tokens_used: 0,
-          vibe_assistant_total_cost: 0
-        })
-        .select('vibe_assistant_tokens_remaining, vibe_assistant_tokens_used, vibe_assistant_total_cost')
-        .single()
-
-      if (createError) {
-        console.error('Error creating profile:', createError)
-        // Use defaults even if creation fails
-        profile = {
-          vibe_assistant_tokens_remaining: 0, // No default tokens
-          vibe_assistant_tokens_used: 0,
-          vibe_assistant_total_cost: 0
-        }
-      } else {
-        profile = newProfile
-      }
-    } else {
-      profile = profileData
+    if (balanceError) {
+      console.error('Error fetching token balance:', balanceError)
+      return NextResponse.json({ error: 'Failed to fetch token balance' }, { status: 500 })
     }
 
-    // Get ALL transactions for accurate totals (not just last 50)
-    const { data: allTransactions, error: allTransactionsError } = await supabase
-      .from('token_transactions')
-      .select('*')
-      .eq('user_id', user.id)
+    const balance = balanceData as TokenBalanceData
+    const actualBalance = balance?.total_active || 0
+    const totalExpired = balance?.total_expired || 0
+    const grantsBreakdown = balance?.grants_breakdown || []
 
-    if (allTransactionsError) {
-      console.error('Error fetching all transactions:', allTransactionsError)
-      // Don't fail - transactions might not exist yet
-    }
-
-    // Get recent transactions for display (last 50)
+    // Get recent transactions for audit trail (last 50)
     const { data: transactions, error: transactionsError } = await supabase
       .from('token_transactions')
       .select('*')
@@ -79,17 +44,6 @@ export async function GET(request: NextRequest) {
 
     if (transactionsError) {
       console.error('Error fetching transactions:', transactionsError)
-    }
-
-    // Get ALL usage history for accurate totals (not just last 50)
-    const { data: allUsageHistory, error: allUsageError } = await supabase
-      .from('token_usage')
-      .select('*')
-      .eq('user_id', user.id)
-
-    if (allUsageError) {
-      console.error('Error fetching all usage history:', allUsageError)
-      return NextResponse.json({ error: 'Failed to fetch usage history' }, { status: 500 })
     }
 
     // Get recent usage for display (last 50)
@@ -105,59 +59,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch usage history' }, { status: 500 })
     }
 
-    // Calculate total granted from ALL token_transactions (source of truth for financial transactions)
-    // Only count grants/purchases (positive tokens_used and grant action types)
-    const grantActionTypes = ['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase']
-    const totalGrantedFromTransactions = (allTransactions || [])
-      .filter((tx: any) => 
-        grantActionTypes.includes(tx.action_type) && 
-        tx.tokens_used > 0
-      )
-      .reduce((sum: number, tx: any) => sum + tx.tokens_used, 0)
+    // Calculate total granted from all token_balances (includes expired)
+    const { data: allGrants, error: grantsError } = await supabase
+      .from('token_balances')
+      .select('tokens_granted')
+      .eq('user_id', user.id)
 
-    // Also check ALL token_usage for grants (for backward compatibility with old data)
-    // But only if we don't have transactions yet (to avoid double-counting)
-    const grantsFromUsage = totalGrantedFromTransactions === 0 
-      ? (allUsageHistory || [])
-          .filter((usage: any) => 
-            ['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase'].includes(usage.action_type)
-          )
-          .reduce((sum: number, usage: any) => sum + usage.tokens_used, 0)
-      : 0
+    const totalGranted = (allGrants || []).reduce((sum: number, grant: any) => sum + grant.tokens_granted, 0)
 
-    // Total granted: prefer transactions, fallback to usage if no transactions exist
-    const totalGranted = totalGrantedFromTransactions > 0 
-      ? totalGrantedFromTransactions 
-      : grantsFromUsage
+    // Calculate total used from token_usage
+    const { data: allUsage, error: allUsageError } = await supabase
+      .from('token_usage')
+      .select('tokens_used')
+      .eq('user_id', user.id)
+      .eq('success', true)
+      .not('action_type', 'in', '(admin_grant,subscription_grant,trial_grant,token_pack_purchase,admin_deduct)')
 
-    // Calculate total used from ALL actual records (more accurate than user_profiles which might be stale)
-    // Sum all AI usage (exclude grants and deductions)
-    const totalUsedFromRecords = (allUsageHistory || [])
-      .filter((usage: any) => 
-        usage.success !== false && // Only successful operations
-        usage.tokens_used > 0 &&
-        !['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase', 'admin_deduct'].includes(usage.action_type)
-      )
-      .reduce((sum: number, usage: any) => sum + usage.tokens_used, 0)
+    const totalUsed = (allUsage || []).reduce((sum: number, usage: any) => sum + usage.tokens_used, 0)
 
-    // Also check ALL token_transactions for deductions (if they're tracked there)
-    const deductionsFromTransactions = (allTransactions || [])
-      .filter((tx: any) => 
-        tx.action_type === 'admin_deduct' || 
-        tx.tokens_used < 0
-      )
-      .reduce((sum: number, tx: any) => sum + Math.abs(tx.tokens_used), 0)
+    // Calculate total cost
+    const { data: costData, error: costError } = await supabase
+      .from('token_usage')
+      .select('cost_estimate')
+      .eq('user_id', user.id)
+      .not('cost_estimate', 'is', null)
 
-    // Use calculated value from records (more accurate)
-    const totalUsed = totalUsedFromRecords
-
-    // Calculate actual balance from records
-    // Balance = Total Granted - Total Used - Deductions
-    const calculatedBalance = totalGranted - totalUsed - deductionsFromTransactions
-    
-    // ALWAYS use calculated balance from transactions (source of truth)
-    // Ignore user_profiles.vibe_assistant_tokens_remaining - it's unreliable
-    const actualBalance = Math.max(0, calculatedBalance) // Don't allow negative balance
+    const totalCost = (costData || []).reduce((sum: number, record: any) => sum + (record.cost_estimate || 0), 0) / 100 // Convert cents to dollars
 
     // Calculate usage breakdown (only AI operations, not grants)
     const actionBreakdown = (usageHistory || [])
@@ -208,25 +135,21 @@ export async function GET(request: NextRequest) {
       .slice(0, 50) // Limit to 50 most recent
 
     return NextResponse.json({
-      balance: actualBalance, // Calculated from records or from user_profiles
-      totalUsed, // Calculated from records or from user_profiles
-      totalGranted, // From token_transactions (preferred) or token_usage (fallback)
-      totalCost: (profile?.vibe_assistant_total_cost || 0) / 100, // From user_profiles - convert cents to dollars
+      balance: actualBalance, // Active tokens from token_balances (non-expired)
+      totalExpired, // Expired tokens (not counted in balance)
+      totalUsed, // Total consumed tokens from token_usage
+      totalGranted, // Total granted from token_balances (includes expired)
+      totalCost, // Total cost in dollars
+      grantsBreakdown, // Breakdown by grant type
       transactions: formattedTransactions,
       transactionsOnly: transactions || [],
       usageOnly: usageHistory || [],
       actionBreakdown,
-      // Debug info (can remove later)
+      // Debug info
       _debug: {
-        profileBalance: profile?.vibe_assistant_tokens_remaining,
-        profileUsed: profile?.vibe_assistant_tokens_used,
-        calculatedBalance,
-        totalGrantedFromTransactions,
-        grantsFromUsage,
-        totalUsedFromRecords,
-        deductionsFromTransactions,
-        allTransactionsCount: (allTransactions || []).length,
-        allUsageCount: (allUsageHistory || []).length,
+        activeBalance: actualBalance,
+        expiredTokens: totalExpired,
+        grantsCount: (allGrants || []).length,
         recentTransactionsCount: (transactions || []).length,
         recentUsageCount: (usageHistory || []).length,
       }

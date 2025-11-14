@@ -35,7 +35,7 @@ export interface TokenTransaction extends TokenTransactionInput {
 
 /**
  * Record a token transaction (grant, purchase, deduction)
- * This updates the user balance AND records the transaction
+ * This inserts into token_balances AND records in token_transactions for audit trail
  * Note: token_transactions table uses action_type, tokens_used, tokens_remaining
  */
 export async function recordTokenTransaction(
@@ -45,59 +45,26 @@ export async function recordTokenTransaction(
   try {
     const supabase = supabaseClient || await createServerClient()
     
-    // Calculate balance from transactions (source of truth)
-    // Don't read from user_profiles.vibe_assistant_tokens_remaining - it's unreliable
-    const { data: allTransactions } = await supabase
-      .from('token_transactions')
-      .select('tokens_used, action_type')
-      .eq('user_id', transaction.user_id)
+    // Get current balance from token_balances
+    const { data: balanceData } = await supabase
+      .rpc('get_user_token_balance', { p_user_id: transaction.user_id })
+      .single()
     
-    const { data: allUsage } = await supabase
-      .from('token_usage')
-      .select('tokens_used, action_type, success')
-      .eq('user_id', transaction.user_id)
+    const balanceBefore = balanceData?.total_active || 0
     
-    // Calculate grants
-    const totalGrants = (allTransactions || [])
-      .filter((tx: any) => 
-        ['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase'].includes(tx.action_type) &&
-        tx.tokens_used > 0
-      )
-      .reduce((sum: number, tx: any) => sum + tx.tokens_used, 0)
-    
-    // Calculate usage
-    const totalUsed = (allUsage || [])
-      .filter((u: any) => 
-        !['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase', 'admin_deduct'].includes(u.action_type) &&
-        u.tokens_used > 0 &&
-        u.success !== false
-      )
-      .reduce((sum: number, u: any) => sum + u.tokens_used, 0)
-    
-    // Calculate deductions
-    const totalDeductions = (allTransactions || [])
-      .filter((tx: any) => tx.action_type === 'admin_deduct' || tx.tokens_used < 0)
-      .reduce((sum: number, tx: any) => sum + Math.abs(tx.tokens_used), 0)
-    
-    // Balance before this transaction
-    const balanceBefore = Math.max(0, totalGrants - totalUsed - totalDeductions)
-    
-    // Ensure user profile exists (for backwards compatibility)
+    // Ensure user profile exists (for backwards compatibility with other parts of system)
     const { data: profiles } = await supabase
       .from('user_profiles')
       .select('user_id')
       .eq('user_id', transaction.user_id)
 
     if (!profiles || profiles.length === 0) {
-      // Profile doesn't exist, create it
-      // NOTE: No default tokens - users start at 0
+      // Profile doesn't exist, create it (no token fields)
       console.log('Profile not found, creating default profile for user:', transaction.user_id)
       const { error: createError } = await supabase
         .from('user_profiles')
         .insert({
           user_id: transaction.user_id,
-          vibe_assistant_tokens_remaining: 0, // No default tokens
-          vibe_assistant_tokens_used: 0,
           storage_quota_gb: 1
         })
       
@@ -106,20 +73,66 @@ export async function recordTokenTransaction(
         throw new Error(`Failed to create user profile: ${createError.message}`)
       }
     }
-    const tokensUsed = transaction.tokens_used // Can be positive (grants) or negative (deductions)
-    const balanceAfter = balanceBefore + tokensUsed
+    const tokensUsed = transaction.tokens_used
+    const isGrant = tokensUsed > 0 && ['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase'].includes(transaction.action_type)
+    const isDeduction = tokensUsed < 0 || transaction.action_type === 'admin_deduct'
+    
+    // Handle grants: insert into token_balances
+    if (isGrant) {
+      let grantType = 'admin'
+      let expiresAt: string | null = null
+      
+      if (transaction.action_type === 'token_pack_purchase') {
+        grantType = 'purchase'
+        expiresAt = null // Never expires
+      } else if (transaction.action_type === 'admin_grant') {
+        grantType = 'admin'
+        expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+      } else if (transaction.action_type === 'subscription_grant') {
+        grantType = '28day'
+        expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+      } else if (transaction.action_type === 'trial_grant') {
+        grantType = 'trial'
+        expiresAt = new Date(Date.now() + 56 * 24 * 60 * 60 * 1000).toISOString()
+      }
+      
+      await supabase.from('token_balances').insert({
+        user_id: transaction.user_id,
+        grant_type: grantType,
+        tokens_granted: tokensUsed,
+        tokens_remaining: tokensUsed,
+        granted_at: new Date().toISOString(),
+        expires_at: expiresAt,
+        subscription_id: transaction.subscription_id || null,
+        token_pack_id: transaction.token_pack_id || null,
+        metadata: transaction.metadata || {}
+      })
+    } else if (isDeduction) {
+      // Handle deductions: use FIFO
+      const { data: deductResult, error: deductError } = await supabase
+        .rpc('deduct_tokens_with_fifo', {
+          p_user_id: transaction.user_id,
+          p_tokens_to_deduct: Math.abs(tokensUsed)
+        })
+      
+      if (deductError || !deductResult?.success) {
+        throw new Error('Failed to deduct tokens')
+      }
+    }
+    
+    // Get balance after operation
+    const { data: balanceAfterData } = await supabase
+      .rpc('get_user_token_balance', { p_user_id: transaction.user_id })
+      .single()
+    
+    const finalBalanceAfter = balanceAfterData?.total_active || 0
 
-    // Ensure balance doesn't go negative (unless it's a deduction)
-    const finalBalanceAfter = transaction.action_type === 'admin_deduct' 
-      ? Math.max(0, balanceAfter)
-      : balanceAfter
-
-    // Build insert object matching actual schema
+    // Build audit trail record
     const insertData: any = {
       user_id: transaction.user_id,
-      action_type: transaction.action_type, // Required
-      tokens_used: tokensUsed, // Required - positive for grants, negative for deductions
-      tokens_remaining: finalBalanceAfter, // Required - balance after transaction
+      action_type: transaction.action_type,
+      tokens_used: tokensUsed,
+      tokens_remaining: finalBalanceAfter,
     }
     // Add optional fields
     if (transaction.estimated_cost_usd !== undefined) {
@@ -185,30 +198,16 @@ export async function recordTokenTransaction(
       throw new Error(`Failed to insert token transaction: ${errorMsg}${hint}${details}`)
     }
 
-    console.log('✅ Token transaction inserted successfully:', insertedTransaction?.id)
-
-    // Update user balance
-    // NOTE: This update is approved because it's part of recordTokenTransaction
-    // which creates the transaction record first. All token changes should go through this function.
-    const { error: balanceError } = await supabase
-      .from('user_profiles')
-      .update({
-        vibe_assistant_tokens_remaining: finalBalanceAfter,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', transaction.user_id)
-
-    if (balanceError) {
-      console.error('Failed to update user balance:', balanceError)
-    } else {
-      console.log('Token transaction recorded and balance updated:', {
-        user_id: transaction.user_id,
-        action_type: transaction.action_type,
-        tokens_used: tokensUsed,
-        balance_before: balanceBefore,
-        balance_after: finalBalanceAfter
-      })
-    }
+    console.log('✅ Token transaction recorded successfully:', {
+      id: insertedTransaction?.id,
+      user_id: transaction.user_id,
+      action_type: transaction.action_type,
+      tokens_used: tokensUsed,
+      balance_before: balanceBefore,
+      balance_after: finalBalanceAfter
+    })
+    
+    // Note: Balance now managed via token_balances table, no need to update user_profiles
 
   } catch (error: any) {
     console.error('Token transaction error:', error)

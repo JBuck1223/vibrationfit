@@ -127,11 +127,7 @@ export async function POST(request: NextRequest) {
               console.log('✅ Annual tokens granted:', result)
             }
             
-            // Set storage quota
-            await supabase
-              .from('user_profiles')
-              .update({ storage_quota_gb: STORAGE_QUOTAS.ANNUAL })
-              .eq('user_id', userId)
+            // Storage quota is now granted by grant_annual_tokens function
           } 
           else if (tierType === 'vision_pro_28day') {
             // 28-Day: Drip 375k tokens on first cycle
@@ -148,11 +144,7 @@ export async function POST(request: NextRequest) {
               console.log('✅ First cycle tokens dripped:', result)
             }
             
-            // Set storage quota
-            await supabase
-              .from('user_profiles')
-              .update({ storage_quota_gb: STORAGE_QUOTAS.MONTHLY_28DAY })
-              .eq('user_id', userId)
+            // Storage quota is now granted by drip_tokens_28day function (first cycle only)
           }
         } 
         
@@ -370,10 +362,7 @@ export async function POST(request: NextRequest) {
                     p_tokens: TOKEN_GRANTS.INTENSIVE_TRIAL,
                     p_trial_period_days: 56,
                   })
-                  await supabase
-                    .from('user_profiles')
-                    .update({ storage_quota_gb: STORAGE_QUOTAS.TRIAL })
-                    .eq('user_id', userId)
+                  // Storage quota is now granted by grant_trial_tokens function
                 } else if (tierType === 'vision_pro_28day') {
                   await supabase.rpc('grant_trial_tokens', {
                     p_user_id: userId,
@@ -381,10 +370,7 @@ export async function POST(request: NextRequest) {
                     p_tokens: TOKEN_GRANTS.INTENSIVE_TRIAL,
                     p_trial_period_days: 56,
                   })
-                  await supabase
-                    .from('user_profiles')
-                    .update({ storage_quota_gb: STORAGE_QUOTAS.TRIAL })
-                    .eq('user_id', userId)
+                  // Storage quota is now granted by grant_trial_tokens function
                 }
               }
             } catch (visionProError) {
@@ -571,10 +557,7 @@ export async function POST(request: NextRequest) {
                 console.log('✅ Trial tokens granted for annual plan:', result)
               }
               
-              await supabase
-                .from('user_profiles')
-                .update({ storage_quota_gb: STORAGE_QUOTAS.TRIAL })
-                .eq('user_id', userId)
+              // Storage quota is now granted by grant_trial_tokens function
             } else if (tierType === 'vision_pro_28day') {
               const { data: result, error: grantError } = await supabase.rpc('grant_trial_tokens', {
                 p_user_id: userId,
@@ -589,10 +572,7 @@ export async function POST(request: NextRequest) {
                 console.log('✅ Trial tokens granted for 28-day plan:', result)
               }
               
-              await supabase
-                .from('user_profiles')
-                .update({ storage_quota_gb: STORAGE_QUOTAS.TRIAL })
-                .eq('user_id', userId)
+              // Storage quota is now granted by grant_trial_tokens function
             }
           } catch (scheduleError) {
             console.error('Failed to create subscription schedule:', scheduleError)

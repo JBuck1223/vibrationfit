@@ -27,6 +27,7 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [tokenBalance, setTokenBalance] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
   // Memoize supabase client to prevent dependency array issues
@@ -52,6 +53,19 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
         getActiveProfileClient(user.id)
           .then(profileData => setProfile(profileData))
           .catch(err => console.error('Sidebar: Error fetching profile:', err))
+        
+        // Fetch token balance from token_balances table
+        const fetchTokenBalance = async () => {
+          try {
+            const { data } = await supabase
+              .rpc('get_user_token_balance', { p_user_id: user.id })
+              .single()
+            setTokenBalance((data as any)?.total_active || 0)
+          } catch (err) {
+            console.error('Sidebar: Error fetching token balance:', err)
+          }
+        }
+        fetchTokenBalance()
       } else {
         setUser(null)
         setProfile(null)
@@ -180,7 +194,7 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
                             ) : (
                               <>
                                 <span className="text-lg font-bold text-white">
-                                  {(profile?.vibe_assistant_tokens_remaining ?? 0).toLocaleString()}
+                                  {tokenBalance.toLocaleString()}
                                 </span>
                                 <span className="text-xs text-neutral-500">tokens</span>
                               </>

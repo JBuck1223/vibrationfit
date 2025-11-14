@@ -93,7 +93,6 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
       .then(async (result) => {
         // If no active profile found, fallback to most recent profile
         if (result.error || !result.data) {
-          console.log('No active profile found, trying fallback to most recent...')
           const fallbackResult = await supabase
             .from('user_profiles')
             .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
@@ -103,7 +102,12 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
             .maybeSingle()
           
           if (fallbackResult.error) {
-            throw fallbackResult.error
+            // Only throw if it's not a "no rows" error
+            if (fallbackResult.error.code !== 'PGRST116') {
+              throw fallbackResult.error
+            }
+            // No profile exists at all for this user
+            return null
           }
           return fallbackResult.data
         }
@@ -130,10 +134,18 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
     if (err?.code) {
       // Only log if it's not a "no rows" error
       if (err.code !== 'PGRST116') {
-        console.error('Error fetching active profile:', err)
+        console.error('Error fetching active profile:', {
+          code: err.code,
+          message: err.message,
+          details: err.details,
+          hint: err.hint
+        })
       }
+    } else if (err && typeof err === 'object' && Object.keys(err).length === 0) {
+      // Empty error object - likely from Supabase when no error details
+      console.warn('Empty error object when fetching profile for user:', userId)
     } else {
-      console.error('Unexpected error fetching profile:', err)
+      console.error('Unexpected error fetching profile:', err instanceof Error ? err.message : err)
     }
     
     // Cache null result to prevent repeated errors

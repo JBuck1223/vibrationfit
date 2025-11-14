@@ -141,9 +141,7 @@ export async function getHouseholdWithMembers(
         first_name,
         last_name,
         email,
-        profile_picture_url,
-        vibe_assistant_tokens_remaining,
-        vibe_assistant_tokens_used
+        profile_picture_url
       )
     `)
     .eq('household_id', householdId)
@@ -556,20 +554,28 @@ export async function deductTokens(
     return { success: false, error: 'User profile not found' }
   }
 
-  const userTokens = profile.vibe_assistant_tokens_remaining || 0
+  // Get user's token balance from token_balances
+  const { data: userBalance, error: balanceError } = await supabase
+    .rpc('get_user_token_balance', { p_user_id: userId })
+    .single()
+
+  if (balanceError) {
+    console.error('Failed to get token balance:', balanceError)
+    return { success: false, error: 'Failed to get token balance' }
+  }
+
+  const userTokens = (userBalance as any)?.total_active || 0
 
   // 2. Check if user has enough tokens individually
   if (userTokens >= tokenAmount) {
-    // Simple case: deduct from user's own tokens
-    const { error: updateError } = await supabase
-      .from('user_profiles')
-      .update({
-        vibe_assistant_tokens_remaining: userTokens - tokenAmount,
-        vibe_assistant_tokens_used: (profile.vibe_assistant_tokens_used || 0) + tokenAmount
+    // Deduct from user's own tokens using FIFO
+    const { data: deductResult, error: deductError } = await supabase
+      .rpc('deduct_tokens_with_fifo', {
+        p_user_id: userId,
+        p_tokens_to_deduct: tokenAmount
       })
-      .eq('user_id', userId)
 
-    if (updateError) {
+    if (deductError || !deductResult?.success) {
       return { success: false, error: 'Failed to deduct tokens' }
     }
 
@@ -590,17 +596,15 @@ export async function deductTokens(
   }
 
   // 4. Get admin's token balance
-  const { data: adminProfile, error: adminError } = await supabase
-    .from('user_profiles')
-    .select('vibe_assistant_tokens_remaining, vibe_assistant_tokens_used')
-    .eq('user_id', household.admin_user_id)
+  const { data: adminBalance, error: adminError } = await supabase
+    .rpc('get_user_token_balance', { p_user_id: household.admin_user_id })
     .single()
 
-  if (adminError || !adminProfile) {
-    return { success: false, error: 'Household admin not found' }
+  if (adminError) {
+    return { success: false, error: 'Failed to get admin balance' }
   }
 
-  const adminTokens = adminProfile.vibe_assistant_tokens_remaining || 0
+  const adminTokens = (adminBalance as any)?.total_active || 0
   const neededFromAdmin = tokenAmount - userTokens
 
   // 5. Check if household has enough cumulative tokens
@@ -608,16 +612,23 @@ export async function deductTokens(
     return { success: false, error: 'Insufficient household tokens' }
   }
 
-  // 6. Deduct from both user and admin using database function
-  const { error: batchError } = await supabase.rpc('deduct_tokens_from_household', {
-    p_user_id: userId,
-    p_admin_id: household.admin_user_id,
-    p_user_deduction: userTokens,
-    p_admin_deduction: neededFromAdmin
-  })
+  // 6. Deduct from user first (exhaust their balance)
+  if (userTokens > 0) {
+    await supabase.rpc('deduct_tokens_with_fifo', {
+      p_user_id: userId,
+      p_tokens_to_deduct: userTokens
+    })
+  }
 
-  if (batchError) {
-    console.error('Error deducting tokens from household:', batchError)
+  // 7. Deduct remaining from admin's balance
+  const { data: adminDeductResult, error: adminDeductError } = await supabase
+    .rpc('deduct_tokens_with_fifo', {
+      p_user_id: household.admin_user_id,
+      p_tokens_to_deduct: neededFromAdmin
+    })
+
+  if (adminDeductError || !adminDeductResult?.success) {
+    console.error('Error deducting tokens from admin:', adminDeductError)
     return { success: false, error: 'Failed to deduct tokens from household' }
   }
 

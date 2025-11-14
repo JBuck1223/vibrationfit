@@ -55,41 +55,18 @@ export async function validateTokenBalance(
   try {
     const supabase = supabaseClient || await createServerClient()
     
-    // Calculate balance from transactions (source of truth)
-    // Don't read from user_profiles.vibe_assistant_tokens_remaining - it's unreliable
-    const { data: allTransactions } = await supabase
-      .from('token_transactions')
-      .select('tokens_used, action_type')
-      .eq('user_id', userId)
+    // Get token balance using new token_balances table with FIFO expiration
+    const { data: balanceData, error: balanceError } = await supabase
+      .rpc('get_user_token_balance', { p_user_id: userId })
+      .single()
     
-    const { data: allUsage } = await supabase
-      .from('token_usage')
-      .select('tokens_used, action_type, success')
-      .eq('user_id', userId)
+    if (balanceError) {
+      console.error('Error getting token balance:', balanceError)
+      // Fail open - allow request to proceed
+      return null
+    }
     
-    // Calculate grants
-    const totalGrants = (allTransactions || [])
-      .filter((tx: any) => 
-        ['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase'].includes(tx.action_type) &&
-        tx.tokens_used > 0
-      )
-      .reduce((sum: number, tx: any) => sum + tx.tokens_used, 0)
-    
-    // Calculate usage
-    const totalUsed = (allUsage || [])
-      .filter((u: any) => 
-        !['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase', 'admin_deduct'].includes(u.action_type) &&
-        u.tokens_used > 0 &&
-        u.success !== false
-      )
-      .reduce((sum: number, u: any) => sum + u.tokens_used, 0)
-    
-    // Calculate deductions
-    const totalDeductions = (allTransactions || [])
-      .filter((tx: any) => tx.action_type === 'admin_deduct' || tx.tokens_used < 0)
-      .reduce((sum: number, tx: any) => sum + Math.abs(tx.tokens_used), 0)
-    
-    const tokensRemaining = Math.max(0, totalGrants - totalUsed - totalDeductions)
+    const tokensRemaining = (balanceData as any)?.total_active || 0
 
     // Check if user has sufficient tokens individually
     if (tokensRemaining >= estimatedTokens) {
@@ -275,113 +252,38 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
       console.error('Failed to insert audit trail:', auditError)
     }
 
-    // 2. Deduct tokens using household-aware logic
-    // This handles both individual deduction and household sharing
+    // 2. Deduct tokens using FIFO logic (oldest grants first)
     if (usage.success && effectiveTokens > 0) {
-      // Use the deductTokens function from household.ts which handles sharing
       try {
-        // Import dynamically to avoid circular dependencies
-        const { deductTokens } = await import('@/lib/supabase/household')
-        const deductionResult = await deductTokens(usage.user_id, effectiveTokens)
+        // Use deduct_tokens_with_fifo function for FIFO consumption with expiration
+        const { data: deductionResult, error: deductError } = await supabase
+          .rpc('deduct_tokens_with_fifo', {
+            p_user_id: usage.user_id,
+            p_tokens_to_deduct: effectiveTokens
+          })
         
-        if (!deductionResult.success) {
-          console.error('Failed to deduct tokens (should not happen - validation passed):', deductionResult.error)
-        } else if (deductionResult.usedSharedTokens) {
-          console.log('Tokens deducted using household sharing:', effectiveTokens)
+        if (deductError) {
+          console.error('Failed to deduct tokens via FIFO:', deductError)
+          // Continue - audit trail is still recorded above
+        } else if (deductionResult?.success) {
+          console.log('✅ Tokens deducted via FIFO:', {
+            deducted: deductionResult.tokens_deducted,
+            from_grants: deductionResult.deducted_from?.length || 0
+          })
         } else {
-          console.log('Tokens deducted from user balance:', effectiveTokens)
+          console.warn('⚠️ Partial token deduction:', deductionResult)
         }
         
-        // Balance is now updated by deductTokens function
-        // No need to manually update user_profiles here
+        // Deduction complete - balance updated in token_balances table
         return
-      } catch (importError) {
-        console.error('Error importing deductTokens, falling back to old logic:', importError)
-        // Fall through to old logic below
+      } catch (deductionError) {
+        console.error('Error deducting tokens, continuing with audit trail only:', deductionError)
+        // Audit trail was still recorded - this is not critical
+        return
       }
     }
 
-    // 3. Fallback: Old logic for backwards compatibility
-    // (Only runs if deductTokens import fails or usage.success is false)
-    if (usage.success && effectiveTokens > 0) {
-      // Calculate new balance from all transactions (source of truth)
-      const { data: allTransactions } = await supabase
-        .from('token_transactions')
-        .select('tokens_used, action_type')
-        .eq('user_id', usage.user_id)
-      
-      const { data: allUsage } = await supabase
-        .from('token_usage')
-        .select('tokens_used, action_type, success')
-        .eq('user_id', usage.user_id)
-      
-      // Calculate grants
-      const totalGrants = (allTransactions || [])
-        .filter((tx: any) => 
-          ['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase'].includes(tx.action_type) &&
-          tx.tokens_used > 0
-        )
-        .reduce((sum: number, tx: any) => sum + tx.tokens_used, 0)
-      
-      // Calculate usage (including this new record)
-      const totalUsed = (allUsage || [])
-        .filter((u: any) => 
-          !['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase', 'admin_deduct'].includes(u.action_type) &&
-          u.tokens_used > 0 &&
-          u.success !== false
-        )
-        .reduce((sum: number, u: any) => sum + u.tokens_used, 0)
-      
-      // Calculate deductions
-      const totalDeductions = (allTransactions || [])
-        .filter((tx: any) => tx.action_type === 'admin_deduct' || tx.tokens_used < 0)
-        .reduce((sum: number, tx: any) => sum + Math.abs(tx.tokens_used), 0)
-      
-      const newTokensRemaining = Math.max(0, totalGrants - totalUsed - totalDeductions)
-      
-      // Calculate tokens_used (only AI operations, not grants)
-      const newTokensUsed = (allUsage || [])
-        .filter((u: any) => 
-          !['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase', 'admin_deduct'].includes(u.action_type) &&
-          u.tokens_used > 0 &&
-          u.success !== false
-        )
-        .reduce((sum: number, u: any) => sum + u.tokens_used, 0)
-      
-      // Calculate total cost
-      const { data: costData } = await supabase
-        .from('token_usage')
-        .select('estimated_cost_usd')
-        .eq('user_id', usage.user_id)
-        .not('estimated_cost_usd', 'is', null)
-      
-      const newTotalCost = Math.round(
-        ((costData || []).reduce((sum: number, u: any) => sum + (u.estimated_cost_usd || 0), 0) * 100)
-      )
-
-      console.log('Updating user balance (calculated from transactions):', {
-        user_id: usage.user_id,
-        new_tokens_remaining: newTokensRemaining,
-        new_tokens_used: newTokensUsed,
-        action_type: usage.action_type,
-        effective_tokens: effectiveTokens
-      })
-
-      const { error: balanceError } = await supabase
-        .from('user_profiles')
-        .update({
-          vibe_assistant_tokens_used: newTokensUsed,
-          vibe_assistant_tokens_remaining: newTokensRemaining,
-          vibe_assistant_total_cost: newTotalCost
-        })
-        .eq('user_id', usage.user_id)
-
-      if (balanceError) {
-        console.error('Failed to update user balance:', balanceError)
-      } else {
-        console.log('User balance updated successfully (calculated from transactions)')
-      }
-    }
+    // Note: Old fallback logic removed - token balances now managed via token_balances table
 
   } catch (error) {
     console.error('Token tracking error:', error)
