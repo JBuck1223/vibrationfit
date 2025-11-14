@@ -92,9 +92,9 @@ SELECT
     WHEN tt.action_type = 'admin_grant' THEN 'admin'
     ELSE 'admin'
   END as grant_type,
-  ABS(tt.tokens_used) as tokens_granted,
+  tt.tokens_used as tokens_granted, -- Already positive
   -- Calculate remaining: need to subtract all usage since this grant
-  ABS(tt.tokens_used) - COALESCE(
+  tt.tokens_used - COALESCE(
     (SELECT COALESCE(SUM(tu.tokens_used), 0)
      FROM token_usage tu
      WHERE tu.user_id = tt.user_id
@@ -127,7 +127,7 @@ WHERE tt.action_type IN (
   'pack_purchase',
   'admin_grant'
 )
-AND tt.tokens_used < 0 -- Negative means grant
+AND tt.tokens_used > 0 -- CORRECTED: Positive means grant (deductions are negative)
 ORDER BY tt.created_at ASC;
 
 -- 2.2 Migrate storage quotas from user_profiles to user_storage
