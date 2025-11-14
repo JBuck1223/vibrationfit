@@ -21,10 +21,11 @@ export default function VisionBoardPage() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['all'])
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active'])
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [showFilters, setShowFilters] = useState(false)
   
   // Use standardized delete functionality
   const {
@@ -76,8 +77,8 @@ export default function VisionBoardPage() {
   }
 
   const filteredItems = items.filter(item => {
-    const categoryMatch = selectedCategories.includes('all') || selectedCategories.length === 0 || 
-      (item.categories && item.categories.some((cat: string) => selectedCategories.includes(cat)))
+    const categoryMatch = selectedCategories.includes('all') || 
+      (selectedCategories.length > 0 && item.categories && item.categories.some((cat: string) => selectedCategories.includes(cat)))
     const statusMatch = selectedStatuses.includes('all') || selectedStatuses.length === 0 || selectedStatuses.includes(item.status)
     return categoryMatch && statusMatch
   })
@@ -269,78 +270,192 @@ export default function VisionBoardPage() {
     return null
   }
 
+  const getActiveFilterCount = () => {
+    let count = 0
+    // Count if category filter is active (not 'all' and has selections)
+    if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
+      count += 1
+    }
+    // Count if status filter is active (not 'all' and has selections)
+    if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
+      count += 1
+    }
+    return count
+  }
+
   return (
     <>
         {/* Header */}
         <div className="mb-8">
-          {/* Centered Title and Subtext */}
-          <div className="text-center mb-6">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">🎯 Vision Board</h1>
-            <p className="text-secondary-500">Visualize and track your conscious creations</p>
-          </div>
+          {/* Hero Header with Gradient Background */}
+          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              <div className="relative z-10">
+                {/* "THE LIFE I CHOOSE" Label */}
+                <div className="text-center mb-4">
+                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                    THE LIFE I CHOOSE
+                  </div>
+                </div>
+                
+                {/* Title Section */}
+                <div className="text-center mb-3">
+                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                    Vision Board
+                  </h1>
+                </div>
+                
+                {/* Subtitle */}
+                <div className="text-center mb-6">
+                  <p className="text-xs md:text-lg text-neutral-300">
+                    Visualize and track your conscious creations
+                  </p>
+                </div>
 
-          {/* Full-width Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <Button asChild className="flex-1">
-              <Link href="/vision-board/new">
-                <Plus className="w-5 h-5 mr-2" />
-                Add Creation
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" className="flex-1">
-              <Link href="/vision-board/gallery">
-                <Eye className="w-5 h-5 mr-2" />
-                Gallery
-              </Link>
-            </Button>
+                {/* Action Buttons */}
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => router.push('/vision-board/new')}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  >
+                    <Plus className="w-4 h-4 shrink-0" />
+                    <span>Add Creation</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
           {/* Stats - Responsive Grid */}
           <div id="stats" className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card className="text-center">
-              <h3 className="text-neutral-400 text-sm mb-2">Total</h3>
-              <p className="text-2xl md:text-3xl font-bold text-primary-500">{totalItems}</p>
+            <Card variant="glass" className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-[#00FFFF]/20 rounded-full flex items-center justify-center">
+                  <span className="text-[#00FFFF] text-2xl font-bold">=</span>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{totalItems}</p>
+                  <p className="text-xs text-neutral-400">Total</p>
+                </div>
+              </div>
             </Card>
             
-            <Card className="text-center">
-              <h3 className="text-neutral-400 text-sm mb-2">Active</h3>
-              <p className="text-2xl md:text-3xl font-bold text-primary-500">{activeItems}</p>
+            <Card variant="glass" className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 bg-primary-500 rounded-full"></div>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{activeItems}</p>
+                  <p className="text-xs text-neutral-400">Active</p>
+                </div>
+              </div>
             </Card>
             
-            <Card className="text-center">
-              <h3 className="text-neutral-400 text-sm mb-2">Actualized</h3>
-              <p className="text-2xl md:text-3xl font-bold text-warning-500">{actualizedItems}</p>
+            <Card variant="glass" className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{actualizedItems}</p>
+                  <p className="text-xs text-neutral-400">Actualized</p>
+                </div>
+              </div>
             </Card>
             
-            <Card className="text-center">
-              <h3 className="text-neutral-400 text-sm mb-2">Inactive</h3>
-              <p className="text-2xl md:text-3xl font-bold text-neutral-500">{inactiveItems}</p>
+            <Card variant="glass" className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-neutral-500/20 rounded-full flex items-center justify-center">
+                  <XCircle className="w-6 h-6 text-neutral-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{inactiveItems}</p>
+                  <p className="text-xs text-neutral-400">Inactive</p>
+                </div>
+              </div>
             </Card>
           </div>
 
-        {/* Filters */}
-        <div id="filters" className="mb-8 space-y-6">
-          {/* Category Filter */}
-          <div>
-            <div 
-              className={`cursor-pointer rounded-2xl border-2 transition-all hover:-translate-y-1 w-full mb-4 ${
-                selectedCategories.includes('all') || selectedCategories.length === 0 
-                  ? 'bg-[#1F1F1F] border-[#39FF14] ring-2 ring-[#39FF14]' 
-                  : 'bg-[#1F1F1F] border-[#333] hover:border-[#39FF14]'
-              }`}
-              onClick={() => setSelectedCategories(['all'])}
+        {/* Filter Toggle Button and View Toggle */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1 flex justify-start">
+            <button
+              onClick={() => router.push('/vision-board/new')}
+              className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
+              aria-label="Add Creation"
             >
-              <div className="flex items-center justify-center gap-3 px-4 py-2">
-                <Icon icon={Filter} size="sm" color={selectedCategories.includes('all') || selectedCategories.length === 0 ? '#39FF14' : '#00FFFF'} className="opacity-80" />
-                <h4 className="text-sm font-medium text-neutral-300">All Categories</h4>
-              </div>
+              <Plus className="w-6 h-6 text-[#39FF14]" />
+            </button>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2"
+          >
+            <Filter className="w-4 h-4" />
+            <span>Filter</span>
+          </Button>
+          <div className="flex-1 flex justify-end">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-3 rounded-full transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-[#39FF14] text-black shadow-lg'
+                    : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
+                }`}
+                aria-label="Grid view"
+              >
+                <Grid className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-3 rounded-full transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-[#39FF14] text-black shadow-lg'
+                    : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
+                }`}
+                aria-label="List view"
+              >
+                <List className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        {showFilters && (
+          <div id="filters" className="mb-8 space-y-6 animate-in slide-in-from-top duration-300">
+          {/* Category Filter */}
+          <Card variant="elevated" className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">Categories</h3>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  if (selectedCategories.includes('all')) {
+                    // Deselect all - set to empty array
+                    setSelectedCategories([])
+                  } else {
+                    // Select all
+                    setSelectedCategories(['all'])
+                  }
+                }}
+              >
+                {selectedCategories.includes('all') ? 'Deselect All' : 'Select All'}
+              </Button>
             </div>
 
             {/* Category Cards Grid */}
             <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
               {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                const isSelected = selectedCategories.includes(category.key)
+                const isSelected = selectedCategories.includes(category.key) || selectedCategories.includes('all')
                 return (
                   <CategoryCard 
                     key={category.key} 
@@ -362,27 +477,39 @@ export default function VisionBoardPage() {
                     selectionStyle="border"
                     iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
                     selectedIconColor="#39FF14"
-                    className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                    className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
                   />
                 )
               })}
             </div>
-          </div>
+          </Card>
 
           {/* Status Filter */}
-          <div>
-            <div 
-              className={`cursor-pointer rounded-2xl border-2 transition-all hover:-translate-y-1 w-full mb-4 ${
-                selectedStatuses.includes('all') || selectedStatuses.length === 0
-                  ? 'bg-[#1F1F1F] border-[#39FF14] ring-2 ring-[#39FF14]' 
-                  : 'bg-[#1F1F1F] border-[#333] hover:border-[#39FF14]'
-              }`}
-              onClick={() => toggleStatus('all')}
-            >
-              <div className="flex items-center justify-center gap-3 px-4 py-2">
-                <CheckCircle className="w-4 h-4 text-[#39FF14]" />
-                <h4 className="text-sm font-medium text-neutral-300">All Statuses</h4>
-              </div>
+          <Card variant="elevated" className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">Status</h3>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  const allSelected = selectedStatuses.includes('active') && 
+                                     selectedStatuses.includes('actualized') && 
+                                     selectedStatuses.includes('inactive')
+                  if (allSelected) {
+                    // Deselect all
+                    setSelectedStatuses([])
+                  } else {
+                    // Select all three statuses
+                    setSelectedStatuses(['active', 'actualized', 'inactive'])
+                  }
+                }}
+              >
+                {selectedStatuses.includes('active') && 
+                 selectedStatuses.includes('actualized') && 
+                 selectedStatuses.includes('inactive') 
+                  ? 'Deselect All' 
+                  : 'Select All'}
+              </Button>
             </div>
             
             {/* Status Buttons - Single Line, Equal Width */}
@@ -408,33 +535,9 @@ export default function VisionBoardPage() {
                   </button>
                 ))}
               </div>
+          </Card>
           </div>
-        </div>
-
-
-        {/* View Toggle - Full Width */}
-        <div id="view-toggle" className="w-full mb-6">
-          <div className="flex gap-2 w-full">
-            <Button
-              variant={viewMode === 'grid' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="flex items-center gap-2 flex-1"
-            >
-              <Grid className="w-4 h-4" />
-              Grid
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="flex items-center gap-2 flex-1"
-            >
-              <List className="w-4 h-4" />
-              List
-            </Button>
-          </div>
-        </div>
+        )}
 
         {/* Vision Board Content */}
         <div id="content">
@@ -452,21 +555,21 @@ export default function VisionBoardPage() {
                   <div 
                     key={item.id} 
                     className="group cursor-pointer break-inside-avoid mb-6"
-                    onClick={() => openLightbox(index)}
+                    onClick={() => router.push(`/vision-board/${item.id}`)}
                   >
                     <div className="relative overflow-hidden rounded-lg bg-neutral-800 shadow-lg hover:shadow-xl transition-all duration-300">
                       {(item.status === 'actualized' && item.actualized_image_url) ? (
                         <img
                           src={item.actualized_image_url}
                           alt={item.name}
-                          className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                          className="w-full h-auto object-cover transition-transform duration-300 md:group-hover:scale-105"
                           loading="lazy"
                         />
                       ) : item.image_url ? (
                         <img
                           src={item.image_url}
                           alt={item.name}
-                          className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                          className="w-full h-auto object-cover transition-transform duration-300 md:group-hover:scale-105"
                           loading="lazy"
                         />
                       ) : (
@@ -489,79 +592,12 @@ export default function VisionBoardPage() {
                         </div>
                       )}
 
-                      {/* Hover Overlay */}
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-2">
-                        <div className="flex flex-col items-center gap-2 w-full max-w-full">
-                          {/* Item Info */}
-                          <div className="bg-black/80 backdrop-blur-sm rounded-lg p-2 w-full max-w-full text-center">
-                            <h3 className="text-white text-sm font-semibold mb-1 truncate">{item.name}</h3>
-                            <div className="text-neutral-300 text-xs">
-                              Created {new Date(item.created_at).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })}
-                            </div>
-                          </div>
-                          
-                          {/* Quick Status Controls */}
-                          <div className="bg-black/80 backdrop-blur-sm rounded-lg p-2 space-y-2 w-full max-w-full">
-                            <div className="text-white text-xs font-medium mb-1 text-center">Quick Status</div>
-                            <div className="flex gap-1 flex-wrap justify-center">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateItemStatus(item.id, 'active')
-                                }}
-                                className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
-                                  item.status === 'active'
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-neutral-700 text-neutral-300 hover:bg-green-600 hover:text-white'
-                                }`}
-                              >
-                                <span className="hidden sm:inline">Active</span>
-                                <span className="sm:hidden">A</span>
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateItemStatus(item.id, 'actualized')
-                                }}
-                                className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
-                                  item.status === 'actualized'
-                                    ? 'bg-purple-500 text-white'
-                                    : 'bg-neutral-700 text-neutral-300 hover:bg-purple-500 hover:text-white'
-                                }`}
-                              >
-                                <span className="hidden sm:inline">Actualized</span>
-                                <span className="sm:hidden">✓</span>
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateItemStatus(item.id, 'inactive')
-                                }}
-                                className={`px-2 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 ${
-                                  item.status === 'inactive'
-                                    ? 'bg-gray-600 text-white'
-                                    : 'bg-neutral-700 text-neutral-300 hover:bg-gray-600 hover:text-white'
-                                }`}
-                              >
-                                <span className="hidden sm:inline">Inactive</span>
-                                <span className="sm:hidden">×</span>
-                              </button>
-                            </div>
-                          </div>
-                          
-                          {/* View Item Details Button */}
-                          <Button asChild size="sm" variant="secondary" className="text-xs px-3 py-1">
-                            <Link href={`/vision-board/${item.id}`} onClick={(e) => e.stopPropagation()}>
-                              <Eye className="w-3 h-3 mr-1" />
-                              <span className="hidden sm:inline">View Details</span>
-                              <span className="sm:hidden">View</span>
-                            </Link>
-                          </Button>
-                        </div>
+                      {/* Hover Overlay - Desktop Only, Just Button */}
+                      <div className="hidden md:flex absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-center justify-center">
+                        <Button size="sm" variant="secondary" className="text-xs px-4 py-2">
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Details
+                        </Button>
                       </div>
                     </div>
                   </div>

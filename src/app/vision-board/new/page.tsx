@@ -623,7 +623,7 @@ export default function NewVisionBoardItemPage() {
                         status: status.value,
                         actualization_story: status.value === 'actualized' ? formData.actualization_story : ''
                       })}
-                      className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-1 ${
+                      className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
                         formData.status === status.value
                           ? status.value === 'active' 
                             ? 'bg-green-600 text-white shadow-lg'
@@ -633,6 +633,9 @@ export default function NewVisionBoardItemPage() {
                           : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                       }`}
                     >
+                      {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
+                      {status.value === 'actualized' && <CheckCircle className="w-3 h-3 text-white" />}
+                      {status.value === 'inactive' && <XCircle className="w-3 h-3 text-white" />}
                       {status.label}
                     </button>
                   ))}
@@ -653,13 +656,18 @@ export default function NewVisionBoardItemPage() {
                 <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
                   {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
                     const isNeeded = isIntensiveMode && categoriesNeeded.includes(category.label)
+                    const isSelected = formData.categories.includes(category.label)
                     return (
                       <CategoryCard 
                         key={category.key} 
                         category={category} 
-                        selected={formData.categories.includes(category.label)} 
+                        selected={isSelected} 
                         onClick={() => handleCategoryToggle(category.label)}
-                        className={isNeeded ? 'ring-2 ring-primary-500 bg-primary-500/10' : ''}
+                        variant="outlined"
+                        selectionStyle="border"
+                        iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                        selectedIconColor="#39FF14"
+                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : isNeeded ? 'ring-2 ring-primary-500 bg-primary-500/10 !bg-transparent !border-[#333]' : '!bg-transparent !border-[#333]'}
                       />
                     )
                   })}
@@ -667,24 +675,24 @@ export default function NewVisionBoardItemPage() {
               </div>
 
               {/* Submit */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button
-                  type="submit"
-                  size="lg"
-                  loading={loading}
-                  disabled={loading}
-                  className="w-full sm:w-auto"
-                >
-                  {loading ? 'Creating...' : 'Add to Vision Board'}
-                </Button>
+              <div className="flex flex-row gap-2 sm:gap-3 sm:justify-end">
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="lg"
+                  variant="danger"
+                  size="sm"
                   onClick={() => router.back()}
-                  className="w-full sm:w-auto"
+                  className="flex-1 sm:flex-none sm:w-auto"
                 >
                   Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  loading={loading}
+                  disabled={loading}
+                  className="flex-1 sm:flex-none sm:w-auto"
+                >
+                  {loading ? 'Creating...' : 'Add to Vision Board'}
                 </Button>
               </div>
             </form>
