@@ -34,7 +34,7 @@ function AIModelsAdminContent() {
   // Pricing management
   const [pricing, setPricing] = useState<ModelPricing[]>([])
   const [selectedPricing, setSelectedPricing] = useState<ModelPricing | null>(null)
-  const [editPricing, setEditPricing] = useState<Partial<ModelPricing>>>({})
+  const [editPricing, setEditPricing] = useState<Partial<ModelPricing>>({})
 
   // Available models for selection
   const availableModels = [
