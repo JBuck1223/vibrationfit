@@ -3813,8 +3813,8 @@ export const InsufficientStorageDialog: React.FC<InsufficientStorageDialogProps>
   const usagePercentage = (storageUsedGB / storageQuotaGB) * 100
 
   const handleUpgradeStorage = () => {
-    // Link to pricing or billing page where they can upgrade
-    window.location.href = '/pricing'
+    // Link to home page pricing section where they can upgrade
+    window.location.href = '/#pricing'
   }
 
   return (

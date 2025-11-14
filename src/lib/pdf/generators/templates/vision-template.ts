@@ -86,7 +86,8 @@ export class VisionTemplatePDF {
     currentY += 25
 
     // Version badge
-    this.drawVersionBadge(this.pageWidth / 2, currentY, this.vision.version_number, this.vision.status)
+    const status = this.vision.is_draft ? 'draft' : (this.vision.is_active ? 'active' : 'complete')
+    this.drawVersionBadge(this.pageWidth / 2, currentY, this.vision.version_number, status)
     currentY += 25
 
     // Completion progress
@@ -267,7 +268,7 @@ export class VisionTemplatePDF {
     this.currentY += 15
 
     // Status badge
-    const isComplete = this.vision.status === 'complete'
+    const isComplete = !this.vision.is_draft
     this.drawStatusBadge(
       this.pageWidth / 2,
       this.currentY,

@@ -114,7 +114,7 @@ export default function IntensiveIntake() {
         .single()
 
       if (error || !intensiveData) {
-        router.push('/pricing-hormozi')
+        router.push('/#pricing')
         return
       }
 

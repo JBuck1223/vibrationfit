@@ -1368,7 +1368,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                         Save Draft
                 </Button>
                   <Button
-                        onClick={commitDraftToVision}
+                        onClick={commitDraftVision}
                         disabled={isDraftSaving}
                         variant="primary"
                     size="sm"

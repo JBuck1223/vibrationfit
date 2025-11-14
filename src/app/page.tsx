@@ -11,6 +11,14 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { 
+  TOKEN_GRANTS, 
+  STORAGE_QUOTAS, 
+  ROLLOVER_LIMITS,
+  formatTokens,
+  formatTokensShort,
+  PLAN_METADATA,
+} from '@/lib/billing/config'
 import {
   Stack,
   Inline,
@@ -1583,7 +1591,7 @@ export default function HomePage() {
                       <div className="space-y-3 mb-8">
                         {[
                               'Platform access: Life Vision Builder (12 categories) with VIVA AI, Vision Boards + AM/PM Vision Audio, Journal, Community, Library, Progress tracking',
-                              'Capacity: 5M VIVA tokens/year + 100GB storage; tokens reset at renewal',
+                              `Capacity: ${formatTokensShort(TOKEN_GRANTS.ANNUAL)} VIVA tokens/year + ${STORAGE_QUOTAS.ANNUAL}GB storage; tokens reset at renewal`,
                               'Priority response queue',
                               '4 bonus calibration check‑ins per year',
                               '16‑week satisfaction guarantee from today',
@@ -1632,7 +1640,7 @@ export default function HomePage() {
                       <div className="space-y-3 mb-8">
                         {[
                               'Platform access: same as Annual',
-                              'Capacity: 375k VIVA tokens per 28 days + 25GB storage; unused tokens roll over (max 3 cycles)',
+                              `Capacity: ${formatTokensShort(TOKEN_GRANTS.MONTHLY_28DAY)} VIVA tokens per 28 days + ${STORAGE_QUOTAS.MONTHLY_28DAY}GB storage; unused tokens roll over (max ${ROLLOVER_LIMITS.MONTHLY_28DAY_MAX_CYCLES} cycles)`,
                               'Standard support queue',
                               '12‑week satisfaction guarantee from today',
                               'Flexible — cancel any cycle',
@@ -2507,11 +2515,11 @@ export default function HomePage() {
                     <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Annual token & storage capacity</p>
-                        <p>5M VIVA tokens/year + 100GB storage; tokens reset at renewal.</p>
+                        <p>{formatTokensShort(TOKEN_GRANTS.ANNUAL)} VIVA tokens/year + {STORAGE_QUOTAS.ANNUAL}GB storage; tokens reset at renewal.</p>
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">28-Day token & storage capacity</p>
-                        <p>375k VIVA tokens per 28 days + 25GB storage; unused tokens roll over (max 3 cycles).</p>
+                        <p>{formatTokensShort(TOKEN_GRANTS.MONTHLY_28DAY)} VIVA tokens per 28 days + {STORAGE_QUOTAS.MONTHLY_28DAY}GB storage; unused tokens roll over (max {ROLLOVER_LIMITS.MONTHLY_28DAY_MAX_CYCLES} cycles).</p>
                       </div>
                       <p>Both plans can add-on extra tokens or storage for a fee.</p>
                     </div>

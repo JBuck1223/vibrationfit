@@ -36,7 +36,7 @@ export const STRIPE_CONFIG = {
   
   // Success/Cancel URLs
   successUrl: process.env.NEXT_PUBLIC_APP_URL + '/billing/success',
-  cancelUrl: process.env.NEXT_PUBLIC_APP_URL + '/pricing',
+  cancelUrl: process.env.NEXT_PUBLIC_APP_URL + '/#pricing',
   intensiveSuccessUrl: process.env.NEXT_PUBLIC_APP_URL + '/intensive/dashboard',
 }
 

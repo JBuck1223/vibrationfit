@@ -131,7 +131,7 @@ export default function IntensiveDashboard() {
 
       if (intensiveError || !intensiveData) {
         console.error('No active intensive found:', intensiveError)
-        router.push('/pricing-hormozi')
+        router.push('/#pricing')
         return
       }
 
@@ -337,7 +337,7 @@ export default function IntensiveDashboard() {
           <p className="text-neutral-400 mb-6 text-sm md:text-base">
             You don't have an active intensive purchase.
           </p>
-          <Button size="sm" onClick={() => router.push('/pricing-hormozi')}>
+          <Button size="sm" onClick={() => router.push('/#pricing')}>
             View Intensive Options
           </Button>
         </Card>

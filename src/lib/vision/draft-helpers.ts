@@ -11,7 +11,8 @@ export interface VisionData {
   user_id: string
   version_number: number
   title?: string
-  status: 'draft' | 'complete'
+  is_draft: boolean
+  is_active: boolean
   completion_percent: number
   
   // Category fields
@@ -20,15 +21,12 @@ export interface VisionData {
   travel: string
   home: string
   family: string
-  love?: string
-  romance?: string
+  love: string
   health: string
   money: string
-  work?: string
-  business?: string
+  work: string
   social: string
-  stuff?: string
-  possessions?: string
+  stuff: string
   giving: string
   spirituality: string
   conclusion: string

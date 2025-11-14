@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       paymentPlan,
       continuityPlan: continuityPlan || 'annual', // Default to annual
       successUrl: `${appUrl}/auth/auto-login?session_id={CHECKOUT_SESSION_ID}&email={CHECKOUT_SESSION_CUSTOMER_EMAIL}`,
-      cancelUrl: `${appUrl}/pricing-hormozi`,
+      cancelUrl: `${appUrl}/#pricing`,
     })
 
     return NextResponse.json({ sessionId: session.id, url: session.url })

@@ -7,6 +7,7 @@ import { stripe, STRIPE_CONFIG } from '@/lib/stripe/config'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
+import { TOKEN_GRANTS, STORAGE_QUOTAS } from '@/lib/billing/config'
 
 export async function POST(request: NextRequest) {
   // Check if Stripe is configured
@@ -126,10 +127,10 @@ export async function POST(request: NextRequest) {
               console.log('✅ Annual tokens granted:', result)
             }
             
-            // Set storage quota to 100GB
+            // Set storage quota
             await supabase
               .from('user_profiles')
-              .update({ storage_quota_gb: 100 })
+              .update({ storage_quota_gb: STORAGE_QUOTAS.ANNUAL })
               .eq('user_id', userId)
           } 
           else if (tierType === 'vision_pro_28day') {
@@ -147,10 +148,10 @@ export async function POST(request: NextRequest) {
               console.log('✅ First cycle tokens dripped:', result)
             }
             
-            // Set storage quota to 25GB
+            // Set storage quota
             await supabase
               .from('user_profiles')
-              .update({ storage_quota_gb: 25 })
+              .update({ storage_quota_gb: STORAGE_QUOTAS.MONTHLY_28DAY })
               .eq('user_id', userId)
           }
         } 
@@ -366,23 +367,23 @@ export async function POST(request: NextRequest) {
                   await supabase.rpc('grant_trial_tokens', {
                     p_user_id: userId,
                     p_subscription_id: newSubscription?.id || null,
-                    p_tokens: 1000000,
+                    p_tokens: TOKEN_GRANTS.INTENSIVE_TRIAL,
                     p_trial_period_days: 56,
                   })
                   await supabase
                     .from('user_profiles')
-                    .update({ storage_quota_gb: 25 })
+                    .update({ storage_quota_gb: STORAGE_QUOTAS.TRIAL })
                     .eq('user_id', userId)
                 } else if (tierType === 'vision_pro_28day') {
                   await supabase.rpc('grant_trial_tokens', {
                     p_user_id: userId,
                     p_subscription_id: newSubscription?.id || null,
-                    p_tokens: 500000,
+                    p_tokens: TOKEN_GRANTS.INTENSIVE_TRIAL,
                     p_trial_period_days: 56,
                   })
                   await supabase
                     .from('user_profiles')
-                    .update({ storage_quota_gb: 25 })
+                    .update({ storage_quota_gb: STORAGE_QUOTAS.TRIAL })
                     .eq('user_id', userId)
                 }
               }
@@ -572,13 +573,13 @@ export async function POST(request: NextRequest) {
               
               await supabase
                 .from('user_profiles')
-                .update({ storage_quota_gb: 25 })
+                .update({ storage_quota_gb: STORAGE_QUOTAS.TRIAL })
                 .eq('user_id', userId)
             } else if (tierType === 'vision_pro_28day') {
               const { data: result, error: grantError } = await supabase.rpc('grant_trial_tokens', {
                 p_user_id: userId,
                 p_subscription_id: newSubscription?.id || null,
-                p_tokens: 500000,
+                p_tokens: TOKEN_GRANTS.INTENSIVE_TRIAL,
                 p_trial_period_days: 56,
               })
               
@@ -590,7 +591,7 @@ export async function POST(request: NextRequest) {
               
               await supabase
                 .from('user_profiles')
-                .update({ storage_quota_gb: 25 })
+                .update({ storage_quota_gb: STORAGE_QUOTAS.TRIAL })
                 .eq('user_id', userId)
             }
           } catch (scheduleError) {

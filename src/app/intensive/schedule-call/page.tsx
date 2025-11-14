@@ -63,7 +63,7 @@ export default function ScheduleCallPage() {
         .single()
 
       if (intensiveError || !intensiveData) {
-        router.push('/pricing-hormozi')
+        router.push('/#pricing')
         return
       }
 

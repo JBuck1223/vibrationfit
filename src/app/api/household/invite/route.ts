@@ -185,9 +185,6 @@ export async function GET(request: NextRequest) {
           id,
           name,
           plan_type
-        ),
-        inviter:auth.users!household_invitations_invited_by_fkey(
-          email
         )
       `)
       .eq('invitation_token', token)
@@ -201,7 +198,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if expired
-    if (new Date(invitation.expires_at) < new Date()) {
+    if (new Date(invitation.expires_at as string) < new Date()) {
       return NextResponse.json(
         { error: 'Invitation has expired' },
         { status: 410 }
@@ -209,9 +206,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if already accepted
-    if (invitation.status !== 'pending') {
+    if ((invitation as any).status !== 'pending') {
       return NextResponse.json(
-        { error: `Invitation is ${invitation.status}` },
+        { error: `Invitation is ${(invitation as any).status}` },
         { status: 400 }
       )
     }

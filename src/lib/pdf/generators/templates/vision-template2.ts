@@ -99,7 +99,8 @@ export class VisionTemplatePDF {
     currentY += 25
 
     // Version badge with elegant design
-    this.drawElegantVersionBadge(this.pageWidth / 2, currentY, this.vision.version_number, this.vision.status)
+    const badgeStatus = this.vision.is_draft ? 'draft' : (this.vision.is_active ? 'active' : 'complete')
+    this.drawElegantVersionBadge(this.pageWidth / 2, currentY, this.vision.version_number, badgeStatus)
     currentY += 28
 
     // Beautiful progress indicator

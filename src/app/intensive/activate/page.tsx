@@ -101,7 +101,7 @@ export default function IntensiveActivation() {
         .single()
 
       if (error || !intensiveData) {
-        router.push('/pricing-hormozi')
+        router.push('/#pricing')
         return
       }
 

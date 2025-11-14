@@ -143,7 +143,7 @@ export default function BillingPage() {
                 </p>
                 <Button
                   variant="primary"
-                  onClick={() => window.location.href = '/pricing'}
+                  onClick={() => window.location.href = '/#pricing'}
                 >
                   Upgrade Now
                 </Button>

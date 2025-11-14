@@ -6,7 +6,8 @@ export interface VisionData {
   id: string
   title?: string
   version_number: number
-  status: 'draft' | 'complete' | string
+  is_draft: boolean
+  is_active: boolean
   completion_percent?: number
   forward: string
   fun: string

@@ -121,7 +121,7 @@ export default function IntensiveCalibration() {
         .single()
 
       if (error || !intensiveData) {
-        router.push('/pricing-hormozi')
+        router.push('/#pricing')
         return
       }
 

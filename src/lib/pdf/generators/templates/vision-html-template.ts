@@ -218,8 +218,8 @@ function generateVisionHTML(
       align-items: center;
       gap: 12px;
       padding: 12px 24px;
-      background: ${vision.status === 'complete' ? '#199D67' : '#FFB701'}15;
-      border: 2px solid ${vision.status === 'complete' ? '#199D67' : '#FFB701'};
+      background: ${!vision.is_draft ? '#199D67' : '#FFB701'}15;
+      border: 2px solid ${!vision.is_draft ? '#199D67' : '#FFB701'};
       border-radius: 50px;
       margin-bottom: 30px;
       font-size: 14px;
@@ -232,7 +232,7 @@ function generateVisionHTML(
     }
     
     .cover-badge .status {
-      color: ${vision.status === 'complete' ? '#199D67' : '#FFB701'};
+      color: ${!vision.is_draft ? '#199D67' : '#FFB701'};
     }
     
     .cover-progress {
@@ -522,7 +522,7 @@ function generateVisionHTML(
       
       <div class="cover-badge">
         <span class="version">V${vision.version_number}</span>
-        <span class="status">${vision.status === 'complete' ? 'Complete' : 'Draft'}</span>
+        <span class="status">${!vision.is_draft ? (vision.is_active ? 'Active' : 'Complete') : 'Draft'}</span>
       </div>
       
       ${vision.completion_percent !== undefined ? `
@@ -597,8 +597,8 @@ ${escapeHtml(content)}
       </div>
       <div class="summary-row">
         <span class="summary-label">Status:</span>
-        <span class="summary-value" style="color: ${vision.status === 'complete' ? '#199D67' : '#FFB701'}; font-weight: 600;">
-          ${vision.status === 'complete' ? 'Complete' : 'Draft'}
+        <span class="summary-value" style="color: ${!vision.is_draft ? '#199D67' : '#FFB701'}; font-weight: 600;">
+          ${!vision.is_draft ? (vision.is_active ? 'Active' : 'Complete') : 'Draft'}
         </span>
       </div>
       <div class="summary-row">

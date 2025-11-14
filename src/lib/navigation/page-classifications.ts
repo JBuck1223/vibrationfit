@@ -128,8 +128,6 @@ export const PAGE_CLASSIFICATIONS = {
   PUBLIC: [
     // Marketing Pages
     '/',
-    '/pricing',
-    '/pricing-hormozi',
     
     // Authentication
     '/auth/login',

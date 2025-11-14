@@ -155,8 +155,6 @@ export default function SitemapPage() {
       pages: [
         // Marketing
         { href: '/', label: 'Home', icon: Home, description: 'Landing page' },
-        { href: '/pricing', label: 'Pricing', icon: Star, description: 'Pricing plans' },
-        { href: '/pricing-hormozi', label: 'Hormozi Pricing', icon: Rocket, description: 'Special pricing page' },
 
         // Authentication
         { href: '/auth/login', label: 'Login', icon: User, description: 'User login' },

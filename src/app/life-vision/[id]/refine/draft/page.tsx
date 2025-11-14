@@ -513,7 +513,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                       category={category} 
                       selected={selectedCategories.includes(category.key)} 
                       onClick={() => handleCategoryToggle(category.key)}
-                      iconColor={isRefined ? NEON_YELLOW : undefined}
                     />
                   </div>
                 )
