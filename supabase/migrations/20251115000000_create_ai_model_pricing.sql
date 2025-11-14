@@ -85,13 +85,29 @@ CREATE POLICY "Anyone can read model pricing"
   FOR SELECT
   USING (true);
 
--- Policy: Only service_role can modify pricing (via admin panel)
--- Service role is used for admin operations, no user-level admin check needed
-CREATE POLICY "Only service role can modify model pricing"
+-- Policy: Only admins can modify pricing
+-- Checks user metadata for is_admin flag OR service role (for API operations)
+CREATE POLICY "Only admins can modify model pricing"
   ON public.ai_model_pricing
   FOR INSERT, UPDATE, DELETE
-  USING (auth.role() = 'service_role')
-  WITH CHECK (auth.role() = 'service_role');
+  USING (
+    auth.role() = 'service_role'
+    OR
+    EXISTS (
+      SELECT 1 FROM auth.users
+      WHERE users.id = auth.uid()
+        AND (users.raw_user_meta_data ->> 'is_admin')::boolean = true
+    )
+  )
+  WITH CHECK (
+    auth.role() = 'service_role'
+    OR
+    EXISTS (
+      SELECT 1 FROM auth.users
+      WHERE users.id = auth.uid()
+        AND (users.raw_user_meta_data ->> 'is_admin')::boolean = true
+    )
+  );
 
 -- =====================================================================
 -- Function to calculate cost for a token usage record
