@@ -2,12 +2,16 @@
 -- Integrate AI Cost Tracking with Existing token_usage Table
 -- =====================================================================
 
--- Add new column for calculated costs (keeps old cost_estimate for reference)
+-- Add new columns for calculated costs and audio tracking
 ALTER TABLE public.token_usage 
-  ADD COLUMN IF NOT EXISTS calculated_cost_cents integer;
+  ADD COLUMN IF NOT EXISTS calculated_cost_cents integer,
+  ADD COLUMN IF NOT EXISTS audio_seconds numeric(10,2),
+  ADD COLUMN IF NOT EXISTS audio_duration_formatted text;
 
 COMMENT ON COLUMN public.token_usage.cost_estimate IS 'OLD: Inaccurate estimate (kept for reference)';
 COMMENT ON COLUMN public.token_usage.calculated_cost_cents IS 'NEW: Accurate cost calculated from ai_model_pricing';
+COMMENT ON COLUMN public.token_usage.audio_seconds IS 'Duration in seconds for audio transcriptions (Whisper)';
+COMMENT ON COLUMN public.token_usage.audio_duration_formatted IS 'Human-readable duration (e.g., "2m 30s")';
 
 -- Create index for cost queries
 CREATE INDEX IF NOT EXISTS idx_token_usage_calculated_cost 
@@ -48,13 +52,15 @@ CREATE OR REPLACE FUNCTION public.apply_token_usage(
   p_input_tokens integer,
   p_output_tokens integer,
   p_cost_estimate_cents integer,
-  p_metadata jsonb DEFAULT '{}'::jsonb
+  p_metadata jsonb DEFAULT '{}'::jsonb,
+  p_audio_seconds numeric DEFAULT NULL  -- NEW: Audio duration parameter
 )
 RETURNS void AS $$
 DECLARE
   v_effective_tokens integer;
   v_override integer;
   v_calculated_cost integer;
+  v_audio_formatted text;
 BEGIN
   IF p_tokens_used IS NULL THEN
     p_tokens_used := 0;
@@ -79,8 +85,22 @@ BEGIN
     p_model_used,
     COALESCE(p_input_tokens, 0),
     COALESCE(p_output_tokens, 0),
-    NULL
+    p_audio_seconds  -- Pass audio seconds for Whisper/audio models
   );
+
+  -- Format audio duration if provided (e.g., "2m 30s")
+  IF p_audio_seconds IS NOT NULL AND p_audio_seconds > 0 THEN
+    v_audio_formatted := CASE
+      WHEN p_audio_seconds < 60 THEN ROUND(p_audio_seconds, 1)::text || 's'
+      WHEN p_audio_seconds < 3600 THEN 
+        FLOOR(p_audio_seconds / 60)::text || 'm ' || 
+        ROUND(p_audio_seconds % 60)::text || 's'
+      ELSE
+        FLOOR(p_audio_seconds / 3600)::text || 'h ' ||
+        FLOOR((p_audio_seconds % 3600) / 60)::text || 'm ' ||
+        ROUND(p_audio_seconds % 60)::text || 's'
+    END;
+  END IF;
 
   -- Insert token_usage record with BOTH old estimate and new calculated cost
   INSERT INTO public.token_usage(
@@ -90,7 +110,9 @@ BEGIN
     tokens_used,
     input_tokens,
     output_tokens,
-    cost_estimate,              -- Keep old estimate for reference
+    audio_seconds,               -- NEW: Audio duration
+    audio_duration_formatted,    -- NEW: Human-readable duration
+    cost_estimate,               -- Keep old estimate for reference
     calculated_cost_cents,       -- NEW: Accurate cost
     success,
     metadata,
@@ -102,6 +124,8 @@ BEGIN
     v_effective_tokens,
     COALESCE(p_input_tokens, 0),
     COALESCE(p_output_tokens, 0),
+    p_audio_seconds,              -- NEW: Audio duration
+    v_audio_formatted,            -- NEW: Formatted duration
     COALESCE(p_cost_estimate_cents, 0),  -- Old estimate
     v_calculated_cost,                    -- NEW: Calculated cost
     true,
@@ -127,6 +151,8 @@ SELECT
   tokens_used,
   input_tokens,
   output_tokens,
+  audio_seconds,
+  audio_duration_formatted,
   
   -- Cost comparison
   cost_estimate / 100.0 as old_estimate_usd,
@@ -140,6 +166,13 @@ SELECT
     ELSE NULL
   END as accuracy_percentage,
   
+  -- Usage type indicator
+  CASE
+    WHEN audio_seconds IS NOT NULL AND audio_seconds > 0 THEN 'audio'
+    WHEN input_tokens > 0 OR output_tokens > 0 THEN 'text'
+    ELSE 'other'
+  END as usage_type,
+  
   success,
   error_message,
   metadata,
@@ -147,7 +180,7 @@ SELECT
 FROM public.token_usage
 WHERE success = true;
 
-COMMENT ON VIEW public.token_usage_with_costs IS 'Shows token usage with both old estimates and accurate calculated costs';
+COMMENT ON VIEW public.token_usage_with_costs IS 'Shows token usage with both old estimates and accurate calculated costs, including audio tracking';
 
 -- =====================================================================
 -- Grant SELECT on view to authenticated users
