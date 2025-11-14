@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge } from '@/lib/design-system/components'
-import { Zap, TrendingUp, Activity, Plus, ArrowRight, DollarSign, History } from 'lucide-react'
+import { Zap, TrendingUp, Activity, Plus, ArrowRight, History } from 'lucide-react'
 import Link from 'next/link'
 
 interface TokenTransaction {
@@ -93,7 +93,6 @@ export default function TokensPage() {
       setStats({
         totalUsed: data.totalUsed,
         totalGranted: data.totalGranted,
-        totalCost: data.totalCost || 0,
         actionBreakdown: data.actionBreakdown || {},
       })
 
@@ -201,21 +200,6 @@ export default function TokensPage() {
               </div>
             </Card>
 
-            {/* Total Cost */}
-            <Card className="p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">
-                  Total Cost
-                </h3>
-                <DollarSign className="w-5 h-5 text-accent-500" />
-              </div>
-              <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1">
-                ${(stats?.totalCost || 0).toFixed(2)}
-              </div>
-              <div className="text-sm text-neutral-500">
-                AI usage cost
-              </div>
-            </Card>
           </div>
 
           {/* Usage Breakdown */}

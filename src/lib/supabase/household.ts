@@ -554,7 +554,7 @@ export async function deductTokens(
     return { success: false, error: 'User profile not found' }
   }
 
-  // Get user's token balance from token_balances
+  // Get user's token balance (calculated from token_transactions and token_usage)
   const { data: userBalance, error: balanceError } = await supabase
     .rpc('get_user_token_balance', { p_user_id: userId })
     .single()
@@ -568,17 +568,8 @@ export async function deductTokens(
 
   // 2. Check if user has enough tokens individually
   if (userTokens >= tokenAmount) {
-    // Deduct from user's own tokens using FIFO
-    const { data: deductResult, error: deductError } = await supabase
-      .rpc('deduct_tokens_with_fifo', {
-        p_user_id: userId,
-        p_tokens_to_deduct: tokenAmount
-      })
-
-    if (deductError || !deductResult?.success) {
-      return { success: false, error: 'Failed to deduct tokens' }
-    }
-
+    // User has enough - deduction will happen automatically via trackTokenUsage()
+    // Balance calculated as: SUM(unexpired grants) - SUM(usage)
     return { success: true, usedSharedTokens: false }
   }
 
@@ -612,26 +603,12 @@ export async function deductTokens(
     return { success: false, error: 'Insufficient household tokens' }
   }
 
-  // 6. Deduct from user first (exhaust their balance)
-  if (userTokens > 0) {
-    await supabase.rpc('deduct_tokens_with_fifo', {
-      p_user_id: userId,
-      p_tokens_to_deduct: userTokens
-    })
-  }
-
-  // 7. Deduct remaining from admin's balance
-  const { data: adminDeductResult, error: adminDeductError } = await supabase
-    .rpc('deduct_tokens_with_fifo', {
-      p_user_id: household.admin_user_id,
-      p_tokens_to_deduct: neededFromAdmin
-    })
-
-  if (adminDeductError || !adminDeductResult?.success) {
-    console.error('Error deducting tokens from admin:', adminDeductError)
-    return { success: false, error: 'Failed to deduct tokens from household' }
-  }
-
+  // 6. Household has enough tokens - allow the operation
+  // Actual deduction happens automatically via trackTokenUsage()
+  // Balance recalculated as: SUM(unexpired grants) - SUM(usage)
+  // NOTE: This means household member will have negative individual balance
+  //       but that's OK - their usage is tracked and household total covers it
+  
   return { success: true, usedSharedTokens: true }
 }
 

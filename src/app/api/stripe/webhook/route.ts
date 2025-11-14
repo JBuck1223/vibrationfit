@@ -739,12 +739,14 @@ export async function POST(request: NextRequest) {
               // This is a renewal payment (not the first one)
               // Drip 375k tokens for the new cycle
               
-              // Get cycle number from token_drips history
+              // Get cycle number from token_transactions history
               const { count } = await supabase
-                .from('token_drips')
+                .from('token_transactions')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', subscription.user_id)
                 .eq('subscription_id', subscription.id)
+                .eq('action_type', 'subscription_grant')
+                .gt('tokens_used', 0) // Only count grants (not deductions)
               
               const cycleNumber = (count || 0) + 1
               

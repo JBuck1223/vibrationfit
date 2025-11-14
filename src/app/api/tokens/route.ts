@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get token balance using new token_balances table
+    // Get token balance - calculated as: SUM(unexpired grants) - SUM(usage)
     const { data: balanceData, error: balanceError } = await supabase
       .rpc('get_user_token_balance', { p_user_id: user.id })
       .single()
@@ -59,13 +59,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch usage history' }, { status: 500 })
     }
 
-    // Calculate total granted from all token_balances (includes expired)
+    // Calculate total granted from token_transactions (includes expired)
     const { data: allGrants, error: grantsError } = await supabase
-      .from('token_balances')
-      .select('tokens_granted')
+      .from('token_transactions')
+      .select('tokens_used')
       .eq('user_id', user.id)
+      .in('action_type', ['subscription_grant', 'renewal_grant', 'trial_grant', 'token_pack_purchase', 'pack_purchase', 'admin_grant'])
+      .gt('tokens_used', 0) // Grants are positive
 
-    const totalGranted = (allGrants || []).reduce((sum: number, grant: any) => sum + grant.tokens_granted, 0)
+    const totalGranted = (allGrants || []).reduce((sum: number, grant: any) => sum + grant.tokens_used, 0)
 
     // Calculate total used from token_usage
     const { data: allUsage, error: allUsageError } = await supabase
@@ -77,15 +79,6 @@ export async function GET(request: NextRequest) {
 
     const totalUsed = (allUsage || []).reduce((sum: number, usage: any) => sum + usage.tokens_used, 0)
 
-    // Calculate total cost
-    const { data: costData, error: costError } = await supabase
-      .from('token_usage')
-      .select('cost_estimate')
-      .eq('user_id', user.id)
-      .not('cost_estimate', 'is', null)
-
-    const totalCost = (costData || []).reduce((sum: number, record: any) => sum + (record.cost_estimate || 0), 0) / 100 // Convert cents to dollars
-
     // Calculate usage breakdown (only AI operations, not grants)
     const actionBreakdown = (usageHistory || [])
       .filter((usage: any) => 
@@ -95,11 +88,10 @@ export async function GET(request: NextRequest) {
       .reduce((acc: any, usage: any) => {
         const action = usage.action_type
         if (!acc[action]) {
-          acc[action] = { count: 0, tokens: 0, cost: 0 }
+          acc[action] = { count: 0, tokens: 0 }
         }
         acc[action].count++
         acc[action].tokens += usage.tokens_used
-        acc[action].cost += (usage.cost_estimate || 0) / 100 // Convert cents to dollars
         return acc
       }, {})
 
@@ -135,11 +127,10 @@ export async function GET(request: NextRequest) {
       .slice(0, 50) // Limit to 50 most recent
 
     return NextResponse.json({
-      balance: actualBalance, // Active tokens from token_balances (non-expired)
+      balance: actualBalance, // Active tokens calculated from token_transactions and token_usage
       totalExpired, // Expired tokens (not counted in balance)
       totalUsed, // Total consumed tokens from token_usage
-      totalGranted, // Total granted from token_balances (includes expired)
-      totalCost, // Total cost in dollars
+      totalGranted, // Total granted from token_transactions (includes expired)
       grantsBreakdown, // Breakdown by grant type
       transactions: formattedTransactions,
       transactionsOnly: transactions || [],

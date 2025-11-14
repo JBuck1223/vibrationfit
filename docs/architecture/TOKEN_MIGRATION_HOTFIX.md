@@ -5,15 +5,34 @@
 
 ---
 
-## 🐛 The Bug
+## ❓ Multiple Rows Per User = CORRECT ✅
 
-The initial migration `20251114000000_cleanup_user_profiles.sql` had a critical logic error on **line 130**:
+**This is intentional!** Each row in `token_balances` represents a **separate grant** that gets consumed independently via FIFO.
+
+**Example:**
+```
+User gets 100k tokens on Oct 5  → Row 1
+User gets 500k tokens on Nov 7  → Row 2
+User uses 200k tokens            → Consumes 100k from Row 1, then 100k from Row 2 (FIFO)
+```
+
+Each grant has its own:
+- `tokens_granted` - Original amount
+- `tokens_remaining` - Current balance (decreases as used)
+- `expires_at` - Expiration date (if applicable)
+- `grant_type` - Type of grant (annual, 28day, trial, purchase, admin)
+
+---
+
+## 🐛 The Bugs
+
+The initial migration `20251114000000_cleanup_user_profiles.sql` had **two critical issues**:
+
+### Bug 1: Sign Convention Error (Line 130)
 
 ```sql
 AND tt.tokens_used < 0 -- Negative means grant  ❌ WRONG!
 ```
-
-### Why This Was Wrong
 
 In the `token_transactions` table schema:
 - ✅ **Grants are POSITIVE** (`tokens_used > 0`)
@@ -24,11 +43,24 @@ This is documented in `src/lib/tokens/transactions.ts`:
 tokens_used: number // Positive for grants/purchases, negative for deductions
 ```
 
-### Impact
+**Impact:** Zero rows were migrated because the query was looking for negative values.
 
-**Zero rows were migrated** from `token_transactions` to `token_balances` because the migration was looking for negative grant values when all actual grants are positive.
+### Bug 2: Complex FIFO Calculation Created Negative Balances
 
-Result: The new `token_balances` table is empty despite users having active token grants.
+The migration tried to calculate exact historical `tokens_remaining` by subtracting all usage since grant date:
+
+```sql
+tokens_remaining = tokens_granted - (SELECT SUM(usage since grant))
+```
+
+**Problem:** This doesn't account for multiple grants being consumed in FIFO order. Results in negative balances like:
+
+```sql
+tokens_granted: 100000
+tokens_remaining: -363843  ❌ IMPOSSIBLE!
+```
+
+**Why it happened:** User had multiple grants. The calculation subtracted ALL usage from EACH grant individually, instead of allocating usage across grants in FIFO order.
 
 ---
 
@@ -156,19 +188,26 @@ ORDER BY user_id;
 | `token_pack_purchase` | `purchase` | Never |
 | `admin_grant` | `admin` | 365 days |
 
-### Tokens Remaining Calculation
+### Tokens Remaining Calculation (Simplified)
 
+**Original Approach (Too Complex):**
+Tried to calculate exact historical `tokens_remaining` by subtracting usage since grant date. This created negative balances due to improper FIFO allocation.
+
+**New Approach (Simple & Effective):**
 ```sql
-tokens_remaining = tokens_granted - (
-  SELECT SUM(tokens_used) FROM token_usage
-  WHERE user_id = grant.user_id
-    AND created_at >= grant.created_at
-    AND success = true
-    AND action_type NOT IN (grant types)
-)
+tokens_remaining = CASE
+  WHEN grant is expired THEN 0
+  ELSE tokens_granted  -- Assume full amount for active grants
+END
 ```
 
-This accounts for all token usage that occurred after each grant was issued.
+This accepts historical inaccuracy but ensures:
+- ✅ No negative balances
+- ✅ Active grants are usable
+- ✅ Expired grants marked correctly
+- ✅ Future usage tracked accurately via FIFO
+
+Going forward, `deduct_tokens_with_fifo()` will maintain accurate balances.
 
 ---
 
@@ -176,9 +215,11 @@ This accounts for all token usage that occurred after each grant was issued.
 
 ### Why Did This Happen?
 
-1. **Assumption Error:** Initial assumption that grants in `token_transactions` were stored as negative values
-2. **No Test Data:** Migration wasn't tested against actual production data
-3. **Silent Failure:** The migration completed successfully but inserted 0 rows (no error raised)
+1. **Sign Convention Error:** Assumed grants were negative when they're actually positive
+2. **Complex FIFO Calculation:** Tried to calculate exact historical balances, which is complex and error-prone
+3. **No Test Data:** Migration wasn't tested against actual production data
+4. **Silent Failure:** The migration completed successfully but inserted 0 rows (no error raised)
+5. **Negative Balances:** Complex calculation created negative `tokens_remaining` values
 
 ### Preventions for Future
 

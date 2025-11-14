@@ -55,7 +55,7 @@ export async function validateTokenBalance(
   try {
     const supabase = supabaseClient || await createServerClient()
     
-    // Get token balance using new token_balances table with FIFO expiration
+    // Get token balance - calculated as: SUM(unexpired grants) - SUM(usage)
     const { data: balanceData, error: balanceError } = await supabase
       .rpc('get_user_token_balance', { p_user_id: userId })
       .single()
@@ -252,38 +252,19 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
       console.error('Failed to insert audit trail:', auditError)
     }
 
-    // 2. Deduct tokens using FIFO logic (oldest grants first)
+    // 2. Token deduction is automatic!
+    // Balance calculated on-the-fly as: SUM(unexpired grants) - SUM(usage)
+    // No need for complex FIFO deduction - token_usage record above handles it
+    
     if (usage.success && effectiveTokens > 0) {
-      try {
-        // Use deduct_tokens_with_fifo function for FIFO consumption with expiration
-        const { data: deductionResult, error: deductError } = await supabase
-          .rpc('deduct_tokens_with_fifo', {
-            p_user_id: usage.user_id,
-            p_tokens_to_deduct: effectiveTokens
-          })
-        
-        if (deductError) {
-          console.error('Failed to deduct tokens via FIFO:', deductError)
-          // Continue - audit trail is still recorded above
-        } else if (deductionResult?.success) {
-          console.log('✅ Tokens deducted via FIFO:', {
-            deducted: deductionResult.tokens_deducted,
-            from_grants: deductionResult.deducted_from?.length || 0
-          })
-        } else {
-          console.warn('⚠️ Partial token deduction:', deductionResult)
-        }
-        
-        // Deduction complete - balance updated in token_balances table
-        return
-      } catch (deductionError) {
-        console.error('Error deducting tokens, continuing with audit trail only:', deductionError)
-        // Audit trail was still recorded - this is not critical
-        return
-      }
+      console.log('✅ Token usage tracked:', {
+        user_id: usage.user_id,
+        tokens: effectiveTokens,
+        action: usage.action_type
+      })
     }
-
-    // Note: Old fallback logic removed - token balances now managed via token_balances table
+    
+    // Balance automatically reflects this usage via get_user_token_balance()
 
   } catch (error) {
     console.error('Token tracking error:', error)

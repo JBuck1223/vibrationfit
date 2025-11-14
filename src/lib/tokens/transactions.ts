@@ -35,8 +35,9 @@ export interface TokenTransaction extends TokenTransactionInput {
 
 /**
  * Record a token transaction (grant, purchase, deduction)
- * This inserts into token_balances AND records in token_transactions for audit trail
- * Note: token_transactions table uses action_type, tokens_used, tokens_remaining
+ * Records in token_transactions with expires_at field
+ * Balance calculated on-the-fly: SUM(unexpired grants) - SUM(usage)
+ * Note: token_transactions table uses action_type, tokens_used, tokens_remaining, expires_at
  */
 export async function recordTokenTransaction(
   transaction: TokenTransactionInput,
@@ -77,46 +78,22 @@ export async function recordTokenTransaction(
     const isGrant = tokensUsed > 0 && ['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase'].includes(transaction.action_type)
     const isDeduction = tokensUsed < 0 || transaction.action_type === 'admin_deduct'
     
-    // Handle grants: insert into token_balances
+    // Determine expiration date for grants (not needed for deductions)
+    let expiresAt: string | null = null
+    
     if (isGrant) {
-      let grantType = 'admin'
-      let expiresAt: string | null = null
-      
       if (transaction.action_type === 'token_pack_purchase') {
-        grantType = 'purchase'
-        expiresAt = null // Never expires
+        expiresAt = null // Purchases never expire
       } else if (transaction.action_type === 'admin_grant') {
-        grantType = 'admin'
-        expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+        expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 365 days
       } else if (transaction.action_type === 'subscription_grant') {
-        grantType = '28day'
-        expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+        // Check metadata to determine if annual (5M tokens) or 28-day (375k)
+        const isAnnual = tokensUsed >= 5000000 || transaction.metadata?.plan === 'vision_pro_annual'
+        expiresAt = isAnnual 
+          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 365 days
+          : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()  // 90 days (3 cycles)
       } else if (transaction.action_type === 'trial_grant') {
-        grantType = 'trial'
-        expiresAt = new Date(Date.now() + 56 * 24 * 60 * 60 * 1000).toISOString()
-      }
-      
-      await supabase.from('token_balances').insert({
-        user_id: transaction.user_id,
-        grant_type: grantType,
-        tokens_granted: tokensUsed,
-        tokens_remaining: tokensUsed,
-        granted_at: new Date().toISOString(),
-        expires_at: expiresAt,
-        subscription_id: transaction.subscription_id || null,
-        token_pack_id: transaction.token_pack_id || null,
-        metadata: transaction.metadata || {}
-      })
-    } else if (isDeduction) {
-      // Handle deductions: use FIFO
-      const { data: deductResult, error: deductError } = await supabase
-        .rpc('deduct_tokens_with_fifo', {
-          p_user_id: transaction.user_id,
-          p_tokens_to_deduct: Math.abs(tokensUsed)
-        })
-      
-      if (deductError || !deductResult?.success) {
-        throw new Error('Failed to deduct tokens')
+        expiresAt = new Date(Date.now() + 56 * 24 * 60 * 60 * 1000).toISOString() // 56 days
       }
     }
     
@@ -133,6 +110,7 @@ export async function recordTokenTransaction(
       action_type: transaction.action_type,
       tokens_used: tokensUsed,
       tokens_remaining: finalBalanceAfter,
+      expires_at: expiresAt // Add expiration date
     }
     // Add optional fields
     if (transaction.estimated_cost_usd !== undefined) {
@@ -207,7 +185,7 @@ export async function recordTokenTransaction(
       balance_after: finalBalanceAfter
     })
     
-    // Note: Balance now managed via token_balances table, no need to update user_profiles
+    // Note: Balance calculated on-the-fly from token_transactions and token_usage
 
   } catch (error: any) {
     console.error('Token transaction error:', error)
