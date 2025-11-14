@@ -81,24 +81,34 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
     })
 
     // Create the query promise
-    // Simply get the most recent profile for this user
-    // Don't filter by is_active/is_draft as user_profiles doesn't use that pattern
+    // Get active profile (user_profiles has is_active but not is_draft)
     const queryPromise = supabase
       .from('user_profiles')
       .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
       .eq('user_id', userId)
-      .order('updated_at', { ascending: false })
-      .limit(1)
+      .eq('is_active', true)
       .maybeSingle()
-      .then((result) => {
-        if (result.error) {
-          // Only throw if it's not a "no rows" error
-          if (result.error.code !== 'PGRST116') {
-            console.error('Profile fetch error:', result.error)
-            throw result.error
+      .then(async (result) => {
+        // If no active profile found, fallback to most recent profile
+        if (result.error || !result.data) {
+          const fallbackResult = await supabase
+            .from('user_profiles')
+            .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
+            .eq('user_id', userId)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          
+          if (fallbackResult.error) {
+            // Only throw if it's not a "no rows" error
+            if (fallbackResult.error.code !== 'PGRST116') {
+              console.error('Profile fetch error:', fallbackResult.error)
+              throw fallbackResult.error
+            }
+            // No profile exists at all for this user
+            return null
           }
-          // No profile exists at all for this user
-          return null
+          return fallbackResult.data
         }
         return result.data
       })
