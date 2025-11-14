@@ -4,6 +4,7 @@ import { Card, Button, Badge, ProgressBar, Container, AIButton } from '@/lib/des
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import Link from 'next/link'
 import AITokenUsage from '@/components/AITokenUsage'
+import HouseholdTokenBalance from '@/components/HouseholdTokenBalance'
 import { 
   Sparkles, 
   BookOpen, 
@@ -86,12 +87,6 @@ export default function DashboardContent({ user, profileData, visionData, vision
 
   const completionPercentage = calculateCompletionManually(profileData)
 
-  // Calculate token usage percentage
-  const tokensUsed = profileData?.vibe_assistant_tokens_used ?? 0
-  const tokensRemaining = profileData?.vibe_assistant_tokens_remaining ?? 0
-  const totalTokens = tokensUsed + tokensRemaining
-  const tokenUsagePercentage = totalTokens > 0 ? Math.min((tokensUsed / totalTokens) * 100, 100) : 0
-
   // Create recent activity data
   const recentActivity = [
     ...visionData.map(vision => ({
@@ -139,6 +134,11 @@ export default function DashboardContent({ user, profileData, visionData, vision
         </div>
 
       </div>
+
+        {/* Token Balance Section */}
+        <div className="mb-12 max-w-2xl mx-auto">
+          <HouseholdTokenBalance />
+        </div>
 
         {/* Key Metrics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">

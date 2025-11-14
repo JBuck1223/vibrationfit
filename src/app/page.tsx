@@ -74,6 +74,7 @@ const VISION_CATEGORIES = [
 
 export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [planType, setPlanType] = useState<'solo' | 'household'>('solo')
   const [billingPeriod, setBillingPeriod] = useState<'annual' | '28day'>('annual')
   const [paymentPlan, setPaymentPlan] = useState<'full' | '2pay' | '3pay'>('full')
   const [isLoading, setIsLoading] = useState(false)
@@ -259,12 +260,40 @@ export default function HomePage() {
   }
 
   const getPaymentAmount = () => {
+    const prices = planType === 'solo' 
+      ? { full: 499, twoPayment: 249.50, threePayment: 166.33 }
+      : { full: 699, twoPayment: 349.50, threePayment: 233 }
+    
     switch (paymentPlan) {
-      case 'full': return '499'
-      case '2pay': return '249.50'
-      case '3pay': return '166.33'
-      default: return '499'
+      case 'full': return prices.full.toString()
+      case '2pay': return prices.twoPayment.toString()
+      case '3pay': return prices.threePayment.toString()
+      default: return prices.full.toString()
     }
+  }
+  
+  const getIntensiveTotal = () => {
+    return planType === 'solo' ? '499' : '699'
+  }
+  
+  const getVisionProAnnualPrice = () => {
+    return planType === 'solo' ? '999' : '1,499'
+  }
+  
+  const getVisionProMonthlyPrice = () => {
+    return planType === 'solo' ? '99' : '149'
+  }
+  
+  const getVisionProAnnualPerCycle = () => {
+    return planType === 'solo' ? '76.85' : '115.31'
+  }
+  
+  const getVisionProAnnualSavings = () => {
+    return planType === 'solo' ? '22%' : '23%'
+  }
+  
+  const getPlanSeatsText = () => {
+    return planType === 'solo' ? '1 seat' : '2 seats included'
   }
 
   const handleIntensivePurchase = async () => {
@@ -1451,6 +1480,38 @@ export default function HomePage() {
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="xl" className="md:gap-12">
                 
+                {/* PLAN TYPE TOGGLE */}
+                <div className="flex justify-center">
+                  <div className="inline-flex items-center gap-2 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
+                    <button
+                      onClick={() => setPlanType('solo')}
+                      className={`px-6 py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                        planType === 'solo'
+                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30 scale-105'
+                          : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Solo (1 Seat)
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setPlanType('household')}
+                      className={`px-6 py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                        planType === 'household'
+                          ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/30 scale-105'
+                          : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Household (2 Seats)
+                      </span>
+                    </button>
+                  </div>
+                </div>
+                
                 {/* ACTIVATION INTENSIVE TITLE - ENHANCED */}
                 <div className="text-center">
                   <Heading level={2} className="text-white text-3xl md:text-5xl font-bold mb-6 md:mb-8">
@@ -1478,7 +1539,7 @@ export default function HomePage() {
                         ${getPaymentAmount()}
                               </div>
                       <div className="text-xl text-white mb-2 text-center">
-                        {paymentPlan === 'full' ? 'Today' : paymentPlan === '2pay' ? '× 2 Payments = $499' : '× 3 Payments = $499'}
+                        {paymentPlan === 'full' ? 'Today' : paymentPlan === '2pay' ? `× 2 Payments = $${getIntensiveTotal()}` : `× 3 Payments = $${getIntensiveTotal()}`}
                       </div>
                       <div className="text-lg text-neutral-300 text-center">
                         Includes 8 weeks of Vision Pro access
@@ -1574,17 +1635,17 @@ export default function HomePage() {
                       <div className="text-center mb-8">
                         <Crown className="w-12 h-12 text-primary-500 mx-auto mb-4" />
                         <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Annual</h3>
-                        <Text size="base" className="text-neutral-400 mb-6">Full year, full power</Text>
+                        <Text size="base" className="text-neutral-400 mb-6">Full year, full power • {getPlanSeatsText()}</Text>
                         
                         <div className="inline-flex items-baseline gap-2 mb-2">
-                              <span className="text-5xl font-bold text-white">$999</span>
+                              <span className="text-5xl font-bold text-white">${getVisionProAnnualPrice()}</span>
                               <span className="text-xl text-neutral-400">/year</span>
                         </div>
                         <div className="text-neutral-500 text-sm mb-1">
-                              $76.85/28 days, billed annually
+                              ${getVisionProAnnualPerCycle()}/28 days, billed annually
                         </div>
                         <div className="text-primary-500 text-sm font-semibold">
-                              Save 22% vs $99 every 28 days
+                              Save {getVisionProAnnualSavings()} vs ${getVisionProMonthlyPrice()} every 28 days
                         </div>
                       </div>
 
@@ -1623,17 +1684,17 @@ export default function HomePage() {
                       <div className="text-center mb-8">
                         <Zap className="w-12 h-12 text-secondary-500 mx-auto mb-4" />
                         <h3 className="text-3xl font-bold text-white mb-2">Vision Pro 28-Day</h3>
-                        <Text size="base" className="text-neutral-400 mb-6">Flexible billing cycle</Text>
+                        <Text size="base" className="text-neutral-400 mb-6">Flexible billing cycle • {getPlanSeatsText()}</Text>
                         
                         <div className="inline-flex items-baseline gap-2 mb-2">
-                          <span className="text-5xl font-bold text-white">$99</span>
+                          <span className="text-5xl font-bold text-white">${getVisionProMonthlyPrice()}</span>
                           <span className="text-xl text-neutral-400">/28 days</span>
                         </div>
                         <div className="text-neutral-500 text-sm mb-1">
                               Billed every 4 weeks
                         </div>
                         <div className="text-neutral-400 text-sm">
-                          $1,287 per year (13 cycles)
+                          ${planType === 'solo' ? '1,287' : '1,937'} per year (13 cycles)
                         </div>
                       </div>
 
@@ -1675,17 +1736,17 @@ export default function HomePage() {
                           <div className="text-center mb-8">
                             <Crown className="w-12 h-12 text-primary-500 mx-auto mb-4" />
                             <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Annual</h3>
-                            <Text size="base" className="text-neutral-400 mb-6">Full year, full power</Text>
+                            <Text size="base" className="text-neutral-400 mb-6">Full year, full power • {getPlanSeatsText()}</Text>
                             
                             <div className="inline-flex items-baseline gap-2 mb-2">
-                              <span className="text-5xl font-bold text-white">$999</span>
+                              <span className="text-5xl font-bold text-white">${getVisionProAnnualPrice()}</span>
                               <span className="text-xl text-neutral-400">/year</span>
                             </div>
                             <div className="text-neutral-500 text-sm mb-1">
-                              $76.85/28 days, billed annually
+                              ${getVisionProAnnualPerCycle()}/28 days, billed annually
                             </div>
                             <div className="text-primary-500 text-sm font-semibold">
-                              Save 22% vs $99 every 28 days
+                              Save {getVisionProAnnualSavings()} vs ${getVisionProMonthlyPrice()} every 28 days
             </div>
           </div>
 
@@ -1721,17 +1782,17 @@ export default function HomePage() {
                           <div className="text-center mb-8">
                             <Zap className="w-12 h-12 text-secondary-500 mx-auto mb-4" />
                             <h3 className="text-3xl font-bold text-white mb-2">Vision Pro 28-Day</h3>
-                            <Text size="base" className="text-neutral-400 mb-6">Flexible billing cycle</Text>
+                            <Text size="base" className="text-neutral-400 mb-6">Flexible billing cycle • {getPlanSeatsText()}</Text>
                             
                             <div className="inline-flex items-baseline gap-2 mb-2">
-                              <span className="text-5xl font-bold text-white">$99</span>
+                              <span className="text-5xl font-bold text-white">${getVisionProMonthlyPrice()}</span>
                               <span className="text-xl text-neutral-400">/28 days</span>
                             </div>
                             <div className="text-neutral-500 text-sm mb-1">
                               Billed every 4 weeks
                             </div>
                             <div className="text-neutral-400 text-sm">
-                              $1,287 per year (13 cycles)
+                              ${planType === 'solo' ? '1,287' : '1,937'} per year (13 cycles)
                             </div>
                           </div>
 

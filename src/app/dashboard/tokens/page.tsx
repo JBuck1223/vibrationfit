@@ -224,7 +224,7 @@ export default function TokensPage() {
                       {formatTokens(data.tokens, true)}
                     </div>
                     <div className="text-xs text-neutral-500">
-                      ${data.cost.toFixed(2)} cost
+                      ${(data.cost || 0).toFixed(2)} cost
                     </div>
                   </div>
                 ))}

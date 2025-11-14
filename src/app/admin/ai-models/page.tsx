@@ -184,12 +184,38 @@ function AIModelsAdminContent() {
   return (
     <Container size="xl">
       <div className="mb-8 md:mb-12">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">AI API Routes Management</h1>
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">AI Models & Configuration</h1>
         <p className="text-sm md:text-base lg:text-lg text-neutral-400">
-          Centralized control of ALL AI API calls across VibrationFit - every route, every model, every configuration
+          Configure AI models, pricing, token overrides, and API routes
         </p>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-4 mb-8 border-b border-neutral-700">
+        <button
+          onClick={() => setActiveTab('routes')}
+          className={`pb-4 px-2 font-medium transition-colors ${
+            activeTab === 'routes'
+              ? 'text-primary-500 border-b-2 border-primary-500'
+              : 'text-neutral-400 hover:text-neutral-200'
+          }`}
+        >
+          API Routes & Models
+        </button>
+        <button
+          onClick={() => setActiveTab('pricing')}
+          className={`pb-4 px-2 font-medium transition-colors ${
+            activeTab === 'pricing'
+              ? 'text-primary-500 border-b-2 border-primary-500'
+              : 'text-neutral-400 hover:text-neutral-200'
+          }`}
+        >
+          Model Pricing
+        </button>
+      </div>
+
+      {activeTab === 'routes' && (
+        <>
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 md:mb-8">
         <Card className="p-4 md:p-6">
