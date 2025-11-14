@@ -1,12 +1,12 @@
 -- =====================================================================
--- Grant Admin Access to User
+-- Grant Admin Access to Users
 -- =====================================================================
--- Run this in Supabase SQL Editor to make yourself admin
+-- Run this in Supabase SQL Editor to grant admin access
 
--- Replace 'your-email@example.com' with your actual email
+-- Grant admin to both accounts
 UPDATE auth.users
 SET raw_user_meta_data = raw_user_meta_data || '{"is_admin": true}'::jsonb
-WHERE email = 'buckinghambliss@gmail.com';
+WHERE email IN ('buckinghambliss@gmail.com', 'jordan@vibrationfit.com');
 
 -- Verify it worked
 SELECT 
@@ -14,7 +14,7 @@ SELECT
   email,
   raw_user_meta_data ->> 'is_admin' as is_admin
 FROM auth.users
-WHERE email = 'buckinghambliss@gmail.com';
+WHERE email IN ('buckinghambliss@gmail.com', 'jordan@vibrationfit.com');
 
 -- =====================================================================
 -- To revoke admin:
