@@ -215,10 +215,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       invitation: {
-        household_name: invitation.household.name,
-        invited_by: invitation.inviter.email,
-        invited_email: invitation.invited_email,
-        expires_at: invitation.expires_at
+        household_name: (invitation as any).household.name,
+        invited_email: (invitation as any).invited_email,
+        expires_at: (invitation as any).expires_at,
+        invitation_status: (invitation as any).status
       }
     })
   } catch (error) {

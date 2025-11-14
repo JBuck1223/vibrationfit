@@ -461,11 +461,14 @@ export class VisionTemplatePDF {
     setTextColor(this.doc, PDF_COLORS.secondaryTeal)
     this.doc.text('Status:', cardX + 8, cardCurrentY)
     
-    const statusColor = this.vision.status === 'complete' ? PDF_COLORS.primaryGreen : PDF_COLORS.energyYellow
+    const statusLabel = this.vision.is_draft 
+      ? 'Draft' 
+      : (this.vision.is_active ? 'Active' : 'Complete')
+    const statusColor = (!this.vision.is_draft && this.vision.is_active) ? PDF_COLORS.primaryGreen : PDF_COLORS.energyYellow
     this.doc.setFont('helvetica', 'normal')
     setTextColor(this.doc, statusColor)
     this.doc.text(
-      this.vision.status.charAt(0).toUpperCase() + this.vision.status.slice(1),
+      statusLabel,
       cardX + 30,
       cardCurrentY
     )

@@ -31,10 +31,6 @@ export interface VisionData {
   spirituality: string
   conclusion: string
   
-  // Draft flags
-  is_active: boolean
-  is_draft: boolean
-  
   // Refinement tracking
   refined_categories?: string[]
   
