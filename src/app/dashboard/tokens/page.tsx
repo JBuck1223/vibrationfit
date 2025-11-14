@@ -302,7 +302,7 @@ export default function TokensPage() {
                     ? 'No transactions yet. Purchase tokens or receive grants to see them here.'
                     : activeTab === 'usage'
                     ? 'No AI usage yet. Start creating to see your usage here!'
-                    : 'Start creating to see your token activity here!'}
+                    : 'Start creating to see your Creation Credits activity here!'}
                 </p>
               </div>
             ) : (
