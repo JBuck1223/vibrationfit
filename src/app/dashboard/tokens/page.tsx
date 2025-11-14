@@ -239,7 +239,7 @@ export default function TokensPage() {
                 <div>
                   <h3 className="text-lg md:text-xl font-bold text-white mb-2">Running Low on Credits?</h3>
                   <p className="text-neutral-300 mb-4">
-                    Add more creation tokens to keep transforming without limits
+                    Add more Creation Credits to keep transforming without limits
                   </p>
                 </div>
                 <Button asChild variant="primary" size="sm">
