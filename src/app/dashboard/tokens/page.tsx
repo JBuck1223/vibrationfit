@@ -1,5 +1,5 @@
 // /src/app/dashboard/tokens/page.tsx
-// Token usage history and balance management - Shows transactions, usage, and accurate balance
+// Creation Credits usage history and balance management - Shows transactions, usage, and accurate balance
 
 'use client'
 
@@ -23,19 +23,19 @@ interface TokenTransaction {
   cost_estimate?: number
 }
 
-// Helper function to format tokens
-function formatTokens(tokens: number, abbreviated = false): string {
+// Helper function to format credits
+function formatCredits(credits: number, abbreviated = false): string {
   if (abbreviated) {
-    if (tokens >= 1_000_000) {
-      return `${(tokens / 1_000_000).toFixed(1)}M`
+    if (credits >= 1_000_000) {
+      return `${(credits / 1_000_000).toFixed(1)}M`
     }
-    if (tokens >= 1_000) {
-      return `${(tokens / 1_000).toFixed(1)}K`
+    if (credits >= 1_000) {
+      return `${(credits / 1_000).toFixed(1)}K`
     }
-    return tokens.toString()
+    return credits.toString()
   }
   
-  return tokens.toLocaleString()
+  return credits.toLocaleString()
 }
 
 const ACTION_TYPE_LABELS: Record<string, { label: string; color: string; icon?: string }> = {
@@ -120,16 +120,16 @@ export default function TokensPage() {
     <Container size="xl">
       {/* Header */}
       <div className="mb-8 md:mb-12">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">Token Usage</h1>
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">Creation Credits</h1>
         <p className="text-sm md:text-base text-neutral-400">
-          Track your creation tokens: transactions, usage, and balance
+          Track your Creation Credits: transactions, usage, and balance
         </p>
       </div>
 
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto" />
-          <p className="text-neutral-400 mt-4">Loading your token data...</p>
+          <p className="text-neutral-400 mt-4">Loading your Creation Credits data...</p>
         </div>
       ) : (
         <div>
@@ -145,10 +145,10 @@ export default function TokensPage() {
               </div>
               <div className="mb-4">
                 <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1">
-                  {formatTokens(balance, true)}
+                  {formatCredits(balance, true)}
                 </div>
                 <div className="text-sm text-neutral-500">
-                  {formatTokens(balance)} tokens
+                  {formatCredits(balance)} credits
                 </div>
               </div>
               
@@ -172,12 +172,12 @@ export default function TokensPage() {
             <Card className="p-4 md:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">
-                  Tokens Used
+                  Credits Used
                 </h3>
                 <Activity className="w-5 h-5 text-secondary-500" />
               </div>
               <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1">
-                {formatTokens(stats?.totalUsed || 0, true)}
+                {formatCredits(stats?.totalUsed || 0, true)}
               </div>
               <div className="text-sm text-neutral-500">
                 Lifetime usage
@@ -193,7 +193,7 @@ export default function TokensPage() {
                 <TrendingUp className="w-5 h-5 text-accent-500" />
               </div>
               <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1">
-                {formatTokens(stats?.totalGranted || 0, true)}
+                {formatCredits(stats?.totalGranted || 0, true)}
               </div>
               <div className="text-sm text-neutral-500">
                 Lifetime allocation
@@ -221,7 +221,7 @@ export default function TokensPage() {
                       </Badge>
                     </div>
                     <div className="text-2xl font-bold text-white mb-1">
-                      {formatTokens(data.tokens, true)}
+                      {formatCredits(data.tokens, true)}
                     </div>
                     <div className="text-xs text-neutral-500">
                       ${(data.cost || 0).toFixed(2)} cost
@@ -367,11 +367,11 @@ export default function TokensPage() {
                             ? 'text-red-400'
                             : 'text-red-400'
                         }`}>
-                          {isGrant ? '+' : ''}{formatTokens(Math.abs(tx.tokens_used), true)}
+                          {isGrant ? '+' : ''}{formatCredits(Math.abs(tx.tokens_used), true)}
                         </div>
                         {tx.tokens_remaining !== undefined && tx.tokens_remaining > 0 && (
                           <div className="text-xs text-neutral-500">
-                            {formatTokens(tx.tokens_remaining, true)} remaining
+                            {formatCredits(tx.tokens_remaining, true)} remaining
                           </div>
                         )}
                         {tx.cost_estimate && tx.cost_estimate > 0 && (

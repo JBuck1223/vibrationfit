@@ -135,7 +135,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
 
       </div>
 
-        {/* Token Balance Section */}
+        {/* Creation Credits Section */}
         <div className="mb-12 max-w-2xl mx-auto">
           <HouseholdTokenBalance />
         </div>
@@ -545,7 +545,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                   <Zap className="w-6 h-6 text-[#BF00FF]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">VIVA Tokens</h3>
+                  <h3 className="text-lg font-bold text-white">Creation Credits</h3>
                   <p className="text-sm text-neutral-400">{profileData?.vibe_assistant_tokens_remaining ?? 0} Available</p>
                 </div>
               </div>
@@ -557,7 +557,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
             </div>
             <div className="bg-neutral-800/50 rounded-lg p-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-neutral-400">Tokens Used This Month</span>
+                <span className="text-sm text-neutral-400">Credits Used This Month</span>
                 <span className="text-sm text-neutral-400">{profileData?.vibe_assistant_tokens_used ?? 0} / {profileData?.vibe_assistant_tokens_remaining ?? 0}</span>
               </div>
               <div className="w-full bg-neutral-700 rounded-full h-2">

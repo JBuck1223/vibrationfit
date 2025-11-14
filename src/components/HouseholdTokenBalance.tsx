@@ -128,11 +128,11 @@ export default function HouseholdTokenBalance() {
       <Card variant="elevated">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold mb-1">Your Token Balance</h3>
+            <h3 className="text-lg font-semibold mb-1">Your Creation Credits</h3>
             <p className="text-3xl font-bold text-primary-500">
               {formatNumber(individualBalance)}
             </p>
-            <p className="text-sm text-neutral-400 mt-1">AI tokens available</p>
+            <p className="text-sm text-neutral-400 mt-1">Creation Credits available</p>
           </div>
           <div className="text-4xl">🪙</div>
         </div>
@@ -147,7 +147,7 @@ export default function HouseholdTokenBalance() {
       <Card variant="elevated">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold">Your Tokens</h3>
+            <h3 className="text-lg font-semibold">Your Credits</h3>
             <Badge variant="info" className="text-xs">Individual</Badge>
           </div>
           <div className="text-3xl">🪙</div>
@@ -158,7 +158,7 @@ export default function HouseholdTokenBalance() {
         </p>
         
         <p className="text-sm text-neutral-400">
-          Your personal token balance
+          Your personal Creation Credits
         </p>
       </Card>
 
@@ -199,7 +199,7 @@ export default function HouseholdTokenBalance() {
         {sharedTokensEnabled && isAdmin && (
           <div className="mt-4 p-3 bg-primary-500/10 rounded-lg">
             <p className="text-xs text-neutral-300">
-              💡 Members can use your tokens when they run out
+              💡 Members can use your credits when they run out
             </p>
           </div>
         )}
