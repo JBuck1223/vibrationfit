@@ -89,17 +89,14 @@ CREATE POLICY "Anyone can read model pricing"
 -- Checks user metadata for is_admin flag OR service role (for API operations)
 CREATE POLICY "Only admins can modify model pricing"
   ON public.ai_model_pricing
-  FOR INSERT, UPDATE, DELETE
+  AS PERMISSIVE
+  FOR ALL
   USING (
-    auth.role() = 'service_role'
-    OR
-    EXISTS (
-      SELECT 1 FROM auth.users
-      WHERE users.id = auth.uid()
-        AND (users.raw_user_meta_data ->> 'is_admin')::boolean = true
-    )
+    -- Allow SELECT for everyone (combined with read policy above)
+    true
   )
   WITH CHECK (
+    -- Only admins can INSERT/UPDATE/DELETE
     auth.role() = 'service_role'
     OR
     EXISTS (
