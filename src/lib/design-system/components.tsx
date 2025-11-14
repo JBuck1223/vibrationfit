@@ -27,6 +27,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Circle,
   Clock,
   CreditCard,
   Crown,
@@ -74,6 +75,7 @@ import {
   Zap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import * as tokens from './tokens'
 
 // ============================================================================
 // UTILITY FUNCTION
@@ -1159,6 +1161,168 @@ export const CreatedDateBadge: React.FC<CreatedDateBadgeProps> = ({
         </div>
       </div>
     </div>
+  )
+}
+
+// ============================================================================
+// GLOBAL STATUS BADGE SYSTEM
+// Standardized status styling across all iterative features
+// Uses VibrationFit design tokens for consistency
+// ============================================================================
+
+// Status color constants for consistent theming
+export const STATUS_COLORS = {
+  active: {
+    // Electric Lime Green - "Above the Green Line"
+    bg: tokens.colors.primary[500],        // #39FF14
+    text: tokens.colors.neutral[0],        // Black
+    border: tokens.colors.primary[500],
+    bgSubtle: 'rgba(57, 255, 20, 0.2)',
+    textSubtle: tokens.colors.primary[500],
+    borderSubtle: 'rgba(57, 255, 20, 0.3)',
+  },
+  draft: {
+    // Neon Yellow - Work in Progress / Celebration
+    bg: tokens.colors.semantic.warning,     // #FFFF00
+    text: tokens.colors.neutral[0],         // Black
+    border: tokens.colors.semantic.warning,
+    bgSubtle: 'rgba(255, 255, 0, 0.2)',
+    textSubtle: '#FFFF00',                  // Neon Yellow
+    borderSubtle: 'rgba(255, 255, 0, 0.3)',
+  },
+  complete: {
+    // Blue - Completed/Finished state
+    bg: '#3B82F6',                   // Blue 500
+    text: '#FFFFFF',                 // White
+    border: '#3B82F6',
+    bgSubtle: 'rgba(59, 130, 246, 0.2)',
+    textSubtle: '#60A5FA',           // Blue 400
+    borderSubtle: 'rgba(59, 130, 246, 0.3)',
+  },
+  paused: {
+    // Neon Orange - Paused state
+    bg: tokens.colors.energy.orange[500],   // #FF6600
+    text: '#FFFFFF',                        // White
+    border: tokens.colors.energy.orange[500],
+    bgSubtle: 'rgba(255, 102, 0, 0.2)',
+    textSubtle: '#FF6600',                  // Neon Orange
+    borderSubtle: 'rgba(255, 102, 0, 0.3)',
+  },
+  archived: {
+    // Neutral Gray - Archived/Inactive
+    bg: tokens.colors.neutral[600],         // #4B5563
+    text: '#FFFFFF',                        // White
+    border: tokens.colors.neutral[600],
+    bgSubtle: 'rgba(75, 85, 99, 0.2)',
+    textSubtle: tokens.colors.neutral[400], // #9CA3AF
+    borderSubtle: 'rgba(75, 85, 99, 0.3)',
+  },
+} as const
+
+export type StatusType = keyof typeof STATUS_COLORS
+
+// StatusBadge - Global status indicator with consistent styling
+interface StatusBadgeProps {
+  status: StatusType | string
+  className?: string
+  subtle?: boolean // Use subtle styling (transparent background)
+  showIcon?: boolean // Show status icon (checkmark for active, etc.)
+}
+
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ 
+  status, 
+  className = '',
+  subtle = true,
+  showIcon = true 
+}) => {
+  // Normalize status to lowercase for matching
+  const normalizedStatus = status.toLowerCase() as StatusType
+  
+  // Get colors from STATUS_COLORS, default to neutral if status not found
+  const statusColors = STATUS_COLORS[normalizedStatus] || {
+    bg: tokens.colors.neutral[600],
+    text: '#FFFFFF',
+    border: tokens.colors.neutral[600],
+    bgSubtle: 'rgba(75, 85, 99, 0.2)',
+    textSubtle: tokens.colors.neutral[400],
+    borderSubtle: 'rgba(75, 85, 99, 0.3)',
+  }
+  
+  // Capitalize first letter for display
+  const displayText = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+
+  const styles = subtle ? {
+    backgroundColor: statusColors.bgSubtle,
+    color: statusColors.textSubtle,
+    borderColor: statusColors.borderSubtle,
+  } : {
+    backgroundColor: statusColors.bg,
+    color: statusColors.text,
+    borderColor: statusColors.border,
+  }
+
+  // Get icon for status - only show checkmark for Active
+  const getStatusIcon = () => {
+    if (!showIcon) return null
+    
+    const iconColor = subtle ? statusColors.textSubtle : statusColors.text
+    
+    // Only show icon for active status
+    if (normalizedStatus === 'active') {
+      return <CheckCircle className="w-4 h-4 mr-1" style={{ color: iconColor }} />
+    }
+    
+    return null
+  }
+
+  return (
+    <span 
+      className={cn(
+        'inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border',
+        className
+      )}
+      style={styles}
+    >
+      {getStatusIcon()}
+      {displayText}
+    </span>
+  )
+}
+
+// VersionBadge - Version number badge with status-matched colors
+interface VersionBadgeProps {
+  versionNumber: number
+  status: StatusType | string
+  className?: string
+}
+
+export const VersionBadge: React.FC<VersionBadgeProps> = ({ 
+  versionNumber, 
+  status, 
+  className = '' 
+}) => {
+  // Normalize status to lowercase for matching
+  const normalizedStatus = status.toLowerCase() as StatusType
+  
+  // Get colors from STATUS_COLORS, default to neutral if status not found
+  const statusColors = STATUS_COLORS[normalizedStatus] || {
+    bg: tokens.colors.neutral[600],
+    text: '#FFFFFF',
+  }
+
+  return (
+    <span 
+      className={cn(
+        'w-7 h-7 flex items-center justify-center rounded-full text-xs font-semibold',
+        className
+      )}
+      style={{
+        backgroundColor: statusColors.bg,
+        color: statusColors.text,
+      }}
+    >
+      V{versionNumber}
+    </span>
   )
 }
 
@@ -4386,6 +4550,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   const [repeatMode, setRepeatMode] = useState<'off' | 'all' | 'one'>('off')
   const [isShuffled, setIsShuffled] = useState(false)
   const [originalOrder, setOriginalOrder] = useState<number[]>([])
+  const [trackDurations, setTrackDurations] = useState<Map<string, number>>(new Map())
   
   const audioRef = useRef<HTMLAudioElement>(null)
   const lastRepeatClickRef = useRef<number>(0)
@@ -4393,6 +4558,25 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   const currentTrack = tracks[currentTrackIndex]
   
   // Audio mixing handled by server-side Lambda
+  
+  // Preload durations for all tracks
+  useEffect(() => {
+    tracks.forEach(track => {
+      if (track.url && !trackDurations.has(track.id)) {
+        const tempAudio = new Audio()
+        tempAudio.src = track.url
+        tempAudio.addEventListener('loadedmetadata', () => {
+          if (tempAudio.duration && !isNaN(tempAudio.duration) && isFinite(tempAudio.duration)) {
+            setTrackDurations(prev => {
+              const newMap = new Map(prev)
+              newMap.set(track.id, tempAudio.duration)
+              return newMap
+            })
+          }
+        })
+      }
+    })
+  }, [tracks])
   
   // Define handleNext before useEffects
   const handleNext = useCallback(() => {
@@ -4419,6 +4603,14 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
 
     const setAudioData = () => {
       setDuration(audio.duration)
+      // Store the actual duration for this track
+      if (currentTrack && audio.duration && !isNaN(audio.duration)) {
+        setTrackDurations(prev => {
+          const newMap = new Map(prev)
+          newMap.set(currentTrack.id, audio.duration)
+          return newMap
+        })
+      }
     }
 
     const setAudioTime = () => {
@@ -4438,7 +4630,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       audio.removeEventListener('timeupdate', setAudioTime)
       audio.removeEventListener('ended', handleEnded)
     }
-  }, [handleNext])
+  }, [handleNext, currentTrack])
 
   useEffect(() => {
     const audio = audioRef.current
@@ -4590,8 +4782,8 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       />
 
       {/* Current Track Info */}
-      <Card variant="elevated" className="mb-6">
-        <div className="flex items-center gap-4">
+      <div className="mb-6 py-4">
+        <div className="flex items-center justify-center gap-4">
           {currentTrack?.thumbnail && (
             <img 
               src={currentTrack.thumbnail} 
@@ -4599,12 +4791,12 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
               className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
             />
           )}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-white truncate">{currentTrack?.title}</h3>
+          <div className="flex-1 min-w-0 text-center">
+            <h3 className="text-2xl md:text-3xl font-semibold text-white truncate">{currentTrack?.title}</h3>
             <p className="text-sm text-neutral-400 truncate">{currentTrack?.artist}</p>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Main Player Controls */}
       <div className="flex items-center justify-center gap-2 md:gap-4 mb-4">
@@ -4719,40 +4911,61 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       <Card variant="default" className="overflow-hidden">
         <Stack gap="xs">
           <h4 className="text-lg font-semibold text-white mb-2">Playlist</h4>
-          <div className="max-h-[60vh] overflow-y-auto">
-          {tracks.map((track, index) => (
-            <button
-              key={`playlist-item-${index}`}
-              onClick={() => handleTrackSelect(index)}
-              className={cn(
-                'w-full text-left p-3 rounded-lg transition-all duration-200',
-                'hover:bg-neutral-800',
-                currentTrackIndex === index && 'bg-[#39FF14]/20 border border-[#39FF14]'
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0">
-                  {currentTrackIndex === index && isPlaying ? (
-                    <PlayCircle className="w-5 h-5 text-[#39FF14]" />
-                  ) : (
-                    <Play className="w-5 h-5 text-neutral-400" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={cn(
-                    'text-sm font-medium truncate',
-                    currentTrackIndex === index ? 'text-[#39FF14]' : 'text-white'
-                  )}>
-                    {track.title}
-                  </p>
-                  <p className="text-xs text-neutral-400 truncate">{track.artist}</p>
-                </div>
-                <div className="text-xs text-neutral-500">
-                  {formatTime(track.duration)}
+          <div className="max-h-[60vh] overflow-y-auto pr-2">
+          {tracks.map((track, index) => {
+            const handlePlayClick = (e: React.MouseEvent) => {
+              e.stopPropagation()
+              if (currentTrackIndex === index) {
+                // If it's the current track, toggle play/pause
+                togglePlayPause()
+              } else {
+                // If it's a different track, select it and play it
+                handleTrackSelect(index)
+              }
+            }
+
+            return (
+              <div
+                key={`playlist-item-${index}`}
+                onClick={() => handleTrackSelect(index)}
+                className={cn(
+                  'w-full text-left p-3 rounded-lg transition-all duration-200 cursor-pointer',
+                  'hover:bg-neutral-800',
+                  currentTrackIndex === index && 'bg-[#39FF14]/20 border border-[#39FF14]'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handlePlayClick}
+                    className="flex-shrink-0 hover:scale-110 transition-transform"
+                    aria-label={currentTrackIndex === index && isPlaying ? 'Pause' : 'Play'}
+                  >
+                    {currentTrackIndex === index && isPlaying ? (
+                      <Pause className="w-5 h-5 text-[#39FF14]" fill="currentColor" />
+                    ) : (
+                      <Play className="w-5 h-5 text-neutral-400" fill="currentColor" />
+                    )}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn(
+                      'text-sm font-medium truncate capitalize',
+                      currentTrackIndex === index ? 'text-[#39FF14]' : 'text-white'
+                    )}>
+                      {track.title}
+                    </p>
+                    <p className="text-xs text-neutral-400 truncate">{track.artist}</p>
+                  </div>
+                  <div className="text-xs text-neutral-500">
+                    {(() => {
+                      const storedDuration = trackDurations.get(track.id)
+                      const displayDuration = storedDuration || track.duration
+                      return displayDuration > 0 ? formatTime(displayDuration) : '--:--'
+                    })()}
+                  </div>
                 </div>
               </div>
-            </button>
-          ))}
+            )
+          })}
           </div>
         </Stack>
       </Card>

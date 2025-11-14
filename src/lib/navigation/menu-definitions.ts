@@ -36,6 +36,7 @@ import {
   Shield,
   Layers,
   Upload,
+  Headphones,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -89,6 +90,7 @@ export const userNavigation: NavItem[] = [
       { name: 'My Active Vision', href: '/life-vision/active', icon: Zap },
       { name: 'Refine Vision', href: '/life-vision/refine', icon: Edit },
       { name: 'All Visions', href: '/life-vision', icon: Eye },
+      { name: 'All Vision Audios', href: '/life-vision/audio', icon: Headphones },
     ]
   },
   {
@@ -400,7 +402,7 @@ export function isNavItemActive(
   
   // Special handling for /life-vision/{id} paths - should match "My Active Vision"
   // Check if we're on a specific vision detail page
-  if (pathname.match(/^\/life-vision\/[^\/]+$/) && !pathname.includes('/refine') && !pathname.includes('/active')) {
+  if (pathname.match(/^\/life-vision\/[^\/]+$/) && !pathname.includes('/refine') && !pathname.includes('/active') && !pathname.includes('/audio')) {
     // If this is the "My Active Vision" menu item, mark it as active for vision detail pages
     if (item.href === '/life-vision/active') {
       return true

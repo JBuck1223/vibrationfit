@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Card, Input, Button, CategoryCard } from '@/lib/design-system'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter } from 'lucide-react'
+import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter, Edit3, Save } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -355,47 +355,21 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
   return (
     <>
       {/* Header */}
-      <div className="mb-6 md:mb-8">
-        {/* Mobile Header */}
-        <div className="md:hidden space-y-4 mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-2">
-              {isEditing ? 'Edit Creation' : item.name}
-            </h1>
-            <p className="text-neutral-400 text-sm">
-              {isEditing ? 'Update your vision board item' : 'View and manage your creation'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge(item.status)}
-          </div>
-        </div>
-
-        {/* Desktop Header */}
-        <div className="hidden md:flex items-center gap-4 mb-4">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-white mb-2">
-              {isEditing ? 'Edit Creation' : item.name}
-            </h1>
-            <p className="text-neutral-400">
-              {isEditing ? 'Update your vision board item' : 'View and manage your creation'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge(item.status)}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        {!isEditing && (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-            <Button variant="ghost" size="sm" onClick={() => router.back()} className="w-full sm:w-auto">
+      {!isEditing && (
+        <div className="mb-6 md:mb-8">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            <Button variant="ghost" size="sm" onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {isEditing && (
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 text-center -mt-1 md:-mt-3">Edit Creation</h2>
+      )}
 
       <Card className="p-4 md:p-6 lg:p-8">
           {isEditing ? (
@@ -800,7 +774,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                         status: status.value,
                         actualization_story: status.value === 'actualized' ? formData.actualization_story : ''
                       })}
-                      className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center flex-1 ${
+                      className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
                         formData.status === status.value
                           ? status.value === 'active' 
                             ? 'bg-green-600 text-white shadow-lg'
@@ -810,6 +784,9 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                           : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                       }`}
                     >
+                      {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
+                      {status.value === 'actualized' && <CheckCircle className="w-3 h-3 text-white" />}
+                      {status.value === 'inactive' && <XCircle className="w-3 h-3 text-white" />}
                       {status.label}
                     </button>
                   ))}
@@ -822,46 +799,51 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   Select categories for your vision item
                 </p>
                 <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => (
-                    <CategoryCard
-                      key={category.key}
-                      category={category}
-                      selected={formData.categories.includes(category.label)}
-                      onClick={() => handleCategoryToggle(category.label)}
-                    />
-                  ))}
+                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
+                    const isSelected = formData.categories.includes(category.label)
+                    return (
+                      <CategoryCard
+                        key={category.key}
+                        category={category}
+                        selected={isSelected}
+                        onClick={() => handleCategoryToggle(category.label)}
+                        variant="outlined"
+                        selectionStyle="border"
+                        iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                        selectedIconColor="#39FF14"
+                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
+                      />
+                    )
+                  })}
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <div className="flex flex-row gap-2 sm:gap-3 sm:justify-end">
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setIsEditing(false)}
+                  className="flex-1 sm:flex-none sm:w-auto"
+                >
+                  Cancel
+                </Button>
                 <Button
                   type="submit"
                   size="sm"
                   loading={saving}
                   disabled={saving}
-                  className="w-full sm:w-auto"
+                  className="flex-1 sm:flex-none sm:w-auto"
                 >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(false)}
-                  className="w-full sm:w-auto"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full sm:w-auto text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
+                  {saving ? (
+                    'Saving...'
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
                 </Button>
               </div>
             </form>
@@ -874,7 +856,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   : item.image_url
                 
                 return displayImageUrl ? (
-                  <div>
+                  <div className="relative">
                     <img
                       src={displayImageUrl}
                       alt={item.name}
@@ -887,6 +869,10 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                         console.log('Image loaded successfully:', displayImageUrl)
                       }}
                     />
+                    {/* Status Badge - Top Right */}
+                    <div className="absolute top-3 right-3">
+                      {getStatusBadge(item.status)}
+                    </div>
                     {item.status === 'actualized' && item.actualized_image_url && (
                       <div className="mt-2 text-xs text-purple-400">
                         Showing evidence of actualization
@@ -913,66 +899,67 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   </div>
                 )}
 
-                {/* Categories */}
-                {item.categories && item.categories.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-200 mb-2">Categories</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {item.categories.map((category: string, index: number) => (
-                        <span
-                          key={index}
-                          className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                        >
-                          {category}
-                        </span>
-                      ))}
-                    </div>
+                {/* Created Date and Categories */}
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* Created Date */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-medium text-white">Created:</span>
+                    <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(item.created_at).toLocaleDateString()}</span>
                   </div>
-                )}
 
-                {/* Dates */}
-                <div className="space-y-2 text-sm text-neutral-400">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Created {new Date(item.created_at).toLocaleDateString()}
-                  </div>
-                  {item.updated_at !== item.created_at && (
+                  {/* Categories */}
+                  {item.categories && item.categories.length > 0 && (
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Updated {new Date(item.updated_at).toLocaleDateString()}
-                    </div>
-                  )}
-                  {item.actualized_at && (
-                    <div className="flex items-center gap-2 text-warning-500">
-                      <CheckCircle className="w-4 h-4" />
-                      Actualized {new Date(item.actualized_at).toLocaleDateString()}
+                      <h3 className="text-sm font-medium text-white">Categories:</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {item.categories.map((category: string, index: number) => (
+                          <span
+                            key={index}
+                            className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                          >
+                            {category}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
+
+                {/* Other Dates */}
+                {(item.updated_at !== item.created_at || item.actualized_at) && (
+                  <div className="space-y-2 text-sm text-neutral-400">
+                    {item.updated_at !== item.created_at && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>Updated: <span className="font-bold text-white">{new Date(item.updated_at).toLocaleDateString()}</span></span>
+                      </div>
+                    )}
+                    {item.actualized_at && (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-warning-500" />
+                        <span>Actualized: <span className="font-bold text-white">{new Date(item.actualized_at).toLocaleDateString()}</span></span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end">
                 <Button
+                  variant="primary"
                   size="sm"
                   onClick={() => setIsEditing(true)}
-                  className="w-full sm:w-auto"
+                  className="flex-1 sm:flex-none sm:w-32"
                 >
-                  Edit Item
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit
                 </Button>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push('/vision-board')}
-                  className="w-full sm:w-auto"
-                >
-                  Back to Vision Board
-                </Button>
-                <Button
-                  variant="ghost"
+                  variant="danger"
                   size="sm"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full sm:w-auto text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  className="flex-1 sm:flex-none sm:w-32"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete

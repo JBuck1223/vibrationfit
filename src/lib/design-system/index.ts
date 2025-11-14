@@ -28,6 +28,9 @@ export {
   Icon,
   Select,
   Badge,
+  StatusBadge,
+  VersionBadge,
+  CreatedDateBadge,
   Input,
   DatePicker,
   Textarea,
@@ -84,6 +87,12 @@ export {
   breakpoints,
   components,
 } from './tokens'
+
+// Re-export status system
+export {
+  STATUS_COLORS,
+  type StatusType
+} from './components'
 
 // Re-export vision categories
 export {

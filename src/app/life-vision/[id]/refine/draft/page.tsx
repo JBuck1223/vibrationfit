@@ -11,7 +11,10 @@ import {
   Badge, 
   Spinner,
   Icon,
-  CategoryCard as SharedCategoryCard
+  CategoryCard as SharedCategoryCard,
+  VersionBadge,
+  StatusBadge,
+  CreatedDateBadge
 } from '@/lib/design-system/components'
 import { colors } from '@/lib/design-system/tokens'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -35,6 +38,8 @@ interface VisionData {
   spirituality: string
   conclusion: string
   status: 'draft' | 'complete' | string
+  is_active: boolean
+  is_draft: boolean
   completion_percent: number
   created_at: string
   updated_at: string
@@ -424,91 +429,119 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
     )
   }
 
+  // Determine display status based on is_active and is_draft
+  const getDisplayStatus = () => {
+    if (!vision) return 'draft'
+    
+    const isActive = vision.is_active === true
+    const isDraft = vision.is_draft === true
+    
+    if (isActive && !isDraft) return 'active'
+    else if (!isActive && isDraft) return 'draft'
+    else return 'complete'
+  }
+
+  const displayStatus = getDisplayStatus()
+
   return (
     <>
       {/* Header */}
       <div className="mb-8">
-        {/* Title Section */}
-        <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold text-white">
-            Draft Life Vision
-          </h1>
-          <p className="text-neutral-400 mt-2">
-            Preview your refined vision with {draftCategories.length} draft {draftCategories.length === 1 ? 'category' : 'categories'} and {activeCategories.length} active {activeCategories.length === 1 ? 'category' : 'categories'}
-          </p>
-        </div>
-        
-        {/* Version Info */}
-        <div className="text-center mb-6">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: `${NEON_YELLOW}33`, color: NEON_YELLOW }}>
-              Draft Preview
-            </span>
-            <Badge variant="warning">
-              <Circle className="w-4 h-4 mr-1" />
-              {draftCategories.length} of {VISION_SECTIONS.length} Categories Drafted
-            </Badge>
-          </div>
-          
-          {/* Created Date */}
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg">
-              <div className="text-xs md:text-sm">
-                <p className="text-white font-medium">
-                  Based on version {vision?.version_number || 1} • {new Date(vision?.created_at || Date.now()).toLocaleDateString()}
+        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            
+            <div className="relative z-10">
+              {/* Title Section */}
+              <div className="text-center mb-4">
+                <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
+                  Refine Life Vision
+                </h1>
+                <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
+                  Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision"
                 </p>
               </div>
+              
+              {/* Version Info & Status Badges */}
+              <div className="text-center mb-6">
+                <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                  
+                  {/* Version Circle Badge */}
+                  {vision && (
+                    <VersionBadge 
+                      versionNumber={vision.version_number} 
+                      status={displayStatus} 
+                    />
+                  )}
+                  
+                  {/* Created Date Badge */}
+                  {vision && (
+                    <CreatedDateBadge createdAt={vision.created_at} />
+                  )}
+                  
+                  {/* Status Badge */}
+                  <StatusBadge 
+                    status={displayStatus} 
+                    subtle={displayStatus !== 'active'}
+                  />
+                  
+                  {/* Draft Categories Count */}
+                  {draftCategories.length > 0 && (
+                    <Badge 
+                      variant="warning" 
+                      className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
+                    >
+                      {draftCategories.length} of {VISION_SECTIONS.length} Refined
+                    </Badge>
+                  )}
+                  
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-3xl mx-auto">
+                <Button
+                  onClick={() => router.push(`/life-vision/${vision?.id}`)}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                >
+                  <Icon icon={Eye} size="sm" className="shrink-0" />
+                  <span>View Active</span>
+                </Button>
+                
+                <Button
+                  onClick={() => router.push(`/life-vision/${vision?.id}/refine`)}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm bg-[#FFFF00]/20 text-[#FFFF00] hover:bg-[#FFFF00]/30"
+                >
+                  <Icon icon={Gem} size="sm" className="shrink-0" />
+                  <span>Continue Refining</span>
+                </Button>
+                
+                <Button
+                  onClick={commitDraftAsActive}
+                  disabled={isCommitting || draftCategories.length === 0}
+                  variant="primary"
+                  size="sm"
+                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                >
+                  {isCommitting ? (
+                    <>
+                      <Spinner variant="primary" size="sm" />
+                      <span>Committing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon icon={CheckCircle} size="sm" className="shrink-0" />
+                      <span>Commit as Active Vision</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+              
             </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-center mb-6">
-          <Button
-            onClick={() => router.push(`/life-vision/${vision?.id}`)}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <Eye className="w-4 h-4" />
-            View Active
-          </Button>
-          <Button
-            onClick={() => router.push(`/life-vision/${vision?.id}/refine`)}
-            variant="outline"
-            className="flex items-center gap-2 font-semibold"
-            style={{
-              backgroundColor: NEON_YELLOW,
-              color: '#000000',
-              border: `2px solid ${NEON_YELLOW}`
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = `${NEON_YELLOW}E6`
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = NEON_YELLOW
-            }}
-          >
-            <Gem className="w-4 h-4" />
-            Continue Refining
-          </Button>
-          <Button
-            onClick={commitDraftAsActive}
-            disabled={isCommitting || draftCategories.length === 0}
-            variant="primary"
-            className="flex items-center gap-2"
-          >
-            {isCommitting ? (
-              <>
-                <Spinner variant="primary" size="sm" />
-                Committing...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                Commit as Active Vision
-              </>
-            )}
-          </Button>
         </div>
       </div>
 

@@ -19,6 +19,8 @@ import {
   Stack,
   Inline,
   CreatedDateBadge,
+  StatusBadge,
+  VersionBadge,
   Heading,
   Text,
   PageTitles
@@ -50,6 +52,8 @@ interface VisionData {
   spirituality: string
   conclusion: string
   status: 'draft' | 'complete' | string
+  is_active: boolean
+  is_draft: boolean
   completion_percent: number
   created_at: string
   updated_at: string
@@ -625,6 +629,23 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     )
   }
 
+  // Determine display status based on is_active and is_draft
+  const getDisplayStatus = () => {
+    // Explicitly check for true values (handle null/undefined)
+    const isActive = vision.is_active === true
+    const isDraft = vision.is_draft === true
+    
+    if (isActive && !isDraft) {
+      return 'active'
+    } else if (!isActive && isDraft) {
+      return 'draft'
+    } else {
+      return 'complete'
+    }
+  }
+
+  const displayStatus = getDisplayStatus()
+
   return (
     <>
         {/* Header */}
@@ -646,21 +667,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 <div className="text-center mb-6">
                   {/* Version, Status & Date Badges */}
                   <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                    <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
-                      V{vision.version_number}
-                    </span>
+                    <VersionBadge 
+                      versionNumber={vision.version_number} 
+                      status={displayStatus} 
+                    />
                     <CreatedDateBadge createdAt={vision.created_at} />
-                    {vision.status === 'complete' ? (
-                      <Badge variant="success" className="!bg-[#39FF14] !text-black !border-[#39FF14]">
-                        <CheckCircle className="w-4 h-4 mr-1 !text-black" />
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge variant="warning">
-                        <Circle className="w-4 h-4 mr-1" />
-                        Draft
-                      </Badge>
-                    )}
+                    <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} />
                   </div>
                 </div>
 

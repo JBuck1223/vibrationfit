@@ -348,11 +348,11 @@ export default function VisionListPage() {
           {/* Subtle Gradient Background */}
           <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
             {/* Modern Enhanced Layout with Card Container */}
-            <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
               
               <div className="relative z-10">
                 {/* Eyebrow */}
-                <div className="text-center mb-3">
+                <div className="text-center mb-4">
                   <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
                     THE LIFE I CHOOSE
                   </div>
@@ -367,9 +367,9 @@ export default function VisionListPage() {
                 
                 {/* Subtitle */}
                 <div className="text-center">
-                  <h4 className="text-xs md:text-xl text-neutral-300 max-w-3xl mx-auto font-normal">
+                  <p className="text-xs md:text-lg text-neutral-300">
                     View all of your Life Vision versions below.
-                  </h4>
+                  </p>
                 </div>
               </div>
             </div>
@@ -392,32 +392,38 @@ export default function VisionListPage() {
 
         {/* Stats Cards */}
         {activeVision && (
-          <div className="grid grid-cols-3 gap-6 mb-8">
-            <Card className="text-center">
-              <div className="flex flex-col items-center">
-                <div className="w-8 h-8 md:w-12 md:h-12 bg-primary-500/20 rounded-full flex items-center justify-center mb-2 md:mb-3">
-                  <Target className="w-4 h-4 md:w-6 md:h-6 text-primary-500" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+            <Card variant="glass" className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
+                  <Target className="w-6 h-6 text-primary-500" />
                 </div>
-                <p className="text-xl md:text-3xl font-bold text-white mb-1">{versions.length}</p>
-                <p className="text-xs md:text-sm text-neutral-400 mb-2">Visions</p>
+                <div>
+                  <p className="text-2xl font-bold text-white">{versions.length}</p>
+                  <p className="text-xs text-neutral-400">Vision Versions</p>
+                </div>
               </div>
             </Card>
-            <Card className="text-center">
-              <div className="flex flex-col items-center">
-                <div className="w-8 h-8 md:w-12 md:h-12 bg-secondary-500/20 rounded-full flex items-center justify-center mb-2 md:mb-3">
-                  <Gem className="w-4 h-4 md:w-6 md:h-6 text-secondary-500" />
+            <Card variant="glass" className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center">
+                  <Gem className="w-6 h-6 text-secondary-500" />
                 </div>
-                <p className="text-xl md:text-3xl font-bold text-white mb-1">{refinementsCount}</p>
-                <p className="text-xs md:text-sm text-neutral-400 mb-2">Refinements</p>
+                <div>
+                  <p className="text-2xl font-bold text-white">{refinementsCount}</p>
+                  <p className="text-xs text-neutral-400">Refinements</p>
+                </div>
               </div>
             </Card>
-            <Card className="text-center">
-              <div className="flex flex-col items-center">
-                <div className="w-8 h-8 md:w-12 md:h-12 bg-accent-500/20 rounded-full flex items-center justify-center mb-2 md:mb-3">
-                  <Volume2 className="w-4 h-4 md:w-6 md:h-6 text-accent-500" />
+            <Card variant="glass" className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center">
+                  <Volume2 className="w-6 h-6 text-accent-500" />
                 </div>
-                <p className="text-xl md:text-3xl font-bold text-white mb-1">{audiosCount}</p>
-                <p className="text-xs md:text-sm text-neutral-400 mb-2">Audios</p>
+                <div>
+                  <p className="text-2xl font-bold text-white">{audiosCount}</p>
+                  <p className="text-xs text-neutral-400">Audios</p>
+                </div>
               </div>
             </Card>
           </div>
@@ -448,11 +454,7 @@ export default function VisionListPage() {
                               asChild
                               variant="ghost"
                               size="sm"
-                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
-                              style={{
-                                backgroundColor: `${colors.energy.yellow[500]}33`,
-                                color: colors.energy.yellow[500]
-                              }}
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold bg-[#FFFF00]/20 text-[#FFFF00] hover:bg-[#FFFF00]/30"
                             >
                               <Link href={`/life-vision/${version.id.replace('draft-', '')}/refine/draft`}>
                                 <Eye className="w-4 h-4" />
