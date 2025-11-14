@@ -657,6 +657,8 @@ function AIModelsAdminContent() {
           </Card>
         </div>
       )}
+        </>
+      )}
 
       {/* Pricing Tab */}
       {activeTab === 'pricing' && (
