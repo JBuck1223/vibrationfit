@@ -237,7 +237,7 @@ export default function TokensPage() {
             <Card className="p-4 md:p-6 mb-6 md:mb-8 bg-gradient-to-br from-energy-500/10 to-accent-500/10 border-2 border-energy-500/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg md:text-xl font-bold text-white mb-2">Running Low on Tokens?</h3>
+                  <h3 className="text-lg md:text-xl font-bold text-white mb-2">Running Low on Credits?</h3>
                   <p className="text-neutral-300 mb-4">
                     Add more creation tokens to keep transforming without limits
                   </p>
@@ -299,7 +299,7 @@ export default function TokensPage() {
                 <p className="text-neutral-400">No activity yet</p>
                 <p className="text-sm text-neutral-500 mt-2">
                   {activeTab === 'transactions' 
-                    ? 'No transactions yet. Purchase tokens or receive grants to see them here.'
+                    ? 'No transactions yet. Purchase credits or receive grants to see them here.'
                     : activeTab === 'usage'
                     ? 'No AI usage yet. Start creating to see your usage here!'
                     : 'Start creating to see your Creation Credits activity here!'}
