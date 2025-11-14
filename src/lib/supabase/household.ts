@@ -96,30 +96,45 @@ export async function getHouseholdById(householdId: string): Promise<Household |
 
 /**
  * Get household for a user
+ * Uses household_members as the source of truth
  */
 export async function getUserHousehold(userId: string): Promise<Household | null> {
   const supabase = await createClient()
   
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('household:households!user_profiles_household_id_fkey(*)')
+  // First get the household_id from household_members (using service role to bypass RLS)
+  const { data: membership, error: memberError } = await supabase
+    .from('household_members')
+    .select('household_id')
     .eq('user_id', userId)
+    .eq('status', 'active')
     .single()
 
-  if (error || !data) {
-    console.error('Error fetching user household:', error)
+  if (memberError || !membership) {
+    console.error('Error fetching user household membership:', memberError)
     return null
   }
 
-  return data.household as unknown as Household
+  // Then get the household details
+  const { data: household, error: householdError } = await supabase
+    .from('households')
+    .select('*')
+    .eq('id', membership.household_id)
+    .single()
+
+  if (householdError || !household) {
+    console.error('Error fetching household:', householdError)
+    return null
+  }
+
+  return household
 }
 
 /**
- * Get household with all members
+ * Get household with all members and invitations
  */
 export async function getHouseholdWithMembers(
   householdId: string
-): Promise<{ household: Household; members: HouseholdMemberWithProfile[] } | null> {
+): Promise<{ household: Household; members: HouseholdMemberWithProfile[]; invitations: any[] } | null> {
   const supabase = await createClient()
   
   const { data: household, error: householdError } = await supabase
@@ -149,12 +164,24 @@ export async function getHouseholdWithMembers(
 
   if (membersError) {
     console.error('Error fetching household members:', membersError)
-    return { household, members: [] }
+  }
+
+  // Also fetch pending invitations
+  const { data: invitations, error: invitationsError } = await supabase
+    .from('household_invitations')
+    .select('*')
+    .eq('household_id', householdId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+
+  if (invitationsError) {
+    console.error('Error fetching household invitations:', invitationsError)
   }
 
   return {
     household,
-    members: members as unknown as HouseholdMemberWithProfile[]
+    members: (members as unknown as HouseholdMemberWithProfile[]) || [],
+    invitations: invitations || []
   }
 }
 

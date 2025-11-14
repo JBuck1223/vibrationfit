@@ -2,29 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button, Card, Input, Badge, Spinner } from '@/lib/design-system/components'
-import { Household, HouseholdMember, HouseholdInvitation } from '@/lib/supabase/household'
 
 export default function HouseholdSettingsPage() {
   const router = useRouter()
-  const supabase = createClient()
   
   const [loading, setLoading] = useState(true)
-  const [household, setHousehold] = useState<Household | null>(null)
-  const [members, setMembers] = useState<HouseholdMember[]>([])
-  const [invitations, setInvitations] = useState<HouseholdInvitation[]>([])
-  const [currentUserId, setCurrentUserId] = useState<string>('')
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [household, setHousehold] = useState<any>(null)
+  const [error, setError] = useState('')
   
   // Invite form
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState('')
-  
-  // Shared tokens toggle
-  const [sharedTokensEnabled, setSharedTokensEnabled] = useState(false)
-  const [updatingSettings, setUpdatingSettings] = useState(false)
+  const [inviteSuccess, setInviteSuccess] = useState('')
 
   useEffect(() => {
     loadHouseholdData()
@@ -34,88 +25,34 @@ export default function HouseholdSettingsPage() {
     try {
       setLoading(true)
       
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-        return
-      }
-      setCurrentUserId(user.id)
+      // Use API route with query params to get all data
+      const response = await fetch('/api/household?includeMembers=true')
+      const data = await response.json()
 
-      // Get household info
-      const { data: householdData, error: householdError } = await supabase
-        .from('user_profiles')
-        .select(`
-          household_id,
-          households!user_profiles_household_id_fkey(
-            id,
-            household_name,
-            admin_user_id,
-            shared_tokens_enabled,
-            max_members,
-            created_at
-          )
-        `)
-        .eq('user_id', user.id)
-        .single()
+      console.log('API response:', { status: response.status, data })
 
-      if (householdError || !householdData?.household_id) {
-        // User not in a household - redirect to create one
+      if (!response.ok || !data.household) {
+        console.error('Household API error:', data)
+        setError(data.error || 'Not in a household')
         setLoading(false)
         return
       }
-
-      const householdInfo = (householdData as any).households
-      setHousehold(householdInfo)
-      setIsAdmin(householdInfo.admin_user_id === user.id)
-      setSharedTokensEnabled(householdInfo.shared_tokens_enabled)
-
-      // Get household members
-      const { data: membersData, error: membersError } = await supabase
-        .from('household_members')
-        .select(`
-          user_id,
-          role,
-          joined_at,
-          allow_shared_tokens,
-          user_profiles!household_members_user_id_fkey(
-            full_name,
-            email
-          )
-        `)
-        .eq('household_id', householdData.household_id)
-        .order('joined_at', { ascending: true })
-
-      if (!membersError && membersData) {
-        setMembers(membersData as any)
-      }
-
-      // Get pending invitations (admin only)
-      if (householdInfo.admin_user_id === user.id) {
-        const { data: invitesData, error: invitesError } = await supabase
-          .from('household_invitations')
-          .select('*')
-          .eq('household_id', householdData.household_id)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-
-        if (!invitesError && invitesData) {
-          setInvitations(invitesData)
-        }
-      }
-
+      
+      setHousehold(data)
     } catch (error) {
-      console.error('Error loading household data:', error)
+      console.error('Error loading household:', error)
+      setError('Failed to load household')
     } finally {
       setLoading(false)
     }
   }
 
   async function handleInviteMember() {
-    if (!inviteEmail || !household) return
+    if (!inviteEmail) return
     
     setInviting(true)
     setInviteError('')
+    setInviteSuccess('')
 
     try {
       const response = await fetch('/api/household/invite', {
@@ -131,9 +68,10 @@ export default function HouseholdSettingsPage() {
         return
       }
 
-      // Success - reload invitations
+      // Success!
+      setInviteSuccess(`✅ Invitation sent to ${inviteEmail}!`)
       setInviteEmail('')
-      await loadHouseholdData()
+      await loadHouseholdData() // Reload to show pending invitation
       
     } catch (error) {
       setInviteError('Failed to send invitation')
@@ -143,12 +81,8 @@ export default function HouseholdSettingsPage() {
   }
 
   async function handleToggleSharedTokens() {
-    if (!isAdmin || !household) return
-    
-    setUpdatingSettings(true)
-
     try {
-      const newValue = !sharedTokensEnabled
+      const newValue = !household.household.shared_tokens_enabled
       
       const response = await fetch('/api/household', {
         method: 'PATCH',
@@ -157,62 +91,10 @@ export default function HouseholdSettingsPage() {
       })
 
       if (response.ok) {
-        setSharedTokensEnabled(newValue)
-      }
-    } catch (error) {
-      console.error('Error updating settings:', error)
-    } finally {
-      setUpdatingSettings(false)
-    }
-  }
-
-  async function handleRemoveMember(userId: string) {
-    if (!isAdmin || !confirm('Are you sure you want to remove this member?')) return
-
-    try {
-      const response = await fetch('/api/household/members', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId })
-      })
-
-      if (response.ok) {
         await loadHouseholdData()
       }
     } catch (error) {
-      console.error('Error removing member:', error)
-    }
-  }
-
-  async function handleLeaveHousehold() {
-    if (!confirm('Are you sure you want to leave this household? You can create your own solo account.')) return
-
-    try {
-      const response = await fetch('/api/household/members', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: currentUserId })
-      })
-
-      if (response.ok) {
-        router.push('/household/convert-to-solo')
-      }
-    } catch (error) {
-      console.error('Error leaving household:', error)
-    }
-  }
-
-  async function handleCancelInvitation(invitationId: string) {
-    try {
-      // Delete invitation
-      await supabase
-        .from('household_invitations')
-        .delete()
-        .eq('id', invitationId)
-      
-      await loadHouseholdData()
-    } catch (error) {
-      console.error('Error canceling invitation:', error)
+      console.error('Error updating settings:', error)
     }
   }
 
@@ -224,7 +106,7 @@ export default function HouseholdSettingsPage() {
     )
   }
 
-  if (!household) {
+  if (error || !household) {
     return (
       <div className="min-h-screen bg-black text-white px-6 py-12">
         <div className="max-w-2xl mx-auto text-center">
@@ -239,6 +121,8 @@ export default function HouseholdSettingsPage() {
       </div>
     )
   }
+
+  const { household: householdInfo, members, invitations, isAdmin } = household
 
   return (
     <div className="min-h-screen bg-black text-white px-6 py-12">
@@ -263,9 +147,9 @@ export default function HouseholdSettingsPage() {
         <Card variant="elevated" className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-semibold mb-1">{household.household_name}</h2>
+              <h2 className="text-2xl font-semibold mb-1">{householdInfo.name}</h2>
               <p className="text-sm text-neutral-400">
-                {members.length} of {household.max_members} members
+                {members?.length || 0} of {householdInfo.max_members} members
               </p>
             </div>
             {isAdmin && (
@@ -285,14 +169,13 @@ export default function HouseholdSettingsPage() {
                 </div>
                 <button
                   onClick={handleToggleSharedTokens}
-                  disabled={updatingSettings}
                   className={`relative w-14 h-7 rounded-full transition-colors ${
-                    sharedTokensEnabled ? 'bg-primary-500' : 'bg-neutral-600'
+                    householdInfo.shared_tokens_enabled ? 'bg-primary-500' : 'bg-neutral-600'
                   }`}
                 >
                   <span
                     className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                      sharedTokensEnabled ? 'translate-x-7' : ''
+                      householdInfo.shared_tokens_enabled ? 'translate-x-7' : ''
                     }`}
                   />
                 </button>
@@ -302,56 +185,46 @@ export default function HouseholdSettingsPage() {
         </Card>
 
         {/* Members List */}
-        <Card variant="elevated" className="mb-8">
-          <h2 className="text-2xl font-semibold mb-6">Household Members</h2>
-          
-          <div className="space-y-4">
-            {members.map((member) => {
-              const profile = (member as any).user_profiles
-              const isCurrentUser = member.user_id === currentUserId
-              const isMemberAdmin = member.role === 'admin'
-
-              return (
-                <div 
-                  key={member.user_id}
-                  className="flex items-center justify-between p-4 bg-[#1F1F1F] rounded-xl"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">
-                        {profile?.full_name || profile?.email || 'Unknown User'}
-                      </span>
-                      {isMemberAdmin && (
-                        <Badge variant="premium" className="text-xs">Admin</Badge>
+        {members && members.length > 0 && (
+          <Card variant="elevated" className="mb-8">
+            <h2 className="text-2xl font-semibold mb-6">Household Members</h2>
+            
+            <div className="space-y-4">
+              {members.map((member: any) => {
+                const name = member.profile?.first_name 
+                  ? `${member.profile.first_name} ${member.profile.last_name || ''}`.trim()
+                  : member.profile?.email || 'Member'
+                
+                return (
+                  <div 
+                    key={member.user_id}
+                    className="flex items-center justify-between p-4 bg-[#1F1F1F] rounded-xl"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">
+                          {name}
+                        </span>
+                        {member.role === 'admin' && (
+                          <Badge variant="premium" className="text-xs">Admin</Badge>
+                        )}
+                      </div>
+                      {member.profile?.email && (
+                        <p className="text-xs text-neutral-400 mt-1">{member.profile.email}</p>
                       )}
-                      {isCurrentUser && (
-                        <Badge variant="info" className="text-xs">You</Badge>
-                      )}
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Joined {new Date(member.joined_at).toLocaleDateString()}
+                      </p>
                     </div>
-                    <p className="text-sm text-neutral-400">{profile?.email}</p>
-                    <p className="text-xs text-neutral-500 mt-1">
-                      Joined {new Date(member.joined_at).toLocaleDateString()}
-                    </p>
                   </div>
-
-                  {/* Admin can remove non-admin members */}
-                  {isAdmin && !isMemberAdmin && !isCurrentUser && (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleRemoveMember(member.user_id)}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </Card>
+                )
+              })}
+            </div>
+          </Card>
+        )}
 
         {/* Invite New Member (Admin Only) */}
-        {isAdmin && members.length < household.max_members && (
+        {isAdmin && members && members.length < householdInfo.max_members && (
           <Card variant="elevated" className="mb-8">
             <h2 className="text-2xl font-semibold mb-6">Invite Member</h2>
             
@@ -375,16 +248,20 @@ export default function HouseholdSettingsPage() {
             {inviteError && (
               <p className="text-red-500 text-sm mt-2">{inviteError}</p>
             )}
+            
+            {inviteSuccess && (
+              <p className="text-primary-500 text-sm mt-2">{inviteSuccess}</p>
+            )}
           </Card>
         )}
 
         {/* Pending Invitations (Admin Only) */}
-        {isAdmin && invitations.length > 0 && (
+        {isAdmin && invitations && invitations.length > 0 && (
           <Card variant="elevated" className="mb-8">
             <h2 className="text-2xl font-semibold mb-6">Pending Invitations</h2>
             
             <div className="space-y-3">
-              {invitations.map((invitation) => (
+              {invitations.map((invitation: any) => (
                 <div 
                   key={invitation.id}
                   className="flex items-center justify-between p-4 bg-[#1F1F1F] rounded-xl"
@@ -395,37 +272,12 @@ export default function HouseholdSettingsPage() {
                       Sent {new Date(invitation.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCancelInvitation(invitation.id)}
-                  >
-                    Cancel
-                  </Button>
                 </div>
               ))}
             </div>
-          </Card>
-        )}
-
-        {/* Leave Household (Non-Admin Members) */}
-        {!isAdmin && (
-          <Card variant="elevated" className="border-2 border-red-500/20">
-            <h2 className="text-2xl font-semibold mb-4">Leave Household</h2>
-            <p className="text-neutral-300 mb-6">
-              If you leave this household, you can create your own solo account.
-              You'll need to purchase your own subscription.
-            </p>
-            <Button
-              variant="danger"
-              onClick={handleLeaveHousehold}
-            >
-              Leave Household
-            </Button>
           </Card>
         )}
       </div>
     </div>
   )
 }
-

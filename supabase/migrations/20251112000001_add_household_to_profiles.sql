@@ -45,6 +45,7 @@ DO $$
 DECLARE
   user_record RECORD;
   new_household_id UUID;
+  existing_household_id UUID;
 BEGIN
   -- Loop through all users who don't have a household yet
   FOR user_record IN 
@@ -56,25 +57,39 @@ BEGIN
     INNER JOIN auth.users au ON au.id = up.user_id
     WHERE up.household_id IS NULL
   LOOP
-    -- Create a solo household for this user
-    INSERT INTO households (
-      admin_user_id,
-      name,
-      plan_type,
-      subscription_status,
-      max_members,
-      shared_tokens_enabled
-    ) VALUES (
-      user_record.user_id,
-      COALESCE(user_record.first_name || '''s Account', user_record.email || '''s Account', 'My Account'),
-      'solo',
-      'active', -- Assume existing users are active
-      1, -- Solo plan = 1 member
-      FALSE -- Solo doesn't need token sharing
-    )
-    RETURNING id INTO new_household_id;
+    -- Check if a household already exists with this user as admin
+    SELECT id INTO existing_household_id
+    FROM households
+    WHERE admin_user_id = user_record.user_id
+    LIMIT 1;
+    
+    -- If household already exists (created by webhook), use that
+    IF existing_household_id IS NOT NULL THEN
+      new_household_id := existing_household_id;
+      RAISE NOTICE 'Found existing household % for user %', new_household_id, user_record.user_id;
+    ELSE
+      -- Create a solo household for this user
+      INSERT INTO households (
+        admin_user_id,
+        name,
+        plan_type,
+        subscription_status,
+        max_members,
+        shared_tokens_enabled
+      ) VALUES (
+        user_record.user_id,
+        COALESCE(user_record.first_name || '''s Account', user_record.email || '''s Account', 'My Account'),
+        'solo',
+        'active', -- Assume existing users are active
+        1, -- Solo plan = 1 member
+        FALSE -- Solo doesn't need token sharing
+      )
+      RETURNING id INTO new_household_id;
+      
+      RAISE NOTICE 'Created new household % for user %', new_household_id, user_record.user_id;
+    END IF;
 
-    -- Create household_members record
+    -- Create household_members record if it doesn't exist
     INSERT INTO household_members (
       household_id,
       user_id,
@@ -91,7 +106,8 @@ BEGIN
       TRUE,
       NOW(),
       NOW()
-    );
+    )
+    ON CONFLICT (household_id, user_id) DO NOTHING;
 
     -- Update user_profiles with household info
     UPDATE user_profiles

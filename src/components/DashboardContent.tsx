@@ -564,7 +564,11 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 <div 
                   className="bg-[#BF00FF] h-2 rounded-full" 
                   style={{ 
-                    width: `${tokenUsagePercentage}%`
+                    width: `${
+                      profileData?.vibe_assistant_tokens_used && profileData?.vibe_assistant_tokens_remaining
+                        ? Math.min(100, (profileData.vibe_assistant_tokens_used / (profileData.vibe_assistant_tokens_used + profileData.vibe_assistant_tokens_remaining)) * 100)
+                        : 0
+                    }%`
                   }}
                 ></div>
               </div>

@@ -6,6 +6,8 @@ import {
   createHouseholdInvitation,
   acceptHouseholdInvitation
 } from '@/lib/supabase/household'
+import { sendEmail } from '@/lib/email/aws-ses'
+import { generateHouseholdInvitationEmail } from '@/lib/email/templates/household-invitation'
 
 // =====================================================================
 // POST /api/household/invite - Create invitation (admin only)
@@ -129,14 +131,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: Send invitation email
-    // This would integrate with your email service (Resend, SendGrid, etc.)
-    // await sendInvitationEmail({
-    //   to: email,
-    //   inviterName: user.email,
-    //   householdName: household.name,
-    //   invitationToken: invitation.invitation_token
-    // })
+    // Get inviter profile for email
+    const { data: inviterProfile } = await supabase
+      .from('user_profiles')
+      .select('full_name')
+      .eq('user_id', user.id)
+      .single()
+
+    const inviterName = inviterProfile?.full_name || user.email?.split('@')[0] || 'A VibrationFit user'
+
+    // Send invitation email via AWS SES
+    try {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
+      const invitationLink = `${appUrl}/household/invite/${invitation.invitation_token}`
+      
+      const emailContent = generateHouseholdInvitationEmail({
+        inviterName,
+        inviterEmail: user.email || '',
+        householdName: household.name,
+        invitationLink,
+        expiresInDays: 7, // Invitations expire in 7 days
+      })
+
+      await sendEmail({
+        to: email,
+        subject: emailContent.subject,
+        htmlBody: emailContent.htmlBody,
+        textBody: emailContent.textBody,
+      })
+
+      console.log('✅ Household invitation email sent to:', email)
+    } catch (emailError) {
+      console.error('❌ Failed to send invitation email:', emailError)
+      // Don't fail the invitation creation if email fails
+      // Admin can manually share the link
+    }
 
     return NextResponse.json({
       invitation: {
@@ -145,8 +174,8 @@ export async function POST(request: NextRequest) {
         status: invitation.status,
         expires_at: invitation.expires_at
       },
-      // Include invitation URL for now (until email is set up)
-      invitation_url: `${process.env.NEXT_PUBLIC_SITE_URL}/invite/${invitation.invitation_token}`
+      // Include invitation URL (useful if email fails or for testing)
+      invitation_url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL}/household/invite/${invitation.invitation_token}`
     })
   } catch (error) {
     console.error('Error in POST /api/household/invite:', error)

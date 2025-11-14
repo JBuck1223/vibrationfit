@@ -372,6 +372,68 @@ export async function POST(request: NextRequest) {
                   })
                   // Storage quota is now granted by grant_trial_tokens function
                 }
+
+                // Create household if plan_type is 'household'
+                const planType = session.metadata?.plan_type
+                if (planType === 'household') {
+                  console.log('🏠 Creating household for user:', userId)
+                  
+                  try {
+                    // Create household record
+                    const { data: household, error: householdError } = await supabaseAdmin
+                      .from('households')
+                      .insert({
+                        admin_user_id: userId,
+                        name: `${customerEmail?.split('@')[0] || 'My'}'s Household`,
+                        max_members: 2, // Household plans come with 2 seats
+                        shared_tokens_enabled: true, // Default to shared tokens for households
+                      })
+                      .select()
+                      .single()
+
+                    if (householdError) {
+                      console.error('❌ Failed to create household:', householdError)
+                    } else {
+                      console.log('✅ Household created:', household.id)
+
+                      // Update user profile with household info
+                      const { error: profileError } = await supabaseAdmin
+                        .from('user_profiles')
+                        .upsert({
+                          user_id: userId,
+                          household_id: household.id,
+                          is_household_admin: true,
+                        }, {
+                          onConflict: 'user_id',
+                        })
+
+                      if (profileError) {
+                        console.error('❌ Failed to update user profile with household:', profileError)
+                      } else {
+                        console.log('✅ User profile updated with household info')
+                      }
+
+                      // Add admin as first household member
+                      const { error: memberError } = await supabaseAdmin
+                        .from('household_members')
+                        .insert({
+                          household_id: household.id,
+                          user_id: userId,
+                          role: 'admin',
+                          joined_at: new Date().toISOString(),
+                        })
+
+                      if (memberError) {
+                        console.error('❌ Failed to add admin to household_members:', memberError)
+                      } else {
+                        console.log('✅ Admin added to household_members')
+                      }
+                    }
+                  } catch (householdError) {
+                    console.error('❌ Error in household creation:', householdError)
+                    // Don't break - subscription is still valid
+                  }
+                }
               }
             } catch (visionProError) {
               console.error('Failed to create Vision Pro subscription:', visionProError)
@@ -573,6 +635,68 @@ export async function POST(request: NextRequest) {
               }
               
               // Storage quota is now granted by grant_trial_tokens function
+            }
+
+            // Create household if plan_type is 'household'
+            const planType = session.metadata?.plan_type
+            if (planType === 'household') {
+              console.log('🏠 Creating household for user:', userId)
+              
+              try {
+                // Create household record
+                const { data: household, error: householdError } = await supabaseAdmin
+                  .from('households')
+                  .insert({
+                    admin_user_id: userId,
+                    name: `${customerEmail?.split('@')[0] || 'My'}'s Household`,
+                    max_members: 2, // Household plans come with 2 seats
+                    shared_tokens_enabled: true, // Default to shared tokens for households
+                  })
+                  .select()
+                  .single()
+
+                if (householdError) {
+                  console.error('❌ Failed to create household:', householdError)
+                } else {
+                  console.log('✅ Household created:', household.id)
+
+                  // Update user profile with household info
+                  const { error: profileError } = await supabaseAdmin
+                    .from('user_profiles')
+                    .upsert({
+                      user_id: userId,
+                      household_id: household.id,
+                      is_household_admin: true,
+                    }, {
+                      onConflict: 'user_id',
+                    })
+
+                  if (profileError) {
+                    console.error('❌ Failed to update user profile with household:', profileError)
+                  } else {
+                    console.log('✅ User profile updated with household info')
+                  }
+
+                  // Add admin as first household member
+                  const { error: memberError } = await supabaseAdmin
+                    .from('household_members')
+                    .insert({
+                      household_id: household.id,
+                      user_id: userId,
+                      role: 'admin',
+                      joined_at: new Date().toISOString(),
+                    })
+
+                  if (memberError) {
+                    console.error('❌ Failed to add admin to household_members:', memberError)
+                  } else {
+                    console.log('✅ Admin added to household_members')
+                  }
+                }
+              } catch (householdError) {
+                console.error('❌ Error in household creation:', householdError)
+                // Don't break - subscription is still valid
+              }
             }
           } catch (scheduleError) {
             console.error('Failed to create subscription schedule:', scheduleError)

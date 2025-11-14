@@ -100,79 +100,32 @@ CREATE INDEX idx_household_invitations_status ON household_invitations(status);
 CREATE INDEX idx_household_invitations_household_id ON household_invitations(household_id);
 
 -- =====================================================================
--- 4. HOUSEHOLD TOKEN SUMMARY VIEW
+-- 4. HOUSEHOLD TOKEN SUMMARY VIEW (DEPRECATED)
 -- =====================================================================
--- Computed view for household token totals and member stats
+-- NOTE: This view is deprecated because token balances are now calculated
+-- on-the-fly from token_transactions and token_usage using get_user_token_balance()
+-- Household token summaries should be calculated in the application layer
+-- by calling get_user_token_balance() for each member and summing the results.
 
-CREATE OR REPLACE VIEW household_token_summary AS
-SELECT 
-  h.id AS household_id,
-  h.name AS household_name,
-  h.admin_user_id,
-  h.shared_tokens_enabled,
-  h.plan_type,
-  
-  -- Admin tokens
-  admin_profile.vibe_assistant_tokens_remaining AS admin_tokens_remaining,
-  admin_profile.vibe_assistant_tokens_used AS admin_tokens_used,
-  
-  -- Household cumulative totals (sum of all members)
-  COALESCE(SUM(up.vibe_assistant_tokens_remaining), 0) AS household_tokens_remaining,
-  COALESCE(SUM(up.vibe_assistant_tokens_used), 0) AS household_tokens_used,
-  
-  -- Member count
-  COUNT(hm.id) AS member_count,
-  
-  -- Members with sharing enabled
-  COUNT(hm.id) FILTER (WHERE hm.allow_shared_tokens = TRUE AND hm.status = 'active') AS sharing_enabled_count
-  
-FROM households h
-LEFT JOIN household_members hm ON hm.household_id = h.id AND hm.status = 'active'
-LEFT JOIN user_profiles up ON up.user_id = hm.user_id
-LEFT JOIN user_profiles admin_profile ON admin_profile.user_id = h.admin_user_id
-GROUP BY 
-  h.id, 
-  h.name, 
-  h.admin_user_id, 
-  h.shared_tokens_enabled,
-  h.plan_type,
-  admin_profile.vibe_assistant_tokens_remaining,
-  admin_profile.vibe_assistant_tokens_used;
+-- Drop the old view if it exists (it used deprecated token fields)
+-- We don't recreate it because it would require expensive RPC calls in a view
+DROP VIEW IF EXISTS household_token_summary CASCADE;
 
 -- =====================================================================
 -- 5. FUNCTIONS
 -- =====================================================================
 
--- Function: Atomic token deduction from household (user + admin)
-CREATE OR REPLACE FUNCTION deduct_tokens_from_household(
-  p_user_id UUID,
-  p_admin_id UUID,
-  p_user_deduction INTEGER,
-  p_admin_deduction INTEGER
-)
-RETURNS VOID AS $$
-BEGIN
-  -- Deduct from user's own tokens
-  UPDATE user_profiles
-  SET 
-    vibe_assistant_tokens_remaining = vibe_assistant_tokens_remaining - p_user_deduction,
-    vibe_assistant_tokens_used = vibe_assistant_tokens_used + p_user_deduction,
-    updated_at = NOW()
-  WHERE user_id = p_user_id;
+-- Function: Atomic token deduction from household (DEPRECATED)
+-- NOTE: This function is deprecated because token balances are now calculated
+-- on-the-fly from token_transactions and token_usage.
+-- Token deductions are now handled by recording entries in the token_usage table.
+-- The balance is automatically calculated by get_user_token_balance().
+DROP FUNCTION IF EXISTS deduct_tokens_from_household(UUID, UUID, INTEGER, INTEGER);
 
-  -- Deduct remainder from admin's tokens
-  IF p_admin_deduction > 0 THEN
-    UPDATE user_profiles
-    SET 
-      vibe_assistant_tokens_remaining = vibe_assistant_tokens_remaining - p_admin_deduction,
-      vibe_assistant_tokens_used = vibe_assistant_tokens_used + p_admin_deduction,
-      updated_at = NOW()
-    WHERE user_id = p_admin_id;
-  END IF;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function: Get household summary for a user
+-- Function: Get household summary for a user (UPDATED FOR NEW TOKEN SYSTEM)
+-- NOTE: Token balances are now calculated on-the-fly using get_user_token_balance()
+-- This function returns basic household info without token balances.
+-- Call get_user_token_balance() separately for each member to get token info.
 CREATE OR REPLACE FUNCTION get_user_household_summary(p_user_id UUID)
 RETURNS TABLE (
   household_id UUID,
@@ -180,10 +133,9 @@ RETURNS TABLE (
   is_admin BOOLEAN,
   plan_type TEXT,
   shared_tokens_enabled BOOLEAN,
-  user_tokens_remaining INTEGER,
-  household_tokens_remaining INTEGER,
   member_count BIGINT,
-  can_use_shared_tokens BOOLEAN
+  can_use_shared_tokens BOOLEAN,
+  admin_user_id UUID
 ) AS $$
 BEGIN
   RETURN QUERY
@@ -193,14 +145,11 @@ BEGIN
     (h.admin_user_id = p_user_id) AS is_admin,
     h.plan_type,
     h.shared_tokens_enabled,
-    up.vibe_assistant_tokens_remaining AS user_tokens_remaining,
-    hts.household_tokens_remaining AS household_tokens_remaining,
-    hts.member_count,
-    (h.shared_tokens_enabled AND hm.allow_shared_tokens) AS can_use_shared_tokens
+    (SELECT COUNT(*) FROM household_members WHERE household_id = h.id AND status = 'active') AS member_count,
+    (h.shared_tokens_enabled AND hm.allow_shared_tokens) AS can_use_shared_tokens,
+    h.admin_user_id
   FROM households h
-  INNER JOIN household_members hm ON hm.household_id = h.id AND hm.user_id = p_user_id AND hm.status = 'active'
-  LEFT JOIN user_profiles up ON up.user_id = p_user_id
-  LEFT JOIN household_token_summary hts ON hts.household_id = h.id;
+  INNER JOIN household_members hm ON hm.household_id = h.id AND hm.user_id = p_user_id AND hm.status = 'active';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -242,8 +191,7 @@ CREATE TRIGGER households_updated_at
 -- =====================================================================
 
 -- Grant access to authenticated users
-GRANT SELECT ON household_token_summary TO authenticated;
-GRANT EXECUTE ON FUNCTION deduct_tokens_from_household TO authenticated;
+-- Note: household_token_summary and deduct_tokens_from_household are deprecated
 GRANT EXECUTE ON FUNCTION get_user_household_summary TO authenticated;
 GRANT EXECUTE ON FUNCTION expire_old_invitations TO authenticated;
 
@@ -309,7 +257,6 @@ CREATE POLICY "Invitees can view their invitations" ON household_invitations
 COMMENT ON TABLE households IS 'Household subscription units - either solo (1 user) or household (multiple users)';
 COMMENT ON TABLE household_members IS 'Users who belong to a household';
 COMMENT ON TABLE household_invitations IS 'Pending invitations to join a household';
-COMMENT ON VIEW household_token_summary IS 'Aggregated token statistics per household';
-COMMENT ON FUNCTION deduct_tokens_from_household IS 'Atomically deduct tokens from user and admin accounts';
-COMMENT ON FUNCTION get_user_household_summary IS 'Get complete household info for a user';
+-- Note: household_token_summary and deduct_tokens_from_household are deprecated
+COMMENT ON FUNCTION get_user_household_summary IS 'Get complete household info for a user (token balances calculated separately via get_user_token_balance)';
 

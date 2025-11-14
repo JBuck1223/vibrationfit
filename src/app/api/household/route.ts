@@ -40,12 +40,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Build response
-    const response: any = { household }
+    const response: any = { 
+      household,
+      isAdmin: household.admin_user_id === user.id,
+      currentUserId: user.id
+    }
 
     // Include members if requested
     if (includeMembers) {
       const householdWithMembers = await getHouseholdWithMembers(household.id)
       response.members = householdWithMembers?.members || []
+      response.invitations = householdWithMembers?.invitations || []
     }
 
     // Include token summary if requested

@@ -304,13 +304,14 @@ export default function HomePage() {
 
     setIsLoading(true)
     try {
-      // Directly create Stripe checkout session
+      // Directly create Stripe checkout session with plan type
       const response = await fetch('/api/stripe/checkout-combined', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           intensivePaymentPlan: paymentPlan,
           continuityPlan: billingPeriod,
+          planType: planType, // 'solo' or 'household'
         })
       })
 
