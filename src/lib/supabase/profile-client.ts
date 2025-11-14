@@ -81,19 +81,22 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
     })
 
     // Create the query promise
-    // Get active profile (user_profiles has is_active but not is_draft)
+    // First try to get active, non-draft profile
+    // If that fails, fallback to most recent profile
     const queryPromise = supabase
       .from('user_profiles')
       .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
       .eq('user_id', userId)
       .eq('is_active', true)
+      .eq('is_draft', false)
       .maybeSingle()
       .then(async (result) => {
         // If no active profile found, fallback to most recent profile
         if (result.error || !result.data) {
+          console.log(`No active profile for user ${userId}, trying fallback...`)
           const fallbackResult = await supabase
             .from('user_profiles')
-            .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining')
+            .select('first_name, profile_picture_url, vibe_assistant_tokens_remaining, is_active, is_draft')
             .eq('user_id', userId)
             .order('updated_at', { ascending: false })
             .limit(1)
@@ -106,7 +109,16 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
               throw fallbackResult.error
             }
             // No profile exists at all for this user
+            console.warn(`No profile found at all for user ${userId}`)
             return null
+          }
+          
+          if (fallbackResult.data) {
+            console.log(`Fallback profile found:`, {
+              has_data: !!fallbackResult.data,
+              is_active: fallbackResult.data.is_active,
+              is_draft: fallbackResult.data.is_draft
+            })
           }
           return fallbackResult.data
         }
