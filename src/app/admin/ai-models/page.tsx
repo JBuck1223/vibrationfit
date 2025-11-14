@@ -8,13 +8,33 @@ import { API_ROUTES_REGISTRY, type APIRouteConfig } from '@/lib/ai/api-routes-re
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { ExternalLink, Target, Code, Settings, CheckCircle, AlertCircle } from 'lucide-react'
 
+interface ModelPricing {
+  id: string
+  model_name: string
+  provider: string
+  model_family: string | null
+  input_price_per_1k: number
+  output_price_per_1k: number
+  price_per_unit: number | null
+  unit_type: string | null
+  is_active: boolean
+  effective_date: string
+  notes: string | null
+}
+
 function AIModelsAdminContent() {
+  const [activeTab, setActiveTab] = useState<'routes' | 'pricing'>('routes')
   const [models, setModels] = useState<typeof AI_MODELS>(AI_MODELS)
   const [overrides, setOverrides] = useState<Array<{ action_type: string; token_value: number }>>([])
   const [newOverride, setNewOverride] = useState<{ action_type: string; token_value: number }>({ action_type: '', token_value: 0 })
   const [selectedRoute, setSelectedRoute] = useState<APIRouteConfig | null>(null)
   const [editConfig, setEditConfig] = useState<Partial<AIModelConfig>>({})
   const [filterCategory, setFilterCategory] = useState<'all' | 'text' | 'audio' | 'image' | 'admin'>('all')
+  
+  // Pricing management
+  const [pricing, setPricing] = useState<ModelPricing[]>([])
+  const [selectedPricing, setSelectedPricing] = useState<ModelPricing | null>(null)
+  const [editPricing, setEditPricing] = useState<Partial<ModelPricing>>>({})
 
   // Available models for selection
   const availableModels = [
@@ -91,6 +111,62 @@ function AIModelsAdminContent() {
   const handleCancelEdit = () => {
     setSelectedRoute(null)
     setEditConfig({})
+  }
+
+  // Fetch pricing data
+  useEffect(() => {
+    if (activeTab === 'pricing') {
+      fetchPricing()
+    }
+  }, [activeTab])
+
+  const fetchPricing = async () => {
+    try {
+      const res = await fetch('/api/admin/ai-pricing')
+      if (res.ok) {
+        const data = await res.json()
+        setPricing(data.pricing || [])
+      }
+    } catch (error) {
+      console.error('Error fetching pricing:', error)
+    }
+  }
+
+  const handleEditPricing = (model: ModelPricing) => {
+    setSelectedPricing(model)
+    setEditPricing({
+      input_price_per_1k: model.input_price_per_1k,
+      output_price_per_1k: model.output_price_per_1k,
+      price_per_unit: model.price_per_unit,
+      notes: model.notes
+    })
+  }
+
+  const handleSavePricing = async () => {
+    if (!selectedPricing) return
+
+    try {
+      const res = await fetch('/api/admin/ai-pricing', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model_name: selectedPricing.model_name,
+          ...editPricing
+        })
+      })
+
+      if (res.ok) {
+        await fetchPricing()
+        setSelectedPricing(null)
+        setEditPricing({})
+      } else {
+        const error = await res.json()
+        alert(`Error: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error saving pricing:', error)
+      alert('Failed to save pricing')
+    }
   }
 
   useEffect(() => {
@@ -554,6 +630,159 @@ function AIModelsAdminContent() {
             </div>
           </Card>
         </div>
+      )}
+
+      {/* Pricing Tab */}
+      {activeTab === 'pricing' && (
+        <>
+          <div className="grid grid-cols-1 gap-6">
+            {pricing.map((model) => (
+              <Card key={model.id} className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-semibold text-white">{model.model_name}</h3>
+                      <Badge variant="neutral" className="text-xs">
+                        {model.provider}
+                      </Badge>
+                      {model.model_family && (
+                        <Badge variant="info" className="text-xs">
+                          {model.model_family}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                      <div>
+                        <span className="text-neutral-400 text-sm">Input Price</span>
+                        <div className="text-white font-mono text-lg">
+                          ${model.input_price_per_1k.toFixed(6)}
+                        </div>
+                        <div className="text-neutral-500 text-xs">per 1K tokens</div>
+                      </div>
+
+                      <div>
+                        <span className="text-neutral-400 text-sm">Output Price</span>
+                        <div className="text-white font-mono text-lg">
+                          ${model.output_price_per_1k.toFixed(6)}
+                        </div>
+                        <div className="text-neutral-500 text-xs">per 1K tokens</div>
+                      </div>
+
+                      {model.price_per_unit !== null && (
+                        <div>
+                          <span className="text-neutral-400 text-sm">Unit Price</span>
+                          <div className="text-white font-mono text-lg">
+                            ${model.price_per_unit.toFixed(6)}
+                          </div>
+                          <div className="text-neutral-500 text-xs">per {model.unit_type}</div>
+                        </div>
+                      )}
+
+                      <div>
+                        <span className="text-neutral-400 text-sm">Last Updated</span>
+                        <div className="text-white text-sm">
+                          {new Date(model.effective_date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {model.notes && (
+                      <div className="mt-4 p-3 bg-neutral-800 rounded-lg text-sm text-neutral-300">
+                        {model.notes}
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditPricing(model)}
+                    className="ml-4"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pricing Edit Modal */}
+          {selectedPricing && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <Card className="w-full max-w-2xl">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-white mb-4">
+                    Edit Pricing for {selectedPricing.model_name}
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-200 mb-2">
+                          Input Price (per 1K tokens)
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.000001"
+                          value={editPricing.input_price_per_1k ?? selectedPricing.input_price_per_1k}
+                          onChange={(e) => setEditPricing(prev => ({ ...prev, input_price_per_1k: parseFloat(e.target.value) }))}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-200 mb-2">
+                          Output Price (per 1K tokens)
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.000001"
+                          value={editPricing.output_price_per_1k ?? selectedPricing.output_price_per_1k}
+                          onChange={(e) => setEditPricing(prev => ({ ...prev, output_price_per_1k: parseFloat(e.target.value) }))}
+                        />
+                      </div>
+                    </div>
+
+                    {selectedPricing.unit_type && (
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-200 mb-2">
+                          Unit Price (per {selectedPricing.unit_type})
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.000001"
+                          value={editPricing.price_per_unit ?? selectedPricing.price_per_unit ?? 0}
+                          onChange={(e) => setEditPricing(prev => ({ ...prev, price_per_unit: parseFloat(e.target.value) }))}
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-200 mb-2">
+                        Notes
+                      </label>
+                      <Textarea
+                        value={editPricing.notes ?? selectedPricing.notes ?? ''}
+                        onChange={(e) => setEditPricing(prev => ({ ...prev, notes: e.target.value }))}
+                        rows={3}
+                        placeholder="Optional notes about this pricing"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-6">
+                    <Button variant="outline" onClick={() => { setSelectedPricing(null); setEditPricing({}) }}>
+                      Cancel
+                    </Button>
+                    <Button variant="primary" onClick={handleSavePricing}>
+                      Save Pricing
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+        </>
       )}
     </Container>
   )
