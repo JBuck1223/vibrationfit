@@ -44,6 +44,11 @@ WHERE calculated_cost_cents IS NULL
 -- Updates to automatically calculate accurate costs
 -- =====================================================================
 
+-- Drop old function signature (without p_audio_seconds parameter)
+DROP FUNCTION IF EXISTS public.apply_token_usage(
+  uuid, text, text, integer, integer, integer, integer, jsonb
+);
+
 CREATE OR REPLACE FUNCTION public.apply_token_usage(
   p_user_id uuid,
   p_action_type text,
