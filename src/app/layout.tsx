@@ -3,7 +3,6 @@ import "./globals.css";
 import '@/styles/brand.css'
 import { GlobalLayout } from '@/components/GlobalLayout'
 import { AuthProvider } from '@/components/AuthProvider'
-import { IntensiveBar } from '@/components/IntensiveBar'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { Toaster } from 'sonner'
 
