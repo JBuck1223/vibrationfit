@@ -120,6 +120,10 @@ export async function POST(request: NextRequest) {
       input_tokens: completion.usage?.prompt_tokens || 0,
       output_tokens: completion.usage?.completion_tokens || 0,
       cost_estimate: 0,
+      // OpenAI reconciliation fields
+      openai_request_id: completion.id,
+      openai_created: completion.created,
+      system_fingerprint: completion.system_fingerprint,
       success: true,
       metadata: {
         visionId,
@@ -180,6 +184,10 @@ export async function POST(request: NextRequest) {
       input_tokens: activationCompletion.usage?.prompt_tokens || 0,
       output_tokens: activationCompletion.usage?.completion_tokens || 0,
       cost_estimate: 0,
+      // OpenAI reconciliation fields
+      openai_request_id: activationCompletion.id,
+      openai_created: activationCompletion.created,
+      system_fingerprint: activationCompletion.system_fingerprint,
       success: true,
       metadata: {
         visionId,

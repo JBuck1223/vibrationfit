@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAdminTokenSummary, getTokenUsageByUser } from '@/lib/tokens/tracking'
+import { getAdminTokenSummary, getTokenUsageByUser, getReconciliationData } from '@/lib/tokens/tracking'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const days = parseInt(searchParams.get('days') || '30')
     const limit = parseInt(searchParams.get('limit') || '100')
-    const type = searchParams.get('type') || 'summary' // 'summary' or 'by-user'
+    const type = searchParams.get('type') || 'summary' // 'summary', 'by-user', or 'reconciliation'
 
     if (type === 'summary') {
       // Get overall token usage summary
@@ -72,6 +72,16 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json({
         user_usage: userUsage,
+        period_days: days,
+        limit,
+        success: true
+      })
+    } else if (type === 'reconciliation') {
+      // Get OpenAI cost reconciliation data
+      const reconciliation = await getReconciliationData(days, limit)
+      
+      return NextResponse.json({
+        reconciliation,
         period_days: days,
         limit,
         success: true

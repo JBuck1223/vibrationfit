@@ -152,7 +152,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
   },
   // NOTE: Deprecated/removed endpoints (Nov 11, 2025)
   // - /api/vibe-assistant/refine-vision (deprecated)
-  // - /api/vibe-assistant/generate-blueprint (deprecated - breaks actualization-blueprints page)
+  // - /api/vibe-assistant/generate-blueprint (deprecated)
   // - /api/vision/generate (deprecated)
   // - /api/vision/chat (deprecated)
   // - /api/assessment/ai-score (removed - never implemented, unused)

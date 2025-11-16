@@ -421,6 +421,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         cost_estimate: 0, // Will be calculated
         input_tokens: usage.prompt_tokens,
         output_tokens: usage.completion_tokens,
+        // OpenAI reconciliation fields
+        openai_request_id: completion.id,
+        openai_created: completion.created,
+        system_fingerprint: completion.system_fingerprint,
         success: true,
       });
     }

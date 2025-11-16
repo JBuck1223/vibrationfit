@@ -24,6 +24,10 @@ export interface AIResponse {
     completion_tokens: number
     total_tokens: number
   }
+  // OpenAI Reconciliation Fields (added Nov 16, 2025)
+  openai_request_id?: string
+  openai_created?: number
+  system_fingerprint?: string
   error?: string
 }
 
@@ -96,7 +100,11 @@ export async function generateText(request: AIRequest): Promise<AIResponse> {
     return {
       content: choice.message.content,
       model: data.model,
-      usage: data.usage
+      usage: data.usage,
+      // OpenAI reconciliation metadata
+      openai_request_id: data.id,
+      openai_created: data.created,
+      system_fingerprint: data.system_fingerprint
     }
 
   } catch (error) {

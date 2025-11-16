@@ -74,10 +74,6 @@ export const PAGE_CLASSIFICATIONS = {
     '/assessment/[id]/results',
     '/assessment/history',
     '/assessment/[id]',
-    
-    // Actualization Blueprints
-    '/actualization-blueprints',
-    '/actualization-blueprints/[id]',
 
     // Vibrational System
     '/scenes/builder',

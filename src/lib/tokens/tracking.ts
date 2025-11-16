@@ -15,6 +15,13 @@ export interface TokenUsage {
   cost_estimate: number // in cents
   input_tokens?: number
   output_tokens?: number
+  // OpenAI Reconciliation Fields (added Nov 16, 2025)
+  openai_request_id?: string
+  openai_created?: number
+  system_fingerprint?: string
+  actual_cost_cents?: number
+  reconciliation_status?: 'pending' | 'matched' | 'discrepancy' | 'not_applicable'
+  reconciled_at?: string
   success: boolean
   error_message?: string
   metadata?: Record<string, any>
@@ -242,6 +249,11 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
         cost_estimate: Math.round(costEstimate * 100),
         input_tokens: usage.input_tokens || 0,
         output_tokens: usage.output_tokens || 0,
+        // OpenAI reconciliation fields
+        openai_request_id: usage.openai_request_id,
+        openai_created: usage.openai_created,
+        system_fingerprint: usage.system_fingerprint,
+        reconciliation_status: usage.openai_request_id ? 'pending' : 'not_applicable',
         success: usage.success,
         error_message: usage.error_message,
         metadata: usage.metadata || {},
@@ -519,10 +531,107 @@ export async function getTokenUsageByUser(days: number = 30, limit: number = 100
   }
 }
 
+/**
+ * Get reconciliation data - OpenAI cost tracking
+ * Shows actual vs estimated costs, request IDs, and reconciliation status
+ */
+export async function getReconciliationData(days: number = 30, limit: number = 50) {
+  try {
+    const supabase = createClient()
+    
+    // Calculate date range
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+
+    // Get reconciliation summary stats
+    const { data: stats } = await supabase
+      .from('token_usage')
+      .select('reconciliation_status')
+      .gte('created_at', startDate.toISOString())
+    
+    const statusCounts = {
+      pending: 0,
+      matched: 0,
+      discrepancy: 0,
+      not_applicable: 0
+    }
+    
+    stats?.forEach(row => {
+      if (row.reconciliation_status && row.reconciliation_status in statusCounts) {
+        statusCounts[row.reconciliation_status as keyof typeof statusCounts]++
+      }
+    })
+
+    // Get cost accuracy metrics from the view
+    const { data: costData } = await supabase
+      .from('token_usage_with_costs')
+      .select('accurate_cost_usd, actual_cost_usd, reconciliation_accuracy_percentage')
+      .gte('created_at', startDate.toISOString())
+      .not('actual_cost_usd', 'is', null)
+    
+    const totalEstimated = costData?.reduce((sum, row) => sum + (row.accurate_cost_usd || 0), 0) || 0
+    const totalActual = costData?.reduce((sum, row) => sum + (row.actual_cost_usd || 0), 0) || 0
+    const avgAccuracy = costData?.length 
+      ? costData.reduce((sum, row) => sum + (row.reconciliation_accuracy_percentage || 0), 0) / costData.length 
+      : 0
+
+    // Get recent requests with reconciliation data
+    const { data: recentRequests } = await supabase
+      .from('token_usage_with_costs')
+      .select(`
+        id,
+        action_type,
+        model_used,
+        openai_request_id,
+        accurate_cost_usd,
+        actual_cost_usd,
+        reconciliation_status,
+        created_at
+      `)
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    return {
+      pending_count: statusCounts.pending,
+      matched_count: statusCounts.matched,
+      discrepancy_count: statusCounts.discrepancy,
+      not_applicable_count: statusCounts.not_applicable,
+      total_estimated_cost: totalEstimated,
+      total_actual_cost: totalActual,
+      average_accuracy: avgAccuracy,
+      recent_requests: recentRequests?.map(req => ({
+        id: req.id,
+        action_type: req.action_type,
+        model_used: req.model_used,
+        openai_request_id: req.openai_request_id,
+        estimated_cost_usd: req.accurate_cost_usd || 0,
+        actual_cost_usd: req.actual_cost_usd,
+        reconciliation_status: req.reconciliation_status || 'pending',
+        created_at: req.created_at
+      })) || []
+    }
+
+  } catch (error) {
+    console.error('Reconciliation data error:', error)
+    return {
+      pending_count: 0,
+      matched_count: 0,
+      discrepancy_count: 0,
+      not_applicable_count: 0,
+      total_estimated_cost: 0,
+      total_actual_cost: 0,
+      average_accuracy: 0,
+      recent_requests: []
+    }
+  }
+}
+
 export default {
   trackTokenUsage,
   calculateTokenCost,
   getTokenSummary,
   getAdminTokenSummary,
-  getTokenUsageByUser
+  getTokenUsageByUser,
+  getReconciliationData
 }

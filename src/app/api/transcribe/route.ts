@@ -68,6 +68,10 @@ export async function POST(request: NextRequest) {
       input_tokens: Math.ceil(transcription.duration * 60),
       output_tokens: transcription.text.split(' ').length, // Word count as output tokens
       cost_estimate: costInCents,
+      // OpenAI reconciliation fields (if available - Whisper API may not include these)
+      openai_request_id: (transcription as any).id,
+      openai_created: (transcription as any).created,
+      system_fingerprint: (transcription as any).system_fingerprint,
       success: true,
       metadata: {
         audio_duration: transcription.duration,

@@ -205,6 +205,10 @@ export async function POST(request: NextRequest) {
               input_tokens: completion.usage.prompt_tokens || 0,
               output_tokens: completion.usage.completion_tokens || 0,
               cost_estimate: 0, // Will be calculated by trackTokenUsage
+              // OpenAI reconciliation fields
+              openai_request_id: completion.id,
+              openai_created: completion.created,
+              system_fingerprint: completion.system_fingerprint,
               success: true,
               metadata: {
                 category: category,

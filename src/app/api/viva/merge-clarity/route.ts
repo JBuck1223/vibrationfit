@@ -107,6 +107,10 @@ Return only the merged clarity statement, no explanation or commentary.`
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       cost_estimate: 0, // Calculated by trackTokenUsage
+      // OpenAI reconciliation fields
+      openai_request_id: response.id,
+      openai_created: response.created,
+      system_fingerprint: response.system_fingerprint,
       success: true,
       metadata: {
         category,

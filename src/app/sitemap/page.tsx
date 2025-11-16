@@ -109,10 +109,6 @@ export default function SitemapPage() {
         { href: '/assessment/history', label: 'Assessment History', icon: RefreshCw, description: 'All past assessments' },
         { href: '/assessment/results', label: 'Assessment Results Overview', icon: BarChart3, description: 'All assessments overview' },
 
-        // Blueprints
-        { href: '/actualization-blueprints', label: 'Actualization Blueprints', icon: Rocket, description: 'All blueprints' },
-        { href: '/actualization-blueprints/[id]', label: 'Blueprint Details', icon: Eye, description: 'Individual blueprint', isDynamic: true },
-
         // Intensive Program
         { href: '/intensive', label: 'Intensive Program', icon: Rocket, description: 'Main intensive page' },
         { href: '/intensive/intake', label: 'Intensive Intake', icon: FileText, description: 'Program intake' },
