@@ -445,7 +445,7 @@ export async function getAdminTokenSummary(days: number = 30): Promise<TokenSumm
 
     const { data: usage, error } = await supabase
       .from('token_usage')
-      .select('*')
+      .select('id, user_id, action_type, model_used, tokens_used, input_tokens, output_tokens, calculated_cost_cents, openai_request_id, openai_created, system_fingerprint, actual_cost_cents, reconciliation_status, reconciled_at, success, error_message, metadata, created_at')
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false })
 
