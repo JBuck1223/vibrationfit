@@ -6,7 +6,7 @@ import {  Card, Button, Video } from '@/lib/design-system'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Calendar, FileText, Play, Volume2, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Plus, Calendar, FileText, Play, Volume2, ChevronLeft, ChevronRight, X, Eye } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface JournalEntry {
@@ -236,66 +236,101 @@ export default function JournalPage() {
     <>
         {/* Header */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">📔 Conscious Creation Journal</h1>
-              <p className="text-neutral-400">Capture evidence of actualization in real time</p>
-            </div>
-            <Button asChild className="w-full sm:w-auto">
-              <Link href="/journal/new">
-                <Plus className="w-5 h-5 mr-2" />
-                <span className="sm:hidden">New</span>
-                <span className="hidden sm:inline">New Entry</span>
-              </Link>
-            </Button>
-          </div>
+          {/* Gradient Border Wrapper */}
+          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+            {/* Inner Card with Gradient Background */}
+            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              
+              <div className="relative z-10">
+                
+                {/* "THE LIFE I CHOOSE" Label */}
+                <div className="text-center mb-4">
+                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                    THE LIFE I CHOOSE
+                  </div>
+                </div>
+                
+                {/* Title Section */}
+                <div className="text-center mb-3">
+                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                    Conscious Creation Journal
+                  </h1>
+                </div>
+                
+                {/* Subtitle */}
+                <div className="text-center mb-6">
+                  <p className="text-xs md:text-lg text-neutral-300">
+                    Capture evidence of actualization in real time
+                  </p>
+                </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="p-6">
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center mr-4">
-                  <FileText className="w-6 h-6 text-primary-500" />
+                {/* Action Button */}
+                <div className="flex justify-center">
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  >
+                    <Link href="/journal/new">
+                      <Plus className="w-4 h-4 shrink-0" />
+                      <span>New Entry</span>
+                    </Link>
+                  </Button>
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">{entryCount}</div>
-                  <div className="text-sm text-neutral-400">Total Entries</div>
-                </div>
+                
               </div>
-            </Card>
-            <Card className="p-6">
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-secondary-500/20 rounded-lg flex items-center justify-center mr-4">
-                  <Calendar className="w-6 h-6 text-secondary-500" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">
-                    {entries.filter(entry => {
-                      const today = new Date()
-                      const entryDate = new Date(entry.created_at)
-                      return entryDate.toDateString() === today.toDateString()
-                    }).length}
-                  </div>
-                  <div className="text-sm text-neutral-400">Today</div>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-6">
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-accent-500/20 rounded-lg flex items-center justify-center mr-4">
-                  <svg className="w-6 h-6 text-accent-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">
-                    {entries.reduce((total, entry) => total + (entry.image_urls?.length || 0), 0)}
-                  </div>
-                  <div className="text-sm text-neutral-400">Media Files</div>
-                </div>
-              </div>
-            </Card>
+            </div>
           </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+          <Card variant="glass" className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
+                <FileText className="w-6 h-6 text-primary-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{entryCount}</p>
+                <p className="text-xs text-neutral-400">Total Entries</p>
+              </div>
+            </div>
+          </Card>
+          
+          <Card variant="glass" className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-secondary-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">
+                  {entries.filter(entry => {
+                    const today = new Date()
+                    const entryDate = new Date(entry.created_at)
+                    return entryDate.toDateString() === today.toDateString()
+                  }).length}
+                </p>
+                <p className="text-xs text-neutral-400">Today</p>
+              </div>
+            </div>
+          </Card>
+          
+          <Card variant="glass" className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-accent-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">
+                  {entries.reduce((total, entry) => total + (entry.image_urls?.length || 0), 0)}
+                </p>
+                <p className="text-xs text-neutral-400">Media Files</p>
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* Entries List */}
@@ -304,24 +339,42 @@ export default function JournalPage() {
             {entries.map((entry) => (
               <Card key={entry.id} className="hover:border-primary-500/50 transition-all duration-200 hover:-translate-y-1">
                 <div className="space-y-4">
-                  {/* Header - Title and Date */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <h3 className="text-lg sm:text-xl font-semibold text-white break-words">
-                      {entry.title || 'Untitled Entry'}
-                    </h3>
-                    <div className="flex items-center text-neutral-400 text-sm">
-                      <Calendar className="w-4 h-4 mr-1 flex-shrink-0" />
-                      <span className="whitespace-nowrap">{new Date(entry.created_at).toLocaleDateString()}</span>
+                  {/* Title */}
+                  <h3 className="text-lg sm:text-xl font-semibold text-white break-words">
+                    {entry.title || 'Untitled Entry'}
+                  </h3>
+
+                  {/* Content Preview */}
+                  {entry.content && (
+                    <p className="text-neutral-200 text-sm line-clamp-3 break-words">
+                      {entry.content.substring(0, 200)}
+                      {entry.content.length > 200 && '...'}
+                    </p>
+                  )}
+
+                  {/* Created Date and Categories */}
+                  <div className="flex flex-wrap items-center gap-4">
+                    {/* Created Date */}
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium text-white">Created:</span>
+                      <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(entry.created_at).toLocaleDateString()}</span>
                     </div>
-                  </div>
-                  
-                  {/* Categories */}
-                  <div className="flex flex-wrap items-center gap-2">
+
+                    {/* Categories */}
                     {entry.categories && entry.categories.length > 0 && (
-                      <span className="text-xs text-neutral-400 break-words">
-                        {entry.categories.slice(0, 2).join(', ')}
-                        {entry.categories.length > 2 && ` +${entry.categories.length - 2} more`}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-medium text-white">Categories:</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {entry.categories.map((category: string) => (
+                            <span
+                              key={category}
+                              className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                            >
+                              {category}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -448,32 +501,17 @@ export default function JournalPage() {
                     </div>
                   )}
 
-                  {/* Content Preview */}
-                  {entry.content && (
-                    <p className="text-neutral-200 text-sm line-clamp-3 break-words">
-                      {entry.content.substring(0, 200)}
-                      {entry.content.length > 200 && '...'}
-                    </p>
-                  )}
-
                   {/* Action Buttons - Under All Content, Right Aligned */}
-                  <div className="pt-2 flex justify-end gap-2">
+                  <div className="pt-2 flex flex-row gap-2 sm:gap-3 sm:justify-end">
                     <Button
                       asChild
                       variant="primary"
                       size="sm"
+                      className="flex-1 sm:flex-none sm:w-32"
                     >
                       <Link href={`/journal/${entry.id}`}>
+                        <Eye className="w-4 h-4 mr-2" />
                         View
-                      </Link>
-                    </Button>
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <Link href={`/journal/${entry.id}/edit`}>
-                        Edit
                       </Link>
                     </Button>
                   </div>

@@ -5,13 +5,11 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Card, Button, Input, CategoryCard } from '@/lib/design-system'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
-import { FileUpload } from '@/components/FileUpload'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { UploadProgress } from '@/components/UploadProgress'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
-import Link from 'next/link'
-import { ArrowLeft, Save, X, Sparkles, Upload } from 'lucide-react'
+import { Sparkles, Upload, X } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 interface JournalEntry {
@@ -256,73 +254,31 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
   return (
     <>
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        {/* Mobile Header */}
-        <div className="md:hidden space-y-4 mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-2">Edit Journal Entry</h1>
-          </div>
-        </div>
+      <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 text-center -mt-1 md:-mt-3">Edit Entry</h2>
 
-        {/* Desktop Header */}
-        <div className="hidden md:flex items-center gap-4 mb-4">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-white">Edit Journal Entry</h1>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-          <Button variant="ghost" size="sm" asChild className="w-full sm:w-auto">
-            <Link href={`/journal/${entry.id}`}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Entry
-            </Link>
-          </Button>
-          <div className="flex gap-2 sm:ml-auto">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.push(`/journal/${entry.id}`)}
-              disabled={saving}
-              className="flex-1 sm:flex-none"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSave}
-              disabled={saving}
-              size="sm"
-              className="flex-1 sm:flex-none"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <Card className="p-4 md:p-6 lg:p-8 space-y-6">
-        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+      <Card className="p-4 md:p-6 lg:p-8">
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-8">
           {/* Date */}
-          <Input
-            label="Date"
-            type="date"
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            required
-          />
+          <div>
+            <Input
+              label="Date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              required
+            />
+          </div>
 
           {/* Title */}
-          <Input
-            label="Entry Title"
-            type="text"
-            placeholder="What's on your mind today?"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          />
+          <div>
+            <Input
+              label="Entry Title"
+              type="text"
+              placeholder="What's on your mind today?"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            />
+          </div>
 
           {/* Life Categories */}
           <div>
@@ -374,14 +330,14 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
           {/* Evidence / Images */}
           <div>
-            <label className="block text-sm font-medium text-neutral-200 mb-3">
-              Evidence / Images
-            </label>
+            <p className="text-sm text-neutral-400 mb-3 text-center">
+              Add images, videos, or audio (optional)
+            </p>
             
             {/* Show existing files */}
             {existingFiles.length > 0 && (
               <div className="mb-4">
-                <p className="text-xs text-neutral-400 mb-2">Existing attachments ({existingFiles.length})</p>
+                <p className="text-xs text-neutral-400 mb-2 text-center">Existing attachments ({existingFiles.length})</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 mb-4">
                   {existingFiles.map((url, index) => (
                     <div key={`existing-${index}`} className="relative">
@@ -424,7 +380,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
             )}
             
             {/* Toggle Buttons */}
-            <div className="flex flex-row flex-wrap gap-2 mb-4 w-full">
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
               <Button
                 type="button"
                 variant={imageSource === 'upload' ? 'primary' : 'outline'}
@@ -439,10 +395,10 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                     setAiGeneratedImageUrls([])
                   }
                 }}
-                className="flex-1 min-w-0 shrink"
+                className="w-full sm:flex-1"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                <span className="text-xs md:text-sm">Upload Files</span>
+                Upload Files
               </Button>
               <Button
                 type="button"
@@ -452,10 +408,10 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                   setImageSource('ai')
                   setFiles([])
                 }}
-                className="flex-1 min-w-0 shrink"
+                className="w-full sm:flex-1"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
-                <span className="text-xs md:text-sm">Generate with VIVA</span>
+                Generate with VIVA
               </Button>
             </div>
 
@@ -496,11 +452,11 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                     setFiles(droppedFiles.slice(0, 5)) // Max 5 files
                   }
                 }}
-                className="border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary-500 hover:bg-neutral-900/50 transition-all"
+                className="border-2 border-dashed border-neutral-600 rounded-xl p-8 text-center cursor-pointer hover:border-neutral-500 transition-colors"
               >
                 <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
                 <p className="text-neutral-300 font-medium mb-1">
-                  Click to upload or drag files here
+                  Click to upload or drag and drop
                 </p>
                 <p className="text-xs text-neutral-500">
                   Images, videos, or audio (max 5 files, 500MB each)
@@ -578,24 +534,25 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
           />
 
           {/* Submit */}
-          <div className="flex flex-row flex-wrap gap-2 md:gap-4 w-full">
+          <div className="flex flex-row gap-2 sm:gap-3 sm:justify-end">
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => router.push(`/journal/${entry.id}`)}
+              disabled={saving}
+              className="flex-1 sm:flex-none sm:w-32"
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               size="sm"
               loading={saving}
               disabled={saving}
-              className="flex-1 min-w-0 shrink text-xs md:text-sm"
+              className="flex-1 sm:flex-none sm:w-32"
             >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push(`/journal/${entry.id}`)}
-              className="flex-1 min-w-0 shrink text-xs md:text-sm"
-            >
-              Cancel
+              {saving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </form>

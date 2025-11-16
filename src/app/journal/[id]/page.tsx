@@ -2,11 +2,10 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import {  Card, Button, Badge, ActionButtons, DeleteConfirmationDialog } from '@/lib/design-system'
+import {  Card, Button, DeleteConfirmationDialog } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import Link from 'next/link'
-import { ArrowLeft, Calendar, FileText, Tag, X, Download, Play, Volume2, Edit, Trash2 } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface JournalEntry {
@@ -262,83 +261,21 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
   return (
     <>
-      {/* Header */}
+      {/* Back Button */}
       <div className="mb-6 md:mb-8">
-        {/* Mobile Header */}
-        <div className="md:hidden space-y-4 mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-2">{entry.title}</h1>
-            <div className="flex items-center gap-1 text-neutral-400 text-sm">
-              <Calendar className="w-4 h-4" />
-              {new Date(entry.date).toLocaleDateString()}
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop Header */}
-        <div className="hidden md:flex items-center gap-4 mb-4">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-white mb-2">{entry.title}</h1>
-            <div className="flex items-center gap-4 text-neutral-400 text-sm">
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {new Date(entry.date).toLocaleDateString()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-          <Button variant="ghost" size="sm" asChild className="w-full sm:w-auto">
-            <Link href="/journal">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Journal
-            </Link>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+          <Button variant="ghost" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
           </Button>
-          <div className="flex gap-2 sm:ml-auto">
-            <ActionButtons
-              versionType="completed"
-              viewHref={`/journal/${entry.id}/edit`}
-              onDelete={() => setShowDeleteConfirm(true)}
-              showLabels={true}
-            />
-          </div>
         </div>
       </div>
 
       <Card className="p-4 md:p-6 lg:p-8">
-          <div className="space-y-6">
-            {/* Categories */}
-            {entry.categories && entry.categories.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-neutral-200 mb-2">Categories</h3>
-                <div className="flex flex-wrap gap-2">
-                  {entry.categories.map((category: string, index: number) => (
-                    <span
-                      key={index}
-                      className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                    >
-                      {category}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Content */}
-            <div>
-              <h3 className="text-sm font-medium text-neutral-200 mb-2">Content</h3>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-neutral-200 whitespace-pre-wrap">{entry.content}</p>
-              </div>
-            </div>
-
-            {/* Media - Videos Full Width, Images 2x2 Grid */}
-            {entry.image_urls && entry.image_urls.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-neutral-200 mb-4">Attachments ({entry.image_urls.length})</h3>
-                <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Media - Videos Full Width, Images 2x2 Grid */}
+          {entry.image_urls && entry.image_urls.length > 0 && (
+            <div className="space-y-4">
                   {/* Videos - Full Width */}
                   {entry.image_urls.filter(url => {
                     const ext = url.split('.').pop()?.toLowerCase()
@@ -414,58 +351,76 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                       </div>
                     )
                   })}
-                </div>
-              </div>
-            )}
+            </div>
+          )}
 
-            {/* Audio/Video Recordings */}
-            {entry.audio_recordings && entry.audio_recordings.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-neutral-200 flex items-center gap-2">
-                  <Volume2 className="w-5 h-5" />
-                  Recordings ({entry.audio_recordings.length})
-                </h3>
-                <div className="space-y-3">
-                  {entry.audio_recordings.map((recording: any, index: number) => (
-                    <div key={`recording-${index}`} className="flex items-center gap-4 p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-                      <div className="flex-shrink-0">
-                        {recording.type === 'video' ? (
-                          <Play className="w-6 h-6 text-primary-500" />
-                        ) : (
-                          <Volume2 className="w-6 h-6 text-secondary-500" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-neutral-200 mb-1">
-                          {recording.transcript ? recording.transcript : 'Recording'}
-                        </p>
-                        <p className="text-sm text-neutral-400">
-                          {recording.type === 'video' ? 'Video' : 'Audio'} • {recording.duration ? `${Math.round(recording.duration)}s` : 'Unknown duration'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => window.open(recording.url, '_blank')}
-                        className="flex-shrink-0 p-3 bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors"
+          {/* Content */}
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-white mb-6">{entry.title}</h2>
+              {entry.content && (
+                <p className="text-neutral-300 whitespace-pre-wrap">{entry.content}</p>
+              )}
+            </div>
+
+            {/* Created Date and Categories */}
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Created Date */}
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-white">Created:</span>
+                <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(entry.created_at).toLocaleDateString()}</span>
+              </div>
+
+              {/* Updated Date */}
+              {entry.updated_at !== entry.created_at && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-white">Updated:</span>
+                  <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(entry.updated_at).toLocaleDateString()}</span>
+                </div>
+              )}
+
+              {/* Categories */}
+              {entry.categories && entry.categories.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-white">Categories:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {entry.categories.map((category: string, index: number) => (
+                      <span
+                        key={index}
+                        className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
                       >
-                        <Play className="w-5 h-5 text-white" />
-                      </button>
-                    </div>
-                  ))}
+                        {category}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Metadata */}
-            <div className="pt-4 border-t border-neutral-800">
-              <div className="text-xs text-neutral-500">
-                <p>Created: {new Date(entry.created_at).toLocaleString()}</p>
-                {entry.updated_at !== entry.created_at && (
-                  <p>Updated: {new Date(entry.updated_at).toLocaleString()}</p>
-                )}
-              </div>
+              )}
             </div>
           </div>
-        </Card>
+
+          {/* Actions */}
+          <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end">
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex-1 sm:flex-none sm:w-32"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => router.push(`/journal/${entry.id}/edit`)}
+              className="flex-1 sm:flex-none sm:w-32"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       {/* Lightbox */}
       {lightboxOpen && lightboxMedia && (

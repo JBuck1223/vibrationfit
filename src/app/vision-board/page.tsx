@@ -79,7 +79,7 @@ export default function VisionBoardPage() {
   const filteredItems = items.filter(item => {
     const categoryMatch = selectedCategories.includes('all') || 
       (selectedCategories.length > 0 && item.categories && item.categories.some((cat: string) => selectedCategories.includes(cat)))
-    const statusMatch = selectedStatuses.includes('all') || selectedStatuses.length === 0 || selectedStatuses.includes(item.status)
+    const statusMatch = selectedStatuses.includes('all') || selectedStatuses.includes(item.status)
     return categoryMatch && statusMatch
   })
 
@@ -699,11 +699,11 @@ export default function VisionBoardPage() {
           <div className="text-center py-16">
             <Grid3X3 className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No items found</h3>
-            <p className="text-neutral-400 mb-6">Try adjusting your filters or create your first vision item.</p>
+            <p className="text-neutral-400 mb-6">Try adjusting your filters or adding a creation.</p>
             <Button asChild>
               <Link href="/vision-board/new">
                 <Plus className="w-5 h-5 mr-2" />
-                Add Your First Creation
+                Add Creation
               </Link>
             </Button>
           </div>
