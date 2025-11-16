@@ -8,6 +8,7 @@ import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { UploadProgress } from '@/components/UploadProgress'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
+import { JournalSuccessScreen } from '@/components/JournalSuccessScreen'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload } from 'lucide-react'
@@ -20,6 +21,7 @@ export default function NewJournalEntryPage() {
   const supabase = createClient()
   
   const [loading, setLoading] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({
     progress: 0,
     status: '',
@@ -47,6 +49,27 @@ export default function NewJournalEntryPage() {
         ? prev.categories.filter(c => c !== category)
         : [...prev.categories, category]
     }))
+  }
+
+  const handleCreateAnother = () => {
+    // Reset form to create another entry
+    setShowSuccess(false)
+    setFormData({
+      date: new Date().toISOString().split('T')[0],
+      title: '',
+      content: '',
+      categories: []
+    })
+    setFiles([])
+    setAiGeneratedImageUrls([])
+    setImageSource(null)
+    setAudioRecordings([])
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleViewJournal = () => {
+    router.push('/journal')
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
@@ -158,13 +181,14 @@ export default function NewJournalEntryPage() {
       // Hide progress bar
       setUploadProgress(prev => ({ ...prev, isVisible: false }))
 
-      // If in intensive mode, mark first journal entry as complete
+      // If in intensive mode, mark first journal entry as complete then redirect
       if (isIntensiveMode) {
         const { markIntensiveStep } = await import('@/lib/intensive/checklist')
         await markIntensiveStep('first_journal_entry')
         router.push('/intensive/dashboard')
       } else {
-        router.push('/journal')
+        // Show success screen for normal mode
+        setShowSuccess(true)
       }
     } catch (error) {
       console.error('Error creating journal entry:', error)
@@ -174,6 +198,17 @@ export default function NewJournalEntryPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show success screen after submission
+  if (showSuccess) {
+    return (
+      <JournalSuccessScreen
+        onCreateAnother={handleCreateAnother}
+        onViewJournal={handleViewJournal}
+        entryTitle={formData.title}
+      />
+    )
   }
 
   return (
