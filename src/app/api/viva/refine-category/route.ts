@@ -418,7 +418,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         action_type: "vision_refinement",
         model_used: aiConfig.model,
         tokens_used: usage.total_tokens,
-        cost_estimate: 0, // Will be calculated
+        actual_cost_cents: 0, // Will be calculated
         input_tokens: usage.prompt_tokens,
         output_tokens: usage.completion_tokens,
         // OpenAI reconciliation fields

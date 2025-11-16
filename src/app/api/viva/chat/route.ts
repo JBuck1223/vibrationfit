@@ -534,7 +534,7 @@ export async function POST(req: Request) {
                 tokens_used: totalTokens,
                 input_tokens: promptTokens,
                 output_tokens: completionTokens,
-                cost_estimate: 0, // Will be calculated by trackTokenUsage
+                actual_cost_cents: 0, // Will be calculated by trackTokenUsage
                 success: true,
                 metadata: {
                   phase: visionBuildPhase,

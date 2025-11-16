@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         tokens_used: textModeTokens,
         input_tokens: textModeTokens * 0.7, // Rough split
         output_tokens: textModeTokens * 0.3,
-        cost_estimate: 0, // Calculated by trackTokenUsage
+        actual_cost_cents: 0, // Calculated by trackTokenUsage
         success: true,
         metadata: {
           mode,
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       tokens_used: totalTokens,
       input_tokens: estimatedInputTokens,
       output_tokens: estimatedOutputTokens,
-      cost_estimate: 0, // Calculated by trackTokenUsage
+      actual_cost_cents: 0, // Calculated by trackTokenUsage
       success: true,
       metadata: {
         mode,

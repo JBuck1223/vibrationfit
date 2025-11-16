@@ -376,7 +376,7 @@ export async function generateNorthStarReflection(input: NorthStarReflectionInpu
       tokens_used: totalTokens,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
-      cost_estimate: 0,
+      actual_cost_cents: 0,
       success: !response.error,
       error_message: response.error,
       metadata: {
