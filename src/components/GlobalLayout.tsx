@@ -8,6 +8,7 @@ import { Footer } from '@/components/Footer'
 import { SidebarLayout } from '@/components/Sidebar'
 import { IntensiveSidebar } from '@/components/IntensiveSidebar'
 import { IntensiveMobileNav } from '@/components/IntensiveMobileNav'
+import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
 import { getPageType } from '@/lib/navigation'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
@@ -62,8 +63,24 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
         )
       }
       
-      // Intensive mode: Simplified sidebar + mobile nav
+      // Intensive mode: Simplified sidebar + mobile nav + locked overlay on non-intensive pages
       if (intensiveMode) {
+        // Intensive-allowed pages (no overlay)
+        const intensiveAllowedPaths = [
+          '/intensive',
+          '/profile',
+          '/assessment',
+          '/vision/build',
+          '/vision',
+          '/life-vision',
+          '/vision-board',
+          '/journal',
+          '/viva',
+          '/dashboard', // Allow dashboard
+        ]
+        
+        const isIntensiveAllowed = intensiveAllowedPaths.some(path => pathname.startsWith(path))
+        
         return (
           <div className="min-h-screen bg-black text-white pb-16 md:pb-0">
             <IntensiveSidebar />
@@ -71,6 +88,8 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
               <PageLayout>
                 {children}
               </PageLayout>
+              {/* Show overlay on USER pages that aren't intensive-related */}
+              {!isIntensiveAllowed && <IntensiveLockedOverlay />}
             </div>
             <IntensiveMobileNav />
           </div>
