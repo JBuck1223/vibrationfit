@@ -8,17 +8,27 @@ import { createClient } from '@/lib/supabase/client'
 export interface IntensiveData {
   id: string
   user_id: string
-  payment_plan: string
-  completion_status: 'pending' | 'in_progress' | 'completed' | 'refunded'
-  created_at: string
+  intensive_id: string
+  status: 'pending' | 'in_progress' | 'completed'
   started_at: string | null
   completed_at: string | null
-  activation_deadline: string | null
-  continuity_plan: string
+  created_at: string
+  // Step completion booleans
+  profile_completed: boolean
+  assessment_completed: boolean
+  call_scheduled: boolean
+  vision_built: boolean
+  vision_refined: boolean
+  audio_generated: boolean
+  vision_board_completed: boolean
+  first_journal_entry: boolean
+  calibration_call_completed: boolean
+  activation_protocol_completed: boolean
 }
 
 /**
  * Get current user's active intensive
+ * SINGLE SOURCE OF TRUTH: intensive_checklist.status
  */
 export async function getActiveIntensiveClient(): Promise<IntensiveData | null> {
   const supabase = createClient()
@@ -27,10 +37,10 @@ export async function getActiveIntensiveClient(): Promise<IntensiveData | null> 
   if (!user) return null
   
   const { data, error } = await supabase
-    .from('intensive_purchases')
+    .from('intensive_checklist')
     .select('*')
     .eq('user_id', user.id)
-    .in('completion_status', ['pending', 'in_progress'])
+    .in('status', ['pending', 'in_progress'])
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -46,21 +56,20 @@ export async function getActiveIntensiveClient(): Promise<IntensiveData | null> 
 /**
  * Start the intensive timer
  * Called when user clicks "Start My Intensive" button
+ * Updates intensive_checklist (source of truth)
  */
-export async function startIntensive(intensiveId: string): Promise<{ success: boolean; error?: string }> {
+export async function startIntensive(checklistId: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
   
   const startedAt = new Date()
-  const deadline = new Date(startedAt.getTime() + 72 * 60 * 60 * 1000) // 72 hours later
   
   const { error } = await supabase
-    .from('intensive_purchases')
+    .from('intensive_checklist')
     .update({
-      started_at: startedAt.toISOString(),
-      activation_deadline: deadline.toISOString(),
-      completion_status: 'in_progress'
+      status: 'in_progress',
+      started_at: startedAt.toISOString()
     })
-    .eq('id', intensiveId)
+    .eq('id', checklistId)
   
   if (error) {
     console.error('Error starting intensive:', error)
@@ -73,17 +82,18 @@ export async function startIntensive(intensiveId: string): Promise<{ success: bo
 /**
  * Mark intensive as completed
  * Called when user clicks "Enter Your Dashboard" after 100% completion
+ * Updates intensive_checklist (source of truth)
  */
-export async function completeIntensive(intensiveId: string): Promise<{ success: boolean; error?: string }> {
+export async function completeIntensive(checklistId: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
   
   const { error } = await supabase
-    .from('intensive_purchases')
+    .from('intensive_checklist')
     .update({
-      completion_status: 'completed',
+      status: 'completed',
       completed_at: new Date().toISOString()
     })
-    .eq('id', intensiveId)
+    .eq('id', checklistId)
   
   if (error) {
     console.error('Error completing intensive:', error)

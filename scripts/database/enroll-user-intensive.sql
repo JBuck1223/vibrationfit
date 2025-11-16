@@ -23,25 +23,27 @@ INSERT INTO intensive_purchases (
   'manual_enrollment_' || extract(epoch from now())::text
 ) RETURNING id;
 
--- Step 3: Create checklist (use the intensive ID from above)
+-- Step 3: Create checklist (SINGLE SOURCE OF TRUTH)
 INSERT INTO intensive_checklist (
   intensive_id,
-  user_id
+  user_id,
+  status
 ) VALUES (
   (SELECT id FROM intensive_purchases WHERE user_id = (SELECT id FROM auth.users WHERE email = 'user-email@example.com') ORDER BY created_at DESC LIMIT 1),
-  (SELECT id FROM auth.users WHERE email = 'user-email@example.com')
+  (SELECT id FROM auth.users WHERE email = 'user-email@example.com'),
+  'pending'
 );
 
--- Verify enrollment
+-- Verify enrollment (check intensive_checklist - source of truth)
 SELECT 
-  ip.id as intensive_id,
+  ic.id as checklist_id,
   u.email,
-  ip.completion_status,
-  ip.started_at,
-  ip.created_at
-FROM intensive_purchases ip
-JOIN auth.users u ON u.id = ip.user_id
+  ic.status,
+  ic.started_at,
+  ic.created_at
+FROM intensive_checklist ic
+JOIN auth.users u ON u.id = ic.user_id
 WHERE u.email = 'user-email@example.com'
-ORDER BY ip.created_at DESC
+ORDER BY ic.created_at DESC
 LIMIT 1;
 
