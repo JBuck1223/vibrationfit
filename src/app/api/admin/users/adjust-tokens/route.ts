@@ -28,13 +28,11 @@ export async function POST(req: NextRequest) {
     }
     
     if (!existingProfiles || existingProfiles.length === 0) {
-      // Create profile if it doesn't exist
+      // Create profile if it doesn't exist (tokens are tracked in token_transactions table)
       const { error: createError } = await supabase
         .from('user_profiles')
         .insert({
           user_id: userId,
-          vibe_assistant_tokens_remaining: 0, // No default tokens
-          vibe_assistant_tokens_used: 0,
           storage_quota_gb: 1
         })
       
@@ -44,7 +42,7 @@ export async function POST(req: NextRequest) {
       }
     } else if (existingProfiles.length > 1) {
       console.warn(`Multiple profiles found for user ${userId} - this should not happen`)
-      // Continue anyway - recordTokenTransaction will handle it
+      // Continue anyway - token transaction will be recorded correctly
     }
     
     // Record as a transaction (financial)
