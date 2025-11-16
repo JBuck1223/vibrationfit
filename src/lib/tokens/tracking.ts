@@ -13,9 +13,9 @@ export interface TokenUsage {
   action_type: 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'transcription' | 'admin_grant' | 'admin_deduct' | 'subscription_grant' | 'trial_grant' | 'token_pack_purchase' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'prompt_suggestions' | 'frequency_flip' | 'vibrational_analysis' | 'viva_scene_generation' | 'north_star_reflection' | 'voice_profile_analysis'
   model_used: string
   tokens_used: number
-  cost_estimate: number // in cents
   input_tokens?: number
   output_tokens?: number
+  calculated_cost_cents?: number // Accurate cost from ai_model_pricing
   // OpenAI Reconciliation Fields (added Nov 16, 2025)
   openai_request_id?: string
   openai_created?: number
@@ -37,8 +37,9 @@ export interface TokenSummary {
   daily_usage: Record<string, { tokens: number; cost: number; count: number }>
 }
 
-// Token cost estimates (per 1K tokens, in cents)
-const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
+// ⚠️ DEPRECATED: Legacy hardcoded costs (kept for backwards compatibility)
+// New code should query ai_model_pricing table for accurate pricing
+const TOKEN_COSTS_LEGACY: Record<string, { input: number; output: number }> = {
   'gpt-5': { input: 5, output: 15 },
   'gpt-5-mini': { input: 3, output: 9 },
   'gpt-5-nano': { input: 1, output: 3 },
@@ -48,6 +49,52 @@ const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
   'gpt-3.5-turbo': { input: 0.5, output: 1.5 },
   'dall-e-3': { input: 40, output: 0 }, // Fixed cost per image
   'dall-e-2': { input: 20, output: 0 }
+}
+
+/**
+ * Calculate accurate token cost from ai_model_pricing table
+ * Falls back to legacy hardcoded costs if model not found
+ */
+async function calculateAccurateTokenCost(
+  supabase: any,
+  model: string, 
+  inputTokens: number, 
+  outputTokens: number,
+  audioSeconds?: number
+): Promise<number> {
+  // Query ai_model_pricing for accurate costs
+  const { data: pricing } = await supabase
+    .from('ai_model_pricing')
+    .select('*')
+    .eq('model_name', model)
+    .eq('is_active', true)
+    .single()
+
+  if (pricing) {
+    // Audio models (Whisper)
+    if (pricing.unit_type === 'second' && audioSeconds) {
+      return Math.round(audioSeconds * pricing.price_per_unit * 100)
+    }
+    
+    // Image models (DALL-E)
+    if (pricing.unit_type === 'image') {
+      return Math.round(pricing.price_per_unit * 100)
+    }
+    
+    // TTS models (character-based)
+    if (pricing.unit_type === 'character' && inputTokens) {
+      return Math.round((inputTokens / 1000) * pricing.price_per_unit * 100)
+    }
+    
+    // Text models (GPT)
+    const inputCost = (inputTokens / 1000) * pricing.input_price_per_1k
+    const outputCost = (outputTokens / 1000) * pricing.output_price_per_1k
+    return Math.round((inputCost + outputCost) * 100)
+  }
+
+  // Fallback to legacy costs if model not in pricing table
+  console.warn(`Model ${model} not found in ai_model_pricing, using legacy costs`)
+  return calculateTokenCostLegacy(model, inputTokens, outputTokens)
 }
 
 /**
@@ -217,8 +264,14 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
     // If supabaseClient is provided, use it (allows override for testing)
     const supabase = supabaseClient || await createServerClient()
     
-    // Calculate cost based on model and token usage (in cents)
-    const costEstimate = calculateTokenCost(usage.model_used, usage.input_tokens || 0, usage.output_tokens || 0)
+    // Calculate accurate cost from ai_model_pricing table
+    const accurateCostCents = await calculateAccurateTokenCost(
+      supabase,
+      usage.model_used, 
+      usage.input_tokens || 0, 
+      usage.output_tokens || 0,
+      usage.metadata?.audio_seconds
+    )
     
     // Determine effective tokens (use override if no input/output tokens provided)
     let effectiveTokens = usage.tokens_used
@@ -247,7 +300,7 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
         action_type: usage.action_type,
         model_used: usage.model_used,
         tokens_used: effectiveTokens,
-        cost_estimate: Math.round(costEstimate * 100),
+        calculated_cost_cents: accurateCostCents, // Accurate cost from ai_model_pricing
         input_tokens: usage.input_tokens || 0,
         output_tokens: usage.output_tokens || 0,
         // OpenAI reconciliation fields
@@ -286,12 +339,13 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
 }
 
 /**
- * Calculate token cost based on model and usage
+ * ⚠️ DEPRECATED: Legacy cost calculation using hardcoded prices
+ * Use calculateAccurateTokenCost instead
  */
-function calculateTokenCost(model: string, inputTokens: number, outputTokens: number): number {
-  const costs = TOKEN_COSTS[model]
+function calculateTokenCostLegacy(model: string, inputTokens: number, outputTokens: number): number {
+  const costs = TOKEN_COSTS_LEGACY[model]
   if (!costs) {
-    console.warn(`Unknown model for cost calculation: ${model}`)
+    console.warn(`Unknown model for legacy cost calculation: ${model}`)
     return 0
   }
 
@@ -318,7 +372,7 @@ export async function getTokenSummary(userId: string, days: number = 30): Promis
 
     const { data: usage, error } = await supabase
       .from('token_usage')
-      .select('*')
+      .select('id, user_id, action_type, model_used, tokens_used, input_tokens, output_tokens, calculated_cost_cents, openai_request_id, openai_created, system_fingerprint, actual_cost_cents, reconciliation_status, reconciled_at, success, error_message, metadata, created_at')
       .eq('user_id', userId)
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false })
@@ -340,7 +394,7 @@ export async function getTokenSummary(userId: string, days: number = 30): Promis
 
     // Calculate summary
     const totalTokens = usage.reduce((sum, record) => sum + record.tokens_used, 0)
-    const totalCost = usage.reduce((sum, record) => sum + record.cost_estimate, 0)
+    const totalCost = usage.reduce((sum, record) => sum + (record.calculated_cost_cents || 0), 0)
     const actionsCount = usage.length
 
     // Model breakdown
@@ -350,7 +404,7 @@ export async function getTokenSummary(userId: string, days: number = 30): Promis
         modelBreakdown[record.model_used] = { tokens: 0, cost: 0, count: 0 }
       }
       modelBreakdown[record.model_used].tokens += record.tokens_used
-      modelBreakdown[record.model_used].cost += record.cost_estimate
+      modelBreakdown[record.model_used].cost += (record.calculated_cost_cents || 0)
       modelBreakdown[record.model_used].count += 1
     })
 
@@ -362,7 +416,7 @@ export async function getTokenSummary(userId: string, days: number = 30): Promis
         dailyUsage[date] = { tokens: 0, cost: 0, count: 0 }
       }
       dailyUsage[date].tokens += record.tokens_used
-      dailyUsage[date].cost += record.cost_estimate
+      dailyUsage[date].cost += (record.calculated_cost_cents || 0)
       dailyUsage[date].count += 1
     })
 
@@ -391,7 +445,7 @@ export async function getAdminTokenSummary(days: number = 30): Promise<TokenSumm
 
     const { data: usage, error } = await supabase
       .from('token_usage')
-      .select('*')
+      .select('id, user_id, action_type, model_used, tokens_used, input_tokens, output_tokens, calculated_cost_cents, openai_request_id, openai_created, system_fingerprint, actual_cost_cents, reconciliation_status, reconciled_at, success, error_message, metadata, created_at')
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false })
 
@@ -411,8 +465,9 @@ export async function getAdminTokenSummary(days: number = 30): Promise<TokenSumm
     }
 
     // Calculate summary (same logic as user summary but across all users)
+    // Use calculated_cost_cents for accurate costs
     const totalTokens = usage.reduce((sum, record) => sum + record.tokens_used, 0)
-    const totalCost = usage.reduce((sum, record) => sum + record.cost_estimate, 0)
+    const totalCost = usage.reduce((sum, record) => sum + (record.calculated_cost_cents ?? 0), 0)
     const actionsCount = usage.length
 
     // Model breakdown
@@ -422,7 +477,7 @@ export async function getAdminTokenSummary(days: number = 30): Promise<TokenSumm
         modelBreakdown[record.model_used] = { tokens: 0, cost: 0, count: 0 }
       }
       modelBreakdown[record.model_used].tokens += record.tokens_used
-      modelBreakdown[record.model_used].cost += record.cost_estimate
+      modelBreakdown[record.model_used].cost += (record.calculated_cost_cents ?? 0)
       modelBreakdown[record.model_used].count += 1
     })
 
@@ -434,7 +489,7 @@ export async function getAdminTokenSummary(days: number = 30): Promise<TokenSumm
         dailyUsage[date] = { tokens: 0, cost: 0, count: 0 }
       }
       dailyUsage[date].tokens += record.tokens_used
-      dailyUsage[date].cost += record.cost_estimate
+      dailyUsage[date].cost += (record.calculated_cost_cents ?? 0)
       dailyUsage[date].count += 1
     })
 
@@ -473,7 +528,7 @@ export async function getTokenUsageByUser(days: number = 30, limit: number = 100
       .select(`
         user_id,
         tokens_used,
-        cost_estimate,
+        calculated_cost_cents,
         created_at
       `)
       .gte('created_at', startDate.toISOString())
@@ -512,7 +567,7 @@ export async function getTokenUsageByUser(days: number = 30, limit: number = 100
       }
       
       userTotals[userId].total_tokens += record.tokens_used
-      userTotals[userId].total_cost += record.cost_estimate
+      userTotals[userId].total_cost += (record.calculated_cost_cents ?? 0)
       userTotals[userId].actions_count += 1
       
       // Keep the most recent activity date
@@ -630,7 +685,6 @@ export async function getReconciliationData(days: number = 30, limit: number = 5
 
 export default {
   trackTokenUsage,
-  calculateTokenCost,
   getTokenSummary,
   getAdminTokenSummary,
   getTokenUsageByUser,

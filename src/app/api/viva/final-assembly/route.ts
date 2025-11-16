@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       tokens_used: completion.usage?.total_tokens || 0,
       input_tokens: completion.usage?.prompt_tokens || 0,
       output_tokens: completion.usage?.completion_tokens || 0,
-      cost_estimate: 0,
+      actual_cost_cents: 0,
       // OpenAI reconciliation fields
       openai_request_id: completion.id,
       openai_created: completion.created,
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
       tokens_used: activationCompletion.usage?.total_tokens || 0,
       input_tokens: activationCompletion.usage?.prompt_tokens || 0,
       output_tokens: activationCompletion.usage?.completion_tokens || 0,
-      cost_estimate: 0,
+      actual_cost_cents: 0,
       // OpenAI reconciliation fields
       openai_request_id: activationCompletion.id,
       openai_created: activationCompletion.created,

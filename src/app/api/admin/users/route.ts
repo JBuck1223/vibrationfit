@@ -40,23 +40,67 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 
-    // Get user profiles for token/storage data and profile photos
+    // Get user profiles for profile photos
     const { data: profiles } = await supabaseAdmin
       .from('user_profiles')
-      .select('user_id, vibe_assistant_tokens_remaining, vibe_assistant_tokens_used, storage_quota_gb, profile_picture_url')
+      .select('user_id, profile_picture_url')
 
     const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || [])
     
+    // Get storage quotas from user_storage (sum of grants per user)
+    const { data: storageGrants } = await supabaseAdmin
+      .from('user_storage')
+      .select('user_id, quota_gb')
+    
+    const storageMap = new Map<string, number>()
+    storageGrants?.forEach(grant => {
+      const current = storageMap.get(grant.user_id) || 0
+      storageMap.set(grant.user_id, current + grant.quota_gb)
+    })
+    
+    // Get token balances for all users
+    // Granted tokens from token_transactions
+    const { data: transactions } = await supabaseAdmin
+      .from('token_transactions')
+      .select('user_id, tokens_used')
+    
+    // Used tokens from token_usage
+    const { data: usage } = await supabaseAdmin
+      .from('token_usage')
+      .select('user_id, tokens_used')
+    
+    // Calculate balances per user
+    const tokenBalances = new Map<string, { granted: number; used: number; remaining: number }>()
+    
+    transactions?.forEach(t => {
+      const current = tokenBalances.get(t.user_id) || { granted: 0, used: 0, remaining: 0 }
+      current.granted += t.tokens_used
+      tokenBalances.set(t.user_id, current)
+    })
+    
+    usage?.forEach(u => {
+      const current = tokenBalances.get(u.user_id) || { granted: 0, used: 0, remaining: 0 }
+      current.used += u.tokens_used
+      tokenBalances.set(u.user_id, current)
+    })
+    
+    // Calculate remaining for each user
+    tokenBalances.forEach((balance, userId) => {
+      balance.remaining = balance.granted - balance.used
+    })
+    
     console.log('Profiles found:', profiles?.length || 0)
-    console.log('Profile map keys:', Array.from(profileMap.keys()))
+    console.log('Token balances calculated for', tokenBalances.size, 'users')
 
     // Transform users to include admin status and profile data
     const transformedUsers = users.users.map(authUser => {
       const isEmailAdmin = adminEmails.includes(authUser.email?.toLowerCase() || '')
       const isMetadataAdmin = authUser.user_metadata?.is_admin === true
       const profile = profileMap.get(authUser.id)
+      const tokenBalance = tokenBalances.get(authUser.id)
+      const storageQuota = storageMap.get(authUser.id) || 0
       
-      console.log(`User ${authUser.email}: profile found = ${!!profile}, tokens = ${profile?.vibe_assistant_tokens_remaining}`)
+      console.log(`User ${authUser.email}: tokens = ${tokenBalance?.remaining || 0}, storage = ${storageQuota}GB`)
       
       return {
         id: authUser.id,
@@ -65,9 +109,9 @@ export async function GET(request: NextRequest) {
         last_sign_in_at: authUser.last_sign_in_at,
         is_admin: isEmailAdmin || isMetadataAdmin,
         user_metadata: authUser.user_metadata,
-        tokens_remaining: profile?.vibe_assistant_tokens_remaining ?? 0,
-        tokens_used: profile?.vibe_assistant_tokens_used ?? 0,
-        storage_quota_gb: profile?.storage_quota_gb ?? 1,
+        tokens_remaining: tokenBalance?.remaining || 0,
+        tokens_used: tokenBalance?.used || 0,
+        storage_quota_gb: storageQuota,
         profile_photo_url: profile?.profile_picture_url
       }
     })

@@ -295,7 +295,7 @@ export async function generateJSON<T>(
           tokens_used: totalTokens,
           input_tokens: inputTokens,
           output_tokens: outputTokens,
-          cost_estimate: 0,
+          actual_cost_cents: 0,
           success,
           error_message: success ? undefined : errorMessage,
           metadata: {

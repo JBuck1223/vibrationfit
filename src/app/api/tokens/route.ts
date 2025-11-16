@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
         openai_model: usage.model_used,
         created_at: usage.created_at,
         metadata: usage.metadata || {},
-        cost_estimate: usage.cost_estimate,
+        actual_cost_cents: usage.actual_cost_cents,
       }))
     ]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

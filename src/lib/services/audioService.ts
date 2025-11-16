@@ -112,7 +112,7 @@ async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', 
       tokens_used: text.length, // Character count as tokens
       input_tokens: text.length,
       output_tokens: 0, // TTS doesn't have output tokens
-      cost_estimate: costInCents,
+      actual_cost_cents: costInCents,
       success: true,
       metadata: {
         voice: voice,

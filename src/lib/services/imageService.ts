@@ -101,7 +101,7 @@ export async function generateImage({
       tokens_used: 1, // 1 image = 1 token equivalent
       input_tokens: prompt.length, // Character count as input tokens
       output_tokens: 0, // Images don't have output tokens
-      cost_estimate: costInCents,
+      actual_cost_cents: costInCents,
       success: true,
       metadata: {
         context,
@@ -157,7 +157,7 @@ export async function generateImage({
       action_type: 'image_generation',
       model_used: 'dall-e-3',
       tokens_used: 0,
-      cost_estimate: 0,
+      actual_cost_cents: 0,
       success: false,
       error_message: error.message || 'Failed to generate image',
       metadata: {

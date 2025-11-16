@@ -273,12 +273,12 @@ function UsersAdminContent() {
           
           <div className="space-y-4">
             {adminUsers.map((user) => (
-              <div key={user.id} className="p-6 bg-gradient-to-r from-primary-500/10 to-secondary-500/10 rounded-xl border border-primary-500/30 space-y-6">
+              <div key={user.id} className="p-4 md:p-6 bg-gradient-to-r from-primary-500/10 to-secondary-500/10 rounded-xl border border-primary-500/30 space-y-4 md:space-y-6">
                 {/* Header Row */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:justify-between">
+                  <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
                     {user.profile_photo_url ? (
-                      <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 shadow-lg border-2 border-primary-500/30">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden flex-shrink-0 shadow-lg border-2 border-primary-500/30">
                         <Image
                           src={user.profile_photo_url}
                           alt={`${user.email} profile`}
@@ -288,23 +288,23 @@ function UsersAdminContent() {
                         />
                       </div>
                     ) : (
-                      <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <Shield className="w-8 h-8 text-white" />
+                      <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <Shield className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </div>
                     )}
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-bold text-white text-xl">{user.email}</span>
-                        <Badge variant="success" className="text-sm">Admin</Badge>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="font-bold text-white text-base md:text-xl truncate">{user.email}</span>
+                        <Badge variant="success" className="text-xs flex-shrink-0">Admin</Badge>
                       </div>
-                      <div className="flex items-center gap-6 text-sm text-neutral-300">
+                      <div className="flex flex-wrap items-center gap-3 md:gap-6 text-xs md:text-sm text-neutral-300">
                         <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
+                          <Calendar className="w-3 h-3 md:w-4 md:h-4" />
                           {new Date(user.created_at).toLocaleDateString()}
                         </span>
                         {user.last_sign_in_at && (
                           <span className="flex items-center gap-1">
-                            <Mail className="w-4 h-4" />
+                            <Mail className="w-3 h-3 md:w-4 md:h-4" />
                             {new Date(user.last_sign_in_at).toLocaleDateString()}
                           </span>
                         )}
@@ -313,13 +313,13 @@ function UsersAdminContent() {
                   </div>
                   
                   {/* Quick Stats */}
-                  <div className="flex items-center gap-8">
+                  <div className="flex items-center gap-4 md:gap-8 w-full sm:w-auto justify-start sm:justify-end">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-primary-400">{user.tokens_remaining || 0}</div>
+                      <div className="text-xl md:text-2xl font-bold text-primary-400">{user.tokens_remaining || 0}</div>
                       <div className="text-xs text-neutral-400">Tokens</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-secondary-400">{user.storage_quota_gb || 0}GB</div>
+                      <div className="text-xl md:text-2xl font-bold text-secondary-400">{user.storage_quota_gb || 0}GB</div>
                       <div className="text-xs text-neutral-400">Storage</div>
                     </div>
                   </div>
@@ -346,18 +346,20 @@ function UsersAdminContent() {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
                       placeholder="± tokens"
-                      className="w-28"
-                      value={adjustTokens[user.id] ?? 0}
+                      className="w-full sm:w-28"
+                      value={adjustTokens[user.id] ?? ''}
                       onChange={(e) => setAdjustTokens(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
                     <Button
                       variant="outline"
+                      size="sm"
                       disabled={!((adjustTokens[user.id] ?? 0) !== 0)}
+                      className="whitespace-nowrap"
                       onClick={async () => {
                         const delta = adjustTokens[user.id] ?? 0
                         console.log('Token adjustment clicked:', { userId: user.id, delta })
@@ -388,18 +390,20 @@ function UsersAdminContent() {
                           alert(`Error: ${error.message || 'Failed to adjust tokens'}`)
                         }
                       }}
-                    >{(adjustTokens[user.id] ?? 0) > 0 ? 'Add Tokens' : (adjustTokens[user.id] ?? 0) < 0 ? 'Deduct Tokens' : 'Apply'}</Button>
+                    >{(adjustTokens[user.id] ?? 0) > 0 ? 'Add' : (adjustTokens[user.id] ?? 0) < 0 ? 'Deduct' : 'Apply'}</Button>
                   </div>
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
                       placeholder="GB quota"
-                      className="w-28"
-                      value={adjustStorage[user.id] ?? 0}
+                      className="w-full sm:w-28"
+                      value={adjustStorage[user.id] ?? ''}
                       onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
                     <Button
                       variant="outline"
+                      size="sm"
+                      className="whitespace-nowrap"
                       onClick={async () => {
                         const quota = adjustStorage[user.id] ?? 0
                         if (!quota) return
@@ -416,8 +420,9 @@ function UsersAdminContent() {
                   </div>
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => toggleAdminStatus(user.id, user.is_admin)}
-                    className="text-red-400 border-red-400 hover:bg-red-400/10"
+                    className="text-red-400 border-red-400 hover:bg-red-400/10 w-full sm:w-auto"
                   >
                     Remove Admin
                   </Button>
@@ -443,12 +448,12 @@ function UsersAdminContent() {
         ) : (
           <div className="space-y-4">
             {regularUsers.map((user) => (
-              <div key={user.id} className="p-6 bg-gradient-to-r from-neutral-800 to-neutral-800/80 rounded-xl border border-neutral-600 space-y-6">
+              <div key={user.id} className="p-4 md:p-6 bg-gradient-to-r from-neutral-800 to-neutral-800/80 rounded-xl border border-neutral-600 space-y-4 md:space-y-6">
                 {/* Header Row */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:justify-between">
+                  <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
                     {user.profile_photo_url ? (
-                      <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 shadow-lg border-2 border-neutral-500/30">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden flex-shrink-0 shadow-lg border-2 border-neutral-500/30">
                         <Image
                           src={user.profile_photo_url}
                           alt={`${user.email} profile`}
@@ -458,22 +463,22 @@ function UsersAdminContent() {
                         />
                       </div>
                     ) : (
-                      <div className="w-16 h-16 bg-gradient-to-br from-neutral-600 to-neutral-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <Mail className="w-8 h-8 text-neutral-300" />
+                      <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-neutral-600 to-neutral-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <Mail className="w-6 h-6 md:w-8 md:h-8 text-neutral-300" />
                       </div>
                     )}
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-bold text-white text-xl">{user.email}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="font-bold text-white text-base md:text-xl truncate">{user.email}</span>
                       </div>
-                      <div className="flex items-center gap-6 text-sm text-neutral-300">
+                      <div className="flex flex-wrap items-center gap-3 md:gap-6 text-xs md:text-sm text-neutral-300">
                         <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
+                          <Calendar className="w-3 h-3 md:w-4 md:h-4" />
                           {new Date(user.created_at).toLocaleDateString()}
                         </span>
                         {user.last_sign_in_at && (
                           <span className="flex items-center gap-1">
-                            <Mail className="w-4 h-4" />
+                            <Mail className="w-3 h-3 md:w-4 md:h-4" />
                             {new Date(user.last_sign_in_at).toLocaleDateString()}
                           </span>
                         )}
@@ -482,13 +487,13 @@ function UsersAdminContent() {
                   </div>
                   
                   {/* Quick Stats */}
-                  <div className="flex items-center gap-8">
+                  <div className="flex items-center gap-4 md:gap-8 w-full sm:w-auto justify-start sm:justify-end">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-primary-400">{user.tokens_remaining || 0}</div>
+                      <div className="text-xl md:text-2xl font-bold text-primary-400">{user.tokens_remaining || 0}</div>
                       <div className="text-xs text-neutral-400">Tokens</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-secondary-400">{user.storage_quota_gb || 0}GB</div>
+                      <div className="text-xl md:text-2xl font-bold text-secondary-400">{user.storage_quota_gb || 0}GB</div>
                       <div className="text-xs text-neutral-400">Storage</div>
                     </div>
                   </div>
@@ -516,18 +521,20 @@ function UsersAdminContent() {
                 </div>
                 
                 {/* Admin Controls */}
-                <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-neutral-600">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3 border-t border-neutral-600">
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
                       placeholder="± tokens"
-                      className="w-32"
-                      value={adjustTokens[user.id] ?? 0}
+                      className="w-full sm:w-28"
+                      value={adjustTokens[user.id] ?? ''}
                       onChange={(e) => setAdjustTokens(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
                     <Button
                       variant="outline"
+                      size="sm"
                       disabled={!((adjustTokens[user.id] ?? 0) !== 0)}
+                      className="whitespace-nowrap"
                       onClick={async () => {
                         const delta = adjustTokens[user.id] ?? 0
                         console.log('Token adjustment clicked:', { userId: user.id, delta })
@@ -565,12 +572,14 @@ function UsersAdminContent() {
                     <Input
                       type="number"
                       placeholder="GB quota"
-                      className="w-32"
-                      value={adjustStorage[user.id] ?? 0}
+                      className="w-full sm:w-28"
+                      value={adjustStorage[user.id] ?? ''}
                       onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
                     <Button
                       variant="outline"
+                      size="sm"
+                      className="whitespace-nowrap"
                       onClick={async () => {
                         const quota = adjustStorage[user.id] ?? 0
                         if (!quota) return
@@ -586,15 +595,17 @@ function UsersAdminContent() {
                     >Set Storage</Button>
                   </div>
 
-                  <div className="relative">
+                  <div className="relative w-full sm:w-auto">
                     <Button
                       variant="accent"
+                      size="sm"
+                      className="w-full sm:w-auto whitespace-nowrap"
                       onClick={() => setShowProductDropdown(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
                     >
                       Enroll Product
                     </Button>
                     {showProductDropdown[user.id] && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-10">
+                      <div className="absolute top-full left-0 mt-1 w-full sm:w-64 bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-10">
                         <div className="p-2">
                           {availableProducts.map((product) => (
                             <button
@@ -623,6 +634,8 @@ function UsersAdminContent() {
 
                   <Button
                     variant="primary"
+                    size="sm"
+                    className="w-full sm:w-auto whitespace-nowrap"
                     onClick={() => toggleAdminStatus(user.id, user.is_admin)}
                   >
                     Make Admin
