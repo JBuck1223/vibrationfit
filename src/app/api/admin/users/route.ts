@@ -40,12 +40,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 
-    // Get user profiles for storage data and profile photos
+    // Get user profiles for profile photos
     const { data: profiles } = await supabaseAdmin
       .from('user_profiles')
-      .select('user_id, storage_quota_gb, profile_picture_url')
+      .select('user_id, profile_picture_url')
 
     const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || [])
+    
+    // Get storage quotas from user_storage (sum of grants per user)
+    const { data: storageGrants } = await supabaseAdmin
+      .from('user_storage')
+      .select('user_id, quota_gb')
+    
+    const storageMap = new Map<string, number>()
+    storageGrants?.forEach(grant => {
+      const current = storageMap.get(grant.user_id) || 0
+      storageMap.set(grant.user_id, current + grant.quota_gb)
+    })
     
     // Get token balances for all users
     // Granted tokens from token_transactions
@@ -87,8 +98,9 @@ export async function GET(request: NextRequest) {
       const isMetadataAdmin = authUser.user_metadata?.is_admin === true
       const profile = profileMap.get(authUser.id)
       const tokenBalance = tokenBalances.get(authUser.id)
+      const storageQuota = storageMap.get(authUser.id) || 0
       
-      console.log(`User ${authUser.email}: tokens remaining = ${tokenBalance?.remaining || 0}`)
+      console.log(`User ${authUser.email}: tokens = ${tokenBalance?.remaining || 0}, storage = ${storageQuota}GB`)
       
       return {
         id: authUser.id,
@@ -99,7 +111,7 @@ export async function GET(request: NextRequest) {
         user_metadata: authUser.user_metadata,
         tokens_remaining: tokenBalance?.remaining || 0,
         tokens_used: tokenBalance?.used || 0,
-        storage_quota_gb: profile?.storage_quota_gb ?? 1,
+        storage_quota_gb: storageQuota,
         profile_photo_url: profile?.profile_picture_url
       }
     })
