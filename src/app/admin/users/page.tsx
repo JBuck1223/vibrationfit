@@ -352,7 +352,7 @@ function UsersAdminContent() {
                       type="number"
                       placeholder="± tokens"
                       className="w-full sm:w-28"
-                      value={adjustTokens[user.id] ?? 0}
+                      value={adjustTokens[user.id] ?? ''}
                       onChange={(e) => setAdjustTokens(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
                     <Button
@@ -397,7 +397,7 @@ function UsersAdminContent() {
                       type="number"
                       placeholder="GB quota"
                       className="w-full sm:w-28"
-                      value={adjustStorage[user.id] ?? 0}
+                      value={adjustStorage[user.id] ?? ''}
                       onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
                     <Button
@@ -527,7 +527,7 @@ function UsersAdminContent() {
                       type="number"
                       placeholder="± tokens"
                       className="w-full sm:w-28"
-                      value={adjustTokens[user.id] ?? 0}
+                      value={adjustTokens[user.id] ?? ''}
                       onChange={(e) => setAdjustTokens(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
                     <Button
@@ -573,7 +573,7 @@ function UsersAdminContent() {
                       type="number"
                       placeholder="GB quota"
                       className="w-full sm:w-28"
-                      value={adjustStorage[user.id] ?? 0}
+                      value={adjustStorage[user.id] ?? ''}
                       onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
                     <Button
