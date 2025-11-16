@@ -15,6 +15,7 @@ export interface TokenUsage {
   tokens_used: number
   input_tokens?: number
   output_tokens?: number
+  calculated_cost_cents?: number // Accurate cost from ai_model_pricing
   // OpenAI Reconciliation Fields (added Nov 16, 2025)
   openai_request_id?: string
   openai_created?: number
@@ -393,7 +394,7 @@ export async function getTokenSummary(userId: string, days: number = 30): Promis
 
     // Calculate summary
     const totalTokens = usage.reduce((sum, record) => sum + record.tokens_used, 0)
-    const totalCost = usage.reduce((sum, record) => sum + record.cost_estimate, 0)
+    const totalCost = usage.reduce((sum, record) => sum + (record.calculated_cost_cents || 0), 0)
     const actionsCount = usage.length
 
     // Model breakdown
@@ -403,7 +404,7 @@ export async function getTokenSummary(userId: string, days: number = 30): Promis
         modelBreakdown[record.model_used] = { tokens: 0, cost: 0, count: 0 }
       }
       modelBreakdown[record.model_used].tokens += record.tokens_used
-      modelBreakdown[record.model_used].cost += record.cost_estimate
+      modelBreakdown[record.model_used].cost += (record.calculated_cost_cents || 0)
       modelBreakdown[record.model_used].count += 1
     })
 
@@ -415,7 +416,7 @@ export async function getTokenSummary(userId: string, days: number = 30): Promis
         dailyUsage[date] = { tokens: 0, cost: 0, count: 0 }
       }
       dailyUsage[date].tokens += record.tokens_used
-      dailyUsage[date].cost += record.cost_estimate
+      dailyUsage[date].cost += (record.calculated_cost_cents || 0)
       dailyUsage[date].count += 1
     })
 

@@ -20,7 +20,7 @@ interface TokenTransaction {
   source?: string
   amount_paid_cents?: number
   token_pack_id?: string
-  cost_estimate?: number
+  calculated_cost_cents?: number
 }
 
 // Helper function to format credits
@@ -374,9 +374,9 @@ export default function TokensPage() {
                             {formatCredits(tx.tokens_remaining, true)} remaining
                           </div>
                         )}
-                        {tx.cost_estimate && tx.cost_estimate > 0 && (
+                        {tx.calculated_cost_cents && tx.calculated_cost_cents > 0 && (
                           <div className="text-xs text-neutral-500">
-                            ${(tx.cost_estimate / 100).toFixed(4)} cost
+                            ${(tx.calculated_cost_cents / 100).toFixed(4)} cost
                           </div>
                         )}
                       </div>
