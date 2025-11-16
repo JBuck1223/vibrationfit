@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION increment_audio_play(
 BEGIN
   UPDATE audio_tracks 
   SET play_count = play_count + 1 
-  WHERE id = p_track_id;
+  WHERE id = p_track_id; 
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
