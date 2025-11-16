@@ -5,6 +5,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export interface TokenUsage {
   id?: string
@@ -384,7 +385,7 @@ export async function getTokenSummary(userId: string, days: number = 30): Promis
  */
 export async function getAdminTokenSummary(days: number = 30): Promise<TokenSummary | null> {
   try {
-    const supabase = createClient()
+    const supabase = createServiceClient() // Use service role to bypass RLS
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
 
@@ -463,7 +464,7 @@ export async function getTokenUsageByUser(days: number = 30, limit: number = 100
   last_activity: string
 }>> {
   try {
-    const supabase = createClient()
+    const supabase = createServiceClient() // Use service role to bypass RLS
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
 
@@ -537,7 +538,7 @@ export async function getTokenUsageByUser(days: number = 30, limit: number = 100
  */
 export async function getReconciliationData(days: number = 30, limit: number = 50) {
   try {
-    const supabase = createClient()
+    const supabase = createServiceClient() // Use service role to bypass RLS
     
     // Calculate date range
     const startDate = new Date()
