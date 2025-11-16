@@ -6,6 +6,7 @@ import { PageLayout } from '@/lib/design-system'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { SidebarLayout } from '@/components/Sidebar'
+import { IntensiveBar } from '@/components/IntensiveBar'
 import { getPageType } from '@/lib/navigation'
 
 interface GlobalLayoutProps {
@@ -29,10 +30,11 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       return <>{children}</>
     }
     
-    // USER pages: Use SidebarLayout with UserSidebar
+    // USER pages: Use SidebarLayout with UserSidebar + IntensiveBar
     if (pageType === 'USER') {
       return (
         <SidebarLayout isAdmin={false}>
+          <IntensiveBar />
           <PageLayout>
             {children}
           </PageLayout>

@@ -227,15 +227,21 @@ async function uploadViaApiRoute(
     })
 
     if (!response.ok) {
-      // Try to parse error, but handle non-JSON responses
+      // Read response as text first, then try to parse as JSON
       let errorMessage = `Upload failed with status ${response.status}`
       try {
-        const errorData = await response.json()
-        errorMessage = errorData.error || errorMessage
-      } catch {
-        // If response isn't JSON, try to get text
         const responseText = await response.text()
-        errorMessage = responseText || errorMessage
+        if (responseText) {
+          try {
+            const errorData = JSON.parse(responseText)
+            errorMessage = errorData.error || responseText
+          } catch {
+            // Not JSON, use raw text
+            errorMessage = responseText
+          }
+        }
+      } catch {
+        // Couldn't read response
       }
       throw new Error(errorMessage)
     }

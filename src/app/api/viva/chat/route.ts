@@ -12,7 +12,7 @@ import { buildVivaSystemPrompt } from '@/lib/viva/prompts/chat-system-prompt'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-const MODEL = process.env.VIVA_MODEL || 'gpt-4-turbo' // Consistent model name
+const MODEL = process.env.VIVA_MODEL || 'gpt-4-turbo'
 
 export async function POST(req: Request) {
   try {
@@ -222,11 +222,36 @@ export async function POST(req: Request) {
       ? detectSectionQuery(lastMessage.content) 
       : null
 
-    // If this is a refinement context, use the specific vision being refined
-    const visionId = context?.visionId || context?.vision_id
+    // ============================================================================
+    // OPTIMIZATION: Cache system prompt per session to avoid wasteful rebuilds
+    // ============================================================================
     
-    // Fetch all user context in parallel
-    const [profileResult, visionResult, assessmentResult, journeyStateResults] = await Promise.all([
+    let systemPrompt = ''
+    let userName = user.user_metadata?.full_name || 'friend' // Default fallback
+    
+    // Check if we already have a cached system prompt for this session
+    if (currentConversationId) {
+      const { data: session } = await supabase
+        .from('conversation_sessions')
+        .select('cached_system_prompt')
+        .eq('id', currentConversationId)
+        .single()
+      
+      if (session?.cached_system_prompt) {
+        systemPrompt = session.cached_system_prompt
+        console.log('[VIVA CHAT] ✅ Using cached system prompt (saved ~2000 tokens)')
+      }
+    }
+    
+    // Only build system prompt if not cached
+    if (!systemPrompt) {
+      console.log('[VIVA CHAT] Building new system prompt from user context...')
+      
+      // If this is a refinement context, use the specific vision being refined
+      const visionId = context?.visionId || context?.vision_id
+      
+      // Fetch all user context in parallel
+      const [profileResult, visionResult, assessmentResult, journeyStateResults] = await Promise.all([
       // User profile
       supabase
         .from('user_profiles')
@@ -351,55 +376,68 @@ export async function POST(req: Request) {
           .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
       ]).catch(() => [null, null, null]) // Graceful fallback
-    ])
+      ])
 
-    const profileData = profileResult.data
-    const visionData = visionResult.data
-    const assessmentDataRaw = assessmentResult.data
-    // If assessment has responses nested, extract them
-    const assessmentData = assessmentDataRaw ? {
-      ...assessmentDataRaw,
-      responses: assessmentDataRaw.assessment_responses || []
-    } : null
-    // Check for active/complete vision more reliably
-    const hasCompleteVision = visionData && (
-      visionData.status === 'complete' || 
-      (visionData.completion_percent && visionData.completion_percent >= 90) ||
-      // If vision has substantial content in multiple categories, consider it active
-      (Object.values(visionData).filter((v: any) => 
-        typeof v === 'string' && 
-        v.trim().length > 50 && 
-        !['id', 'user_id', 'created_at', 'updated_at', 'version_number', 'status', 'completion_percent'].includes(v)
-      ).length >= 3)
-    )
-    
-    const journeyState = isMasterAssistant && Array.isArray(journeyStateResults) ? {
-      visionCount: journeyStateResults[0]?.count || 0,
-      journalCount: journeyStateResults[1]?.count || 0,
-      visionBoardCount: journeyStateResults[2]?.count || 0,
-      hasProfile: !!profileData,
-      hasAssessment: !!assessmentDataRaw,
-      hasActiveVision: !!hasCompleteVision,
-      activeVisionVersion: visionData?.version_number || null,
-      activeVisionId: visionData?.id || null,
-      activeVisionStatus: visionData?.status || null,
-      isActiveFlag: visionData?.is_active || false
-    } : null
-    const userName = profileData?.first_name || user.user_metadata?.full_name || 'friend'
+      const profileData = profileResult.data
+      const visionData = visionResult.data
+      const assessmentDataRaw = assessmentResult.data
+      // If assessment has responses nested, extract them
+      const assessmentData = assessmentDataRaw ? {
+        ...assessmentDataRaw,
+        responses: assessmentDataRaw.assessment_responses || []
+      } : null
+      // Check for active/complete vision more reliably
+      const hasCompleteVision = visionData && (
+        visionData.status === 'complete' || 
+        (visionData.completion_percent && visionData.completion_percent >= 90) ||
+        // If vision has substantial content in multiple categories, consider it active
+        (Object.values(visionData).filter((v: any) => 
+          typeof v === 'string' && 
+          v.trim().length > 50 && 
+          !['id', 'user_id', 'created_at', 'updated_at', 'version_number', 'status', 'completion_percent'].includes(v)
+        ).length >= 3)
+      )
+      
+      const journeyState = isMasterAssistant && Array.isArray(journeyStateResults) ? {
+        visionCount: journeyStateResults[0]?.count || 0,
+        journalCount: journeyStateResults[1]?.count || 0,
+        visionBoardCount: journeyStateResults[2]?.count || 0,
+        hasProfile: !!profileData,
+        hasAssessment: !!assessmentDataRaw,
+        hasActiveVision: !!hasCompleteVision,
+        activeVisionVersion: visionData?.version_number || null,
+        activeVisionId: visionData?.id || null,
+        activeVisionStatus: visionData?.status || null,
+        isActiveFlag: visionData?.is_active || false
+      } : null
+      
+      // Update userName with profile data if available
+      userName = profileData?.first_name || user.user_metadata?.full_name || 'friend'
 
-    // Build rich system prompt with full context
-    const systemPrompt = buildVivaSystemPrompt({
-      userName,
-      profileData,
-      visionData,
-      assessmentData,
-      journeyState,
-      currentPhase: visionBuildPhase,
-      context: {
-        ...context,
-        requestedSection: requestedSection || undefined
+      // Build rich system prompt with full context
+      systemPrompt = buildVivaSystemPrompt({
+        userName,
+        profileData,
+        visionData,
+        assessmentData,
+        journeyState,
+        currentPhase: visionBuildPhase,
+        context: {
+          ...context,
+          requestedSection: requestedSection || undefined
+        }
+      })
+      
+      // Cache this system prompt in the session to avoid rebuilding
+      if (currentConversationId) {
+        await supabase
+          .from('conversation_sessions')
+          .update({ cached_system_prompt: systemPrompt })
+          .eq('id', currentConversationId)
+        
+        console.log('[VIVA CHAT] ✅ Cached system prompt to session')
       }
-    })
+    } // End of system prompt building
 
     // Combine conversation history with new messages for context
     // Use conversation history if available, otherwise use the messages from request
@@ -474,6 +512,7 @@ export async function POST(req: Request) {
       ...streamParams,
       async onFinish({ text, usage }: { text: string; usage?: any }) {
         console.log('[VIVA CHAT] Stream finished, text length:', text?.length || 0)
+        
         // Store assistant message in database after completion
         try {
           const { data, error } = await supabase.from('ai_conversations').insert({
@@ -520,32 +559,26 @@ export async function POST(req: Request) {
             }
           }
 
-          // Track actual token usage
-          if (usage) {
-            const totalTokens = usage.totalTokens || usage.total_tokens || 0
-            const promptTokens = usage.promptTokens || usage.prompt_tokens || 0
-            const completionTokens = usage.completionTokens || usage.completion_tokens || 0
-
-            if (totalTokens > 0) {
-              await trackTokenUsage({
-                user_id: user.id,
-                action_type: 'chat_conversation',
-                model_used: MODEL,
-                tokens_used: totalTokens,
-                input_tokens: promptTokens,
-                output_tokens: completionTokens,
-                actual_cost_cents: 0, // Will be calculated by trackTokenUsage
-                success: true,
-                metadata: {
-                  phase: visionBuildPhase,
-                  category: context?.category,
-                  message_length: text.length,
-                  is_initial_greeting: isInitialGreeting,
-                  is_master_assistant: isMasterAssistant,
-                  is_refinement: context?.refinement === true || context?.operation === 'refine_vision',
-                },
-              })
-            }
+          // Track actual token usage (if available in streaming mode)
+          if (usage && usage.totalTokens > 0) {
+            await trackTokenUsage({
+              user_id: user.id,
+              action_type: 'chat_conversation',
+              model_used: MODEL,
+              tokens_used: usage.totalTokens,
+              input_tokens: usage.promptTokens || 0,
+              output_tokens: usage.completionTokens || 0,
+              actual_cost_cents: 0, // Will be calculated by trackTokenUsage
+              success: true,
+              metadata: {
+                phase: visionBuildPhase,
+                category: context?.category,
+                message_length: text.length,
+                is_initial_greeting: isInitialGreeting,
+                is_master_assistant: isMasterAssistant,
+                is_refinement: context?.refinement === true || context?.operation === 'refine_vision',
+              },
+            })
           }
         } catch (error) {
           console.error('Failed to store conversation or track tokens:', error)

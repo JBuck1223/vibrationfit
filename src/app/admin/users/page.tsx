@@ -313,14 +313,14 @@ function UsersAdminContent() {
                   </div>
                   
                   {/* Quick Stats */}
-                  <div className="flex items-center gap-4 md:gap-8 w-full sm:w-auto justify-start sm:justify-end">
-                    <div className="text-center">
-                      <div className="text-xl md:text-2xl font-bold text-primary-400">{user.tokens_remaining || 0}</div>
-                      <div className="text-xs text-neutral-400">Tokens</div>
+                  <div className="flex items-center gap-3 md:gap-6 w-full sm:w-auto justify-start sm:justify-end">
+                    <div className="text-center min-w-0 flex-shrink">
+                      <div className="text-base md:text-xl lg:text-2xl font-bold text-primary-400 break-all">{user.tokens_remaining || 0}</div>
+                      <div className="text-xs text-neutral-400 whitespace-nowrap">Tokens</div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-xl md:text-2xl font-bold text-secondary-400">{user.storage_quota_gb || 0}GB</div>
-                      <div className="text-xs text-neutral-400">Storage</div>
+                    <div className="text-center min-w-0 flex-shrink">
+                      <div className="text-base md:text-xl lg:text-2xl font-bold text-secondary-400 break-all">{user.storage_quota_gb || 0}GB</div>
+                      <div className="text-xs text-neutral-400 whitespace-nowrap">Storage</div>
                     </div>
                   </div>
                 </div>
@@ -346,12 +346,12 @@ function UsersAdminContent() {
                   </div>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2 w-full">
                     <Input
                       type="number"
                       placeholder="± tokens"
-                      className="w-full sm:w-28"
+                      className="flex-1 min-w-0"
                       value={adjustTokens[user.id] ?? ''}
                       onChange={(e) => setAdjustTokens(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
@@ -359,7 +359,7 @@ function UsersAdminContent() {
                       variant="outline"
                       size="sm"
                       disabled={!((adjustTokens[user.id] ?? 0) !== 0)}
-                      className="whitespace-nowrap"
+                      className="whitespace-nowrap flex-shrink-0"
                       onClick={async () => {
                         const delta = adjustTokens[user.id] ?? 0
                         console.log('Token adjustment clicked:', { userId: user.id, delta })
@@ -392,18 +392,18 @@ function UsersAdminContent() {
                       }}
                     >{(adjustTokens[user.id] ?? 0) > 0 ? 'Add' : (adjustTokens[user.id] ?? 0) < 0 ? 'Deduct' : 'Apply'}</Button>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full">
                     <Input
                       type="number"
                       placeholder="GB quota"
-                      className="w-full sm:w-28"
+                      className="flex-1 min-w-0"
                       value={adjustStorage[user.id] ?? ''}
                       onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
                     <Button
                       variant="outline"
                       size="sm"
-                      className="whitespace-nowrap"
+                      className="whitespace-nowrap flex-shrink-0"
                       onClick={async () => {
                         const quota = adjustStorage[user.id] ?? 0
                         if (!quota) return
@@ -422,7 +422,7 @@ function UsersAdminContent() {
                     variant="outline"
                     size="sm"
                     onClick={() => toggleAdminStatus(user.id, user.is_admin)}
-                    className="text-red-400 border-red-400 hover:bg-red-400/10 w-full sm:w-auto"
+                    className="text-red-400 border-red-400 hover:bg-red-400/10 w-full"
                   >
                     Remove Admin
                   </Button>
@@ -487,14 +487,14 @@ function UsersAdminContent() {
                   </div>
                   
                   {/* Quick Stats */}
-                  <div className="flex items-center gap-4 md:gap-8 w-full sm:w-auto justify-start sm:justify-end">
-                    <div className="text-center">
-                      <div className="text-xl md:text-2xl font-bold text-primary-400">{user.tokens_remaining || 0}</div>
-                      <div className="text-xs text-neutral-400">Tokens</div>
+                  <div className="flex items-center gap-3 md:gap-6 w-full sm:w-auto justify-start sm:justify-end">
+                    <div className="text-center min-w-0 flex-shrink">
+                      <div className="text-base md:text-xl lg:text-2xl font-bold text-primary-400 break-all">{user.tokens_remaining || 0}</div>
+                      <div className="text-xs text-neutral-400 whitespace-nowrap">Tokens</div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-xl md:text-2xl font-bold text-secondary-400">{user.storage_quota_gb || 0}GB</div>
-                      <div className="text-xs text-neutral-400">Storage</div>
+                    <div className="text-center min-w-0 flex-shrink">
+                      <div className="text-base md:text-xl lg:text-2xl font-bold text-secondary-400 break-all">{user.storage_quota_gb || 0}GB</div>
+                      <div className="text-xs text-neutral-400 whitespace-nowrap">Storage</div>
                     </div>
                   </div>
                 </div>
@@ -521,12 +521,12 @@ function UsersAdminContent() {
                 </div>
                 
                 {/* Admin Controls */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3 border-t border-neutral-600">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-3 pt-3 border-t border-neutral-600">
+                  <div className="flex items-center gap-2 w-full">
                     <Input
                       type="number"
                       placeholder="± tokens"
-                      className="w-full sm:w-28"
+                      className="flex-1 min-w-0"
                       value={adjustTokens[user.id] ?? ''}
                       onChange={(e) => setAdjustTokens(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
@@ -534,7 +534,7 @@ function UsersAdminContent() {
                       variant="outline"
                       size="sm"
                       disabled={!((adjustTokens[user.id] ?? 0) !== 0)}
-                      className="whitespace-nowrap"
+                      className="whitespace-nowrap flex-shrink-0"
                       onClick={async () => {
                         const delta = adjustTokens[user.id] ?? 0
                         console.log('Token adjustment clicked:', { userId: user.id, delta })
@@ -568,18 +568,18 @@ function UsersAdminContent() {
                     >{(adjustTokens[user.id] ?? 0) > 0 ? 'Add' : (adjustTokens[user.id] ?? 0) < 0 ? 'Deduct' : 'Apply'}</Button>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full">
                     <Input
                       type="number"
                       placeholder="GB quota"
-                      className="w-full sm:w-28"
+                      className="flex-1 min-w-0"
                       value={adjustStorage[user.id] ?? ''}
                       onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
                     />
                     <Button
                       variant="outline"
                       size="sm"
-                      className="whitespace-nowrap"
+                      className="whitespace-nowrap flex-shrink-0"
                       onClick={async () => {
                         const quota = adjustStorage[user.id] ?? 0
                         if (!quota) return
@@ -595,17 +595,17 @@ function UsersAdminContent() {
                     >Set Storage</Button>
                   </div>
 
-                  <div className="relative w-full sm:w-auto">
+                  <div className="relative w-full">
                     <Button
                       variant="accent"
                       size="sm"
-                      className="w-full sm:w-auto whitespace-nowrap"
+                      className="w-full whitespace-nowrap"
                       onClick={() => setShowProductDropdown(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
                     >
                       Enroll Product
                     </Button>
                     {showProductDropdown[user.id] && (
-                      <div className="absolute top-full left-0 mt-1 w-full sm:w-64 bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-10">
+                      <div className="absolute top-full left-0 mt-1 w-full bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-10">
                         <div className="p-2">
                           {availableProducts.map((product) => (
                             <button
@@ -635,7 +635,7 @@ function UsersAdminContent() {
                   <Button
                     variant="primary"
                     size="sm"
-                    className="w-full sm:w-auto whitespace-nowrap"
+                    className="w-full whitespace-nowrap"
                     onClick={() => toggleAdminStatus(user.id, user.is_admin)}
                   >
                     Make Admin

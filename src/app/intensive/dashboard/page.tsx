@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { startIntensive, completeIntensive } from '@/lib/intensive/utils-client'
+import { IntensiveWelcomeScreen } from '@/components/IntensiveWelcomeScreen'
+import { IntensiveCompletionScreen } from '@/components/IntensiveCompletionScreen'
 import { 
   Clock, 
   CheckCircle, 
-  Circle,
   User,
   ClipboardCheck,
   Calendar,
@@ -35,9 +37,11 @@ interface IntensivePurchase {
   id: string
   user_id: string
   payment_plan: string
-  activation_deadline: string
+  activation_deadline: string | null
+  started_at: string | null
   completion_status: string
   completed_at: string | null
+  created_at: string
 }
 
 interface IntensiveChecklist {
@@ -52,7 +56,6 @@ interface IntensiveChecklist {
   assessment_completed_at: string | null
   call_scheduled: boolean
   call_scheduled_at: string | null
-  call_scheduled_time: string | null
   
   // Phase 2: Vision Creation
   vision_built: boolean
@@ -158,15 +161,20 @@ export default function IntensiveDashboard() {
     }
   }
 
-  const updateTimeRemaining = (deadline?: string) => {
+  const updateTimeRemaining = (deadline?: string | null) => {
+    if (!deadline) {
+      setTimeRemaining('')
+      setHoursRemaining(72)
+      return
+    }
+
     const deadlineStr = deadline || intensive?.activation_deadline || ''
-    // Ensure deadline is treated as UTC to match database timestamps
     const deadlineDate = new Date(deadlineStr + (deadlineStr.includes('Z') ? '' : 'Z'))
     const now = new Date()
     const diff = deadlineDate.getTime() - now.getTime()
 
     if (diff <= 0) {
-      setTimeRemaining('Expired')
+      setTimeRemaining('') // Timer expired, just hide it
       setHoursRemaining(0)
       return
     }
@@ -177,6 +185,30 @@ export default function IntensiveDashboard() {
 
     setHoursRemaining(hours)
     setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`)
+  }
+
+  const handleStart = async () => {
+    if (!intensive) return
+    
+    const result = await startIntensive(intensive.id)
+    if (result.success) {
+      // Reload data to get updated intensive with started_at and deadline
+      await loadIntensiveData()
+    } else {
+      alert('Failed to start intensive: ' + result.error)
+    }
+  }
+
+  const handleComplete = async () => {
+    if (!intensive) return
+    
+    const result = await completeIntensive(intensive.id)
+    if (result.success) {
+      // Redirect to main dashboard
+      router.push('/dashboard')
+    } else {
+      alert('Failed to complete intensive: ' + result.error)
+    }
   }
 
   const getSteps = (): IntensiveStep[] => {
@@ -192,7 +224,7 @@ export default function IntensiveDashboard() {
         phase: 'Foundation',
         completed: checklist.profile_completed,
         completedAt: checklist.profile_completed_at,
-        href: '/profile/edit?intensive=true',
+        href: '/profile/edit',
         locked: false
       },
       {
@@ -203,7 +235,7 @@ export default function IntensiveDashboard() {
         phase: 'Foundation',
         completed: checklist.assessment_completed,
         completedAt: checklist.assessment_completed_at,
-        href: '/assessment?intensive=true',
+        href: '/assessment',
         locked: !checklist.profile_completed
       },
       {
@@ -227,7 +259,7 @@ export default function IntensiveDashboard() {
         phase: 'Vision Creation',
         completed: checklist.vision_built,
         completedAt: checklist.vision_built_at,
-        href: '/vision/build?intensive=true',
+        href: '/vision/build',
         locked: !checklist.call_scheduled
       },
       {
@@ -251,7 +283,7 @@ export default function IntensiveDashboard() {
         phase: 'Activation Tools',
         completed: checklist.audio_generated,
         completedAt: checklist.audio_generated_at,
-        href: '/life-vision?intensive=true&action=audio',
+        href: '/life-vision?action=audio',
         locked: !checklist.vision_refined
       },
       {
@@ -262,7 +294,7 @@ export default function IntensiveDashboard() {
         phase: 'Activation Tools',
         completed: checklist.vision_board_completed,
         completedAt: checklist.vision_board_completed_at,
-        href: '/vision-board?intensive=true',
+        href: '/vision-board',
         locked: !checklist.vision_refined
       },
       {
@@ -273,7 +305,7 @@ export default function IntensiveDashboard() {
         phase: 'Activation Tools',
         completed: checklist.first_journal_entry,
         completedAt: checklist.first_journal_entry_at,
-        href: '/journal?intensive=true',
+        href: '/journal',
         locked: !checklist.vision_board_completed
       },
       
@@ -320,6 +352,16 @@ export default function IntensiveDashboard() {
     return nextStep.phase
   }
 
+  // Calculate completion time if applicable
+  const getCompletionTimeHours = () => {
+    if (!intensive?.started_at || !checklist) return undefined
+    
+    const started = new Date(intensive.started_at)
+    const now = new Date()
+    const hours = (now.getTime() - started.getTime()) / (1000 * 60 * 60)
+    return hours
+  }
+
   if (loading) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
@@ -335,7 +377,7 @@ export default function IntensiveDashboard() {
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl md:text-2xl font-bold mb-2">No Active Intensive</h2>
           <p className="text-neutral-400 mb-6 text-sm md:text-base">
-            You don't have an active intensive purchase.
+            You don&apos;t have an active intensive purchase.
           </p>
           <Button size="sm" onClick={() => router.push('/#pricing')}>
             View Intensive Options
@@ -345,8 +387,26 @@ export default function IntensiveDashboard() {
     )
   }
 
-  const steps = getSteps()
+  // STATE 1: Not Started Yet
+  if (!intensive.started_at) {
+    return <IntensiveWelcomeScreen onStart={handleStart} />
+  }
+
   const progress = getProgress()
+  
+  // STATE 2: 100% Complete - Show Celebration
+  if (progress === 100) {
+    return (
+      <IntensiveCompletionScreen 
+        onComplete={handleComplete}
+        completionTimeHours={getCompletionTimeHours()}
+        startedAt={intensive.started_at}
+      />
+    )
+  }
+
+  // STATE 3: In Progress - Show Dashboard
+  const steps = getSteps()
   const nextStep = getNextStep()
   const currentPhase = getCurrentPhase()
 
@@ -371,14 +431,27 @@ export default function IntensiveDashboard() {
         <Card variant="elevated" className="mb-6 md:mb-8 p-4 md:p-6 lg:p-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-base md:text-lg font-semibold mb-2 flex items-center gap-2">
-                <Clock className="w-4 h-4 md:w-5 md:h-5" />
-                Time Remaining
-              </h3>
-              <p className="text-2xl md:text-3xl font-bold text-primary-500">{timeRemaining}</p>
-              <p className="text-xs md:text-sm text-neutral-400 mt-2">
-                Deadline: {new Date(intensive.activation_deadline).toLocaleString()}
-              </p>
+              {timeRemaining && hoursRemaining > 0 ? (
+                <>
+                  <h3 className="text-base md:text-lg font-semibold mb-2 flex items-center gap-2">
+                    <Clock className="w-4 h-4 md:w-5 md:h-5" />
+                    Time Remaining
+                  </h3>
+                  <p className="text-2xl md:text-3xl font-bold text-primary-500">{timeRemaining}</p>
+                  <p className="text-xs md:text-sm text-neutral-400 mt-2">
+                    Most people activate in 72 hours
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-base md:text-lg font-semibold mb-2">
+                    Keep Going!
+                  </h3>
+                  <p className="text-sm md:text-base text-neutral-400">
+                    You&apos;re making great progress. Complete your remaining steps to unlock the platform.
+                  </p>
+                </>
+              )}
             </div>
             <div className="text-left sm:text-right">
               <p className="text-xs md:text-sm text-neutral-400 mb-2">Overall Progress</p>
@@ -396,15 +469,6 @@ export default function IntensiveDashboard() {
               className="h-3"
             />
           </div>
-
-          {hoursRemaining < 24 && hoursRemaining > 0 && (
-            <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-              <p className="text-yellow-500 text-sm flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                <strong>Less than 24 hours remaining!</strong> Complete your intensive to unlock your membership.
-              </p>
-            </div>
-          )}
         </Card>
 
         {/* Next Action */}
@@ -476,7 +540,7 @@ export default function IntensiveDashboard() {
                           <div className="flex-1 min-w-0">
                             <h3 className="text-base md:text-lg font-semibold mb-1 flex items-center gap-2">
                               {step.title}
-                              {step.locked && <Circle className="w-3 h-3 md:w-4 md:h-4 text-neutral-500" />}
+                              {step.locked && <Lock className="w-3 h-3 md:w-4 md:h-4 text-neutral-500" />}
                             </h3>
                             <p className="text-xs md:text-sm text-neutral-400">{step.description}</p>
                             {step.completedAt && (
@@ -519,31 +583,6 @@ export default function IntensiveDashboard() {
             )
           })}
         </div>
-
-        {/* Completion Message */}
-        {progress === 100 && (
-          <Card variant="elevated" className="mt-6 md:mt-8 p-4 md:p-6 lg:p-8 bg-gradient-to-br from-primary-500 to-secondary-500 text-white">
-            <div className="text-center py-6 md:py-8">
-              <Rocket className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4" />
-              <h2 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4">🎉 Intensive Complete!</h2>
-              <p className="text-base md:text-lg lg:text-xl mb-4 md:mb-6">
-                Congratulations! You've completed your Activation Intensive.
-              </p>
-              <p className="text-sm md:text-base lg:text-lg mb-6 md:mb-8">
-                Your membership is now active. Continue your journey in the dashboard.
-              </p>
-              <Button 
-                variant="secondary" 
-                size="sm"
-                onClick={() => router.push('/dashboard')}
-                className="w-full sm:w-auto"
-              >
-                Go to Dashboard
-                <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
-              </Button>
-            </div>
-          </Card>
-        )}
 
     </Container>
   )

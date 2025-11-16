@@ -19,32 +19,32 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  // Create Supabase client for all auth checks
+  const res = NextResponse.next()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          res.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: any) {
+          res.cookies.set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
+
+  // Get session once (used for both intensive and admin checks)
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
   // Handle admin route protection
   if (isAdminRoute(pathname)) {
     try {
-      const res = NextResponse.next()
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              return req.cookies.get(name)?.value
-            },
-            set(name: string, value: string, options: any) {
-              res.cookies.set({ name, value, ...options })
-            },
-            remove(name: string, options: any) {
-              res.cookies.set({ name, value: '', ...options })
-            },
-          },
-        }
-      )
-      
-      // Use getSession() instead of getUser() - faster and more reliable
-      // getSession() reads from cookies, getUser() makes a network request
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      
       if (sessionError || !session?.user) {
         return createAdminResponse(req)
       }
@@ -67,7 +67,51 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  return NextResponse.next()
+  // INTENSIVE MODE ACCESS CONTROL
+  // If user is logged in, check if they have an active intensive
+  if (session?.user && !pathname.startsWith('/api') && !pathname.startsWith('/auth') && !pathname.startsWith('/_next')) {
+    try {
+      const { data: intensive } = await supabase
+        .from('intensive_purchases')
+        .select('id, completion_status, started_at')
+        .eq('user_id', session.user.id)
+        .in('completion_status', ['pending', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      // User has active intensive - restrict access
+      if (intensive) {
+        // Allowed paths during intensive
+        const allowedPaths = [
+          '/intensive',
+          '/profile/edit',
+          '/profile',
+          '/assessment',
+          '/vision/build',
+          '/vision',
+          '/life-vision',
+          '/vision-board',
+          '/journal',
+          '/viva',
+          '/design-system', // For testing
+        ]
+
+        const isAllowedPath = allowedPaths.some(path => pathname.startsWith(path))
+
+        // If trying to access non-intensive page, redirect to intensive dashboard
+        if (!isAllowedPath) {
+          const redirectUrl = new URL('/intensive/dashboard', url.origin)
+          return NextResponse.redirect(redirectUrl)
+        }
+      }
+    } catch (error) {
+      console.error('Intensive check error:', error)
+      // Don't block on error, just continue
+    }
+  }
+
+  return res
 }
 
 export const config = {

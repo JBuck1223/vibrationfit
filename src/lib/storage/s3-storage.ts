@@ -55,8 +55,23 @@ export async function uploadLargeFile(
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Upload failed')
+      // Read response as text first, then try to parse as JSON
+      let errorMessage = `Upload failed with status ${response.status}`
+      try {
+        const responseText = await response.text()
+        if (responseText) {
+          try {
+            const errorData = JSON.parse(responseText)
+            errorMessage = errorData.error || responseText
+          } catch {
+            // Not JSON, use raw text
+            errorMessage = responseText
+          }
+        }
+      } catch {
+        // Couldn't read response
+      }
+      throw new Error(errorMessage)
     }
 
     const result = await response.json()
@@ -110,8 +125,23 @@ export async function uploadUserFile(
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Upload failed')
+      // Read response as text first, then try to parse as JSON
+      let errorMessage = `Upload failed with status ${response.status}`
+      try {
+        const responseText = await response.text()
+        if (responseText) {
+          try {
+            const errorData = JSON.parse(responseText)
+            errorMessage = errorData.error || responseText
+          } catch {
+            // Not JSON, use raw text
+            errorMessage = responseText
+          }
+        }
+      } catch {
+        // Couldn't read response
+      }
+      throw new Error(errorMessage)
     }
 
     const result = await response.json()
@@ -189,8 +219,23 @@ export async function deleteUserFile(s3Key: string): Promise<void> {
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Delete failed')
+      // Read response as text first, then try to parse as JSON
+      let errorMessage = `Delete failed with status ${response.status}`
+      try {
+        const responseText = await response.text()
+        if (responseText) {
+          try {
+            const errorData = JSON.parse(responseText)
+            errorMessage = errorData.error || responseText
+          } catch {
+            // Not JSON, use raw text
+            errorMessage = responseText
+          }
+        }
+      } catch {
+        // Couldn't read response
+      }
+      throw new Error(errorMessage)
     }
   } catch (error) {
     console.error('S3 delete error:', error)

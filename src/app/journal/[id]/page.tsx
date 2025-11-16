@@ -373,13 +373,13 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                         const ext = url.split('.').pop()?.toLowerCase()
                         return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
                       }).slice(0, 4).map((url: string, index: number) => (
-                        <div key={`image-${index}`} className="relative group aspect-square">
+                        <div key={`image-${index}`} className="relative group">
                           <OptimizedImage
                             src={url}
                             alt={`Entry image ${index + 1}`}
-                            width={300}
-                            height={300}
-                            className="w-full h-full object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                            width={800}
+                            height={600}
+                            className="w-full h-auto object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
                             onClick={() => openLightbox(url, entry.image_urls.indexOf(url))}
                             quality={90}
                             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 50vw, 50vw"

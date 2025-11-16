@@ -555,72 +555,96 @@ export default function ProfileEditPage() {
 
   // Calculate completed sections
   const getCompletedSections = useCallback(() => {
+    // Use the same section IDs as profileSections array
     const sections = [
       'personal',
-      'relationship', 
-      'family',
+      'fun',
       'health',
-      'location',
-      'career',
-      'financial',
-      'fun-recreation',
-      'travel-adventure',
-      'social-friends',
-      'possessions-lifestyle',
-      'spirituality-growth',
-      'giving-legacy',
+      'travel',
+      'love',
+      'family',
+      'social',
+      'home',
+      'work',
+      'money',
+      'stuff',
+      'giving',
+      'spirituality',
       'photos-notes'
     ]
 
     return sections.filter(section => {
       switch (section) {
         case 'personal':
-          return profile.profile_picture_url && profile.date_of_birth && profile.gender && profile.ethnicity
+          // Personal section is complete if core fields are filled
+          return profile.first_name && profile.last_name && profile.email && 
+                 profile.phone && profile.date_of_birth && profile.gender
         case 'love':
+          // Love/Relationship section is complete if relationship status is set
+          // and if not Single, then partner info should be included
           return profile.relationship_status && 
-                 (profile.relationship_status === 'Single' || profile.relationship_length)
+                 (profile.relationship_status === 'Single' || 
+                  (profile.partner_name && profile.relationship_length))
         case 'family':
+          // Family section is complete if has_children is set
+          // and if has children, then number and ages should be included
           return profile.has_children !== undefined && 
                  (profile.has_children === false || 
                   (profile.number_of_children && profile.children_ages?.length))
         case 'health':
-          return profile.units && profile.height && profile.weight && profile.exercise_frequency
+          // Health section is complete if any health fields OR clarity story is filled
+          return (profile.units || profile.height || profile.weight || profile.exercise_frequency ||
+                 (profile.clarity_health && profile.clarity_health.trim().length > 0))
         case 'home':
-          return profile.living_situation && profile.time_at_location && 
-                 profile.city && profile.state && profile.postal_code && profile.country
+          // Home/Location section is complete if location fields OR clarity story is filled
+          return (profile.living_situation || profile.time_at_location || 
+                 profile.city || profile.state || profile.postal_code || profile.country ||
+                 (profile.clarity_home && profile.clarity_home.trim().length > 0))
         case 'work':
-          return profile.employment_type && profile.occupation && profile.company && profile.time_in_role
+          // Work/Career section is complete if career fields OR clarity story is filled
+          return (profile.employment_type || profile.occupation || profile.company || 
+                 profile.time_in_role || profile.education ||
+                 (profile.clarity_work && profile.clarity_work.trim().length > 0))
         case 'money':
-          return profile.currency && profile.household_income && profile.savings_retirement && 
-                 profile.assets_equity && profile.consumer_debt
+          // Money/Financial section is complete if any financial fields OR clarity story is filled
+          return (profile.currency || profile.household_income || profile.savings_retirement || 
+                 profile.assets_equity || profile.consumer_debt ||
+                 (profile.clarity_money && profile.clarity_money.trim().length > 0))
         case 'fun':
+          // Fun section is complete if any fun fields OR clarity story is filled
           return (profile.hobbies && profile.hobbies.length > 0) || 
                  profile.leisure_time_weekly ||
                  (profile.clarity_fun && profile.clarity_fun.trim().length > 0)
         case 'travel':
+          // Travel section is complete if any travel fields OR clarity story is filled
           return profile.travel_frequency || 
                  profile.passport !== undefined || 
                  profile.countries_visited !== undefined ||
                  (profile.clarity_travel && profile.clarity_travel.trim().length > 0)
         case 'social':
+          // Social section is complete if any social fields OR clarity story is filled
           return profile.close_friends_count || 
                  profile.social_preference ||
                  (profile.clarity_social && profile.clarity_social.trim().length > 0)
         case 'stuff':
+          // Stuff/Possessions section is complete if any lifestyle fields OR clarity story is filled
           return profile.lifestyle_category || 
                  profile.primary_vehicle ||
                  (profile.clarity_stuff && profile.clarity_stuff.trim().length > 0)
         case 'spirituality':
+          // Spirituality section is complete if any spirituality fields OR clarity story is filled
           return profile.spiritual_practice || 
                  profile.meditation_frequency || 
                  profile.personal_growth_focus !== undefined ||
                  (profile.clarity_spirituality && profile.clarity_spirituality.trim().length > 0)
         case 'giving':
+          // Giving section is complete if any giving fields OR clarity story is filled
           return profile.volunteer_status || 
                  profile.charitable_giving || 
                  profile.legacy_mindset !== undefined ||
                  (profile.clarity_giving && profile.clarity_giving.trim().length > 0)
         case 'photos-notes':
+          // Photos/Notes section is complete if any media or notes are added
           return (profile.version_notes && profile.version_notes.trim().length > 0) || 
                  (profile.progress_photos && profile.progress_photos.length > 0)
         default:

@@ -49,17 +49,48 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log('AWS credentials found, proceeding with upload...')
+    // Log credential info (masked for security)
+    const keyId = process.env.AWS_ACCESS_KEY_ID!
+    console.log('AWS Config:', {
+      keyIdPrefix: keyId.substring(0, 8) + '...',
+      keyIdLength: keyId.length,
+      secretLength: process.env.AWS_SECRET_ACCESS_KEY!.length,
+      region: process.env.AWS_REGION || 'us-east-2',
+      hasWhitespace: keyId !== keyId.trim() || process.env.AWS_SECRET_ACCESS_KEY !== process.env.AWS_SECRET_ACCESS_KEY!.trim()
+    })
 
     // Test S3 connectivity first
     try {
       const testCommand = new ListBucketsCommand({})
-      await s3Client.send(testCommand)
-      console.log('S3 connectivity test passed')
-    } catch (connectivityError) {
-      console.error('S3 connectivity test failed:', connectivityError)
+      const result = await s3Client.send(testCommand)
+      console.log('✅ S3 connectivity test passed')
+      console.log('Available buckets:', result.Buckets?.map(b => b.Name).join(', '))
+      
+      // Check if our specific bucket exists
+      const hasBucket = result.Buckets?.some(b => b.Name === BUCKET_NAME)
+      if (!hasBucket) {
+        console.warn(`⚠️ Bucket "${BUCKET_NAME}" not found in account. Available:`, result.Buckets?.map(b => b.Name))
+      }
+    } catch (connectivityError: any) {
+      console.error('❌ S3 connectivity test failed:', {
+        message: connectivityError.message,
+        code: connectivityError.Code || connectivityError.code,
+        statusCode: connectivityError.$metadata?.httpStatusCode,
+        requestId: connectivityError.$metadata?.requestId
+      })
+      
+      // Provide more helpful error messages
+      let helpfulMessage = connectivityError.message
+      if (connectivityError.code === 'SignatureDoesNotMatch') {
+        helpfulMessage += '\n\nPossible causes:\n' +
+          '1. AWS credentials are incorrect or expired\n' +
+          '2. Check your AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env.local\n' +
+          '3. Make sure there are no extra spaces or quotes\n' +
+          '4. Verify the credentials are for the correct AWS account'
+      }
+      
       return NextResponse.json({ 
-        error: `S3 connectivity issue: ${connectivityError instanceof Error ? connectivityError.message : 'Unknown error'}` 
+        error: `S3 connectivity issue: ${helpfulMessage}` 
       }, { status: 503 })
     }
 
@@ -123,8 +154,18 @@ export async function POST(request: NextRequest) {
     const isAudioFile = file.type.startsWith('audio/')
 
     if (needsImageOptimization) {
-      console.log(`Optimizing image: ${file.name}`)
-      const optimizationOptions = getOptimalDimensions('card')
+      console.log(`Optimizing image: ${file.name} for folder: ${folder}`)
+      
+      // Choose optimization level based on use case
+      const optimizationLevel = (() => {
+        if (folder.includes('journal')) return 'fullscreen' // High quality for journal images
+        if (folder.includes('vision')) return 'fullscreen' // High quality for vision boards
+        if (folder.includes('profile')) return 'card' // Smaller for profile pics
+        return 'fullscreen' // Default to high quality
+      })()
+      
+      console.log(`Using optimization level: ${optimizationLevel}`)
+      const optimizationOptions = getOptimalDimensions(optimizationLevel as 'thumbnail' | 'card' | 'fullscreen' | 'hero')
       const optimizedResult = await optimizeImage(buffer, optimizationOptions)
       
       buffer = Buffer.from(optimizedResult.buffer)
@@ -293,36 +334,9 @@ export async function POST(request: NextRequest) {
       throw new Error(`S3 upload failed: ${s3Error instanceof Error ? s3Error.message : 'Unknown error'}`)
     }
 
-    // Generate and upload thumbnail for images
-    if (file.type.startsWith('image/')) {
-      try {
-        console.log('📸 Generating thumbnail for image')
-        const originalBuffer = await file.arrayBuffer().then(buf => Buffer.from(buf))
-        const thumbnailBuffer = await generateThumbnail(originalBuffer, 400, 300)
-        
-        const thumbKey = finalS3Key.replace(/\.(jpg|jpeg|png|webp)$/i, '-thumb.webp')
-        const thumbCommand = new PutObjectCommand({
-          Bucket: BUCKET_NAME,
-          Key: thumbKey,
-          Body: thumbnailBuffer,
-          ContentType: 'image/webp',
-          CacheControl: 'public, max-age=31536000, immutable',
-          Metadata: {
-            'original-filename': file.name,
-            'upload-timestamp': timestamp.toString(),
-            'is-thumbnail': 'true',
-            'original-s3-key': finalS3Key
-          }
-        })
-        
-        await s3Client.send(thumbCommand)
-        thumbnailUrl = `https://media.vibrationfit.com/${thumbKey}`
-        console.log(`✅ Thumbnail uploaded: ${thumbKey}`)
-      } catch (thumbError) {
-        console.error('⚠️ Thumbnail generation failed:', thumbError)
-        // Continue without thumbnail
-      }
-    }
+    // Skip thumbnail generation - Next.js Image component handles resizing on-demand
+    // This saves storage space and upload time. CloudFront/CDN handles caching.
+    console.log('✅ Image uploaded, will be resized on-demand by Next.js Image component')
 
     // Return CDN URL
     const url = `https://media.vibrationfit.com/${finalS3Key}`
