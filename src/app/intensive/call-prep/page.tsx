@@ -85,17 +85,14 @@ export default function CallPrepPage() {
 
   if (loading) {
     return (
-      <>
-        <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <Spinner size="lg" />
-        </Container>
-      </>
+      <Container size="lg" className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
   return (
-    <>
-      <Container size="lg">
+    <Container size="lg">
         
         <div className="mb-8">
           <Button 
@@ -234,9 +231,7 @@ export default function CallPrepPage() {
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </Card>
-
-      </Container>
-    </>
+    </Container>
   )
 }
 

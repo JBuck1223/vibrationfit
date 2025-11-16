@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
               type: 'magiclink',
               email: customerEmail,
               options: {
-                redirectTo: `${appUrl}/auth/setup-password?intensive=true`,
+                redirectTo: `${appUrl}/auth/setup-password`,
               },
             })
 
@@ -496,7 +496,7 @@ export async function POST(request: NextRequest) {
               type: 'magiclink',
               email: customerEmail,
               options: {
-                redirectTo: `${appUrl}/auth/setup-password?intensive=true`,
+                redirectTo: `${appUrl}/auth/setup-password`,
               },
             })
 

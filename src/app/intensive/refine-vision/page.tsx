@@ -99,17 +99,14 @@ export default function RefineVisionPage() {
 
   if (loading) {
     return (
-      <>
-        <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <Spinner size="lg" />
-        </Container>
-      </>
+      <Container size="lg" className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
   return (
-    <>
-      <Container size="lg">
+    <Container size="lg">
         
         <div className="mb-6 md:mb-8">
           <Button 
@@ -165,9 +162,7 @@ export default function RefineVisionPage() {
             </Button>
           </div>
         </Card>
-
-      </Container>
-    </>
+    </Container>
   )
 }
 

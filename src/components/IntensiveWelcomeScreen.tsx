@@ -70,7 +70,7 @@ export function IntensiveWelcomeScreen({ onStart }: IntensiveWelcomeScreenProps)
   ]
 
   return (
-    <Container size="xl" className="py-8 md:py-12">
+    <Container size="xl">
       <Card variant="elevated" className="p-6 md:p-12">
         
         {/* Hero Section */}

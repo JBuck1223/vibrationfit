@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 
     // Redirect based on intensive flag
     if (intensive === 'true') {
-      return NextResponse.redirect(`${origin}/auth/setup-password?intensive=true`)
+      return NextResponse.redirect(`${origin}/auth/setup-password`)
     }
 
     return NextResponse.redirect(`${origin}/dashboard`)

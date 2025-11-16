@@ -292,11 +292,9 @@ export default function ScheduleCallPage() {
 
   if (loading) {
     return (
-      <>
-        <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <Spinner size="lg" />
-        </Container>
-      </>
+      <Container size="lg" className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -310,99 +308,98 @@ export default function ScheduleCallPage() {
   const dates = Object.keys(slotsByDate).slice(0, 7) // Show next 7 available days
 
   return (
-    <>
-      <Container size="lg">
+    <Container size="lg">
+      {/* Header */}
+      <div className="mb-6 md:mb-8">
+        <Button 
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push('/intensive/dashboard')}
+          className="mb-3 md:mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          <span className="text-xs md:text-sm">Back to Dashboard</span>
+        </Button>
         
-        {/* Header */}
-        <div className="mb-8">
-          <Button 
-            variant="ghost" 
-            onClick={() => router.push('/intensive/dashboard')}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          
-          <Badge variant="premium" className="mb-4">
-            <Calendar className="w-4 h-4 inline mr-2" />
-            Step 3 of 10
-          </Badge>
-          
-          <h1 className="text-4xl font-bold mb-4">
-            Schedule Your Calibration Call
-          </h1>
-          <p className="text-xl text-neutral-400">
-            Book your 1-on-1 vision calibration session with your coach
-          </p>
+        <Badge variant="premium" className="mb-3 md:mb-4 text-xs md:text-sm">
+          <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+          Step 3 of 10
+        </Badge>
+        
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4">
+          Schedule Your Calibration Call
+        </h1>
+        <p className="text-base md:text-lg lg:text-xl text-neutral-400">
+          Book your 1-on-1 vision calibration session with your coach
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+        
+        {/* Left: What to Expect */}
+        <div>
+          <Card>
+            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Video className="w-5 h-5 md:w-6 md:h-6 text-white" />
+              </div>
+              <h2 className="text-lg md:text-xl lg:text-2xl font-bold">What to Expect</h2>
+            </div>
+
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex items-start gap-2 md:gap-3">
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-primary-500 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm md:text-base font-semibold mb-1">45-Minute Deep Dive</h3>
+                  <p className="text-xs md:text-sm text-neutral-400">
+                    We&apos;ll review your profile, assessment results, and discuss your vision in detail
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 md:gap-3">
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-primary-500 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm md:text-base font-semibold mb-1">Personalized Guidance</h3>
+                  <p className="text-xs md:text-sm text-neutral-400">
+                    Get expert insights on how to refine and actualize your vision
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 md:gap-3">
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-primary-500 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm md:text-base font-semibold mb-1">Custom Action Plan</h3>
+                  <p className="text-xs md:text-sm text-neutral-400">
+                    Leave with a clear roadmap for the next phase of your journey
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 md:gap-3">
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-primary-500 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm md:text-base font-semibold mb-1">Zoom Video Call</h3>
+                  <p className="text-xs md:text-sm text-neutral-400">
+                    You&apos;ll receive a Zoom link in your confirmation email
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 md:mt-6 p-3 md:p-4 bg-secondary-500/10 border border-secondary-500/30 rounded-xl">
+              <p className="text-xs md:text-sm text-neutral-300">
+                <strong className="text-secondary-500">Pro Tip:</strong> Complete your profile and assessment before the call to get the most value!
+              </p>
+            </div>
+          </Card>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          
-          {/* Left: What to Expect */}
-          <div>
-            <Card>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-primary-500 rounded-xl flex items-center justify-center">
-                  <Video className="w-6 h-6 text-white" />
-                </div>
-                <h2 className="text-2xl font-bold">What to Expect</h2>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-primary-500 mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">45-Minute Deep Dive</h3>
-                    <p className="text-sm text-neutral-400">
-                      We'll review your profile, assessment results, and discuss your vision in detail
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-primary-500 mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Personalized Guidance</h3>
-                    <p className="text-sm text-neutral-400">
-                      Get expert insights on how to refine and actualize your vision
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-primary-500 mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Custom Action Plan</h3>
-                    <p className="text-sm text-neutral-400">
-                      Leave with a clear roadmap for the next phase of your journey
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-primary-500 mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Zoom Video Call</h3>
-                    <p className="text-sm text-neutral-400">
-                      You'll receive a Zoom link in your confirmation email
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 bg-secondary-500/10 border border-secondary-500/30 rounded-xl">
-                <p className="text-sm text-neutral-300">
-                  <strong className="text-secondary-500">Pro Tip:</strong> Complete your profile and assessment before the call to get the most value!
-                </p>
-              </div>
-            </Card>
-          </div>
-
-          {/* Right: Scheduling */}
-          <div>
-            <Card>
-              <h2 className="text-2xl font-bold mb-6">Select Date & Time</h2>
+        {/* Right: Scheduling */}
+        <div>
+          <Card>
+            <h2 className="text-lg md:text-xl lg:text-2xl font-bold mb-4 md:mb-6">Select Date & Time</h2>
 
               {/* Date Selection */}
               <div className="mb-6">
@@ -530,10 +527,8 @@ export default function ScheduleCallPage() {
             </Card>
           </div>
 
-        </div>
-
-      </Container>
-    </>
+      </div>
+    </Container>
   )
 }
 

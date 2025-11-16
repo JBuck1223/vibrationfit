@@ -31,7 +31,7 @@ export function IntensiveCompletionScreen({
   const finishedOnTime = completionTimeHours && completionTimeHours <= 72
 
   return (
-    <Container size="xl" className="py-12">
+    <Container size="xl">
       <Card 
         variant="elevated" 
         className="p-12 text-center bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30"

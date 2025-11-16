@@ -198,7 +198,7 @@ export default function NewVisionBoardItemPage() {
             // Show which categories still need items
             const remaining = LIFE_CATEGORIES.filter(cat => !coveredCategories.has(cat))
             alert(`Great! ${remaining.length} more ${remaining.length === 1 ? 'category' : 'categories'} to go: ${remaining.join(', ')}`)
-            router.push('/vision-board/new?intensive=true')
+            router.push('/vision-board/new')
             return
           }
         }

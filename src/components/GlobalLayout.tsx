@@ -1,13 +1,15 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { PageLayout } from '@/lib/design-system'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { SidebarLayout } from '@/components/Sidebar'
-import { IntensiveBar } from '@/components/IntensiveBar'
+import { IntensiveSidebar } from '@/components/IntensiveSidebar'
+import { IntensiveMobileNav } from '@/components/IntensiveMobileNav'
 import { getPageType } from '@/lib/navigation'
+import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 interface GlobalLayoutProps {
   children: React.ReactNode
@@ -15,6 +17,25 @@ interface GlobalLayoutProps {
 
 export function GlobalLayout({ children }: GlobalLayoutProps) {
   const pathname = usePathname()
+  const [intensiveMode, setIntensiveMode] = useState(false)
+  const [loadingIntensive, setLoadingIntensive] = useState(true)
+  
+  // Check for active intensive on mount and route changes
+  useEffect(() => {
+    const checkIntensive = async () => {
+      try {
+        const intensive = await getActiveIntensiveClient()
+        setIntensiveMode(!!intensive)
+      } catch (error) {
+        console.error('Error checking intensive mode:', error)
+        setIntensiveMode(false)
+      } finally {
+        setLoadingIntensive(false)
+      }
+    }
+    
+    checkIntensive()
+  }, [pathname])
   
   // Only exclude the /html route from layout (for clean PDF generation)
   if (pathname?.endsWith('/html')) {
@@ -30,11 +51,35 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       return <>{children}</>
     }
     
-    // USER pages: Use SidebarLayout with UserSidebar + IntensiveBar
+    // USER pages: Use IntensiveSidebar if in intensive mode, otherwise regular SidebarLayout
     if (pageType === 'USER') {
+      // Show loading state briefly
+      if (loadingIntensive) {
+        return (
+          <div className="min-h-screen bg-black flex items-center justify-center">
+            <div className="text-neutral-500">Loading...</div>
+          </div>
+        )
+      }
+      
+      // Intensive mode: Simplified sidebar + mobile nav
+      if (intensiveMode) {
+        return (
+          <div className="min-h-screen bg-black text-white pb-16 md:pb-0">
+            <IntensiveSidebar />
+            <div className="md:ml-[280px]">
+              <PageLayout>
+                {children}
+              </PageLayout>
+            </div>
+            <IntensiveMobileNav />
+          </div>
+        )
+      }
+      
+      // Regular mode: Full sidebar
       return (
         <SidebarLayout isAdmin={false}>
-          <IntensiveBar />
           <PageLayout>
             {children}
           </PageLayout>

@@ -197,7 +197,7 @@ export default function ProfilePage() {
         // If we have an active profile ID, redirect to the profile-specific edit page
         if (data.profile?.id) {
           console.log('Profile page: Redirecting to profile-specific edit page:', data.profile.id)
-          // Preserve query parameters (e.g., ?intensive=true)
+          // Auto-redirect to intensive dashboard if in intensive mode
           const queryString = searchParams.toString()
           const redirectUrl = `/profile/${data.profile.id}/edit${queryString ? `?${queryString}` : ''}`
           router.replace(redirectUrl)
