@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
 
     // If requesting a specific version
     if (versionId) {
+      console.log('🔍 PROFILE API: Fetching specific version:', versionId, 'for user:', user.id)
       try {
         const { data: version, error: versionError } = await supabase
           .from('user_profiles')
@@ -48,9 +49,18 @@ export async function GET(request: NextRequest) {
           .single()
 
         if (versionError) {
-          console.error('Version fetch error:', versionError)
+          console.error('❌ PROFILE API: Version fetch error:', versionError)
+          console.error('   Version ID:', versionId)
+          console.error('   User ID:', user.id)
           return NextResponse.json({ error: 'Version not found' }, { status: 404 })
         }
+        
+        if (!version) {
+          console.error('❌ PROFILE API: No version data returned for:', versionId)
+          return NextResponse.json({ error: 'Version not found' }, { status: 404 })
+        }
+        
+        console.log('✅ PROFILE API: Version found:', version.id)
 
         // Calculate version number based on chronological order
         const { data: calculatedVersionNumber } = await supabase

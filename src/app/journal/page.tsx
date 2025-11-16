@@ -533,22 +533,20 @@ export default function JournalPage() {
             )}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <Card className="max-w-md mx-auto">
-              <div className="text-6xl mb-4">📔</div>
-              <h3 className="text-2xl font-bold text-white mb-4">No journal entries yet</h3>
-              <p className="text-neutral-400 mb-8">
-                Start capturing evidence of your conscious creation journey. 
-                Log your wins, insights, and moments of alignment.
-              </p>
-              <Button asChild size="lg">
-                <Link href="/journal/new">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Create Your First Entry
-                </Link>
-              </Button>
-            </Card>
-          </div>
+          <Card className="text-center py-16 max-w-2xl mx-auto">
+            <FileText className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No journal entries yet</h3>
+            <p className="text-neutral-400 mb-6">
+              Start capturing evidence of your conscious creation journey. 
+              Log your wins, insights, and moments of alignment.
+            </p>
+            <Button asChild>
+              <Link href="/journal/new">
+                <Plus className="w-5 h-5 mr-2" />
+                Create Your First Entry
+              </Link>
+            </Button>
+          </Card>
         )}
 
         {/* Navigation */}

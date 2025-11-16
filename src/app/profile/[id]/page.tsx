@@ -234,7 +234,9 @@ export default function ProfileDetailPage() {
     try {
       const response = await fetch(`/api/profile?versionId=${versionId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch profile version')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Failed to fetch profile version:', response.status, errorData)
+        throw new Error(errorData.error || `Failed to fetch profile version (${response.status})`)
       }
       const data = await response.json()
       setProfile(data.profile || {})
@@ -252,7 +254,8 @@ export default function ProfileDetailPage() {
       }
     } catch (error) {
       console.error('Error fetching profile version:', error)
-      setError('Failed to load profile version')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load profile version'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

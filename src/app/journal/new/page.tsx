@@ -213,7 +213,8 @@ export default function NewJournalEntryPage() {
 
   return (
     <>
-          <div className="mb-8">
+        <div className="pb-8">
+          <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-white mb-2">
               New Journal Entry
             </h1>
@@ -248,47 +249,24 @@ export default function NewJournalEntryPage() {
                   Select categories for your journal entry
                 </p>
                 <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => (
-                    <CategoryCard 
-                      key={category.key} 
-                      category={category} 
-                      selected={formData.categories.includes(category.label)} 
-                      onClick={() => handleCategoryToggle(category.label)}
-                    />
-                  ))}
+                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
+                    const isSelected = formData.categories.includes(category.label)
+                    return (
+                      <CategoryCard 
+                        key={category.key} 
+                        category={category} 
+                        selected={isSelected} 
+                        onClick={() => handleCategoryToggle(category.label)}
+                        variant="outlined"
+                        selectionStyle="border"
+                        iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                        selectedIconColor="#39FF14"
+                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
+                      />
+                    )
+                  })}
                 </div>
               </div>
-
-              {/* Journal Content */}
-              <RecordingTextarea
-                label="Journal Entry"
-                value={formData.content}
-                onChange={(value) => setFormData({ ...formData, content: value })}
-                rows={10}
-                placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
-                allowVideo={true}
-                storageFolder="journal"
-                onRecordingSaved={handleRecordingSaved}
-                onUploadProgress={(progress, status, fileName, fileSize) => {
-                  setUploadProgress({
-                    progress,
-                    status,
-                    fileName,
-                    fileSize,
-                    isVisible: true
-                  })
-                }}
-              />
-
-              {/* Display Saved Audio Recordings */}
-              {audioRecordings.length > 0 && (
-                <SavedRecordings
-                  key={`journal-recordings-${audioRecordings.length}`}
-                  recordings={audioRecordings}
-                  categoryFilter="journal"
-                  onDelete={handleDeleteRecording}
-                />
-              )}
 
               {/* Evidence / Images */}
               <div>
@@ -297,7 +275,7 @@ export default function NewJournalEntryPage() {
                 </label>
                 
                 {/* Toggle Buttons */}
-                <div className="flex flex-row flex-wrap gap-2 mb-4 w-full">
+                <div className="flex flex-col sm:flex-row gap-2 mb-4">
                   <Button
                     type="button"
                     variant={imageSource === 'upload' ? 'primary' : 'outline'}
@@ -312,10 +290,10 @@ export default function NewJournalEntryPage() {
                         setAiGeneratedImageUrls([])
                       }
                     }}
-                    className="flex-1 min-w-0 shrink"
+                    className="w-full sm:flex-1"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    <span className="text-xs md:text-sm">Upload Files</span>
+                    Upload Files
                   </Button>
                   <Button
                     type="button"
@@ -325,10 +303,10 @@ export default function NewJournalEntryPage() {
                       setImageSource('ai')
                       setFiles([])
                     }}
-                    className="flex-1 min-w-0 shrink"
+                    className="w-full sm:flex-1"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
-                    <span className="text-xs md:text-sm">Generate with VIVA</span>
+                    Generate with VIVA
                   </Button>
                 </div>
 
@@ -373,7 +351,7 @@ export default function NewJournalEntryPage() {
                   >
                     <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
                     <p className="text-neutral-300 font-medium mb-1">
-                      Click to upload or drag files here
+                      Click to upload or drag and drop
                     </p>
                     <p className="text-xs text-neutral-500">
                       Images, videos, or audio (max 5 files, 500MB each)
@@ -441,6 +419,37 @@ export default function NewJournalEntryPage() {
                 )}
               </div>
 
+              {/* Journal Content */}
+              <RecordingTextarea
+                label="Journal Entry"
+                value={formData.content}
+                onChange={(value) => setFormData({ ...formData, content: value })}
+                rows={10}
+                placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
+                allowVideo={true}
+                storageFolder="journal"
+                onRecordingSaved={handleRecordingSaved}
+                onUploadProgress={(progress, status, fileName, fileSize) => {
+                  setUploadProgress({
+                    progress,
+                    status,
+                    fileName,
+                    fileSize,
+                    isVisible: true
+                  })
+                }}
+              />
+
+              {/* Display Saved Audio Recordings */}
+              {audioRecordings.length > 0 && (
+                <SavedRecordings
+                  key={`journal-recordings-${audioRecordings.length}`}
+                  recordings={audioRecordings}
+                  categoryFilter="journal"
+                  onDelete={handleDeleteRecording}
+                />
+              )}
+
               {/* Upload Progress */}
               <UploadProgress
                 progress={uploadProgress.progress}
@@ -451,28 +460,29 @@ export default function NewJournalEntryPage() {
               />
 
               {/* Submit */}
-              <div className="flex flex-row flex-wrap gap-2 md:gap-4 w-full">
+              <div className="flex flex-row gap-2 sm:gap-3 sm:justify-end">
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => router.back()}
+                  className="flex-1 sm:flex-none sm:w-auto"
+                >
+                  Cancel
+                </Button>
                 <Button
                   type="submit"
                   size="sm"
                   loading={loading}
                   disabled={loading}
-                  className="flex-1 min-w-0 shrink text-xs md:text-sm"
+                  className="flex-1 sm:flex-none sm:w-auto"
                 >
-                  {loading ? 'Saving...' : 'Save Entry'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.back()}
-                  className="flex-1 min-w-0 shrink text-xs md:text-sm"
-                >
-                  Cancel
+                  {loading ? 'Saving...' : 'Save Journal Entry'}
                 </Button>
               </div>
             </form>
           </Card>
+        </div>
     </>
   )
 }
