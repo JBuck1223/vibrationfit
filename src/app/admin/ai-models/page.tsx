@@ -191,10 +191,10 @@ function AIModelsAdminContent() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-8 border-b border-neutral-700">
+      <div className="flex gap-2 md:gap-4 mb-6 md:mb-8 border-b border-neutral-700 overflow-x-auto">
         <button
           onClick={() => setActiveTab('routes')}
-          className={`pb-4 px-2 font-medium transition-colors ${
+          className={`pb-3 md:pb-4 px-3 md:px-4 font-medium text-sm md:text-base transition-colors whitespace-nowrap ${
             activeTab === 'routes'
               ? 'text-primary-500 border-b-2 border-primary-500'
               : 'text-neutral-400 hover:text-neutral-200'
@@ -204,7 +204,7 @@ function AIModelsAdminContent() {
         </button>
         <button
           onClick={() => setActiveTab('pricing')}
-          className={`pb-4 px-2 font-medium transition-colors ${
+          className={`pb-3 md:pb-4 px-3 md:px-4 font-medium text-sm md:text-base transition-colors whitespace-nowrap ${
             activeTab === 'pricing'
               ? 'text-primary-500 border-b-2 border-primary-500'
               : 'text-neutral-400 hover:text-neutral-200'
@@ -257,18 +257,21 @@ function AIModelsAdminContent() {
 
       {/* Category Filter */}
       <Card className="p-4 md:p-6 mb-6 md:mb-8">
-        <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-sm font-medium text-neutral-300">Filter by Category:</span>
-          {(['all', 'text', 'audio', 'image', 'admin'] as const).map(cat => (
-            <Button
-              key={cat}
-              variant={filterCategory === cat ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setFilterCategory(cat)}
-            >
-              {cat.charAt(0).toUpperCase() + cat.slice(1)} ({cat === 'all' ? API_ROUTES_REGISTRY.length : routesByCategory[cat].length})
-            </Button>
-          ))}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
+          <span className="text-xs md:text-sm font-medium text-neutral-300 whitespace-nowrap">Filter by Category:</span>
+          <div className="flex flex-wrap gap-2">
+            {(['all', 'text', 'audio', 'image', 'admin'] as const).map(cat => (
+              <Button
+                key={cat}
+                variant={filterCategory === cat ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setFilterCategory(cat)}
+                className="text-xs md:text-sm"
+              >
+                {cat.charAt(0).toUpperCase() + cat.slice(1)} ({cat === 'all' ? API_ROUTES_REGISTRY.length : routesByCategory[cat].length})
+              </Button>
+            ))}
+          </div>
         </div>
       </Card>
 
@@ -380,11 +383,11 @@ function AIModelsAdminContent() {
           const modelUsed = route.modelConfig?.model || route.model || 'unknown'
           
           return (
-            <Card key={route.routePath} className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h3 className="text-lg md:text-xl font-semibold text-white">{route.routeName}</h3>
+            <Card key={route.routePath} className="p-4 md:p-6">
+              <div className="flex flex-col lg:flex-row items-start justify-between gap-4 mb-4">
+                <div className="flex-1 w-full lg:w-auto">
+                  <div className="flex items-center gap-2 md:gap-3 mb-2 flex-wrap">
+                    <h3 className="text-base md:text-lg lg:text-xl font-semibold text-white">{route.routeName}</h3>
                     <Badge variant={route.hasTokenTracking ? 'success' : 'warning'}>
                       {route.hasTokenTracking ? (
                         <span className="flex items-center gap-1">
@@ -406,20 +409,20 @@ function AIModelsAdminContent() {
                       <Badge variant="neutral">Uses Override</Badge>
                     )}
                   </div>
-                  <p className="text-sm text-neutral-400 mb-2">{route.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-neutral-500">
-                    <span className="flex items-center gap-1">
-                      <Code className="w-3 h-3" />
-                      {route.routePath}
+                  <p className="text-xs md:text-sm text-neutral-400 mb-2">{route.description}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-neutral-500">
+                    <span className="flex items-center gap-1 break-all">
+                      <Code className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{route.routePath}</span>
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Target className="w-3 h-3" />
-                      {route.filePath}
+                    <span className="flex items-center gap-1 break-all">
+                      <Target className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{route.filePath}</span>
                     </span>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full lg:w-auto">
                   <Badge variant="info">{modelUsed}</Badge>
                   {route.modelConfig && (
                     <>

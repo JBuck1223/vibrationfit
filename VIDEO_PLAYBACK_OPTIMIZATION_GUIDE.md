@@ -482,3 +482,4 @@ export function OptimizedVideo({
 
 **Result:** Videos load 3-5x faster, use 50-70% less bandwidth, and play instantly! 🎉
 
+

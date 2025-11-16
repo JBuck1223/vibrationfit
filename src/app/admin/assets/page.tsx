@@ -677,15 +677,17 @@ function AssetsAdminContent() {
       )}
 
       <Container size="xl">
-      <div className="mb-8 md:mb-12">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 md:mb-6">
+      <div className="mb-6 md:mb-8 lg:mb-12">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4 mb-4 md:mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Site Assets Manager</h1>
-            <p className="text-sm md:text-base text-neutral-400">Upload and manage site assets organized by category</p>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Site Assets Manager</h1>
+            <p className="text-xs md:text-sm lg:text-base text-neutral-400">Upload and manage site assets organized by category</p>
           </div>
           <Button
             variant="primary"
+            size="sm"
             onClick={() => setShowUploadForm(!showUploadForm)}
+            className="w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             Upload Asset
@@ -723,16 +725,17 @@ function AssetsAdminContent() {
 
       {/* Selection Toolbar */}
       {filteredFiles.length > 0 && (
-        <div className="mb-6 flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-          <div className="flex items-center gap-3">
+        <div className="mb-4 md:mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 md:p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={selectAllFiles}
+              className="w-full sm:w-auto"
             >
               {selectedFileKeys.size === filteredFiles.length ? 'Deselect All' : 'Select All'}
             </Button>
-            <span className="text-sm text-neutral-400">
+            <span className="text-xs md:text-sm text-neutral-400 text-center sm:text-left">
               {selectedFileKeys.size > 0 ? `${selectedFileKeys.size} selected` : 'No files selected'}
             </span>
           </div>
@@ -742,6 +745,7 @@ function AssetsAdminContent() {
               size="sm"
               onClick={handleDeleteFiles}
               disabled={deleting}
+              className="w-full sm:w-auto"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               {deleting ? 'Deleting...' : `Delete ${selectedFileKeys.size} File(s)`}
@@ -898,9 +902,9 @@ function AssetsAdminContent() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Folders Sidebar */}
-        <Card variant="elevated" className="p-4 md:p-6">
+        <Card variant="elevated" className="p-4 md:p-6 lg:sticky lg:top-4 lg:self-start">
           <div className="space-y-2">
             <h2 className="text-lg font-semibold text-white mb-4">
               {currentPath.length === 0 ? 'Categories' : 'Folders'}
@@ -1063,7 +1067,7 @@ function AssetsAdminContent() {
               </div>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {filteredFiles.map((file) => {
                 const FileIcon = getFileIcon(file.name)
                 const isImage = file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)

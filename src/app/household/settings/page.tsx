@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Input, Badge, Spinner } from '@/lib/design-system/components'
+import { Container, Button, Card, Input, Badge, Spinner } from '@/lib/design-system/components'
 
 export default function HouseholdSettingsPage() {
   const router = useRouter()
@@ -16,6 +16,10 @@ export default function HouseholdSettingsPage() {
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState('')
   const [inviteSuccess, setInviteSuccess] = useState('')
+  
+  // Delete confirmation dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [invitationToDelete, setInvitationToDelete] = useState<string | null>(null)
 
   useEffect(() => {
     loadHouseholdData()
@@ -109,75 +113,102 @@ export default function HouseholdSettingsPage() {
     }
   }
 
+  function handleCancelInvitation(invitationId: string) {
+    setInvitationToDelete(invitationId)
+    setShowDeleteDialog(true)
+  }
+
+  async function confirmCancelInvitation() {
+    if (!invitationToDelete) return
+
+    try {
+      const response = await fetch(`/api/household/invite?id=${invitationToDelete}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // Reload household data to refresh invitations list
+        await loadHouseholdData()
+        setShowDeleteDialog(false)
+        setInvitationToDelete(null)
+      } else {
+        const data = await response.json()
+        setInviteError(data.error || 'Failed to cancel invitation')
+      }
+    } catch (error) {
+      console.error('Error canceling invitation:', error)
+      setInviteError('Failed to cancel invitation')
+    }
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Spinner variant="primary" size="lg" />
-      </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
   if (error || !household) {
     return (
-      <div className="min-h-screen bg-black text-white px-6 py-12">
-        <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-4xl font-bold mb-4">No Household Account</h1>
-          <p className="text-neutral-300 mb-8">
+      <Container size="md">
+        <Card className="text-center p-4 md:p-6 lg:p-8">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4">No Household Account</h1>
+          <p className="text-sm md:text-base text-neutral-300 mb-4 md:mb-8">
             You're not currently part of a household account.
           </p>
-          <Button onClick={() => router.push('/dashboard')}>
+          <Button size="sm" onClick={() => router.push('/dashboard')}>
             Return to Dashboard
           </Button>
-        </div>
-      </div>
+        </Card>
+      </Container>
     )
   }
 
   const { household: householdInfo, members, invitations, isAdmin } = household
 
   return (
-    <div className="min-h-screen bg-black text-white px-6 py-12">
-      <div className="max-w-4xl mx-auto">
-        
-        {/* Header */}
-        <div className="mb-8">
-          <Button 
-            variant="ghost" 
-            onClick={() => router.push('/dashboard')}
-            className="mb-4"
-          >
-            ← Back to Dashboard
-          </Button>
-          <h1 className="text-4xl font-bold mb-2">Household Settings</h1>
-          <p className="text-neutral-300">
-            Manage your household account and members
-          </p>
-        </div>
+    <Container size="xl">
+      {/* Header */}
+      <div className="mb-6 md:mb-8">
+        <Button 
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push('/dashboard')}
+          className="mb-3 md:mb-4"
+        >
+          ← Back to Dashboard
+        </Button>
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-1 md:mb-2">Household Settings</h1>
+        <p className="text-sm md:text-base text-neutral-300">
+          Manage your household account and members
+        </p>
+      </div>
 
-        {/* Household Info Card */}
-        <Card variant="elevated" className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-1">{householdInfo.name}</h2>
-              <p className="text-sm text-neutral-400">
-                {members?.length || 0} of {householdInfo.max_members} members
-              </p>
-            </div>
+      {/* Household Info Card */}
+      <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-0">
+          <div>
+            <h2 className="text-xl md:text-2xl font-semibold mb-1">{householdInfo.name}</h2>
+            <p className="text-xs md:text-sm text-neutral-400">
+              {members?.length || 0} of {householdInfo.max_members} members
+            </p>
+          </div>
             {isAdmin && (
               <Badge variant="premium">Admin</Badge>
             )}
           </div>
 
-          {/* Shared Tokens Toggle (Admin Only) */}
-          {isAdmin && (
-            <div className="p-6 bg-primary-500/10 rounded-xl border border-primary-500/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold mb-1">Shared Token Pool</h3>
-                  <p className="text-sm text-neutral-400">
-                    Allow members to use your tokens when they run out
-                  </p>
-                </div>
+        {/* Shared Tokens Toggle (Admin Only) */}
+        {isAdmin && (
+          <div className="p-4 md:p-6 bg-primary-500/10 rounded-xl border border-primary-500/20">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-0">
+              <div>
+                <h3 className="text-base md:text-lg font-semibold mb-1">Shared Token Pool</h3>
+                <p className="text-xs md:text-sm text-neutral-400">
+                  Allow members to use your tokens when they run out
+                </p>
+              </div>
                 <button
                   onClick={handleToggleSharedTokens}
                   className={`relative w-14 h-7 rounded-full transition-colors ${
@@ -190,15 +221,15 @@ export default function HouseholdSettingsPage() {
                     }`}
                   />
                 </button>
-              </div>
             </div>
-          )}
-        </Card>
+          </div>
+        )}
+      </Card>
 
-        {/* Members List */}
-        {members && members.length > 0 && (
-          <Card variant="elevated" className="mb-8">
-            <h2 className="text-2xl font-semibold mb-6">Household Members</h2>
+      {/* Members List */}
+      {members && members.length > 0 && (
+        <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+          <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Household Members</h2>
             
             <div className="space-y-4">
               {members.map((member: any) => {
@@ -230,16 +261,16 @@ export default function HouseholdSettingsPage() {
                   </div>
                 )
               })}
-            </div>
-          </Card>
-        )}
+          </div>
+        </Card>
+      )}
 
-        {/* Invite New Member (Admin Only) */}
-        {isAdmin && members && members.length < householdInfo.max_members && (
-          <Card variant="elevated" className="mb-8">
-            <h2 className="text-2xl font-semibold mb-6">Invite Member</h2>
-            
-            <div className="flex gap-4">
+      {/* Invite New Member (Admin Only) */}
+      {isAdmin && members && members.length < householdInfo.max_members && (
+        <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+          <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Invite Member</h2>
+          
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
               <Input
                 type="email"
                 placeholder="Enter email address"
@@ -247,48 +278,90 @@ export default function HouseholdSettingsPage() {
                 onChange={(e) => setInviteEmail(e.target.value)}
                 className="flex-1"
               />
-              <Button
-                onClick={handleInviteMember}
-                loading={inviting}
-                disabled={!inviteEmail || inviting}
+            <Button
+              size="sm"
+              onClick={handleInviteMember}
+              loading={inviting}
+              disabled={!inviteEmail || inviting}
+              className="w-full md:w-auto"
+            >
+              Send Invitation
+            </Button>
+          </div>
+
+          {inviteError && (
+            <p className="text-red-500 text-xs md:text-sm mt-2">{inviteError}</p>
+          )}
+          
+          {inviteSuccess && (
+            <p className="text-primary-500 text-xs md:text-sm mt-2">{inviteSuccess}</p>
+          )}
+        </Card>
+      )}
+
+      {/* Pending Invitations (Admin Only) */}
+      {isAdmin && invitations && invitations.length > 0 && (
+        <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+          <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Pending Invitations</h2>
+            
+          <div className="space-y-3">
+            {invitations.map((invitation: any) => (
+              <div 
+                key={invitation.id}
+                className="flex flex-col md:flex-row items-start md:items-center justify-between p-3 md:p-4 bg-[#1F1F1F] rounded-xl gap-3 md:gap-0"
               >
-                Send Invitation
+                <div>
+                  <p className="text-sm md:text-base font-semibold">{invitation.invited_email}</p>
+                  <p className="text-xs md:text-sm text-neutral-400">
+                    Sent {new Date(invitation.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCancelInvitation(invitation.id)}
+                  className="w-full md:w-auto"
+                >
+                  Cancel
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4 md:px-6">
+          <div className="bg-[#1F1F1F] border-2 border-[#333] rounded-2xl p-6 md:p-8 max-w-md w-full shadow-xl">
+            <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">Cancel Invitation?</h3>
+            <p className="text-sm md:text-base text-neutral-300 mb-4 md:mb-6">
+              Are you sure you want to cancel this invitation? This action cannot be undone.
+            </p>
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowDeleteDialog(false)
+                  setInvitationToDelete(null)
+                }}
+                className="flex-1"
+              >
+                Keep Invitation
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={confirmCancelInvitation}
+                className="flex-1"
+              >
+                Cancel Invitation
               </Button>
             </div>
-
-            {inviteError && (
-              <p className="text-red-500 text-sm mt-2">{inviteError}</p>
-            )}
-            
-            {inviteSuccess && (
-              <p className="text-primary-500 text-sm mt-2">{inviteSuccess}</p>
-            )}
-          </Card>
-        )}
-
-        {/* Pending Invitations (Admin Only) */}
-        {isAdmin && invitations && invitations.length > 0 && (
-          <Card variant="elevated" className="mb-8">
-            <h2 className="text-2xl font-semibold mb-6">Pending Invitations</h2>
-            
-            <div className="space-y-3">
-              {invitations.map((invitation: any) => (
-                <div 
-                  key={invitation.id}
-                  className="flex items-center justify-between p-4 bg-[#1F1F1F] rounded-xl"
-                >
-                  <div>
-                    <p className="font-semibold">{invitation.invited_email}</p>
-                    <p className="text-sm text-neutral-400">
-                      Sent {new Date(invitation.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+    </Container>
   )
 }

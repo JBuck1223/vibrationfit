@@ -30,7 +30,7 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
     subject,
     htmlBody,
     textBody,
-    from = process.env.AWS_SES_FROM_EMAIL || 'noreply@vibrationfit.com',
+    from = process.env.AWS_SES_FROM_EMAIL || '"Vibration Fit" <team@vibrationfit.com>',
     replyTo,
   } = params
 

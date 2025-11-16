@@ -84,3 +84,4 @@ Handwritten PDFs/images upload through `uploadUserFile('journal', file, user.id)
 - Extend reporting to show alignment streak history and celebratory badges.
 - Surface AI insights based on gratitude language over time.
 
+

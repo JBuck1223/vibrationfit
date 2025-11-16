@@ -1,10 +1,15 @@
 /**
- * Billing Configuration - Single Source of Truth
+ * Billing Configuration - Static Reference
  * 
- * All token grants, storage quotas, and billing limits are defined here.
- * Update these values to change them across the entire application.
+ * ⚠️ NOTE: This is a STATIC reference file for development.
+ * The TRUE source of truth is the `membership_tiers` database table.
  * 
- * Last Updated: November 13, 2025
+ * TODO: Update this file to fetch from `membership_tiers` table dynamically.
+ * For now, keep these values in sync with the database manually.
+ * 
+ * See migration: 20251115000002_upgrade_membership_tiers.sql
+ * 
+ * Last Updated: November 15, 2025
  */
 
 // ============================================================================

@@ -9,8 +9,6 @@ import {
   Inline,
   Button,
   Select,
-  Textarea,
-  Input,
   Spinner,
 } from '@/lib/design-system/components'
 
@@ -38,12 +36,6 @@ const energyTempoOptions = [
   { value: 'spirited_fast', label: 'Spirited & Dynamic – lively, high momentum' },
 ]
 
-const wooLevelOptions = [
-  { value: '1', label: 'Level 1 · Mostly grounded/practical' },
-  { value: '2', label: 'Level 2 · Balanced, comfortable with “alignment/intuition”' },
-  { value: '3', label: 'Level 3 · Fully comfortable with “Source/Universe/vibration”' },
-]
-
 const humorPersonalityOptions = [
   { value: 'grounded_sincere', label: 'Grounded & Sincere – warm, never jokey' },
   { value: 'lighthearted_approachable', label: 'Lighthearted & Approachable – gentle smile in the words' },
@@ -56,30 +48,11 @@ const speechRhythmOptions = [
   { value: 'distinct_rooted', label: 'Distinct & Rooted – clear sense of self (without slang spellings)' },
 ]
 
-const emotionalIntensityOptions = [
-  { value: 'low', label: 'Low · Soft & gentle' },
-  { value: 'medium', label: 'Medium · Balanced' },
-  { value: 'high', label: 'High · Fully expressed' },
-]
-
-const narrativePreferenceOptions = [
-  { value: 'short_affirmations', label: 'Short Affirmations' },
-  { value: 'compact_scenes', label: 'Compact Scenes' },
-  { value: 'story_mode', label: 'Story Mode' },
-]
-
-const depthPreferenceOptions = [
-  { value: 'surface_light', label: 'Surface & Light' },
-  { value: 'balanced', label: 'Balanced Depth' },
-  { value: 'deep_reflective', label: 'Deep & Reflective' },
-]
-
 interface VoiceProfileQuizState {
   word_flow: string
   emotional_range: string
   detail_level: string
   energy_tempo: string
-  woo_level: string
   humor_personality: string
   speech_rhythm: string
   emotional_intensity_preference: string
@@ -95,7 +68,6 @@ const defaultQuizState: VoiceProfileQuizState = {
   emotional_range: 'warm_genuine',
   detail_level: 'sensory_balanced',
   energy_tempo: 'upbeat_flowing',
-  woo_level: '2',
   humor_personality: 'lighthearted_approachable',
   speech_rhythm: 'warm_conversational',
   emotional_intensity_preference: 'medium',
@@ -142,7 +114,6 @@ export default function VoiceProfileQuizPage() {
             emotional_range: profile.emotional_range,
             detail_level: profile.detail_level,
             energy_tempo: profile.energy_tempo,
-            woo_level: String(profile.woo_level ?? 2),
             humor_personality: profile.humor_personality,
             speech_rhythm: profile.speech_rhythm,
             emotional_intensity_preference: profile.emotional_intensity_preference ?? 'medium',
@@ -167,10 +138,6 @@ export default function VoiceProfileQuizPage() {
     setState((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleInputChange = (field: keyof VoiceProfileQuizState) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setState((prev) => ({ ...prev, [field]: event.target.value }))
-  }
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     try {
@@ -186,7 +153,7 @@ export default function VoiceProfileQuizPage() {
             emotional_range: state.emotional_range,
             detail_level: state.detail_level,
             energy_tempo: state.energy_tempo,
-            woo_level: Number(state.woo_level),
+            woo_level: 2, // Default to balanced since they're on VibrationFit
             humor_personality: state.humor_personality,
             speech_rhythm: state.speech_rhythm,
             emotional_intensity_preference: state.emotional_intensity_preference,
@@ -219,7 +186,7 @@ export default function VoiceProfileQuizPage() {
           <Stack gap="sm">
             <h1 className="text-3xl md:text-4xl font-bold text-white">Voice Profile Quiz</h1>
             <p className="text-neutral-400 text-sm md:text-base max-w-2xl">
-              Answer these seven quick questions so VIVA sounds exactly like you. Each slider matches one core part of your
+              Answer these six quick questions so VIVA knows your voice preferences. Each section matches one core part of your
               voice profile.
             </p>
           </Stack>
@@ -258,13 +225,7 @@ export default function VoiceProfileQuizPage() {
               </Card>
 
               <Card className="p-6 space-y-4">
-                <h2 className="text-lg md:text-xl font-semibold text-white">5. Spiritual Tone (“Woo” level)</h2>
-                <p className="text-sm text-neutral-400">How comfortable are you with spiritual or vibrational language?</p>
-                <Select value={state.woo_level} onChange={handleSelectChange('woo_level')} options={wooLevelOptions} />
-              </Card>
-
-              <Card className="p-6 space-y-4">
-                <h2 className="text-lg md:text-xl font-semibold text-white">6. Humor / Personality</h2>
+                <h2 className="text-lg md:text-xl font-semibold text-white">5. Humor / Personality</h2>
                 <p className="text-sm text-neutral-400">How much playfulness feels like you?</p>
                 <Select
                   value={state.humor_personality}
@@ -274,56 +235,9 @@ export default function VoiceProfileQuizPage() {
               </Card>
 
               <Card className="p-6 space-y-4">
-                <h2 className="text-lg md:text-xl font-semibold text-white">7. Speech Rhythm</h2>
+                <h2 className="text-lg md:text-xl font-semibold text-white">6. Speech Rhythm</h2>
                 <p className="text-sm text-neutral-400">How do you want your words to sound in your head when you read them?</p>
                 <Select value={state.speech_rhythm} onChange={handleSelectChange('speech_rhythm')} options={speechRhythmOptions} />
-              </Card>
-
-              <Card className="p-6 space-y-4">
-                <Stack gap="sm">
-                  <h2 className="text-lg md:text-xl font-semibold text-white">Optional Flavor</h2>
-                  <p className="text-sm text-neutral-400">
-                    These details help VIVA get even closer to your natural voice. You can skip them now and let the analyzer fill
-                    them in later.
-                  </p>
-                </Stack>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Select
-                    label="Emotional Intensity"
-                    value={state.emotional_intensity_preference}
-                    onChange={handleSelectChange('emotional_intensity_preference')}
-                    options={emotionalIntensityOptions}
-                  />
-                  <Select
-                    label="Narrative Preference"
-                    value={state.narrative_preference}
-                    onChange={handleSelectChange('narrative_preference')}
-                    options={narrativePreferenceOptions}
-                  />
-                  <Select
-                    label="Depth Preference"
-                    value={state.depth_preference}
-                    onChange={handleSelectChange('depth_preference')}
-                    options={depthPreferenceOptions}
-                  />
-                </div>
-                <Input label="Style Label" value={state.style_label} onChange={handleInputChange('style_label')} placeholder="e.g., Warm, grounded, and clear" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Textarea
-                    label="Forbidden Styles (one per line)"
-                    value={state.forbidden_styles_text}
-                    onChange={handleInputChange('forbidden_styles_text')}
-                    rows={4}
-                    placeholder="overly poetic\nstiff corporate\ntherapy-speak"
-                  />
-                  <Textarea
-                    label="Sample Phrases (one per line)"
-                    value={state.sample_phrases_text}
-                    onChange={handleInputChange('sample_phrases_text')}
-                    rows={4}
-                    placeholder="I love how it feels to…\nThis is the life I choose."
-                  />
-                </div>
               </Card>
 
               {statusMessage && (

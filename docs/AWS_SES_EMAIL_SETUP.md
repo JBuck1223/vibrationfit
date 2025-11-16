@@ -19,8 +19,9 @@ AWS_ACCESS_KEY_ID=your_aws_access_key_id
 AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 
 # AWS SES Configuration
-AWS_SES_FROM_EMAIL=noreply@vibrationfit.com
-# or use a verified email address in sandbox mode
+AWS_SES_FROM_EMAIL="Vibration Fit" <team@vibrationfit.com>
+# Format: "Display Name" <email@domain.com>
+# Note: team@vibrationfit.com must be verified in AWS SES
 ```
 
 ---
@@ -40,7 +41,7 @@ AWS_SES_FROM_EMAIL=noreply@vibrationfit.com
 7. Wait for verification (usually 1-72 hours)
 
 **Benefits:**
-- Can send from any address at your domain (`noreply@vibrationfit.com`, `support@vibrationfit.com`, etc.)
+- Can send from any address at your domain (`team@vibrationfit.com`, `support@vibrationfit.com`, etc.)
 - No sandbox restrictions
 - Professional appearance
 
@@ -49,7 +50,7 @@ AWS_SES_FROM_EMAIL=noreply@vibrationfit.com
 1. Go to [AWS SES Console](https://console.aws.amazon.com/ses/) → **Verified identities**
 2. Click **Create identity**
 3. Select **Email address**
-4. Enter your email (e.g., `noreply@vibrationfit.com`)
+4. Enter your email (e.g., `team@vibrationfit.com`)
 5. Check your email and click the verification link
 
 **Limitations (Sandbox Mode):**

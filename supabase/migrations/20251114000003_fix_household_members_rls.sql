@@ -19,24 +19,20 @@ BEGIN
   END LOOP;
 END $$;
 
--- Create new simplified policies
+-- Create new simplified policies (NON-RECURSIVE)
 
--- Policy 1: Users can view their own membership record
-CREATE POLICY "Users can view own membership"
-  ON household_members
-  FOR SELECT
-  USING (user_id = auth.uid());
-
--- Policy 2: Users can view other members in their household
-CREATE POLICY "Users can view household peers"
+-- Policy: Users can view their own membership AND all members in households they admin
+-- Uses ONLY households table to avoid recursion
+CREATE POLICY "Users can view household members"
   ON household_members
   FOR SELECT
   USING (
+    user_id = auth.uid() 
+    OR 
     household_id IN (
-      SELECT hm.household_id 
-      FROM household_members hm 
-      WHERE hm.user_id = auth.uid() 
-      AND hm.status = 'active'
+      SELECT h.id 
+      FROM households h 
+      WHERE h.admin_user_id = auth.uid()
     )
   );
 

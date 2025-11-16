@@ -1,5 +1,6 @@
 // Household management types and utilities
 import { createClient } from './server'
+import { createServiceClient } from './service'
 
 // =====================================================================
 // TYPES
@@ -97,9 +98,11 @@ export async function getHouseholdById(householdId: string): Promise<Household |
 /**
  * Get household for a user
  * Uses household_members as the source of truth
+ * ⚠️ Uses service role client to bypass RLS issues
  */
 export async function getUserHousehold(userId: string): Promise<Household | null> {
-  const supabase = await createClient()
+  // Use service role client to bypass RLS and avoid infinite recursion
+  const supabase = createServiceClient()
   
   console.log('[getUserHousehold] Looking up household for user:', userId)
   
@@ -148,11 +151,13 @@ export async function getUserHousehold(userId: string): Promise<Household | null
 
 /**
  * Get household with all members and invitations
+ * ⚠️ Uses service role client to bypass RLS issues
  */
 export async function getHouseholdWithMembers(
   householdId: string
 ): Promise<{ household: Household; members: HouseholdMemberWithProfile[]; invitations: any[] } | null> {
-  const supabase = await createClient()
+  // Use service role client to bypass RLS
+  const supabase = createServiceClient()
   
   const { data: household, error: householdError } = await supabase
     .from('households')
@@ -165,19 +170,29 @@ export async function getHouseholdWithMembers(
     return null
   }
 
+  // Fetch members - note: user_profiles is versioned, so we need to manually join on active profiles
   const { data: members, error: membersError } = await supabase
     .from('household_members')
-    .select(`
-      *,
-      profile:user_profiles!household_members_user_id_fkey(
-        first_name,
-        last_name,
-        email,
-        profile_picture_url
-      )
-    `)
+    .select('*')
     .eq('household_id', householdId)
     .eq('status', 'active')
+  
+  // Manually fetch active profiles for each member
+  let membersWithProfiles = []
+  if (members && members.length > 0) {
+    const userIds = members.map(m => m.user_id)
+    const { data: profiles } = await supabase
+      .from('user_profiles')
+      .select('user_id, first_name, last_name, email, profile_picture_url')
+      .in('user_id', userIds)
+      .eq('is_active', true)
+    
+    // Join profiles to members
+    membersWithProfiles = members.map(member => ({
+      ...member,
+      profile: profiles?.find(p => p.user_id === member.user_id) || null
+    }))
+  }
 
   if (membersError) {
     console.error('Error fetching household members:', membersError)
@@ -197,7 +212,7 @@ export async function getHouseholdWithMembers(
 
   return {
     household,
-    members: (members as unknown as HouseholdMemberWithProfile[]) || [],
+    members: (membersWithProfiles as unknown as HouseholdMemberWithProfile[]) || [],
     invitations: invitations || []
   }
 }
@@ -354,7 +369,8 @@ export async function createHouseholdInvitation(params: {
   invitedEmail: string
   invitedBy: string
 }): Promise<HouseholdInvitation | null> {
-  const supabase = await createClient()
+  // Use service role client to bypass RLS
+  const supabase = createServiceClient()
   
   // Generate secure token
   const invitationToken = crypto.randomUUID()

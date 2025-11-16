@@ -129,22 +129,26 @@ export default function AudioMixerAdminPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Audio Mixer Admin</h1>
-            <p className="text-sm md:text-base text-neutral-400">Manage background tracks and audio variants</p>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Audio Mixer Admin</h1>
+            <p className="text-xs md:text-sm lg:text-base text-neutral-400">Manage background tracks and audio variants</p>
           </div>
-          <Button onClick={() => {
-            setFormData({ id: '', name: '', voiceVolume: 50, bgVolume: 50, backgroundTrack: '' })
-            setEditingVariant(null)
-            setShowAddModal(true)
-          }}>
+          <Button 
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => {
+              setFormData({ id: '', name: '', voiceVolume: 50, bgVolume: 50, backgroundTrack: '' })
+              setEditingVariant(null)
+              setShowAddModal(true)
+            }}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Variant
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           {variants.map((variant) => (
             <Card key={variant.id} variant="elevated" className="p-4 md:p-6">
               <div className="flex items-start justify-between mb-4">
@@ -153,34 +157,34 @@ export default function AudioMixerAdminPage() {
                     <Music className="w-5 h-5 text-primary-500" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white">{variant.name}</h3>
-                    <p className="text-sm text-neutral-400">ID: {variant.id}</p>
+                    <h3 className="text-base md:text-lg font-semibold text-white">{variant.name}</h3>
+                    <p className="text-xs md:text-sm text-neutral-400">ID: {variant.id}</p>
                   </div>
                 </div>
                 {variant.id === 'standard' && (
-                  <Badge variant="success">System</Badge>
+                  <Badge variant="success" className="text-xs">System</Badge>
                 )}
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
+              <div className="space-y-2 md:space-y-3">
+                <div className="flex items-center justify-between text-xs md:text-sm">
                   <span className="text-neutral-400">Voice Volume:</span>
                   <span className="text-white font-semibold">{variant.voice_volume}%</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-xs md:text-sm">
                   <span className="text-neutral-400">Background:</span>
                   <span className="text-white font-semibold">{variant.bg_volume}%</span>
                 </div>
                 {variant.background_track && (
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs md:text-sm">
                     <span className="text-neutral-400">Track:</span>
-                    <span className="text-primary-500 font-mono text-xs">{variant.background_track}</span>
+                    <span className="text-primary-500 font-mono text-xs break-all">{variant.background_track}</span>
                   </div>
                 )}
               </div>
 
               {variant.id !== 'standard' && (
-                <div className="flex gap-2 mt-4">
+                <div className="flex flex-col sm:flex-row gap-2 mt-4">
                   <Button
                     variant="outline"
                     size="sm"
@@ -206,14 +210,14 @@ export default function AudioMixerAdminPage() {
         </div>
 
         <Card variant="glass" className="p-4 md:p-6">
-          <h3 className="text-lg font-semibold text-white mb-3">How to use</h3>
-          <div className="space-y-2 text-sm text-neutral-400">
-            <p>• Upload background tracks to: <code className="text-primary-500">s3://vibration-fit-client-storage/site-assets/audio/mixing-tracks/</code></p>
+          <h3 className="text-base md:text-lg font-semibold text-white mb-3">How to use</h3>
+          <div className="space-y-2 text-xs md:text-sm text-neutral-400">
+            <p className="break-all">• Upload background tracks to: <code className="text-primary-500 text-xs">s3://vibration-fit-client-storage/site-assets/audio/mixing-tracks/</code></p>
             <p>• After adding variants, update these files:</p>
             <ul className="list-disc list-inside ml-4 space-y-1">
-              <li><code className="text-primary-500">src/lib/audio/backgroundMixing.ts</code> - Background track URLs</li>
-              <li><code className="text-primary-500">src/app/api/audio/mix/route.ts</code> - Volume percentages</li>
-              <li><code className="text-primary-500">src/app/life-vision/[id]/audio/page.tsx</code> - Variant selection UI</li>
+              <li className="break-all"><code className="text-primary-500 text-xs">src/lib/audio/backgroundMixing.ts</code> - Background track URLs</li>
+              <li className="break-all"><code className="text-primary-500 text-xs">src/app/api/audio/mix/route.ts</code> - Volume percentages</li>
+              <li className="break-all"><code className="text-primary-500 text-xs">src/app/life-vision/[id]/audio/page.tsx</code> - Variant selection UI</li>
             </ul>
           </div>
         </Card>

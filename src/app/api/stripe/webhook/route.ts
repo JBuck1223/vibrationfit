@@ -7,7 +7,6 @@ import { stripe, STRIPE_CONFIG } from '@/lib/stripe/config'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
-import { TOKEN_GRANTS, STORAGE_QUOTAS } from '@/lib/billing/config'
 
 export async function POST(request: NextRequest) {
   // Check if Stripe is configured
@@ -112,39 +111,22 @@ export async function POST(request: NextRequest) {
 
           console.log('✅ Subscription created:', subscriptionId)
           
-          // HORMOZI PRICING: Grant tokens based on plan type
-          if (tierType === 'vision_pro_annual') {
-            // Annual: Grant 5M tokens immediately
-            const { data: result, error: grantError } = await supabase
-              .rpc('grant_annual_tokens', {
-                p_user_id: userId,
-                p_subscription_id: newSubscription?.id || null,
-              })
-            
-            if (grantError) {
-              console.error('❌ Failed to grant annual tokens:', grantError)
-            } else {
-              console.log('✅ Annual tokens granted:', result)
-            }
-            
-            // Storage quota is now granted by grant_annual_tokens function
-          } 
-          else if (tierType === 'vision_pro_28day') {
-            // 28-Day: Drip 375k tokens on first cycle
-            const { data: result, error: dripError } = await supabase
-              .rpc('drip_tokens_28day', {
-                p_user_id: userId,
-                p_subscription_id: newSubscription?.id || null,
-                p_cycle_number: 1,
-              })
-            
-            if (dripError) {
-              console.error('❌ Failed to drip tokens:', dripError)
-            } else {
-              console.log('✅ First cycle tokens dripped:', result)
-            }
-            
-            // Storage quota is now granted by drip_tokens_28day function (first cycle only)
+          // Grant tokens based on Stripe price ID (dynamic tier lookup)
+          const priceId = subscription.items.data[0].price.id
+
+          const { data: result, error: grantError } = await supabase
+            .rpc('grant_tokens_by_stripe_price_id', {
+              p_user_id: userId,
+              p_stripe_price_id: priceId,
+              p_subscription_id: newSubscription?.id || null,
+            })
+
+          if (grantError) {
+            console.error('❌ Failed to grant tokens:', grantError)
+            console.error('Price ID:', priceId)
+          } else {
+            console.log('✅ Tokens and storage granted:', result)
+            console.log('Tier:', result.tier)
           }
         } 
         
@@ -354,23 +336,17 @@ export async function POST(request: NextRequest) {
                 .select()
                 .single()
 
-                // Grant trial tokens
-                if (tierType === 'vision_pro_annual') {
-                  await supabase.rpc('grant_trial_tokens', {
+                // Grant intensive trial tokens (1M for 56 days)
+                const { data: result, error: grantError } = await supabase
+                  .rpc('grant_trial_tokens', {
                     p_user_id: userId,
-                    p_subscription_id: newSubscription?.id || null,
-                    p_tokens: TOKEN_GRANTS.INTENSIVE_TRIAL,
-                    p_trial_period_days: 56,
+                    p_intensive_id: intensive?.id || null,
                   })
-                  // Storage quota is now granted by grant_trial_tokens function
-                } else if (tierType === 'vision_pro_28day') {
-                  await supabase.rpc('grant_trial_tokens', {
-                    p_user_id: userId,
-                    p_subscription_id: newSubscription?.id || null,
-                    p_tokens: TOKEN_GRANTS.INTENSIVE_TRIAL,
-                    p_trial_period_days: 56,
-                  })
-                  // Storage quota is now granted by grant_trial_tokens function
+
+                if (grantError) {
+                  console.error('❌ Failed to grant intensive trial tokens:', grantError)
+                } else {
+                  console.log('✅ Intensive trial tokens granted:', result)
                 }
 
                 // Create household if plan_type is 'household'
@@ -604,37 +580,18 @@ export async function POST(request: NextRequest) {
 
             console.log('✅ Vision Pro subscription record created:', visionProSubId)
             
-            // Grant trial tokens
-            if (tierType === 'vision_pro_annual') {
-              const { data: result, error: grantError } = await supabase.rpc('grant_trial_tokens', {
+            // Grant intensive trial tokens (1M for 56 days)
+            // Note: In combined checkout, intensive purchase is created separately
+            const { data: result, error: grantError } = await supabase
+              .rpc('grant_trial_tokens', {
                 p_user_id: userId,
-                p_subscription_id: newSubscription?.id || null,
-                p_tokens: 1000000,
-                p_trial_period_days: 56,
+                p_intensive_id: null, // Will be linked when intensive purchase is created
               })
               
-              if (grantError) {
-                console.error('❌ Failed to grant trial tokens:', grantError)
-              } else {
-                console.log('✅ Trial tokens granted for annual plan:', result)
-              }
-              
-              // Storage quota is now granted by grant_trial_tokens function
-            } else if (tierType === 'vision_pro_28day') {
-              const { data: result, error: grantError } = await supabase.rpc('grant_trial_tokens', {
-                p_user_id: userId,
-                p_subscription_id: newSubscription?.id || null,
-                p_tokens: TOKEN_GRANTS.INTENSIVE_TRIAL,
-                p_trial_period_days: 56,
-              })
-              
-              if (grantError) {
-                console.error('❌ Failed to grant trial tokens:', grantError)
-              } else {
-                console.log('✅ Trial tokens granted for 28-day plan:', result)
-              }
-              
-              // Storage quota is now granted by grant_trial_tokens function
+            if (grantError) {
+              console.error('❌ Failed to grant intensive trial tokens:', grantError)
+            } else {
+              console.log('✅ Intensive trial tokens granted:', result)
             }
 
             // Create household if plan_type is 'household'
@@ -834,6 +791,7 @@ export async function POST(request: NextRequest) {
               user_id, 
               id,
               membership_tier_id,
+              stripe_price_id,
               membership_tiers (tier_type)
             `)
             .eq('stripe_customer_id', customerId)
@@ -872,19 +830,18 @@ export async function POST(request: NextRequest) {
                 .eq('action_type', 'subscription_grant')
                 .gt('tokens_used', 0) // Only count grants (not deductions)
               
-              const cycleNumber = (count || 0) + 1
-              
-              const { data: result, error: dripError } = await supabase
-                .rpc('drip_tokens_28day', {
+              // Grant tokens for renewal (dynamic tier lookup)
+              const { data: result, error: grantError } = await supabase
+                .rpc('grant_tokens_by_stripe_price_id', {
                   p_user_id: subscription.user_id,
+                  p_stripe_price_id: subscription.stripe_price_id,
                   p_subscription_id: subscription.id,
-                  p_cycle_number: cycleNumber,
                 })
               
-              if (dripError) {
-                console.error('❌ Failed to drip tokens on renewal:', dripError)
+              if (grantError) {
+                console.error('❌ Failed to grant tokens on renewal:', grantError)
               } else {
-                console.log('✅ Cycle', cycleNumber, 'tokens dripped:', result)
+                console.log('✅ Renewal tokens granted:', result)
               }
             }
           }

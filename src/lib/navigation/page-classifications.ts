@@ -64,6 +64,10 @@ export const PAGE_CLASSIFICATIONS = {
     '/profile/[id]/edit',
     '/account/settings',
     
+    // Household Management
+    '/household/settings',
+    '/household/invite/[token]',
+    
     // Vibration Assessment
     '/assessment',
     '/assessment/[id]/in-progress',
@@ -115,10 +119,17 @@ export const PAGE_CLASSIFICATIONS = {
     '/admin/assets',
     '/admin/audio-mixer',
     '/admin/intensive/schedule-call', // Explicitly listed for reference
+    '/admin/vibrational-event/sources',
+    
+    // Email Management System
+    '/admin/emails',
+    '/admin/emails/list',
+    '/admin/emails/[id]',
+    '/admin/emails/[id]/edit',
+    
     '/sitemap',
     '/design-system',
     '/design-system/component/[componentName]',
-    '/admin/vibrational-event/sources',
   ],
   
   /**

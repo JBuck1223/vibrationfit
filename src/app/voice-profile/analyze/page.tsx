@@ -99,7 +99,7 @@ export default function VoiceProfileAnalyzePage() {
   const [selectedScenes, setSelectedScenes] = useState<Set<string>>(new Set())
   const [selectedJournals, setSelectedJournals] = useState<Set<string>>(new Set())
   const [selectedVision, setSelectedVision] = useState<Set<string>>(new Set())
-  const [manualSample, setManualSample] = useState('')
+  const [manualSamples, setManualSamples] = useState<Array<{ id: string; text: string }>>([])
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -107,9 +107,9 @@ export default function VoiceProfileAnalyzePage() {
 
   const selectedCount = useMemo(() => {
     const baseCount = selectedScenes.size + selectedJournals.size + selectedVision.size
-    const manualCount = manualSample.trim().length > 0 ? 1 : 0
+    const manualCount = manualSamples.filter(s => s.text.trim().length > 0).length
     return baseCount + manualCount
-  }, [selectedScenes, selectedJournals, selectedVision, manualSample])
+  }, [selectedScenes, selectedJournals, selectedVision, manualSamples])
 
   const loadData = useCallback(async () => {
     try {
@@ -223,11 +223,13 @@ export default function VoiceProfileAnalyzePage() {
         texts.push(vision.text)
       }
     })
-    if (manualSample.trim().length > 0) {
-      texts.push(manualSample.trim())
-    }
+    manualSamples.forEach((sample) => {
+      if (sample.text.trim().length > 0) {
+        texts.push(sample.text.trim())
+      }
+    })
     return texts
-  }, [context, selectedScenes, selectedJournals, selectedVision, manualSample])
+  }, [context, selectedScenes, selectedJournals, selectedVision, manualSamples])
 
   const promptPreview = useMemo(() => {
     if (!profile) return null
@@ -277,7 +279,7 @@ export default function VoiceProfileAnalyzePage() {
 
       const data = await response.json()
       setStatusMessage('Analyzer complete. New version saved and set active.')
-      setManualSample('')
+      setManualSamples([])
       await loadData()
 
       return data
@@ -295,10 +297,10 @@ export default function VoiceProfileAnalyzePage() {
       <Stack gap="lg">
         <Stack gap="sm">
           <h1 className="text-3xl md:text-4xl font-bold text-white">Voice Analyzer</h1>
-          <p className="text-neutral-400 text-sm md:text-base max-w-3xl">
-            Feed VIVA your latest writing. We’ll analyze up to 10 samples at a time and create a new version that keeps your
-            voice aligned across every output.
-          </p>
+            <p className="text-neutral-400 text-sm md:text-base max-w-3xl">
+              Feed VIVA your latest writing from anywhere — scenes, journals, visions, or your own samples. We'll analyze up to 10 
+              pieces at a time and create a new version that keeps your voice aligned across every output.
+            </p>
         </Stack>
 
         {loading ? (
@@ -431,18 +433,73 @@ export default function VoiceProfileAnalyzePage() {
                   </div>
 
                   <Stack gap="sm">
-                    <h3 className="text-lg font-semibold text-white">Optional Manual Sample</h3>
-                    <p className="text-xs text-neutral-500">Paste any additional text (counts as one sample).</p>
-                    <Textarea
-                      value={manualSample}
-                      onChange={(event) => {
-                        setManualSample(event.target.value)
-                        setStatusMessage(null)
-                        setErrorMessage(null)
-                      }}
-                      rows={4}
-                      placeholder="Paste a post, message, or fresh writing sample."
-                    />
+                    <Inline gap="sm" align="center" justify="between" wrap>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">My Writings</h3>
+                        <p className="text-xs text-neutral-500">Add up to 10 samples from anywhere — emails, posts, messages, or notes.</p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          if (manualSamples.length >= 10) {
+                            setErrorMessage('Maximum 10 writing samples allowed.')
+                            return
+                          }
+                          setManualSamples([...manualSamples, { id: `manual-${Date.now()}`, text: '' }])
+                          setStatusMessage(null)
+                          setErrorMessage(null)
+                        }}
+                        disabled={manualSamples.length >= 10}
+                      >
+                        + Add Sample
+                      </Button>
+                    </Inline>
+                    
+                    {manualSamples.length === 0 ? (
+                      <div className="border border-dashed border-neutral-700 rounded-xl p-6 text-center">
+                        <p className="text-sm text-neutral-500">No writing samples added yet.</p>
+                        <p className="text-xs text-neutral-600 mt-1">Click "Add Sample" to paste your own writing.</p>
+                      </div>
+                    ) : (
+                      <Stack gap="sm">
+                        {manualSamples.map((sample, index) => (
+                          <div key={sample.id} className="border border-neutral-800 rounded-xl p-4 bg-neutral-900/60">
+                            <Inline gap="sm" align="start" justify="between" className="mb-2">
+                              <span className="text-sm font-medium text-white">Sample {index + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setManualSamples(manualSamples.filter((s) => s.id !== sample.id))
+                                  setStatusMessage(null)
+                                  setErrorMessage(null)
+                                }}
+                                className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                              >
+                                Remove
+                              </button>
+                            </Inline>
+                            <Textarea
+                              value={sample.text}
+                              onChange={(event) => {
+                                setManualSamples(
+                                  manualSamples.map((s) =>
+                                    s.id === sample.id ? { ...s, text: event.target.value } : s
+                                  )
+                                )
+                                setStatusMessage(null)
+                                setErrorMessage(null)
+                              }}
+                              rows={4}
+                              placeholder="Paste a post, email, message, journal entry, or any writing sample..."
+                            />
+                            <p className="text-xs text-neutral-600 mt-2">
+                              {sample.text.trim().length} characters
+                            </p>
+                          </div>
+                        ))}
+                      </Stack>
+                    )}
                   </Stack>
                 </Card>
 
@@ -465,7 +522,7 @@ export default function VoiceProfileAnalyzePage() {
                       setSelectedScenes(new Set(context.defaults.scenes))
                       setSelectedJournals(new Set(context.defaults.journalEntries))
                       setSelectedVision(new Set(context.defaults.visionParagraphs))
-                      setManualSample('')
+                      setManualSamples([])
                       setStatusMessage(null)
                       setErrorMessage(null)
                     }}

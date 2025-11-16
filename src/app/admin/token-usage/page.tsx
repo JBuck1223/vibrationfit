@@ -89,17 +89,17 @@ export default function AdminTokenUsagePage() {
       <Container size="xl">
         <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4 mb-6 md:mb-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Token Usage Analytics</h1>
-            <p className="text-sm md:text-base text-neutral-400">Track AI token consumption and costs across the platform</p>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Token Usage Analytics</h1>
+            <p className="text-xs md:text-sm lg:text-base text-neutral-400">Track AI token consumption and costs across the platform</p>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
             <select
               value={days}
               onChange={(e) => setDays(parseInt(e.target.value))}
-              className="bg-[#1F1F1F] border border-[#333] text-white rounded-lg px-3 py-2"
+              className="bg-[#1F1F1F] border border-[#333] text-white rounded-lg px-3 py-2 text-sm w-full sm:w-auto"
             >
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
@@ -109,10 +109,10 @@ export default function AdminTokenUsagePage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-1 bg-[#1F1F1F] p-1 rounded-lg">
+        <div className="flex space-x-1 bg-[#1F1F1F] p-1 rounded-lg mb-6 overflow-x-auto">
           <button
             onClick={() => setActiveTab('summary')}
-            className={`px-4 py-2 rounded-md transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-md transition-colors text-sm md:text-base whitespace-nowrap ${
               activeTab === 'summary'
                 ? 'bg-primary-500 text-white'
                 : 'text-neutral-400 hover:text-white'
@@ -122,7 +122,7 @@ export default function AdminTokenUsagePage() {
           </button>
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-4 py-2 rounded-md transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-md transition-colors text-sm md:text-base whitespace-nowrap ${
               activeTab === 'users'
                 ? 'bg-primary-500 text-white'
                 : 'text-neutral-400 hover:text-white'
@@ -150,20 +150,20 @@ export default function AdminTokenUsagePage() {
             </Button>
           </Card>
         ) : activeTab === 'summary' && summary ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {/* Total Tokens */}
             <Card variant="elevated" className="p-4 md:p-6">
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Total Tokens</h3>
-                  <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-sm">🔢</span>
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Total Tokens</h3>
+                  <div className="w-7 h-7 md:w-8 md:h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">🔢</span>
                   </div>
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-primary-500 mb-1">
+                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-primary-500 mb-1">
                   {formatNumber(summary.total_tokens)}
                 </div>
-                <div className="text-sm text-neutral-400">
+                <div className="text-xs md:text-sm text-neutral-400">
                   {formatNumber(summary.actions_count)} actions
                 </div>
               </div>
@@ -172,16 +172,16 @@ export default function AdminTokenUsagePage() {
             {/* Total Cost */}
             <Card variant="elevated" className="p-4 md:p-6">
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Total Cost</h3>
-                  <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-sm">💰</span>
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Total Cost</h3>
+                  <div className="w-7 h-7 md:w-8 md:h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">💰</span>
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-green-500 mb-1">
+                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-green-500 mb-1">
                   {formatCurrency(summary.total_cost)}
                 </div>
-                <div className="text-sm text-neutral-400">
+                <div className="text-xs md:text-sm text-neutral-400">
                   {formatCurrency(summary.total_cost / days)} avg/day
                 </div>
               </div>
@@ -190,16 +190,16 @@ export default function AdminTokenUsagePage() {
             {/* Actions Count */}
             <Card variant="elevated" className="p-4 md:p-6">
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Total Actions</h3>
-                  <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-sm">⚡</span>
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Total Actions</h3>
+                  <div className="w-7 h-7 md:w-8 md:h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">⚡</span>
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-purple-500 mb-1">
+                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-purple-500 mb-1">
                   {formatNumber(summary.actions_count)}
                 </div>
-                <div className="text-sm text-neutral-400">
+                <div className="text-xs md:text-sm text-neutral-400">
                   {Math.round(summary.actions_count / days)} avg/day
                 </div>
               </div>
@@ -208,16 +208,16 @@ export default function AdminTokenUsagePage() {
             {/* Average Cost per Action */}
             <Card variant="elevated" className="p-4 md:p-6">
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Avg Cost/Action</h3>
-                  <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-sm">📊</span>
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Avg Cost/Action</h3>
+                  <div className="w-7 h-7 md:w-8 md:h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">📊</span>
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-yellow-500 mb-1">
+                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-yellow-500 mb-1">
                   {formatCurrency(summary.actions_count > 0 ? summary.total_cost / summary.actions_count : 0)}
                 </div>
-                <div className="text-sm text-neutral-400">
+                <div className="text-xs md:text-sm text-neutral-400">
                   per AI action
                 </div>
               </div>

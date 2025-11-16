@@ -1,6 +1,7 @@
 // Household Invitation API
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import {
   getUserHousehold,
   createHouseholdInvitation,
@@ -134,11 +135,14 @@ export async function POST(request: NextRequest) {
     // Get inviter profile for email
     const { data: inviterProfile } = await supabase
       .from('user_profiles')
-      .select('full_name')
+      .select('first_name, last_name')
       .eq('user_id', user.id)
-      .single()
+      .eq('is_active', true)
+      .maybeSingle()
 
-    const inviterName = inviterProfile?.full_name || user.email?.split('@')[0] || 'A VibrationFit user'
+    const inviterName = inviterProfile?.first_name 
+      ? `${inviterProfile.first_name} ${inviterProfile.last_name || ''}`.trim()
+      : user.email?.split('@')[0] || 'A VibrationFit user'
 
     // Send invitation email via AWS SES
     try {
@@ -252,6 +256,78 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error in GET /api/household/invite:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// =====================================================================
+// DELETE /api/household/invite?id={invitationId} - Cancel invitation (admin only)
+// =====================================================================
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Get invitation ID from query params
+    const { searchParams } = new URL(request.url)
+    const invitationId = searchParams.get('id')
+
+    if (!invitationId) {
+      return NextResponse.json(
+        { error: 'Invitation ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Get user's household to verify they're admin
+    const household = await getUserHousehold(user.id)
+    if (!household) {
+      return NextResponse.json(
+        { error: 'Household not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if user is admin
+    if (household.admin_user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Only household admin can cancel invitations' },
+        { status: 403 }
+      )
+    }
+
+    // Delete the invitation using service role client to bypass RLS
+    const serviceClient = createServiceClient()
+    const { error: deleteError } = await serviceClient
+      .from('household_invitations')
+      .delete()
+      .eq('id', invitationId)
+      .eq('household_id', household.id) // Ensure it's their household
+      .eq('status', 'pending') // Can only delete pending invitations
+
+    if (deleteError) {
+      console.error('Error deleting invitation:', deleteError)
+      return NextResponse.json(
+        { error: 'Failed to cancel invitation' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error in DELETE /api/household/invite:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
