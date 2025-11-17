@@ -412,32 +412,52 @@ export async function deleteUserFile(s3Key: string): Promise<void> {
 }
 
 // Upload multiple files (convenience function)
+// Uses SEQUENTIAL uploads to avoid overwhelming S3/API and prevent 405 errors
 export async function uploadMultipleUserFiles(
   folder: UserFolder,
   files: File[],
   userId?: string,
   onProgress?: (progress: number) => void
 ): Promise<{ url: string; key: string; error?: string }[]> {
-  const uploadPromises = files.map(async (file, index) => {
+  const results: { url: string; key: string; error?: string }[] = []
+  
+  console.log(`📤 Starting sequential upload of ${files.length} files...`)
+  
+  // Upload files ONE AT A TIME to avoid S3 rate limiting and CORS issues
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index]
+    console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name}`)
+    
     try {
       const result = await uploadUserFile(folder, file, userId, (progress) => {
         if (onProgress) {
-          const totalProgress = ((index + progress / 100) / files.length) * 100
-          onProgress(totalProgress)
+          // Calculate total progress: completed files + current file progress
+          const completedProgress = (index / files.length) * 100
+          const currentProgress = (progress / 100 / files.length) * 100
+          const totalProgress = completedProgress + currentProgress
+          onProgress(Math.round(totalProgress))
         }
       })
-      return { ...result, error: undefined }
+      
+      console.log(`✅ File ${index + 1}/${files.length} uploaded successfully`)
+      results.push({ ...result, error: undefined })
+      
+      // Small delay between uploads to prevent rate limiting
+      if (index < files.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500)) // 500ms delay
+      }
     } catch (error) {
       console.error(`❌ Upload failed for ${file.name}:`, error)
-      return { 
+      results.push({ 
         url: '', 
         key: '', 
         error: error instanceof Error ? error.message : 'Upload failed' 
-      }
+      })
     }
-  })
+  }
   
-  return Promise.all(uploadPromises)
+  console.log(`📤 Sequential upload complete: ${results.filter(r => !r.error).length}/${files.length} successful`)
+  return results
 }
 
 export const ASSETS = {
