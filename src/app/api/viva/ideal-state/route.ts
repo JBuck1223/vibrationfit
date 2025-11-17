@@ -90,9 +90,24 @@ export async function POST(request: NextRequest) {
     let parsedResponse
     try {
       parsedResponse = JSON.parse(result)
+      
+      // Validate response structure
+      if (!parsedResponse.prompts || !Array.isArray(parsedResponse.prompts)) {
+        console.error('[Ideal State] Invalid response structure:', parsedResponse)
+        throw new Error('AI response missing prompts array')
+      }
+      
+      if (parsedResponse.prompts.length === 0) {
+        console.error('[Ideal State] AI returned empty prompts array')
+        throw new Error('AI generated no prompts')
+      }
+      
+      console.log('[Ideal State] Successfully parsed response with', parsedResponse.prompts.length, 'prompts')
+      
     } catch (parseError) {
       console.error('[Ideal State] Failed to parse AI response:', result)
-      throw new Error('Invalid JSON response from AI')
+      console.error('[Ideal State] Parse error:', parseError)
+      throw new Error(`Invalid JSON response from AI: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
     }
 
     // Track token usage

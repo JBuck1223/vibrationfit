@@ -157,9 +157,15 @@ export default function ImaginationPage() {
       }
 
       const data = await response.json()
+      console.log('[Imagination] API Response:', data)
 
       // API returns { success: true, data: { prompts: [...] } }
       const prompts = data.data?.prompts || data.prompts || []
+      console.log('[Imagination] Extracted prompts:', prompts)
+      
+      if (!prompts || !Array.isArray(prompts) || prompts.length === 0) {
+        throw new Error('No prompts were generated. Please try again.')
+      }
       
       if (prompts && Array.isArray(prompts)) {
         setPrompts(prompts)
@@ -169,6 +175,7 @@ export default function ImaginationPage() {
           initialAnswers[`prompt-${idx}`] = ''
         })
         setAnswers(initialAnswers)
+        console.log('[Imagination] Successfully loaded', prompts.length, 'prompts')
       }
 
       setVivaStage('')
