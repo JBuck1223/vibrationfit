@@ -132,24 +132,22 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Save generated prompts to database for fine-tuning analysis
+    // Save generated prompts to life_vision_category_state
     const { error: saveError } = await supabase
-      .from('ideal_state_prompts')
-      .insert({
+      .from('life_vision_category_state')
+      .upsert({
         user_id: user.id,
         category,
-        prompts: parsedResponse.prompts || [],
-        encouragement: parsedResponse.encouragement || null,
-        model_used: aiConfig.model,
-        tokens_used: completion.usage?.total_tokens || 0,
-        response_time_ms: responseTime
+        ideal_state_prompts: parsedResponse.prompts || []
+      }, {
+        onConflict: 'user_id,category'
       })
 
     if (saveError) {
       console.error('[Ideal State] Failed to save prompts to database:', saveError)
       // Don't fail the request if save fails
     } else {
-      console.log('[Ideal State] Saved prompts to database for fine-tuning')
+      console.log('[Ideal State] Saved', parsedResponse.prompts?.length || 0, 'prompts to life_vision_category_state')
     }
 
     console.log('[Ideal State] Successfully generated', parsedResponse.prompts?.length || 0, 'prompts')
@@ -196,14 +194,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch most recent prompts from database
+    // Fetch prompts from life_vision_category_state
     const { data, error } = await supabase
-      .from('ideal_state_prompts')
-      .select('id, prompts, encouragement, created_at')
+      .from('life_vision_category_state')
+      .select('ideal_state_prompts, updated_at')
       .eq('user_id', user.id)
       .eq('category', category)
-      .order('created_at', { ascending: false })
-      .limit(1)
       .maybeSingle()
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = not found
@@ -212,11 +208,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: data ? {
-        prompts: data.prompts,
-        encouragement: data.encouragement,
+      data: data?.ideal_state_prompts ? {
+        prompts: data.ideal_state_prompts,
         cached: true,
-        cachedAt: data.created_at
+        cachedAt: data.updated_at
       } : null
     })
 
