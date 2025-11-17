@@ -76,12 +76,14 @@ export default function VisionBoardPage() {
     }
   }
 
-  const filteredItems = items.filter(item => {
-    const categoryMatch = selectedCategories.includes('all') || 
-      (selectedCategories.length > 0 && item.categories && item.categories.some((cat: string) => selectedCategories.includes(cat)))
-    const statusMatch = selectedStatuses.includes('all') || selectedStatuses.includes(item.status)
-    return categoryMatch && statusMatch
-  })
+  const filteredItems = items
+    .filter(item => {
+      const categoryMatch = selectedCategories.includes('all') || 
+        (selectedCategories.length > 0 && item.categories && item.categories.some((cat: string) => selectedCategories.includes(cat)))
+      const statusMatch = selectedStatuses.includes('all') || selectedStatuses.includes(item.status)
+      return categoryMatch && statusMatch
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
 
   const totalItems = items?.length || 0
@@ -239,30 +241,54 @@ export default function VisionBoardPage() {
 
 
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, isListView: boolean = false) => {
     if (status === 'active') {
       return (
-        <div className="bg-green-600 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
-          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-          <span className="text-white text-sm font-semibold">Active</span>
+        <div className={`bg-green-600 rounded-full flex items-center gap-1 md:gap-2 shadow-lg ${
+          isListView 
+            ? 'px-3 py-1.5 md:px-2 md:py-1' 
+            : 'px-3 py-1.5 md:px-4 md:py-2'
+        }`}>
+          <div className={`bg-white rounded-full animate-pulse ${
+            isListView ? 'w-1.5 h-1.5 md:w-1.5 md:h-1.5' : 'w-1.5 h-1.5 md:w-2 md:h-2'
+          }`}></div>
+          <span className={`text-white font-semibold ${
+            isListView ? 'text-xs md:text-xs' : 'text-xs md:text-sm'
+          }`}>Active</span>
         </div>
       )
     }
 
     if (status === 'actualized') {
       return (
-        <div className="bg-purple-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
-          <CheckCircle className="w-4 h-4 text-white" />
-          <span className="text-white text-sm font-semibold">Actualized</span>
+        <div className={`bg-purple-500 rounded-full flex items-center gap-1 md:gap-2 shadow-lg ${
+          isListView 
+            ? 'px-3 py-1.5 md:px-2 md:py-1' 
+            : 'px-3 py-1.5 md:px-4 md:py-2'
+        }`}>
+          <CheckCircle className={`text-white ${
+            isListView ? 'w-3 h-3 md:w-3 md:h-3' : 'w-3 h-3 md:w-4 md:h-4'
+          }`} />
+          <span className={`text-white font-semibold ${
+            isListView ? 'text-xs md:text-xs' : 'text-xs md:text-sm'
+          }`}>Actualized</span>
         </div>
       )
     }
 
     if (status === 'inactive') {
       return (
-        <div className="bg-gray-600 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
-          <XCircle className="w-4 h-4 text-white" />
-          <span className="text-white text-sm font-semibold">Inactive</span>
+        <div className={`bg-gray-600 rounded-full flex items-center gap-1 md:gap-2 shadow-lg ${
+          isListView 
+            ? 'px-3 py-1.5 md:px-2 md:py-1' 
+            : 'px-3 py-1.5 md:px-4 md:py-2'
+        }`}>
+          <XCircle className={`text-white ${
+            isListView ? 'w-3 h-3 md:w-3 md:h-3' : 'w-3 h-3 md:w-4 md:h-4'
+          }`} />
+          <span className={`text-white font-semibold ${
+            isListView ? 'text-xs md:text-xs' : 'text-xs md:text-sm'
+          }`}>Inactive</span>
         </div>
       )
     }
@@ -611,7 +637,7 @@ export default function VisionBoardPage() {
                     <div className="flex flex-col md:flex-row gap-3 md:gap-4">
 
                       {/* Image - Consistent 4:3 aspect ratio */}
-                      <div className="flex-shrink-0 w-full md:w-40 aspect-[4/3] rounded-lg overflow-hidden bg-neutral-800">
+                      <div className="relative flex-shrink-0 w-full md:w-40 aspect-[4/3] rounded-lg overflow-hidden bg-neutral-800">
                         {(item.status === 'actualized' && item.actualized_image_url) ? (
                           <img
                             src={item.actualized_image_url}
@@ -631,53 +657,61 @@ export default function VisionBoardPage() {
                             <Grid3X3 className="w-8 h-8 md:w-6 md:h-6 text-neutral-600" />
                           </div>
                         )}
+                        
+                        {/* Status Badge - On photo like grid view - Smaller padding for list view due to smaller images */}
+                        <div className="absolute top-2 right-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              cycleItemStatus(item.id)
+                            }}
+                            className="cursor-pointer"
+                            title="Click to cycle status: Active → Actualized → Inactive"
+                          >
+                            {getStatusBadge(item.status, true)}
+                          </button>
+                        </div>
                       </div>
 
                       {/* Item Details - Mobile-first layout */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-col gap-3">
-                          {/* Title with Status Badge */}
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-base md:text-lg font-semibold text-white truncate">{item.name}</h3>
-                              {/* Clickable Status Badge - Next to title */}
-                              <button
-                                onClick={() => cycleItemStatus(item.id)}
-                                className="cursor-pointer hover:opacity-80 transition-opacity"
-                                title="Click to cycle status: Active → Actualized → Inactive"
-                              >
-                                {getStatusBadge(item.status)}
-                              </button>
-                            </div>
-                          {item.description && (
-                            <p className="text-sm text-neutral-400 line-clamp-2">{item.description}</p>
-                          )}
-                          
-                          {/* Created Date */}
-                          <div className="text-xs text-neutral-500 mt-1">
-                            Created {new Date(item.created_at).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}
-                          </div>
+                        <div className="space-y-4">
+                          {/* Title and Description */}
+                          <div>
+                            <h3 className="text-xl font-semibold text-white mb-2">{item.name}</h3>
+                            {item.description && (
+                              <p className="text-neutral-300">{item.description}</p>
+                            )}
                           </div>
 
-                          {/* Categories - Show all, responsive */}
-                          {item.categories && item.categories.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {item.categories.map((category: string) => (
-                                <Badge key={category} variant="secondary" className="text-xs flex-shrink-0">
-                                  {category}
-                                </Badge>
-                              ))}
+                          {/* Created Date and Categories */}
+                          <div className="flex flex-wrap items-center gap-4">
+                            {/* Created Date */}
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="font-medium text-white">Created:</span>
+                              <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(item.created_at).toLocaleDateString()}</span>
                             </div>
-                          )}
+
+                            {/* Categories */}
+                            {item.categories && item.categories.length > 0 && (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-sm font-medium text-white">Categories:</h3>
+                                {item.categories.map((category: string) => (
+                                  <span
+                                    key={category}
+                                    className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                                  >
+                                    {category}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
                       {/* Action Buttons - Right side */}
-                      <div className="flex-shrink-0 md:flex-shrink-0 w-full md:w-auto">
+                      <div className="flex-shrink-0 md:flex-shrink-0 w-full md:w-auto flex items-center">
                         <Button
                           asChild
                           variant="primary"
@@ -685,6 +719,7 @@ export default function VisionBoardPage() {
                           className="w-full md:w-auto"
                         >
                           <Link href={`/vision-board/${item.id}`}>
+                            <Eye className="w-4 h-4 mr-2" />
                             View
                           </Link>
                         </Button>

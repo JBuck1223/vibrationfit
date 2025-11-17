@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {  Card, Button, DeleteConfirmationDialog } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2 } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface JournalEntry {
@@ -31,10 +31,14 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [processedVideoUrls, setProcessedVideoUrls] = useState<Record<string, string>>({})
   const [deleting, setDeleting] = useState(false)
+  const [entryId, setEntryId] = useState<string | null>(null)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
   useEffect(() => {
     async function fetchData() {
       const resolvedParams = await params
+      setEntryId(resolvedParams.id)
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
@@ -180,6 +184,111 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
     setLightboxMedia(null)
   }
 
+  // Get all image URLs for navigation
+  const getImageUrls = () => {
+    if (!entry) return []
+    return entry.image_urls.filter(url => {
+      const ext = url.split('.').pop()?.toLowerCase()
+      return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
+    })
+  }
+
+  const navigateLightbox = (direction: 'prev' | 'next') => {
+    if (!lightboxMedia || !entry) return
+    
+    const imageUrls = getImageUrls()
+    if (imageUrls.length <= 1) return
+    
+    const currentIndex = imageUrls.indexOf(lightboxMedia.url)
+    let newIndex: number
+    
+    if (direction === 'next') {
+      newIndex = (currentIndex + 1) % imageUrls.length
+    } else {
+      newIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length
+    }
+    
+    const newUrl = imageUrls[newIndex]
+    setLightboxMedia({ url: newUrl, type: 'image', index: newIndex })
+  }
+
+  // Swipe handlers for mobile
+  const minSwipeDistance = 50
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) {
+      // If no movement, it was just a tap - don't navigate
+      return
+    }
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe) {
+      navigateLightbox('next')
+    }
+    if (isRightSwipe) {
+      navigateLightbox('prev')
+    }
+  }
+
+  // Prevent body scroll and interactions when lightbox is open
+  useEffect(() => {
+    if (lightboxOpen) {
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden'
+      // Prevent pointer events on body content (but allow lightbox)
+      document.body.style.pointerEvents = 'none'
+      
+      return () => {
+        document.body.style.overflow = ''
+        document.body.style.pointerEvents = ''
+      }
+    }
+  }, [lightboxOpen])
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!lightboxOpen || !lightboxMedia || !entry) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeLightbox()
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // Get all image URLs
+        const imageUrls = entry.image_urls.filter(url => {
+          const ext = url.split('.').pop()?.toLowerCase()
+          return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
+        })
+        
+        if (imageUrls.length <= 1) return
+        
+        const currentIndex = imageUrls.indexOf(lightboxMedia.url)
+        if (currentIndex === -1) return
+        
+        const newIndex = e.key === 'ArrowRight' 
+          ? (currentIndex + 1) % imageUrls.length
+          : (currentIndex - 1 + imageUrls.length) % imageUrls.length
+        
+        const newUrl = imageUrls[newIndex]
+        setLightboxMedia({ url: newUrl, type: 'image', index: newIndex })
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [lightboxOpen, lightboxMedia, entry])
+
   const handleDelete = async () => {
     if (!entry) return
     
@@ -264,7 +373,17 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
       {/* Back Button */}
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.back()}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => {
+              if (entryId) {
+                router.push(`/journal#entry-${entryId}`)
+              } else {
+                router.push('/journal')
+              }
+            }}
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
@@ -424,18 +543,90 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
       {/* Lightbox */}
       {lightboxOpen && lightboxMedia && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-          <div className="relative max-w-7xl max-h-full w-full h-full flex items-center justify-center">
+        <div 
+          className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center p-4"
+          style={{ pointerEvents: 'auto' }}
+          onClick={(e) => {
+            // Only close on desktop when clicking outside (not on mobile)
+            if (window.innerWidth >= 768) {
+              // Always prevent clicks from going through to background
+              e.preventDefault()
+              e.stopPropagation()
+              // Close if clicking on the backdrop (not on the image itself)
+              const target = e.target as HTMLElement
+              if (target === e.currentTarget || 
+                  (!target.closest('.lightbox-media-content') &&
+                   !target.closest('button') &&
+                   !target.closest('a'))) {
+                closeLightbox()
+                return false
+              }
+            }
+            return false
+          }}
+          onMouseDown={(e) => {
+            // Also prevent mousedown from going through (desktop only)
+            if (window.innerWidth >= 768) {
+              e.preventDefault()
+              e.stopPropagation()
+            }
+          }}
+        >
+          <div 
+            className="lightbox-backdrop-container relative max-w-7xl max-h-full w-full h-full flex items-center justify-center"
+          >
             {/* Close button */}
             <button
-              onClick={closeLightbox}
+              onClick={(e) => {
+                e.stopPropagation()
+                closeLightbox()
+              }}
               className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
 
+            {/* Navigation buttons - Only show for images with multiple images, hidden on mobile */}
+            {lightboxMedia.type === 'image' && getImageUrls().length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigateLightbox('prev')
+                  }}
+                  className="hidden md:block absolute left-4 z-10 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigateLightbox('next')
+                  }}
+                  className="hidden md:block absolute right-4 z-10 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+
             {/* Media content */}
-            <div className="relative max-w-full max-h-full">
+            <div 
+              className="lightbox-media-content relative max-w-full max-h-full"
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => {
+                e.stopPropagation()
+                onTouchStart(e)
+              }}
+              onTouchMove={(e) => {
+                e.stopPropagation()
+                onTouchMove(e)
+              }}
+              onTouchEnd={(e) => {
+                e.stopPropagation()
+                onTouchEnd()
+              }}
+            >
               {lightboxMedia.type === 'image' && (
                 <img
                   src={lightboxMedia.url}
@@ -480,6 +671,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
               href={lightboxMedia.url}
               download
               className="absolute bottom-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+              onClick={(e) => e.stopPropagation()}
             >
               <Download className="w-6 h-6" />
             </a>

@@ -2,11 +2,12 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import {  Card, Button, Video } from '@/lib/design-system'
+import {  Card, Button, Video, CategoryCard } from '@/lib/design-system'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Calendar, FileText, Play, Volume2, ChevronLeft, ChevronRight, X, Eye } from 'lucide-react'
+import { Plus, Calendar, FileText, Play, Volume2, ChevronLeft, ChevronRight, X, Eye, Grid, List, Filter } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface JournalEntry {
@@ -38,6 +39,9 @@ export default function JournalPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [lightboxImages, setLightboxImages] = useState<string[]>([])
   const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({})
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [showFilters, setShowFilters] = useState(false)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
 
   useEffect(() => {
     async function fetchData() {
@@ -222,6 +226,24 @@ export default function JournalPage() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [lightboxOpen])
 
+  // Scroll to entry anchor when page loads with hash
+  useEffect(() => {
+    if (loading || entries.length === 0) return
+
+    const hash = window.location.hash
+    if (hash && hash.startsWith('#entry-')) {
+      const entryId = hash.replace('#entry-', '')
+      const element = document.getElementById(`entry-${entryId}`)
+      
+      if (element) {
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 100)
+      }
+    }
+  }, [loading, entries])
+
   if (loading) {
     return (
       <div className="text-center py-16">
@@ -231,6 +253,13 @@ export default function JournalPage() {
   }
 
   const entryCount = entries.length
+
+  // Filter entries by selected categories
+  const filteredEntries = entries.filter(entry => {
+    const categoryMatch = selectedCategories.includes('all') || 
+      (selectedCategories.length > 0 && entry.categories && entry.categories.some((cat: string) => selectedCategories.includes(cat)))
+    return categoryMatch
+  })
 
   return (
     <>
@@ -333,231 +362,479 @@ export default function JournalPage() {
           </Card>
         </div>
 
+        {/* Action Bar */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1 flex justify-start">
+            <button
+              onClick={() => router.push('/journal/new')}
+              className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
+              aria-label="Add Entry"
+            >
+              <Plus className="w-6 h-6 text-[#39FF14]" />
+            </button>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2"
+          >
+            <Filter className="w-4 h-4" />
+            <span>Filter</span>
+          </Button>
+          <div className="flex-1 flex justify-end">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-3 rounded-full transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-[#39FF14] text-black shadow-lg'
+                    : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
+                }`}
+                aria-label="Grid view"
+              >
+                <Grid className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-3 rounded-full transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-[#39FF14] text-black shadow-lg'
+                    : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
+                }`}
+                aria-label="List view"
+              >
+                <List className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        {showFilters && (
+          <div id="filters" className="mb-8 space-y-6 animate-in slide-in-from-top duration-300">
+            {/* Category Filter */}
+            <Card variant="elevated" className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white">Categories</h3>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedCategories.includes('all')) {
+                      // Deselect all - set to empty array
+                      setSelectedCategories([])
+                    } else {
+                      // Select all
+                      setSelectedCategories(['all'])
+                    }
+                  }}
+                >
+                  {selectedCategories.includes('all') ? 'Deselect All' : 'Select All'}
+                </Button>
+              </div>
+
+              {/* Category Cards Grid */}
+              <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+                {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
+                  const isSelected = selectedCategories.includes(category.label) || selectedCategories.includes('all')
+                  return (
+                    <CategoryCard 
+                      key={category.key} 
+                      category={category} 
+                      selected={isSelected} 
+                      onClick={() => {
+                        if (selectedCategories.includes(category.label)) {
+                          // Remove category from selection
+                          setSelectedCategories(prev => prev.filter(cat => cat !== category.label))
+                        } else {
+                          // Add category to selection (remove 'all' if it exists)
+                          setSelectedCategories(prev => {
+                            const filtered = prev.filter(cat => cat !== 'all')
+                            return [...filtered, category.label]
+                          })
+                        }
+                      }}
+                      variant="outlined"
+                      selectionStyle="border"
+                      iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                      selectedIconColor="#39FF14"
+                      className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
+                    />
+                  )
+                })}
+              </div>
+            </Card>
+          </div>
+        )}
+
         {/* Entries List */}
-        {entries && entries.length > 0 ? (
-          <div className="space-y-4">
-            {entries.map((entry) => (
-              <Card key={entry.id} className="hover:border-primary-500/50 transition-all duration-200 hover:-translate-y-1">
-                <div className="space-y-4">
-                  {/* Title */}
-                  <h3 className="text-lg sm:text-xl font-semibold text-white break-words">
-                    {entry.title || 'Untitled Entry'}
-                  </h3>
-
-                  {/* Content Preview */}
-                  {entry.content && (
-                    <p className="text-neutral-200 text-sm line-clamp-3 break-words">
-                      {entry.content.substring(0, 200)}
-                      {entry.content.length > 200 && '...'}
-                    </p>
-                  )}
-
-                  {/* Created Date and Categories */}
-                  <div className="flex flex-wrap items-center gap-4">
-                    {/* Created Date */}
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-medium text-white">Created:</span>
-                      <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(entry.created_at).toLocaleDateString()}</span>
-                    </div>
-
-                    {/* Categories */}
-                    {entry.categories && entry.categories.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-medium text-white">Categories:</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {entry.categories.map((category: string) => (
-                            <span
-                              key={category}
-                              className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                            >
-                              {category}
-                            </span>
-                          ))}
+        {filteredEntries && filteredEntries.length > 0 ? (
+          viewMode === 'grid' ? (
+            /* Grid View - Masonry Layout */
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
+              {filteredEntries.map((entry) => (
+                <Card 
+                  key={entry.id} 
+                  id={`entry-${entry.id}`} 
+                  className="hover:border-primary-500/50 transition-all duration-200 hover:-translate-y-1 scroll-mt-8 cursor-pointer break-inside-avoid mb-4"
+                  onClick={() => router.push(`/journal/${entry.id}`)}
+                >
+                  <div className="space-y-2 md:space-y-3">
+                    {/* Date - Right Aligned with Banner */}
+                    <div className="relative -mt-1">
+                      <div className="flex justify-end">
+                        <div className="relative inline-block">
+                          <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded"></div>
+                          <div className="relative text-sm md:text-base text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
+                            {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
 
-                  {/* Media Preview - Videos Full Width, Images 2x2 Grid */}
-                  {entry.image_urls && entry.image_urls.length > 0 && (
-                    <div className="space-y-4">
-                      {/* Videos - Full Width */}
-                      {entry.image_urls.filter(url => {
+                    {/* Media Preview - Single Image/Video Thumbnail */}
+                    {(() => {
+                      if (!entry.image_urls || entry.image_urls.length === 0) return null
+                      
+                      // Check for videos first
+                      const videoUrls = entry.image_urls.filter(url => {
                         const ext = url.split('.').pop()?.toLowerCase()
                         return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
-                      }).map((url: string, index: number) => {
-                        const videoKey = `${entry.id}-${index}`
-                        const hasError = videoErrors[videoKey] || false
-                        
-                        // Use thumbnail from thumbnail_urls if available, otherwise generate one
-                        const thumbnailUrl = entry.thumbnail_urls && entry.thumbnail_urls.length > index
-                          ? entry.thumbnail_urls[index]
-                          : entry.thumbnail_urls && entry.thumbnail_urls.length > 0
+                      })
+                      
+                      if (videoUrls.length > 0) {
+                        const videoUrl = videoUrls[0]
+                        const thumbnailUrl = entry.thumbnail_urls && entry.thumbnail_urls.length > 0
                           ? entry.thumbnail_urls[0]
-                          : getThumbnailUrl(url)
+                          : getThumbnailUrl(videoUrl)
                         
                         return (
-                          <div key={`video-${index}`} className="relative group">
-                            <OptimizedVideo
-                              url={url}
-                              thumbnailUrl={thumbnailUrl}
-                              context="list"
-                              lazy={true}
-                              className="w-full"
+                          <div className="relative w-full rounded-lg overflow-hidden border border-neutral-700">
+                            <div className="w-full rounded-lg overflow-hidden">
+                              <OptimizedVideo
+                                url={videoUrl}
+                                thumbnailUrl={thumbnailUrl}
+                                context="list"
+                                lazy={true}
+                                className="w-full [&>div]:rounded-lg [&>div]:border-0 [&>div]:!border-0 [&_video]:object-contain [&_video]:w-full [&_video]:h-auto [&_video]:rounded-lg"
+                              />
+                            </div>
+                          </div>
+                        )
+                      }
+                      
+                      // Check for images
+                      const imageUrls = entry.image_urls.filter(url => {
+                        const ext = url.split('.').pop()?.toLowerCase()
+                        return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
+                      })
+                      
+                      if (imageUrls.length > 0) {
+                        const imageCount = imageUrls.length
+                        
+                        // Show collage for multiple images
+                        if (imageCount > 1) {
+                          const imagesToShow = imageUrls.slice(0, 4) // Show up to 4 images
+                          return (
+                            <div 
+                              className="relative w-full rounded-lg overflow-hidden border border-neutral-700 cursor-pointer group"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openLightbox(entry.image_urls, 0)
+                              }}
+                            >
+                              <div className={`grid ${imageCount === 2 ? 'grid-cols-2' : imageCount === 3 ? 'grid-cols-2' : 'grid-cols-2'} gap-0.5`}>
+                                {imagesToShow.map((imageUrl, idx) => (
+                                  <div key={idx} className="relative bg-neutral-800">
+                                    <img
+                                      src={imageUrl}
+                                      alt={`Entry preview ${idx + 1}`}
+                                      className="w-full h-full object-cover aspect-square"
+                                      loading="lazy"
+                                    />
+                                    {idx === 3 && imageCount > 4 && (
+                                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                        <span className="text-white text-sm font-semibold">+{imageCount - 4}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        }
+                        
+                        // Single image
+                        return (
+                          <div className="relative w-full rounded-lg overflow-hidden border border-neutral-700 cursor-pointer group">
+                            <img
+                              src={imageUrls[0]}
+                              alt={`Entry preview`}
+                              className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-200 rounded-lg"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openLightbox(entry.image_urls, 0)
+                              }}
+                              loading="lazy"
                             />
                           </div>
                         )
-                      })}
+                      }
                       
-                      {/* Images - 2x2 Grid */}
-                      {entry.image_urls.filter(url => {
-                        const ext = url.split('.').pop()?.toLowerCase()
-                        return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
-                      }).length > 0 && (
-                        <div className="grid grid-cols-2 gap-4">
-                          {entry.image_urls.filter(url => {
-                            const ext = url.split('.').pop()?.toLowerCase()
-                            return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
-                          }).slice(0, 4).map((url: string, index: number) => (
-                              <div key={`image-${index}`} className="relative group">
-                                <Image
-                                  src={url}
-                                  alt={`Entry image ${index + 1}`}
-                                  width={400}
-                                  height={300}
-                                  className="w-full h-auto object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                                  onClick={() => openLightbox(entry.image_urls, entry.image_urls.indexOf(url))}
-                                  quality={85}
-                                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                                  loading="lazy"
-                                />
-                              </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {/* Other Media Types */}
-                      {entry.image_urls.filter(url => {
-                        const ext = url.split('.').pop()?.toLowerCase()
-                        return !['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'webm', 'avi'].includes(ext || '')
-                      }).map((url: string, index: number) => {
-                        const getFileType = (url: string): 'audio' | 'unknown' => {
-                          const ext = url.split('.').pop()?.toLowerCase()
-                          if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext || '')) return 'audio'
-                          return 'unknown'
-                        }
-                        
-                        const fileType = getFileType(url)
-                        
-                        return (
-                          <div key={`other-${index}`} className="relative group aspect-square">
-                            <div className="w-full h-full bg-neutral-700 flex items-center justify-center rounded-lg border border-neutral-600">
-                              {fileType === 'audio' ? (
-                                <Volume2 className="w-8 h-8" style={{ color: 'white' }} />
-                              ) : (
-                                <FileText className="w-8 h-8 text-white" />
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
+                      return null
+                    })()}
 
-                  {/* Audio/Video Recordings */}
-                  {entry.audio_recordings && entry.audio_recordings.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-neutral-300 flex items-center gap-2">
-                        <Volume2 className="w-4 h-4" />
-                        Recordings ({entry.audio_recordings.length})
-                      </h4>
-                      <div className="space-y-2">
-                        {entry.audio_recordings.map((recording: any, index: number) => (
-                          <div key={`recording-${index}`} className="flex items-center gap-3 p-3 bg-neutral-800 rounded-lg border border-neutral-700">
-                            <div className="flex-shrink-0">
-                              {recording.type === 'video' ? (
-                                <Play className="w-5 h-5 text-primary-500" />
-                              ) : (
-                                <Volume2 className="w-5 h-5 text-secondary-500" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-neutral-200 truncate">
-                                {recording.transcript ? recording.transcript.substring(0, 100) + '...' : 'Recording'}
-                              </p>
-                              <p className="text-xs text-neutral-400">
-                                {recording.type === 'video' ? 'Video' : 'Audio'} • {recording.duration ? `${Math.round(recording.duration)}s` : 'Unknown duration'}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => window.open(recording.url, '_blank')}
-                              className="flex-shrink-0 p-2 bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors"
-                            >
-                              <Play className="w-4 h-4 text-white" />
-                            </button>
-                          </div>
+                    {/* Title */}
+                    <h3 className="text-base md:text-lg font-semibold text-white break-words line-clamp-2">
+                      {entry.title || 'Untitled Entry'}
+                    </h3>
+
+                    {/* Categories - Show All */}
+                    {entry.categories && entry.categories.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {entry.categories.map((category: string) => (
+                          <span
+                            key={category}
+                            className="text-xs bg-primary-500/20 text-primary-500 px-2 py-0.5 rounded-full"
+                          >
+                            {category}
+                          </span>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Action Buttons - Under All Content, Right Aligned */}
-                  <div className="pt-2 flex flex-row gap-2 sm:gap-3 sm:justify-end">
-                    <Button
-                      asChild
-                      variant="primary"
-                      size="sm"
-                      className="flex-1 sm:flex-none sm:w-32"
-                    >
-                      <Link href={`/journal/${entry.id}`}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </Link>
-                    </Button>
+                    {/* Action Button - Compact */}
+                    <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <Link href={`/journal/${entry.id}`}>
+                          <Eye className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
+                          View Entry
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            /* List View - Mobile-First Design */
+            <div className="space-y-3 md:space-y-4">
+              {filteredEntries.map((entry) => (
+                <Card 
+                  key={entry.id} 
+                  id={`entry-${entry.id}`} 
+                  className="hover:border-primary-500 transition-all duration-200 scroll-mt-8 cursor-pointer"
+                  onClick={() => router.push(`/journal/${entry.id}`)}
+                >
+                  <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+                    {/* Image - 300px wide, maintain aspect ratio, max 1:1 */}
+                    <div className="relative flex-shrink-0 w-full md:w-[300px] md:max-h-[300px] flex items-center justify-center rounded-lg overflow-hidden bg-neutral-800">
+                      {(() => {
+                        if (!entry.image_urls || entry.image_urls.length === 0) {
+                          return (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <FileText className="w-8 h-8 md:w-6 md:h-6 text-neutral-600" />
+                            </div>
+                          )
+                        }
+                        
+                        // Check for videos first
+                        const videoUrls = entry.image_urls.filter(url => {
+                          const ext = url.split('.').pop()?.toLowerCase()
+                          return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
+                        })
+                        
+                        if (videoUrls.length > 0) {
+                          const videoUrl = videoUrls[0]
+                          const thumbnailUrl = entry.thumbnail_urls && entry.thumbnail_urls.length > 0
+                            ? entry.thumbnail_urls[0]
+                            : getThumbnailUrl(videoUrl)
+                          
+                          return (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <OptimizedVideo
+                                url={videoUrl}
+                                thumbnailUrl={thumbnailUrl}
+                                context="list"
+                                lazy={true}
+                                className="w-full max-w-full max-h-full [&>div]:w-auto [&>div]:h-auto [&>div]:max-w-full [&>div]:max-h-full [&_video]:object-contain [&_video]:w-auto [&_video]:h-auto [&_video]:max-w-full [&_video]:max-h-full [&_video]:!aspect-auto"
+                              />
+                            </div>
+                          )
+                        }
+                        
+                        // Check for images
+                        const imageUrls = entry.image_urls.filter(url => {
+                          const ext = url.split('.').pop()?.toLowerCase()
+                          return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
+                        })
+                        
+                        if (imageUrls.length > 0) {
+                          const imageCount = imageUrls.length
+                          
+                          // Show collage for multiple images
+                          if (imageCount > 1) {
+                            const imagesToShow = imageUrls.slice(0, 4) // Show up to 4 images
+                            return (
+                              <div 
+                                className="w-full h-full rounded-lg"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  openLightbox(entry.image_urls, 0)
+                                }}
+                              >
+                                <div className={`grid ${imageCount === 2 ? 'grid-cols-2' : imageCount === 3 ? 'grid-cols-2' : 'grid-cols-2'} gap-0.5 h-full`}>
+                                  {imagesToShow.map((imageUrl, idx) => (
+                                    <div key={idx} className="relative bg-neutral-800">
+                                      <img
+                                        src={imageUrl}
+                                        alt={`Entry preview ${idx + 1}`}
+                                        className="w-full h-full object-cover aspect-square"
+                                        loading="lazy"
+                                      />
+                                      {idx === 3 && imageCount > 4 && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                          <span className="text-white text-sm font-semibold">+{imageCount - 4}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          }
+                          
+                          // Single image
+                          return (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <img
+                                src={imageUrls[0]}
+                                alt={entry.title || 'Entry preview'}
+                                className="max-w-full max-h-full w-auto h-auto object-contain"
+                                loading="lazy"
+                              />
+                            </div>
+                          )
+                        }
+                        
+                        return null
+                      })()}
+                    </div>
+
+                    {/* Entry Details - Mobile-first layout */}
+                    <div className="flex-1 min-w-0">
+                      <div className="space-y-4">
+                        {/* Title and Content */}
+                        <div>
+                          <h3 className="text-xl font-semibold text-white mb-2">{entry.title || 'Untitled Entry'}</h3>
+                          {entry.content && (
+                            <p className="text-neutral-300">
+                              {entry.content.length > 200 ? `${entry.content.substring(0, 200)}...` : entry.content}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Created Date and Categories */}
+                        <div className="flex flex-wrap items-center gap-4">
+                          {/* Created Date */}
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="font-medium text-white">Created:</span>
+                            <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(entry.created_at).toLocaleDateString()}</span>
+                          </div>
+
+                          {/* Categories */}
+                          {entry.categories && entry.categories.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-sm font-medium text-white">Categories:</h3>
+                              {entry.categories.map((category: string) => (
+                                <span
+                                  key={category}
+                                  className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                                >
+                                  {category}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons - Right side */}
+                    <div className="flex-shrink-0 md:flex-shrink-0 w-full md:w-auto flex items-center" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="sm"
+                        className="w-full md:w-auto"
+                      >
+                        <Link href={`/journal/${entry.id}`}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Entry
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
               </Card>
             ))}
+            </div>
+          )
+        ) : null}
 
-            {/* Load More Button */}
-            {hasMore && (
-              <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-center py-8">
-                <Button
-                  onClick={() => setPage(page + 1)}
-                  variant="outline"
-                  disabled={loadingMore}
-                >
-                  {loadingMore ? 'Loading...' : 'Load More'}
-                </Button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <Card className="text-center py-16 max-w-2xl mx-auto">
-            <FileText className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No journal entries yet</h3>
-            <p className="text-neutral-400 mb-6">
-              Start capturing evidence of your conscious creation journey. 
-              Log your wins, insights, and moments of alignment.
-            </p>
-            <Button asChild>
-              <Link href="/journal/new">
-                <Plus className="w-5 h-5 mr-2" />
-                Create Your First Entry
-              </Link>
+        {/* Load More Button */}
+        {filteredEntries && filteredEntries.length > 0 && hasMore && (
+          <div className="flex justify-center py-6 mt-6">
+            <Button
+              onClick={() => setPage(page + 1)}
+              variant="outline"
+              size="sm"
+              disabled={loadingMore}
+            >
+              {loadingMore ? 'Loading...' : 'Load More'}
             </Button>
-          </Card>
+          </div>
         )}
 
-        {/* Navigation */}
-        <div className="mt-8 text-center">
-          <Link 
-            href="/dashboard" 
-            className="text-neutral-400 hover:text-white transition-colors"
-          >
-            ← Back to Dashboard
-          </Link>
-        </div>
+        {/* Empty States */}
+        {filteredEntries && filteredEntries.length === 0 && (
+          entries.length === 0 ? (
+            <Card className="text-center py-16 max-w-2xl mx-auto">
+              <FileText className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">No journal entries yet</h3>
+              <p className="text-neutral-400 mb-6">
+                Start capturing evidence of your conscious creation journey. 
+                Log your wins, insights, and moments of alignment.
+              </p>
+              <Button asChild>
+                <Link href="/journal/new">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Create Your First Entry
+                </Link>
+              </Button>
+            </Card>
+          ) : (
+            <Card className="text-center py-16 max-w-2xl mx-auto">
+              <FileText className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">No entries match your filters</h3>
+              <p className="text-neutral-400 mb-6">
+                Try adjusting your category filters to see more entries.
+              </p>
+              <Button
+                onClick={() => setSelectedCategories(['all'])}
+                variant="primary"
+              >
+                Clear Filters
+              </Button>
+            </Card>
+          )
+        )}
+
 
 
         {/* Lightbox */}

@@ -135,10 +135,19 @@ async function buildRefinementPrompt(
       spirituality: vision.spirituality,
       conclusion: vision.conclusion,
     })
-      .filter(([_, value]) => value && value.trim().length > 0)
+      .filter(([_, value]) => {
+        // Ensure value is a string and not empty
+        return typeof value === 'string' && value.trim().length > 0;
+      })
       .map(
-        ([key, content]) =>
-          `## ${categoryMap[key] || key}\n${(content as string).substring(0, 400)}${(content as string).length > 400 ? "..." : ""}`,
+        ([key, content]) => {
+          // Safely convert to string and truncate
+          const contentStr = String(content || '');
+          const truncated = contentStr.length > 400 
+            ? contentStr.substring(0, 400) + '...' 
+            : contentStr;
+          return `## ${categoryMap[key] || key}\n${truncated}`;
+        },
       )
       .join("\n\n");
 

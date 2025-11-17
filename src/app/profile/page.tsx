@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Card, Button, Badge, DeleteConfirmationDialog, Spinner, Container, Stack, Grid, Heading, Text, CreatedDateBadge } from '@/lib/design-system/components'
+import { Card, Button, Badge, DeleteConfirmationDialog, Spinner, Container, Stack, Grid, Heading, Text, CreatedDateBadge, VersionBadge, StatusBadge } from '@/lib/design-system/components'
 import { VersionCard } from './components/VersionCard'
 import { colors } from '@/lib/design-system/tokens'
 import { 
@@ -235,9 +235,64 @@ export default function ProfileDashboardPage() {
 
   return (
     <>
-      <Container size="xl">
+        {/* Page Hero */}
+        <div className="mb-8">
+          {/* Subtle Gradient Background */}
+          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+            {/* Modern Enhanced Layout with Card Container */}
+            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              
+              <div className="relative z-10">
+                {/* Eyebrow */}
+                <div className="text-center mb-4">
+                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                    THE LIFE I CHOOSE
+                  </div>
+                </div>
+                
+                {/* Title Section */}
+                <div className="text-center mb-4">
+                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                    {activeProfile && activeProfile.first_name && activeProfile.last_name
+                      ? `${activeProfile.first_name} ${activeProfile.last_name}`
+                      : 'My Profile'}
+                  </h1>
+                </div>
+                
+                {/* Subtitle */}
+                <div className="text-center mb-6">
+                  <p className="text-xs md:text-lg text-neutral-300">
+                    {activeProfile 
+                      ? 'View and manage your profile versions below.'
+                      : 'Create and manage your profile versions below.'}
+                  </p>
+                </div>
+
+                {/* Centered Version Info with Enhanced Styling */}
+                {activeProfile && (
+                  <div className="text-center">
+                    {/* Version, Status & Date Badges */}
+                    <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                      <VersionBadge 
+                        versionNumber={activeProfile.version_number} 
+                        status={activeProfile.is_active && !activeProfile.is_draft ? 'active' : activeProfile.is_draft ? 'draft' : 'complete'} 
+                      />
+                      <CreatedDateBadge createdAt={activeProfile.created_at} />
+                      <StatusBadge 
+                        status={activeProfile.is_active && !activeProfile.is_draft ? 'active' : activeProfile.is_draft ? 'draft' : 'complete'} 
+                        subtle={!(activeProfile.is_active && !activeProfile.is_draft)} 
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Create Button (only when no active profile) */}
         {!activeProfile && (
+          <Container size="xl">
           <div className="flex justify-end mb-6 md:mb-8">
             <Button
               onClick={() => router.push('/profile/new')}
@@ -249,35 +304,13 @@ export default function ProfileDashboardPage() {
               Create Profile
             </Button>
           </div>
+          </Container>
         )}
 
         {/* Current Profile Information */}
         {activeProfile && (
+          <Container size="xl">
           <div className="mb-8">
-            <div className="text-center mb-6">
-              <h2 className="text-4xl font-bold text-white mb-3">
-                {activeProfile.first_name && activeProfile.last_name
-                  ? `${activeProfile.first_name} ${activeProfile.last_name}`
-                  : 'My Profile'}
-              </h2>
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
-                  V{activeProfile.version_number}
-                </span>
-                {activeProfile.is_active && (
-                  <Badge variant="success">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Active
-                  </Badge>
-                )}
-              </div>
-              
-              {/* Metadata */}
-              <CreatedDateBadge 
-                createdAt={activeProfile.created_at} 
-                className="mb-6"
-              />
-            </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col md:flex-row gap-2 md:gap-4 w-full justify-center">
@@ -337,10 +370,12 @@ export default function ProfileDashboardPage() {
               )}
             </div>
           </div>
+          </Container>
         )}
 
         {/* Stats Cards */}
         {activeProfile && (
+          <Container size="xl">
           <div className="grid grid-cols-3 gap-6 mb-8">
             <Card className="p-6 text-center">
               <div className="flex flex-col items-center">
@@ -370,10 +405,12 @@ export default function ProfileDashboardPage() {
               </div>
             </Card>
           </div>
+          </Container>
         )}
 
         {/* All Versions List */}
         {activeProfile && versions.length > 0 && (
+          <Container size="xl">
           <Card className="p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-white">Profile Versions</h2>
@@ -408,10 +445,12 @@ export default function ProfileDashboardPage() {
               })}
             </div>
           </Card>
+          </Container>
         )}
 
         {/* No Profile State */}
         {!activeProfile && (
+          <Container size="xl">
           <div className="text-center py-12 md:py-16">
             <Card className="max-w-md mx-auto p-6 md:p-8">
               <Stack gap="md" align="center">
@@ -429,8 +468,8 @@ export default function ProfileDashboardPage() {
               </Stack>
             </Card>
           </div>
+          </Container>
         )}
-      </Container>
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog

@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     const fullOutput = completion.choices[0]?.message?.content
 
-    if (!fullOutput) {
+    if (!fullOutput || typeof fullOutput !== 'string') {
       throw new Error('No output generated')
     }
 
