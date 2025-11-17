@@ -155,7 +155,7 @@ export default function ProfilePage() {
       'hobbies', 'leisure_time_weekly',
       'travel_frequency', 'passport', 'countries_visited',
       'close_friends_count', 'social_preference',
-      'lifestyle_category', 'primary_vehicle',
+      'lifestyle_category',
       'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
       'volunteer_status', 'charitable_giving', 'legacy_mindset'
     ]
@@ -479,7 +479,6 @@ export default function ProfilePage() {
                  (profile.clarity_social && profile.clarity_social.trim().length > 0)
         case 'possessions-lifestyle':
           return profile.lifestyle_category || 
-                 profile.primary_vehicle ||
                  (profile.clarity_stuff && profile.clarity_stuff.trim().length > 0)
         case 'spirituality-growth':
           return profile.spiritual_practice || 

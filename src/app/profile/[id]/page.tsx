@@ -1052,13 +1052,6 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label="Primary Vehicle" 
-              value={profile.primary_vehicle}
-              editable={false}
-              fieldKey="primary_vehicle"
-              onSave={handleFieldSave}
-            />
-            <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('stuff')}?`}
               value={profile.clarity_stuff}
               type="story"

@@ -100,7 +100,6 @@ const FIELD_CATEGORIES: Record<string, string> = {
   close_friends_count: 'activities',
   social_preference: 'activities',
   lifestyle_category: 'activities',
-  primary_vehicle: 'activities',
   spiritual_practice: 'activities',
   meditation_frequency: 'activities',
   personal_growth_focus: 'activities',

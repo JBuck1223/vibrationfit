@@ -552,8 +552,7 @@ export default function CategoryPage() {
                         { label: 'Consumer Debt', value: fullProfile?.consumer_debt }
                       ],
                       stuff: [
-                        { label: 'Lifestyle Category', value: fullProfile?.lifestyle_category },
-                        { label: 'Primary Vehicle', value: fullProfile?.primary_vehicle }
+                        { label: 'Lifestyle Category', value: fullProfile?.lifestyle_category }
                       ],
                       giving: [
                         { label: 'Volunteer Status', value: fullProfile?.volunteer_status },

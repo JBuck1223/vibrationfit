@@ -145,7 +145,7 @@ export function calculateProfileCompletion(profileData: ProfileData | null | und
   })
 
   // Possessions & Lifestyle
-  const lifestyleFields = ['lifestyle_category', 'primary_vehicle']
+  const lifestyleFields = ['lifestyle_category']
   lifestyleFields.forEach(field => {
     totalFields++
     if (hasValue(field)) completedFields++

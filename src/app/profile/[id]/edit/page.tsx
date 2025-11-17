@@ -217,7 +217,7 @@ export default function ProfileEditPage() {
       'hobbies', 'leisure_time_weekly',
       'travel_frequency', 'passport', 'countries_visited',
       'close_friends_count', 'social_preference',
-      'lifestyle_category', 'primary_vehicle',
+      'lifestyle_category',
       'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
       'volunteer_status', 'charitable_giving', 'legacy_mindset'
     ]
@@ -634,7 +634,6 @@ export default function ProfileEditPage() {
         case 'stuff':
           // Stuff/Possessions section is complete if any lifestyle fields OR clarity story is filled
           return profile.lifestyle_category || 
-                 profile.primary_vehicle ||
                  (profile.clarity_stuff && profile.clarity_stuff.trim().length > 0)
         case 'spirituality':
           // Spirituality section is complete if any spirituality fields OR clarity story is filled
