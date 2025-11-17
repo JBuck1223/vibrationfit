@@ -258,22 +258,26 @@ export default function NewJournalEntryPage() {
           <Card>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Date */}
-              <Input
-                label="Date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                required
-              />
+              <div>
+                <Input
+                  label="Date"
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  required
+                />
+              </div>
 
               {/* Title */}
-              <Input
-                label="Entry Title"
-                type="text"
-                placeholder="What's on your mind today?"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              />
+              <div>
+                <Input
+                  label="Entry Title"
+                  type="text"
+                  placeholder="What's on your mind today?"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+              </div>
 
               {/* Life Categories */}
               <div>
