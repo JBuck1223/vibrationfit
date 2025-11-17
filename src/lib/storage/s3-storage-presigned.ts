@@ -31,7 +31,7 @@ export function getFileUrl(path: string): string {
 }
 
 // Threshold for presigned URL upload (25MB)
-const PRESIGNED_THRESHOLD = 4 * 1024 * 1024 // 4MB - use presigned URLs for files larger than 4MB to avoid Vercel's 4.5MB limit
+const PRESIGNED_THRESHOLD = 25 * 1024 * 1024 // 25MB - use API route for smaller files to avoid CORS issues
 
 // Get presigned URL for direct S3 upload
 export async function getPresignedUploadUrl(
@@ -90,27 +90,50 @@ export async function uploadFileWithPresignedUrl(
       userId
     )
 
+    console.log('📤 Uploading to S3 with presigned URL:', {
+      fileName: file.name,
+      fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+      fileType: file.type,
+      key: key
+    })
+
     // Clone file to avoid "body is disturbed or locked" error
-    // This creates a new File object that can be read independently
     const fileClone = new File([file], file.name, { type: file.type })
 
-    // Upload directly to S3
+    // Upload directly to S3 with CORS-compliant headers
     const response = await fetch(uploadUrl, {
       method: 'PUT',
       body: fileClone,
       headers: {
         'Content-Type': file.type,
-      }
+      },
+      mode: 'cors', // Explicitly set CORS mode
     })
 
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.statusText}`)
+    // Check for 405 specifically
+    if (response.status === 405) {
+      console.error('❌ 405 Method Not Allowed from S3. This usually means:')
+      console.error('   1. S3 bucket CORS configuration is missing or incorrect')
+      console.error('   2. The presigned URL may be malformed')
+      console.error('   3. The bucket policy may be blocking PUT requests')
+      throw new Error('S3 upload blocked (405). Please check S3 CORS configuration. Attempting fallback...')
     }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'No error details')
+      console.error('❌ S3 upload failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      })
+      throw new Error(`Upload failed: ${response.status} ${response.statusText}`)
+    }
+
+    console.log('✅ Presigned upload successful')
 
     if (onProgress) onProgress(100)
 
     // For videos, MediaConvert will automatically create thumbnails
-    // No need to generate thumbnails separately - let MediaConvert handle it
     if (file.type.startsWith('video/')) {
       if (file.size > 20 * 1024 * 1024) {
         // Large videos: trigger MediaConvert
@@ -153,7 +176,19 @@ export async function uploadFileWithPresignedUrl(
 
     return { url: finalUrl, key }
   } catch (error) {
-    console.error('Presigned upload error:', error)
+    console.error('❌ Presigned upload error:', error)
+    
+    // If it's a CORS/405 error, try fallback to API route
+    if (error instanceof Error && (error.message.includes('405') || error.message.includes('CORS'))) {
+      console.log('🔄 Attempting fallback to API route upload...')
+      try {
+        return await uploadViaApiRoute(folder, file, userId, onProgress)
+      } catch (fallbackError) {
+        console.error('❌ Fallback upload also failed:', fallbackError)
+        throw new Error(`Upload failed via both presigned URL and API route. Original error: ${error.message}`)
+      }
+    }
+    
     throw error
   }
 }
@@ -182,13 +217,13 @@ export async function uploadUserFile(
 
   console.log('✅ File validation passed')
 
-  // Use presigned URL for large files
+  // Use presigned URL for large files (>25MB to avoid issues)
   if (file.size > PRESIGNED_THRESHOLD) {
     console.log(`Using presigned URL upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
     return uploadFileWithPresignedUrl(folder, file, userId, onProgress)
   }
 
-  // Use API route for smaller files (with compression)
+  // Use API route for smaller files (more reliable, no CORS issues)
   console.log(`Using API route upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
   return uploadViaApiRoute(folder, file, userId, onProgress)
 }
@@ -209,7 +244,6 @@ async function uploadViaApiRoute(
     }
 
     // Clone file to avoid "body is disturbed or locked" error
-    // This creates a new File object that can be read independently
     const fileClone = new File([file], file.name, { type: file.type })
 
     const formData = new FormData()
@@ -220,6 +254,12 @@ async function uploadViaApiRoute(
     if (file.size > 4 * 1024 * 1024) {
       formData.append('multipart', 'true')
     }
+
+    console.log('📤 Uploading via API route:', {
+      fileName: file.name,
+      fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+      folder: USER_FOLDERS[folder]
+    })
 
     const response = await fetch('/api/upload', {
       method: 'POST',
@@ -249,6 +289,8 @@ async function uploadViaApiRoute(
     const result = await response.json()
 
     if (onProgress) onProgress(100)
+
+    console.log('✅ API route upload successful')
 
     return { url: result.url, key: result.key }
   } catch (error) {
@@ -386,6 +428,7 @@ export async function uploadMultipleUserFiles(
       })
       return { ...result, error: undefined }
     } catch (error) {
+      console.error(`❌ Upload failed for ${file.name}:`, error)
       return { 
         url: '', 
         key: '', 

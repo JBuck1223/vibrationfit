@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, CategoryCard } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard, DeleteConfirmationDialog } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -11,8 +11,9 @@ import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { JournalSuccessScreen } from '@/components/JournalSuccessScreen'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Sparkles, Upload } from 'lucide-react'
+import { Sparkles, Upload, Save } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { colors } from '@/lib/design-system/tokens'
 
 export default function NewJournalEntryPage() {
   const router = useRouter()
@@ -39,6 +40,8 @@ export default function NewJournalEntryPage() {
     content: '',
     categories: [] as string[]
   })
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [fileToDelete, setFileToDelete] = useState<number | null>(null)
   
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
@@ -105,6 +108,14 @@ export default function NewJournalEntryPage() {
     setAudioRecordings(prev => prev.filter((_, i) => i !== index))
   }
 
+  const handleConfirmDelete = () => {
+    if (fileToDelete !== null) {
+      setFiles(prev => prev.filter((_, i) => i !== fileToDelete))
+      setFileToDelete(null)
+      setDeleteDialogOpen(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -147,15 +158,36 @@ export default function NewJournalEntryPage() {
         })
         
         console.log('📤 Upload results:', uploadResults)
-        imageUrls = uploadResults.map((result: { url: string; key: string; error?: string }) => result.url)
         
         // Check for upload errors
         const errors = uploadResults.filter((result: { url: string; key: string; error?: string }) => result.error)
         if (errors.length > 0) {
           console.error('❌ Upload errors:', errors)
-          alert(`Some uploads failed: ${errors.map((e: { error?: string }) => e.error).join(', ')}`)
+          
+          // Check if it's a CORS/405 error
+          const hasCorsError = errors.some((e: { error?: string }) => 
+            e.error?.includes('405') || e.error?.includes('CORS')
+          )
+          
+          if (hasCorsError) {
+            alert(
+              `Upload failed: S3 CORS configuration issue detected.\n\n` +
+              `This usually happens with larger files. The system attempted automatic fallback but it also failed.\n\n` +
+              `Please try:\n` +
+              `1. Use smaller images (under 10MB)\n` +
+              `2. Contact support if the issue persists\n\n` +
+              `Technical details: ${errors.map((e: { error?: string }) => e.error).join(', ')}`
+            )
+          } else {
+            alert(`Upload failed: ${errors.map((e: { error?: string }) => e.error).join(', ')}`)
+          }
           return
         }
+
+        // Only use successful uploads
+        imageUrls = uploadResults
+          .filter((result: { url: string; key: string; error?: string }) => !result.error && result.url)
+          .map((result: { url: string; key: string; error?: string }) => result.url)
 
         console.log('✅ Upload successful, image URLs:', imageUrls)
       }
@@ -245,7 +277,7 @@ export default function NewJournalEntryPage() {
 
               {/* Life Categories */}
               <div>
-                <p className="text-sm text-neutral-400 mb-3 text-center">
+                <p className="block text-sm font-medium text-neutral-200 mb-3 text-center">
                   Select categories for your journal entry
                 </p>
                 <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
@@ -270,7 +302,7 @@ export default function NewJournalEntryPage() {
 
               {/* Evidence / Images */}
               <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3">
+                <label className="block text-sm font-medium text-neutral-200 mb-3 text-center">
                   Evidence / Images (Optional)
                 </label>
                 
@@ -295,19 +327,32 @@ export default function NewJournalEntryPage() {
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Files
                   </Button>
-                  <Button
+                  <button
                     type="button"
-                    variant={imageSource === 'ai' ? 'primary' : 'outline'}
-                    size="sm"
                     onClick={() => {
                       setImageSource('ai')
                       setFiles([])
                     }}
-                    className="w-full sm:flex-1"
+                    style={
+                      imageSource === 'ai'
+                        ? {
+                            backgroundColor: colors.semantic.premium,
+                            borderColor: colors.semantic.premium,
+                          }
+                        : {
+                            borderColor: colors.semantic.premium,
+                            color: colors.semantic.premium,
+                          }
+                    }
+                    className={`w-full sm:flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-3.5 px-7 text-sm font-medium border-2 ${
+                      imageSource === 'ai'
+                        ? 'text-white hover:opacity-90'
+                        : 'bg-transparent hover:bg-[#BF00FF]/10'
+                    }`}
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     Generate with VIVA
-                  </Button>
+                  </button>
                 </div>
 
                 {/* Hidden file input */}
@@ -391,11 +436,11 @@ export default function NewJournalEntryPage() {
                           </div>
                           <Button
                             type="button"
-                            variant="ghost"
+                            variant="danger"
                             size="sm"
                             onClick={() => {
-                              const newFiles = files.filter((_, i) => i !== index)
-                              setFiles(newFiles)
+                              setFileToDelete(index)
+                              setDeleteDialogOpen(true)
                             }}
                           >
                             Remove
@@ -477,12 +522,24 @@ export default function NewJournalEntryPage() {
                   disabled={loading}
                   className="flex-1 sm:flex-none sm:w-auto"
                 >
-                  {loading ? 'Saving...' : 'Save Journal Entry'}
+                  <Save className="w-4 h-4 mr-2" />
+                  {loading ? 'Saving...' : 'Save'}
                 </Button>
               </div>
             </form>
           </Card>
         </div>
+
+        <DeleteConfirmationDialog
+          isOpen={deleteDialogOpen}
+          onClose={() => {
+            setDeleteDialogOpen(false)
+            setFileToDelete(null)
+          }}
+          onConfirm={handleConfirmDelete}
+          itemName={fileToDelete !== null ? files[fileToDelete]?.name || 'File' : ''}
+          itemType="File"
+        />
     </>
   )
 }

@@ -3,14 +3,15 @@
 import React, { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Card, Button, Input, CategoryCard } from '@/lib/design-system'
+import { Card, Button, Input, CategoryCard, DeleteConfirmationDialog } from '@/lib/design-system'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { UploadProgress } from '@/components/UploadProgress'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
-import { Sparkles, Upload, X } from 'lucide-react'
+import { Sparkles, Upload, X, Save } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { colors } from '@/lib/design-system/tokens'
 
 interface JournalEntry {
   id: string
@@ -53,6 +54,8 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
     fileSize: 0,
     isVisible: false
   })
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [fileToDelete, setFileToDelete] = useState<number | null>(null)
   
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
@@ -137,6 +140,14 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
     setAudioRecordings(prev => prev.filter((_, i) => i !== index))
   }
 
+  const handleConfirmDelete = () => {
+    if (fileToDelete !== null) {
+      setExistingFiles(prev => prev.filter((_, i) => i !== fileToDelete))
+      setFileToDelete(null)
+      setDeleteDialogOpen(false)
+    }
+  }
+
   const handleSave = async () => {
     if (!entry) return
     
@@ -180,17 +191,36 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
         })
         
         console.log('📤 Upload results:', uploadResults)
-        const newImageUrls = uploadResults.map((result: { url: string; key: string; error?: string }) => result.url)
         
         // Check for upload errors
         const errors = uploadResults.filter((result: { url: string; key: string; error?: string }) => result.error)
         if (errors.length > 0) {
           console.error('❌ Upload errors:', errors)
-          alert(`Some uploads failed: ${errors.map((e: { error?: string }) => e.error).join(', ')}`)
-          setUploadProgress(prev => ({ ...prev, isVisible: false }))
-          setSaving(false)
+          
+          // Check if it's a CORS/405 error
+          const hasCorsError = errors.some((e: { error?: string }) => 
+            e.error?.includes('405') || e.error?.includes('CORS')
+          )
+          
+          if (hasCorsError) {
+            alert(
+              `Upload failed: S3 CORS configuration issue detected.\n\n` +
+              `This usually happens with larger files. The system attempted automatic fallback but it also failed.\n\n` +
+              `Please try:\n` +
+              `1. Use smaller images (under 10MB)\n` +
+              `2. Contact support if the issue persists\n\n` +
+              `Technical details: ${errors.map((e: { error?: string }) => e.error).join(', ')}`
+            )
+          } else {
+            alert(`Upload failed: ${errors.map((e: { error?: string }) => e.error).join(', ')}`)
+          }
           return
         }
+
+        // Only use successful uploads
+        const newImageUrls = uploadResults
+          .filter((result: { url: string; key: string; error?: string }) => !result.error && result.url)
+          .map((result: { url: string; key: string; error?: string }) => result.url)
 
         imageUrls = [...existingFiles, ...newImageUrls]
         console.log('✅ Upload successful, image URLs:', imageUrls)
@@ -254,10 +284,15 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
   return (
     <>
-      <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 text-center -mt-1 md:-mt-3">Edit Entry</h2>
+        <div className="pb-8">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-white mb-2">
+              Edit Journal Entry
+            </h1>
+          </div>
 
-      <Card className="p-4 md:p-6 lg:p-8">
-        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-8">
+          <Card>
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
           {/* Date */}
           <div>
             <Input
@@ -282,63 +317,40 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
           {/* Life Categories */}
           <div>
-            <p className="text-sm text-neutral-400 mb-3 text-center">
+            <p className="block text-sm font-medium text-neutral-200 mb-3 text-center">
               Select categories for your journal entry
             </p>
             <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-              {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => (
-                <CategoryCard 
-                  key={category.key} 
-                  category={category} 
-                  selected={formData.categories.includes(category.label)} 
-                  onClick={() => handleCategoryToggle(category.label)}
-                />
-              ))}
+              {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
+                const isSelected = formData.categories.includes(category.label)
+                return (
+                  <CategoryCard 
+                    key={category.key} 
+                    category={category} 
+                    selected={isSelected} 
+                    onClick={() => handleCategoryToggle(category.label)}
+                    variant="outlined"
+                    selectionStyle="border"
+                    iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                    selectedIconColor="#39FF14"
+                    className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
+                  />
+                )
+              })}
             </div>
           </div>
 
-          {/* Journal Content */}
-          <RecordingTextarea
-            label="Journal Entry"
-            value={formData.content}
-            onChange={(value) => setFormData({ ...formData, content: value })}
-            rows={10}
-            placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
-            allowVideo={true}
-            storageFolder="journal"
-            onRecordingSaved={handleRecordingSaved}
-            onUploadProgress={(progress, status, fileName, fileSize) => {
-              setUploadProgress({
-                progress,
-                status,
-                fileName,
-                fileSize,
-                isVisible: true
-              })
-            }}
-          />
-
-          {/* Display Saved Audio Recordings */}
-          {audioRecordings.length > 0 && (
-            <SavedRecordings
-              key={`journal-recordings-${audioRecordings.length}`}
-              recordings={audioRecordings}
-              categoryFilter="journal"
-              onDelete={handleDeleteRecording}
-            />
-          )}
-
           {/* Evidence / Images */}
           <div>
-            <p className="text-sm text-neutral-400 mb-3 text-center">
-              Add images, videos, or audio (optional)
-            </p>
+            <label className="block text-sm font-medium text-neutral-200 mb-3 text-center">
+              Evidence / Images (Optional)
+            </label>
             
             {/* Show existing files */}
             {existingFiles.length > 0 && (
               <div className="mb-4">
                 <p className="text-xs text-neutral-400 mb-2 text-center">Existing attachments ({existingFiles.length})</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 mb-4 justify-items-center">
                   {existingFiles.map((url, index) => (
                     <div key={`existing-${index}`} className="relative">
                       <div className="aspect-video bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700">
@@ -362,17 +374,16 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                           </div>
                         )}
                       </div>
-                      <Button
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
                         onClick={() => {
-                          setExistingFiles(prev => prev.filter((_, i) => i !== index))
+                          setFileToDelete(index)
+                          setDeleteDialogOpen(true)
                         }}
-                        className="absolute top-1 right-1 opacity-80 hover:opacity-100"
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-[#D03739] hover:bg-[#EF4444] flex items-center justify-center transition-colors"
                       >
-                        <X className="w-3 h-3" />
-                      </Button>
+                        <X className="w-3 h-3 text-white" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -400,19 +411,32 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Files
               </Button>
-              <Button
+              <button
                 type="button"
-                variant={imageSource === 'ai' ? 'primary' : 'outline'}
-                size="sm"
                 onClick={() => {
                   setImageSource('ai')
                   setFiles([])
                 }}
-                className="w-full sm:flex-1"
+                style={
+                  imageSource === 'ai'
+                    ? {
+                        backgroundColor: colors.semantic.premium,
+                        borderColor: colors.semantic.premium,
+                      }
+                    : {
+                        borderColor: colors.semantic.premium,
+                        color: colors.semantic.premium,
+                      }
+                }
+                className={`w-full sm:flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-3.5 px-7 text-sm font-medium border-2 ${
+                  imageSource === 'ai'
+                    ? 'text-white hover:opacity-90'
+                    : 'bg-transparent hover:bg-[#BF00FF]/10'
+                }`}
               >
                 <Sparkles className="w-4 h-4 mr-2" />
                 Generate with VIVA
-              </Button>
+              </button>
             </div>
 
             {/* Hidden file input */}
@@ -452,7 +476,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                     setFiles(droppedFiles.slice(0, 5)) // Max 5 files
                   }
                 }}
-                className="border-2 border-dashed border-neutral-600 rounded-xl p-8 text-center cursor-pointer hover:border-neutral-500 transition-colors"
+                className="border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary-500 hover:bg-neutral-900/50 transition-all"
               >
                 <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
                 <p className="text-neutral-300 font-medium mb-1">
@@ -524,6 +548,37 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
             )}
           </div>
 
+          {/* Journal Content */}
+          <RecordingTextarea
+            label="Journal Entry"
+            value={formData.content}
+            onChange={(value) => setFormData({ ...formData, content: value })}
+            rows={10}
+            placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
+            allowVideo={true}
+            storageFolder="journal"
+            onRecordingSaved={handleRecordingSaved}
+            onUploadProgress={(progress, status, fileName, fileSize) => {
+              setUploadProgress({
+                progress,
+                status,
+                fileName,
+                fileSize,
+                isVisible: true
+              })
+            }}
+          />
+
+          {/* Display Saved Audio Recordings */}
+          {audioRecordings.length > 0 && (
+            <SavedRecordings
+              key={`journal-recordings-${audioRecordings.length}`}
+              recordings={audioRecordings}
+              categoryFilter="journal"
+              onDelete={handleDeleteRecording}
+            />
+          )}
+
           {/* Upload Progress */}
           <UploadProgress
             progress={uploadProgress.progress}
@@ -541,7 +596,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
               size="sm"
               onClick={() => router.push(`/journal/${entry.id}`)}
               disabled={saving}
-              className="flex-1 sm:flex-none sm:w-32"
+              className="flex-1 sm:flex-none sm:w-auto"
             >
               Cancel
             </Button>
@@ -550,13 +605,26 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
               size="sm"
               loading={saving}
               disabled={saving}
-              className="flex-1 sm:flex-none sm:w-32"
+              className="flex-1 sm:flex-none sm:w-auto"
             >
+              <Save className="w-4 h-4 mr-2" />
               {saving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </form>
-      </Card>
+          </Card>
+        </div>
+
+        <DeleteConfirmationDialog
+          isOpen={deleteDialogOpen}
+          onClose={() => {
+            setDeleteDialogOpen(false)
+            setFileToDelete(null)
+          }}
+          onConfirm={handleConfirmDelete}
+          itemName={fileToDelete !== null ? `Attachment ${fileToDelete + 1}` : ''}
+          itemType="Attachment"
+        />
     </>
   )
 }

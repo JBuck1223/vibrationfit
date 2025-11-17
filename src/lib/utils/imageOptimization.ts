@@ -166,10 +166,16 @@ export async function generateThumbnail(
  * Check if image should be optimized based on size and format
  */
 export function shouldOptimizeImage(file: File): boolean {
-  const maxSize = 5 * 1024 * 1024 // 5MB
-  const supportedFormats = ['image/jpeg', 'image/png', 'image/webp']
+  // Optimize ALL images to ensure consistent quality and size
+  // WebP conversion provides 30-50% size reduction even for small files
+  const minSize = 100 * 1024 // 100KB - optimize anything larger than this
+  const supportedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
   
-  return file.size > maxSize || !supportedFormats.includes(file.type)
+  // Optimize if:
+  // 1. File is larger than 100KB (almost all photos)
+  // 2. File is not already in an optimized format
+  // 3. File type is supported for optimization
+  return file.size > minSize && supportedFormats.includes(file.type)
 }
 
 /**

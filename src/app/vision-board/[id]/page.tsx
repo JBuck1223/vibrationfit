@@ -10,6 +10,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import Link from 'next/link'
+import { colors } from '@/lib/design-system/tokens'
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -140,7 +141,22 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             const uploadResult = await uploadUserFile('visionBoardUploaded', file, user.id)
             imageUrl = uploadResult.url
           } catch (error) {
-            alert(`Upload failed: ${error}`)
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+            console.error('❌ Vision board image upload failed:', error)
+            
+            // Check for CORS/405 errors
+            if (errorMessage.includes('405') || errorMessage.includes('CORS')) {
+              alert(
+                `Upload failed: S3 CORS configuration issue detected.\n\n` +
+                `This usually happens with larger files.\n\n` +
+                `Please try:\n` +
+                `1. Use a smaller image (under 10MB)\n` +
+                `2. Contact support if the issue persists\n\n` +
+                `Technical details: ${errorMessage}`
+              )
+            } else {
+              alert(`Upload failed: ${errorMessage}`)
+            }
             return
           }
         } else if (aiGeneratedImageUrl) {
@@ -170,7 +186,22 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
               const uploadResult = await uploadUserFile('visionBoardUploaded', actualizedFile, user.id)
               actualizedImageUrl = uploadResult.url
             } catch (error) {
-              alert(`Actualized image upload failed: ${error}`)
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+              console.error('❌ Actualized image upload failed:', error)
+              
+              // Check for CORS/405 errors
+              if (errorMessage.includes('405') || errorMessage.includes('CORS')) {
+                alert(
+                  `Actualized image upload failed: S3 CORS configuration issue detected.\n\n` +
+                  `This usually happens with larger files.\n\n` +
+                  `Please try:\n` +
+                  `1. Use a smaller image (under 10MB)\n` +
+                  `2. Contact support if the issue persists\n\n` +
+                  `Technical details: ${errorMessage}`
+                )
+              } else {
+                alert(`Actualized image upload failed: ${errorMessage}`)
+              }
               return
             }
           } else if (actualizedAiGeneratedImageUrl) {
@@ -422,19 +453,32 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Image
                   </Button>
-                  <Button
+                  <button
                     type="button"
-                    variant={imageSource === 'ai' ? 'primary' : 'outline'}
-                    size="sm"
                     onClick={() => {
                       setImageSource('ai')
                       setFile(null)
                     }}
-                    className="w-full sm:flex-1"
+                    style={
+                      imageSource === 'ai'
+                        ? {
+                            backgroundColor: colors.semantic.premium,
+                            borderColor: colors.semantic.premium,
+                          }
+                        : {
+                            borderColor: colors.semantic.premium,
+                            color: colors.semantic.premium,
+                          }
+                    }
+                    className={`w-full sm:flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-3.5 px-7 text-sm font-medium border-2 ${
+                      imageSource === 'ai'
+                        ? 'text-white hover:opacity-90'
+                        : 'bg-transparent hover:bg-[#BF00FF]/10'
+                    }`}
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     Generate with VIVA
-                  </Button>
+                  </button>
                 </div>
 
                 {/* Hidden file input */}
@@ -597,19 +641,32 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                       <Upload className="w-4 h-4 mr-2" />
                       Upload Evidence
                     </Button>
-                    <Button
+                    <button
                       type="button"
-                      variant={actualizedImageSource === 'ai' ? 'primary' : 'outline'}
-                      size="sm"
                       onClick={() => {
                         setActualizedImageSource('ai')
                         setActualizedFile(null)
                       }}
-                      className="w-full sm:flex-1"
+                      style={
+                        actualizedImageSource === 'ai'
+                          ? {
+                              backgroundColor: colors.semantic.premium,
+                              borderColor: colors.semantic.premium,
+                            }
+                          : {
+                              borderColor: colors.semantic.premium,
+                              color: colors.semantic.premium,
+                            }
+                      }
+                      className={`w-full sm:flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-3.5 px-7 text-sm font-medium border-2 ${
+                        actualizedImageSource === 'ai'
+                          ? 'text-white hover:opacity-90'
+                          : 'bg-transparent hover:bg-[#BF00FF]/10'
+                      }`}
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
                       Generate with VIVA
-                    </Button>
+                    </button>
                   </div>
 
                   {/* Hidden file input for actualized image */}
