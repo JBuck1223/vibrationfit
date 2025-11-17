@@ -159,7 +159,7 @@ export function RecordingTextarea({
   const resolvedPlaceholder = placeholder ?? 'Type or transcribe audio.'
 
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div className="space-y-3">
       {label && (
         <label className="block text-sm font-medium text-neutral-200">
           {label}
@@ -178,7 +178,7 @@ export function RecordingTextarea({
           placeholder={resolvedPlaceholder}
           rows={rows}
           disabled={disabled || isUploading}
-          className="w-full min-h-[100px] resize-none overflow-hidden"
+          className={`w-full min-h-[100px] resize-none overflow-hidden ${className}`}
         />
         
         {/* Recording Buttons */}

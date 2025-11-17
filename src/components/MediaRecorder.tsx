@@ -13,6 +13,7 @@ import {
 } from '@/lib/storage/indexed-db-recording'
 import { uploadRecording } from '@/lib/services/recordingService'
 import { USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
+import SimpleLevelMeter from '@/components/SimpleLevelMeter'
 
 type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile'
 
@@ -64,6 +65,8 @@ export function MediaRecorderComponent({
   const [hasSavedRecording, setHasSavedRecording] = useState(false) // Track if there's a saved recording to resume
   const [previousChunks, setPreviousChunks] = useState<Blob[]>([]) // Chunks from before refresh
   const [previousDuration, setPreviousDuration] = useState(0) // Duration from before refresh
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]) // Available microphones
+  const [selectedMic, setSelectedMic] = useState<string>('') // Selected microphone ID
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -75,6 +78,43 @@ export function MediaRecorderComponent({
   const lastSaveSizeRef = useRef<number>(0) // Track total size saved for video size-based saves
   const durationRef = useRef<number>(0) // Track duration for auto-save
   const transcriptRef = useRef<string>('') // Track transcript for auto-save
+
+  // Load audio devices on mount (for microphone selection)
+  useEffect(() => {
+    const loadDevices = async () => {
+      try {
+        // Request permission first
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        // Stop the stream immediately - we just needed permission
+        stream.getTracks().forEach(track => track.stop())
+        
+        // Get all audio input devices
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const audioInputs = devices.filter(device => device.kind === 'audioinput')
+        
+        setAudioDevices(audioInputs)
+        
+        // Set default to first device if none selected
+        setSelectedMic(prev => {
+          if (!prev && audioInputs.length > 0) {
+            return audioInputs[0].deviceId
+          }
+          return prev
+        })
+      } catch (err) {
+        console.error('Failed to load audio devices:', err)
+        // Continue without mic selector - will use default
+      }
+    }
+    
+    loadDevices()
+    
+    // Listen for device changes (plug/unplug)
+    navigator.mediaDevices.addEventListener('devicechange', loadDevices)
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', loadDevices)
+    }
+  }, [])
 
   // Check for saved recording on mount - look by category first, not just by ID
   useEffect(() => {
@@ -341,9 +381,9 @@ export function MediaRecorderComponent({
               height: { ideal: 720 },
               facingMode: 'user'
             }, 
-            audio: true 
+            audio: selectedMic ? { deviceId: { exact: selectedMic } } : true 
           }
-        : { audio: true }
+        : { audio: selectedMic ? { deviceId: { exact: selectedMic } } : true }
 
       console.log('Requesting media access:', mode, constraints)
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
@@ -369,6 +409,7 @@ export function MediaRecorderComponent({
           console.error('Video ref is null!')
         }
       }
+
 
       // Start countdown
       setCountdown(3)
@@ -573,6 +614,7 @@ export function MediaRecorderComponent({
         clearInterval(timerRef.current)
       }
 
+
       // Stop video preview
       if (mode === 'video' && videoRef.current) {
         videoRef.current.srcObject = null
@@ -739,7 +781,7 @@ export function MediaRecorderComponent({
     <div className={`space-y-4 ${className}`}>
       {/* Recording Controls */}
       {!recordedBlob && !(recordingPurpose === 'quick' && transcript) && (
-        <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6">
+        <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6 min-h-[400px] flex flex-col justify-center">
           {/* Video Preview */}
           {mode === 'video' && (isRecording || isPreparing) && (
             <div className="mb-4 rounded-xl overflow-hidden bg-black relative">
@@ -753,41 +795,72 @@ export function MediaRecorderComponent({
               {/* Countdown Overlay */}
               {countdown !== null && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-center">
-                    <div className="text-9xl font-bold text-white mb-4 animate-pulse" style={{
-                      textShadow: '0 0 40px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.7)'
-                    }}>
-                      {countdown}
-                    </div>
-                    <p className="text-2xl text-white font-semibold" style={{
-                      textShadow: '0 0 20px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.8)'
-                    }}>
-                      Get ready...
-                    </p>
+                  <div className="text-9xl font-bold text-white animate-pulse" style={{
+                    textShadow: '0 0 40px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.7)'
+                  }}>
+                    {countdown}
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* Countdown (for audio mode without video preview) */}
-          {countdown !== null && mode === 'audio' && (
-            <div className="text-center mb-4">
-              <div className="text-8xl font-bold text-primary-500 mb-4 animate-pulse">
-                {countdown}
+          {/* Countdown with Circular Level Meter (for audio mode) */}
+          {countdown !== null && mode === 'audio' && streamRef.current && (
+            <div className="mb-4 flex justify-center items-center relative">
+              <SimpleLevelMeter stream={streamRef.current} circular />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="text-6xl font-bold text-red-500 animate-pulse">
+                  {countdown}
+                </div>
               </div>
-              <p className="text-xl text-white">Get ready to speak...</p>
             </div>
           )}
 
-          {/* Timer */}
-          {isRecording && countdown === null && (
-            <div className="text-center mb-4">
-              <div className="inline-flex items-center gap-2 bg-red-500/20 px-4 py-2 rounded-full">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-white font-mono text-lg">{formatDuration(duration)}</span>
-                <span className="text-neutral-400 text-sm">/ {formatDuration(maxDuration)}</span>
+          {/* Timer with Circular Level Meter and Controls */}
+          {isRecording && countdown === null && streamRef.current && (
+            <div className="mb-4 flex justify-center items-center gap-6">
+              {/* Pause/Resume Button */}
+              {!isPaused ? (
+                <button
+                  type="button"
+                  onClick={pauseRecording}
+                  className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                >
+                  <div className="flex gap-1">
+                    <div className="w-1 h-4 bg-black rounded-sm" />
+                    <div className="w-1 h-4 bg-black rounded-sm" />
+                  </div>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={resumeRecording}
+                  className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                >
+                  <Play className="w-5 h-5 text-black fill-black" />
+                </button>
+              )}
+              
+              {/* Circular Meter with Timer */}
+              <div className="relative flex items-center justify-center">
+                <SimpleLevelMeter stream={streamRef.current} circular />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mx-auto mb-1" />
+                    <div className="text-white font-mono text-xs">{formatDuration(duration)}</div>
+                  </div>
+                </div>
               </div>
+              
+              {/* Stop Button */}
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+              >
+                <div className="w-4 h-4 bg-white rounded-sm" />
+              </button>
             </div>
           )}
 
@@ -922,62 +995,46 @@ export function MediaRecorderComponent({
             </div>
           )}
 
+          {/* Microphone Selector (when not recording and multiple mics available) */}
+          {!isRecording && countdown === null && !hasSavedRecording && audioDevices.length > 1 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Select Microphone
+              </label>
+              <select
+                value={selectedMic}
+                onChange={(e) => setSelectedMic(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm md:text-base"
+                disabled={isRecording}
+              >
+                {audioDevices.map((device) => {
+                  const label = device.label || `Microphone ${device.deviceId.slice(0, 8)}...`
+                  // Truncate long labels for mobile
+                  const displayLabel = label.length > 40 ? label.substring(0, 37) + '...' : label
+                  return (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {displayLabel}
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+          )}
+
           {/* Control Buttons */}
-          <div className="flex justify-center gap-3">
-            {!isRecording && countdown === null && !hasSavedRecording ? (
+          {!isRecording && countdown === null && !hasSavedRecording && (
+            <div className="flex justify-center gap-3">
               <Button
                 onClick={startRecording}
                 variant="primary"
-                size="lg"
+                size="sm"
                 className="gap-2"
               >
-                {mode === 'video' ? <Video className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {mode === 'video' ? <Video className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 Start Recording
               </Button>
-            ) : countdown !== null ? (
-              <Button
-                variant="secondary"
-                size="lg"
-                disabled
-                className="gap-2"
-              >
-                Starting in {countdown}...
-              </Button>
-            ) : (
-              <>
-                {!isPaused ? (
-                  <Button
-                    onClick={pauseRecording}
-                    variant="secondary"
-                    size="lg"
-                    className="gap-2"
-                  >
-                    <Pause className="w-5 h-5" />
-                    Pause
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={resumeRecording}
-                    variant="secondary"
-                    size="lg"
-                    className="gap-2"
-                  >
-                    <Play className="w-5 h-5" />
-                    Resume
-                  </Button>
-                )}
-                <Button
-                  onClick={stopRecording}
-                  variant="danger"
-                  size="lg"
-                  className="gap-2"
-                >
-                  <Square className="w-5 h-5" />
-                  Stop
-                </Button>
-              </>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 

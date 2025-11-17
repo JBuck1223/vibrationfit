@@ -76,16 +76,34 @@ export default function ImaginationPage() {
         return
       }
 
-      // Load existing ideal state if any
+      // Load existing category state (prompts + ideal state answers)
       const { data: categoryState } = await supabase
         .from('life_vision_category_state')
-        .select('ideal_state')
+        .select('ideal_state, ideal_state_prompts')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
 
+      // Load existing AI-generated prompts if they exist
+      if (categoryState?.ideal_state_prompts && Array.isArray(categoryState.ideal_state_prompts)) {
+        const loadedPrompts = categoryState.ideal_state_prompts
+        if (loadedPrompts.length > 0) {
+          setPrompts(loadedPrompts)
+          console.log('[Imagination] Loaded existing prompts from database:', loadedPrompts.length)
+          
+          // Initialize answers object with empty strings
+          const initialAnswers: Record<string, string> = {}
+          loadedPrompts.forEach((p: IdealStatePrompt, idx: number) => {
+            initialAnswers[`prompt-${idx}`] = ''
+          })
+          setAnswers(initialAnswers)
+        }
+      }
+
+      // Load existing user answers if any
       if (categoryState?.ideal_state) {
         setExistingIdealState(categoryState.ideal_state)
+        // Note: We could potentially parse and pre-fill answers here if needed
       }
 
       setLoading(false)
@@ -347,14 +365,13 @@ export default function ImaginationPage() {
 
                   {/* Answer Input */}
                   <div>
-                    <label className="block text-xs md:text-sm font-semibold text-[#FFB701] mb-2 uppercase tracking-wide">
-                      Your Answer
-                    </label>
                     <RecordingTextarea
                       value={answers[`prompt-${index}`] || ''}
                       onChange={(value) => setAnswers({ ...answers, [`prompt-${index}`]: value })}
                       placeholder="Type or speak your answer... Be as imaginative and detailed as you like!"
                       category={categoryKey}
+                      storageFolder="lifeVision"
+                      recordingPurpose="transcriptOnly"
                       className="w-full bg-neutral-800 border-2 border-[#FFB701]/30 text-white text-sm md:text-base min-h-[120px]"
                     />
                   </div>
