@@ -181,9 +181,13 @@ export default function ProfileEditPage() {
     if (profileData.has_children !== undefined && profileData.has_children !== null) {
       completedFields++
       if (profileData.has_children === true) {
-        totalFields += 2
-        if (hasValue('number_of_children')) completedFields++
-        if (hasValue('children_ages')) completedFields++
+        totalFields++
+        if (profileData.children && Array.isArray(profileData.children) && profileData.children.length > 0) {
+          const childrenWithNames = profileData.children.filter((c: any) => c && c.first_name && c.first_name.trim().length > 0)
+          if (childrenWithNames.length > 0) {
+            completedFields++
+          }
+        }
       }
     }
 
@@ -587,10 +591,11 @@ export default function ProfileEditPage() {
                   (profile.partner_name && profile.relationship_length))
         case 'family':
           // Family section is complete if has_children is set
-          // and if has children, then number and ages should be included
+          // and if has children, then children array should have entries with first names OR clarity story is filled
           return profile.has_children !== undefined && 
                  (profile.has_children === false || 
-                  (profile.number_of_children && profile.children_ages?.length))
+                  (profile.children && profile.children.length > 0 && profile.children.some(c => c.first_name && c.first_name.trim().length > 0)) ||
+                  (profile.clarity_family && profile.clarity_family.trim().length > 0))
         case 'health':
           // Health section is complete if any health fields OR clarity story is filled
           return (profile.units || profile.height || profile.weight || profile.exercise_frequency ||
@@ -680,7 +685,7 @@ export default function ProfileEditPage() {
         sectionContent = <RelationshipSection {...commonProps} />
         break
       case 'family':
-        sectionContent = <FamilySection {...commonProps} />
+        sectionContent = <FamilySection {...commonProps} profileId={profileId} />
         break
       case 'health':
         sectionContent = <HealthSection {...commonProps} />
@@ -701,13 +706,13 @@ export default function ProfileEditPage() {
         sectionContent = <FunRecreationSection {...commonProps} profileId={profileId} />
         break
       case 'travel':
-        sectionContent = <TravelAdventureSection {...commonProps} />
+        sectionContent = <TravelAdventureSection {...commonProps} profileId={profileId} />
         break
       case 'social':
         sectionContent = <SocialFriendsSection {...commonProps} />
         break
       case 'stuff':
-        sectionContent = <PossessionsLifestyleSection {...commonProps} />
+        sectionContent = <PossessionsLifestyleSection {...commonProps} profileId={profileId} />
         break
       case 'spirituality':
         sectionContent = <SpiritualityGrowthSection {...commonProps} />

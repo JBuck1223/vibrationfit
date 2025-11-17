@@ -33,15 +33,7 @@ export function SavedRecordings({
     ? recordings.filter(r => r.category === categoryFilter)
     : recordings
 
-  console.log('🎬 SavedRecordings render:', {
-    totalRecordings: recordings?.length || 0,
-    categoryFilter,
-    filteredCount: filteredRecordings?.length || 0,
-    recordings: recordings
-  })
-
   if (!filteredRecordings || filteredRecordings.length === 0) {
-    console.log('⚠️ No recordings to display')
     return null
   }
 
@@ -106,7 +98,6 @@ export function SavedRecordings({
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    console.log('🗑️ Delete button clicked for index:', index, 'recording:', filteredRecordings[index])
                     onDelete(index)
                   }}
                   className="text-neutral-400 hover:text-red-400 transition-colors"

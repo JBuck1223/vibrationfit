@@ -23,3 +23,4 @@ COMMENT ON COLUMN public.life_vision_category_state.ideal_state_prompts IS
 -- ALTER TABLE public.life_vision_category_state DROP COLUMN IF EXISTS ideal_state_prompts;
 -- DROP INDEX IF EXISTS idx_lv_category_state_prompts;
 
+

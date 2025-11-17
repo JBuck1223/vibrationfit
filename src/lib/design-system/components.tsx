@@ -1476,7 +1476,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
     }
 
     return (
-      <div className={cn('w-full', className)} ref={containerRef}>
+      <div className={cn('relative w-full', className)} ref={containerRef}>
         {label && (
           <label className="block text-sm font-medium text-[#E5E7EB] mb-2">
             {label}
@@ -1517,7 +1517,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
 
         {/* Calendar Dropdown */}
         {isOpen && (
-          <div className="absolute z-50 mt-2 w-full min-w-[320px] bg-[#1F1F1F] border-2 border-[#39FF14] rounded-2xl shadow-[0_0_30px_rgba(57,255,20,0.3)] overflow-hidden">
+          <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0 w-[min(calc(100vw-2rem),360px)] md:w-[360px] bg-[#1F1F1F] border-2 border-[#39FF14] rounded-2xl shadow-[0_0_30px_rgba(57,255,20,0.3)] overflow-hidden">
             {/* Calendar Header */}
             <div className="flex items-center justify-between p-4 border-b border-[#333]">
               <button

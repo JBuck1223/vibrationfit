@@ -437,3 +437,4 @@ Before major migrations:
 **Need help?** Check the [CLI Setup Guide](./SUPABASE_CLI_SETUP.md) or ask in chat!
 
 
+

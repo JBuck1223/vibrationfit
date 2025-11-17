@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { Card, Input, Button } from '@/lib/design-system/components'
-import { Plus, X, Minus } from 'lucide-react'
+import React from 'react'
+import { Card, Input } from '@/lib/design-system/components'
+import { Plus, Trash2 } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -12,59 +12,40 @@ interface FamilySectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  profileId?: string // Optional profile ID to target specific profile version
 }
 
-// Removed age range options - now using direct age input
+type Child = {
+  first_name: string
+  birthday?: string | null
+}
 
-export function FamilySection({ profile, onProfileChange, onProfileReload }: FamilySectionProps) {
-  const [childrenAges, setChildrenAges] = useState<string[]>(
-    profile.children_ages || []
-  )
-  const isUserActionRef = useRef(false)
-
-  // Keep local state in sync with profile data, but preserve local changes
-  useEffect(() => {
-    // Don't sync if user is actively making changes
-    if (isUserActionRef.current) {
-      return
-    }
-    
-    const profileAges = profile.children_ages || []
-    const numberOfChildren = profile.number_of_children || 0
-    
-    // Only update local state if:
-    // 1. Profile has data and we don't have any local data, OR
-    // 2. The number of children in profile is different from our local array length
-    // BUT don't sync if the profile data looks like it was reset (empty or default values)
-    if ((profileAges.length > 0 && childrenAges.length === 0) ||
-        (numberOfChildren > 0 && childrenAges.length !== numberOfChildren && numberOfChildren > 1)) {
-      
-      // Ensure the ages array matches the number of children
-      const adjustedAges = [...profileAges]
-      while (adjustedAges.length < numberOfChildren) {
-        adjustedAges.push('')
-      }
-      if (adjustedAges.length > numberOfChildren) {
-        adjustedAges.splice(numberOfChildren)
-      }
-      
-      setChildrenAges(adjustedAges)
-    }
-  }, [profile.children_ages, profile.number_of_children])
-
-  // Sync children ages with parent component when they change
-  useEffect(() => {
-    // Only update parent if we have actual data and it's different from what's stored
-    if (childrenAges.length > 0) {
-      const hasNonEmptyAges = childrenAges.some(age => age !== '')
-      if (hasNonEmptyAges) {
-        handleInputChange('children_ages', childrenAges)
-      }
-    }
-  }, [childrenAges])
-
+export function FamilySection({ profile, onProfileChange, onProfileReload, profileId }: FamilySectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
+  }
+
+  // Initialize children array and state
+  const children: Child[] = profile.children || []
+  const hasChildren = profile.has_children ?? false
+
+  const handleChildChange = (index: number, field: keyof Child, value: string) => {
+    const updated = [...children]
+    updated[index] = { ...updated[index], [field]: value }
+    handleInputChange('children', updated)
+  }
+
+  const handleChildAdd = () => {
+    const newChild: Child = {
+      first_name: '',
+      birthday: null
+    }
+    handleInputChange('children', [...children, newChild])
+  }
+
+  const handleChildRemove = (index: number) => {
+    const updated = children.filter((_, i) => i !== index)
+    handleInputChange('children', updated)
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
@@ -79,7 +60,12 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
 
     try {
-      await fetch('/api/profile', {
+      // Build API URL with profileId if provided
+      const apiUrl = profileId 
+        ? `/api/profile?profileId=${profileId}`
+        : '/api/profile'
+      
+      await fetch(apiUrl, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -89,6 +75,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
       })
       if (onProfileReload) await onProfileReload()
     } catch (error) {
+      console.error('Failed to save recording:', error)
       alert('Failed to save recording.')
     }
   }
@@ -104,76 +91,34 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
     if (actualIndex !== -1) {
       try {
         const { deleteRecording } = await import('@/lib/services/recordingService')
-        await deleteRecording(recordingToDelete.url)
+        if (recordingToDelete.url) {
+          await deleteRecording(recordingToDelete.url)
+        }
+        
         const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
-        await fetch('/api/profile', {
+        
+        // Build API URL with profileId if provided
+        const apiUrl = profileId 
+          ? `/api/profile?profileId=${profileId}`
+          : '/api/profile'
+        
+        const response = await fetch(apiUrl, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ story_recordings: updatedRecordings }),
         })
+        
+        if (!response.ok) {
+          throw new Error('Failed to update profile')
+        }
+        
         if (onProfileReload) await onProfileReload()
       } catch (error) {
+        console.error('Failed to delete recording:', error)
         alert('Failed to delete recording.')
       }
     }
   }
-
-  const handleHasChildrenChange = (hasChildren: boolean) => {
-    handleInputChange('has_children', hasChildren)
-    
-    if (!hasChildren) {
-      // Clear children-related fields if no children
-      handleInputChange('number_of_children', null)
-      setChildrenAges([])
-      handleInputChange('children_ages', [])
-    } else {
-      // Set default number of children to 1 if they have children
-      if (!profile.number_of_children) {
-        handleInputChange('number_of_children', 1)
-      }
-    }
-  }
-
-  const handleNumberOfChildrenChange = (number: number) => {
-    console.log('FamilySection: handleNumberOfChildrenChange called with:', number)
-    console.log('FamilySection: Current childrenAges length:', childrenAges.length)
-    console.log('FamilySection: Current numberOfChildren from profile:', profile.number_of_children)
-    
-    // Mark that user is making changes
-    isUserActionRef.current = true
-    
-    handleInputChange('number_of_children', number)
-    
-    // Always create a new array with the exact number of children
-    const newAges = Array.from({ length: number }, (_, index) => {
-      // Preserve existing ages if they exist
-      return childrenAges[index] || ''
-    })
-    
-    console.log('FamilySection: Setting new childrenAges:', newAges)
-    setChildrenAges(newAges)
-    handleInputChange('children_ages', newAges)
-    
-    // Reset the flag after a short delay
-    setTimeout(() => {
-      isUserActionRef.current = false
-    }, 1000)
-  }
-
-  const handleChildAgeChange = (index: number, age: string) => {
-    const newAges = [...childrenAges]
-    newAges[index] = age
-    setChildrenAges(newAges)
-    // Don't immediately trigger auto-save for age changes to prevent profile reset
-    // The parent component will handle saving when appropriate
-  }
-
-  const hasChildren = profile.has_children === true
-  // Use childrenAges.length when we have local data, otherwise use profile
-  // This ensures the UI reflects local changes even when profile save fails
-  const numberOfChildren = childrenAges.length > 0 ? childrenAges.length : (profile.number_of_children || 0)
-  
-  console.log('FamilySection: Render - hasChildren:', hasChildren, 'numberOfChildren:', numberOfChildren, 'childrenAges.length:', childrenAges.length, 'profile.number_of_children:', profile.number_of_children)
 
   return (
     <Card className="p-6">
@@ -191,7 +136,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
                 type="radio"
                 name="has_children"
                 checked={hasChildren === true}
-                onChange={() => handleHasChildrenChange(true)}
+                onChange={() => handleInputChange('has_children', true)}
                 className="w-4 h-4 text-primary-500 bg-neutral-800 border-neutral-700 focus:ring-primary-500"
               />
               <span className="text-neutral-200">Yes</span>
@@ -201,7 +146,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
                 type="radio"
                 name="has_children"
                 checked={hasChildren === false}
-                onChange={() => handleHasChildrenChange(false)}
+                onChange={() => handleInputChange('has_children', false)}
                 className="w-4 h-4 text-primary-500 bg-neutral-800 border-neutral-700 focus:ring-primary-500"
               />
               <span className="text-neutral-200">No</span>
@@ -209,83 +154,74 @@ export function FamilySection({ profile, onProfileChange, onProfileReload }: Fam
           </div>
         </div>
 
-        {/* Number of Children - Conditional */}
-        {hasChildren && (
-          <div>
-            <label className="block text-sm font-medium text-neutral-200 mb-2">
-              How many children do you have? *
-            </label>
-            <div className="flex items-center gap-3">
+        {/* Children Table - Shows when Yes is selected */}
+        {hasChildren === true && (
+          <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-semibold text-white">Children</h4>
               <button
-                onClick={() => {
-                  console.log('FamilySection: Minus button clicked, current numberOfChildren:', numberOfChildren)
-                  if (numberOfChildren > 1) {
-                    handleNumberOfChildrenChange(numberOfChildren - 1)
-                  }
-                }}
-                disabled={numberOfChildren <= 1}
-                className="p-2 rounded-lg bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                type="button"
+                onClick={handleChildAdd}
+                className="flex items-center gap-2 px-3 py-1.5 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg transition-colors text-sm font-medium"
               >
-                <Minus className="w-4 h-4 text-neutral-400" />
-              </button>
-              
-              <Input
-                type="number"
-                value={numberOfChildren}
-                onChange={(e) => {
-                  const num = parseInt(e.target.value) || 0
-                  if (num >= 0 && num <= 20) {
-                    handleNumberOfChildrenChange(num)
-                  }
-                }}
-                min="1"
-                max="20"
-                className="w-20 text-center"
-              />
-              
-              <button
-                onClick={() => {
-                  console.log('FamilySection: Plus button clicked, current numberOfChildren:', numberOfChildren)
-                  if (numberOfChildren < 20) {
-                    handleNumberOfChildrenChange(numberOfChildren + 1)
-                  }
-                }}
-                disabled={numberOfChildren >= 20}
-                className="p-2 rounded-lg bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus className="w-4 h-4 text-neutral-400" />
+                <Plus className="w-4 h-4" />
+                Add Child
               </button>
             </div>
-          </div>
-        )}
 
-        {/* Children Ages - Conditional */}
-        {hasChildren && numberOfChildren > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-neutral-200 mb-3">
-              Children's Ages *
-            </label>
-            <div className="space-y-3">
-              {Array.from({ length: numberOfChildren }, (_, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <span className="text-sm text-neutral-400 w-20">
-                    Child {index + 1}:
-                  </span>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="25"
-                    value={childrenAges[index] || ''}
-                    onChange={(e) => handleChildAgeChange(index, e.target.value)}
-                    placeholder="Enter age"
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-neutral-400 w-16">
-                    {childrenAges[index] === '1' ? 'year old' : 'years old'}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {children.length === 0 ? (
+              <p className="text-sm text-neutral-400 text-center py-4">
+                Click "Add Child" to add your first child
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {children.map((child, index) => (
+                  <div
+                    key={index}
+                    className="bg-neutral-900 rounded-lg border border-neutral-700 p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-neutral-400">Child {index + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleChildRemove(index)}
+                        className="text-neutral-400 hover:text-red-400 transition-colors"
+                        title="Remove child"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-neutral-300 mb-1">
+                          First Name *
+                        </label>
+                        <Input
+                          type="text"
+                          value={child.first_name || ''}
+                          onChange={(e) => handleChildChange(index, 'first_name', e.target.value)}
+                          placeholder="e.g., Emma"
+                          className="w-full text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-neutral-300 mb-1">
+                          Birthday
+                        </label>
+                        <Input
+                          type="date"
+                          value={child.birthday || ''}
+                          onChange={(e) => handleChildChange(index, 'birthday', e.target.value)}
+                          className="w-full text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

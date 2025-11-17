@@ -51,9 +51,27 @@ async function triggerBackgroundMixing(params: {
 
   const bgUrl = getBackgroundTrackForVariant(params.variant)
   
-  // Volume levels based on variant
-  const voiceVolume = params.variant === 'sleep' ? 0.3 : params.variant === 'meditation' ? 0.5 : 0.8
-  const bgVolume = params.variant === 'sleep' ? 0.7 : params.variant === 'meditation' ? 0.5 : 0.2
+  // Get volume levels from database (single source of truth)
+  const supabase = await createClient()
+  const { data: variantData } = await supabase
+    .from('audio_variants')
+    .select('voice_volume, bg_volume')
+    .eq('id', params.variant)
+    .single()
+  
+  // Fallback to hardcoded defaults if database query fails
+  let voiceVolume = 0.7
+  let bgVolume = 0.3
+  
+  if (variantData) {
+    // Convert percentages (0-100) to decimal (0-1)
+    voiceVolume = variantData.voice_volume / 100
+    bgVolume = variantData.bg_volume / 100
+  } else {
+    // Fallback values
+    voiceVolume = params.variant === 'sleep' ? 0.3 : params.variant === 'meditation' ? 0.5 : 0.8
+    bgVolume = params.variant === 'sleep' ? 0.7 : params.variant === 'meditation' ? 0.5 : 0.2
+  }
 
   const command = new InvokeCommand({
     FunctionName: 'audio-mixer',
@@ -71,7 +89,7 @@ async function triggerBackgroundMixing(params: {
 
   await lambda.send(command)
   
-  console.log(`[Mixing] Triggered background mixing for track ${params.trackId} (${params.variant})`)
+  console.log(`[Mixing] Triggered background mixing for track ${params.trackId} (${params.variant}) - volumes: ${voiceVolume}/${bgVolume}`)
 }
 
 async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', format: 'mp3' | 'wav' = 'mp3', userId?: string): Promise<Buffer> {

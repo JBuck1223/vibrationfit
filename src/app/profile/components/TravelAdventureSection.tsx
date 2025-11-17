@@ -3,7 +3,7 @@
 import React from 'react'
 import { Card, Input } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Plane } from 'lucide-react'
+import { Plane, Plus, Trash2 } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
@@ -12,20 +12,62 @@ interface TravelAdventureSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  profileId?: string // Optional profile ID to target specific profile version
 }
 
-export function TravelAdventureSection({ profile, onProfileChange, onProfileReload }: TravelAdventureSectionProps) {
+type Trip = {
+  destination: string
+  year?: string | null
+  duration?: string | null
+}
+
+export function TravelAdventureSection({ profile, onProfileChange, onProfileReload, profileId }: TravelAdventureSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
+  }
+
+  // Initialize trips array
+  const trips: Trip[] = profile.trips || []
+
+  const handleTripChange = (index: number, field: keyof Trip, value: string) => {
+    const updated = [...trips]
+    updated[index] = { ...updated[index], [field]: value }
+    handleInputChange('trips', updated)
+  }
+
+  const handleTripAdd = () => {
+    const newTrip: Trip = {
+      destination: '',
+      year: null,
+      duration: null
+    }
+    handleInputChange('trips', [...trips, newTrip])
+  }
+
+  const handleTripRemove = (index: number) => {
+    const updated = trips.filter((_, i) => i !== index)
+    handleInputChange('trips', updated)
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
     const newRecording = { url, transcript, type, category: 'travel_adventure', created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_travel: updatedText }) })
+      // Build API URL with profileId if provided
+      const apiUrl = profileId 
+        ? `/api/profile?profileId=${profileId}`
+        : '/api/profile'
+      
+      await fetch(apiUrl, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ story_recordings: updatedRecordings, clarity_travel: updatedText }) 
+      })
       if (onProfileReload) await onProfileReload()
-    } catch (error) { alert('Failed to save recording.') }
+    } catch (error) { 
+      console.error('Failed to save recording:', error)
+      alert('Failed to save recording.') 
+    }
   }
 
   const handleDeleteRecording = async (index: number) => {
@@ -36,11 +78,32 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
     if (actualIndex !== -1) {
       try {
         const { deleteRecording } = await import('@/lib/services/recordingService')
-        await deleteRecording(recordingToDelete.url)
+        if (recordingToDelete.url) {
+          await deleteRecording(recordingToDelete.url)
+        }
+        
         const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
-        await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings }) })
+        
+        // Build API URL with profileId if provided
+        const apiUrl = profileId 
+          ? `/api/profile?profileId=${profileId}`
+          : '/api/profile'
+        
+        const response = await fetch(apiUrl, { 
+          method: 'PUT', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ story_recordings: updatedRecordings }) 
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to update profile')
+        }
+        
         if (onProfileReload) await onProfileReload()
-      } catch (error) { alert('Failed to delete recording.') }
+      } catch (error) { 
+        console.error('Failed to delete recording:', error)
+        alert('Failed to delete recording.') 
+      }
     }
   }
 
@@ -96,6 +159,89 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
             placeholder="0"
             className="w-full"
           />
+        </div>
+
+        {/* Trips I've Taken Table */}
+        <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-sm font-semibold text-white">Trips I've Taken</h4>
+            <button
+              type="button"
+              onClick={handleTripAdd}
+              className="flex items-center gap-2 px-3 py-1.5 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg transition-colors text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Add Trip
+            </button>
+          </div>
+
+          {trips.length === 0 ? (
+            <p className="text-sm text-neutral-400 text-center py-4">
+              Click "Add Trip" to add your first trip
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {trips.map((trip, index) => (
+                <div
+                  key={index}
+                  className="bg-neutral-900 rounded-lg border border-neutral-700 p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-neutral-400">Trip {index + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleTripRemove(index)}
+                      className="text-neutral-400 hover:text-red-400 transition-colors"
+                      title="Remove trip"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-300 mb-1">
+                        Destination *
+                      </label>
+                      <Input
+                        type="text"
+                        value={trip.destination || ''}
+                        onChange={(e) => handleTripChange(index, 'destination', e.target.value)}
+                        placeholder="e.g., Paris, France"
+                        className="w-full text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-300 mb-1">
+                        Year
+                      </label>
+                      <Input
+                        type="text"
+                        value={trip.year || ''}
+                        onChange={(e) => handleTripChange(index, 'year', e.target.value)}
+                        placeholder="e.g., 2023"
+                        className="w-full text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-300 mb-1">
+                        Duration
+                      </label>
+                      <Input
+                        type="text"
+                        value={trip.duration || ''}
+                        onChange={(e) => handleTripChange(index, 'duration', e.target.value)}
+                        placeholder="e.g., 1 week, 2 days"
+                        className="w-full text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Clarity Field */}

@@ -118,6 +118,9 @@ async function mixAudio(voicePath, bgPath, outputPath, voiceVolume, bgVolume) {
     `-filter_complex "[0:a]volume=${voiceVolume}[a0];[1:a]volume=${bgVolume},aloop=loop=-1:size=2e+09[a1];[a0][a1]amix=inputs=2:duration=first" ` +
     `-codec:a libmp3lame -b:a 192k -y ${outputPath}`
   
+  console.log(`[Mixing] FFmpeg command: ${command}`)
+  console.log(`[Mixing] Voice volume: ${voiceVolume}, Background volume: ${bgVolume}`)
+  
   await execAsync(command)
 }
 

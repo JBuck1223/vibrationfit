@@ -15,8 +15,12 @@ export interface UserProfile {
   relationship_length?: string | null
   partner_name?: string | null
   has_children?: boolean | null
-  number_of_children?: number | null
-  children_ages?: string[] | null
+  number_of_children?: number | null // Deprecated - use children array instead
+  children_ages?: string[] | null // Deprecated - use children array instead
+  children?: Array<{
+    first_name: string
+    birthday?: string | null
+  }> | null
   units?: string | null
   height?: number | null
   weight?: number | null
@@ -84,12 +88,26 @@ export interface UserProfile {
   travel_frequency?: 'never' | 'yearly' | 'quarterly' | 'monthly' | null
   passport?: boolean | null
   countries_visited?: number | null
+  trips?: Array<{
+    destination: string
+    year?: string | null
+    duration?: string | null
+  }> | null
   // Social & Friends
   close_friends_count?: string | null
   social_preference?: 'introvert' | 'ambivert' | 'extrovert' | null
   // Possessions & Lifestyle
   lifestyle_category?: 'minimalist' | 'moderate' | 'comfortable' | 'luxury' | null
-  primary_vehicle?: string | null
+  vehicles?: Array<{
+    name: string
+    year_acquired?: string | null
+    ownership_status: 'paid_in_full' | 'own_with_payment' | 'leased' | 'borrowed'
+  }> | null
+  toys?: Array<{
+    name: string
+    year_acquired?: string | null
+    ownership_status: 'paid_in_full' | 'own_with_payment' | 'leased' | 'borrowed'
+  }> | null
   // Spirituality & Growth
   spiritual_practice?: string | null
   meditation_frequency?: string | null
