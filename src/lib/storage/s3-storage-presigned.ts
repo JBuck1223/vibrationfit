@@ -251,14 +251,16 @@ export async function uploadUserFile(
 
   console.log('✅ File validation passed')
 
-  // Use presigned URL for large files (>25MB to avoid issues)
+  // Use presigned URL for large files (>50MB to avoid issues)
+  console.log(`📊 Upload decision: file size ${(file.size / 1024 / 1024).toFixed(2)}MB, threshold ${(PRESIGNED_THRESHOLD / 1024 / 1024).toFixed(2)}MB`)
+  
   if (file.size > PRESIGNED_THRESHOLD) {
-    console.log(`Using presigned URL upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+    console.log(`🔗 Using presigned URL upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
     return uploadFileWithPresignedUrl(folder, file, userId, onProgress)
   }
 
   // Use API route for smaller files (more reliable, no CORS issues)
-  console.log(`Using API route upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+  console.log(`🚀 Using API route upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
   return uploadViaApiRoute(folder, file, userId, onProgress)
 }
 
