@@ -393,7 +393,8 @@ export function findNavItemByHref(
  */
 export function isNavItemActive(
   item: NavItem,
-  pathname: string
+  pathname: string,
+  activeProfileId?: string | null
 ): boolean {
   // Exact match
   if (item.href === pathname) {
@@ -413,15 +414,33 @@ export function isNavItemActive(
     }
   }
   
+  // Special handling for /profile/{id} paths - check if it's the active profile
+  // Check if we're on a specific profile detail page
+  if (pathname.match(/^\/profile\/[^\/]+$/) && !pathname.includes('/edit') && !pathname.includes('/active') && !pathname.includes('/compare') && !pathname.includes('/new')) {
+    // Extract profile ID from pathname
+    const profileIdMatch = pathname.match(/^\/profile\/([^\/]+)$/)
+    const currentProfileId = profileIdMatch ? profileIdMatch[1] : null
+    
+    // If this is the "My Active Profile" menu item, only mark it as active if viewing the active profile
+    if (item.href === '/profile/active') {
+      return currentProfileId === activeProfileId
+    }
+    // If this is the "All Profiles" menu item, mark it as active if viewing a non-active profile
+    if (item.href === '/profile' && !item.children) {
+      return currentProfileId !== activeProfileId
+    }
+  }
+  
   // Check if pathname starts with item href (for nested routes)
   // But exclude the case where we're on /life-vision (exact) and checking /life-vision/active
-  if (pathname.startsWith(item.href + '/') && item.href !== '/life-vision') {
+  // Also exclude /profile (exact) when checking /profile/active
+  if (pathname.startsWith(item.href + '/') && item.href !== '/life-vision' && item.href !== '/profile') {
     return true
   }
   
   // Check children
   if (item.children) {
-    return item.children.some(child => isNavItemActive(child, pathname))
+    return item.children.some(child => isNavItemActive(child, pathname, activeProfileId))
   }
   
   return false

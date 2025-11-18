@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, CreatedDateBadge } from '@/lib/design-system/components'
+import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, CreatedDateBadge, VersionBadge, StatusBadge, Container } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VersionCard } from '../components/VersionCard'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys } from '@/lib/design-system/vision-categories'
@@ -138,6 +138,109 @@ export default function ProfileDetailPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [versionToDelete, setVersionToDelete] = useState<any>(null)
   const [showPhotoUpload, setShowPhotoUpload] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Profile photo menu and lightbox state
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false)
+  const [profilePhotoLightboxOpen, setProfilePhotoLightboxOpen] = useState(false)
+  const [profilePhotoIndex, setProfilePhotoIndex] = useState(0)
+  const photoButtonRef = useRef<HTMLButtonElement>(null)
+  const photoMenuRef = useRef<HTMLDivElement>(null)
+
+  // Real-time completion calculation (matches edit page logic)
+  const calculateCompletionManually = (profileData: Partial<UserProfile>): number => {
+    if (!profileData) return 0
+
+    let totalFields = 0
+    let completedFields = 0
+
+    // Helper to check if a field has value
+    const hasValue = (field: keyof UserProfile) => {
+      const value = profileData[field]
+      if (Array.isArray(value)) return value.length > 0
+      if (typeof value === 'boolean') return true
+      return value !== null && value !== undefined && value !== ''
+    }
+
+    // Core Fields (always required)
+    const coreFields: (keyof UserProfile)[] = ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'profile_picture_url']
+    coreFields.forEach(field => {
+      totalFields++
+      if (hasValue(field)) completedFields++
+    })
+
+    // Relationship Fields (conditional)
+    totalFields++
+    if (hasValue('relationship_status')) {
+      completedFields++
+      if (profileData.relationship_status !== 'Single') {
+        totalFields += 2
+        if (hasValue('partner_name')) completedFields++
+        if (hasValue('relationship_length')) completedFields++
+      }
+    }
+
+    // Family Fields (conditional)
+    totalFields++
+    if (profileData.has_children !== undefined && profileData.has_children !== null) {
+      completedFields++
+      if (profileData.has_children === true) {
+        totalFields++
+        if (profileData.children && Array.isArray(profileData.children) && profileData.children.length > 0) {
+          const childrenWithNames = profileData.children.filter((c: any) => c && c.first_name && c.first_name.trim().length > 0)
+          if (childrenWithNames.length > 0) {
+            completedFields++
+          }
+        }
+      }
+    }
+
+    // Health, Location, Career, Financial Fields
+    const healthFields: (keyof UserProfile)[] = ['units', 'height', 'weight', 'exercise_frequency']
+    const locationFields: (keyof UserProfile)[] = ['living_situation', 'time_at_location', 'city', 'state', 'postal_code', 'country']
+    const careerFields: (keyof UserProfile)[] = ['employment_type', 'occupation', 'company', 'time_in_role', 'education']
+    const financialFields: (keyof UserProfile)[] = ['currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt']
+
+    ;[...healthFields, ...locationFields, ...careerFields, ...financialFields].forEach(field => {
+      totalFields++
+      if (hasValue(field)) completedFields++
+    })
+
+    // Life Category Clarity Fields (12 categories)
+    const clarityFields: (keyof UserProfile)[] = [
+      'clarity_fun', 'clarity_health', 'clarity_travel', 'clarity_love', 'clarity_family', 'clarity_social',
+      'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff', 'clarity_giving', 'clarity_spirituality'
+    ]
+    clarityFields.forEach(field => {
+      totalFields++
+      if (hasValue(field)) completedFields++
+    })
+
+    // Structured Life Category Fields
+    const structuredFields: (keyof UserProfile)[] = [
+      'hobbies', 'leisure_time_weekly',
+      'travel_frequency', 'passport', 'countries_visited',
+      'close_friends_count', 'social_preference',
+      'lifestyle_category',
+      'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
+      'volunteer_status', 'charitable_giving', 'legacy_mindset'
+    ]
+    structuredFields.forEach(field => {
+      totalFields++
+      if (hasValue(field)) completedFields++
+    })
+
+    return totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0
+  }
+
+  // Recalculate completion percentage whenever profile data changes
+  useEffect(() => {
+    if (Object.keys(profile).length > 0) {
+      const newPercentage = calculateCompletionManually(profile)
+      setCompletionPercentage(newPercentage)
+    }
+  }, [profile])
 
   useEffect(() => {
     fetchProfile()
@@ -187,7 +290,7 @@ export default function ProfileDetailPage() {
       console.log('Profile view: Fetched data:', data)
       console.log('Profile view: Versions received:', data.versions?.length || 0)
       setProfile(data.profile || {})
-      setCompletionPercentage(data.completionPercentage || 0)
+      // Completion percentage will be calculated in real-time via useEffect
       setVersions(data.versions || [])
       
       // Get user ID from Supabase
@@ -240,7 +343,7 @@ export default function ProfileDetailPage() {
       }
       const data = await response.json()
       setProfile(data.profile || {})
-      setCompletionPercentage(data.completionPercentage || 0)
+      // Completion percentage will be calculated in real-time via useEffect
       setCurrentVersionId(versionId)
       
       // Always set as viewing version when viewing a specific ID
@@ -287,10 +390,7 @@ export default function ProfileDetailPage() {
         [fieldKey]: newValue,
       }))
       
-      // Update completion percentage if provided
-      if (data.completionPercentage !== undefined) {
-        setCompletionPercentage(data.completionPercentage)
-      }
+      // Completion percentage will be recalculated automatically via useEffect when profile updates
       
       console.log('Field saved successfully:', fieldKey, newValue)
     } catch (error) {
@@ -374,6 +474,29 @@ export default function ProfileDetailPage() {
     return `${age} years old`
   }
 
+  const formatPhoneNumber = (phone: string | null | undefined) => {
+    if (!phone) return phone
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '')
+    // Format as XXX-XXX-XXXX
+    if (digits.length === 10) {
+      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+    }
+    // Return original if not 10 digits
+    return phone
+  }
+
+  const formatDateOfBirth = (dateOfBirth: string | null | undefined) => {
+    if (!dateOfBirth) return dateOfBirth
+    // Parse date (format: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ)
+    const dateStr = dateOfBirth.split('T')[0]
+    const [year, month, day] = dateStr.split('-')
+    if (year && month && day) {
+      return `${month}-${day}-${year}`
+    }
+    return dateOfBirth
+  }
+
   const getCompletionColor = (percentage: number) => {
     if (percentage >= 80) return 'text-green-400'
     if (percentage >= 60) return 'text-yellow-400'
@@ -387,6 +510,26 @@ export default function ProfileDetailPage() {
     if (percentage >= 40) return 'bg-orange-500'
     return 'bg-red-500'
   }
+
+  // Collect all unique profile photos from all versions
+  const getAllProfilePhotos = useCallback(() => {
+    const photos: string[] = []
+    
+    // Add current profile photo if it exists
+    if (profile.profile_picture_url) {
+      photos.push(profile.profile_picture_url)
+    }
+    
+    // Add photos from all versions
+    versions.forEach((version: any) => {
+      if (version.profile_picture_url && !photos.includes(version.profile_picture_url)) {
+        photos.push(version.profile_picture_url)
+      }
+    })
+    
+    // Remove duplicates and filter out null/undefined
+    return photos.filter((url): url is string => Boolean(url))
+  }, [profile.profile_picture_url, versions])
 
   const getCurrentVersionInfo = () => {
     if (!profileId) return null
@@ -434,6 +577,82 @@ export default function ProfileDetailPage() {
   const isVideo = (url: string) => {
     return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
   }
+
+  // Handle profile photo menu actions
+  const handleSeeProfilePicture = () => {
+    const allPhotos = getAllProfilePhotos()
+    if (allPhotos.length > 0) {
+      // Find index of current profile photo
+      const currentIndex = allPhotos.findIndex(url => url === profile.profile_picture_url)
+      setProfilePhotoIndex(currentIndex >= 0 ? currentIndex : 0)
+      setProfilePhotoLightboxOpen(true)
+    }
+    setShowPhotoMenu(false)
+  }
+
+  const handleSelectProfilePicture = () => {
+    setShowPhotoMenu(false)
+    if (!isViewingVersion) {
+      fileInputRef.current?.click()
+    }
+  }
+
+  // Profile photo lightbox navigation
+  const nextProfilePhoto = useCallback(() => {
+    const allPhotos = getAllProfilePhotos()
+    if (allPhotos.length > 0) {
+      setProfilePhotoIndex((prev) => (prev + 1) % allPhotos.length)
+    }
+  }, [getAllProfilePhotos])
+
+  const prevProfilePhoto = useCallback(() => {
+    const allPhotos = getAllProfilePhotos()
+    if (allPhotos.length > 0) {
+      setProfilePhotoIndex((prev) => (prev - 1 + allPhotos.length) % allPhotos.length)
+    }
+  }, [getAllProfilePhotos])
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showPhotoMenu) {
+        const target = event.target as Node
+        const isClickInsideButton = photoButtonRef.current?.contains(target)
+        const isClickInsideMenu = photoMenuRef.current?.contains(target)
+        
+        if (!isClickInsideButton && !isClickInsideMenu) {
+          setShowPhotoMenu(false)
+        }
+      }
+    }
+
+    if (showPhotoMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [showPhotoMenu])
+
+  // Keyboard navigation for profile photo lightbox
+  useEffect(() => {
+    if (!profilePhotoLightboxOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setProfilePhotoLightboxOpen(false)
+      } else if (e.key === 'ArrowLeft') {
+        prevProfilePhoto()
+      } else if (e.key === 'ArrowRight') {
+        nextProfilePhoto()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [profilePhotoLightboxOpen, prevProfilePhoto, nextProfilePhoto])
 
   // Helper function to render fields for each category
   const renderCategoryFields = (categoryId: string) => {
@@ -1245,191 +1464,175 @@ export default function ProfileDetailPage() {
     )
   }
 
+  const versionInfo = getCurrentVersionInfo()
+  const displayStatus = versionInfo?.is_active && !versionInfo?.is_draft ? 'active' : versionInfo?.is_draft ? 'draft' : 'complete'
+
+  if (!profile || Object.keys(profile).length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-neutral-400">Loading your profile...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
-        {/* Header */}
+        {/* Page Hero */}
         <div className="mb-8">
-          {/* Mobile Header */}
-          <div className="md:hidden space-y-4 mb-6">
-            {/* Title and Badge */}
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-white">My Profile</h1>
-                {getCurrentVersionInfo() && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="info">
-                      Version {getCurrentVersionInfo()?.version_number}
-                    </Badge>
-                    {getCurrentVersionInfo()?.is_draft ? (
-                      <Badge variant="warning">
-                        Draft
-                      </Badge>
-                    ) : getCurrentVersionInfo()?.is_active ? (
-                      <Badge variant="success">
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge variant="info">
-                        Complete
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </div>
-              <p className="text-neutral-400 text-sm">
-                {getCurrentVersionInfo()?.created_at 
-                  ? `Saved on ${new Date(getCurrentVersionInfo().created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo().created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
-                  : 'This is your profile information.'
-                }
-              </p>
-            </div>
-
-            {/* Action Buttons - Stacked */}
-            <div className="space-y-2">
-              <Button
-                onClick={() => router.push(`/profile/${profileId}/edit`)}
-                variant="primary"
-                className="w-full"
-              >
-                <Edit3 className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
+          {/* Subtle Gradient Background */}
+          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+            {/* Modern Enhanced Layout with Card Container */}
+            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
               
-              <Button
-                onClick={() => router.push('/profile')}
-                variant="outline"
-                className="w-full"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                See All
-              </Button>
-            </div>
-          </div>
-
-          {/* Desktop Header */}
-          <div className="hidden md:flex items-center gap-4 mb-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-white">My Profile</h1>
-                {getCurrentVersionInfo() && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="info">
-                      Version {getCurrentVersionInfo()?.version_number}
-                    </Badge>
-                    {getCurrentVersionInfo()?.is_draft ? (
-                      <Badge variant="warning">
-                        Draft
-                      </Badge>
-                    ) : getCurrentVersionInfo()?.is_active ? (
-                      <Badge variant="success">
-                        Active
-                      </Badge>
+              <div className="relative z-10">
+                {/* Profile Picture */}
+                <div className="text-center mb-4 relative">
+                  <button
+                    ref={photoButtonRef}
+                    onClick={() => {
+                      if (!isViewingVersion) {
+                        setShowPhotoMenu(!showPhotoMenu)
+                      }
+                    }}
+                    disabled={isViewingVersion}
+                    className="inline-block relative group"
+                  >
+                    {profile.profile_picture_url ? (
+                      <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-white relative">
+                        <NextImage
+                          src={profile.profile_picture_url}
+                          alt="Profile picture"
+                          width={128}
+                          height={128}
+                          className="w-full h-full object-cover"
+                        />
+                        {!isViewingVersion && (
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                            <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                      <Badge variant="info">
-                        Complete
-                      </Badge>
+                      <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 border-2 border-white flex items-center justify-center">
+                        <Camera className="w-8 h-8 md:w-12 md:h-12 text-white" />
+                      </div>
                     )}
+                  </button>
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setSelectedFile(file)
+                        setShowPhotoUpload(true)
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  
+                  {/* Profile Photo Menu */}
+                  {showPhotoMenu && !isViewingVersion && (
+                    <div 
+                      ref={photoMenuRef}
+                      className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Caret pointing up to photo */}
+                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white"></div>
+                      <div className="absolute -top-[9px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-b-[5px] border-transparent border-b-white"></div>
+                      <Card className="!p-1 min-w-[240px] md:min-w-[200px] shadow-xl relative !border !border-white !bg-white">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleSeeProfilePicture()
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
+                        >
+                          <Eye className="w-4 h-4 text-[#1F1F1F]" />
+                          <span className="text-[#1F1F1F] text-sm">See profile picture</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleSelectProfilePicture()
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
+                        >
+                          <Camera className="w-4 h-4 text-[#1F1F1F]" />
+                          <span className="text-[#1F1F1F] text-sm">Update profile picture</span>
+                        </button>
+                      </Card>
+                    </div>
+                  )}
+                </div>
+
+                {/* Title Section */}
+                <div className="text-center mb-4">
+                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                    {profile.first_name && profile.last_name
+                      ? `${profile.first_name} ${profile.last_name}`
+                      : 'My Profile'}
+                  </h1>
+                </div>
+
+                {/* Centered Version Info with Enhanced Styling */}
+                {versionInfo && (
+                  <div className="text-center mb-6">
+                    {/* Version, Status & Date Badges */}
+                    <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                      <VersionBadge 
+                        versionNumber={versionInfo.version_number} 
+                        status={displayStatus} 
+                      />
+                      <CreatedDateBadge createdAt={versionInfo.created_at} />
+                      <StatusBadge 
+                        status={displayStatus} 
+                        subtle={displayStatus !== 'active'} 
+                      />
+                      {/* Profile Completion Percentage */}
+                      <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
+                        {completionPercentage}%
+                      </span>
+                    </div>
                   </div>
                 )}
-              </div>
-              <p className="text-neutral-400">
-                {getCurrentVersionInfo()?.created_at 
-                  ? `Saved on ${new Date(getCurrentVersionInfo().created_at).toLocaleDateString()} at ${new Date(getCurrentVersionInfo().created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
-                  : 'Complete overview of your profile information'
-                }
-              </p>
-            </div>
-            <Button
-              onClick={() => router.push(`/profile/${profileId}/edit`)}
-              variant="primary"
-              className="flex items-center gap-2"
-            >
-              <Edit3 className="w-4 h-4" />
-              Edit Profile
-            </Button>
-            <Button
-              onClick={() => router.push('/profile')}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              See All
-            </Button>
-          </div>
 
+                {/* Action Buttons - Enhanced with Hover Effects */}
+                <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+                  <Button
+                    onClick={() => router.push(`/profile/${profileId}/edit`)}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  >
+                    <Edit3 className="w-4 h-4 shrink-0" />
+                    <span>Edit Profile</span>
+                  </Button>
+                  <Button
+                    onClick={() => router.push('/profile')}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  >
+                    <Eye className="w-4 h-4 shrink-0" />
+                    <span>See All</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Main Content */}
-        <div>
-
-
-
-        {/* Profile Picture and Basic Info */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Profile Picture */}
-          <Card className="p-6 text-center">
-            <div className="relative inline-block mb-4">
-              {profile.profile_picture_url ? (
-                <div className="w-32 h-32 rounded-full overflow-hidden bg-neutral-800 border-4 border-primary-500/20">
-                  <NextImage
-                    src={profile.profile_picture_url}
-                    alt="Profile picture"
-                    width={128}
-                    height={128}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 border-4 border-primary-500/20 flex items-center justify-center">
-                  <Camera className="w-12 h-12 text-white" />
-                </div>
-              )}
-            </div>
-            <h3 className="text-xl font-bold text-white mb-1">
-              {profile.first_name && profile.last_name 
-                ? `${profile.first_name} ${profile.last_name}`
-                : 'Your Name'
-              }
-            </h3>
-            {userId && (
-              <p className="text-xs text-neutral-500 mb-4 font-mono">
-                ID: {userId}
-              </p>
-            )}
-            <Button
-              onClick={() => setShowPhotoUpload(true)}
-              variant="outline"
-              size="sm"
-              className="w-full"
-              disabled={isViewingVersion}
-            >
-              <Camera className="w-4 h-4 mr-2" />
-              Update Photo
-            </Button>
-            {showPhotoUpload && (
-              <div className="mt-4">
-                <ProfilePictureUpload
-                  currentImageUrl={profile.profile_picture_url}
-                  profileId={profileId}
-                  onImageChange={(url) => {
-                    setProfile(prev => ({ ...prev, profile_picture_url: url }))
-                    setShowPhotoUpload(false)
-                  }}
-                  onError={(error) => {
-                    console.error('Photo upload error:', error)
-                    alert(error)
-                  }}
-                  onUploadComplete={() => {
-                    setShowPhotoUpload(false)
-                    fetchProfile() // Refresh profile data
-                  }}
-                />
-              </div>
-            )}
-          </Card>
-
-          {/* Quick Stats */}
-          <div className="lg:col-span-2 space-y-4 h-full">
+        <Container size="xl">
+        {/* Quick Stats */}
+        <div className="space-y-4 mb-8">
             
             <Card className="p-6 h-full">
               <div className="flex items-center justify-between mb-4">
@@ -1441,10 +1644,10 @@ export default function ProfileDetailPage() {
                   onClick={() => router.push(`/profile/${profileId}/edit#personal`)}
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-2"
+                  className="!p-2 !aspect-square md:!aspect-auto md:!px-4 md:!py-3"
                 >
                   <Edit3 className="w-4 h-4" />
-                  Edit
+                  <span className="hidden md:inline">Edit</span>
                 </Button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1458,14 +1661,13 @@ export default function ProfileDetailPage() {
                 />
                 <ProfileField
                   label="Date of Birth"
-                  value={profile.date_of_birth}
+                  value={formatDateOfBirth(profile.date_of_birth)}
                   editable={false}
                   fieldKey="date_of_birth"
                   onSave={handleFieldSave}
                   type="text"
                 />
                 <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-neutral-400" />
                   <div>
                     <p className="text-sm text-neutral-400">Age</p>
                     <p className="text-white font-medium">
@@ -1488,7 +1690,7 @@ export default function ProfileDetailPage() {
                 />
                 <ProfileField
                   label="Phone"
-                  value={profile.phone}
+                  value={formatPhoneNumber(profile.phone)}
                   editable={false}
                   fieldKey="phone"
                   onSave={handleFieldSave}
@@ -1516,86 +1718,12 @@ export default function ProfileDetailPage() {
                 />
               </div>
             </Card>
-          </div>
         </div>
 
         {/* Detailed Sections */}
-        {/* Current Version Information & Profile Completion */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Version Information */}
-          {versions.length > 0 && (
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <History className="w-5 h-5 text-[#39FF14]" />
-                Version Information
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-neutral-400">Version ID:</span>
-                  <span className="font-mono text-sm text-white bg-neutral-800 px-2 py-1 rounded">
-                    {profileId || versions[0]?.id}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-neutral-400">Last Updated:</span>
-                  <CreatedDateBadge 
-                    createdAt={getCurrentVersionInfo()?.created_at || versions[0]?.created_at || new Date().toISOString()} 
-                  />
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Profile Completion */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary-500" />
-              Profile Completion
-            </h3>
-            <div className="text-center mb-4">
-              <span className="text-4xl font-bold text-[#39FF14]">
-                {completionPercentage}%
-              </span>
-            </div>
-            <div className="w-full bg-neutral-700 rounded-full h-3 mb-3">
-              <div
-                className="h-3 rounded-full transition-all duration-500 bg-[#39FF14]"
-                style={{ width: `${completionPercentage}%` }}
-              ></div>
-            </div>
-            <p className="text-sm text-neutral-400 text-center">
-              {completionPercentage >= 80 
-                ? "Excellent! Your profile is well-completed." 
-                : completionPercentage >= 60 
-                ? "Good progress! A few more details would be helpful."
-                : "Keep going! Complete more sections to unlock your full potential."
-              }
-            </p>
-            {isViewingVersion && getCurrentVersionInfo() && (
-              <p className="text-xs text-neutral-500 text-center mt-2">
-                Version {getCurrentVersionInfo()?.version_number} • Saved on {new Date(getCurrentVersionInfo()?.created_at).toLocaleDateString()}
-              </p>
-            )}
-          </Card>
-        </div>
-
-        {/* Version Notes & Media */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Version Notes */}
-          {profile.version_notes && (
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary-500" />
-                Version Notes
-              </h3>
-              <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
-                <p className="text-white whitespace-pre-wrap">{profile.version_notes}</p>
-              </div>
-            </Card>
-          )}
-
-          {/* Media */}
-          {profile.progress_photos && profile.progress_photos.length > 0 && (
+        {/* Media */}
+        {profile.progress_photos && profile.progress_photos.length > 0 && (
+          <div className="mb-8">
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <Camera className="w-5 h-5 text-primary-500" />
@@ -1628,8 +1756,8 @@ export default function ProfileDetailPage() {
                 {profile.progress_photos.length} media file{profile.progress_photos.length !== 1 ? 's' : ''} • Click to view in lightbox
               </p>
             </Card>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Life Category Cards - Ordered by Design System */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1647,10 +1775,10 @@ export default function ProfileDetailPage() {
                     onClick={() => router.push(`/profile/${profileId}/edit#${category.id}`)}
                     variant="outline"
                     size="sm"
-                    className="flex items-center gap-2"
+                    className="!p-2 !aspect-square md:!aspect-auto md:!px-4 md:!py-3"
                   >
                     <Edit3 className="w-4 h-4" />
-                    Edit
+                    <span className="hidden md:inline">Edit</span>
                   </Button>
                 </div>
                 <div className="space-y-3">
@@ -1696,7 +1824,6 @@ export default function ProfileDetailPage() {
             )}
           </Button>
         </div>
-      </div>
 
       {/* Lightbox */}
       {lightboxOpen && profile.progress_photos && (
@@ -1794,6 +1921,97 @@ export default function ProfileDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Profile Photo Lightbox */}
+      {profilePhotoLightboxOpen && (() => {
+        const allPhotos = getAllProfilePhotos()
+        if (allPhotos.length === 0) return null
+        
+        return (
+          <div 
+            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
+            onClick={() => setProfilePhotoLightboxOpen(false)}
+          >
+            <div 
+              className="relative w-full h-full flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setProfilePhotoLightboxOpen(false)}
+                className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Navigation Buttons */}
+              {allPhotos.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      prevProfilePhoto()
+                    }}
+                    className="absolute left-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      nextProfilePhoto()
+                    }}
+                    className="absolute right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+
+              {/* Photo Content */}
+              <div className="max-w-6xl max-h-full w-full h-full flex items-center justify-center">
+                <img
+                  src={allPhotos[profilePhotoIndex]}
+                  alt={`Profile photo ${profilePhotoIndex + 1}`}
+                  className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                />
+              </div>
+
+              {/* Photo Counter */}
+              {allPhotos.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                  {profilePhotoIndex + 1} of {allPhotos.length}
+                </div>
+              )}
+
+              {/* Thumbnail Strip */}
+              {allPhotos.length > 1 && (
+                <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4">
+                  {allPhotos.map((photo, index) => (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setProfilePhotoIndex(index)
+                      }}
+                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                        index === profilePhotoIndex ? 'border-primary-500' : 'border-neutral-600'
+                      }`}
+                    >
+                      <img
+                        src={photo}
+                        alt={`Thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+        </Container>
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog

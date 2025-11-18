@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Button, Card } from '@/lib/design-system/components'
 import { Camera, Upload, X, Check, RotateCw } from 'lucide-react'
 import NextImage from 'next/image'
@@ -15,9 +15,10 @@ interface ProfilePictureUploadProps {
   onError: (error: string) => void
   onUploadComplete?: () => void
   profileId?: string | null // Optional: specific profile ID to update
+  initialFile?: File | null // Optional: pre-selected file to process
 }
 
-export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, onUploadComplete, profileId }: ProfilePictureUploadProps) {
+export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, onUploadComplete, profileId, initialFile }: ProfilePictureUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [showCropper, setShowCropper] = useState(false)
@@ -34,10 +35,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
+  const processFile = useCallback((file: File) => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
       onError('Please select a valid image file')
@@ -56,7 +54,20 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
       setShowCropper(true)
     }
     reader.readAsDataURL(file)
+  }, [onError])
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    processFile(file)
   }
+
+  // Process initial file if provided
+  useEffect(() => {
+    if (initialFile) {
+      processFile(initialFile)
+    }
+  }, [initialFile, processFile])
 
   // Set crop to center of image (like the reference)
   React.useEffect(() => {

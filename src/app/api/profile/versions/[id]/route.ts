@@ -45,7 +45,25 @@ export async function GET(
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ profile })
+    // Calculate version number based on chronological order (matches vision API pattern)
+    let profileVersionNumber = profile.version_number || 1
+    try {
+      const { data: calculatedVersionNumber } = await supabase
+        .rpc('get_profile_version_number', { p_profile_id: profile.id })
+      
+      profileVersionNumber = calculatedVersionNumber || profile.version_number || 1
+    } catch (error) {
+      // If RPC function doesn't exist yet, use stored version_number
+      console.warn('Could not calculate version number, using stored:', error)
+    }
+
+    // Return profile with calculated version number
+    const profileWithVersion = {
+      ...profile,
+      version_number: profileVersionNumber
+    }
+
+    return NextResponse.json({ profile: profileWithVersion })
   } catch (error) {
     console.error('Unexpected error in GET /api/profile/versions/[id]:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

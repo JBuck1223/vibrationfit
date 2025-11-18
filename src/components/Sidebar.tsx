@@ -138,7 +138,7 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {navigation.map((item) => {
-          const isActive = isNavItemActive(item, pathname)
+          const isActive = isNavItemActive(item, pathname, profile?.id)
           const isExpanded = expandedItems.includes(item.name)
           const Icon = item.icon
 
@@ -167,7 +167,7 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
                     <div className="ml-6 mt-2 space-y-1">
                       {item.children.map((child) => {
                         const ChildIcon = child.icon
-                        const isChildActive = isNavItemActive(child, pathname)
+                        const isChildActive = isNavItemActive(child, pathname, profile?.id)
                         
                         return (
                           <Link

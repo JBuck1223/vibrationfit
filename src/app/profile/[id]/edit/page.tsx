@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, WarningConfirmationDialog, Icon } from '@/lib/design-system/components'
+import {  Button, Badge, Card, WarningConfirmationDialog, Icon, VersionBadge, CreatedDateBadge, StatusBadge } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -42,7 +42,8 @@ export default function ProfileEditPage() {
   const [versionStatus, setVersionStatus] = useState({
     isDraft: false,
     isActive: false,
-    versionNumber: 1
+    versionNumber: 1,
+    createdAt: ''
   })
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
   const [showDraftWarning, setShowDraftWarning] = useState(false)
@@ -229,68 +230,91 @@ export default function ProfileEditPage() {
     return totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0
   }
 
-  // Fetch profile data
+  // Helper function to get current version info (matches profile detail page)
+  const getCurrentVersionInfo = () => {
+    if (!profileId) return null
+    // Find the version info for the current profileId
+    const versionInfo = versions.find(v => v.id === profileId)
+    if (versionInfo) return versionInfo
+    
+    // If not in versions list yet, use profile data directly
+    if (profile && (profile as any).id === profileId) {
+      const profileAny = profile as any
+      return {
+        id: profile.id,
+        version_number: profileAny.version_number,
+        is_draft: profileAny.is_draft,
+        is_active: profileAny.is_active,
+        created_at: profile.created_at,
+        updated_at: profile.updated_at,
+        completion_percentage: profileAny.completion_percentage
+      }
+    }
+    
+    return null
+  }
+
+  // Fetch profile data (matches life-vision pattern exactly)
   useEffect(() => {
     async function fetchProfile() {
       try {
-        console.log('Profile edit page: Starting fetch to /api/profile')
-        const response = await fetch('/api/profile')
-        console.log('Profile edit page: Response received', { 
-          status: response.status, 
-          ok: response.ok,
-          statusText: response.statusText 
-        })
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            console.log('Profile edit page: Unauthorized, redirecting to login')
-            router.push('/auth/login')
-            return
+        // If we have a profileId, fetch that specific profile version directly (like life-vision does)
+        if (profileId) {
+          console.log('Profile edit page: Loading specific profile version:', profileId)
+          
+          // Fetch the specific profile version directly
+          const response = await fetch(`/api/profile/versions/${profileId}?t=${Date.now()}`)
+          
+          if (!response.ok) {
+            if (response.status === 401) {
+              router.push('/auth/login')
+              return
+            }
+            const errorData = await response.json()
+            throw new Error(errorData.error || 'Failed to load profile version')
           }
-          const errorText = await response.text()
-          console.error('Profile edit page: API error response', errorText)
-          throw new Error(`Failed to fetch profile: ${response.status} ${response.statusText}`)
-        }
-        
+          
+          const versionData = await response.json()
+          const profileData = versionData.profile
+          
+          if (!profileData) {
+            throw new Error('Profile not found')
+          }
 
-        const data = await response.json()
-        console.log('Profile edit page: Data received', data)
-        
-        // Load the specific profile version if we have a profileId
-        if (profileId && data.versions) {
-          const targetVersion = data.versions.find((v: any) => v.id === profileId)
-          if (targetVersion) {
-            setProfile(targetVersion)
-            setCompletionPercentage(targetVersion.completion_percentage || 0)
-            setCurrentVersionId(targetVersion.id)
-            
-            setVersionStatus({ 
-              isDraft: targetVersion.is_draft || false, 
-              isActive: targetVersion.is_active || false,
-              versionNumber: targetVersion.version_number || 1
-            })
-            setVersions(data.versions || [])
-            
-            console.log('Profile version loaded:', {
-              id: targetVersion.id,
-              is_draft: targetVersion.is_draft,
-              is_active: targetVersion.is_active,
-              version_number: targetVersion.version_number,
-              created_at: targetVersion.created_at
-            })
-          } else {
-            setProfile(data.profile || {})
-            setCompletionPercentage(data.completionPercentage || 0)
-            setCurrentVersionId(null)
-            setVersionStatus({ isDraft: false, isActive: false, versionNumber: 1 })
-            setVersions(data.versions || [])
+          console.log('Profile version loaded:', {
+            id: profileData.id,
+            is_draft: profileData.is_draft,
+            is_active: profileData.is_active,
+            version_number: profileData.version_number,
+            created_at: profileData.created_at
+          })
+
+          setProfile(profileData)
+          setCurrentVersionId(profileData.id)
+          
+          // Also fetch versions list for other functionality
+          const versionsResponse = await fetch(`/api/profile?includeVersions=true&t=${Date.now()}`)
+          if (versionsResponse.ok) {
+            const versionsData = await versionsResponse.json()
+            setVersions(versionsData.versions || [])
           }
         } else {
+          // No profileId - fetch active profile
+          console.log('Profile edit page: Loading active profile')
+          const response = await fetch(`/api/profile?t=${Date.now()}`)
+          
+          if (!response.ok) {
+            if (response.status === 401) {
+              router.push('/auth/login')
+              return
+            }
+            throw new Error('Failed to fetch profile')
+          }
+          
+          const data = await response.json()
           setProfile(data.profile || {})
-          setCompletionPercentage(data.completionPercentage || 0)
-          setCurrentVersionId(null)
-          setVersionStatus({ isDraft: false, isActive: false, versionNumber: 1 })
           setVersions(data.versions || [])
+          setCurrentVersionId(null)
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
@@ -355,11 +379,15 @@ export default function ProfileEditPage() {
       // Update current version info
       if (data.version) {
         setCurrentVersionId(data.version.id)
-        setVersionStatus({
-          isDraft: data.version.is_draft,
-          isActive: data.version.is_active,
-          versionNumber: data.version.version_number
-        })
+        // Update profile with new version data
+        setProfile(prev => ({
+          ...prev,
+          ...data.version,
+          version_number: data.version.version_number,
+          is_draft: data.version.is_draft,
+          is_active: data.version.is_active,
+          created_at: data.version.created_at || prev.created_at
+        }))
       }
       
       setSaveStatus('saved')
@@ -416,11 +444,10 @@ export default function ProfileEditPage() {
         }
         
         setProfile(updatedProfile)
-        setCompletionPercentage(data.completionPercentage)
+        // Completion percentage will be recalculated automatically via useEffect when profile updates
       } else {
         console.log('Profile save failed or returned empty data, keeping current local state')
-        // Keep current local state if save failed
-        setCompletionPercentage(calculateCompletionManually(profile))
+        // Completion percentage will be recalculated automatically via useEffect
       }
       setSaveStatus('saved')
       setLastSaved(new Date())
@@ -509,14 +536,14 @@ export default function ProfileEditPage() {
           const targetVersion = data.versions.find((v: any) => v.id === profileId)
           if (targetVersion) {
             setProfile(targetVersion)
-            setCompletionPercentage(targetVersion.completion_percentage || 0)
+            // Completion percentage will be calculated in real-time via useEffect
           } else {
             setProfile(data.profile || {})
-            setCompletionPercentage(data.completionPercentage || 0)
+            // Completion percentage will be calculated in real-time via useEffect
           }
         } else {
           setProfile(data.profile || {})
-          setCompletionPercentage(data.completionPercentage || 0)
+          // Completion percentage will be calculated in real-time via useEffect
         }
       }
     } catch (error) {
@@ -786,59 +813,102 @@ export default function ProfileEditPage() {
     )
   }
 
+  // Determine display status based on is_active and is_draft (matches life-vision pattern)
+  const getDisplayStatus = () => {
+    if (!profile || Object.keys(profile).length === 0) return 'complete'
+    
+    const profileAny = profile as any
+    // Explicitly check for true values (handle null/undefined)
+    const isActive = profileAny.is_active === true
+    const isDraft = profileAny.is_draft === true
+    
+    if (isActive && !isDraft) {
+      return 'active'
+    } else if (!isActive && isDraft) {
+      return 'draft'
+    } else {
+      return 'complete'
+    }
+  }
+
+  const displayStatus = getDisplayStatus()
+  
+  // Use profile data directly (matches life-vision pattern)
+  const profileAny = profile as any
+  const badgeVersionNumber = profileAny?.version_number || 1
+  const badgeCreatedAt = profile?.created_at || ''
+  // Always use real-time calculated completion percentage
+  const badgeCompletionPercentage = completionPercentage
+
   return (
     <>
       {/* Header */}
       <div className="mb-8">
         {/* Mobile Header */}
         <div className="md:hidden space-y-4 mb-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-3 mb-2">
               <h1 className="text-2xl font-bold text-white">Edit Profile</h1>
-              {currentVersionId && (
-                <VersionStatusIndicator
-                  isActive={versionStatus.isActive}
-                  isDraft={versionStatus.isDraft}
-                  versionNumber={versionStatus.versionNumber}
-                  completionPercentage={completionPercentage}
-                  showIcon={true}
-                  showCompletion={true}
-                />
-              )}
             </div>
-            <p className="text-neutral-400 text-sm">
-              {profileId ? (
-                versionStatus.isActive ? 'Editing active profile version' :
-                versionStatus.isDraft ? 'Editing draft version' :
-                `Editing version ${versionStatus.versionNumber}`
-              ) : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
-            </p>
+            {/* Badge Row */}
+            {profileId && profile && Object.keys(profile).length > 0 && badgeCreatedAt && (
+              <div className="text-center mb-2">
+                <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                  <VersionBadge
+                    versionNumber={badgeVersionNumber}
+                    status={displayStatus}
+                  />
+                  <CreatedDateBadge createdAt={badgeCreatedAt} />
+                  <StatusBadge
+                    status={displayStatus}
+                    subtle={displayStatus !== 'active'}
+                  />
+                  {/* Profile Completion Percentage */}
+                  <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
+                    {badgeCompletionPercentage}%
+                  </span>
+                </div>
+              </div>
+            )}
+            {!profileId && (
+              <p className="text-neutral-400 text-sm text-center">
+                Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
+              </p>
+            )}
           </div>
         </div>
 
         {/* Desktop Header */}
         <div className="hidden md:flex items-center gap-4 mb-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
+          <div className="flex-1 text-center">
+            <div className="flex items-center justify-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-white">Edit Profile</h1>
-              {currentVersionId && (
-                <VersionStatusIndicator
-                  isActive={versionStatus.isActive}
-                  isDraft={versionStatus.isDraft}
-                  versionNumber={versionStatus.versionNumber}
-                  completionPercentage={completionPercentage}
-                  showIcon={true}
-                  showCompletion={true}
-                />
-              )}
             </div>
-            <p className="text-neutral-400">
-              {profileId ? (
-                versionStatus.isActive ? 'Editing active profile version' :
-                versionStatus.isDraft ? 'Editing draft version' :
-                `Editing version ${versionStatus.versionNumber}`
-              ) : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
-            </p>
+            {/* Badge Row */}
+            {profileId && profile && Object.keys(profile).length > 0 && badgeCreatedAt && (
+              <div className="text-center mb-2">
+                <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                  <VersionBadge
+                    versionNumber={badgeVersionNumber}
+                    status={displayStatus}
+                  />
+                  <CreatedDateBadge createdAt={badgeCreatedAt} />
+                  <StatusBadge
+                    status={displayStatus}
+                    subtle={displayStatus !== 'active'}
+                  />
+                  {/* Profile Completion Percentage */}
+                  <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
+                    {badgeCompletionPercentage}%
+                  </span>
+                </div>
+              </div>
+            )}
+            {!profileId && (
+              <p className="text-neutral-400 text-center">
+                Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -888,12 +958,12 @@ export default function ProfileEditPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex flex-row items-center gap-3">
               <Button
                 onClick={() => router.push(`/profile/${profileId}`)}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 font-semibold w-full sm:w-auto"
+                className="flex items-center gap-2 font-semibold"
               >
                 <Eye className="w-4 h-4" />
                 View
@@ -903,7 +973,7 @@ export default function ProfileEditPage() {
                 onClick={handleSaveClick}
                 disabled={isSaving}
                 size="sm"
-                className="flex items-center gap-2 font-semibold w-full sm:w-auto"
+                className="flex items-center gap-2 font-semibold"
               >
                 <Save className="w-4 h-4" />
                 {isSaving ? 'Saving...' : 'Save'}
@@ -912,9 +982,9 @@ export default function ProfileEditPage() {
               {currentVersionId && (
                 <VersionActionToolbar
                   versionId={currentVersionId}
-                  versionNumber={versionStatus.versionNumber}
-                  isActive={versionStatus.isActive}
-                  isDraft={versionStatus.isDraft}
+                  versionNumber={badgeVersionNumber}
+                  isActive={profileAny?.is_active === true}
+                  isDraft={profileAny?.is_draft === true}
                   onSaveAsDraft={() => saveAsVersion(true)}
                   onCommitAsActive={() => saveAsVersion(false)}
                   onCreateDraft={() => saveAsVersion(true)}
@@ -925,16 +995,6 @@ export default function ProfileEditPage() {
                   isLoading={isSaving}
                 />
               )}
-              
-              <Button
-                onClick={() => setShowVersions(!showVersions)}
-                variant="secondary"
-                size="sm"
-                className="flex items-center gap-2 font-semibold w-full sm:w-auto"
-              >
-                <History className="w-4 h-4" />
-                Versions
-              </Button>
             </div>
           </div>
         </div>
@@ -969,7 +1029,7 @@ export default function ProfileEditPage() {
               <p className="text-sm text-neutral-400">
                 Showing {selectedCategories.length} of {profileSections.length} areas
                 {completedSections.length > 0 && (
-                  <span className="ml-2 text-green-400">
+                  <span className="ml-2 text-[#39FF14]">
                     • {completedSections.length} completed
                   </span>
                 )}
@@ -991,12 +1051,14 @@ export default function ProfileEditPage() {
                     variant="outlined" 
                     hover 
                     className={`cursor-pointer aspect-square transition-all duration-300 relative ${
-                      isActive ? 'border-2 border-primary-500' : ''
-                    } ${isCompleted ? 'bg-green-500/10' : ''}`}
+                      isActive 
+                        ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' 
+                        : '!bg-transparent !border-2 !border-[#333]'
+                    } ${isCompleted && !isActive ? 'bg-green-500/10' : ''}`}
                     onClick={() => setActiveSection(section.id)}
                   >
                     {isCompleted && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full border-2 border-[#39FF14] bg-transparent flex items-center justify-center z-10">
+                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#39FF14] flex items-center justify-center z-10">
                         <Check className="w-3 h-3 text-[#39FF14]" strokeWidth={3} />
                       </div>
                     )}
@@ -1004,7 +1066,7 @@ export default function ProfileEditPage() {
                       <Icon 
                         icon={IconComponent} 
                         size="sm" 
-                        color={isCompleted ? '#39FF14' : isActive ? '#39FF14' : '#14B8A6'} 
+                        color={isActive ? '#39FF14' : '#FFFFFF'} 
                       />
                       <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
                         {categoryInfo.title}

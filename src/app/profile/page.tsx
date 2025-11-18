@@ -270,7 +270,7 @@ export default function ProfileDashboardPage() {
 
                 {/* Centered Version Info with Enhanced Styling */}
                 {activeProfile && (
-                  <div className="text-center">
+                  <div className="text-center mb-6">
                     {/* Version, Status & Date Badges */}
                     <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
                       <VersionBadge 
@@ -283,6 +283,30 @@ export default function ProfileDashboardPage() {
                         subtle={!(activeProfile.is_active && !activeProfile.is_draft)} 
                       />
                     </div>
+                  </div>
+                )}
+
+                {/* Action Buttons - Enhanced with Hover Effects */}
+                {activeProfile && (
+                  <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+                    <Button
+                      onClick={() => router.push(`/profile/${activeProfile.id}`)}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                    >
+                      <Eye className="w-4 h-4 shrink-0" />
+                      <span>View Profile</span>
+                    </Button>
+                    <Button
+                      onClick={() => router.push('/profile/edit')}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                    >
+                      <Edit3 className="w-4 h-4 shrink-0" />
+                      <span>Edit Profile</span>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -307,71 +331,6 @@ export default function ProfileDashboardPage() {
           </Container>
         )}
 
-        {/* Current Profile Information */}
-        {activeProfile && (
-          <Container size="xl">
-          <div className="mb-8">
-
-            {/* Action Buttons */}
-            <div className="flex flex-col md:flex-row gap-2 md:gap-4 w-full justify-center">
-              <Button
-                onClick={() => router.push(`/profile/${activeProfile.id}`)}
-                variant="primary"
-                size="sm"
-                className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2"
-              >
-                <Eye className="w-4 h-4" />
-                View Profile
-              </Button>
-              <Button
-                onClick={() => router.push('/profile/edit')}
-                variant="secondary"
-                size="sm"
-                className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2"
-              >
-                <Edit3 className="w-4 h-4" />
-                Edit Profile
-              </Button>
-              {hasActiveDraft && activeDraftId ? (
-                <Button
-                  onClick={() => router.push(`/profile/${activeDraftId}/edit/draft`)}
-                  variant="primary"
-                  size="sm"
-                  className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2 font-semibold border-2"
-                  style={{
-                    backgroundColor: colors.energy.yellow[500],
-                    color: '#000000',
-                    borderColor: colors.energy.yellow[500]
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                    e.currentTarget.style.color = colors.energy.yellow[500]
-                    e.currentTarget.style.borderColor = colors.energy.yellow[500]
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
-                    e.currentTarget.style.color = '#000000'
-                    e.currentTarget.style.borderColor = colors.energy.yellow[500]
-                  }}
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Edit Draft
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleCreateDraft}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs md:text-sm w-full md:w-auto md:flex-1 flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create Draft
-                </Button>
-              )}
-            </div>
-          </div>
-          </Container>
-        )}
 
         {/* Stats Cards */}
         {activeProfile && (
