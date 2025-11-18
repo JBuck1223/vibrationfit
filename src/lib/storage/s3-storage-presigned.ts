@@ -31,9 +31,9 @@ export function getFileUrl(path: string): string {
 }
 
 // Threshold for presigned URL upload
-// Lowered to 2MB because Vercel has 4.5MB body limit
-// Files >2MB must use presigned URLs to avoid "Request Entity Too Large" errors
-const PRESIGNED_THRESHOLD = 2 * 1024 * 1024 // 2MB
+// Lowered to 500KB because Vercel has payload limits with FormData overhead
+// Files >500KB must use presigned URLs to avoid "Function payload too large" errors
+const PRESIGNED_THRESHOLD = 500 * 1024 // 500KB
 
 // Get presigned URL for direct S3 upload
 export async function getPresignedUploadUrl(
