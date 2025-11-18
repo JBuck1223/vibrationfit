@@ -1,18 +1,20 @@
 'use client'
 
 import React from 'react'
-import { Card, Input } from '@/lib/design-system/components'
-import { Plus, Trash2 } from 'lucide-react'
+import { Card, Input, Button } from '@/lib/design-system/components'
+import { Plus, Trash2, Save } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, getVisionCategoryIcon } from '@/lib/design-system/vision-categories'
 
 interface FamilySectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
   profileId?: string // Optional profile ID to target specific profile version
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 type Child = {
@@ -20,7 +22,7 @@ type Child = {
   birthday?: string | null
 }
 
-export function FamilySection({ profile, onProfileChange, onProfileReload, profileId }: FamilySectionProps) {
+export function FamilySection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: FamilySectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -120,9 +122,14 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
     }
   }
 
+  const FamilyIcon = getVisionCategoryIcon('family')
+  
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('family')}</h3>
+      <div className="flex items-center gap-3 mb-6">
+        <FamilyIcon className="w-6 h-6 text-white" />
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('family')}</h3>
+      </div>
       
       <div className="space-y-6">
         {/* Has Children */}
@@ -264,6 +271,21 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           Family information helps your AI assistant understand your responsibilities and provide relevant guidance for your life planning.
         </p>
       </div>
+
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

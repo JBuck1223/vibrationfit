@@ -4,12 +4,15 @@ import React from 'react'
 import { Card, Input, Button } from '@/lib/design-system/components'
 import { ProfilePictureUpload } from './ProfilePictureUpload'
 import { UserProfile } from '@/lib/supabase/profile'
+import { Save, User } from 'lucide-react'
 
 interface PersonalInfoSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onError: (error: string) => void
   onUploadComplete?: () => void
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 const genderOptions = [
@@ -31,7 +34,7 @@ const ethnicityOptions = [
   { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
-export function PersonalInfoSection({ profile, onProfileChange, onError }: PersonalInfoSectionProps) {
+export function PersonalInfoSection({ profile, onProfileChange, onError, onSave, isSaving }: PersonalInfoSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -46,16 +49,21 @@ export function PersonalInfoSection({ profile, onProfileChange, onError }: Perso
 
   return (
     <div className="space-y-6">
-      {/* Profile Picture */}
-      <ProfilePictureUpload
-        currentImageUrl={profile.profile_picture_url}
-        onImageChange={(url) => handleInputChange('profile_picture_url', url)}
-        onError={onError}
-      />
-
       {/* Personal Information Form */}
       <Card className="p-6">
-        <h3 className="text-xl font-bold text-white mb-6">Personal Information</h3>
+        <div className="flex items-center gap-3 mb-6">
+          <User className="w-6 h-6 text-white" />
+          <h3 className="text-xl font-bold text-white">Personal Information</h3>
+        </div>
+        
+        {/* Profile Picture */}
+        <div className="mb-6">
+          <ProfilePictureUpload
+            currentImageUrl={profile.profile_picture_url}
+            onImageChange={(url) => handleInputChange('profile_picture_url', url)}
+            onError={onError}
+          />
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* First Name */}
@@ -172,6 +180,21 @@ export function PersonalInfoSection({ profile, onProfileChange, onError }: Perso
             <span className="font-medium text-primary-400">Privacy Note:</span> This information helps your Vibrational Intelligence Virtual Assistant provide more personalized guidance. All data is encrypted and never shared with third parties.
           </p>
         </div>
+
+        {/* Save Button - Bottom Right */}
+        {onSave && (
+          <div className="flex justify-end mt-6">
+            <Button
+              onClick={onSave}
+              variant="primary"
+              disabled={isSaving}
+              className="flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+        )}
       </Card>
     </div>
   )

@@ -5,12 +5,15 @@ import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, getVisionCategoryIcon } from '@/lib/design-system/vision-categories'
+import { Save } from 'lucide-react'
 
 interface HealthSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 const exerciseFrequencyOptions = [
@@ -20,7 +23,7 @@ const exerciseFrequencyOptions = [
   { value: '5+', label: '5+ times per week' }
 ]
 
-export function HealthSection({ profile, onProfileChange, onProfileReload }: HealthSectionProps) {
+export function HealthSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: HealthSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -171,9 +174,14 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
     }
   }
 
+  const HealthIcon = getVisionCategoryIcon('health')
+  
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('health')}</h3>
+      <div className="flex items-center gap-3 mb-6">
+        <HealthIcon className="w-6 h-6 text-white" />
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('health')}</h3>
+      </div>
       
       <div className="space-y-6">
         {/* Units Toggle */}
@@ -329,6 +337,21 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
           Health information helps your AI assistant provide personalized fitness and wellness recommendations.
         </p>
       </div>
+
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

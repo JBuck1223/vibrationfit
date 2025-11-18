@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import { Card, Input } from '@/lib/design-system/components'
+import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Package, Plus, Trash2 } from 'lucide-react'
+import { Package, Plus, Trash2, Save } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
@@ -13,6 +13,8 @@ interface PossessionsLifestyleSectionProps {
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
   profileId?: string // Optional profile ID to target specific profile version
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 type VehicleOrToy = {
@@ -21,7 +23,7 @@ type VehicleOrToy = {
   ownership_status: 'paid_in_full' | 'own_with_payment' | 'leased' | 'borrowed'
 }
 
-export function PossessionsLifestyleSection({ profile, onProfileChange, onProfileReload, profileId }: PossessionsLifestyleSectionProps) {
+export function PossessionsLifestyleSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: PossessionsLifestyleSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -131,7 +133,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
   return (
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <Package className="w-6 h-6 text-primary-500" />
+        <Package className="w-6 h-6 text-white" />
         <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('stuff')}</h3>
       </div>
       
@@ -369,6 +371,21 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           Understanding your lifestyle preferences helps Viva provide relevant suggestions for lifestyle improvements and material goals.
         </p>
       </div>
+
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

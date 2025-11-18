@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Card, Input } from '@/lib/design-system/components'
+import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { PartyPopper, Plus, X } from 'lucide-react'
+import { PartyPopper, Plus, X, Save } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
@@ -13,9 +13,11 @@ interface FunRecreationSectionProps {
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
   profileId?: string // Optional profile ID to target specific profile version
+  onSave?: () => void
+  isSaving?: boolean
 }
 
-export function FunRecreationSection({ profile, onProfileChange, onProfileReload, profileId }: FunRecreationSectionProps) {
+export function FunRecreationSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: FunRecreationSectionProps) {
   const [newHobby, setNewHobby] = useState('')
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
@@ -140,7 +142,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
   return (
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <PartyPopper className="w-6 h-6 text-accent-500" />
+        <PartyPopper className="w-6 h-6 text-white" />
         <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('fun')}</h3>
       </div>
       
@@ -244,6 +246,21 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           Understanding your recreational interests helps Viva provide relevant suggestions for fun activities and leisure planning.
         </p>
       </div>
+
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

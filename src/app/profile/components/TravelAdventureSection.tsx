@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import { Card, Input } from '@/lib/design-system/components'
+import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Plane, Plus, Trash2 } from 'lucide-react'
+import { Plane, Plus, Trash2, Save } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
@@ -13,6 +13,8 @@ interface TravelAdventureSectionProps {
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
   profileId?: string // Optional profile ID to target specific profile version
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 type Trip = {
@@ -21,7 +23,7 @@ type Trip = {
   duration?: string | null
 }
 
-export function TravelAdventureSection({ profile, onProfileChange, onProfileReload, profileId }: TravelAdventureSectionProps) {
+export function TravelAdventureSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: TravelAdventureSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -110,7 +112,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
   return (
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <Plane className="w-6 h-6 text-secondary-500" />
+        <Plane className="w-6 h-6 text-white" />
         <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('travel')}</h3>
       </div>
       
@@ -282,6 +284,21 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           Understanding your travel interests helps Viva provide relevant destination suggestions and adventure planning guidance.
         </p>
       </div>
+
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

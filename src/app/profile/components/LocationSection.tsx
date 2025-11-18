@@ -1,16 +1,19 @@
 'use client'
 
 import React from 'react'
-import { Card, Input } from '@/lib/design-system/components'
+import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, getVisionCategoryIcon } from '@/lib/design-system/vision-categories'
+import { Save } from 'lucide-react'
 
 interface LocationSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 const livingSituationOptions = [
@@ -42,7 +45,7 @@ const countryOptions = [
   { value: 'Other', label: 'Other' }
 ]
 
-export function LocationSection({ profile, onProfileChange, onProfileReload }: LocationSectionProps) {
+export function LocationSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: LocationSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -72,9 +75,14 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
     }
   }
 
+  const HomeIcon = getVisionCategoryIcon('home')
+  
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('home')}</h3>
+      <div className="flex items-center gap-3 mb-6">
+        <HomeIcon className="w-6 h-6 text-white" />
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('home')}</h3>
+      </div>
       
       <div className="space-y-6">
         {/* Living Situation */}
@@ -216,6 +224,21 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
           Location information helps your AI assistant understand your local context and provide relevant regional guidance.
         </p>
       </div>
+
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

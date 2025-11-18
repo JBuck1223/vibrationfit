@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import { Card } from '@/lib/design-system/components'
+import { Card, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { UserPlus } from 'lucide-react'
+import { UserPlus, Save } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
@@ -12,9 +12,11 @@ interface SocialFriendsSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  onSave?: () => void
+  isSaving?: boolean
 }
 
-export function SocialFriendsSection({ profile, onProfileChange, onProfileReload }: SocialFriendsSectionProps) {
+export function SocialFriendsSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: SocialFriendsSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -47,7 +49,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
   return (
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <UserPlus className="w-6 h-6 text-secondary-500" />
+        <UserPlus className="w-6 h-6 text-white" />
         <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('social')}</h3>
       </div>
       
@@ -125,6 +127,21 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           Understanding your social preferences helps Viva provide relevant suggestions for social activities and relationship building.
         </p>
       </div>
+
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

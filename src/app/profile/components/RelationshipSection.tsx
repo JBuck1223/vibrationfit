@@ -1,16 +1,19 @@
 'use client'
 
 import React from 'react'
-import { Card } from '@/lib/design-system/components'
+import { Card, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, getVisionCategoryIcon } from '@/lib/design-system/vision-categories'
+import { Save } from 'lucide-react'
 
 interface RelationshipSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 const relationshipStatusOptions = [
@@ -30,7 +33,7 @@ const relationshipLengthOptions = [
   { value: '10+ years', label: '10+ years' }
 ]
 
-export function RelationshipSection({ profile, onProfileChange, onProfileReload }: RelationshipSectionProps) {
+export function RelationshipSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: RelationshipSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -96,9 +99,14 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
   const isSingle = profile.relationship_status === 'Single'
   const showRelationshipLength = !isSingle && profile.relationship_status
 
+  const LoveIcon = getVisionCategoryIcon('love')
+  
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('love')}</h3>
+      <div className="flex items-center gap-3 mb-6">
+        <LoveIcon className="w-6 h-6 text-white" />
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('love')}</h3>
+      </div>
       
       <div className="space-y-6">
         {/* Relationship Status */}
@@ -205,6 +213,21 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
           Understanding your relationship status helps your AI assistant provide relevant guidance for your personal growth journey.
         </p>
       </div>
+
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

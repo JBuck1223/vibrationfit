@@ -3,17 +3,23 @@
 import React from 'react'
 import { UserProfile } from '@/lib/supabase/profile'
 import { MediaUpload } from './MediaUpload'
+import { Button } from '@/lib/design-system/components'
+import { Save } from 'lucide-react'
 
 interface PhotosAndNotesSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   disabled?: boolean
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
   profile,
   onProfileChange,
-  disabled = false
+  disabled = false,
+  onSave,
+  isSaving
 }) => {
   return (
     <div className="space-y-8">
@@ -65,6 +71,21 @@ export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
           Use them to document your journey, achievements, or any personal context you'd like to remember.
         </p>
       </div>
+
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

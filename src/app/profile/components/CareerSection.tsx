@@ -1,16 +1,19 @@
 'use client'
 
 import React from 'react'
-import { Card, Input, Textarea } from '@/lib/design-system/components'
+import { Card, Input, Textarea, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, getVisionCategoryIcon } from '@/lib/design-system/vision-categories'
+import { Save } from 'lucide-react'
 
 interface CareerSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 const employmentTypeOptions = [
@@ -44,7 +47,7 @@ const educationOptions = [
   { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
-export function CareerSection({ profile, onProfileChange, onProfileReload }: CareerSectionProps) {
+export function CareerSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: CareerSectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -78,9 +81,14 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
     }
   }
 
+  const WorkIcon = getVisionCategoryIcon('work')
+  
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('work')}</h3>
+      <div className="flex items-center gap-3 mb-6">
+        <WorkIcon className="w-6 h-6 text-white" />
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('work')}</h3>
+      </div>
       
       <div className="space-y-6">
         {/* Employment Type */}
@@ -228,6 +236,21 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
           Career information helps your AI assistant understand your professional goals and provide relevant business and career guidance.
         </p>
       </div>
+
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

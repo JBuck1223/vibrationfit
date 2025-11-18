@@ -304,7 +304,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
   return (
     <Card className="p-6">
       <div className="text-center">
-        <h3 className="text-lg font-semibold text-white mb-4">Profile Picture</h3>
+        <h3 className="text-lg font-semibold text-white mb-1">Profile Picture</h3>
         
         {/* Current/Preview Image - Hidden during cropping */}
         {!showCropper && (
@@ -339,10 +339,9 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
             <Button
               onClick={triggerFileSelect}
               variant="outline"
-              className="w-full"
             >
               <Upload className="w-4 h-4 mr-2" />
-              {currentImageUrl ? 'Change Picture' : 'Upload Picture'}
+              {currentImageUrl ? 'Update Picture' : 'Upload Picture'}
             </Button>
             <p className="text-xs text-neutral-400">
               JPG, PNG, WebP up to 5MB
