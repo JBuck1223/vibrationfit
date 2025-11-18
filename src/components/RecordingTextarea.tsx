@@ -23,7 +23,7 @@ interface RecordingTextareaProps {
   category?: string // Category for IndexedDB persistence (e.g., 'fun', 'health', 'journal')
   onUploadProgress?: (progress: number, status: string, fileName: string, fileSize: number) => void
   transcriptOnly?: boolean // Deprecated: use recordingPurpose instead
-  recordingPurpose?: 'quick' | 'transcriptOnly' | 'withFile' // Recording behavior: quick (no S3), transcriptOnly (S3 deleted if discarded), withFile (S3 always kept)
+  recordingPurpose?: 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly' // Recording behavior: quick (no S3), transcriptOnly (S3 deleted if discarded), withFile (S3 always kept), audioOnly (S3 storage, no transcription)
 }
 
 export function RecordingTextarea({

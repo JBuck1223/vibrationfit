@@ -16,7 +16,7 @@ import { USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
 import SimpleLevelMeter from '@/components/SimpleLevelMeter'
 import { AudioEditor } from '@/components/AudioEditor'
 
-type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile'
+type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'
 
 interface MediaRecorderProps {
   mode?: 'audio' | 'video'
@@ -29,12 +29,13 @@ interface MediaRecorderProps {
   recordingId?: string // Optional: ID for IndexedDB persistence
   category?: string // Optional: Category for IndexedDB persistence
   storageFolder?: keyof typeof USER_FOLDERS // S3 folder for uploads
-  recordingPurpose?: RecordingPurpose // 'quick' | 'transcriptOnly' | 'withFile'
+  recordingPurpose?: RecordingPurpose // 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'
   /**
    * Recording modes:
    * - 'quick': Small snippets (VIVA chat) - No S3, no player, instant transcript, discard immediately
    * - 'transcriptOnly': Long audio (life-vision) - S3 for reliability, delete if discarded
-   * - 'withFile': Full recordings (journal) - S3 always, keep file for playback
+   * - 'withFile': Full recordings (journal) - S3 always, keep file for playback, manual transcription
+   * - 'audioOnly': Audio recording with editing - S3 storage, no transcription option
    */
 }
 
@@ -1141,64 +1142,66 @@ export function MediaRecorderComponent({
             />
           )}
 
-          {/* Transcription */}
-          <div className="space-y-2">
-            {isTranscribing ? (
-              <div className="flex items-center gap-2 text-primary-500">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Transcribing {mode === 'video' ? 'video' : 'audio'}...</span>
-              </div>
-            ) : transcript ? (
-              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4">
-                <p className="text-sm text-neutral-400 mb-2">Transcript:</p>
-                <p className="text-white whitespace-pre-wrap">{transcript}</p>
-              </div>
-            ) : (
-              <Button
-                onClick={async () => {
-                  if (!recordedBlob) {
-                    setError('No recording available to transcribe')
-                    return
-                  }
-                  
-                  if (recordedBlob.size === 0) {
-                    setError('Recording is empty or invalid. Please record again.')
-                    return
-                  }
-                  
-                  console.log('🎙️ Starting transcription:', {
-                    blobSize: recordedBlob.size,
-                    blobType: recordedBlob.type
-                  })
-                  
-                  const transcriptResult = await transcribeAudio(recordedBlob)
-                  
-                  // Update IndexedDB with transcript if we have a recording ID
-                  if (recordingIdRef.current && transcriptResult) {
-                    await saveRecordingChunks(
-                      recordingIdRef.current,
-                      category,
-                      chunksRef.current,
-                      duration,
-                      mode,
-                      recordedBlob,
-                      transcriptResult
-                    )
-                  }
-                }}
-                variant="secondary"
-                size="sm"
-                className="gap-2 w-full"
-                disabled={!recordedBlob || recordedBlob.size === 0}
-              >
-                <Mic className="w-4 h-4" />
-                Transcribe {mode === 'video' ? 'Video' : 'Audio'}
-              </Button>
-            )}
-          </div>
+          {/* Transcription - Hide for audioOnly mode */}
+          {recordingPurpose !== 'audioOnly' && (
+            <div className="space-y-2">
+              {isTranscribing ? (
+                <div className="flex items-center gap-2 text-primary-500">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Transcribing {mode === 'video' ? 'video' : 'audio'}...</span>
+                </div>
+              ) : transcript ? (
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4">
+                  <p className="text-sm text-neutral-400 mb-2">Transcript:</p>
+                  <p className="text-white whitespace-pre-wrap">{transcript}</p>
+                </div>
+              ) : (
+                <Button
+                  onClick={async () => {
+                    if (!recordedBlob) {
+                      setError('No recording available to transcribe')
+                      return
+                    }
+                    
+                    if (recordedBlob.size === 0) {
+                      setError('Recording is empty or invalid. Please record again.')
+                      return
+                    }
+                    
+                    console.log('🎙️ Starting transcription:', {
+                      blobSize: recordedBlob.size,
+                      blobType: recordedBlob.type
+                    })
+                    
+                    const transcriptResult = await transcribeAudio(recordedBlob)
+                    
+                    // Update IndexedDB with transcript if we have a recording ID
+                    if (recordingIdRef.current && transcriptResult) {
+                      await saveRecordingChunks(
+                        recordingIdRef.current,
+                        category,
+                        chunksRef.current,
+                        duration,
+                        mode,
+                        recordedBlob,
+                        transcriptResult
+                      )
+                    }
+                  }}
+                  variant="secondary"
+                  size="sm"
+                  className="gap-2 w-full"
+                  disabled={!recordedBlob || recordedBlob.size === 0}
+                >
+                  <Mic className="w-4 h-4" />
+                  Transcribe {mode === 'video' ? 'Video' : 'Audio'}
+                </Button>
+              )}
+            </div>
+          )}
 
-          {/* Save Recording Option */}
-          {showSaveOption && (
+          {/* Save Recording Option - Only show for non-withFile and non-audioOnly modes */}
+          {showSaveOption && recordingPurpose !== 'withFile' && recordingPurpose !== 'audioOnly' && (
             <div className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg">
               <input
                 type="checkbox"
@@ -1240,13 +1243,15 @@ export function MediaRecorderComponent({
               variant="primary"
               size="sm"
               className="gap-2 w-full sm:w-auto"
-              disabled={!transcript}
+              disabled={recordingPurpose === 'audioOnly' ? false : !transcript}
             >
               <Upload className="w-4 h-4" />
-              {showSaveOption 
-                ? (saveRecording ? 'Save Recording & Transcript' : 'Use Transcript Only')
-                : 'Use Transcript'}
-              {!transcript && ' (Transcribe First)'}
+              {recordingPurpose === 'withFile' || recordingPurpose === 'audioOnly'
+                ? 'Save Recording'
+                : (showSaveOption 
+                    ? (saveRecording ? 'Save Recording & Transcript' : 'Use Transcript Only')
+                    : 'Use Transcript')}
+              {recordingPurpose !== 'audioOnly' && !transcript && ' (Transcribe First)'}
             </Button>
             <Button
               onClick={discardRecording}
