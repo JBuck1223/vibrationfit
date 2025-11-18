@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw } from 'lucide-react'
+import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
 import {
   saveRecordingChunks,
@@ -14,6 +14,7 @@ import {
 import { uploadRecording } from '@/lib/services/recordingService'
 import { USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
 import SimpleLevelMeter from '@/components/SimpleLevelMeter'
+import { AudioEditor } from '@/components/AudioEditor'
 
 type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile'
 
@@ -67,6 +68,7 @@ export function MediaRecorderComponent({
   const [previousDuration, setPreviousDuration] = useState(0) // Duration from before refresh
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]) // Available microphones
   const [selectedMic, setSelectedMic] = useState<string>('') // Selected microphone ID
+  const [showEditor, setShowEditor] = useState(false) // Show audio editor
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -471,12 +473,29 @@ export function MediaRecorderComponent({
         const blob = new Blob(finalChunks, { 
           type: mode === 'video' ? 'video/webm' : 'audio/webm' 
         })
+        
+        console.log('📦 Created blob:', {
+          size: blob.size,
+          type: blob.type,
+          chunkCount: finalChunks.length
+        })
+        
+        if (blob.size === 0) {
+          console.error('❌ Blob is empty!')
+          setError('Recording failed - no data captured')
+          return
+        }
+        
         setRecordedBlob(blob)
         
         // Only create blob URL if not in quick mode (no player needed)
         if (recordingPurpose !== 'quick') {
-          const url = URL.createObjectURL(blob)
-          setRecordedUrl(url)
+          // Small delay to ensure blob is fully ready
+          setTimeout(() => {
+            const url = URL.createObjectURL(blob)
+            setRecordedUrl(url)
+            console.log('🔗 Blob URL created:', url)
+          }, 100)
         }
 
         // Stop all tracks
@@ -501,32 +520,19 @@ export function MediaRecorderComponent({
           })
         }
 
-        // Auto-transcribe if enabled OR if in quick mode (always auto-transcribe in quick mode)
-        if (autoTranscribe || recordingPurpose === 'quick') {
+        // Auto-transcribe ONLY in quick mode (for VIVA chat, etc.)
+        // For other modes (withFile, transcriptOnly), user clicks "Transcribe" button manually
+        if (recordingPurpose === 'quick') {
           const finalTranscript = await transcribeAudio(blob)
           // Update state so transcript is available
           if (finalTranscript) {
             setTranscript(finalTranscript)
             transcriptRef.current = finalTranscript
           }
-          // Update IndexedDB with transcript (only if not quick mode)
-          if (recordingIdRef.current && finalTranscript && recordingPurpose !== 'quick') {
-            await saveRecordingChunks(
-              recordingIdRef.current,
-              category,
-              finalChunks,
-              duration,
-              mode,
-              blob,
-              finalTranscript
-            )
-          }
           
           // In quick mode, auto-cleanup blob after transcription (no player needed)
-          if (recordingPurpose === 'quick') {
-            setRecordedBlob(null)
-            // Don't create blob URL - not needed in quick mode
-          }
+          setRecordedBlob(null)
+          // Don't create blob URL - not needed in quick mode
         }
 
         // DON'T automatically call onRecordingComplete here
@@ -1083,10 +1089,7 @@ export function MediaRecorderComponent({
       {/* Recorded Media Preview - Hidden in quick mode (no playback needed) */}
       {recordedBlob && recordedUrl && recordingPurpose !== 'quick' && (
         <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-white">Recording Complete</h3>
-            <span className="text-neutral-400 text-sm">{formatDuration(duration)}</span>
-          </div>
+          <h3 className="text-lg font-semibold text-white mb-2">Recording Complete</h3>
 
           {/* Media Player */}
           {mode === 'video' ? (
@@ -1101,12 +1104,39 @@ export function MediaRecorderComponent({
             />
           ) : (
             <audio
+              key={recordedUrl || s3Url || 'audio-player'} // Force re-mount when URL changes
               src={s3Url || recordedUrl || undefined}
               controls
               className="w-full"
+              controlsList="nodownload"
+              preload="metadata"
               onError={(e) => {
-                console.error('❌ Audio player error:', e)
-                setError('Unable to play audio. The recording file may be corrupted.')
+                const target = e.currentTarget as HTMLAudioElement
+                console.error('❌ Audio player error:', {
+                  error: e,
+                  networkState: target.networkState,
+                  readyState: target.readyState,
+                  errorCode: target.error?.code,
+                  errorMessage: target.error?.message
+                })
+                console.log('Audio source:', s3Url || recordedUrl)
+                console.log('Blob info:', recordedBlob ? { size: recordedBlob.size, type: recordedBlob.type } : 'No blob')
+                
+                // Only show error if there's actually a source to play
+                if ((recordedUrl || s3Url) && target.error) {
+                  // Network errors (code 2) are often temporary/can be ignored
+                  if (target.error.code !== 2) {
+                    setError('Unable to play audio. The recording may need a moment to process.')
+                  }
+                }
+              }}
+              onLoadedMetadata={() => {
+                // Clear any previous errors when audio loads successfully
+                setError(null)
+                console.log('✅ Audio loaded successfully')
+              }}
+              onCanPlayThrough={() => {
+                console.log('✅ Audio can play through')
               }}
             />
           )}
@@ -1188,6 +1218,19 @@ export function MediaRecorderComponent({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
+            {/* Edit Recording Button (audio only) */}
+            {mode === 'audio' && !showEditor && (
+              <Button
+                onClick={() => setShowEditor(true)}
+                variant="secondary"
+                size="sm"
+                className="gap-2 w-full sm:w-auto"
+              >
+                <Scissors className="w-4 h-4" />
+                Edit Recording
+              </Button>
+            )}
+            
             <Button
               onClick={() => {
                 if (onRecordingComplete) {
@@ -1216,6 +1259,82 @@ export function MediaRecorderComponent({
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Audio Editor - Only for audio mode */}
+      {mode === 'audio' && showEditor && recordedBlob && (
+        <AudioEditor
+          audioBlob={recordedBlob}
+          onSave={async (editedBlob) => {
+            console.log('📝 Saving edited audio:', {
+              originalSize: recordedBlob?.size,
+              editedSize: editedBlob.size,
+              editedType: editedBlob.type
+            })
+            
+            // Clear any existing errors
+            setError(null)
+            
+            // Revoke old URL to free memory
+            if (recordedUrl) {
+              URL.revokeObjectURL(recordedUrl)
+            }
+            
+            // Create new URL for edited blob
+            const newUrl = URL.createObjectURL(editedBlob)
+            
+            // Calculate new duration from edited audio
+            const audioContext = new AudioContext()
+            const arrayBuffer = await editedBlob.arrayBuffer()
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+            const newDuration = Math.floor(audioBuffer.duration)
+            
+            // Update state with edited audio and new duration
+            setRecordedBlob(editedBlob)
+            setRecordedUrl(newUrl)
+            setDuration(newDuration)
+            durationRef.current = newDuration
+            
+            // Clear transcript since audio has changed
+            setTranscript('')
+            transcriptRef.current = ''
+            
+            // Update chunks ref with edited blob
+            chunksRef.current = [editedBlob]
+            
+            // Close editor first for better UX
+            setShowEditor(false)
+            
+            console.log('✅ Audio updated, new URL created:', newUrl)
+            console.log('✅ New duration:', newDuration, 'seconds')
+            
+            // Save to IndexedDB if we have a recording ID
+            if (recordingIdRef.current) {
+              try {
+                await saveRecordingChunks(
+                  recordingIdRef.current,
+                  category,
+                  [editedBlob],
+                  newDuration,
+                  mode,
+                  editedBlob,
+                  ''
+                )
+                console.log('✅ Saved edited audio to IndexedDB')
+              } catch (err) {
+                console.error('Failed to save to IndexedDB:', err)
+              }
+            }
+            
+            // Don't auto-transcribe after editing - let user click button
+            // This gives them a chance to review the edited audio first
+            console.log('✅ Audio saved. User can now transcribe manually.')
+          }}
+          onCancel={() => {
+            console.log('❌ Edit cancelled')
+            setShowEditor(false)
+          }}
+        />
       )}
     </div>
   )
