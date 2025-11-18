@@ -144,13 +144,13 @@ export async function uploadFileWithPresignedUrl(
       xhr.send(file)
     })
 
-    // Check for 405 specifically
-    if (response.status === 405) {
-      console.error('❌ 405 Method Not Allowed from S3. This usually means:')
+    // Check for 405 or other CORS-related errors
+    if (response.status === 405 || response.status === 403) {
+      console.error('❌ S3 CORS/Permission error:', response.status)
       console.error('   1. S3 bucket CORS configuration is missing or incorrect')
       console.error('   2. The presigned URL may be malformed')
       console.error('   3. The bucket policy may be blocking PUT requests')
-      throw new Error('S3 upload blocked (405). Please check S3 CORS configuration. Attempting fallback...')
+      throw new Error(`CORS: Upload failed with status ${response.status}`)
     }
 
     if (!response.ok) {
@@ -160,7 +160,7 @@ export async function uploadFileWithPresignedUrl(
         statusText: response.statusText,
         error: errorText
       })
-      throw new Error(`Upload failed: ${response.status} ${response.statusText}`)
+      throw new Error(`CORS: Upload failed with status ${response.status}`)
     }
 
     console.log('✅ Presigned upload successful')
