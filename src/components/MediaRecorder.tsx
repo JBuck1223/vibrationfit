@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw } from 'lucide-react'
+import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
 import {
   saveRecordingChunks,
@@ -13,8 +13,10 @@ import {
 } from '@/lib/storage/indexed-db-recording'
 import { uploadRecording } from '@/lib/services/recordingService'
 import { USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
+import SimpleLevelMeter from '@/components/SimpleLevelMeter'
+import { AudioEditor } from '@/components/AudioEditor'
 
-type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile'
+type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'
 
 interface MediaRecorderProps {
   mode?: 'audio' | 'video'
@@ -27,12 +29,13 @@ interface MediaRecorderProps {
   recordingId?: string // Optional: ID for IndexedDB persistence
   category?: string // Optional: Category for IndexedDB persistence
   storageFolder?: keyof typeof USER_FOLDERS // S3 folder for uploads
-  recordingPurpose?: RecordingPurpose // 'quick' | 'transcriptOnly' | 'withFile'
+  recordingPurpose?: RecordingPurpose // 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'
   /**
    * Recording modes:
    * - 'quick': Small snippets (VIVA chat) - No S3, no player, instant transcript, discard immediately
    * - 'transcriptOnly': Long audio (life-vision) - S3 for reliability, delete if discarded
-   * - 'withFile': Full recordings (journal) - S3 always, keep file for playback
+   * - 'withFile': Full recordings (journal) - S3 always, keep file for playback, manual transcription
+   * - 'audioOnly': Audio recording with editing - S3 storage, no transcription option
    */
 }
 
@@ -64,6 +67,9 @@ export function MediaRecorderComponent({
   const [hasSavedRecording, setHasSavedRecording] = useState(false) // Track if there's a saved recording to resume
   const [previousChunks, setPreviousChunks] = useState<Blob[]>([]) // Chunks from before refresh
   const [previousDuration, setPreviousDuration] = useState(0) // Duration from before refresh
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]) // Available microphones
+  const [selectedMic, setSelectedMic] = useState<string>('') // Selected microphone ID
+  const [showEditor, setShowEditor] = useState(false) // Show audio editor
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -75,6 +81,43 @@ export function MediaRecorderComponent({
   const lastSaveSizeRef = useRef<number>(0) // Track total size saved for video size-based saves
   const durationRef = useRef<number>(0) // Track duration for auto-save
   const transcriptRef = useRef<string>('') // Track transcript for auto-save
+
+  // Load audio devices on mount (for microphone selection)
+  useEffect(() => {
+    const loadDevices = async () => {
+      try {
+        // Request permission first
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        // Stop the stream immediately - we just needed permission
+        stream.getTracks().forEach(track => track.stop())
+        
+        // Get all audio input devices
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const audioInputs = devices.filter(device => device.kind === 'audioinput')
+        
+        setAudioDevices(audioInputs)
+        
+        // Set default to first device if none selected
+        setSelectedMic(prev => {
+          if (!prev && audioInputs.length > 0) {
+            return audioInputs[0].deviceId
+          }
+          return prev
+        })
+      } catch (err) {
+        console.error('Failed to load audio devices:', err)
+        // Continue without mic selector - will use default
+      }
+    }
+    
+    loadDevices()
+    
+    // Listen for device changes (plug/unplug)
+    navigator.mediaDevices.addEventListener('devicechange', loadDevices)
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', loadDevices)
+    }
+  }, [])
 
   // Check for saved recording on mount - look by category first, not just by ID
   useEffect(() => {
@@ -341,9 +384,9 @@ export function MediaRecorderComponent({
               height: { ideal: 720 },
               facingMode: 'user'
             }, 
-            audio: true 
+            audio: selectedMic ? { deviceId: { exact: selectedMic } } : true 
           }
-        : { audio: true }
+        : { audio: selectedMic ? { deviceId: { exact: selectedMic } } : true }
 
       console.log('Requesting media access:', mode, constraints)
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
@@ -369,6 +412,7 @@ export function MediaRecorderComponent({
           console.error('Video ref is null!')
         }
       }
+
 
       // Start countdown
       setCountdown(3)
@@ -430,12 +474,29 @@ export function MediaRecorderComponent({
         const blob = new Blob(finalChunks, { 
           type: mode === 'video' ? 'video/webm' : 'audio/webm' 
         })
+        
+        console.log('📦 Created blob:', {
+          size: blob.size,
+          type: blob.type,
+          chunkCount: finalChunks.length
+        })
+        
+        if (blob.size === 0) {
+          console.error('❌ Blob is empty!')
+          setError('Recording failed - no data captured')
+          return
+        }
+        
         setRecordedBlob(blob)
         
         // Only create blob URL if not in quick mode (no player needed)
         if (recordingPurpose !== 'quick') {
-          const url = URL.createObjectURL(blob)
-          setRecordedUrl(url)
+          // Small delay to ensure blob is fully ready
+          setTimeout(() => {
+            const url = URL.createObjectURL(blob)
+            setRecordedUrl(url)
+            console.log('🔗 Blob URL created:', url)
+          }, 100)
         }
 
         // Stop all tracks
@@ -460,32 +521,19 @@ export function MediaRecorderComponent({
           })
         }
 
-        // Auto-transcribe if enabled OR if in quick mode (always auto-transcribe in quick mode)
-        if (autoTranscribe || recordingPurpose === 'quick') {
+        // Auto-transcribe ONLY in quick mode (for VIVA chat, etc.)
+        // For other modes (withFile, transcriptOnly), user clicks "Transcribe" button manually
+        if (recordingPurpose === 'quick') {
           const finalTranscript = await transcribeAudio(blob)
           // Update state so transcript is available
           if (finalTranscript) {
             setTranscript(finalTranscript)
             transcriptRef.current = finalTranscript
           }
-          // Update IndexedDB with transcript (only if not quick mode)
-          if (recordingIdRef.current && finalTranscript && recordingPurpose !== 'quick') {
-            await saveRecordingChunks(
-              recordingIdRef.current,
-              category,
-              finalChunks,
-              duration,
-              mode,
-              blob,
-              finalTranscript
-            )
-          }
           
           // In quick mode, auto-cleanup blob after transcription (no player needed)
-          if (recordingPurpose === 'quick') {
-            setRecordedBlob(null)
-            // Don't create blob URL - not needed in quick mode
-          }
+          setRecordedBlob(null)
+          // Don't create blob URL - not needed in quick mode
         }
 
         // DON'T automatically call onRecordingComplete here
@@ -572,6 +620,7 @@ export function MediaRecorderComponent({
       if (timerRef.current) {
         clearInterval(timerRef.current)
       }
+
 
       // Stop video preview
       if (mode === 'video' && videoRef.current) {
@@ -739,7 +788,7 @@ export function MediaRecorderComponent({
     <div className={`space-y-4 ${className}`}>
       {/* Recording Controls */}
       {!recordedBlob && !(recordingPurpose === 'quick' && transcript) && (
-        <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6">
+        <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6 min-h-[400px] flex flex-col justify-center">
           {/* Video Preview */}
           {mode === 'video' && (isRecording || isPreparing) && (
             <div className="mb-4 rounded-xl overflow-hidden bg-black relative">
@@ -753,41 +802,72 @@ export function MediaRecorderComponent({
               {/* Countdown Overlay */}
               {countdown !== null && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-center">
-                    <div className="text-9xl font-bold text-white mb-4 animate-pulse" style={{
-                      textShadow: '0 0 40px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.7)'
-                    }}>
-                      {countdown}
-                    </div>
-                    <p className="text-2xl text-white font-semibold" style={{
-                      textShadow: '0 0 20px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.8)'
-                    }}>
-                      Get ready...
-                    </p>
+                  <div className="text-9xl font-bold text-white animate-pulse" style={{
+                    textShadow: '0 0 40px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.7)'
+                  }}>
+                    {countdown}
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* Countdown (for audio mode without video preview) */}
-          {countdown !== null && mode === 'audio' && (
-            <div className="text-center mb-4">
-              <div className="text-8xl font-bold text-primary-500 mb-4 animate-pulse">
-                {countdown}
+          {/* Countdown with Circular Level Meter (for audio mode) */}
+          {countdown !== null && mode === 'audio' && streamRef.current && (
+            <div className="mb-4 flex justify-center items-center relative">
+              <SimpleLevelMeter stream={streamRef.current} circular />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="text-6xl font-bold text-red-500 animate-pulse">
+                  {countdown}
+                </div>
               </div>
-              <p className="text-xl text-white">Get ready to speak...</p>
             </div>
           )}
 
-          {/* Timer */}
-          {isRecording && countdown === null && (
-            <div className="text-center mb-4">
-              <div className="inline-flex items-center gap-2 bg-red-500/20 px-4 py-2 rounded-full">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-white font-mono text-lg">{formatDuration(duration)}</span>
-                <span className="text-neutral-400 text-sm">/ {formatDuration(maxDuration)}</span>
+          {/* Timer with Circular Level Meter and Controls */}
+          {isRecording && countdown === null && streamRef.current && (
+            <div className="mb-4 flex justify-center items-center gap-6">
+              {/* Pause/Resume Button */}
+              {!isPaused ? (
+                <button
+                  type="button"
+                  onClick={pauseRecording}
+                  className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                >
+                  <div className="flex gap-1">
+                    <div className="w-1 h-4 bg-black rounded-sm" />
+                    <div className="w-1 h-4 bg-black rounded-sm" />
+                  </div>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={resumeRecording}
+                  className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                >
+                  <Play className="w-5 h-5 text-black fill-black" />
+                </button>
+              )}
+              
+              {/* Circular Meter with Timer */}
+              <div className="relative flex items-center justify-center">
+                <SimpleLevelMeter stream={streamRef.current} circular />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mx-auto mb-1" />
+                    <div className="text-white font-mono text-xs">{formatDuration(duration)}</div>
+                  </div>
+                </div>
               </div>
+              
+              {/* Stop Button */}
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+              >
+                <div className="w-4 h-4 bg-white rounded-sm" />
+              </button>
             </div>
           )}
 
@@ -922,62 +1002,46 @@ export function MediaRecorderComponent({
             </div>
           )}
 
+          {/* Microphone Selector (when not recording and multiple mics available) */}
+          {!isRecording && countdown === null && !hasSavedRecording && audioDevices.length > 1 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Select Microphone
+              </label>
+              <select
+                value={selectedMic}
+                onChange={(e) => setSelectedMic(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm md:text-base"
+                disabled={isRecording}
+              >
+                {audioDevices.map((device) => {
+                  const label = device.label || `Microphone ${device.deviceId.slice(0, 8)}...`
+                  // Truncate long labels for mobile
+                  const displayLabel = label.length > 40 ? label.substring(0, 37) + '...' : label
+                  return (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {displayLabel}
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+          )}
+
           {/* Control Buttons */}
-          <div className="flex justify-center gap-3">
-            {!isRecording && countdown === null && !hasSavedRecording ? (
+          {!isRecording && countdown === null && !hasSavedRecording && (
+            <div className="flex justify-center gap-3">
               <Button
                 onClick={startRecording}
                 variant="primary"
-                size="lg"
+                size="sm"
                 className="gap-2"
               >
-                {mode === 'video' ? <Video className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {mode === 'video' ? <Video className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 Start Recording
               </Button>
-            ) : countdown !== null ? (
-              <Button
-                variant="secondary"
-                size="lg"
-                disabled
-                className="gap-2"
-              >
-                Starting in {countdown}...
-              </Button>
-            ) : (
-              <>
-                {!isPaused ? (
-                  <Button
-                    onClick={pauseRecording}
-                    variant="secondary"
-                    size="lg"
-                    className="gap-2"
-                  >
-                    <Pause className="w-5 h-5" />
-                    Pause
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={resumeRecording}
-                    variant="secondary"
-                    size="lg"
-                    className="gap-2"
-                  >
-                    <Play className="w-5 h-5" />
-                    Resume
-                  </Button>
-                )}
-                <Button
-                  onClick={stopRecording}
-                  variant="danger"
-                  size="lg"
-                  className="gap-2"
-                >
-                  <Square className="w-5 h-5" />
-                  Stop
-                </Button>
-              </>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1026,10 +1090,7 @@ export function MediaRecorderComponent({
       {/* Recorded Media Preview - Hidden in quick mode (no playback needed) */}
       {recordedBlob && recordedUrl && recordingPurpose !== 'quick' && (
         <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-white">Recording Complete</h3>
-            <span className="text-neutral-400 text-sm">{formatDuration(duration)}</span>
-          </div>
+          <h3 className="text-lg font-semibold text-white mb-2">Recording Complete</h3>
 
           {/* Media Player */}
           {mode === 'video' ? (
@@ -1044,74 +1105,103 @@ export function MediaRecorderComponent({
             />
           ) : (
             <audio
+              key={recordedUrl || s3Url || 'audio-player'} // Force re-mount when URL changes
               src={s3Url || recordedUrl || undefined}
               controls
               className="w-full"
+              controlsList="nodownload"
+              preload="metadata"
               onError={(e) => {
-                console.error('❌ Audio player error:', e)
-                setError('Unable to play audio. The recording file may be corrupted.')
+                const target = e.currentTarget as HTMLAudioElement
+                console.error('❌ Audio player error:', {
+                  error: e,
+                  networkState: target.networkState,
+                  readyState: target.readyState,
+                  errorCode: target.error?.code,
+                  errorMessage: target.error?.message
+                })
+                console.log('Audio source:', s3Url || recordedUrl)
+                console.log('Blob info:', recordedBlob ? { size: recordedBlob.size, type: recordedBlob.type } : 'No blob')
+                
+                // Only show error if there's actually a source to play
+                if ((recordedUrl || s3Url) && target.error) {
+                  // Network errors (code 2) are often temporary/can be ignored
+                  if (target.error.code !== 2) {
+                    setError('Unable to play audio. The recording may need a moment to process.')
+                  }
+                }
+              }}
+              onLoadedMetadata={() => {
+                // Clear any previous errors when audio loads successfully
+                setError(null)
+                console.log('✅ Audio loaded successfully')
+              }}
+              onCanPlayThrough={() => {
+                console.log('✅ Audio can play through')
               }}
             />
           )}
 
-          {/* Transcription */}
-          <div className="space-y-2">
-            {isTranscribing ? (
-              <div className="flex items-center gap-2 text-primary-500">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Transcribing {mode === 'video' ? 'video' : 'audio'}...</span>
-              </div>
-            ) : transcript ? (
-              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4">
-                <p className="text-sm text-neutral-400 mb-2">Transcript:</p>
-                <p className="text-white whitespace-pre-wrap">{transcript}</p>
-              </div>
-            ) : (
-              <Button
-                onClick={async () => {
-                  if (!recordedBlob) {
-                    setError('No recording available to transcribe')
-                    return
-                  }
-                  
-                  if (recordedBlob.size === 0) {
-                    setError('Recording is empty or invalid. Please record again.')
-                    return
-                  }
-                  
-                  console.log('🎙️ Starting transcription:', {
-                    blobSize: recordedBlob.size,
-                    blobType: recordedBlob.type
-                  })
-                  
-                  const transcriptResult = await transcribeAudio(recordedBlob)
-                  
-                  // Update IndexedDB with transcript if we have a recording ID
-                  if (recordingIdRef.current && transcriptResult) {
-                    await saveRecordingChunks(
-                      recordingIdRef.current,
-                      category,
-                      chunksRef.current,
-                      duration,
-                      mode,
-                      recordedBlob,
-                      transcriptResult
-                    )
-                  }
-                }}
-                variant="secondary"
-                size="sm"
-                className="gap-2 w-full"
-                disabled={!recordedBlob || recordedBlob.size === 0}
-              >
-                <Mic className="w-4 h-4" />
-                Transcribe {mode === 'video' ? 'Video' : 'Audio'}
-              </Button>
-            )}
-          </div>
+          {/* Transcription - Hide for audioOnly mode */}
+          {recordingPurpose !== 'audioOnly' && (
+            <div className="space-y-2">
+              {isTranscribing ? (
+                <div className="flex items-center gap-2 text-primary-500">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Transcribing {mode === 'video' ? 'video' : 'audio'}...</span>
+                </div>
+              ) : transcript ? (
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4">
+                  <p className="text-sm text-neutral-400 mb-2">Transcript:</p>
+                  <p className="text-white whitespace-pre-wrap">{transcript}</p>
+                </div>
+              ) : (
+                <Button
+                  onClick={async () => {
+                    if (!recordedBlob) {
+                      setError('No recording available to transcribe')
+                      return
+                    }
+                    
+                    if (recordedBlob.size === 0) {
+                      setError('Recording is empty or invalid. Please record again.')
+                      return
+                    }
+                    
+                    console.log('🎙️ Starting transcription:', {
+                      blobSize: recordedBlob.size,
+                      blobType: recordedBlob.type
+                    })
+                    
+                    const transcriptResult = await transcribeAudio(recordedBlob)
+                    
+                    // Update IndexedDB with transcript if we have a recording ID
+                    if (recordingIdRef.current && transcriptResult) {
+                      await saveRecordingChunks(
+                        recordingIdRef.current,
+                        category,
+                        chunksRef.current,
+                        duration,
+                        mode,
+                        recordedBlob,
+                        transcriptResult
+                      )
+                    }
+                  }}
+                  variant="secondary"
+                  size="sm"
+                  className="gap-2 w-full"
+                  disabled={!recordedBlob || recordedBlob.size === 0}
+                >
+                  <Mic className="w-4 h-4" />
+                  Transcribe {mode === 'video' ? 'Video' : 'Audio'}
+                </Button>
+              )}
+            </div>
+          )}
 
-          {/* Save Recording Option */}
-          {showSaveOption && (
+          {/* Save Recording Option - Only show for non-withFile and non-audioOnly modes */}
+          {showSaveOption && recordingPurpose !== 'withFile' && recordingPurpose !== 'audioOnly' && (
             <div className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg">
               <input
                 type="checkbox"
@@ -1131,6 +1221,19 @@ export function MediaRecorderComponent({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
+            {/* Edit Recording Button (audio only) */}
+            {mode === 'audio' && !showEditor && (
+              <Button
+                onClick={() => setShowEditor(true)}
+                variant="secondary"
+                size="sm"
+                className="gap-2 w-full sm:w-auto"
+              >
+                <Scissors className="w-4 h-4" />
+                Edit Recording
+              </Button>
+            )}
+            
             <Button
               onClick={() => {
                 if (onRecordingComplete) {
@@ -1140,13 +1243,15 @@ export function MediaRecorderComponent({
               variant="primary"
               size="sm"
               className="gap-2 w-full sm:w-auto"
-              disabled={!transcript}
+              disabled={recordingPurpose === 'audioOnly' ? false : !transcript}
             >
               <Upload className="w-4 h-4" />
-              {showSaveOption 
-                ? (saveRecording ? 'Save Recording & Transcript' : 'Use Transcript Only')
-                : 'Use Transcript'}
-              {!transcript && ' (Transcribe First)'}
+              {recordingPurpose === 'withFile' || recordingPurpose === 'audioOnly'
+                ? 'Save Recording'
+                : (showSaveOption 
+                    ? (saveRecording ? 'Save Recording & Transcript' : 'Use Transcript Only')
+                    : 'Use Transcript')}
+              {recordingPurpose !== 'audioOnly' && !transcript && ' (Transcribe First)'}
             </Button>
             <Button
               onClick={discardRecording}
@@ -1159,6 +1264,82 @@ export function MediaRecorderComponent({
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Audio Editor - Only for audio mode */}
+      {mode === 'audio' && showEditor && recordedBlob && (
+        <AudioEditor
+          audioBlob={recordedBlob}
+          onSave={async (editedBlob) => {
+            console.log('📝 Saving edited audio:', {
+              originalSize: recordedBlob?.size,
+              editedSize: editedBlob.size,
+              editedType: editedBlob.type
+            })
+            
+            // Clear any existing errors
+            setError(null)
+            
+            // Revoke old URL to free memory
+            if (recordedUrl) {
+              URL.revokeObjectURL(recordedUrl)
+            }
+            
+            // Create new URL for edited blob
+            const newUrl = URL.createObjectURL(editedBlob)
+            
+            // Calculate new duration from edited audio
+            const audioContext = new AudioContext()
+            const arrayBuffer = await editedBlob.arrayBuffer()
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+            const newDuration = Math.floor(audioBuffer.duration)
+            
+            // Update state with edited audio and new duration
+            setRecordedBlob(editedBlob)
+            setRecordedUrl(newUrl)
+            setDuration(newDuration)
+            durationRef.current = newDuration
+            
+            // Clear transcript since audio has changed
+            setTranscript('')
+            transcriptRef.current = ''
+            
+            // Update chunks ref with edited blob
+            chunksRef.current = [editedBlob]
+            
+            // Close editor first for better UX
+            setShowEditor(false)
+            
+            console.log('✅ Audio updated, new URL created:', newUrl)
+            console.log('✅ New duration:', newDuration, 'seconds')
+            
+            // Save to IndexedDB if we have a recording ID
+            if (recordingIdRef.current) {
+              try {
+                await saveRecordingChunks(
+                  recordingIdRef.current,
+                  category,
+                  [editedBlob],
+                  newDuration,
+                  mode,
+                  editedBlob,
+                  ''
+                )
+                console.log('✅ Saved edited audio to IndexedDB')
+              } catch (err) {
+                console.error('Failed to save to IndexedDB:', err)
+              }
+            }
+            
+            // Don't auto-transcribe after editing - let user click button
+            // This gives them a chance to review the edited audio first
+            console.log('✅ Audio saved. User can now transcribe manually.')
+          }}
+          onCancel={() => {
+            console.log('❌ Edit cancelled')
+            setShowEditor(false)
+          }}
+        />
       )}
     </div>
   )

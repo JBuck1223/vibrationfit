@@ -189,75 +189,6 @@ export default function DesignSystemMasterPage() {
         </Card>
       </Stack>
 
-      {/* Layout Templates Section */}
-      <Card className="p-4 md:p-6">
-        <Stack gap="md">
-          <div className="flex items-center gap-3 mb-2">
-            <Icon icon={Layout} size="md" color="#BF00FF" />
-            <h2 className="text-xl md:text-2xl font-bold text-white">
-              Layout Templates
-            </h2>
-            <span className="text-sm text-neutral-400">
-              ({LAYOUT_TEMPLATES.length})
-            </span>
-          </div>
-          <p className="text-sm text-neutral-400 mb-4">
-            Reusable combinations of components found in production. Copy these templates for quick implementation.
-          </p>
-          <Grid minWidth="280px" gap="md">
-            {LAYOUT_TEMPLATES.map((template) => (
-              <Card
-                key={template.id}
-                variant="outlined"
-                hover
-                className="p-4 md:p-6 cursor-pointer"
-                onClick={() => router.push(template.path)}
-              >
-                <Stack gap="sm">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-accent-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Icon
-                        icon={template.icon}
-                        size="sm"
-                        color="#BF00FF"
-                        className="opacity-80"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base md:text-lg font-semibold text-white truncate">
-                        {template.name}
-                      </h3>
-                      <Badge variant="premium" className="text-xs mt-1">
-                        {template.category}
-                      </Badge>
-                    </div>
-                  </div>
-                  <p className="text-xs md:text-sm text-neutral-400 line-clamp-2">
-                    {template.description}
-                  </p>
-                  <div className="text-[10px] text-neutral-500 mt-1">
-                    Uses: {template.componentsUsed.join(', ')}
-                  </div>
-                  <div className="pt-2 border-t border-neutral-700">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(template.path)
-                      }}
-                    >
-                      View Template →
-                    </Button>
-                  </div>
-                </Stack>
-              </Card>
-            ))}
-          </Grid>
-        </Stack>
-      </Card>
-
       {/* Components by Category */}
       <Stack gap="md">
         {COMPONENT_CATEGORIES.filter(cat => cat !== 'Patterns').map((category) => {
@@ -360,6 +291,75 @@ export default function DesignSystemMasterPage() {
               )
             })}
             </Stack>
+
+      {/* Layout Templates Section */}
+      <Card className="p-4 md:p-6">
+        <Stack gap="md">
+          <div className="flex items-center gap-3 mb-2">
+            <Icon icon={Layout} size="md" color="#BF00FF" />
+            <h2 className="text-xl md:text-2xl font-bold text-white">
+              Layout Templates
+            </h2>
+            <span className="text-sm text-neutral-400">
+              ({LAYOUT_TEMPLATES.length})
+            </span>
+          </div>
+          <p className="text-sm text-neutral-400 mb-4">
+            Reusable combinations of components found in production. Copy these templates for quick implementation.
+          </p>
+          <Grid minWidth="280px" gap="md">
+            {LAYOUT_TEMPLATES.map((template) => (
+              <Card
+                key={template.id}
+                variant="outlined"
+                hover
+                className="p-4 md:p-6 cursor-pointer"
+                onClick={() => router.push(template.path)}
+              >
+                <Stack gap="sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-accent-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Icon
+                        icon={template.icon}
+                        size="sm"
+                        color="#BF00FF"
+                        className="opacity-80"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base md:text-lg font-semibold text-white truncate">
+                        {template.name}
+                      </h3>
+                      <Badge variant="premium" className="text-xs mt-1">
+                        {template.category}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-xs md:text-sm text-neutral-400 line-clamp-2">
+                    {template.description}
+                  </p>
+                  <div className="text-[10px] text-neutral-500 mt-1">
+                    Uses: {template.componentsUsed.join(', ')}
+                  </div>
+                  <div className="pt-2 border-t border-neutral-700">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(template.path)
+                      }}
+                    >
+                      View Template →
+                    </Button>
+                  </div>
+                </Stack>
+              </Card>
+            ))}
+          </Grid>
+        </Stack>
+      </Card>
 
       {/* Quick Stats */}
       <Card variant="outlined" className="p-4 md:p-6">

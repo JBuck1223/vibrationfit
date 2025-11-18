@@ -730,23 +730,34 @@ export default function ProfileDetailPage() {
               fieldKey="has_children"
               onSave={handleFieldSave}
             />
-            <ProfileField 
-              label="Number of Children" 
-              value={profile.number_of_children}
-              type="number"
-              editable={false}
-              fieldKey="number_of_children"
-              onSave={handleFieldSave}
-            />
-            <ProfileField 
-              label="Children's Ages" 
-              value={profile.children_ages} 
-              type="array"
-              editable={false}
-              fieldKey="children_ages"
-              onSave={handleFieldSave}
-              placeholder="Add child's age (e.g., 5, 12, 16)"
-            />
+
+            {/* Children Table */}
+            {profile.children && profile.children.length > 0 && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-neutral-300">Children</label>
+                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-neutral-900/50 border-b border-neutral-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Name</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Birthday</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profile.children.map((child: any, index: number) => (
+                        <tr key={index} className="border-b border-neutral-700/50 last:border-0">
+                          <td className="px-4 py-2 text-sm text-white">{child.first_name || 'Not specified'}</td>
+                          <td className="px-4 py-2 text-sm text-neutral-300">
+                            {child.birthday ? new Date(child.birthday).toLocaleDateString() : 'Not specified'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('family')}?`}
               value={profile.clarity_family}
@@ -1185,6 +1196,34 @@ export default function ProfileDetailPage() {
               fieldKey="countries_visited"
               onSave={handleFieldSave}
             />
+
+            {/* Trips Table */}
+            {profile.trips && profile.trips.length > 0 && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-neutral-300">Trips I've Taken</label>
+                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-neutral-900/50 border-b border-neutral-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Destination</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Year</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Duration</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profile.trips.map((trip: any, index: number) => (
+                        <tr key={index} className="border-b border-neutral-700/50 last:border-0">
+                          <td className="px-4 py-2 text-sm text-white">{trip.destination || 'Not specified'}</td>
+                          <td className="px-4 py-2 text-sm text-neutral-300">{trip.year || 'Not specified'}</td>
+                          <td className="px-4 py-2 text-sm text-neutral-300">{trip.duration || 'Not specified'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('travel')}?`}
               value={profile.clarity_travel}
@@ -1270,6 +1309,73 @@ export default function ProfileDetailPage() {
                 { value: 'luxury', label: 'Luxury' },
               ]}
             />
+
+            {/* Vehicles Table */}
+            {profile.vehicles && profile.vehicles.length > 0 && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-neutral-300">Vehicles</label>
+                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-neutral-900/50 border-b border-neutral-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Vehicle Name</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Year Acquired</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Ownership Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profile.vehicles.map((vehicle: any, index: number) => (
+                        <tr key={index} className="border-b border-neutral-700/50 last:border-0">
+                          <td className="px-4 py-2 text-sm text-white">{vehicle.name || 'Not specified'}</td>
+                          <td className="px-4 py-2 text-sm text-neutral-300">{vehicle.year_acquired || 'Not specified'}</td>
+                          <td className="px-4 py-2 text-sm text-neutral-300">
+                            {vehicle.ownership_status === 'paid_in_full' && 'Paid In Full'}
+                            {vehicle.ownership_status === 'own_with_payment' && 'Own with a payment'}
+                            {vehicle.ownership_status === 'leased' && 'Leased'}
+                            {vehicle.ownership_status === 'borrowed' && 'Borrowed'}
+                            {!vehicle.ownership_status && 'Not specified'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Toys Table */}
+            {profile.toys && profile.toys.length > 0 && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-neutral-300">Toys</label>
+                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-neutral-900/50 border-b border-neutral-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Item Name</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Year Acquired</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Ownership Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profile.toys.map((toy: any, index: number) => (
+                        <tr key={index} className="border-b border-neutral-700/50 last:border-0">
+                          <td className="px-4 py-2 text-sm text-white">{toy.name || 'Not specified'}</td>
+                          <td className="px-4 py-2 text-sm text-neutral-300">{toy.year_acquired || 'Not specified'}</td>
+                          <td className="px-4 py-2 text-sm text-neutral-300">
+                            {toy.ownership_status === 'paid_in_full' && 'Paid In Full'}
+                            {toy.ownership_status === 'own_with_payment' && 'Own with a payment'}
+                            {toy.ownership_status === 'leased' && 'Leased'}
+                            {toy.ownership_status === 'borrowed' && 'Borrowed'}
+                            {!toy.ownership_status && 'Not specified'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('stuff')}?`}
               value={profile.clarity_stuff}

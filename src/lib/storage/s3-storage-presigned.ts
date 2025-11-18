@@ -99,17 +99,49 @@ export async function uploadFileWithPresignedUrl(
       key: key
     })
 
-    // Clone file to avoid "body is disturbed or locked" error
-    const fileClone = new File([file], file.name, { type: file.type })
-
-    // Upload directly to S3 with CORS-compliant headers
-    const response = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: fileClone,
-      headers: {
-        'Content-Type': file.type,
-      },
-      mode: 'cors', // Explicitly set CORS mode
+    // Use XMLHttpRequest for better progress tracking and mobile compatibility
+    const response = await new Promise<Response>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      
+      // Set timeout
+      xhr.timeout = 120000 // 2 minutes
+      
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100)
+          onProgress(percentComplete)
+          console.log(`📊 Upload progress: ${percentComplete}%`)
+        }
+      }
+      
+      xhr.onload = () => {
+        console.log(`📊 Upload complete: ${xhr.status} ${xhr.statusText}`)
+        // Create a Response-like object
+        const response = new Response(xhr.response, {
+          status: xhr.status,
+          statusText: xhr.statusText,
+          headers: new Headers(xhr.getAllResponseHeaders().split('\r\n').reduce((acc, line) => {
+            const [key, value] = line.split(': ')
+            if (key && value) acc[key] = value
+            return acc
+          }, {} as Record<string, string>))
+        })
+        resolve(response)
+      }
+      
+      xhr.onerror = () => {
+        console.error('❌ XHR network error')
+        reject(new Error('Network error during upload'))
+      }
+      
+      xhr.ontimeout = () => {
+        console.error('❌ XHR timeout after 2 minutes')
+        reject(new Error('Upload timed out. Please try with a smaller file or check your connection.'))
+      }
+      
+      xhr.open('PUT', uploadUrl)
+      xhr.setRequestHeader('Content-Type', file.type)
+      xhr.send(file)
     })
 
     // Check for 405 specifically

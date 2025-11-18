@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Mic, Square, Loader2, Check, RotateCcw } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
+import SimpleLevelMeter from '@/components/SimpleLevelMeter'
 
 interface AudioTranscriptionButtonProps {
   onTranscribeComplete: (transcript: string) => void
@@ -89,6 +90,7 @@ export function AudioTranscriptionButton({
 
       // Show countdown
       setCountdown(3)
+      
       await new Promise<void>((resolve) => {
         let count = 3
         const countdownInterval = setInterval(() => {
@@ -139,6 +141,7 @@ export function AudioTranscriptionButton({
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop())
         }
+
 
         // Auto-transcribe
         await transcribeAudio(blob)
@@ -259,21 +262,27 @@ export function AudioTranscriptionButton({
   return (
     <div className={`bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6 ${className}`}>
       {/* Countdown */}
-      {countdown !== null && (
-        <div className="text-center mb-4">
-          <div className="text-8xl font-bold text-primary-500 mb-4 animate-pulse">
-            {countdown}
+      {/* Countdown with Circular Level Meter */}
+      {countdown !== null && streamRef.current && (
+        <div className="mb-4 flex justify-center items-center relative">
+          <SimpleLevelMeter stream={streamRef.current} circular />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-6xl font-bold text-red-500 animate-pulse">
+              {countdown}
+            </div>
           </div>
-          <p className="text-xl text-white">Get ready to speak...</p>
         </div>
       )}
 
-      {/* Timer */}
-      {isRecording && countdown === null && (
-        <div className="text-center mb-4">
-          <div className="inline-flex items-center gap-2 bg-red-500/20 px-4 py-2 rounded-full">
-            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-            <span className="text-white font-mono text-lg">{formatDuration(duration)}</span>
+      {/* Timer with Circular Level Meter */}
+      {isRecording && countdown === null && streamRef.current && (
+        <div className="mb-4 flex justify-center items-center relative">
+          <SimpleLevelMeter stream={streamRef.current} circular />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mx-auto mb-1" />
+              <div className="text-white font-mono text-sm">{formatDuration(duration)}</div>
+            </div>
           </div>
         </div>
       )}

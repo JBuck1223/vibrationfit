@@ -23,7 +23,7 @@ interface RecordingTextareaProps {
   category?: string // Category for IndexedDB persistence (e.g., 'fun', 'health', 'journal')
   onUploadProgress?: (progress: number, status: string, fileName: string, fileSize: number) => void
   transcriptOnly?: boolean // Deprecated: use recordingPurpose instead
-  recordingPurpose?: 'quick' | 'transcriptOnly' | 'withFile' // Recording behavior: quick (no S3), transcriptOnly (S3 deleted if discarded), withFile (S3 always kept)
+  recordingPurpose?: 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly' // Recording behavior: quick (no S3), transcriptOnly (S3 deleted if discarded), withFile (S3 always kept), audioOnly (S3 storage, no transcription)
 }
 
 export function RecordingTextarea({
@@ -159,7 +159,7 @@ export function RecordingTextarea({
   const resolvedPlaceholder = placeholder ?? 'Type or transcribe audio.'
 
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div className="space-y-3">
       {label && (
         <label className="block text-sm font-medium text-neutral-200">
           {label}
@@ -178,7 +178,7 @@ export function RecordingTextarea({
           placeholder={resolvedPlaceholder}
           rows={rows}
           disabled={disabled || isUploading}
-          className="w-full min-h-[100px] resize-none overflow-hidden"
+          className={`w-full min-h-[100px] resize-none overflow-hidden ${className}`}
         />
         
         {/* Recording Buttons */}

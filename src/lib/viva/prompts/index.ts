@@ -54,8 +54,9 @@ export {
 
 // NEW V3 PROMPTS - Life Vision Process Enhancement
 
-// Ideal State Prompt (Step 2: Unleash Imagination)
-export { buildIdealStatePrompt } from './ideal-state-prompt'
+// Ideal State Prompts (Step 2: Unleash Imagination)
+// 12 category-specific, profile-aware prompt generators
+export { buildIdealStatePrompt } from './ideal-state'
 
 // Blueprint Prompt (Step 3: Being/Doing/Receiving generation)
 export {
