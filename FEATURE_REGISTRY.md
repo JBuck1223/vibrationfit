@@ -28,6 +28,145 @@
 
 ---
 
+## Core Infrastructure
+
+### 🔒 Media Recorder Component
+**Version:** `v3.5.0`  
+**Status:** 🔒 LOCKED (Used across multiple features)  
+**Last Modified:** November 18, 2024  
+**Doc:** `src/components/MediaRecorder.tsx` (self-documented)  
+**File:** `src/components/MediaRecorder.tsx` (1,350 lines)  
+**Used By:** Journal entries, VIVA chat, Life Vision audio, Video recordings
+
+**What It Does:**
+- Audio/video recording with browser MediaRecorder API
+- Multiple recording purposes:
+  - `quick`: Small snippets (VIVA chat) - no S3, instant transcript
+  - `transcriptOnly`: Long audio (life vision) - S3 backup, delete if discarded
+  - `withFile`: Full recordings (journal) - always keep file
+  - `audioOnly`: Audio with editing, no transcription
+- IndexedDB persistence (survives page refresh)
+- S3 upload integration for cloud storage
+- Audio editing with waveform (trim, cut)
+- OpenAI Whisper transcription integration
+- Microphone selection (multi-device support)
+- Pause/resume functionality
+- Countdown timer before recording
+- Real-time level meter visualization
+- Auto-save every 20-30 seconds during recording
+- Recovery system for interrupted recordings
+- Blob URL management and memory cleanup
+
+**Verification:**
+```bash
+# Test in journal entry
+1. Go to /journal/new
+2. Record audio
+3. Verify transcription works
+4. Verify audio playback works
+5. Verify S3 upload successful
+
+# Test recovery
+1. Start recording
+2. Refresh page
+3. Verify "Found saved recording" message
+4. Can continue or transcribe saved recording
+
+# Test editing
+1. Record audio
+2. Click "Edit Recording"
+3. Trim/cut audio
+4. Verify edited audio plays correctly
+```
+
+**Critical Rules:**
+- ❌ DO NOT change recording purposes without testing all use cases
+- ❌ DO NOT modify IndexedDB schema (breaks recovery)
+- ❌ DO NOT change blob creation logic (breaks playback)
+- ❌ DO NOT alter transcription flow (used by 4+ features)
+- ✅ DO test with real microphone/camera hardware
+- ✅ DO test page refresh recovery
+- ✅ DO verify S3 uploads work
+- ✅ DO check memory cleanup (blob URL revocation)
+
+**Known Gotchas:**
+- Blob URLs must be revoked to prevent memory leaks
+- MediaRecorder mimeType support varies by browser
+- IndexedDB has size limits (recordings auto-cleared after 24h)
+- S3 upload runs in parallel with transcription for speed
+- Different recording purposes have different cleanup logic
+
+---
+
+### ✅ Audio Editor Component
+**Version:** `v1.2.0`  
+**Status:** ✅ STABLE  
+**Last Modified:** October 28, 2024  
+**File:** `src/components/AudioEditor.tsx`  
+**Used By:** MediaRecorder (edit mode), Journal audio editing
+
+**What It Does:**
+- Waveform visualization with peaks
+- Trim audio (set start/end points)
+- Real-time preview of edits
+- Export edited audio as new blob
+- Undo/reset functionality
+
+**Verification:**
+```bash
+1. Record audio in journal
+2. Click "Edit Recording"
+3. Drag trim handles
+4. Click "Preview Edited"
+5. Verify trimmed audio plays correctly
+6. Click "Save Changes"
+7. Verify edited audio replaces original
+```
+
+---
+
+### ✅ Recording Textarea Component
+**Version:** `v2.1.0`  
+**Status:** ✅ STABLE  
+**Last Modified:** November 17, 2024  
+**File:** `src/components/RecordingTextarea.tsx`  
+**Used By:** Life Vision imagination, Journal entries, VIVA chat
+
+**What It Does:**
+- Textarea with integrated voice recording button
+- Automatic transcription insertion
+- Different recording purposes per use case
+- Keyboard shortcuts (Cmd/Ctrl + Shift + R to record)
+- Character count display
+
+**Integration Points:**
+- Uses MediaRecorder component
+- Configurable `recordingPurpose` and `storageFolder`
+- Automatically inserts transcript at cursor position
+
+---
+
+### 🔒 Simple Level Meter Component
+**Version:** `v1.0.0`  
+**Status:** 🔒 LOCKED (Visual feedback component)  
+**Last Modified:** September 15, 2024  
+**File:** `src/components/SimpleLevelMeter.tsx`  
+**Used By:** MediaRecorder (audio visualization during recording)
+
+**What It Does:**
+- Real-time audio level visualization
+- Two modes: linear bars or circular meter
+- Canvas-based rendering for performance
+- Audio context integration
+- Smooth animations
+
+**Critical Rules:**
+- ❌ DO NOT change canvas rendering logic (performance-sensitive)
+- ❌ DO NOT modify audio context handling (causes memory leaks if wrong)
+- ✅ DO cleanup audio nodes on unmount
+
+---
+
 ## Core Features
 
 ### 🔒 Life Vision Generation System
@@ -76,6 +215,14 @@
 - Consistent spacing and typography
 - Mobile-responsive patterns
 
+**Components:**
+- `Button` (6 variants: primary, secondary, accent, ghost, outline, danger)
+- `GradientButton` (5 gradients: brand, green, teal, purple, cosmic)
+- `AIButton` (special styling for AI features)
+- `Card` (3 variants: default, elevated, outlined)
+- `Input`, `Textarea`, `Badge`, `ProgressBar`, `Spinner`
+- `Container`, `PageLayout`, `Footer`
+
 **Verification:**
 ```bash
 # Visual check
@@ -84,13 +231,17 @@ Visit any page and verify:
 - Cards have 2px borders (#333)
 - Colors match brand palette
 - Hover states work
+- All components import from @/lib/design-system/components
 ```
 
 **Critical Rules:**
 - ❌ DO NOT change button shapes (always rounded-full)
-- ❌ DO NOT use colors outside palette
-- ❌ DO NOT modify tokens without updating brand kit
+- ❌ DO NOT use colors outside palette (see tokens.ts)
+- ❌ DO NOT modify component APIs without checking all usages
+- ❌ DO NOT add inline styles (use Tailwind classes)
 - ✅ DO import from @/lib/design-system/components
+- ✅ DO reference vibrationfit-brand-kit.html for visual style
+- ✅ DO test mobile responsive behavior
 
 ---
 
@@ -294,6 +445,12 @@ Verification:
 
 | Feature | Version | Date | Change |
 |---------|---------|------|--------|
+| FEATURE_REGISTRY | - → v1.0.0 | Nov 18 | Added UI components tracking |
+| Media Recorder | - → v3.5.0 | Nov 18 | Documented current state (locked) |
+| Audio Editor | - → v1.2.0 | Nov 18 | Documented current state (stable) |
+| Recording Textarea | - → v2.1.0 | Nov 18 | Documented current state (stable) |
+| Simple Level Meter | - → v1.0.0 | Nov 18 | Documented current state (locked) |
+| Design System | - → v1.8.0 | Nov 18 | Enhanced documentation with component list |
 | Life Vision | v3.2.0 → v3.2.1 | Nov 17 | Added ideal_state_prompts to category_state |
 | Life Vision | v3.1.0 → v3.2.0 | Nov 17 | Profile-aware imagination prompts |
 | Token System | v2.3.0 → v2.3.1 | Nov 15 | Added audio_seconds tracking |
