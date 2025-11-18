@@ -164,3 +164,85 @@ export function getVisionCategoryKeys(): string[] {
 export function isValidVisionCategory(key: string): boolean {
   return VISION_CATEGORIES.some(category => category.key === key)
 }
+
+// ============================================================================
+// CATEGORY KEY CONSTANTS - Single Source of Truth
+// ============================================================================
+// Use these instead of hardcoding category keys throughout the codebase
+
+// All category keys (excluding forward/conclusion)
+export const LIFE_CATEGORY_KEYS = VISION_CATEGORIES
+  .filter(c => c.order > 0 && c.order < 13)
+  .map(c => c.key)
+
+// Individual category key constants
+export const CATEGORY_KEYS = {
+  FORWARD: 'forward' as const,
+  FUN: 'fun' as const,
+  HEALTH: 'health' as const,
+  TRAVEL: 'travel' as const,
+  LOVE: 'love' as const,
+  FAMILY: 'family' as const,
+  SOCIAL: 'social' as const,
+  HOME: 'home' as const,
+  WORK: 'work' as const,
+  MONEY: 'money' as const,
+  STUFF: 'stuff' as const,
+  GIVING: 'giving' as const,
+  SPIRITUALITY: 'spirituality' as const,
+  CONCLUSION: 'conclusion' as const,
+} as const
+
+// ============================================================================
+// FIELD NAME MAPPING HELPERS
+// ============================================================================
+// Map category keys to their corresponding database field names
+
+/**
+ * Get the story field name for a category (e.g., 'fun' -> 'fun_story')
+ */
+export function getCategoryStoryField(categoryKey: string): string {
+  return `${categoryKey}_story`
+}
+
+/**
+ * Get the clarity field name for a category (e.g., 'fun' -> 'clarity_fun')
+ */
+export function getCategoryClarityField(categoryKey: string): string {
+  return `clarity_${categoryKey}`
+}
+
+/**
+ * Get the contrast field name for a category (e.g., 'fun' -> 'contrast_fun')
+ */
+export function getCategoryContrastField(categoryKey: string): string {
+  return `contrast_${categoryKey}`
+}
+
+/**
+ * Get clarity and contrast field names for a category
+ */
+export function getCategoryFields(categoryKey: string): { clarity: string; contrast: string } {
+  return {
+    clarity: getCategoryClarityField(categoryKey),
+    contrast: getCategoryContrastField(categoryKey),
+  }
+}
+
+// Map of all category story fields for batch operations
+export const CATEGORY_STORY_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
+  acc[key] = getCategoryStoryField(key)
+  return acc
+}, {} as Record<string, string>)
+
+// Map of all category clarity fields for batch operations
+export const CATEGORY_CLARITY_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
+  acc[key] = getCategoryClarityField(key)
+  return acc
+}, {} as Record<string, string>)
+
+// Map of all category contrast fields for batch operations
+export const CATEGORY_CONTRAST_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
+  acc[key] = getCategoryContrastField(key)
+  return acc
+}, {} as Record<string, string>)

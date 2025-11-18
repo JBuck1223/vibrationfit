@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text } from '@/lib/design-system/components'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, CheckCircle, ArrowLeft, ArrowRight, ChevronDown, User, TrendingUp, RefreshCw, Mic, AlertCircle, Loader2, Video } from 'lucide-react'
-import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getCategoryFields, getCategoryStoryField } from '@/lib/design-system/vision-categories'
 import { deleteSavedRecording, getRecordingsForCategory, loadSavedRecording, saveRecordingChunks } from '@/lib/storage/indexed-db-recording'
 
 interface VIVAActionCardProps {
@@ -97,21 +97,7 @@ export default function CategoryPage() {
   const [savedRecordings, setSavedRecordings] = useState<any[]>([])
   const [transcribingRecordingId, setTranscribingRecordingId] = useState<string | null>(null)
 
-  // Map category keys to profile clarity/contrast fields
-  const categoryFieldMap: Record<string, { clarity: string; contrast: string }> = {
-    fun: { clarity: 'clarity_fun', contrast: 'contrast_fun' },
-    health: { clarity: 'clarity_health', contrast: 'contrast_health' },
-    travel: { clarity: 'clarity_travel', contrast: 'contrast_travel' },
-    love: { clarity: 'clarity_love', contrast: 'contrast_love' },
-    family: { clarity: 'clarity_family', contrast: 'contrast_family' },
-    social: { clarity: 'clarity_social', contrast: 'contrast_social' },
-    home: { clarity: 'clarity_home', contrast: 'contrast_home' },
-    work: { clarity: 'clarity_work', contrast: 'contrast_work' },
-    money: { clarity: 'clarity_money', contrast: 'contrast_money' },
-    stuff: { clarity: 'clarity_stuff', contrast: 'contrast_stuff' },
-    giving: { clarity: 'clarity_giving', contrast: 'contrast_giving' },
-    spirituality: { clarity: 'clarity_spirituality', contrast: 'contrast_spirituality' }
-  }
+  // No longer needed - using getCategoryFields() from vision-categories
 
   const category = getVisionCategory(categoryKey)
   if (!category) {
@@ -176,21 +162,7 @@ export default function CategoryPage() {
       setFullAssessment(assessment)
 
       // Set profile and assessment data for display
-      const categoryStories: Record<string, string> = {
-        fun: 'fun_story',
-        health: 'health_story',
-        travel: 'travel_story',
-        love: 'love_story',
-        family: 'family_story',
-        social: 'social_story',
-        home: 'home_story',
-        work: 'work_story',
-        money: 'money_story',
-        stuff: 'stuff_story',
-        giving: 'giving_story',
-        spirituality: 'spirituality_story'
-      }
-      const storyField = categoryStories[categoryKey]
+      const storyField = getCategoryStoryField(categoryKey)
       const profileStory = profile?.[storyField] || ''
       const categoryScoreRaw = assessment?.category_scores?.[categoryKey]
       const categoryScore = categoryScoreRaw !== undefined && categoryScoreRaw !== null 
@@ -210,10 +182,10 @@ export default function CategoryPage() {
       })
 
       // Load clarity and contrast fields for this category
-      const fields = categoryFieldMap[categoryKey]
+      const fields = getCategoryFields(categoryKey)
       let contrastValue = ''
       
-      if (fields && profile) {
+      if (profile) {
         const clarityValue = profile[fields.clarity] || ''
         contrastValue = profile[fields.contrast] || ''
         
