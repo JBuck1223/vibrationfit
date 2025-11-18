@@ -63,15 +63,7 @@ export const VersionActionToolbar: React.FC<VersionActionToolbarProps> = ({
 
   const getActions = () => {
     if (isActive) {
-      return [
-        {
-          label: 'Create Draft',
-          icon: <Copy className="w-4 h-4" />,
-          variant: 'secondary' as const,
-          onClick: () => onCreateDraft?.(),
-          showConfirm: false
-        }
-      ]
+      return []
     }
 
     if (isDraft) {
@@ -101,13 +93,6 @@ export const VersionActionToolbar: React.FC<VersionActionToolbarProps> = ({
         variant: 'primary' as const,
         onClick: () => handleConfirm('set-active', () => onSetActive?.()),
         showConfirm: true
-      },
-      {
-        label: 'Create Draft',
-        icon: <Copy className="w-4 h-4" />,
-        variant: 'secondary' as const,
-        onClick: () => onCreateDraft?.(),
-        showConfirm: false
       },
       {
         label: 'Delete',

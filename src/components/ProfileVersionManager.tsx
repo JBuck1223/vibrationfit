@@ -243,17 +243,8 @@ export const ProfileVersionManager: React.FC<VersionManagerProps> = ({
 
                     {/* Action Buttons */}
                     {version.is_active ? (
-                      // Active version actions
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleCreateDraft(version.id)}
-                        disabled={isLoading}
-                        className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
-                      >
-                        <Copy className="w-4 h-4" />
-                        Create Draft
-                      </Button>
+                      // Active version actions - no buttons
+                      null
                     ) : version.is_draft ? (
                       // Draft version actions
                       <>
