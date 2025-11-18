@@ -7,7 +7,11 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "pre-deploy": "node scripts/pre-deploy-check.js"
+    "pre-deploy": "node scripts/pre-deploy-check.js",
+    "docs:generate": "ts-node scripts/docs/generate-all.ts",
+    "docs:schema": "ts-node scripts/docs/generate-schema-docs.ts",
+    "docs:api": "ts-node scripts/docs/generate-api-docs.ts",
+    "docs:constants": "ts-node scripts/docs/generate-constants-docs.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.59",
@@ -49,12 +53,13 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

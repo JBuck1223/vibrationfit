@@ -58,3 +58,6 @@ certs/
 
 # S3 backups
 s3-backup/
+
+# Generated documentation (auto-generated, don't commit)
+docs/generated/

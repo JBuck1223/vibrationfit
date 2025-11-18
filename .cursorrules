@@ -451,6 +451,25 @@ export default function Page() {
 
 **IMPORTANT:** Only create docs when they provide lasting value. Avoid doc debt!
 
+### ⚡ AUTO-GENERATED DOCS (NEW!)
+
+**We now generate docs FROM code, not manually:**
+
+| Doc Type | How to Update | DO NOT |
+|----------|---------------|---------|
+| **Database Schema** | Run `npm run docs:schema` | ❌ Edit `docs/generated/SCHEMA.md` manually |
+| **API Endpoints** | Run `npm run docs:api` | ❌ Edit `docs/generated/API_ENDPOINTS.md` manually |
+| **Constants** | Run `npm run docs:constants` | ❌ Edit `docs/generated/CONSTANTS.md` manually |
+
+**To regenerate all:** `npm run docs:generate`
+
+**When to regenerate:**
+- After running database migrations → `npm run docs:schema`
+- After adding/modifying API routes → `npm run docs:api`
+- After changing vision categories → `npm run docs:constants`
+
+**Files in `docs/generated/` are gitignored** - they're built from source, not committed.
+
 ### ❌ NEVER Create These Docs
 
 - **Status docs** ("COMPLETE", "SUCCESS", "STATUS", "FIXED") - use git commits instead

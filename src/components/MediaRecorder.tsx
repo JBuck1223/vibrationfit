@@ -30,6 +30,7 @@ interface MediaRecorderProps {
   category?: string // Optional: Category for IndexedDB persistence
   storageFolder?: keyof typeof USER_FOLDERS // S3 folder for uploads
   recordingPurpose?: RecordingPurpose // 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'
+  enableEditor?: boolean // Explicitly enable/disable audio editor (default: true, overrides automatic behavior)
   /**
    * Recording modes:
    * - 'quick': Small snippets (VIVA chat) - No S3, no player, instant transcript, discard immediately
@@ -50,7 +51,8 @@ export function MediaRecorderComponent({
   recordingId: providedRecordingId,
   category = 'general',
   storageFolder = 'journalAudioRecordings',
-  recordingPurpose = 'withFile' // Default to full file storage
+  recordingPurpose = 'withFile', // Default to full file storage
+  enableEditor = true // Default to enabled (can be overridden)
 }: MediaRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -1221,8 +1223,8 @@ export function MediaRecorderComponent({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
-            {/* Edit Recording Button (audio only) */}
-            {mode === 'audio' && !showEditor && (
+            {/* Edit Recording Button (audio only, enabled, and not in quick mode) */}
+            {mode === 'audio' && enableEditor && recordingPurpose !== 'quick' && !showEditor && (
               <Button
                 onClick={() => setShowEditor(true)}
                 variant="secondary"
@@ -1266,8 +1268,8 @@ export function MediaRecorderComponent({
         </div>
       )}
 
-      {/* Audio Editor - Only for audio mode */}
-      {mode === 'audio' && showEditor && recordedBlob && (
+      {/* Audio Editor - Only for audio mode when enabled */}
+      {mode === 'audio' && enableEditor && recordingPurpose !== 'quick' && showEditor && recordedBlob && (
         <AudioEditor
           audioBlob={recordedBlob}
           onSave={async (editedBlob) => {
