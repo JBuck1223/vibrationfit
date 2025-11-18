@@ -17,7 +17,8 @@ export function getProfileContextForCategory(
   if (!profile) return {}
 
   const contextMap: Record<string, () => ProfileContext> = {
-    'fun-recreation': () => ({
+    // Map actual category keys to profile context extractors
+    'fun': () => ({
       hobbies: profile.hobbies || [],
       leisure_time_weekly: profile.leisure_time_weekly,
       lifestyle_category: profile.lifestyle_category,
@@ -38,7 +39,7 @@ export function getProfileContextForCategory(
       lifestyle_category: profile.lifestyle_category,
     }),
 
-    'romantic-relationship': () => ({
+    'love': () => ({
       relationship_status: profile.relationship_status,
       relationship_length: profile.relationship_length,
       partner_name: profile.partner_name,
@@ -51,13 +52,13 @@ export function getProfileContextForCategory(
       relationship_status: profile.relationship_status,
     }),
 
-    'friendships': () => ({
+    'social': () => ({
       close_friends_count: profile.close_friends_count,
       social_preference: profile.social_preference,
       lifestyle_category: profile.lifestyle_category,
     }),
 
-    'physical-environment': () => ({
+    'home': () => ({
       city: profile.city,
       state: profile.state,
       country: profile.country,
@@ -66,7 +67,7 @@ export function getProfileContextForCategory(
       primary_vehicle: profile.primary_vehicle,
     }),
 
-    'career': () => ({
+    'work': () => ({
       occupation: profile.occupation,
       company: profile.company,
       employment_type: profile.employment_type,
@@ -74,7 +75,7 @@ export function getProfileContextForCategory(
       education: profile.education,
     }),
 
-    'finances': () => ({
+    'money': () => ({
       household_income: profile.household_income,
       savings_retirement: profile.savings_retirement,
       assets_equity: profile.assets_equity,
@@ -88,7 +89,7 @@ export function getProfileContextForCategory(
       living_situation: profile.living_situation,
     }),
 
-    'contribution': () => ({
+    'giving': () => ({
       volunteer_status: profile.volunteer_status,
       charitable_giving: profile.charitable_giving,
       legacy_mindset: profile.legacy_mindset,

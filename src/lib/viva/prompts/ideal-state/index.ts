@@ -32,17 +32,18 @@ export function buildIdealStatePrompt(
   profileContext: ProfileContext
 ): string {
   const promptBuilders: Record<string, () => string> = {
-    'fun-recreation': () => buildFunRecreationPrompt(categoryName, currentClarity, flippedContrast, profileContext),
+    // Map actual category keys to prompt builders
+    'fun': () => buildFunRecreationPrompt(categoryName, currentClarity, flippedContrast, profileContext),
     'health': () => buildHealthPrompt(categoryName, currentClarity, flippedContrast, profileContext),
     'travel': () => buildTravelPrompt(categoryName, currentClarity, flippedContrast, profileContext),
-    'romantic-relationship': () => buildRomanticPrompt(categoryName, currentClarity, flippedContrast, profileContext),
+    'love': () => buildRomanticPrompt(categoryName, currentClarity, flippedContrast, profileContext),
     'family': () => buildFamilyPrompt(categoryName, currentClarity, flippedContrast, profileContext),
-    'friendships': () => buildFriendshipsPrompt(categoryName, currentClarity, flippedContrast, profileContext),
-    'physical-environment': () => buildPhysicalEnvironmentPrompt(categoryName, currentClarity, flippedContrast, profileContext),
-    'career': () => buildCareerPrompt(categoryName, currentClarity, flippedContrast, profileContext),
-    'finances': () => buildFinancesPrompt(categoryName, currentClarity, flippedContrast, profileContext),
+    'social': () => buildFriendshipsPrompt(categoryName, currentClarity, flippedContrast, profileContext),
+    'home': () => buildPhysicalEnvironmentPrompt(categoryName, currentClarity, flippedContrast, profileContext),
+    'work': () => buildCareerPrompt(categoryName, currentClarity, flippedContrast, profileContext),
+    'money': () => buildFinancesPrompt(categoryName, currentClarity, flippedContrast, profileContext),
     'stuff': () => buildStuffPrompt(categoryName, currentClarity, flippedContrast, profileContext),
-    'contribution': () => buildContributionPrompt(categoryName, currentClarity, flippedContrast, profileContext),
+    'giving': () => buildContributionPrompt(categoryName, currentClarity, flippedContrast, profileContext),
     'spirituality': () => buildSpiritualityPrompt(categoryName, currentClarity, flippedContrast, profileContext),
     'wildcard': () => buildWildcardPrompt(categoryName, currentClarity, flippedContrast, profileContext),
   }
