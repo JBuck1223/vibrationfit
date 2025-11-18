@@ -211,17 +211,14 @@ export default function CategoryPage() {
 
       // Load clarity and contrast fields for this category
       const fields = categoryFieldMap[categoryKey]
+      let contrastValue = ''
+      
       if (fields && profile) {
         const clarityValue = profile[fields.clarity] || ''
-        const contrastValue = profile[fields.contrast] || ''
+        contrastValue = profile[fields.contrast] || ''
         
         setCurrentClarity(clarityValue)
         setContrastFromProfile(contrastValue)
-
-        // Auto-flip contrast if it exists
-        if (contrastValue.trim().length > 0) {
-          await flipContrastToClarity(contrastValue)
-        }
       }
 
       // Check for existing summary in life_vision_category_state table
@@ -245,12 +242,18 @@ export default function CategoryPage() {
         .maybeSingle()
 
       if (existingFlip?.clarity_seed) {
+        // Use existing flip from database
+        console.log('[Exploration] Found existing frequency flip for', categoryKey)
         setClarityFromContrast(existingFlip.clarity_seed)
         // If we have the original contrast, set it too (for context)
-        if (existingFlip.input_text && !contrastFromProfile) {
+        if (existingFlip.input_text && !contrastValue) {
           setContrastFromProfile(existingFlip.input_text)
           setShowContrastToggle(true)
         }
+      } else if (contrastValue.trim().length > 0) {
+        // No existing flip found - auto-flip contrast if it exists
+        console.log('[Exploration] No existing flip found - generating new frequency flip for', categoryKey)
+        await flipContrastToClarity(contrastValue)
       }
 
       setLoading(false)
