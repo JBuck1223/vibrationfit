@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import WaveSurfer from 'wavesurfer.js'
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
 import { Button } from '@/lib/design-system/components'
-import { Scissors, Save, Play, Pause, Trash2, Info, Loader2, X } from 'lucide-react'
+import { Scissors, Save, Play, Pause, Trash2, Info, Loader2, X, ZoomIn, ZoomOut, Maximize2, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface AudioEditorProps {
   audioBlob: Blob
@@ -22,6 +22,8 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
   const [duration, setDuration] = useState(0)
   const [currentAudioBlob, setCurrentAudioBlob] = useState<Blob>(audioBlob)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const [showInstructions, setShowInstructions] = useState(false)
 
   useEffect(() => {
     if (!waveformRef.current) return
@@ -422,6 +424,26 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
+  const handleZoomIn = () => {
+    if (!wavesurferRef.current) return
+    const newZoom = Math.min(zoomLevel * 1.5, 500) // Max 500 pixels per second
+    setZoomLevel(newZoom)
+    wavesurferRef.current.zoom(newZoom)
+  }
+
+  const handleZoomOut = () => {
+    if (!wavesurferRef.current) return
+    const newZoom = Math.max(zoomLevel / 1.5, 1) // Min 1 pixel per second
+    setZoomLevel(newZoom)
+    wavesurferRef.current.zoom(newZoom)
+  }
+
+  const handleFitToView = () => {
+    if (!wavesurferRef.current) return
+    setZoomLevel(1)
+    wavesurferRef.current.zoom(1)
+  }
+
   return (
     <div className="space-y-4">
       <div className="bg-[#1F1F1F] rounded-2xl p-6 border-2 border-[#333]">
@@ -433,31 +455,48 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
         </div>
         
         {/* Waveform */}
-        <div 
-          ref={waveformRef} 
-          className="mb-4 rounded-lg overflow-hidden bg-black/50 border border-[#333]" 
-        />
+        <div className="mb-4 rounded-lg overflow-x-auto overflow-y-hidden bg-black/50 border border-[#333]">
+          <div 
+            ref={waveformRef}
+            className="min-w-full"
+          />
+        </div>
         
-        {/* Instructions */}
-        <div className="bg-[#199D67]/10 border border-[#199D67]/30 rounded-lg p-4 mb-4">
-          <div className="flex items-start gap-2">
-            <Info className="w-5 h-5 text-[#199D67] mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-white mb-2">
-                How to edit:
-              </p>
+        {/* Instructions - Collapsible */}
+        <div className="bg-[#199D67]/10 border border-[#199D67]/30 rounded-lg mb-4">
+          <button
+            type="button"
+            onClick={() => setShowInstructions(!showInstructions)}
+            className="w-full p-4 flex items-center justify-between hover:bg-[#199D67]/5 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Info className="w-5 h-5 text-[#199D67]" />
+              <span className="text-sm font-semibold text-white">
+                How to edit
+              </span>
+            </div>
+            {showInstructions ? (
+              <ChevronUp className="w-5 h-5 text-[#199D67]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-[#199D67]" />
+            )}
+          </button>
+          
+          {showInstructions && (
+            <div className="px-4 pb-4 pt-0">
               <ol className="text-sm text-neutral-300 space-y-1.5 list-decimal list-inside">
                 <li><span className="text-white font-medium">Mark sections:</span> Click "Mark Section to Cut" to add a red region</li>
                 <li><span className="text-white font-medium">Adjust markers:</span> Drag the edges of red regions to select what to remove</li>
                 <li><span className="text-white font-medium">Preview:</span> Click a region to select and preview that section</li>
                 <li><span className="text-white font-medium">Multiple cuts:</span> Add more regions to cut multiple sections</li>
                 <li><span className="text-white font-medium">Apply cuts:</span> Click "Cut Marked Sections" to remove the red areas</li>
+                <li><span className="text-white font-medium">Zoom:</span> Use zoom controls to see fine details or get an overview</li>
               </ol>
               <p className="text-[#FFB701] text-xs mt-3 font-medium">
                 💡 Red regions show what will be REMOVED. Everything else is kept.
               </p>
             </div>
-          </div>
+          )}
         </div>
         
         {/* Controls */}
@@ -480,6 +519,42 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
                 <Play className="w-5 h-5 text-black fill-black ml-0.5" />
               )}
             </button>
+            
+            {/* Divider */}
+            <div className="w-px h-8 bg-neutral-700" />
+            
+            {/* Zoom Controls */}
+            <button
+              type="button"
+              onClick={handleZoomOut}
+              className="w-10 h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 hover:scale-110 border border-neutral-700"
+              title="Zoom Out"
+              disabled={zoomLevel <= 1}
+            >
+              <ZoomOut className="w-4 h-4 text-white" />
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleFitToView}
+              className="w-10 h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 hover:scale-110 border border-neutral-700"
+              title="Fit to View"
+            >
+              <Maximize2 className="w-4 h-4 text-white" />
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleZoomIn}
+              className="w-10 h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 hover:scale-110 border border-neutral-700"
+              title="Zoom In"
+              disabled={zoomLevel >= 500}
+            >
+              <ZoomIn className="w-4 h-4 text-white" />
+            </button>
+            
+            {/* Divider */}
+            <div className="w-px h-8 bg-neutral-700" />
             
             {/* Mark Section to Cut - Circular secondary button */}
             <button

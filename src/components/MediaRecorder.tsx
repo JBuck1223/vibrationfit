@@ -1223,8 +1223,8 @@ export function MediaRecorderComponent({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
-            {/* Edit Recording Button (audio only, enabled, and not in quick mode) */}
-            {mode === 'audio' && enableEditor && recordingPurpose !== 'quick' && !showEditor && (
+            {/* Edit Recording Button (audio only, enabled) */}
+            {mode === 'audio' && enableEditor && !showEditor && (
               <Button
                 onClick={() => setShowEditor(true)}
                 variant="secondary"
@@ -1269,7 +1269,7 @@ export function MediaRecorderComponent({
       )}
 
       {/* Audio Editor - Only for audio mode when enabled */}
-      {mode === 'audio' && enableEditor && recordingPurpose !== 'quick' && showEditor && recordedBlob && (
+      {mode === 'audio' && enableEditor && showEditor && recordedBlob && (
         <AudioEditor
           audioBlob={recordedBlob}
           onSave={async (editedBlob) => {

@@ -1,5 +1,28 @@
 # VibrationFit Project Rules
 
+## 🔒 FEATURE REGISTRY (READ THIS FIRST!)
+
+**CRITICAL:** Before modifying ANY feature, check `FEATURE_REGISTRY.md` in the project root.
+
+| Status | Your Action |
+|--------|-------------|
+| 🔒 **LOCKED** | **DO NOT MODIFY** without explicit user permission. Feature is working in production. |
+| ✅ **STABLE** | Modify with extreme caution. Test thoroughly after any changes. |
+| 🚧 **IN PROGRESS** | Safe to modify. |
+| ⚠️ **NEEDS REVIEW** | Verify it works before relying on it. |
+
+**Before touching Life Vision, Token System, Design System, or Database Schema:**
+1. Read `FEATURE_REGISTRY.md` 
+2. Check feature status
+3. If 🔒 LOCKED, ask user for permission
+4. Document current behavior
+5. Create test plan
+6. Make changes incrementally
+7. Test ENTIRE feature (not just your change)
+8. Update version in registry
+
+---
+
 ## 📁 File Organization (CRITICAL - READ FIRST)
 
 ### Documentation Files
