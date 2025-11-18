@@ -5,6 +5,7 @@ import OpenAI from 'openai'
 import { analyzeProfile, analyzeAssessment } from '@/lib/viva/profile-analyzer'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildCategorySummaryPrompt, CATEGORY_SUMMARY_SYSTEM_PROMPT } from '@/lib/viva/prompts/category-summary-prompt'
+import { getCategoryClarityField } from '@/lib/design-system/vision-categories'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -14,25 +15,11 @@ function getCategoryProfileFields(category: string, profile: any): string {
   if (!profile) return ''
   
   const fields: string[] = []
-  const categoryStories: Record<string, string> = {
-    fun: 'clarity_fun',
-    health: 'clarity_health',
-    travel: 'clarity_travel',
-    love: 'clarity_love',
-    family: 'clarity_family',
-    social: 'clarity_social',
-    home: 'clarity_home',
-    work: 'clarity_work',
-    money: 'clarity_money',
-    stuff: 'clarity_stuff',
-    giving: 'clarity_giving',
-    spirituality: 'clarity_spirituality'
-  }
   
-  // Add the user's own story text for this category (highest priority context)
-  const storyField = categoryStories[category]
-  if (storyField && profile[storyField] && profile[storyField].trim().length > 0) {
-    fields.push(`User's own words about ${category}:\n"${profile[storyField]}"`)
+  // Add the user's own clarity text for this category (highest priority context)
+  const clarityField = getCategoryClarityField(category)
+  if (profile[clarityField] && profile[clarityField].trim().length > 0) {
+    fields.push(`User's own words about ${category}:\n"${profile[clarityField]}"`)
   }
   
   // Category-specific profile field mappings

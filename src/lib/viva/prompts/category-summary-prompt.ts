@@ -11,6 +11,7 @@
 
 import { VIVA_PERSONA } from './shared/viva-persona'
 import { flattenAssessmentResponsesNumbered } from '../prompt-flatteners'
+import { getCategoryClarityField } from '@/lib/design-system/vision-categories'
 import { computeTargetLengthRange, combineTextSources } from '../text-metrics'
 
 export const CATEGORY_SUMMARY_SYSTEM_PROMPT = `${VIVA_PERSONA}
@@ -27,25 +28,10 @@ export function buildCategorySummaryPrompt(
   profile: any,
   assessment: any
 ): string {
-  // Map category to profile story field
-  const categoryStories: Record<string, string> = {
-    fun: 'clarity_fun',
-    health: 'clarity_health',
-    travel: 'clarity_travel',
-    love: 'clarity_love',
-    family: 'clarity_family',
-    social: 'clarity_social',
-    home: 'clarity_home',
-    work: 'clarity_work',
-    money: 'clarity_money',
-    stuff: 'clarity_stuff',
-    giving: 'clarity_giving',
-    spirituality: 'clarity_spirituality'
-  }
-
-  const storyField = categoryStories[category]
-  const profileStory = storyField && profile?.[storyField]
-    ? profile[storyField].trim()
+  // Get user's clarity text for this category from profile
+  const clarityField = getCategoryClarityField(category)
+  const profileStory = profile?.[clarityField]
+    ? profile[clarityField].trim()
     : null
 
   // Get category-specific assessment responses

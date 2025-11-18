@@ -6,6 +6,7 @@ import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildVivaSystemPrompt } from '@/lib/viva/prompts/chat-system-prompt'
+import { getVisionCategoryKeys } from '@/lib/design-system/vision-categories'
 
 // Using Node.js runtime instead of Edge for proper onFinish callback support
 // Edge runtime terminates the response before onFinish can run
@@ -153,10 +154,11 @@ export async function POST(req: Request) {
       if (!isMasterAssistant) return null
       const lowerText = text.toLowerCase()
       
-      // Pattern matching for section queries
+      // Pattern matching for section queries (dynamically generated from VISION_CATEGORIES)
+      const categoryKeys = getVisionCategoryKeys().join('|')
       const patterns = [
-        /(?:show|display|get|find|tell me about|what does.*say about).*(?:the |my )?(money|fun|health|travel|love|family|social|home|work|stuff|giving|spirituality|forward|conclusion)(?: section)?/i,
-        /(?:section|part|category).*?(money|fun|health|travel|love|family|social|home|work|stuff|giving|spirituality|forward|conclusion)/i,
+        new RegExp(`(?:show|display|get|find|tell me about|what does.*say about).*(?:the |my )?(${categoryKeys})(?: section)?`, 'i'),
+        new RegExp(`(?:section|part|category).*?(${categoryKeys})`, 'i'),
       ]
       
       // Map common aliases to category keys

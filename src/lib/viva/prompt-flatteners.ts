@@ -10,6 +10,8 @@
  * data formatting while preserving key information.
  */
 
+import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
+
 /**
  * Truncates values to max length for token efficiency
  */
@@ -135,7 +137,7 @@ export function flattenAssessmentResponsesNumbered(
  */
 export function flattenProfileStories(
   profile: Record<string, any> = {},
-  categories: string[] = ['fun', 'health', 'travel', 'love', 'family', 'social', 'home', 'work', 'money', 'stuff', 'giving', 'spirituality']
+  categories: string[] = LIFE_CATEGORY_KEYS
 ): string {
   const stories = categories
     .map(cat => {
