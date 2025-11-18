@@ -174,10 +174,17 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('[Ideal State] Error:', error)
+    console.error('[Ideal State] Error stack:', error.stack)
+    console.error('[Ideal State] Error details:', {
+      name: error.name,
+      message: error.message,
+      cause: error.cause
+    })
     return NextResponse.json(
       {
         error: 'Failed to generate ideal state prompts',
-        details: error.message
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
       { status: 500 }
     )
