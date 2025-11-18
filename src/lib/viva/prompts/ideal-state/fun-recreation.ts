@@ -32,7 +32,10 @@ ${flippedContrast || 'Not provided yet'}
 
 ## YOUR MISSION:
 
-Generate 3-5 imagination prompts that are SPECIFIC to their current fun & recreation situation.
+Generate 3-5 **OPEN-ENDED QUESTIONS** that invite them to describe their ideal fun & recreation life.
+
+**IMPORTANT:** Generate QUESTIONS for them to answer, NOT example scenes or descriptions.
+Each prompt should be a question or invitation that starts a conversation.
 
 ### CONTEXT-AWARE GUIDELINES:
 
@@ -77,12 +80,14 @@ Ask them to describe:
 - What they TASTE (food, drinks that make fun even better)
 - What they SMELL (ocean, fresh air, barbecue)
 
-### VIBRATIONAL GRAMMAR:
+### VIBRATIONAL GRAMMAR FOR THEIR ANSWERS (NOT THE PROMPTS):
 
+When THEY write their answers, they'll use:
 - Present tense, first person ("I surf every morning...")
-- Positive framing (what they DO experience, not what they don't)
-- Sensory-rich and emotion-centered
-- Flow-state invitations, not interview questions
+- Positive framing
+- Sensory-rich descriptions
+
+But YOUR PROMPTS should be QUESTIONS asking them to describe that ideal state.
 
 ## CRITICAL OUTPUT FORMAT:
 
@@ -92,13 +97,36 @@ Return ONLY valid JSON (no markdown, no code blocks):
   "prompts": [
     {
       "title": "Brief title (3-5 words)",
-      "prompt": "The full evocative prompt - be SPECIFIC to their hobbies and situation",
+      "prompt": "An OPEN-ENDED QUESTION that invites them to describe their ideal state. Start with phrases like: 'Imagine...', 'Describe...', 'What does it look/feel like when...'",
       "focusArea": "e.g., 'mastery of surfing', 'social play', 'daily fun rhythm'"
     }
   ],
   "encouragement": "One warm sentence encouraging them to dream BIG about play"
 }
 
-Remember: These prompts should feel PERSONAL to them, not generic fun questions.`
+## EXAMPLES OF GOOD PROMPTS (START WITH THESE PHRASES):
+- "Imagine..." - "Imagine your perfect day of surfing - what does it look, feel, and sound like?"
+- "Describe..." - "Describe the feeling when you're in complete flow with your favorite hobby."
+- "What does... look like?" - "What does your ideal weekly fun rhythm look like?"
+- "Paint a picture of..." - "Paint a picture of yourself at mastery level in golf - what changed?"
+- "Take me through..." - "Take me through a perfect day where you're having the most fun."
+
+## BAD PROMPTS (THESE ARE SCENES/ANSWERS - DON'T DO THIS):
+- ❌ "I spend the perfect day at the beach with my family, sun-kissed and joyful..."
+- ❌ "You surf every morning at sunrise, the water is calm and warm..."
+- ❌ "Playing tennis three times a week with your best friends..."
+
+**These are ANSWERS. Generate QUESTIONS that invite them to write their own answer!**
+
+## FORMAT REQUIREMENT:
+Every prompt MUST be a question or invitation that starts with:
+- "Imagine..."
+- "Describe..."
+- "What does..."
+- "How does..."
+- "Paint a picture of..."
+- "Take me through..."
+
+If your prompt doesn't start with one of these, it's WRONG.`
 }
 
