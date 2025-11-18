@@ -92,13 +92,6 @@ export async function uploadFileWithPresignedUrl(
       userId
     )
 
-    console.log('📤 Uploading to S3 with presigned URL:', {
-      fileName: file.name,
-      fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-      fileType: file.type,
-      key: key
-    })
-
     // Use XMLHttpRequest for better progress tracking and mobile compatibility
     const response = await new Promise<Response>((resolve, reject) => {
       const xhr = new XMLHttpRequest()
@@ -110,12 +103,10 @@ export async function uploadFileWithPresignedUrl(
         if (event.lengthComputable && onProgress) {
           const percentComplete = Math.round((event.loaded / event.total) * 100)
           onProgress(percentComplete)
-          console.log(`📊 Upload progress: ${percentComplete}%`)
         }
       }
       
       xhr.onload = () => {
-        console.log(`📊 Upload complete: ${xhr.status} ${xhr.statusText}`)
         // Create a Response-like object
         const response = new Response(xhr.response, {
           status: xhr.status,
@@ -130,12 +121,10 @@ export async function uploadFileWithPresignedUrl(
       }
       
       xhr.onerror = () => {
-        console.error('❌ XHR network error (likely CORS)')
-        reject(new Error('CORS: Network error during upload'))
+        reject(new Error('Network error during upload'))
       }
       
       xhr.ontimeout = () => {
-        console.error('❌ XHR timeout after 2 minutes')
         reject(new Error('Upload timed out. Please try with a smaller file or check your connection.'))
       }
       
@@ -146,24 +135,12 @@ export async function uploadFileWithPresignedUrl(
 
     // Check for 405 or other CORS-related errors
     if (response.status === 405 || response.status === 403) {
-      console.error('❌ S3 CORS/Permission error:', response.status)
-      console.error('   1. S3 bucket CORS configuration is missing or incorrect')
-      console.error('   2. The presigned URL may be malformed')
-      console.error('   3. The bucket policy may be blocking PUT requests')
-      throw new Error(`CORS: Upload failed with status ${response.status}`)
+      throw new Error(`Upload failed with status ${response.status}`)
     }
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'No error details')
-      console.error('❌ S3 upload failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      })
-      throw new Error(`CORS: Upload failed with status ${response.status}`)
+      throw new Error(`Upload failed with status ${response.status}`)
     }
-
-    console.log('✅ Presigned upload successful')
 
     if (onProgress) onProgress(100)
 
@@ -171,7 +148,6 @@ export async function uploadFileWithPresignedUrl(
     if (file.type.startsWith('video/')) {
       if (file.size > 20 * 1024 * 1024) {
         // Large videos: trigger MediaConvert
-        console.log('🎬 Triggering MediaConvert for presigned upload:', key)
         try {
           await fetch('/api/mediaconvert/trigger', {
             method: 'POST',
@@ -183,14 +159,11 @@ export async function uploadFileWithPresignedUrl(
               folder: USER_FOLDERS[folder]
             })
           })
-          console.log('✅ MediaConvert job triggered')
         } catch (error) {
-          console.error('⚠️ Failed to trigger MediaConvert:', error)
           // Continue - file is uploaded, processing can happen later
         }
       } else {
         // Small videos: Trigger compression to convert .mov to .mp4
-        console.log('🎬 Triggering compression for .mov file:', file.name)
         try {
           await fetch('/api/upload/process-existing', {
             method: 'POST',
@@ -201,25 +174,20 @@ export async function uploadFileWithPresignedUrl(
               folder: USER_FOLDERS[folder]
             })
           })
-          console.log('✅ Compression job triggered')
         } catch (error) {
-          console.error('⚠️ Failed to trigger compression:', error)
+          // Ignore compression errors
         }
       }
     }
 
     return { url: finalUrl, key }
   } catch (error) {
-    console.error('❌ Presigned upload error:', error)
-    
-    // If it's a CORS/405 error, try fallback to API route
-    if (error instanceof Error && (error.message.includes('405') || error.message.includes('CORS'))) {
-      console.log('🔄 Attempting fallback to API route upload...')
+    // If it's a 405 error, try fallback to API route
+    if (error instanceof Error && error.message.includes('405')) {
       try {
         return await uploadViaApiRoute(folder, file, userId, onProgress)
       } catch (fallbackError) {
-        console.error('❌ Fallback upload also failed:', fallbackError)
-        throw new Error(`Upload failed via both presigned URL and API route. Original error: ${error.message}`)
+        throw new Error(`Upload failed via both methods.`)
       }
     }
     
@@ -234,33 +202,18 @@ export async function uploadUserFile(
   userId?: string,
   onProgress?: (progress: number) => void
 ): Promise<{ url: string; key: string }> {
-  console.log('📤 uploadUserFile called:', { 
-    folder, 
-    fileName: file.name, 
-    fileSize: file.size, 
-    fileType: file.type,
-    userId 
-  })
-
   // Validate file first
   const validation = validateFile(file, folder)
   if (!validation.valid) {
-    console.error('❌ File validation failed:', validation.error)
     throw new Error(validation.error)
   }
 
-  console.log('✅ File validation passed')
-
   // Use presigned URL for large files (>50MB to avoid issues)
-  console.log(`📊 Upload decision: file size ${(file.size / 1024 / 1024).toFixed(2)}MB, threshold ${(PRESIGNED_THRESHOLD / 1024 / 1024).toFixed(2)}MB`)
-  
   if (file.size > PRESIGNED_THRESHOLD) {
-    console.log(`🔗 Using presigned URL upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
     return uploadFileWithPresignedUrl(folder, file, userId, onProgress)
   }
 
   // Use API route for smaller files (more reliable, no CORS issues)
-  console.log(`🚀 Using API route upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
   return uploadViaApiRoute(folder, file, userId, onProgress)
 }
 
@@ -291,12 +244,6 @@ async function uploadViaApiRoute(
       formData.append('multipart', 'true')
     }
 
-    console.log('📤 Uploading via API route:', {
-      fileName: file.name,
-      fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-      folder: USER_FOLDERS[folder]
-    })
-
     const response = await fetch('/api/upload', {
       method: 'POST',
       body: formData,
@@ -304,7 +251,7 @@ async function uploadViaApiRoute(
 
     if (!response.ok) {
       // Read response as text first, then try to parse as JSON
-      let errorMessage = `Upload failed with status ${response.status}`
+      let errorMessage = `Upload failed`
       try {
         const responseText = await response.text()
         if (responseText) {
@@ -326,11 +273,8 @@ async function uploadViaApiRoute(
 
     if (onProgress) onProgress(100)
 
-    console.log('✅ API route upload successful')
-
     return { url: result.url, key: result.key }
   } catch (error) {
-    console.error('API route upload error:', error)
     throw error
   }
 }
@@ -403,7 +347,7 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     visionBoardUploaded: {
       maxSize: 20 * 1024 * 1024, // 20MB for uploaded images
-      types: ['image/jpeg', 'image/png', 'image/webp'],
+      types: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'],
     },
   }
 
@@ -414,13 +358,6 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
   }
 
   if (!types.includes(file.type)) {
-    console.log('File validation failed:', {
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      folder: folder,
-      allowedTypes: types
-    })
     return { valid: false, error: `Invalid type. Allowed: ${types.join(', ')}` }
   }
 
@@ -442,7 +379,6 @@ export async function deleteUserFile(s3Key: string): Promise<void> {
       throw new Error(errorData.error || 'Delete failed')
     }
   } catch (error) {
-    console.error('S3 delete error:', error)
     throw error
   }
 }
@@ -457,12 +393,9 @@ export async function uploadMultipleUserFiles(
 ): Promise<{ url: string; key: string; error?: string }[]> {
   const results: { url: string; key: string; error?: string }[] = []
   
-  console.log(`📤 Starting sequential upload of ${files.length} files...`)
-  
   // Upload files ONE AT A TIME to avoid S3 rate limiting and CORS issues
   for (let index = 0; index < files.length; index++) {
     const file = files[index]
-    console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name}`)
     
     try {
       const result = await uploadUserFile(folder, file, userId, (progress) => {
@@ -475,7 +408,6 @@ export async function uploadMultipleUserFiles(
         }
       })
       
-      console.log(`✅ File ${index + 1}/${files.length} uploaded successfully`)
       results.push({ ...result, error: undefined })
       
       // Small delay between uploads to prevent rate limiting
@@ -483,7 +415,6 @@ export async function uploadMultipleUserFiles(
         await new Promise(resolve => setTimeout(resolve, 500)) // 500ms delay
       }
     } catch (error) {
-      console.error(`❌ Upload failed for ${file.name}:`, error)
       results.push({ 
         url: '', 
         key: '', 
@@ -492,7 +423,6 @@ export async function uploadMultipleUserFiles(
     }
   }
   
-  console.log(`📤 Sequential upload complete: ${results.filter(r => !r.error).length}/${files.length} successful`)
   return results
 }
 

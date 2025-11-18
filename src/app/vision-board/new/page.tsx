@@ -126,22 +126,7 @@ export default function NewVisionBoardItemPage() {
           const uploadResult = await uploadUserFile('visionBoardUploaded', file, user.id)
           imageUrl = uploadResult.url
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-          console.error('❌ Vision board image upload failed:', error)
-          
-          // Check for CORS/405 errors
-          if (errorMessage.includes('405') || errorMessage.includes('CORS')) {
-            alert(
-              `Upload failed: S3 CORS configuration issue detected.\n\n` +
-              `This usually happens with larger files.\n\n` +
-              `Please try:\n` +
-              `1. Use a smaller image (under 10MB)\n` +
-              `2. Contact support if the issue persists\n\n` +
-              `Technical details: ${errorMessage}`
-            )
-          } else {
-            alert(`Upload failed: ${errorMessage}`)
-          }
+          alert('Upload failed. Please try again or contact support if the issue persists.')
           return
         }
       }
@@ -156,22 +141,7 @@ export default function NewVisionBoardItemPage() {
             const uploadResult = await uploadUserFile('visionBoardUploaded', actualizedFile, user.id)
             actualizedImageUrl = uploadResult.url
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-            console.error('❌ Actualized image upload failed:', error)
-            
-            // Check for CORS/405 errors
-            if (errorMessage.includes('405') || errorMessage.includes('CORS')) {
-              alert(
-                `Actualized image upload failed: S3 CORS configuration issue detected.\n\n` +
-                `This usually happens with larger files.\n\n` +
-                `Please try:\n` +
-                `1. Use a smaller image (under 10MB)\n` +
-                `2. Contact support if the issue persists\n\n` +
-                `Technical details: ${errorMessage}`
-              )
-            } else {
-              alert(`Actualized image upload failed: ${errorMessage}`)
-            }
+            alert('Upload failed. Please try again or contact support if the issue persists.')
             return
           }
         }
