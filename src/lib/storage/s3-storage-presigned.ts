@@ -130,8 +130,8 @@ export async function uploadFileWithPresignedUrl(
       }
       
       xhr.onerror = () => {
-        console.error('❌ XHR network error')
-        reject(new Error('Network error during upload'))
+        console.error('❌ XHR network error (likely CORS)')
+        reject(new Error('CORS: Network error during upload'))
       }
       
       xhr.ontimeout = () => {
