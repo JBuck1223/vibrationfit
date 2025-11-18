@@ -305,6 +305,9 @@ export async function POST(request: NextRequest) {
 
     // Upload optimized file to S3
     console.log(`Uploading optimized file to S3: ${BUCKET_NAME}/${finalS3Key}`)
+    console.log(`AWS Region: ${process.env.AWS_REGION}`)
+    console.log(`AWS Credentials present: ${!!process.env.AWS_ACCESS_KEY_ID}`)
+    
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: finalS3Key,
@@ -327,10 +330,12 @@ export async function POST(request: NextRequest) {
     })
 
     try {
-      await s3Client.send(command)
-      console.log(`Upload completed for ${file.name}`)
+      console.log(`Sending PutObjectCommand to S3...`)
+      const result = await s3Client.send(command)
+      console.log(`Upload completed for ${file.name}`, result)
     } catch (s3Error) {
       console.error('S3 upload command failed:', s3Error)
+      console.error('Error details:', JSON.stringify(s3Error, null, 2))
       throw new Error(`S3 upload failed: ${s3Error instanceof Error ? s3Error.message : 'Unknown error'}`)
     }
 
