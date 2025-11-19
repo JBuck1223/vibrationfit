@@ -1,9 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { X, Upload, FileImage, Loader2, ChevronLeft, ChevronRight, Play, AlertCircle } from 'lucide-react'
 
@@ -23,6 +22,8 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [showSaveReminder, setShowSaveReminder] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = async (files: File[]) => {
     if (files.length === 0) return
@@ -31,6 +32,20 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
     setError('')
 
     try {
+      // Validate number of files
+      if (files.length > 10) {
+        setError('Maximum 10 files allowed')
+        setUploading(false)
+        return
+      }
+      // Validate file sizes
+      const oversizedFiles = files.filter(file => file.size > 500 * 1024 * 1024)
+      if (oversizedFiles.length > 0) {
+        setError('Files must be under 500MB')
+        setUploading(false)
+        return
+      }
+
       const uploadPromises = files.map(async (file) => {
         const result = await uploadUserFile('profile', file)
         return result.url
@@ -45,6 +60,44 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
       setError(err instanceof Error ? err.message : 'Failed to upload media')
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!disabled && !uploading) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!disabled && !uploading) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    if (disabled || uploading) return
+
+    const files = Array.from(e.dataTransfer.files).filter(file => 
+      file.type.startsWith('image/') || file.type.startsWith('video/')
+    )
+
+    if (files.length > 0) {
+      await handleUpload(files)
     }
   }
 
@@ -99,27 +152,58 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <FileImage className="w-5 h-5 text-primary-500" />
-        <h4 className="text-lg font-semibold text-white">Media</h4>
-        <span className="text-sm text-neutral-400">(Optional)</span>
-      </div>
       
       <p className="text-sm text-neutral-400">
-        Upload photos or videos to document your achievements or milestones. These won't affect your completion percentage.
+        Upload photos or videos to document your progress or achievements. (These won't affect your completion percentage.)
       </p>
 
       {/* Upload Area */}
-      <div className="border-2 border-dashed border-neutral-600 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
-        <FileUpload
+      <div 
+        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+          isDragging 
+            ? 'border-primary-500 bg-primary-500/10' 
+            : 'border-neutral-600 hover:border-primary-500'
+        }`}
+        onClick={() => {
+          if (!disabled && !uploading) {
+            fileInputRef.current?.click()
+          }
+        }}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
           accept="image/*,video/*"
-          multiple={true}
-          maxFiles={10}
-          maxSize={500} // 500MB for media files
-          onUpload={handleUpload}
+          multiple
+          onChange={async (e) => {
+            const files = Array.from(e.target.files || [])
+            if (files.length > 0) {
+              await handleUpload(files)
+            }
+            // Reset input so same file can be selected again
+            e.target.value = ''
+          }}
+          className="hidden"
           disabled={disabled || uploading}
-          label="Upload Media"
         />
+        <div className="flex items-center justify-center">
+          <Button
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={(e) => {
+              e.stopPropagation()
+              fileInputRef.current?.click()
+            }}
+            disabled={disabled || uploading}
+          >
+            Upload Media
+          </Button>
+        </div>
       </div>
 
       {/* Error Display */}

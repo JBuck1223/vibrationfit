@@ -10,7 +10,9 @@ import {
   Input,
   Badge,
   Spinner,
-  Stack
+  Stack,
+  DatePicker,
+  Checkbox
 } from '@/lib/design-system/components'
 import { Calendar, Clock, Plus, X, Trash2, Users, CheckCircle, Repeat, CalendarRange, Edit2, MoreVertical } from 'lucide-react'
 import { toast } from 'sonner'
@@ -767,12 +769,11 @@ export default function AdminScheduleCallPage() {
                 {/* Single Schedule Form */}
                 {addMode === 'single' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <Input
+                    <DatePicker
                       label="Date"
-                      type="date"
                       value={singleSchedule.date}
-                      onChange={(e) => setSingleSchedule({ ...singleSchedule, date: e.target.value })}
-                      min={new Date().toISOString().split('T')[0]}
+                      onChange={(dateString) => setSingleSchedule({ ...singleSchedule, date: dateString })}
+                      minDate={new Date().toISOString().split('T')[0]}
                     />
                     <Input
                       label="Time"
@@ -806,19 +807,17 @@ export default function AdminScheduleCallPage() {
                 {addMode === 'range' && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      <Input
+                      <DatePicker
                         label="Start Date"
-                        type="date"
                         value={rangeSchedule.startDate}
-                        onChange={(e) => setRangeSchedule({ ...rangeSchedule, startDate: e.target.value })}
-                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(dateString) => setRangeSchedule({ ...rangeSchedule, startDate: dateString })}
+                        minDate={new Date().toISOString().split('T')[0]}
                       />
-                      <Input
+                      <DatePicker
                         label="End Date"
-                        type="date"
                         value={rangeSchedule.endDate}
-                        onChange={(e) => setRangeSchedule({ ...rangeSchedule, endDate: e.target.value })}
-                        min={rangeSchedule.startDate || new Date().toISOString().split('T')[0]}
+                        onChange={(dateString) => setRangeSchedule({ ...rangeSchedule, endDate: dateString })}
+                        minDate={rangeSchedule.startDate || new Date().toISOString().split('T')[0]}
                       />
                       <Input
                         label={meetingType === 'one_on_one' ? 'Max Bookings (1 for one-on-one)' : 'Max Attendees'}
@@ -857,16 +856,12 @@ export default function AdminScheduleCallPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         id="excludeWeekends"
+                        label="Exclude weekends"
                         checked={rangeSchedule.excludeWeekends}
                         onChange={(e) => setRangeSchedule({ ...rangeSchedule, excludeWeekends: e.target.checked })}
-                        className="w-4 h-4 rounded border-neutral-700 bg-neutral-800"
                       />
-                      <label htmlFor="excludeWeekends" className="text-sm text-neutral-300">
-                        Exclude weekends
-                      </label>
                     </div>
                     <Button
                       onClick={createSchedule}
@@ -884,19 +879,17 @@ export default function AdminScheduleCallPage() {
                 {addMode === 'recurring' && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      <Input
+                      <DatePicker
                         label="Start Date"
-                        type="date"
                         value={recurringSchedule.startDate}
-                        onChange={(e) => setRecurringSchedule({ ...recurringSchedule, startDate: e.target.value })}
-                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(dateString) => setRecurringSchedule({ ...recurringSchedule, startDate: dateString })}
+                        minDate={new Date().toISOString().split('T')[0]}
                       />
-                      <Input
+                      <DatePicker
                         label="End Date"
-                        type="date"
                         value={recurringSchedule.endDate}
-                        onChange={(e) => setRecurringSchedule({ ...recurringSchedule, endDate: e.target.value })}
-                        min={recurringSchedule.startDate || new Date().toISOString().split('T')[0]}
+                        onChange={(dateString) => setRecurringSchedule({ ...recurringSchedule, endDate: dateString })}
+                        minDate={recurringSchedule.startDate || new Date().toISOString().split('T')[0]}
                       />
                       <Input
                         label={meetingType === 'one_on_one' ? 'Max Bookings (1 for one-on-one)' : 'Max Attendees'}
@@ -1112,11 +1105,10 @@ export default function AdminScheduleCallPage() {
               {/* Filter */}
               <Card>
                 <div className="flex flex-col sm:flex-row gap-4 items-end">
-                  <Input
+                  <DatePicker
                     label="Filter by Date"
-                    type="date"
                     value={filterDate}
-                    onChange={(e) => setFilterDate(e.target.value)}
+                    onChange={(dateString) => setFilterDate(dateString)}
                     className="flex-1"
                   />
                   <Button

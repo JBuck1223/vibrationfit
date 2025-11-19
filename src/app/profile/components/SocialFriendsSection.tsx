@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Card, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { UserPlus, Save } from 'lucide-react'
@@ -16,7 +16,45 @@ interface SocialFriendsSectionProps {
   isSaving?: boolean
 }
 
+const closeFriendsCountOptions = [
+  { value: '0', label: '0' },
+  { value: '1-3', label: '1-3' },
+  { value: '4-8', label: '4-8' },
+  { value: '9+', label: '9+' }
+]
+
+const socialPreferenceOptions = [
+  { value: 'introvert', label: 'Introvert' },
+  { value: 'ambivert', label: 'Ambivert' },
+  { value: 'extrovert', label: 'Extrovert' }
+]
+
 export function SocialFriendsSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: SocialFriendsSectionProps) {
+  const [isCloseFriendsCountDropdownOpen, setIsCloseFriendsCountDropdownOpen] = useState(false)
+  const [isSocialPreferenceDropdownOpen, setIsSocialPreferenceDropdownOpen] = useState(false)
+  const closeFriendsCountDropdownRef = useRef<HTMLDivElement>(null)
+  const socialPreferenceDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (closeFriendsCountDropdownRef.current && !closeFriendsCountDropdownRef.current.contains(event.target as Node)) {
+        setIsCloseFriendsCountDropdownOpen(false)
+      }
+      if (socialPreferenceDropdownRef.current && !socialPreferenceDropdownRef.current.contains(event.target as Node)) {
+        setIsSocialPreferenceDropdownOpen(false)
+      }
+    }
+    
+    if (isCloseFriendsCountDropdownOpen || isSocialPreferenceDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isCloseFriendsCountDropdownOpen, isSocialPreferenceDropdownOpen])
+
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -59,17 +97,52 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Close Friends Count
           </label>
-          <select
-            value={profile.close_friends_count || ''}
-            onChange={(e) => handleInputChange('close_friends_count', e.target.value)}
-            className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white focus:border-primary-500 focus:outline-none transition-colors"
-          >
-            <option value="">Select count...</option>
-            <option value="0">0</option>
-            <option value="1-3">1-3</option>
-            <option value="4-8">4-8</option>
-            <option value="9+">9+</option>
-          </select>
+          <div className="relative" ref={closeFriendsCountDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsCloseFriendsCountDropdownOpen(!isCloseFriendsCountDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.close_friends_count 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {closeFriendsCountOptions.find(opt => opt.value === (profile.close_friends_count || ''))?.label || 'Select count...'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isCloseFriendsCountDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isCloseFriendsCountDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsCloseFriendsCountDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {closeFriendsCountOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('close_friends_count', option.value)
+                        setIsCloseFriendsCountDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.close_friends_count || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Social Preference */}
@@ -77,16 +150,52 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Social Preference
           </label>
-          <select
-            value={profile.social_preference || ''}
-            onChange={(e) => handleInputChange('social_preference', e.target.value)}
-            className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white focus:border-primary-500 focus:outline-none transition-colors"
-          >
-            <option value="">Select preference...</option>
-            <option value="introvert">Introvert</option>
-            <option value="ambivert">Ambivert</option>
-            <option value="extrovert">Extrovert</option>
-          </select>
+          <div className="relative" ref={socialPreferenceDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsSocialPreferenceDropdownOpen(!isSocialPreferenceDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.social_preference 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {socialPreferenceOptions.find(opt => opt.value === (profile.social_preference || ''))?.label || 'Select preference...'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isSocialPreferenceDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isSocialPreferenceDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsSocialPreferenceDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {socialPreferenceOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('social_preference', option.value)
+                        setIsSocialPreferenceDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.social_preference || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Clarity Field */}
@@ -120,12 +229,6 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           storageFolder="profile"
           category="social_friends"
         />
-      </div>
-
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-        <p className="text-sm text-neutral-400">
-          Understanding your social preferences helps Viva provide relevant suggestions for social activities and relationship building.
-        </p>
       </div>
 
       {/* Save Button - Bottom Right */}

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { Button, Card, Spinner, Badge, Container, Stack } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Badge, Container, Stack, Checkbox } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { Headphones, CheckCircle, Play } from 'lucide-react'
 import Link from 'next/link'
@@ -377,16 +377,24 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                   ? `${v.voice_volume}% voice, ${v.bg_volume}% background`
                   : `${v.voice_volume}% voice, ${v.bg_volume}% mixed`
               return (
-                <label
+                <div
                   key={v.id}
                   className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
                     selectedVariants.includes(v.id)
                       ? 'border-primary-500 bg-primary-500/10'
                       : 'border-neutral-700 bg-black/30 hover:border-neutral-600'
                   }`}
+                  onClick={() => {
+                    if (selectedVariants.length > 1 || !selectedVariants.includes(v.id)) {
+                      if (selectedVariants.includes(v.id)) {
+                        setSelectedVariants(selectedVariants.filter(vid => vid !== v.id))
+                      } else {
+                        setSelectedVariants([...selectedVariants, v.id])
+                      }
+                    }
+                  }}
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={selectedVariants.includes(v.id)}
                     onChange={(e) => {
                       if (e.target.checked) {
@@ -398,13 +406,12 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                       }
                     }}
                     disabled={selectedVariants.length === 1 && selectedVariants.includes(v.id)}
-                    className="sr-only"
                   />
                   <div className="flex-1">
                     <div className="text-base font-medium text-white">{v.name}</div>
                     <div className="text-sm text-neutral-400">{desc}</div>
                   </div>
-                </label>
+                </div>
               )
             })}
           </div>

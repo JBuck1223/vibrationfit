@@ -186,6 +186,24 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     path: '/design-system/component/date-picker'
   },
   {
+    id: 'radio',
+    name: 'Radio',
+    description: 'Custom branded radio buttons with electric green accents, hover states, and RadioGroup container',
+    category: 'UI',
+    icon: CheckCircle,
+    exportName: 'Radio',
+    path: '/design-system/component/radio'
+  },
+  {
+    id: 'checkbox',
+    name: 'Checkbox',
+    description: 'Custom branded checkboxes with electric green fill, gray checkmark, and hover states',
+    category: 'UI',
+    icon: CheckCircle,
+    exportName: 'Checkbox',
+    path: '/design-system/component/checkbox'
+  },
+  {
     id: 'textarea',
     name: 'Textarea',
     description: 'Multi-line text input with validation and helper text',
@@ -206,7 +224,7 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
   {
     id: 'select',
     name: 'Select',
-    description: 'Dropdown select with label and placeholder options',
+    description: 'Custom dropdown matching input field styling with click-outside-to-close and smooth transitions',
     category: 'UI',
     icon: Edit,
     exportName: 'Select',

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { AlertCircle, Edit2, Check, X } from 'lucide-react'
-import { Input, Textarea, Button } from '@/lib/design-system/components'
+import { Input, Textarea, Button, RadioGroup } from '@/lib/design-system/components'
 
 interface ProfileFieldProps {
   label: string
@@ -193,26 +193,15 @@ export function ProfileField({
     if (type === 'boolean') {
       return (
         <div className="space-y-2">
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={editValue === true}
-                onChange={() => setEditValue(true)}
-                className="w-4 h-4"
-              />
-              <span className="text-white">Yes</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={editValue === false}
-                onChange={() => setEditValue(false)}
-                className="w-4 h-4"
-              />
-              <span className="text-white">No</span>
-            </label>
-          </div>
+          <RadioGroup
+            name={`${fieldKey}-boolean`}
+            value={editValue}
+            onChange={(value) => setEditValue(value)}
+            options={[
+              { value: true, label: 'Yes' },
+              { value: false, label: 'No' }
+            ]}
+          />
           <div className="flex gap-2">
             <Button
               variant="primary"

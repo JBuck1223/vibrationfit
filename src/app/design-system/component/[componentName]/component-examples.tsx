@@ -23,6 +23,9 @@ import {
   Badge,
   Input,
   DatePicker,
+  Radio,
+  RadioGroup,
+  Checkbox,
   Textarea,
   VIVAButton,
   Spinner,
@@ -99,6 +102,116 @@ import {
 } from 'lucide-react'
 import { type AudioTrack } from '@/lib/design-system/components'
 import type { ComponentMetadata } from '../../components'
+
+// Select Examples Component (needs hooks)
+function SelectExamples() {
+  const [selectedGender, setSelectedGender] = useState<string>('')
+  const [selectedFrequency, setSelectedFrequency] = useState<string>('')
+  const [selectedStatus, setSelectedStatus] = useState<string>('active')
+  
+  return (
+    <Stack gap="md">
+      <Card variant="default" className="p-4 md:p-6">
+        <Stack gap="sm">
+          <h4 className="text-base md:text-lg font-medium mb-2 text-white">Select - Custom Dropdown</h4>
+          <p className="text-xs md:text-sm text-neutral-400 mb-4">
+            Beautiful dropdown component matching input field styling with click-outside-to-close, smooth transitions, and consistent brand colors.
+          </p>
+          <Stack gap="md">
+            <Select
+              label="Gender/Identity"
+              placeholder="Select gender"
+              value={selectedGender}
+              onChange={setSelectedGender}
+              options={[
+                { value: 'male', label: 'Male' },
+                { value: 'female', label: 'Female' },
+                { value: 'non-binary', label: 'Non-binary' },
+                { value: 'prefer-not-to-say', label: 'Prefer not to say' }
+              ]}
+            />
+            <Select
+              label="Travel Frequency"
+              placeholder="Select frequency..."
+              value={selectedFrequency}
+              onChange={setSelectedFrequency}
+              options={[
+                { value: 'never', label: 'Never' },
+                { value: 'yearly', label: 'Yearly' },
+                { value: 'quarterly', label: 'Quarterly' },
+                { value: 'monthly', label: 'Monthly' },
+                { value: 'weekly', label: 'Weekly' }
+              ]}
+            />
+            <Select
+              label="Status"
+              placeholder="Select status"
+              value={selectedStatus}
+              onChange={setSelectedStatus}
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+                { value: 'pending', label: 'Pending' },
+                { value: 'completed', label: 'Completed' }
+              ]}
+            />
+            <Select
+              label="With Error State"
+              placeholder="Select an option"
+              error="This field is required"
+              options={[
+                { value: 'option1', label: 'Option 1' },
+                { value: 'option2', label: 'Option 2' }
+              ]}
+            />
+            <Select
+              label="With Helper Text"
+              placeholder="Select an option"
+              helperText="Choose the best option for your needs"
+              options={[
+                { value: 'option1', label: 'Option 1' },
+                { value: 'option2', label: 'Option 2' }
+              ]}
+            />
+          </Stack>
+        </Stack>
+      </Card>
+      
+      {/* Features Card */}
+      <Card variant="elevated" className="p-4 md:p-6 bg-gradient-to-br from-[#39FF14]/5 to-[#00FFFF]/5 border-[#39FF14]/30">
+        <Stack gap="md">
+          <h5 className="text-sm md:text-base font-semibold text-white">Select Features</h5>
+          <BulletedList>
+            <ListItem icon={CheckCircle} variant="success">
+              Matches input field styling (background, border, text colors)
+            </ListItem>
+            <ListItem icon={CheckCircle} variant="success">
+              Custom chevron icon that rotates on open
+            </ListItem>
+            <ListItem icon={CheckCircle} variant="success">
+              Click-outside-to-close with backdrop overlay
+            </ListItem>
+            <ListItem icon={CheckCircle} variant="success">
+              Selected option highlighted with primary green
+            </ListItem>
+            <ListItem icon={CheckCircle} variant="success">
+              Smooth transitions and hover states
+            </ListItem>
+            <ListItem icon={CheckCircle} variant="success">
+              Error and helper text support
+            </ListItem>
+            <ListItem icon={CheckCircle} variant="success">
+              Disabled state support
+            </ListItem>
+            <ListItem icon={CheckCircle} variant="success">
+              Mobile responsive design
+            </ListItem>
+          </BulletedList>
+        </Stack>
+      </Card>
+    </Stack>
+  )
+}
 
 export function renderComponentExamples(component: ComponentMetadata): React.ReactNode {
   switch (component.id) {
@@ -1145,6 +1258,195 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
       )
     }
 
+    case 'radio': {
+      const [selectedUnit, setSelectedUnit] = useState<string>('US')
+      const [hasChildren, setHasChildren] = useState<boolean>(true)
+      const [preference, setPreference] = useState<string>('option1')
+      
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="sm">
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Radio & RadioGroup - Custom Branded Radio Buttons</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Beautiful custom radio buttons with Electric Green accents, smooth hover states, and a RadioGroup container 
+                for managing multiple options. Perfect for single-choice selections like measurement units, yes/no questions, and preferences.
+              </p>
+              <Stack gap="md">
+                {/* RadioGroup Example - Measurement Units */}
+                <RadioGroup
+                  label="Measurement Units *"
+                  name="units"
+                  value={selectedUnit}
+                  onChange={(value) => setSelectedUnit(value as string)}
+                  options={[
+                    { value: 'US', label: 'US (ft/in, lbs)' },
+                    { value: 'Metric', label: 'Metric (cm, kg)' }
+                  ]}
+                />
+                
+                {/* RadioGroup Example - Yes/No */}
+                <RadioGroup
+                  label="Do you have children? *"
+                  name="has_children"
+                  value={hasChildren}
+                  onChange={(value) => setHasChildren(value as boolean)}
+                  options={[
+                    { value: true, label: 'Yes' },
+                    { value: false, label: 'No' }
+                  ]}
+                />
+                
+                {/* RadioGroup Example - Vertical Orientation */}
+                <RadioGroup
+                  label="Select Your Preference"
+                  name="preference"
+                  value={preference}
+                  onChange={(value) => setPreference(value as string)}
+                  orientation="vertical"
+                  options={[
+                    { value: 'option1', label: 'Option 1 - First Choice' },
+                    { value: 'option2', label: 'Option 2 - Second Choice' },
+                    { value: 'option3', label: 'Option 3 - Third Choice' }
+                  ]}
+                />
+                
+                {/* Individual Radio Examples */}
+                <div className="space-y-3 pt-4 border-t border-[#333]">
+                  <p className="text-sm font-medium text-neutral-300">Individual Radio Buttons:</p>
+                  <div className="flex gap-4">
+                    <Radio
+                      name="individual1"
+                      label="Individual Option 1"
+                      checked={preference === 'option1'}
+                      onChange={() => setPreference('option1')}
+                    />
+                    <Radio
+                      name="individual2"
+                      label="Individual Option 2"
+                      checked={preference === 'option2'}
+                      onChange={() => setPreference('option2')}
+                    />
+                  </div>
+                </div>
+              </Stack>
+            </Stack>
+          </Card>
+          
+          {/* Features Card */}
+          <Card variant="elevated" className="p-4 md:p-6 bg-gradient-to-br from-[#39FF14]/5 to-[#00FFFF]/5 border-[#39FF14]/30">
+            <Stack gap="md">
+              <h5 className="text-sm md:text-base font-semibold text-white">Radio & RadioGroup Features</h5>
+              <BulletedList>
+                <ListItem icon={CheckCircle} variant="success">
+                  Custom branded radio buttons with Electric Green (#39FF14) accents
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Smooth hover states with green border glow
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  RadioGroup container for easy multi-option management
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Horizontal and vertical orientation support
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Supports string, number, and boolean values
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Built-in label, error, and helper text support
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Accessible with proper focus states and keyboard navigation
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Matches design system styling (dark theme, neon accents)
+                </ListItem>
+              </BulletedList>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+    }
+
+    case 'checkbox': {
+      const [passportChecked, setPassportChecked] = useState(false)
+      const [growthChecked, setGrowthChecked] = useState(false)
+      const [legacyChecked, setLegacyChecked] = useState(true)
+      
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="sm">
+              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Checkbox - Custom Branded Checkboxes</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Beautiful custom checkboxes with Electric Green fill when checked, gray checkmark, and smooth hover states. 
+                Perfect for single boolean options like "I have a valid passport" or "Actively focused on personal growth".
+              </p>
+              <Stack gap="md">
+                <Checkbox
+                  label="I have a valid passport"
+                  checked={passportChecked}
+                  onChange={(e) => setPassportChecked(e.target.checked)}
+                />
+                
+                <Checkbox
+                  label="Actively focused on personal growth"
+                  checked={growthChecked}
+                  onChange={(e) => setGrowthChecked(e.target.checked)}
+                />
+                
+                <Checkbox
+                  label="I think about my legacy in day-to-day decisions"
+                  checked={legacyChecked}
+                  onChange={(e) => setLegacyChecked(e.target.checked)}
+                />
+                
+                <Checkbox
+                  label="Disabled checkbox"
+                  checked={false}
+                  disabled
+                />
+              </Stack>
+            </Stack>
+          </Card>
+          
+          {/* Features Card */}
+          <Card variant="elevated" className="p-4 md:p-6 bg-gradient-to-br from-[#39FF14]/5 to-[#00FFFF]/5 border-[#39FF14]/30">
+            <Stack gap="md">
+              <h5 className="text-sm md:text-base font-semibold text-white">Checkbox Features</h5>
+              <BulletedList>
+                <ListItem icon={CheckCircle} variant="success">
+                  Custom branded checkboxes with Electric Green (#39FF14) fill when checked
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Gray checkmark (#666666) for subtle contrast on green background
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Gray border (#666666) that stays consistent when checked
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Smooth hover states with green border glow (unselected only)
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  No hover effect on selected checkboxes
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Built-in label, error, and helper text support
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Accessible with proper focus states and keyboard navigation
+                </ListItem>
+                <ListItem icon={CheckCircle} variant="success">
+                  Matches design system styling (dark theme, neon accents)
+                </ListItem>
+              </BulletedList>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+    }
+
     case 'textarea':
       return (
         <Stack gap="md">
@@ -1431,25 +1733,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
       )
 
     case 'select':
-      return (
-        <Stack gap="md">
-          <Card variant="default" className="p-4 md:p-6">
-            <Stack gap="sm">
-              <h4 className="text-base md:text-lg font-medium mb-2 text-white">Select - Dropdown Selection</h4>
-              <Select
-                label="Choose an Option"
-                placeholder="Select an option"
-                options={[
-                  { value: '', label: 'Select an option' },
-                  { value: 'option1', label: 'Option 1' },
-                  { value: 'option2', label: 'Option 2' },
-                  { value: 'option3', label: 'Option 3' }
-                ]}
-              />
-            </Stack>
-          </Card>
-        </Stack>
-      )
+      return <SelectExamples />
 
     case 'icon':
       return (

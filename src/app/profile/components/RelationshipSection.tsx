@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Card, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -34,6 +34,31 @@ const relationshipLengthOptions = [
 ]
 
 export function RelationshipSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: RelationshipSectionProps) {
+  const [isRelationshipStatusDropdownOpen, setIsRelationshipStatusDropdownOpen] = useState(false)
+  const [isRelationshipLengthDropdownOpen, setIsRelationshipLengthDropdownOpen] = useState(false)
+  const relationshipStatusDropdownRef = useRef<HTMLDivElement>(null)
+  const relationshipLengthDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (relationshipStatusDropdownRef.current && !relationshipStatusDropdownRef.current.contains(event.target as Node)) {
+        setIsRelationshipStatusDropdownOpen(false)
+      }
+      if (relationshipLengthDropdownRef.current && !relationshipLengthDropdownRef.current.contains(event.target as Node)) {
+        setIsRelationshipLengthDropdownOpen(false)
+      }
+    }
+    
+    if (isRelationshipStatusDropdownOpen || isRelationshipLengthDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isRelationshipStatusDropdownOpen, isRelationshipLengthDropdownOpen])
+
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -114,18 +139,52 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Relationship Status *
           </label>
-          <select
-            value={profile.relationship_status || ''}
-            onChange={(e) => handleInputChange('relationship_status', e.target.value)}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Select relationship status</option>
-            {relationshipStatusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative" ref={relationshipStatusDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsRelationshipStatusDropdownOpen(!isRelationshipStatusDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.relationship_status 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {relationshipStatusOptions.find(opt => opt.value === (profile.relationship_status || ''))?.label || 'Select relationship status'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isRelationshipStatusDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isRelationshipStatusDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsRelationshipStatusDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {relationshipStatusOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('relationship_status', option.value)
+                        setIsRelationshipStatusDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.relationship_status || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Partner Name - Conditional */}
@@ -139,7 +198,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
               value={profile.partner_name || ''}
               onChange={(e) => handleInputChange('partner_name', e.target.value)}
               placeholder="Enter your partner's name"
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="w-full px-4 py-3 bg-[#404040] border-2 border-[#666666] rounded-xl text-white placeholder-[#9CA3AF] focus:outline-none focus:ring-2 transition-all duration-200 focus:ring-[#39FF14] focus:border-[#39FF14]"
             />
           </div>
         )}
@@ -150,18 +209,52 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
             <label className="block text-sm font-medium text-neutral-200 mb-2">
               How long have you been together? *
             </label>
-            <select
-              value={profile.relationship_length || ''}
-              onChange={(e) => handleInputChange('relationship_length', e.target.value)}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="">Select relationship length</option>
-              {relationshipLengthOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative" ref={relationshipLengthDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsRelationshipLengthDropdownOpen(!isRelationshipLengthDropdownOpen)}
+                className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                  profile.relationship_length 
+                    ? 'text-white' 
+                    : 'text-[#9CA3AF]'
+                }`}
+              >
+                {relationshipLengthOptions.find(opt => opt.value === (profile.relationship_length || ''))?.label || 'Select relationship length'}
+              </button>
+              <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isRelationshipLengthDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              
+              {isRelationshipLengthDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsRelationshipLengthDropdownOpen(false)}
+                  />
+                  <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                    {relationshipLengthOptions.map(option => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          handleInputChange('relationship_length', option.value)
+                          setIsRelationshipLengthDropdownOpen(false)
+                        }}
+                        className={`w-full px-6 py-2 text-left transition-colors ${
+                          (profile.relationship_length || '') === option.value 
+                            ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                            : 'text-white hover:bg-[#333]'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         )}
 
@@ -206,12 +299,6 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
           storageFolder="profile"
           category="love"
         />
-      </div>
-
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-        <p className="text-sm text-neutral-400">
-          Understanding your relationship status helps your AI assistant provide relevant guidance for your personal growth journey.
-        </p>
       </div>
 
       {/* Save Button - Bottom Right */}

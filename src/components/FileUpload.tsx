@@ -53,7 +53,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     onUpload(newFiles)
   }
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
     fileInputRef.current?.click()
   }
 
@@ -71,7 +72,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
       <Button
         type="button"
-        variant="secondary"
+        variant="ghost"
         size="md"
         onClick={handleClick}
         disabled={disabled}

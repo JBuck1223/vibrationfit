@@ -952,7 +952,7 @@ export const Icon: React.FC<IconProps> = ({ icon: IconComponent, size = 'md', co
   )
 }
 
-// Select/Dropdown Component - Custom styled dropdown
+// Select/Dropdown Component - Custom styled dropdown matching input fields
 interface SelectProps {
   label?: string
   options: Array<{ value: string; label: string }>
@@ -999,7 +999,7 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
     return (
       <div className={cn('w-full relative', className)} ref={containerRef}>
         {label && (
-          <label className="block text-sm font-medium text-[#E5E7EB] mb-2">
+          <label className="block text-sm font-medium text-neutral-200 mb-2">
             {label}
           </label>
         )}
@@ -1011,40 +1011,35 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
             onClick={() => !disabled && setIsOpen(!isOpen)}
             disabled={disabled}
             className={cn(
-              'w-full px-4 py-3 pr-10',
+              'w-full pl-6 pr-12 py-3 rounded-xl border-2 hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left',
               'bg-[#404040]',
-              'border-2',
-              'rounded-xl',
-              'text-left',
-              'focus:outline-none',
-              'focus:ring-2',
-              'transition-all duration-200',
-              'cursor-pointer',
               disabled && 'opacity-50 cursor-not-allowed',
               !selectedOption && 'text-[#9CA3AF]',
               selectedOption && 'text-white',
               error
-                ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'
-                : 'border-[#666666] focus:ring-[#39FF14] focus:border-[#39FF14]'
+                ? 'border-[#FF0040] focus:border-[#FF0040]'
+                : 'border-[#666666] focus:border-[#39FF14]'
             )}
           >
             {displayValue}
           </button>
           
           {/* Custom Chevron */}
-          <ChevronDown 
-            className={cn(
-              'absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#39FF14] pointer-events-none transition-transform duration-200',
-              isOpen && 'rotate-180'
-            )}
-            strokeWidth={2}
-          />
+          <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+            <svg className={cn('w-4 h-4 text-neutral-400 transition-transform', isOpen && 'rotate-180')} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
 
         {/* Custom Dropdown */}
         {isOpen && !disabled && (
-          <div className="absolute z-50 mt-2 left-0 right-0 bg-[#1F1F1F] border-2 border-[#39FF14] rounded-2xl shadow-[0_0_30px_rgba(57,255,20,0.3)] p-2 max-h-60 overflow-y-auto">
-            <div className="space-y-1">
+          <>
+            <div 
+              className="fixed inset-0 z-10" 
+              onClick={() => setIsOpen(false)}
+            />
+            <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
               {options.map((option) => {
                 const isSelected = option.value === value
                 return (
@@ -1053,30 +1048,18 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
                     type="button"
                     onClick={() => handleSelect(option.value)}
                     className={cn(
-                      'w-full px-4 py-2 text-left text-sm',
-                      'flex items-center gap-2',
-                      'transition-colors',
-                      'cursor-pointer',
-                      'focus:outline-none',
+                      'w-full px-6 py-2 text-left transition-colors',
                       isSelected
-                        ? 'bg-[#39FF14]/20 text-[#39FF14] font-semibold'
-                        : 'bg-transparent text-white hover:bg-[#404040]'
+                        ? 'bg-primary-500/20 text-primary-500 font-semibold'
+                        : 'text-white hover:bg-[#333]'
                     )}
                   >
-                    {/* Checkmark Indicator */}
-                    <Check 
-                      className={cn(
-                        'w-4 h-4 flex-shrink-0',
-                        isSelected ? 'opacity-100' : 'opacity-0'
-                      )}
-                      strokeWidth={2.5}
-                    />
-                    <span>{option.label}</span>
+                    {option.label}
                   </button>
                 )
               })}
             </div>
-          </div>
+          </>
         )}
 
         {error && (
@@ -1346,10 +1329,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           className={cn(
             'w-full px-4 py-3 bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
-            'focus:outline-none focus:ring-2 transition-all duration-200',
+            'focus:outline-none transition-all duration-200',
             error 
-              ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]' 
-              : 'border-[#666666] focus:ring-[#39FF14] focus:border-[#39FF14]',
+              ? 'border-[#FF0040] focus:border-[#FF0040]' 
+              : 'border-[#666666] focus:border-[#39FF14]',
             className
           )}
           {...props}
@@ -1382,7 +1365,11 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
     const [isOpen, setIsOpen] = useState(false)
     const [selectedDate, setSelectedDate] = useState<Date | null>(value ? new Date(value) : null)
     const [currentMonth, setCurrentMonth] = useState<Date>(value ? new Date(value) : new Date())
+    const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false)
+    const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
+    const yearDropdownRef = useRef<HTMLDivElement>(null)
+    const monthDropdownRef = useRef<HTMLDivElement>(null)
 
     // Close calendar when clicking outside
     useEffect(() => {
@@ -1390,16 +1377,22 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
         if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
           setIsOpen(false)
         }
+        if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target as Node)) {
+          setIsYearDropdownOpen(false)
+        }
+        if (monthDropdownRef.current && !monthDropdownRef.current.contains(event.target as Node)) {
+          setIsMonthDropdownOpen(false)
+        }
       }
       
-      if (isOpen) {
+      if (isOpen || isYearDropdownOpen || isMonthDropdownOpen) {
         document.addEventListener('mousedown', handleClickOutside)
       }
       
       return () => {
         document.removeEventListener('mousedown', handleClickOutside)
       }
-    }, [isOpen])
+    }, [isOpen, isYearDropdownOpen, isMonthDropdownOpen])
 
     // Format date for display
     const formatDisplayDate = (date: Date | null) => {
@@ -1444,8 +1437,28 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
     }
 
+    const handleYearSelect = (year: number) => {
+      setCurrentMonth(new Date(year, currentMonth.getMonth()))
+      setIsYearDropdownOpen(false)
+    }
+
+    const handleMonthSelect = (monthIndex: number) => {
+      setCurrentMonth(new Date(currentMonth.getFullYear(), monthIndex))
+      setIsMonthDropdownOpen(false)
+    }
+
+    // Generate year options (current year descending, no future years)
+    const currentYear = new Date().getFullYear()
+    const years = Array.from({ length: 51 }, (_, i) => currentYear - i)
+
+    // Month options
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ]
+
     const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth)
-    const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(currentMonth)
+    const monthName = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(currentMonth)
 
     // Check if date is disabled
     const isDateDisabled = (day: number) => {
@@ -1500,45 +1513,118 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
               'text-white',
               'placeholder-[#9CA3AF]',
               'focus:outline-none',
-              'focus:ring-2',
               'transition-all duration-200',
               'cursor-pointer',
               error
-                ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'
-                : 'border-[#666666] focus:ring-[#39FF14] focus:border-[#39FF14]'
+                ? 'border-[#FF0040]'
+                : isOpen
+                ? 'border-[#39FF14]'
+                : 'border-[#666666]'
             )}
             {...props}
           />
           <CalendarDays 
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#39FF14] pointer-events-none" 
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none" 
             strokeWidth={2.5}
           />
         </div>
 
         {/* Calendar Dropdown */}
         {isOpen && (
-          <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0 w-[min(calc(100vw-2rem),360px)] md:w-[360px] bg-[#1F1F1F] border-2 border-[#39FF14] rounded-2xl shadow-[0_0_30px_rgba(57,255,20,0.3)] overflow-hidden">
+          <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0 w-[min(calc(100vw-2rem),360px)] md:w-[360px] bg-[#1F1F1F] border-2 border-[#333] rounded-2xl overflow-hidden">
             {/* Calendar Header */}
             <div className="flex items-center justify-between p-4 border-b border-[#333]">
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                className="p-2 hover:bg-[#404040] rounded-lg transition-colors"
+                className="inline-flex items-center justify-center rounded-full transition-all duration-300 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 p-2"
               >
-                <ChevronLeft className="w-5 h-5 text-[#00FFFF]" strokeWidth={2.5} />
+                <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
               </button>
               
-              <div className="text-center">
-                <div className="text-lg font-bold text-white">{monthName}</div>
-                <div className="text-sm text-[#9CA3AF]">{year}</div>
+              <div className="flex items-center justify-center gap-2">
+                <div className="relative inline-block" ref={monthDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
+                    className="inline-flex items-center gap-1 font-semibold text-white hover:text-[#39FF14] transition-colors cursor-pointer"
+                  >
+                    {monthName}
+                    <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isMonthDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {isMonthDropdownOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setIsMonthDropdownOpen(false)}
+                      />
+                      <div className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-2 w-40 max-h-48 overflow-y-auto bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl py-2">
+                        {months.map((month, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleMonthSelect(index)}
+                            className={`w-full px-4 py-2 text-left transition-colors ${
+                              index === currentMonth.getMonth()
+                                ? 'bg-primary-500/20 text-primary-500 font-semibold'
+                                : 'text-white hover:bg-[#333]'
+                            }`}
+                          >
+                            {month}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="relative inline-block" ref={yearDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
+                    className="inline-flex items-center gap-1 font-semibold text-white hover:text-[#39FF14] transition-colors cursor-pointer"
+                  >
+                    {year}
+                    <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isYearDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {isYearDropdownOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setIsYearDropdownOpen(false)}
+                      />
+                      <div className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-2 w-32 max-h-48 overflow-y-auto bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl py-2">
+                        {years.map((y) => (
+                          <button
+                            key={y}
+                            type="button"
+                            onClick={() => handleYearSelect(y)}
+                            className={`w-full px-4 py-2 text-left transition-colors ${
+                              y === year
+                                ? 'bg-primary-500/20 text-primary-500 font-semibold'
+                                : 'text-white hover:bg-[#333]'
+                            }`}
+                          >
+                            {y}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               
               <button
                 type="button"
                 onClick={handleNextMonth}
-                className="p-2 hover:bg-[#404040] rounded-lg transition-colors"
+                className="inline-flex items-center justify-center rounded-full transition-all duration-300 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 p-2"
               >
-                <ChevronRight className="w-5 h-5 text-[#00FFFF]" strokeWidth={2.5} />
+                <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
               </button>
             </div>
 
@@ -1549,7 +1635,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                 {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
                   <div
                     key={day}
-                    className="text-center text-xs font-semibold text-[#9CA3AF] py-2"
+                    className="text-center font-semibold text-[#9CA3AF] py-2"
                   >
                     {day}
                   </div>
@@ -1577,12 +1663,12 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                       onClick={() => !disabled && handleDateSelect(day)}
                       disabled={disabled}
                       className={cn(
-                        'aspect-square rounded-lg text-sm font-medium transition-all duration-200',
+                        'aspect-square rounded-lg font-medium transition-all duration-200',
                         'flex items-center justify-center',
                         disabled && 'opacity-30 cursor-not-allowed',
                         !disabled && !selected && 'hover:bg-[#404040] text-white',
-                        !disabled && selected && 'bg-[#39FF14] text-black font-bold shadow-[0_0_15px_rgba(57,255,20,0.5)]',
-                        !disabled && !selected && today && 'border-2 border-[#00FFFF] text-[#00FFFF]'
+                        !disabled && selected && 'bg-[#39FF14] text-black font-bold',
+                        !disabled && !selected && today && 'border-2 border-[#39FF14] text-[#39FF14]'
                       )}
                     >
                       {day}
@@ -1590,19 +1676,6 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                   )
                 })}
               </div>
-
-              {/* Today Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  const today = new Date()
-                  setCurrentMonth(today)
-                  handleDateSelect(today.getDate())
-                }}
-                className="w-full mt-4 px-4 py-2 bg-[#00FFFF] text-black font-semibold rounded-full hover:bg-[#00FFFF]/80 transition-all duration-200"
-              >
-                Today
-              </button>
             </div>
           </div>
         )}
@@ -1618,6 +1691,187 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
   }
 )
 DatePicker.displayName = 'DatePicker'
+
+// Radio Component - Custom branded radio button
+interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
+  label?: string
+  error?: string
+  helperText?: string
+}
+
+export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
+  ({ label, error, helperText, className = '', id, ...props }, ref) => {
+    const radioId = id || `radio-${Math.random().toString(36).substr(2, 9)}`
+    
+    return (
+      <div className={className}>
+        <label 
+          htmlFor={radioId}
+          className="flex items-center gap-2 cursor-pointer group"
+        >
+          {/* Custom Radio Button */}
+          <div className="relative flex-shrink-0">
+            <input
+              ref={ref}
+              type="radio"
+              id={radioId}
+              className="sr-only peer"
+              {...props}
+            />
+            {/* Outer Circle */}
+            <div className="w-5 h-5 rounded-full border-2 border-[#666666] bg-[#404040] peer-checked:bg-[#39FF14] transition-all duration-200 group-hover:border-[#39FF14]/60 peer-checked:group-hover:border-[#666666]">
+              {/* Inner Circle (when checked) */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity duration-200">
+                <div className="w-2.5 h-2.5 rounded-full bg-black" />
+              </div>
+            </div>
+          </div>
+          
+          {/* Label Text */}
+          {label && (
+            <span className={`text-base text-white group-hover:text-[#39FF14]/80 transition-colors ${
+              props.disabled ? 'text-neutral-500 cursor-not-allowed' : ''
+            }`}>
+              {label}
+            </span>
+          )}
+        </label>
+        
+        {/* Error Message */}
+        {error && (
+          <p className="mt-1 text-sm text-[#FF0040]">{error}</p>
+        )}
+        
+        {/* Helper Text */}
+        {helperText && !error && (
+          <p className="mt-1 text-sm text-neutral-400">{helperText}</p>
+        )}
+      </div>
+    )
+  }
+)
+Radio.displayName = 'Radio'
+
+// RadioGroup Component - Container for multiple radio buttons
+interface RadioGroupProps {
+  label?: string
+  name: string
+  value?: string | number | boolean
+  onChange?: (value: string | number | boolean) => void
+  options: Array<{ value: string | number | boolean; label: string }>
+  error?: string
+  helperText?: string
+  className?: string
+  orientation?: 'horizontal' | 'vertical'
+}
+
+export const RadioGroup = React.forwardRef<HTMLDivElement, RadioGroupProps>(
+  ({ label, name, value, onChange, options, error, helperText, className = '', orientation = 'horizontal' }, ref) => {
+    return (
+      <div ref={ref} className={className}>
+        {/* Label */}
+        {label && (
+          <label className="block text-sm font-medium text-neutral-200 mb-3">
+            {label}
+          </label>
+        )}
+        
+        {/* Radio Options */}
+        <div className={`flex ${orientation === 'horizontal' ? 'flex-row gap-3' : 'flex-col gap-3'}`}>
+          {options.map((option, index) => {
+            const optionId = `${name}-${index}`
+            const isChecked = value === option.value
+            
+            return (
+              <Radio
+                key={optionId}
+                id={optionId}
+                name={name}
+                label={option.label}
+                checked={isChecked}
+                onChange={() => onChange?.(option.value)}
+                className={orientation === 'horizontal' ? '' : 'flex-1'}
+              />
+            )
+          })}
+        </div>
+        
+        {/* Error Message */}
+        {error && (
+          <p className="mt-2 text-sm text-[#FF0040]">{error}</p>
+        )}
+        
+        {/* Helper Text */}
+        {helperText && !error && (
+          <p className="mt-2 text-sm text-neutral-400">{helperText}</p>
+        )}
+      </div>
+    )
+  }
+)
+RadioGroup.displayName = 'RadioGroup'
+
+// Checkbox Component - Custom branded checkbox
+interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
+  label?: string
+  error?: string
+  helperText?: string
+}
+
+export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
+  ({ label, error, helperText, className = '', id, ...props }, ref) => {
+    const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`
+    
+    return (
+      <div className={className}>
+        <label 
+          htmlFor={checkboxId}
+          className="flex items-center gap-2 cursor-pointer group"
+        >
+          {/* Custom Checkbox */}
+          <div className="relative flex-shrink-0">
+            <input
+              ref={ref}
+              type="checkbox"
+              id={checkboxId}
+              className="sr-only peer"
+              {...props}
+            />
+            {/* Outer Square */}
+            <div className="w-5 h-5 rounded border-2 border-[#666666] bg-[#404040] peer-checked:bg-[#39FF14] transition-all duration-200 group-hover:border-[#39FF14]/60 peer-checked:group-hover:border-[#666666] relative">
+              {/* Checkmark (when checked) */}
+              <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-200 ${props.checked ? 'opacity-100' : 'opacity-0'}`}>
+                <svg className="w-3.5 h-3.5 text-[#666666]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          {/* Label Text */}
+          {label && (
+            <span className={`text-base text-white group-hover:text-[#39FF14]/80 transition-colors ${
+              props.disabled ? 'text-neutral-500 cursor-not-allowed' : ''
+            }`}>
+              {label}
+            </span>
+          )}
+        </label>
+        
+        {/* Error Message */}
+        {error && (
+          <p className="mt-1 text-sm text-[#FF0040]">{error}</p>
+        )}
+        
+        {/* Helper Text */}
+        {helperText && !error && (
+          <p className="mt-1 text-sm text-neutral-400">{helperText}</p>
+        )}
+      </div>
+    )
+  }
+)
+Checkbox.displayName = 'Checkbox'
 
 // Textarea Component
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -1639,10 +1893,10 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           className={cn(
             'w-full px-4 py-3 bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
-            'focus:outline-none focus:ring-2 transition-all duration-200 resize-none',
+            'focus:outline-none transition-all duration-200 resize-none',
             error 
-              ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]' 
-              : 'border-[#666666] focus:ring-[#39FF14] focus:border-[#39FF14]',
+              ? 'border-[#FF0040] focus:border-[#FF0040]' 
+              : 'border-[#666666] focus:border-[#39FF14]',
             className
           )}
           {...props}
@@ -1752,14 +2006,14 @@ export const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResi
           ref={combinedRef}
           value={value}
           onChange={handleChange}
-          className={cn(
-            'w-full px-4 py-3 bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
-            'focus:outline-none focus:ring-2 transition-all duration-200 resize-none',
-            error 
-              ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]' 
-              : 'border-[#666666] focus:ring-[#39FF14] focus:border-[#39FF14]',
-            className
-          )}
+            className={cn(
+              'w-full px-4 py-3 bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
+              'focus:outline-none transition-all duration-200 resize-none',
+              error 
+                ? 'border-[#FF0040] focus:border-[#FF0040]' 
+                : 'border-[#666666] focus:border-[#39FF14]',
+              className
+            )}
           style={{ minHeight: `${minHeight}px` }}
           {...props}
         />

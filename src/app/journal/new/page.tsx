@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, CategoryCard, DeleteConfirmationDialog } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard, DeleteConfirmationDialog, DatePicker } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -259,11 +259,10 @@ export default function NewJournalEntryPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Date */}
               <div>
-                <Input
+                <DatePicker
                   label="Date"
-                  type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  onChange={(dateString) => setFormData({ ...formData, date: dateString })}
                   required
                 />
               </div>

@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { Card, Input, Button } from '@/lib/design-system/components'
+import React, { useState, useEffect, useRef } from 'react'
+import { Card, Input, Button, RadioGroup } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -24,6 +24,26 @@ const exerciseFrequencyOptions = [
 ]
 
 export function HealthSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: HealthSectionProps) {
+  const [isExerciseFrequencyDropdownOpen, setIsExerciseFrequencyDropdownOpen] = useState(false)
+  const exerciseFrequencyDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exerciseFrequencyDropdownRef.current && !exerciseFrequencyDropdownRef.current.contains(event.target as Node)) {
+        setIsExerciseFrequencyDropdownOpen(false)
+      }
+    }
+    
+    if (isExerciseFrequencyDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isExerciseFrequencyDropdownOpen])
+
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -185,33 +205,16 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
       
       <div className="space-y-6">
         {/* Units Toggle */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-200 mb-3">
-            Measurement Units *
-          </label>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="units"
-                checked={profile.units === 'US'}
-                onChange={() => handleInputChange('units', 'US')}
-                className="w-4 h-4 text-primary-500 bg-neutral-800 border-neutral-700 focus:ring-primary-500"
-              />
-              <span className="text-neutral-200">US (ft/in, lbs)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="units"
-                checked={profile.units === 'Metric'}
-                onChange={() => handleInputChange('units', 'Metric')}
-                className="w-4 h-4 text-primary-500 bg-neutral-800 border-neutral-700 focus:ring-primary-500"
-              />
-              <span className="text-neutral-200">Metric (cm, kg)</span>
-            </label>
-          </div>
-        </div>
+        <RadioGroup
+          label="Measurement Units *"
+          name="units"
+          value={profile.units || 'US'}
+          onChange={(value) => handleInputChange('units', value)}
+          options={[
+            { value: 'US', label: 'US (ft/in, lbs)' },
+            { value: 'Metric', label: 'Metric (cm, kg)' }
+          ]}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Height */}
@@ -219,7 +222,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
             <label className="block text-sm font-medium text-neutral-200 mb-2">
               Height ({heightUnit}) *
             </label>
-            <div className="relative">
+            <div className="relative md:w-auto md:inline-block">
               <Input
                 type="number"
                 value={getDisplayHeight()}
@@ -227,7 +230,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
                 placeholder={isMetric ? "170" : "68"}
                 min="0"
                 step="0.1"
-                className="w-full pr-10"
+                className="w-full md:w-auto md:min-w-[200px] pr-10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-neutral-400">
                 {heightUnit}
@@ -240,7 +243,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
             <label className="block text-sm font-medium text-neutral-200 mb-2">
               Weight ({weightUnit}) *
             </label>
-            <div className="relative">
+            <div className="relative md:w-auto md:inline-block">
               <Input
                 type="number"
                 value={getDisplayWeight()}
@@ -248,7 +251,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
                 placeholder={isMetric ? "70" : "150"}
                 min="0"
                 step="0.1"
-                className="w-full pr-10"
+                className="w-full md:w-auto md:min-w-[200px] pr-10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-neutral-400">
                 {weightUnit}
@@ -262,41 +265,53 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Exercise Frequency *
           </label>
-          <select
-            value={profile.exercise_frequency || ''}
-            onChange={(e) => handleInputChange('exercise_frequency', e.target.value)}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Select exercise frequency</option>
-            {exerciseFrequencyOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* BMI Calculator - Optional */}
-        {profile.height && profile.weight && (
-          <div className="p-4 bg-primary-500/10 border border-primary-500/20 rounded-lg">
-            <h4 className="text-sm font-medium text-primary-400 mb-2">Health Insights</h4>
-            <p className="text-sm text-neutral-300">
-              Your BMI is approximately <span className="font-medium text-white">
-                {(() => {
-                  const height = profile.height!
-                  const weight = profile.weight!
-                  const heightInMeters = isMetric ? height / 100 : height * 0.0254
-                  const weightInKg = isMetric ? weight : weight * 0.453592
-                  const bmi = weightInKg / (heightInMeters * heightInMeters)
-                  return bmi.toFixed(1)
-                })()}
-              </span>
-            </p>
-            <p className="text-xs text-neutral-400 mt-1">
-              This information helps your AI assistant provide personalized health and wellness guidance.
-            </p>
+          <div className="relative" ref={exerciseFrequencyDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsExerciseFrequencyDropdownOpen(!isExerciseFrequencyDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.exercise_frequency 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {exerciseFrequencyOptions.find(opt => opt.value === (profile.exercise_frequency || ''))?.label || 'Select exercise frequency'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isExerciseFrequencyDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isExerciseFrequencyDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsExerciseFrequencyDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {exerciseFrequencyOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('exercise_frequency', option.value)
+                        setIsExerciseFrequencyDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.exercise_frequency || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Clarity Field */}
         <RecordingTextarea
@@ -330,12 +345,6 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           storageFolder="profile"
           category="health_vitality"
         />
-      </div>
-
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-        <p className="text-sm text-neutral-400">
-          Health information helps your AI assistant provide personalized fitness and wellness recommendations.
-        </p>
       </div>
 
       {/* Save Button - Bottom Right */}

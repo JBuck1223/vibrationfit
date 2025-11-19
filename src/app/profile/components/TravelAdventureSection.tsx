@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { Card, Input, Button } from '@/lib/design-system/components'
+import React, { useState, useEffect, useRef } from 'react'
+import { Card, Input, Button, Checkbox } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { Plane, Plus, Trash2, Save } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -24,6 +24,34 @@ type Trip = {
 }
 
 export function TravelAdventureSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: TravelAdventureSectionProps) {
+  const [isTravelFrequencyDropdownOpen, setIsTravelFrequencyDropdownOpen] = useState(false)
+  const travelFrequencyDropdownRef = useRef<HTMLDivElement>(null)
+
+  const travelFrequencyOptions = [
+    { value: '', label: 'Select frequency...' },
+    { value: 'never', label: 'Never' },
+    { value: 'yearly', label: 'Yearly' },
+    { value: 'quarterly', label: 'Quarterly' },
+    { value: 'monthly', label: 'Monthly' },
+  ]
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (travelFrequencyDropdownRef.current && !travelFrequencyDropdownRef.current.contains(event.target as Node)) {
+        setIsTravelFrequencyDropdownOpen(false)
+      }
+    }
+
+    if (isTravelFrequencyDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isTravelFrequencyDropdownOpen])
+
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -122,30 +150,61 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Travel Frequency
           </label>
-          <select
-            value={profile.travel_frequency || ''}
-            onChange={(e) => handleInputChange('travel_frequency', e.target.value)}
-            className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white focus:border-primary-500 focus:outline-none transition-colors"
-          >
-            <option value="">Select frequency...</option>
-            <option value="never">Never</option>
-            <option value="yearly">Yearly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="monthly">Monthly</option>
-          </select>
+          <div className="relative" ref={travelFrequencyDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsTravelFrequencyDropdownOpen(!isTravelFrequencyDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.travel_frequency 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {travelFrequencyOptions.find(opt => opt.value === (profile.travel_frequency || ''))?.label || 'Select frequency...'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isTravelFrequencyDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isTravelFrequencyDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsTravelFrequencyDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {travelFrequencyOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('travel_frequency', option.value)
+                        setIsTravelFrequencyDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.travel_frequency || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Passport */}
         <div>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={profile.passport || false}
-              onChange={(e) => handleInputChange('passport', e.target.checked)}
-              className="w-5 h-5 rounded border-2 border-neutral-700 bg-neutral-800 checked:bg-primary-500 checked:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-colors cursor-pointer"
-            />
-            <span className="text-sm font-medium text-neutral-200">I have a valid passport</span>
-          </label>
+          <Checkbox
+            label="I have a valid passport"
+            checked={profile.passport || false}
+            onChange={(e) => handleInputChange('passport', e.target.checked)}
+          />
         </div>
 
         {/* Countries Visited */}
@@ -165,16 +224,17 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
 
         {/* Trips I've Taken Table */}
         <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-start justify-between mb-4">
             <h4 className="text-sm font-semibold text-white">Trips I've Taken</h4>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleTripAdd}
-              className="flex items-center gap-2 px-3 py-1.5 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg transition-colors text-sm font-medium"
+              className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               Add Trip
-            </button>
+            </Button>
           </div>
 
           {trips.length === 0 ? (
@@ -277,12 +337,6 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           storageFolder="profile"
           category="travel_adventure"
         />
-      </div>
-
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-        <p className="text-sm text-neutral-400">
-          Understanding your travel interests helps Viva provide relevant destination suggestions and adventure planning guidance.
-        </p>
       </div>
 
       {/* Save Button - Bottom Right */}

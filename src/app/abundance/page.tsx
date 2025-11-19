@@ -9,6 +9,7 @@ import {
   Textarea,
   Select,
   Stack,
+  DatePicker,
 } from '@/lib/design-system/components'
 
 const VALUE_TYPES = [
@@ -104,12 +105,11 @@ export default function AbundanceLogPage() {
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid gap-4 md:grid-cols-3">
-              <Input
-                type="date"
+              <DatePicker
                 label="Date"
                 value={date}
-                max={today}
-                onChange={(event) => setDate(event.target.value)}
+                maxDate={today}
+                onChange={(dateString) => setDate(dateString)}
                 required
               />
 

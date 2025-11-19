@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { PartyPopper, Plus, X, Save } from 'lucide-react'
@@ -19,6 +19,33 @@ interface FunRecreationSectionProps {
 
 export function FunRecreationSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: FunRecreationSectionProps) {
   const [newHobby, setNewHobby] = useState('')
+  const [isLeisureDropdownOpen, setIsLeisureDropdownOpen] = useState(false)
+  const leisureDropdownRef = useRef<HTMLDivElement>(null)
+
+  const leisureOptions = [
+    { value: '', label: 'Select hours per week...' },
+    { value: '0-5', label: '0-5 hours' },
+    { value: '6-15', label: '6-15 hours' },
+    { value: '16-25', label: '16-25 hours' },
+    { value: '25+', label: '25+ hours' },
+  ]
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (leisureDropdownRef.current && !leisureDropdownRef.current.contains(event.target as Node)) {
+        setIsLeisureDropdownOpen(false)
+      }
+    }
+
+    if (isLeisureDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isLeisureDropdownOpen])
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
@@ -164,7 +191,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
             <button
               type="button"
               onClick={handleAddHobby}
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+              className="px-4 py-2 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] rounded-lg hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 transition-all duration-300"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -195,17 +222,52 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Leisure Time Per Week
           </label>
-          <select
-            value={profile.leisure_time_weekly || ''}
-            onChange={(e) => handleInputChange('leisure_time_weekly', e.target.value)}
-            className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white focus:border-primary-500 focus:outline-none transition-colors"
-          >
-            <option value="">Select hours per week...</option>
-            <option value="0-5">0-5 hours</option>
-            <option value="6-15">6-15 hours</option>
-            <option value="16-25">16-25 hours</option>
-            <option value="25+">25+ hours</option>
-          </select>
+          <div className="relative" ref={leisureDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsLeisureDropdownOpen(!isLeisureDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.leisure_time_weekly 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {leisureOptions.find(opt => opt.value === (profile.leisure_time_weekly || ''))?.label || 'Select hours per week...'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isLeisureDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isLeisureDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsLeisureDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {leisureOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('leisure_time_weekly', option.value)
+                        setIsLeisureDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.leisure_time_weekly || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Clarity Field */}
@@ -239,12 +301,6 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           storageFolder="profile"
           category="fun_recreation"
         />
-      </div>
-
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-        <p className="text-sm text-neutral-400">
-          Understanding your recreational interests helps Viva provide relevant suggestions for fun activities and leisure planning.
-        </p>
       </div>
 
       {/* Save Button - Bottom Right */}

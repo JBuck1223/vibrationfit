@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Card, Input, Textarea, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -48,6 +48,36 @@ const educationOptions = [
 ]
 
 export function CareerSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: CareerSectionProps) {
+  const [isEmploymentTypeDropdownOpen, setIsEmploymentTypeDropdownOpen] = useState(false)
+  const [isTimeInRoleDropdownOpen, setIsTimeInRoleDropdownOpen] = useState(false)
+  const [isEducationDropdownOpen, setIsEducationDropdownOpen] = useState(false)
+  const employmentTypeDropdownRef = useRef<HTMLDivElement>(null)
+  const timeInRoleDropdownRef = useRef<HTMLDivElement>(null)
+  const educationDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (employmentTypeDropdownRef.current && !employmentTypeDropdownRef.current.contains(event.target as Node)) {
+        setIsEmploymentTypeDropdownOpen(false)
+      }
+      if (timeInRoleDropdownRef.current && !timeInRoleDropdownRef.current.contains(event.target as Node)) {
+        setIsTimeInRoleDropdownOpen(false)
+      }
+      if (educationDropdownRef.current && !educationDropdownRef.current.contains(event.target as Node)) {
+        setIsEducationDropdownOpen(false)
+      }
+    }
+    
+    if (isEmploymentTypeDropdownOpen || isTimeInRoleDropdownOpen || isEducationDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isEmploymentTypeDropdownOpen, isTimeInRoleDropdownOpen, isEducationDropdownOpen])
+
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -96,18 +126,52 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Employment Type *
           </label>
-          <select
-            value={profile.employment_type || ''}
-            onChange={(e) => handleInputChange('employment_type', e.target.value)}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Select employment type</option>
-            {employmentTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative" ref={employmentTypeDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsEmploymentTypeDropdownOpen(!isEmploymentTypeDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.employment_type 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {employmentTypeOptions.find(opt => opt.value === (profile.employment_type || ''))?.label || 'Select employment type'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isEmploymentTypeDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isEmploymentTypeDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsEmploymentTypeDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {employmentTypeOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('employment_type', option.value)
+                        setIsEmploymentTypeDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.employment_type || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Occupation */}
@@ -143,18 +207,52 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             How long have you been in your current role? *
           </label>
-          <select
-            value={profile.time_in_role || ''}
-            onChange={(e) => handleInputChange('time_in_role', e.target.value)}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Select time in role</option>
-            {timeInRoleOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative" ref={timeInRoleDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsTimeInRoleDropdownOpen(!isTimeInRoleDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.time_in_role 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {timeInRoleOptions.find(opt => opt.value === (profile.time_in_role || ''))?.label || 'Select time in role'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isTimeInRoleDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isTimeInRoleDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsTimeInRoleDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {timeInRoleOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('time_in_role', option.value)
+                        setIsTimeInRoleDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.time_in_role || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Education */}
@@ -162,18 +260,52 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Education *
           </label>
-          <select
-            value={profile.education || ''}
-            onChange={(e) => handleInputChange('education', e.target.value)}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Select education level</option>
-            {educationOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative" ref={educationDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsEducationDropdownOpen(!isEducationDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.education 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {educationOptions.find(opt => opt.value === (profile.education || ''))?.label || 'Select education level'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isEducationDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isEducationDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsEducationDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {educationOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('education', option.value)
+                        setIsEducationDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.education || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Education Description */}
@@ -188,14 +320,6 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
             rows={4}
             className="w-full"
           />
-        </div>
-
-        {/* Career Insights */}
-        <div className="p-4 bg-primary-500/10 border border-primary-500/20 rounded-lg">
-          <h4 className="text-sm font-medium text-primary-400 mb-2">Career Insights</h4>
-          <p className="text-sm text-neutral-300">
-            Understanding your career context helps your AI assistant provide relevant professional development and goal-setting guidance.
-          </p>
         </div>
 
         {/* Clarity Field */}
@@ -229,12 +353,6 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           storageFolder="profile"
           category="work"
         />
-      </div>
-
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-        <p className="text-sm text-neutral-400">
-          Career information helps your AI assistant understand your professional goals and provide relevant business and career guidance.
-        </p>
       </div>
 
       {/* Save Button - Bottom Right */}

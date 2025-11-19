@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { Card, Button } from '@/lib/design-system/components'
+import React, { useState, useEffect, useRef } from 'react'
+import { Card, Button, Checkbox } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { Gift, Save } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -17,6 +17,47 @@ interface GivingLegacySectionProps {
 }
 
 export function GivingLegacySection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: GivingLegacySectionProps) {
+  const [isVolunteerStatusDropdownOpen, setIsVolunteerStatusDropdownOpen] = useState(false)
+  const [isCharitableGivingDropdownOpen, setIsCharitableGivingDropdownOpen] = useState(false)
+  const volunteerStatusDropdownRef = useRef<HTMLDivElement>(null)
+  const charitableGivingDropdownRef = useRef<HTMLDivElement>(null)
+
+  const volunteerStatusOptions = [
+    { value: '', label: 'Select status...' },
+    { value: 'none', label: 'None' },
+    { value: 'occasional', label: 'Occasional' },
+    { value: 'regular', label: 'Regular' },
+    { value: 'frequent', label: 'Frequent' },
+  ]
+
+  const charitableGivingOptions = [
+    { value: '', label: 'Select amount...' },
+    { value: 'none', label: 'None' },
+    { value: '<500', label: 'Under $500' },
+    { value: '500-2000', label: '$500 - $2,000' },
+    { value: '2000+', label: '$2,000+' },
+  ]
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (volunteerStatusDropdownRef.current && !volunteerStatusDropdownRef.current.contains(event.target as Node)) {
+        setIsVolunteerStatusDropdownOpen(false)
+      }
+      if (charitableGivingDropdownRef.current && !charitableGivingDropdownRef.current.contains(event.target as Node)) {
+        setIsCharitableGivingDropdownOpen(false)
+      }
+    }
+
+    if (isVolunteerStatusDropdownOpen || isCharitableGivingDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isVolunteerStatusDropdownOpen, isCharitableGivingDropdownOpen])
+
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -59,17 +100,52 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Volunteer Status
           </label>
-          <select
-            value={profile.volunteer_status || ''}
-            onChange={(e) => handleInputChange('volunteer_status', e.target.value)}
-            className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white focus:border-primary-500 focus:outline-none transition-colors"
-          >
-            <option value="">Select status...</option>
-            <option value="none">None</option>
-            <option value="occasional">Occasional</option>
-            <option value="regular">Regular</option>
-            <option value="frequent">Frequent</option>
-          </select>
+          <div className="relative" ref={volunteerStatusDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsVolunteerStatusDropdownOpen(!isVolunteerStatusDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.volunteer_status 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {volunteerStatusOptions.find(opt => opt.value === (profile.volunteer_status || ''))?.label || 'Select status...'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isVolunteerStatusDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isVolunteerStatusDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsVolunteerStatusDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {volunteerStatusOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('volunteer_status', option.value)
+                        setIsVolunteerStatusDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.volunteer_status || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Charitable Giving */}
@@ -77,30 +153,61 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Annual Charitable Giving
           </label>
-          <select
-            value={profile.charitable_giving || ''}
-            onChange={(e) => handleInputChange('charitable_giving', e.target.value)}
-            className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white focus:border-primary-500 focus:outline-none transition-colors"
-          >
-            <option value="">Select amount...</option>
-            <option value="none">None</option>
-            <option value="<500">Under $500</option>
-            <option value="500-2000">$500 - $2,000</option>
-            <option value="2000+">$2,000+</option>
-          </select>
+          <div className="relative" ref={charitableGivingDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsCharitableGivingDropdownOpen(!isCharitableGivingDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.charitable_giving 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {charitableGivingOptions.find(opt => opt.value === (profile.charitable_giving || ''))?.label || 'Select amount...'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isCharitableGivingDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isCharitableGivingDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsCharitableGivingDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {charitableGivingOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('charitable_giving', option.value)
+                        setIsCharitableGivingDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.charitable_giving || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Legacy Mindset */}
         <div>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={profile.legacy_mindset || false}
-              onChange={(e) => handleInputChange('legacy_mindset', e.target.checked)}
-              className="w-5 h-5 rounded border-2 border-neutral-700 bg-neutral-800 checked:bg-primary-500 checked:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-colors cursor-pointer"
-            />
-            <span className="text-sm font-medium text-neutral-200">I think about my legacy in day-to-day decisions</span>
-          </label>
+          <Checkbox
+            label="I think about my legacy in day-to-day decisions"
+            checked={profile.legacy_mindset || false}
+            onChange={(e) => handleInputChange('legacy_mindset', e.target.checked)}
+          />
         </div>
 
         {/* Clarity Field */}
@@ -134,12 +241,6 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           storageFolder="profile"
           category="giving_legacy"
         />
-      </div>
-
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-        <p className="text-sm text-neutral-400">
-          Understanding your giving and legacy goals helps Viva provide relevant guidance for making a meaningful impact and leaving a lasting legacy.
-        </p>
       </div>
 
       {/* Save Button - Bottom Right */}

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Card, Button, Input, CategoryCard, DeleteConfirmationDialog } from '@/lib/design-system'
+import { Card, Button, Input, CategoryCard, DeleteConfirmationDialog, DatePicker } from '@/lib/design-system'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { UploadProgress } from '@/components/UploadProgress'
@@ -295,11 +295,10 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
           {/* Date */}
           <div>
-            <Input
+            <DatePicker
               label="Date"
-              type="date"
               value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              onChange={(dateString) => setFormData({ ...formData, date: dateString })}
               required
             />
           </div>

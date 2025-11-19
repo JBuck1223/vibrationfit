@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Card, Input, Button } from '@/lib/design-system/components'
+import { Card, Input, Button, DatePicker, RadioGroup } from '@/lib/design-system/components'
 import { Plus, Trash2, Save } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -133,33 +133,16 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
       
       <div className="space-y-6">
         {/* Has Children */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-200 mb-3">
-            Do you have children? *
-          </label>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="has_children"
-                checked={hasChildren === true}
-                onChange={() => handleInputChange('has_children', true)}
-                className="w-4 h-4 text-primary-500 bg-neutral-800 border-neutral-700 focus:ring-primary-500"
-              />
-              <span className="text-neutral-200">Yes</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="has_children"
-                checked={hasChildren === false}
-                onChange={() => handleInputChange('has_children', false)}
-                className="w-4 h-4 text-primary-500 bg-neutral-800 border-neutral-700 focus:ring-primary-500"
-              />
-              <span className="text-neutral-200">No</span>
-            </label>
-          </div>
-        </div>
+        <RadioGroup
+          label="Do you have children? *"
+          name="has_children"
+          value={hasChildren}
+          onChange={(value) => handleInputChange('has_children', value)}
+          options={[
+            { value: true, label: 'Yes' },
+            { value: false, label: 'No' }
+          ]}
+        />
 
         {/* Children Table - Shows when Yes is selected */}
         {hasChildren === true && (
@@ -214,14 +197,11 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-neutral-300 mb-1">
-                          Birthday
-                        </label>
-                        <Input
-                          type="date"
+                        <DatePicker
+                          label="Birthday"
                           value={child.birthday || ''}
-                          onChange={(e) => handleChildChange(index, 'birthday', e.target.value)}
-                          className="w-full text-sm"
+                          onChange={(dateString) => handleChildChange(index, 'birthday', dateString)}
+                          className="w-full"
                         />
                       </div>
                     </div>
@@ -264,12 +244,6 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           storageFolder="profile"
           category="family_parenting"
         />
-      </div>
-
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-        <p className="text-sm text-neutral-400">
-          Family information helps your AI assistant understand your responsibilities and provide relevant guidance for your life planning.
-        </p>
       </div>
 
       {/* Save Button - Bottom Right */}
