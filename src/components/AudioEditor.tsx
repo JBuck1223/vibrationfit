@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import WaveSurfer from 'wavesurfer.js'
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
 import { Button } from '@/lib/design-system/components'
@@ -175,9 +175,24 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
     }
   }, [currentAudioBlob])
 
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     wavesurferRef.current?.playPause()
-  }
+  }, [])
+
+  // Spacebar to play/pause
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only respond to spacebar when not typing in an input/textarea
+      if (e.code === 'Space' && e.target instanceof HTMLElement && 
+          !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        e.preventDefault() // Prevent page scroll
+        togglePlayPause()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [togglePlayPause])
 
   const addRegionToCut = () => {
     if (!regionsPluginRef.current || !wavesurferRef.current) return
