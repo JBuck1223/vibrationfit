@@ -254,70 +254,101 @@ export async function uploadFileWithMultipart(
     // Step 3: Upload chunks in parallel (with concurrency limit)
     const uploadedParts: Array<{ ETag: string; PartNumber: number }> = []
     const CONCURRENT_UPLOADS = 3 // Upload 3 chunks at a time
+    let uploadedCount = 0 // Track completed uploads for accurate progress
 
-    for (let i = 0; i < totalChunks; i += CONCURRENT_UPLOADS) {
-      const chunkPromises = []
+    try {
+      for (let i = 0; i < totalChunks; i += CONCURRENT_UPLOADS) {
+        const chunkPromises = []
 
-      for (let j = 0; j < CONCURRENT_UPLOADS && (i + j) < totalChunks; j++) {
-        const partNumber = i + j + 1
-        const start = (i + j) * CHUNK_SIZE
-        const end = Math.min(start + CHUNK_SIZE, file.size)
-        const chunk = file.slice(start, end)
+        for (let j = 0; j < CONCURRENT_UPLOADS && (i + j) < totalChunks; j++) {
+          const partNumber = i + j + 1
+          const start = (i + j) * CHUNK_SIZE
+          const end = Math.min(start + CHUNK_SIZE, file.size)
+          const chunk = file.slice(start, end)
 
-        chunkPromises.push(
-          (async () => {
-            // Get presigned URL for this part
-            const partUrlResponse = await fetch('/api/upload/multipart', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                action: 'getPartUrl',
-                key,
-                uploadId,
-                partNumber,
-              }),
-            })
+          chunkPromises.push(
+            (async () => {
+              // Get presigned URL for this part
+              const partUrlResponse = await fetch('/api/upload/multipart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'getPartUrl',
+                  key,
+                  uploadId,
+                  partNumber,
+                }),
+              })
 
-            if (!partUrlResponse.ok) {
-              throw new Error(`Failed to get presigned URL for part ${partNumber}`)
-            }
+              if (!partUrlResponse.ok) {
+                throw new Error(`Failed to get presigned URL for part ${partNumber}`)
+              }
 
-            const { presignedUrl } = await partUrlResponse.json()
+              const { presignedUrl } = await partUrlResponse.json()
 
-            // Upload the chunk
-            const uploadResponse = await fetch(presignedUrl, {
-              method: 'PUT',
-              body: chunk,
-              headers: {
-                'Content-Type': file.type,
-              },
-            })
+              // Upload the chunk with timeout
+              const controller = new AbortController()
+              const timeout = setTimeout(() => controller.abort(), 60000) // 60 second timeout per chunk
 
-            if (!uploadResponse.ok) {
-              throw new Error(`Failed to upload part ${partNumber}`)
-            }
+              try {
+                const uploadResponse = await fetch(presignedUrl, {
+                  method: 'PUT',
+                  body: chunk,
+                  headers: {
+                    'Content-Type': file.type,
+                  },
+                  signal: controller.signal,
+                })
 
-            const etag = uploadResponse.headers.get('ETag')
-            if (!etag) {
-              throw new Error(`No ETag returned for part ${partNumber}`)
-            }
+                clearTimeout(timeout)
 
-            console.log(`✅ Uploaded part ${partNumber}/${totalChunks} (${etag})`)
+                if (!uploadResponse.ok) {
+                  throw new Error(`Failed to upload part ${partNumber}: ${uploadResponse.status}`)
+                }
 
-            // Update progress
-            if (onProgress) {
-              const progress = Math.round((partNumber / totalChunks) * 100)
-              onProgress(progress)
-            }
+                const etag = uploadResponse.headers.get('ETag')
+                if (!etag) {
+                  throw new Error(`No ETag returned for part ${partNumber}`)
+                }
 
-            return { ETag: etag.replace(/"/g, ''), PartNumber: partNumber }
-          })()
-        )
+                console.log(`✅ Uploaded part ${partNumber}/${totalChunks} (${etag})`)
+
+                // Update progress based on actual completed uploads
+                uploadedCount++
+                if (onProgress) {
+                  const progress = Math.round((uploadedCount / totalChunks) * 100)
+                  onProgress(progress)
+                }
+
+                return { ETag: etag.replace(/"/g, ''), PartNumber: partNumber }
+              } catch (error) {
+                clearTimeout(timeout)
+                if (error instanceof Error && error.name === 'AbortError') {
+                  throw new Error(`Upload timeout for part ${partNumber}`)
+                }
+                throw error
+              }
+            })()
+          )
+        }
+
+        // Wait for this batch of chunks to complete
+        const batchParts = await Promise.all(chunkPromises)
+        uploadedParts.push(...batchParts)
       }
-
-      // Wait for this batch of chunks to complete
-      const batchParts = await Promise.all(chunkPromises)
-      uploadedParts.push(...batchParts)
+    } catch (error) {
+      // Abort the multipart upload if any chunk fails
+      console.error('❌ Chunk upload failed, aborting multipart upload...', error)
+      await fetch('/api/upload/multipart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'abort',
+          key,
+          uploadId,
+        }),
+      }).catch(e => console.error('Failed to abort upload:', e))
+      throw error
     }
 
     // Sort parts by part number (required by S3)
@@ -505,7 +536,7 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'],
     },
     journal: {
-      maxSize: 1024 * 1024 * 1024, // 1GB for videos/audio/images
+      maxSize: 5 * 1024 * 1024 * 1024, // 5GB for videos/audio/images (supports multipart upload)
       types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },
     journalAudioRecordings: {
@@ -513,7 +544,7 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },
     journalVideoRecordings: {
-      maxSize: 1024 * 1024 * 1024, // 1GB for video recordings
+      maxSize: 5 * 1024 * 1024 * 1024, // 5GB for video recordings (supports multipart upload)
       types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
     },
     lifeVision: {
@@ -525,7 +556,7 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },
     lifeVisionVideoRecordings: {
-      maxSize: 1024 * 1024 * 1024, // 1GB for video recordings
+      maxSize: 5 * 1024 * 1024 * 1024, // 5GB for video recordings (supports multipart upload)
       types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
     },
     alignmentPlan: {
@@ -537,11 +568,11 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },
     alignmentPlanVideoRecordings: {
-      maxSize: 1024 * 1024 * 1024, // 1GB for video recordings
+      maxSize: 5 * 1024 * 1024 * 1024, // 5GB for video recordings (supports multipart upload)
       types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
     },
     profile: {
-      maxSize: 1024 * 1024 * 1024, // 1GB for profile files
+      maxSize: 5 * 1024 * 1024 * 1024, // 5GB for profile files (supports multipart upload)
       types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi', 'audio/webm', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/ogg'],
     },
     profileAudioRecordings: {
@@ -549,7 +580,7 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },
     profileVideoRecordings: {
-      maxSize: 1024 * 1024 * 1024, // 1GB for video recordings
+      maxSize: 5 * 1024 * 1024 * 1024, // 5GB for video recordings (supports multipart upload)
       types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
     },
     profilePicture: {
