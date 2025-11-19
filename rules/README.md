@@ -11,6 +11,8 @@
 | **AGENT_QUICK_START.md** | Ultra-quick page template + 3 rules | **START HERE!** Every new page |
 | **PAGE_BUILDING_RULES.md** | Complete page building guide | When you need full details |
 | **mobile-design-rules.md** | Mobile-first design requirements | Before building ANY component |
+| **CATEGORY_MAPPING_SYSTEM.md** | 🔒 Category key conversion system | **CRITICAL!** Before using any category keys |
+| **HEADER_DESIGN_GUIDE.md** | Header component patterns | When building page headers |
 
 ---
 
@@ -80,6 +82,12 @@ export default function YourPage() {
 - ✅ Building cards or grids
 - ✅ Making buttons or forms
 - ✅ Need responsive patterns
+
+### CATEGORY_MAPPING_SYSTEM.md
+- ✅ **🚨 CRITICAL:** Using category keys anywhere
+- ✅ Converting between assessment/vision/recording/profile keys
+- ✅ Working with profile sections, audio, assessments
+- ✅ Dealing with legacy data ('romance', 'business', 'possessions')
 
 ---
 

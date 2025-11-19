@@ -86,14 +86,13 @@ async function buildRollingContext(userId: string, supabase: any): Promise<Rolli
     .eq('is_active', true)
     .single()
 
-  // 3. Get latest assessment scores
+  // 3. Get active assessment scores
   const { data: assessment } = await supabase
     .from('assessment_results')
     .select('*')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
+    .eq('is_active', true)
+    .maybeSingle()
 
   // 4. Get recent journal entries (last 30 days)
   const thirtyDaysAgo = new Date()

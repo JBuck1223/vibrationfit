@@ -28,6 +28,7 @@ interface MediaRecorderProps {
   showSaveOption?: boolean // Show "Save Recording" checkbox
   recordingId?: string // Optional: ID for IndexedDB persistence
   category?: string // Optional: Category for IndexedDB persistence
+  instanceId?: string // Optional: Unique identifier for this recorder instance (e.g., field name)
   storageFolder?: keyof typeof USER_FOLDERS // S3 folder for uploads
   recordingPurpose?: RecordingPurpose // 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'
   enableEditor?: boolean // Explicitly enable/disable audio editor (default: true, overrides automatic behavior)
@@ -50,6 +51,7 @@ export function MediaRecorderComponent({
   showSaveOption = true,
   recordingId: providedRecordingId,
   category = 'general',
+  instanceId, // Unique identifier for this instance
   storageFolder = 'journalAudioRecordings',
   recordingPurpose = 'withFile', // Default to full file storage
   enableEditor = true // Default to enabled (can be overridden)
@@ -78,7 +80,9 @@ export function MediaRecorderComponent({
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const recordingIdRef = useRef<string>(providedRecordingId || generateRecordingId(category))
+  const recordingIdRef = useRef<string>(
+    providedRecordingId || generateRecordingId(instanceId ? `${category}-${instanceId}` : category)
+  )
   const videoRef = useRef<HTMLVideoElement>(null)
   const lastSaveSizeRef = useRef<number>(0) // Track total size saved for video size-based saves
   const durationRef = useRef<number>(0) // Track duration for auto-save
@@ -144,15 +148,23 @@ export function MediaRecorderComponent({
           chunkCount: chunkCount
         })
         
-        // If not found by ID, look for any saved recording in this category
+        // If not found by ID, look for any saved recording in this category (and instance if provided)
         // This handles the case where page refreshes and ID is regenerated
         if (!saved || !saved.chunks || saved.chunks.length === 0) {
-          console.log('🔍 No recording found by ID, searching by category:', category)
+          const searchCategory = instanceId ? `${category}-${instanceId}` : category
+          console.log('🔍 No recording found by ID, searching by category:', searchCategory)
           const { getRecordingsForCategory } = await import('@/lib/storage/indexed-db-recording')
-          const categoryRecordings = await getRecordingsForCategory(category)
+          let categoryRecordings = await getRecordingsForCategory(category)
+          
+          // If instanceId is provided, filter to only recordings that match this instance
+          if (instanceId) {
+            categoryRecordings = categoryRecordings.filter(r => 
+              r.id.includes(`${category}-${instanceId}`)
+            )
+          }
           
           console.log('📊 Category search results:', {
-            category: category,
+            category: searchCategory,
             totalFound: categoryRecordings.length,
             recordings: categoryRecordings.map(r => ({
               id: r.id,
@@ -989,7 +1001,7 @@ export function MediaRecorderComponent({
                         durationRef.current = 0
                         setTranscript('')
                         transcriptRef.current = ''
-                        recordingIdRef.current = generateRecordingId(category)
+                        recordingIdRef.current = generateRecordingId(instanceId ? `${category}-${instanceId}` : category)
                         console.log('🗑️ Deleted saved recording, ready for new recording')
                       })
                     }

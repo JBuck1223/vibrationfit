@@ -5,7 +5,7 @@ import { Card } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface RelationshipSectionProps {
   profile: Partial<UserProfile>
@@ -40,7 +40,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
       url,
       transcript,
       type,
-      category: 'love',
+      category: visionToRecordingKey('love'),
       created_at: new Date().toISOString()
     }
 
@@ -66,7 +66,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'love')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('love'))
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => 
@@ -98,7 +98,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('love')}</h3>
+      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel(visionToRecordingKey('love'))}</h3>
       
       <div className="space-y-6">
         {/* Relationship Status */}
@@ -168,7 +168,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
 
         {/* Clarity Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('love')}?`}
+          label={`What's going well in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
           value={profile.clarity_love || ''}
           onChange={(value) => handleInputChange('clarity_love', value)}
           placeholder="Share what's going well with your relationship journey, love story, partnership goals... Or click the microphone to record!"
@@ -176,27 +176,55 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload 
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="love"
+          category={visionToRecordingKey('love')}
+          instanceId="clarity"
         />
 
         {/* Display Saved Recordings */}
         <SavedRecordings
           key={`romance-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="love"
+          categoryFilter={visionToRecordingKey('love')}
           onDelete={handleDeleteRecording}
         />
 
         {/* Contrast Field */}
         <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('love')}?`}
+          label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
           value={profile.contrast_love || ''}
           onChange={(value) => handleInputChange('contrast_love', value)}
           placeholder="Share what's not going well with your relationship or romantic life, or what you'd like to improve..."
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="love"
+          category={visionToRecordingKey('love')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
+          value={profile.dream_love || ''}
+          onChange={(value) => handleInputChange('dream_love', value)}
+          placeholder="What's your ideal vision for love and romantic connection in your life?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('love')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
+          value={profile.worry_love || ''}
+          onChange={(value) => handleInputChange('worry_love', value)}
+          placeholder="What concerns you most about your romantic life or relationships?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('love')}
+          instanceId="worry"
         />
       </div>
 

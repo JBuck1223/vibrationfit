@@ -524,11 +524,9 @@ export default function AssessmentPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Spinner variant="primary" size="lg" />
-          </div>
+      <div className="min-h-screen bg-black">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Spinner variant="primary" size="lg" />
         </div>
       </div>
     )
@@ -536,18 +534,16 @@ export default function AssessmentPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-        <div className="container mx-auto px-4 py-8">
-          <Card className="mx-auto max-w-xl p-8 text-center">
-            <h2 className="text-2xl font-semibold text-white mb-3">We couldn&apos;t load this assessment</h2>
-            <p className="text-neutral-400 mb-6">
-              {loadError}
-            </p>
-            <Button variant="primary" onClick={() => router.push('/assessment')}>
-              Return to Assessment Hub
-            </Button>
-          </Card>
-        </div>
+      <div className="min-h-screen bg-black">
+        <Card className="mx-auto max-w-xl p-8 text-center">
+          <h2 className="text-2xl font-semibold text-white mb-3">We couldn&apos;t load this assessment</h2>
+          <p className="text-neutral-400 mb-6">
+            {loadError}
+          </p>
+          <Button variant="primary" onClick={() => router.push('/assessment')}>
+            Return to Assessment Hub
+          </Button>
+        </Card>
       </div>
     )
   }
@@ -555,27 +551,25 @@ export default function AssessmentPage() {
   if (isComplete && assessmentId && progress) {
     // Show results summary
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-        <div className="container mx-auto px-4 py-8">
-          <ResultsSummary
-            assessment={{
-              id: assessmentId,
-              user_id: '',
-              status: 'completed',
-              total_score: Object.values(progress.categories).reduce((sum, cat) => sum + (cat.answered * 10), 0),
-              max_possible_score: totalQuestions * 10,
-              overall_percentage: progress.overall.percentage,
-              category_scores: Object.entries(progress.categories).reduce((acc, [key, val]) => ({
-                ...acc,
-                [key]: val.answered * 10
-              }), {}),
-              green_line_status: {},
-              started_at: new Date(),
-              created_at: new Date(),
-              updated_at: new Date()
-            } as any}
-          />
-        </div>
+      <div className="min-h-screen bg-black">
+        <ResultsSummary
+          assessment={{
+            id: assessmentId,
+            user_id: '',
+            status: 'completed',
+            total_score: Object.values(progress.categories).reduce((sum, cat) => sum + (cat.answered * 10), 0),
+            max_possible_score: totalQuestions * 10,
+            overall_percentage: progress.overall.percentage,
+            category_scores: Object.entries(progress.categories).reduce((acc, [key, val]) => ({
+              ...acc,
+              [key]: val.answered * 10
+            }), {}),
+            green_line_status: {},
+            started_at: new Date(),
+            created_at: new Date(),
+            updated_at: new Date()
+          } as any}
+        />
       </div>
     )
   }
@@ -584,8 +578,7 @@ export default function AssessmentPage() {
   const selectedValue = responses.get(currentQuestion.id)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-black">
         {/* Page Header */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-white mb-2">Vibrational Assessment</h1>
@@ -930,7 +923,6 @@ export default function AssessmentPage() {
             </div>
           </div>
         </div>
-      </div>
     </div>
   )
 }

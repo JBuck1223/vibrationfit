@@ -5,7 +5,7 @@ import { Card, Input } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface LocationSectionProps {
   profile: Partial<UserProfile>
@@ -48,7 +48,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'home_environment', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: visionToRecordingKey('home'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
       await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_home: updatedText }) })
@@ -57,7 +57,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'home_environment')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('home'))
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
@@ -188,13 +188,14 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="home_environment"
+          category={visionToRecordingKey('home')}
+          instanceId="clarity"
         />
 
         <SavedRecordings
           key={`home-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="home_environment"
+          categoryFilter={visionToRecordingKey('home')}
           onDelete={handleDeleteRecording}
         />
 
@@ -207,7 +208,34 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="home_environment"
+          category={visionToRecordingKey('home')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel('home')}?`}
+          value={profile.dream_home || ''}
+          onChange={(value) => handleInputChange('dream_home', value)}
+          placeholder="What's your ideal vision for your home and living environment?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('home')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel('home')}?`}
+          value={profile.worry_home || ''}
+          onChange={(value) => handleInputChange('worry_home', value)}
+          placeholder="What concerns you most about your home, location, or living situation?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('home')}
+          instanceId="worry"
         />
       </div>
 

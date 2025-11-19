@@ -5,7 +5,7 @@ import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface HealthSectionProps {
   profile: Partial<UserProfile>
@@ -38,7 +38,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
       url,
       transcript,
       type,
-      category: 'health_vitality',
+      category: visionToRecordingKey('health'),
       created_at: new Date().toISOString()
     }
 
@@ -91,7 +91,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const healthRecordings = (profile.story_recordings || []).filter(r => r.category === 'health_vitality')
+    const healthRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('health'))
     const allRecordings = profile.story_recordings || []
     
     // Find the actual index in the full array
@@ -300,14 +300,15 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="health_vitality"
+          category={visionToRecordingKey('health')}
+          instanceId="clarity"
         />
 
         {/* Display Saved Recordings */}
         <SavedRecordings
           key={`health-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="health_vitality"
+          categoryFilter={visionToRecordingKey('health')}
           onDelete={handleDeleteRecording}
         />
 
@@ -320,7 +321,34 @@ export function HealthSection({ profile, onProfileChange, onProfileReload }: Hea
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="health_vitality"
+          category={visionToRecordingKey('health')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel('health')}?`}
+          value={profile.dream_health || ''}
+          onChange={(value) => handleInputChange('dream_health', value)}
+          placeholder="What's your ideal vision for your health and vitality? How do you want to feel in your body?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('health')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel('health')}?`}
+          value={profile.worry_health || ''}
+          onChange={(value) => handleInputChange('clarity_health', value)}
+          placeholder="What concerns you most about your health, fitness, energy levels, or overall wellbeing?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('health')}
+          instanceId="worry"
         />
       </div>
 

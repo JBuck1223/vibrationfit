@@ -6,7 +6,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface FamilySectionProps {
   profile: Partial<UserProfile>
@@ -53,7 +53,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
       url,
       transcript,
       type,
-      category: 'family_parenting',
+      category: visionToRecordingKey('family'),
       created_at: new Date().toISOString()
     }
 
@@ -81,7 +81,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'family_parenting')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('family'))
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => 
@@ -235,14 +235,15 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="family_parenting"
+          category={visionToRecordingKey('family')}
+          instanceId="clarity"
         />
 
         {/* Display Saved Recordings */}
         <SavedRecordings
           key={`family-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="family_parenting"
+          categoryFilter={visionToRecordingKey('family')}
           onDelete={handleDeleteRecording}
         />
 
@@ -255,7 +256,34 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="family_parenting"
+          category={visionToRecordingKey('family')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel('family')}?`}
+          value={profile.dream_family || ''}
+          onChange={(value) => handleInputChange('dream_family', value)}
+          placeholder="What's your ideal vision for your family life and relationships with your loved ones?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('family')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel('family')}?`}
+          value={profile.worry_family || ''}
+          onChange={(value) => handleInputChange('worry_family', value)}
+          placeholder="What concerns you most about your family dynamics, parenting, or relationships with loved ones?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('family')}
+          instanceId="worry"
         />
       </div>
 

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Card } from '@/lib/design-system/components'
-import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, profileSectionToVisionKey } from '@/lib/design-system/vision-categories'
 import { User, CheckCircle, Camera } from 'lucide-react'
 
 interface ProfileSidebarProps {
@@ -13,24 +13,18 @@ interface ProfileSidebarProps {
 
 // Helper function to get category info from design system
 const getCategoryInfo = (categoryId: string) => {
-  // Map profile section IDs to vision category keys
-  const categoryMapping: Record<string, string> = {
-    'personal': 'personal', // Special case - not in vision categories
-    'fun-recreation': 'fun',
-    'health': 'health',
-    'travel-adventure': 'travel',
-    'relationship': 'love',
-    'family': 'family',
-    'social-friends': 'social',
-    'location': 'home',
-    'career': 'work',
-    'financial': 'money',
-    'possessions-lifestyle': 'stuff',
-    'giving-legacy': 'giving',
-    'spirituality-growth': 'spirituality'
+  // Fallback for personal info (not in vision categories)
+  if (categoryId === 'personal') {
+    return {
+      id: 'personal',
+      title: 'Personal Info',
+      icon: User,
+      description: 'Basic information about you'
+    }
   }
   
-  const visionCategoryKey = categoryMapping[categoryId] || categoryId
+  // Use centralized category mapping
+  const visionCategoryKey = profileSectionToVisionKey(categoryId)
   const category = getVisionCategory(visionCategoryKey)
   
   if (category) {
@@ -39,16 +33,6 @@ const getCategoryInfo = (categoryId: string) => {
       title: category.label,
       icon: category.icon,
       description: category.description
-    }
-  }
-  
-  // Fallback for personal info (not in vision categories)
-  if (categoryId === 'personal') {
-    return {
-      id: 'personal',
-      title: 'Personal Info',
-      icon: User,
-      description: 'Basic information about you'
     }
   }
   

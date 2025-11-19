@@ -351,14 +351,13 @@ export async function POST(req: Request) {
                 .limit(1)
                 .maybeSingle(),
       
-      // Latest assessment
+      // Active assessment
       supabase
         .from('assessment_results')
         .select('*, assessment_responses(*)')
         .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(1)
-        .single(),
+        .eq('is_active', true)
+        .maybeSingle(),
       
       // For master assistant: get journey state (always fetch, but only use if master mode)
       Promise.all([

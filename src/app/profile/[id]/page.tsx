@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, CreatedDateBadge, VersionBadge, StatusBadge, Container } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VersionCard } from '../components/VersionCard'
-import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
 import { ProfileField } from '../components/ProfileField'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -48,40 +48,9 @@ import NextImage from 'next/image'
 
 // Helper function to get category info from design system
 const getCategoryInfo = (categoryId: string) => {
-  // Map profile category filters to vision category keys
-  const categoryMapping: Record<string, string> = {
-    'love': 'love',
-    'family': 'family', 
-    'health': 'health',
-    'home': 'home',
-    'work': 'work',
-    'money': 'money',
-    'fun': 'fun',
-    'travel': 'travel',
-    'social': 'social',
-    'stuff': 'stuff',
-    'spirituality': 'spirituality',
-    'giving': 'giving'
-  }
-  
-  // Map vision category keys to recording category values (used in story_recordings)
-  const recordingCategoryMapping: Record<string, string> = {
-    'love': 'love',
-    'family': 'family_parenting',
-    'health': 'health_vitality',
-    'home': 'home_environment',
-    'work': 'work',
-    'money': 'money_wealth',
-    'fun': 'fun_recreation',
-    'travel': 'travel_adventure',
-    'social': 'social_friends',
-    'stuff': 'stuff',
-    'spirituality': 'spirituality_growth',
-    'giving': 'giving_legacy'
-  }
-  
-  const visionCategoryKey = categoryMapping[categoryId] || categoryId
-  const category = getVisionCategory(visionCategoryKey)
+  // Use centralized category mapping
+  const visionCategoryKey = convertCategoryKey(categoryId, 'vision', 'vision') // If already vision key
+  const category = getVisionCategory(visionCategoryKey || categoryId)
   
   if (category) {
     return {
@@ -90,7 +59,7 @@ const getCategoryInfo = (categoryId: string) => {
       icon: category.icon,
       color: 'text-primary-500',
       order: category.order,
-      recordingCategory: recordingCategoryMapping[categoryId] || categoryId
+      recordingCategory: visionToRecordingKey(categoryId)
     }
   }
   

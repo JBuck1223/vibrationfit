@@ -220,18 +220,53 @@ export function getCategoryContrastField(categoryKey: string): string {
 }
 
 /**
- * Get clarity and contrast field names for a category
+ * Get the dream field name for a category
+ * e.g., 'fun' → 'dream_fun'
  */
-export function getCategoryFields(categoryKey: string): { clarity: string; contrast: string } {
+export function getCategoryDreamField(categoryKey: string): string {
+  return `dream_${categoryKey}`
+}
+
+/**
+ * Get the worry field name for a category
+ * e.g., 'fun' → 'worry_fun'
+ */
+export function getCategoryWorryField(categoryKey: string): string {
+  return `worry_${categoryKey}`
+}
+
+/**
+ * Get clarity, contrast, dream, and worry field names for a category
+ */
+export function getCategoryFields(categoryKey: string): { 
+  clarity: string
+  contrast: string
+  dream: string
+  worry: string
+} {
   return {
     clarity: getCategoryClarityField(categoryKey),
     contrast: getCategoryContrastField(categoryKey),
+    dream: getCategoryDreamField(categoryKey),
+    worry: getCategoryWorryField(categoryKey),
   }
 }
 
 // Map of all category story fields for batch operations
 export const CATEGORY_STORY_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
   acc[key] = getCategoryStoryField(key)
+  return acc
+}, {} as Record<string, string>)
+
+// Map of all category dream fields for batch operations
+export const CATEGORY_DREAM_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
+  acc[key] = getCategoryDreamField(key)
+  return acc
+}, {} as Record<string, string>)
+
+// Map of all category worry fields for batch operations
+export const CATEGORY_WORRY_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
+  acc[key] = getCategoryWorryField(key)
   return acc
 }, {} as Record<string, string>)
 
@@ -246,3 +281,176 @@ export const CATEGORY_CONTRAST_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => 
   acc[key] = getCategoryContrastField(key)
   return acc
 }, {} as Record<string, string>)
+
+// ============================================================================
+// COMPREHENSIVE CATEGORY MAPPING - SINGLE SOURCE OF TRUTH
+// ============================================================================
+// Different parts of the app use different category key formats
+// This mapping ensures consistency across all systems
+
+/**
+ * Complete category mapping for each life area
+ * Vision keys are the canonical source of truth
+ */
+export interface CategoryMapping {
+  vision: string           // Canonical key (e.g., 'love', 'work', 'stuff')
+  assessment: string       // Same as vision
+  recording: string        // Same as vision
+  profileSection: string   // Same as vision - ONE set of clean keys everywhere!
+  label: string           // Display name
+}
+
+export const CATEGORY_MAPPINGS: CategoryMapping[] = [
+  {
+    vision: 'fun',
+    assessment: 'fun',
+    recording: 'fun',
+    profileSection: 'fun',
+    label: 'Fun'
+  },
+  {
+    vision: 'health',
+    assessment: 'health',
+    recording: 'health',
+    profileSection: 'health',
+    label: 'Health'
+  },
+  {
+    vision: 'travel',
+    assessment: 'travel',
+    recording: 'travel',
+    profileSection: 'travel',
+    label: 'Travel'
+  },
+  {
+    vision: 'love',
+    assessment: 'love',
+    recording: 'love',
+    profileSection: 'love',
+    label: 'Love'
+  },
+  {
+    vision: 'family',
+    assessment: 'family',
+    recording: 'family',
+    profileSection: 'family',
+    label: 'Family'
+  },
+  {
+    vision: 'social',
+    assessment: 'social',
+    recording: 'social',
+    profileSection: 'social',
+    label: 'Social'
+  },
+  {
+    vision: 'home',
+    assessment: 'home',
+    recording: 'home',
+    profileSection: 'home',
+    label: 'Home'
+  },
+  {
+    vision: 'work',
+    assessment: 'work',
+    recording: 'work',
+    profileSection: 'work',
+    label: 'Work'
+  },
+  {
+    vision: 'money',
+    assessment: 'money',
+    recording: 'money',
+    profileSection: 'money',
+    label: 'Money'
+  },
+  {
+    vision: 'stuff',
+    assessment: 'stuff',
+    recording: 'stuff',
+    profileSection: 'stuff',
+    label: 'Stuff'
+  },
+  {
+    vision: 'giving',
+    assessment: 'giving',
+    recording: 'giving',
+    profileSection: 'giving',
+    label: 'Giving'
+  },
+  {
+    vision: 'spirituality',
+    assessment: 'spirituality',
+    recording: 'spirituality',
+    profileSection: 'spirituality',
+    label: 'Spirituality'
+  }
+]
+
+// ============================================================================
+// CONVERSION HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Convert between any category key format
+ */
+export function convertCategoryKey(
+  key: string,
+  from: keyof Omit<CategoryMapping, 'label'>,
+  to: keyof Omit<CategoryMapping, 'label'>
+): string {
+  const mapping = CATEGORY_MAPPINGS.find(m => m[from] === key)
+  return mapping ? mapping[to] : key
+}
+
+/**
+ * Convert vision category key to assessment category key
+ */
+export function visionToAssessmentKey(visionKey: string): string {
+  return convertCategoryKey(visionKey, 'vision', 'assessment')
+}
+
+/**
+ * Convert assessment category key to vision category key
+ */
+export function assessmentToVisionKey(assessmentKey: string): string {
+  return convertCategoryKey(assessmentKey, 'assessment', 'vision')
+}
+
+/**
+ * Convert vision category key to recording category key
+ */
+export function visionToRecordingKey(visionKey: string): string {
+  return convertCategoryKey(visionKey, 'vision', 'recording')
+}
+
+/**
+ * Convert recording category key to vision category key
+ */
+export function recordingToVisionKey(recordingKey: string): string {
+  return convertCategoryKey(recordingKey, 'recording', 'vision')
+}
+
+/**
+ * Convert vision category key to profile section key
+ */
+export function visionToProfileSectionKey(visionKey: string): string {
+  return convertCategoryKey(visionKey, 'vision', 'profileSection')
+}
+
+/**
+ * Convert profile section key to vision category key
+ */
+export function profileSectionToVisionKey(profileSectionKey: string): string {
+  return convertCategoryKey(profileSectionKey, 'profileSection', 'vision')
+}
+
+/**
+ * Get the full mapping for a category by any key type
+ */
+export function getCategoryMapping(
+  key: string,
+  keyType: keyof Omit<CategoryMapping, 'label'>
+): CategoryMapping | undefined {
+  return CATEGORY_MAPPINGS.find(m => m[keyType] === key)
+}

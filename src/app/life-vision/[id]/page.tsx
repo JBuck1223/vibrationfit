@@ -29,7 +29,7 @@ import { VersionCard } from '@/app/profile/components/VersionCard'
 import { VisionVersionCard } from '../components/VisionVersionCard'
 import { VisionCategoryCard } from '../components/VisionCategoryCard'
 import { CategoryCard } from '@/lib/design-system'
-import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, assessmentToVisionKey } from '@/lib/design-system/vision-categories'
 import { colors } from '@/lib/design-system/tokens'
 import { generateVisionPDF } from '@/lib/pdf'
 
@@ -193,20 +193,20 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       const sectionToCategory: Record<string, string> = {
         'meta_intro': 'forward',
         'meta_outro': 'conclusion',
-        // Map all other keys 1:1
+        // Map all other keys 1:1, with legacy assessment key support
         health: 'health',
         family: 'family',
         love: 'love',
-        romance: 'love', // Legacy support: map romance to love
+        romance: assessmentToVisionKey('romance'), // Legacy support: map romance to love
         social: 'social',
         fun: 'fun',
         travel: 'travel',
         home: 'home',
         money: 'money',
         work: 'work',
-        business: 'work', // Legacy support: map business to work
+        business: assessmentToVisionKey('business'), // Legacy support: map business to work
         stuff: 'stuff',
-        possessions: 'stuff', // Legacy support: map possessions to stuff
+        possessions: assessmentToVisionKey('possessions'), // Legacy support: map possessions to stuff
         giving: 'giving',
         spirituality: 'spirituality',
       }

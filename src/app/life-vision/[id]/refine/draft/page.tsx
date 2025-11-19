@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Gem, Check, Eye } from 'lucide-react'
-import { getDraftVision, commitDraft, getRefinedCategories, isCategoryRefined } from '@/lib/vision/draft-helpers'
+import { getDraftVision, commitDraft, getRefinedCategories, isCategoryRefined } from '@/lib/life-vision/draft-helpers'
 import { 
   Button, 
   Card, 

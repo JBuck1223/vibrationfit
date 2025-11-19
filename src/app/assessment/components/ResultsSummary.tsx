@@ -59,8 +59,8 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
 
   // Get all 12 categories with real data from assessment
   const allCategories: AssessmentCategory[] = [
-    'fun', 'travel', 'home', 'family', 'romance', 'health',
-    'money', 'business', 'social', 'possessions', 'giving', 'spirituality'
+    'fun', 'travel', 'home', 'family', 'love', 'health',
+    'money', 'work', 'social', 'stuff', 'giving', 'spirituality'
   ]
   
   const categories = allCategories.map((categoryKey) => {

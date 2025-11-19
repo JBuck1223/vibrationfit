@@ -6,7 +6,7 @@ import { UserProfile } from '@/lib/supabase/profile'
 import { Plane, Plus, Trash2 } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface TravelAdventureSectionProps {
   profile: Partial<UserProfile>
@@ -50,7 +50,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'travel_adventure', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: visionToRecordingKey('travel'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
       // Build API URL with profileId if provided
@@ -71,7 +71,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'travel_adventure')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('travel'))
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
@@ -254,13 +254,14 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="travel_adventure"
+          category={visionToRecordingKey('travel')}
+          instanceId="clarity"
         />
 
         <SavedRecordings
           key={`travel-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="travel_adventure"
+          categoryFilter={visionToRecordingKey('travel')}
           onDelete={handleDeleteRecording}
         />
 
@@ -273,7 +274,34 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="travel_adventure"
+          category={visionToRecordingKey('travel')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel('travel')}?`}
+          value={profile.dream_travel || ''}
+          onChange={(value) => handleInputChange('dream_travel', value)}
+          placeholder="What's your ideal vision for travel and adventure? Where do you dream of going and what experiences do you crave?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('travel')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel('travel')}?`}
+          value={profile.worry_travel || ''}
+          onChange={(value) => handleInputChange('worry_travel', value)}
+          placeholder="What concerns you most about travel—time, money, responsibilities, or something else?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('travel')}
+          instanceId="worry"
         />
       </div>
 

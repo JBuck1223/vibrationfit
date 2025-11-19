@@ -22,7 +22,7 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
   const [duration, setDuration] = useState(0)
   const [currentAudioBlob, setCurrentAudioBlob] = useState<Blob>(audioBlob)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [zoomLevel, setZoomLevel] = useState(1)
+  const [zoomLevel, setZoomLevel] = useState(50) // Start at 50 pixels per second
   const [showInstructions, setShowInstructions] = useState(false)
 
   useEffect(() => {
@@ -78,6 +78,10 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
         barWidth: 2,
         barGap: 1,
         barRadius: 2,
+        minPxPerSec: 50, // Start at 50 pixels per second
+        fillParent: true, // Allow waveform to fill and expand parent
+        autoScroll: true, // Auto-scroll on playback to keep cursor visible
+        autoCenter: true, // Keep cursor centered when scrolling
       })
 
       // Initialize Regions Plugin
@@ -426,22 +430,34 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
 
   const handleZoomIn = () => {
     if (!wavesurferRef.current) return
-    const newZoom = Math.min(zoomLevel * 1.5, 500) // Max 500 pixels per second
+    
+    // Increase pixels per second to zoom in (show more detail)
+    const newZoom = Math.min(zoomLevel * 1.5, 1000) // Max 1000 pixels per second
     setZoomLevel(newZoom)
     wavesurferRef.current.zoom(newZoom)
   }
 
   const handleZoomOut = () => {
     if (!wavesurferRef.current) return
-    const newZoom = Math.max(zoomLevel / 1.5, 1) // Min 1 pixel per second
+    
+    // Decrease pixels per second to zoom out (show more audio)
+    // Calculate minimum based on fitting entire audio in container
+    const containerWidth = waveformRef.current?.parentElement?.clientWidth || 800
+    const minPxPerSec = Math.max(1, containerWidth / Math.max(duration, 1))
+    
+    const newZoom = Math.max(zoomLevel / 1.5, minPxPerSec)
     setZoomLevel(newZoom)
     wavesurferRef.current.zoom(newZoom)
   }
 
   const handleFitToView = () => {
-    if (!wavesurferRef.current) return
-    setZoomLevel(1)
-    wavesurferRef.current.zoom(1)
+    if (!wavesurferRef.current || !waveformRef.current) return
+    
+    // Fit entire waveform to container width
+    const containerWidth = waveformRef.current.parentElement?.clientWidth || 800
+    const newZoom = Math.max(1, containerWidth / Math.max(duration, 1))
+    setZoomLevel(newZoom)
+    wavesurferRef.current.zoom(newZoom)
   }
 
   return (
@@ -454,11 +470,10 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
           </span>
         </div>
         
-        {/* Waveform */}
+        {/* Waveform - Container with horizontal scroll */}
         <div className="mb-4 rounded-lg overflow-x-auto overflow-y-hidden bg-black/50 border border-[#333]">
           <div 
             ref={waveformRef}
-            className="min-w-full"
           />
         </div>
         
@@ -529,7 +544,7 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
               onClick={handleZoomOut}
               className="w-10 h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 hover:scale-110 border border-neutral-700"
               title="Zoom Out"
-              disabled={zoomLevel <= 1}
+              disabled={duration > 0 && zoomLevel <= Math.max(1, (waveformRef.current?.parentElement?.clientWidth || 800) / duration)}
             >
               <ZoomOut className="w-4 h-4 text-white" />
             </button>
@@ -548,7 +563,7 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
               onClick={handleZoomIn}
               className="w-10 h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 hover:scale-110 border border-neutral-700"
               title="Zoom In"
-              disabled={zoomLevel >= 500}
+              disabled={zoomLevel >= 1000}
             >
               <ZoomIn className="w-4 h-4 text-white" />
             </button>

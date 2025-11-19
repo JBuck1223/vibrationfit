@@ -21,6 +21,7 @@ interface RecordingTextareaProps {
   onRecordingSaved?: (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => Promise<void>
   storageFolder?: 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'profile' | 'customTracks'
   category?: string // Category for IndexedDB persistence (e.g., 'fun', 'health', 'journal')
+  instanceId?: string // Unique identifier for this field (prevents recordings from bleeding across fields)
   onUploadProgress?: (progress: number, status: string, fileName: string, fileSize: number) => void
   transcriptOnly?: boolean // Deprecated: use recordingPurpose instead
   recordingPurpose?: 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly' // Recording behavior: quick (no S3), transcriptOnly (S3 deleted if discarded), withFile (S3 always kept), audioOnly (S3 storage, no transcription)
@@ -38,6 +39,7 @@ export function RecordingTextarea({
   onRecordingSaved, // (url: string, transcript: string, type: 'audio' | 'video', updatedText: string, s3Url?: string) => void
   storageFolder = 'journal',
   category,
+  instanceId, // Unique identifier for this field
   onUploadProgress,
   transcriptOnly = false, // Deprecated
   recordingPurpose = transcriptOnly ? 'transcriptOnly' : 'withFile' // Default based on transcriptOnly for backward compat
@@ -249,6 +251,7 @@ export function RecordingTextarea({
             maxDuration={600} // 10 minutes
             showSaveOption={recordingPurpose === 'withFile'} // Hide save option if not withFile mode
             category={category || storageFolder} // Use category if provided, else storageFolder
+            instanceId={instanceId} // Pass through unique field identifier
             recordingPurpose={recordingPurpose}
             storageFolder={
               recordingMode === 'video'

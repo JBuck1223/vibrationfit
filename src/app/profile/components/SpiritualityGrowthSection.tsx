@@ -6,7 +6,7 @@ import { UserProfile } from '@/lib/supabase/profile'
 import { Zap } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface SpiritualityGrowthSectionProps {
   profile: Partial<UserProfile>
@@ -20,7 +20,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'spirituality_growth', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: visionToRecordingKey('spirituality'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
       await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_spirituality: updatedText }) })
@@ -29,7 +29,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'spirituality_growth')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('spirituality'))
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
@@ -111,13 +111,14 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="spirituality_growth"
+          category={visionToRecordingKey('spirituality')}
+          instanceId="clarity"
         />
 
         <SavedRecordings
           key={`spirituality-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="spirituality_growth"
+          categoryFilter={visionToRecordingKey('spirituality')}
           onDelete={handleDeleteRecording}
         />
 
@@ -130,7 +131,34 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="spirituality_growth"
+          category={visionToRecordingKey('spirituality')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel('spirituality')}?`}
+          value={profile.dream_spirituality || ''}
+          onChange={(value) => handleInputChange('dream_spirituality', value)}
+          placeholder="What's your ideal vision for your spiritual journey and personal growth?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('spirituality')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel('spirituality')}?`}
+          value={profile.worry_spirituality || ''}
+          onChange={(value) => handleInputChange('worry_spirituality', value)}
+          placeholder="What concerns you most about your spiritual path or personal development?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('spirituality')}
+          instanceId="worry"
         />
       </div>
 

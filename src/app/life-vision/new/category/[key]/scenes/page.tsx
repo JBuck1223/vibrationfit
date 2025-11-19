@@ -126,13 +126,12 @@ export default function ScenesPage() {
         .eq('is_active', true)
         .maybeSingle()
 
-      // Get assessment data for this category
+      // Get active assessment data for this category
       const { data: assessment } = await supabase
         .from('assessment_results')
         .select('*, assessment_responses(*)')
         .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(1)
+        .eq('is_active', true)
         .maybeSingle()
 
       // Extract category-specific data

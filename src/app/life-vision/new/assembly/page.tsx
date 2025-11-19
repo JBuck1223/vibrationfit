@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
 import { Card, Button, Spinner, Badge } from '@/lib/design-system/components'
 import { Sparkles, CheckCircle, Download, ArrowRight, BarChart3 } from 'lucide-react'
 
@@ -136,9 +137,8 @@ export default function AssemblyPage() {
           .from('assessment_results')
           .select('*')
           .eq('user_id', user.id)
-          .order('completed_at', { ascending: false })
-          .limit(1)
-          .single()
+          .eq('is_active', true)
+          .maybeSingle()
         
         if (assessment) {
           // Get assessment responses with questions and answers
@@ -223,12 +223,12 @@ export default function AssemblyPage() {
             travel: data.json.travel || '',
             home: data.json.home || '',
             family: data.json.family || '',
-            love: data.json.love || data.json.romance || '', // Support both old and new
+            love: data.json.love || data.json[assessmentToVisionKey('romance')] || '', // Support both old and new
             health: data.json.health || '',
             money: data.json.money || '',
-            work: data.json.work || data.json.business || '', // Support both old and new
+            work: data.json.work || data.json[assessmentToVisionKey('business')] || '', // Support both old and new
             social: data.json.social || '',
-            stuff: data.json.stuff || data.json.possessions || '', // Support both old and new
+            stuff: data.json.stuff || data.json[assessmentToVisionKey('possessions')] || '', // Support both old and new
             giving: data.json.giving || '',
             spirituality: data.json.spirituality || '',
             conclusion: '',

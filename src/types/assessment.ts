@@ -4,13 +4,13 @@ export type AssessmentCategory =
   | 'money'      // Money / Wealth
   | 'health'     // Health / Vitality
   | 'family'     // Family / Parenting
-  | 'romance'    // Love / Romance
+  | 'love'       // Love / Romance
   | 'social'     // Social / Friends
-  | 'business'   // Business / Career
+  | 'work'       // Work / Career
   | 'fun'        // Fun / Recreation
   | 'travel'     // Travel / Adventure
   | 'home'       // Home / Environment
-  | 'possessions' // Possessions / Stuff
+  | 'stuff'      // Stuff / Possessions
   | 'giving'     // Giving / Legacy
   | 'spirituality' // Spirituality
 

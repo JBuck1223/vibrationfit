@@ -88,13 +88,12 @@ async function buildRefinementPrompt(
     .eq("user_id", userId)
     .single();
 
-  // Get assessment
+  // Get active assessment
   const { data: assessment } = await supabase
     .from("assessment_results")
     .select("*")
     .eq("user_id", userId)
-    .order("completed_at", { ascending: false })
-    .limit(1)
+    .eq("is_active", true)
     .maybeSingle();
 
   // Get category info

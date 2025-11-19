@@ -80,6 +80,32 @@ export interface UserProfile {
   contrast_stuff?: string | null
   contrast_giving?: string | null
   contrast_spirituality?: string | null
+  // Life Vision Dream Fields (12 categories) - What do you dream about?
+  dream_fun?: string | null
+  dream_health?: string | null
+  dream_travel?: string | null
+  dream_love?: string | null
+  dream_family?: string | null
+  dream_social?: string | null
+  dream_home?: string | null
+  dream_work?: string | null
+  dream_money?: string | null
+  dream_stuff?: string | null
+  dream_giving?: string | null
+  dream_spirituality?: string | null
+  // Life Vision Worry Fields (12 categories) - What worries you?
+  worry_fun?: string | null
+  worry_health?: string | null
+  worry_travel?: string | null
+  worry_love?: string | null
+  worry_family?: string | null
+  worry_social?: string | null
+  worry_home?: string | null
+  worry_work?: string | null
+  worry_money?: string | null
+  worry_stuff?: string | null
+  worry_giving?: string | null
+  worry_spirituality?: string | null
   // Structured Data Fields (12 categories)
   // Fun & Recreation
   hobbies?: string[] | null

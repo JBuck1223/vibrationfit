@@ -5,7 +5,7 @@ import { Card, Input, Textarea } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface CareerSectionProps {
   profile: Partial<UserProfile>
@@ -50,7 +50,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'work', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: visionToRecordingKey('work'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
       await fetch('/api/profile', {
@@ -63,7 +63,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'work')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('work'))
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
@@ -80,7 +80,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
 
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('work')}</h3>
+      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel(visionToRecordingKey('work'))}</h3>
       
       <div className="space-y-6">
         {/* Employment Type */}
@@ -192,7 +192,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
 
         {/* Clarity Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('work')}?`}
+          label={`What's going well in ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
           value={profile.clarity_work || ''}
           onChange={(value) => handleInputChange('clarity_work', value)}
           placeholder="Share what's going well with your career journey, professional goals, work experiences... Or record your story!"
@@ -200,26 +200,54 @@ export function CareerSection({ profile, onProfileChange, onProfileReload }: Car
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="work"
+          category={visionToRecordingKey('work')}
+          instanceId="clarity"
         />
 
         <SavedRecordings
           key={`career-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="work"
+          categoryFilter={visionToRecordingKey('work')}
           onDelete={handleDeleteRecording}
         />
 
         {/* Contrast Field */}
         <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('work')}?`}
+          label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
           value={profile.contrast_work || ''}
           onChange={(value) => handleInputChange('contrast_work', value)}
           placeholder="Share what's not going well with your career or work, or what you'd like to improve..."
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="work"
+          category={visionToRecordingKey('work')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
+          value={profile.dream_work || ''}
+          onChange={(value) => handleInputChange('dream_work', value)}
+          placeholder="What's your ideal vision for your career and professional life?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('work')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
+          value={profile.worry_work || ''}
+          onChange={(value) => handleInputChange('worry_work', value)}
+          placeholder="What concerns you most about your career, job security, or professional growth?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('work')}
+          instanceId="worry"
         />
       </div>
 

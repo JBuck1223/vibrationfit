@@ -5,7 +5,7 @@ import { Card } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface FinancialSectionProps {
   profile: Partial<UserProfile>
@@ -51,7 +51,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'money_wealth', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: visionToRecordingKey('money'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
       await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_money: updatedText }) })
@@ -60,7 +60,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'money_wealth')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('money'))
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
@@ -212,13 +212,14 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="money_wealth"
+          category={visionToRecordingKey('money')}
+          instanceId="clarity"
         />
 
         <SavedRecordings
           key={`money-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="money_wealth"
+          categoryFilter={visionToRecordingKey('money')}
           onDelete={handleDeleteRecording}
         />
 
@@ -231,7 +232,34 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload }: 
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="money_wealth"
+          category={visionToRecordingKey('money')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel('money')}?`}
+          value={profile.dream_money || ''}
+          onChange={(value) => handleInputChange('dream_money', value)}
+          placeholder="What's your ideal vision for your financial life and wealth?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('money')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel('money')}?`}
+          value={profile.worry_money || ''}
+          onChange={(value) => handleInputChange('worry_money', value)}
+          placeholder="What concerns you most about your finances, income, or financial future?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('money')}
+          instanceId="worry"
         />
       </div>
 

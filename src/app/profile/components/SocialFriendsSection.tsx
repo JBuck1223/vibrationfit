@@ -6,7 +6,7 @@ import { UserProfile } from '@/lib/supabase/profile'
 import { UserPlus } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface SocialFriendsSectionProps {
   profile: Partial<UserProfile>
@@ -20,7 +20,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'social_friends', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: visionToRecordingKey('social'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
       await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_social: updatedText }) })
@@ -29,7 +29,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'social_friends')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('social'))
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
@@ -97,13 +97,14 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="social_friends"
+          category={visionToRecordingKey('social')}
+          instanceId="clarity"
         />
 
         <SavedRecordings
           key={`social-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="social_friends"
+          categoryFilter={visionToRecordingKey('social')}
           onDelete={handleDeleteRecording}
         />
 
@@ -116,7 +117,34 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="social_friends"
+          category={visionToRecordingKey('social')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel('social')}?`}
+          value={profile.dream_social || ''}
+          onChange={(value) => handleInputChange('dream_social', value)}
+          placeholder="What's your ideal vision for your social life and friendships?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('social')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel('social')}?`}
+          value={profile.worry_social || ''}
+          onChange={(value) => handleInputChange('worry_social', value)}
+          placeholder="What concerns you most about your social connections and friendships?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('social')}
+          instanceId="worry"
         />
       </div>
 

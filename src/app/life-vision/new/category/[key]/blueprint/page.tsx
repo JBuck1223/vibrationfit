@@ -131,8 +131,7 @@ export default function BlueprintPage() {
         .from('assessment_results')
         .select('*')
         .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(1)
+        .eq('is_active', true)
         .maybeSingle()
 
       setVivaStage('generating')

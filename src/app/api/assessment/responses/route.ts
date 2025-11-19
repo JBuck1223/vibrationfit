@@ -105,10 +105,7 @@ export async function POST(request: NextRequest) {
       response_value,
       response_text,
       response_emoji,
-      green_line,
-      is_custom_response,
-      custom_response_value,
-      custom_green_line
+      green_line
     } = body
 
     // Validate required fields
@@ -141,8 +138,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Prepare the upsert data, only including new fields if they exist
-    const upsertData: any = {
+    // Prepare the upsert data
+    const upsertData = {
       assessment_id,
       question_id,
       question_text,
@@ -151,17 +148,6 @@ export async function POST(request: NextRequest) {
       response_text,
       response_emoji,
       green_line
-    }
-
-    // Add new fields if they're provided (for backward compatibility)
-    if (is_custom_response !== undefined) {
-      upsertData.is_custom_response = is_custom_response
-    }
-    if (custom_response_value !== undefined && custom_response_value !== null) {
-      upsertData.custom_response_value = custom_response_value
-    }
-    if (custom_green_line !== undefined && custom_green_line !== null) {
-      upsertData.custom_green_line = custom_green_line
     }
 
     // Upsert the response (insert or update if exists)

@@ -9,7 +9,7 @@ import { Button, Spinner, Card } from '@/lib/design-system/components'
 import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
 import { AssessmentQuestion, AssessmentOption, AssessmentCategory } from '@/types/assessment'
-import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, visionToAssessmentKey } from '@/lib/design-system/vision-categories'
 import {
   saveResponse,
   fetchAssessmentProgress,
@@ -55,8 +55,12 @@ export default function AssessmentPage() {
 
 
   // Reorder assessmentQuestions to match VISION_CATEGORIES order
+  // Convert vision keys to assessment keys for lookup
   const orderedAssessmentQuestions = assessmentCategoriesOrder
-    .map(key => assessmentQuestions.find(cat => cat.category === key))
+    .map(visionKey => {
+      const assessmentKey = visionToAssessmentKey(visionKey)
+      return assessmentQuestions.find(cat => cat.category === assessmentKey)
+    })
     .filter(Boolean) as typeof assessmentQuestions
 
   // Get current category and questions
@@ -70,6 +74,17 @@ export default function AssessmentPage() {
     ? filterQuestionsByProfile(currentCategory?.questions || [], profile)
     : currentCategory?.questions || []
   const currentQuestion = filteredQuestions[currentQuestionIndex]
+  
+  // Debug logging for conditional logic
+  if (currentCategory?.category === 'love' && profile) {
+    console.log('Love category - Profile data:', {
+      relationship_status: profile.relationship_status,
+      has_children: profile.has_children,
+      employment_type: profile.employment_type
+    })
+    console.log('Love category - Total questions:', currentCategory.questions.length)
+    console.log('Love category - Filtered questions:', filteredQuestions.length)
+  }
   
   
   // If current category has no questions, skip to next category with questions
@@ -639,10 +654,11 @@ export default function AssessmentPage() {
                 
                 <div className="space-y-2">
                   {assessmentCategoriesOrder.map((categoryKey, index) => {
-                    const cat = assessmentQuestions.find(c => c.category === categoryKey)
+                    const assessmentKey = visionToAssessmentKey(categoryKey)
+                    const cat = assessmentQuestions.find(c => c.category === assessmentKey)
                     const visionCat = VISION_CATEGORIES.find(v => v.key === categoryKey)
                     const Icon = visionCat?.icon
-                    const categoryProgress = progress?.categories[categoryKey]
+                    const categoryProgress = progress?.categories[assessmentKey]
                     const isComplete = categoryProgress && categoryProgress.percentage === 100
                     const isCurrent = currentCategoryIndex === index
                     const hasQuestions = cat && cat.questions && cat.questions.length > 0

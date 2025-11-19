@@ -97,12 +97,7 @@ export const userNavigation: NavItem[] = [
     name: 'Assessment',
     href: '/assessment',
     icon: Brain,
-    hasDropdown: true,
     description: 'Vibration assessment',
-    children: [
-      { name: 'See Assessments', href: '/assessment', icon: Eye },
-      { name: 'View Results', href: '/assessment/results', icon: BarChart3 },
-    ]
   },
   {
     name: 'Vision Board',

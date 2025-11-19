@@ -47,7 +47,7 @@ import {
   getRefinedCategories,
   isCategoryRefined,
   commitDraft
-} from '@/lib/vision/draft-helpers'
+} from '@/lib/life-vision/draft-helpers'
 
 interface VisionData {
   id: string

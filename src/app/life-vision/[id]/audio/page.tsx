@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Container, Stack, Badge } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
+import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
 import { Headphones, Play, Clock, CheckCircle, Music, Moon, Zap, Sparkles, ArrowRight, Volume2, Target, Mic, Plus, Eye } from 'lucide-react'
 import Link from 'next/link'
 
@@ -150,24 +151,24 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     sectionMap.set('health', 'Health')
     sectionMap.set('travel', 'Travel')
     sectionMap.set('love', 'Love')
-    sectionMap.set('romance', 'Love')  // Legacy mapping
+    sectionMap.set(assessmentToVisionKey('romance'), 'Love')  // Legacy mapping
     sectionMap.set('family', 'Family')
     sectionMap.set('social', 'Social')
     sectionMap.set('home', 'Home')
     sectionMap.set('work', 'Work')
-    sectionMap.set('business', 'Work')  // Legacy mapping
+    sectionMap.set(assessmentToVisionKey('business'), 'Work')  // Legacy mapping
     sectionMap.set('money', 'Money')
     sectionMap.set('stuff', 'Stuff')
-    sectionMap.set('possessions', 'Stuff')  // Legacy mapping
+    sectionMap.set(assessmentToVisionKey('possessions'), 'Stuff')  // Legacy mapping
     sectionMap.set('giving', 'Giving')
     sectionMap.set('spirituality', 'Spirituality')
     sectionMap.set('meta_outro', 'Conclusion')
 
     // Map legacy section keys to current ones for sorting
     const sectionKeyNormalizer = new Map<string, string>()
-    sectionKeyNormalizer.set('romance', 'love')
-    sectionKeyNormalizer.set('business', 'work')
-    sectionKeyNormalizer.set('possessions', 'stuff')
+    sectionKeyNormalizer.set('romance', assessmentToVisionKey('romance'))
+    sectionKeyNormalizer.set('business', assessmentToVisionKey('business'))
+    sectionKeyNormalizer.set('possessions', assessmentToVisionKey('possessions'))
 
     // Build canonical order for sorting
     const canonicalOrder = [

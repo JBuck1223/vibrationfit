@@ -6,7 +6,7 @@ import { UserProfile } from '@/lib/supabase/profile'
 import { Gift } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface GivingLegacySectionProps {
   profile: Partial<UserProfile>
@@ -20,7 +20,7 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload 
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'giving_legacy', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: visionToRecordingKey('giving'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
       await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_giving: updatedText }) })
@@ -29,7 +29,7 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload 
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'giving_legacy')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('giving'))
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
@@ -111,13 +111,14 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload 
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="giving_legacy"
+          category={visionToRecordingKey('giving')}
+          instanceId="clarity"
         />
 
         <SavedRecordings
           key={`giving-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="giving_legacy"
+          categoryFilter={visionToRecordingKey('giving')}
           onDelete={handleDeleteRecording}
         />
 
@@ -130,7 +131,34 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload 
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="giving_legacy"
+          category={visionToRecordingKey('giving')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel('giving')}?`}
+          value={profile.dream_giving || ''}
+          onChange={(value) => handleInputChange('dream_giving', value)}
+          placeholder="What's your ideal vision for the impact you want to make and the legacy you want to leave?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('giving')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel('giving')}?`}
+          value={profile.worry_giving || ''}
+          onChange={(value) => handleInputChange('worry_giving', value)}
+          placeholder="What concerns you most about making a meaningful impact or leaving a lasting legacy?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('giving')}
+          instanceId="worry"
         />
       </div>
 

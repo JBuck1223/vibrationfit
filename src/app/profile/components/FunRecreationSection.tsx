@@ -6,7 +6,7 @@ import { UserProfile } from '@/lib/supabase/profile'
 import { PartyPopper, Plus, X } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface FunRecreationSectionProps {
   profile: Partial<UserProfile>
@@ -23,7 +23,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'fun_recreation', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: visionToRecordingKey('fun'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
       // Build API URL with profileId if provided
@@ -47,7 +47,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
     console.log('🗑️ handleDeleteRecording called with index:', index)
     console.log('📋 Current profile.story_recordings:', profile.story_recordings)
     
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'fun_recreation')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('fun'))
     console.log('🎯 Filtered categoryRecordings:', categoryRecordings)
     
     const recordingToDelete = categoryRecordings[index]
@@ -216,13 +216,14 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="fun_recreation"
+          category={visionToRecordingKey('fun')}
+          instanceId="clarity"
         />
 
         <SavedRecordings
           key={`fun-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="fun_recreation"
+          categoryFilter={visionToRecordingKey('fun')}
           onDelete={handleDeleteRecording}
         />
 
@@ -235,7 +236,34 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="fun_recreation"
+          category={visionToRecordingKey('fun')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel('fun')}?`}
+          value={profile.dream_fun || ''}
+          onChange={(value) => handleInputChange('dream_fun', value)}
+          placeholder="What's your ideal vision for fun and recreation in your life? What would bring you the most joy?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('fun')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel('fun')}?`}
+          value={profile.worry_fun || ''}
+          onChange={(value) => handleInputChange('worry_fun', value)}
+          placeholder="What concerns you most about finding time for fun, pursuing your hobbies, or enjoying life?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('fun')}
+          instanceId="worry"
         />
       </div>
 

@@ -50,7 +50,16 @@ export async function GET(request: NextRequest) {
       .from('user_profiles')
       .select('*')
       .eq('user_id', user.id)
+      .eq('is_active', true)
+      .eq('is_draft', false)
       .single()
+    
+    console.log('📊 Progress API - Profile data:', {
+      found: !!profile,
+      relationship_status: profile?.relationship_status,
+      has_children: profile?.has_children,
+      employment_type: profile?.employment_type
+    })
 
     // Fetch all responses for this assessment
     const { data: responses, error: responsesError } = await supabase
@@ -86,6 +95,16 @@ export async function GET(request: NextRequest) {
         total: categoryTotal,
         answered: categoryAnswered,
         percentage: categoryTotal > 0 ? Math.round((categoryAnswered / categoryTotal) * 100) : 0
+      }
+
+      // Debug log for love category
+      if (categoryData.category === 'love') {
+        console.log('📊 Progress API - Love category:', {
+          totalQuestions: categoryData.questions.length,
+          filteredQuestions: filteredQuestions.length,
+          answeredQuestions: categoryAnswered,
+          responseMapSize: responseMap.size
+        })
       }
 
       totalQuestions += categoryTotal

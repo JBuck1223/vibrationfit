@@ -109,14 +109,13 @@ export async function POST(request: NextRequest) {
         sendProgress(controller, 'assessment', `Compiling your assessment data for ${categoryName}...`)
         
         try {
-          // Get raw assessment data
+          // Get active assessment data
           const { data: assessmentData } = await supabase
             .from('assessment_results')
             .select('*')
             .eq('user_id', user.id)
-            .order('completed_at', { ascending: false })
-            .limit(1)
-            .single()
+            .eq('is_active', true)
+            .maybeSingle()
           
           if (assessmentData) {
             // Get assessment responses with questions and answers

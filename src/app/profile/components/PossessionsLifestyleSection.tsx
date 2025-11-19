@@ -6,7 +6,7 @@ import { UserProfile } from '@/lib/supabase/profile'
 import { Package, Plus, Trash2 } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface PossessionsLifestyleSectionProps {
   profile: Partial<UserProfile>
@@ -71,7 +71,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
-    const newRecording = { url, transcript, type, category: 'stuff', created_at: new Date().toISOString() }
+    const newRecording = { url, transcript, type, category: visionToRecordingKey('stuff'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
       // Build API URL with profileId if provided
@@ -92,7 +92,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
   }
 
   const handleDeleteRecording = async (index: number) => {
-    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === 'stuff')
+    const categoryRecordings = (profile.story_recordings || []).filter(r => r.category === visionToRecordingKey('stuff'))
     const recordingToDelete = categoryRecordings[index]
     const allRecordings = profile.story_recordings || []
     const actualIndex = allRecordings.findIndex(r => r.url === recordingToDelete.url && r.created_at === recordingToDelete.created_at)
@@ -132,7 +132,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
         <Package className="w-6 h-6 text-primary-500" />
-        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('stuff')}</h3>
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel(visionToRecordingKey('stuff'))}</h3>
       </div>
       
       <div className="space-y-6">
@@ -333,7 +333,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
 
         {/* Clarity Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('stuff')}?`}
+          label={`What's going well in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
           value={profile.clarity_stuff || ''}
           onChange={(value) => handleInputChange('clarity_stuff', value)}
           placeholder="Share what's going well with your lifestyle, what possessions matter to you, how you live... Or record your story!"
@@ -341,26 +341,54 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
-          category="stuff"
+          category={visionToRecordingKey('stuff')}
+          instanceId="clarity"
         />
 
         <SavedRecordings
           key={`possessions-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
-          categoryFilter="stuff"
+          categoryFilter={visionToRecordingKey('stuff')}
           onDelete={handleDeleteRecording}
         />
 
         {/* Contrast Field */}
         <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('stuff')}?`}
+          label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
           value={profile.contrast_stuff || ''}
           onChange={(value) => handleInputChange('contrast_stuff', value)}
           placeholder="Share what's not going well with your lifestyle or possessions, or what you'd like to improve..."
           rows={6}
           allowVideo={true}
           storageFolder="profile"
-          category="stuff"
+          category={visionToRecordingKey('stuff')}
+          instanceId="contrast"
+        />
+
+        {/* Dream Field */}
+        <RecordingTextarea
+          label={`What do you dream about in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
+          value={profile.dream_stuff || ''}
+          onChange={(value) => handleInputChange('dream_stuff', value)}
+          placeholder="What's your ideal vision for your possessions and material life?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('stuff')}
+          instanceId="dream"
+        />
+
+        {/* Worry Field */}
+        <RecordingTextarea
+          label={`What do you worry about in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
+          value={profile.worry_stuff || ''}
+          onChange={(value) => handleInputChange('worry_stuff', value)}
+          placeholder="What concerns you most about your possessions, lifestyle, or material needs?"
+          rows={4}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('stuff')}
+          instanceId="worry"
         />
       </div>
 

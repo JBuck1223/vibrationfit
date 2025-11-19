@@ -375,8 +375,8 @@ const familyQuestions: AssessmentQuestion[] = [
 const romanceQuestions: AssessmentQuestion[] = [
   // Single questions
   {
-    id: 'romance_single_1',
-    category: 'romance',
+    id: 'love_single_1',
+    category: 'love',
     text: 'When you think about your ideal romantic partner, what comes up?',
     options: [
       { text: 'I have a clear vision and feel excited', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -392,8 +392,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_single_2',
-    category: 'romance',
+    id: 'love_single_2',
+    category: 'love',
     text: 'When you think about going on a date, how do you feel?',
     options: [
       { text: 'Excited and confident', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -409,8 +409,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_single_3',
-    category: 'romance',
+    id: 'love_single_3',
+    category: 'love',
     text: 'When someone you\'re interested in doesn\'t text back quickly, what\'s your reaction?',
     options: [
       { text: 'No big deal, I\'ll reach out later', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -426,8 +426,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_single_4',
-    category: 'romance',
+    id: 'love_single_4',
+    category: 'love',
     text: 'When you think about being single, how do you feel?',
     options: [
       { text: 'I\'m happy and fulfilled as I am', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -443,8 +443,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_single_5',
-    category: 'romance',
+    id: 'love_single_5',
+    category: 'love',
     text: 'When you see happy couples, what\'s your honest reaction?',
     options: [
       { text: 'Happy for them, it gives me hope', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -460,8 +460,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_single_6',
-    category: 'romance',
+    id: 'love_single_6',
+    category: 'love',
     text: 'When you reflect on your past relationships, what comes up?',
     options: [
       { text: 'Grateful for the lessons learned', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -477,8 +477,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_single_7',
-    category: 'romance',
+    id: 'love_single_7',
+    category: 'love',
     text: 'When you think about finding love, what\'s your dominant feeling?',
     options: [
       { text: 'Confident it will happen when it\'s right', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -495,8 +495,8 @@ const romanceQuestions: AssessmentQuestion[] = [
   },
   // In a Relationship / Married questions
   {
-    id: 'romance_relationship_1',
-    category: 'romance',
+    id: 'love_relationship_1',
+    category: 'love',
     text: 'When you think about your relationship, what\'s your dominant feeling?',
     options: [
       { text: 'I feel deeply connected and fulfilled', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -512,8 +512,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_relationship_2',
-    category: 'romance',
+    id: 'love_relationship_2',
+    category: 'love',
     text: 'When you and your partner disagree, how do you handle it?',
     options: [
       { text: 'We communicate openly and resolve it together', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -529,8 +529,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_relationship_3',
-    category: 'romance',
+    id: 'love_relationship_3',
+    category: 'love',
     text: 'When you think about your future with your partner, what comes up?',
     options: [
       { text: 'I\'m excited about our future together', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -546,8 +546,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_relationship_4',
-    category: 'romance',
+    id: 'love_relationship_4',
+    category: 'love',
     text: 'How do you feel about intimacy and connection with your partner?',
     options: [
       { text: 'We have deep emotional and physical intimacy', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -563,8 +563,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_relationship_5',
-    category: 'romance',
+    id: 'love_relationship_5',
+    category: 'love',
     text: 'When you think about trust in your relationship, what comes up?',
     options: [
       { text: 'I trust my partner completely', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -580,8 +580,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_relationship_6',
-    category: 'romance',
+    id: 'love_relationship_6',
+    category: 'love',
     text: 'How do you feel about balancing your needs and your partner\'s needs?',
     options: [
       { text: 'We both prioritize each other\'s needs equally', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -597,8 +597,8 @@ const romanceQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'romance_relationship_7',
-    category: 'romance',
+    id: 'love_relationship_7',
+    category: 'love',
     text: 'When you think about your relationship\'s growth, what\'s your feeling?',
     options: [
       { text: 'We\'re growing together and evolving positively', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -718,8 +718,8 @@ const healthQuestions: AssessmentQuestion[] = [
 const businessQuestions: AssessmentQuestion[] = [
   // Business Owner questions
   {
-    id: 'business_owner_1',
-    category: 'business',
+    id: 'work_owner_1',
+    category: 'work',
     text: 'When you think about your business growth, what\'s your dominant feeling?',
     options: [
       { text: 'Excited about the possibilities', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -735,8 +735,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_owner_2',
-    category: 'business',
+    id: 'work_owner_2',
+    category: 'work',
     text: 'When you have to make major business decisions, how do you approach them?',
     options: [
       { text: 'I trust my instincts and move forward', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -752,8 +752,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_owner_3',
-    category: 'business',
+    id: 'work_owner_3',
+    category: 'work',
     text: 'When your business faces setbacks, what\'s your reaction?',
     options: [
       { text: 'I see it as a learning opportunity', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -769,8 +769,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_owner_4',
-    category: 'business',
+    id: 'work_owner_4',
+    category: 'work',
     text: 'How do you feel about your work-life balance?',
     options: [
       { text: 'I\'ve found a rhythm that works', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -786,8 +786,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_owner_5',
-    category: 'business',
+    id: 'work_owner_5',
+    category: 'work',
     text: 'When you think about your team or employees, what comes up?',
     options: [
       { text: 'I love leading and developing people', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -803,8 +803,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_owner_6',
-    category: 'business',
+    id: 'work_owner_6',
+    category: 'work',
     text: 'When you think about your business\'s financial health, what\'s your reaction?',
     options: [
       { text: 'Confident and optimistic about growth', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -820,8 +820,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_owner_7',
-    category: 'business',
+    id: 'work_owner_7',
+    category: 'work',
     text: 'When you think about your business\'s future, what\'s your dominant feeling?',
     options: [
       { text: 'Excited about the possibilities', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -838,8 +838,8 @@ const businessQuestions: AssessmentQuestion[] = [
   },
   // Employee questions (default for non-business owners)
   {
-    id: 'business_employee_1',
-    category: 'business',
+    id: 'work_employee_1',
+    category: 'work',
     text: 'It\'s Sunday night. Tomorrow is Monday. What do you feel?',
     options: [
       { text: 'Excited for the week ahead', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -855,8 +855,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_employee_2',
-    category: 'business',
+    id: 'work_employee_2',
+    category: 'work',
     text: 'When you get an email from your boss, what\'s your immediate reaction?',
     options: [
       { text: 'Curious, neutral', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -872,8 +872,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_employee_3',
-    category: 'business',
+    id: 'work_employee_3',
+    category: 'work',
     text: 'When someone at work gets promoted, what\'s your honest feeling?',
     options: [
       { text: 'Happy for them, inspired', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -889,8 +889,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_employee_4',
-    category: 'business',
+    id: 'work_employee_4',
+    category: 'work',
     text: 'When you\'re asked to take on a new project, what happens?',
     options: [
       { text: 'Excited, I love new challenges', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -906,8 +906,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_employee_5',
-    category: 'business',
+    id: 'work_employee_5',
+    category: 'work',
     text: 'When you make a mistake at work, what\'s your internal response?',
     options: [
       { text: '"Okay, how do I fix this?"', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -923,8 +923,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_employee_6',
-    category: 'business',
+    id: 'work_employee_6',
+    category: 'work',
     text: 'When you imagine quitting your job, what do you feel?',
     options: [
       { text: 'Empowered, I could do it anytime', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -940,8 +940,8 @@ const businessQuestions: AssessmentQuestion[] = [
     }
   },
   {
-    id: 'business_employee_7',
-    category: 'business',
+    id: 'work_employee_7',
+    category: 'work',
     text: 'When your work is praised publicly, what happens?',
     options: [
       { text: 'Proud, I own it', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -1351,8 +1351,8 @@ const socialQuestions: AssessmentQuestion[] = [
 // ============================================================================
 const possessionsQuestions: AssessmentQuestion[] = [
   {
-    id: 'possessions_1',
-    category: 'possessions',
+    id: 'stuff_1',
+    category: 'stuff',
     text: 'When you think about your belongings, what\'s your dominant feeling?',
     options: [
       { text: 'I love my possessions and they bring me joy', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -1364,8 +1364,8 @@ const possessionsQuestions: AssessmentQuestion[] = [
     ]
   },
   {
-    id: 'possessions_2',
-    category: 'possessions',
+    id: 'stuff_2',
+    category: 'stuff',
     text: 'When you think about shopping and acquiring new things, how do you feel?',
     options: [
       { text: 'I enjoy shopping and find it satisfying', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -1377,8 +1377,8 @@ const possessionsQuestions: AssessmentQuestion[] = [
     ]
   },
   {
-    id: 'possessions_3',
-    category: 'possessions',
+    id: 'stuff_3',
+    category: 'stuff',
     text: 'When you think about your ideal possessions, what comes up?',
     options: [
       { text: 'I have clear visions of things I\'d love to own', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -1390,8 +1390,8 @@ const possessionsQuestions: AssessmentQuestion[] = [
     ]
   },
   {
-    id: 'possessions_4',
-    category: 'possessions',
+    id: 'stuff_4',
+    category: 'stuff',
     text: 'When you think about decluttering or organizing your space, how do you feel?',
     options: [
       { text: 'I love organizing and feel energized by it', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -1403,8 +1403,8 @@ const possessionsQuestions: AssessmentQuestion[] = [
     ]
   },
   {
-    id: 'possessions_5',
-    category: 'possessions',
+    id: 'stuff_5',
+    category: 'stuff',
     text: 'When you think about the value of material things, what\'s your perspective?',
     options: [
       { text: 'I believe possessions can enhance life and bring joy', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -1416,8 +1416,8 @@ const possessionsQuestions: AssessmentQuestion[] = [
     ]
   },
   {
-    id: 'possessions_6',
-    category: 'possessions',
+    id: 'stuff_6',
+    category: 'stuff',
     text: 'When you think about your relationship with stuff, what comes up?',
     options: [
       { text: 'I have a healthy relationship with my possessions', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -1429,8 +1429,8 @@ const possessionsQuestions: AssessmentQuestion[] = [
     ]
   },
   {
-    id: 'possessions_7',
-    category: 'possessions',
+    id: 'stuff_7',
+    category: 'stuff',
     text: 'When you think about your ideal living space with your ideal things, what comes up?',
     options: [
       { text: 'I have a clear vision of my perfect space', value: 5, emoji: '🟢', greenLine: 'above' },
@@ -1658,7 +1658,7 @@ export const assessmentQuestions: AssessmentCategory[] = [
     questions: familyQuestions
   },
   {
-    category: 'romance',
+    category: 'love',
     questions: romanceQuestions
   },
   {
@@ -1670,7 +1670,7 @@ export const assessmentQuestions: AssessmentCategory[] = [
     questions: moneyQuestions
   },
   {
-    category: 'business',
+    category: 'work',
     questions: businessQuestions
   },
   {
@@ -1678,7 +1678,7 @@ export const assessmentQuestions: AssessmentCategory[] = [
     questions: socialQuestions
   },
   {
-    category: 'possessions',
+    category: 'stuff',
     questions: possessionsQuestions
   },
   {
@@ -1699,12 +1699,12 @@ export const categoryMetadata: Record<AssessmentCategoryType, { title: string; d
   travel: { title: 'Travel & Adventure', description: 'Your relationship with exploration and new experiences' },
   home: { title: 'Home & Environment', description: 'Your living space and sense of sanctuary' },
   family: { title: 'Family & Parenting', description: 'Your relationships with family members' },
-  romance: { title: 'Love & Romance', description: 'Your intimate relationships and love life' },
+  love: { title: 'Love & Romance', description: 'Your intimate relationships and love life' },
   health: { title: 'Health & Vitality', description: 'Your physical and mental well-being' },
   money: { title: 'Money & Wealth', description: 'Your relationship with finances and abundance' },
-  business: { title: 'Business & Career', description: 'Your work life and professional fulfillment' },
+  work: { title: 'Work & Career', description: 'Your work life and professional fulfillment' },
   social: { title: 'Social & Friends', description: 'Your friendships and social connections' },
-  possessions: { title: 'Possessions & Stuff', description: 'Your relationship with material things' },
+  stuff: { title: 'Stuff & Possessions', description: 'Your relationship with material things' },
   giving: { title: 'Giving & Legacy', description: 'How you contribute and want to be remembered' },
   spirituality: { title: 'Spirituality', description: 'Your spiritual beliefs and connection to something greater' }
 }
