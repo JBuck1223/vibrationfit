@@ -4,7 +4,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import {  Container, Card, Button, Badge } from '@/lib/design-system/components'
+import {  Container, Card, Button, Badge, Checkbox } from '@/lib/design-system/components'
 import { Check, Clock, Crown, Zap, ArrowRight, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -354,18 +354,18 @@ export default function CheckoutPage() {
 
           {/* Agreement Checkbox */}
           <div className="mb-6">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="mt-1 w-5 h-5 text-primary-500 bg-neutral-800 border-neutral-600 rounded focus:ring-primary-500 focus:ring-2"
-                required
-              />
+            <div className="flex items-start gap-3">
+              <div className="mt-1">
+                <Checkbox
+                  required
+                />
+              </div>
               <span className="text-sm text-neutral-300">
                 <span className="text-primary-500 font-semibold">I agree to the renewal terms above.</span>
                 <br />
                 I understand that my Vision Pro membership will automatically renew starting Day 56 at the rate I selected above. I can cancel anytime before Day 56 to avoid renewal.
               </span>
-            </label>
+            </div>
           </div>
 
           {/* CTA Button */}

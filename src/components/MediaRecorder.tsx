@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors } from 'lucide-react'
-import { Button } from '@/lib/design-system/components'
+import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors, Save } from 'lucide-react'
+import { Button, Checkbox } from '@/lib/design-system/components'
 import {
   saveRecordingChunks,
   loadSavedRecording,
@@ -73,6 +73,8 @@ export function MediaRecorderComponent({
   const [previousDuration, setPreviousDuration] = useState(0) // Duration from before refresh
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]) // Available microphones
   const [selectedMic, setSelectedMic] = useState<string>('') // Selected microphone ID
+  const [isMicDropdownOpen, setIsMicDropdownOpen] = useState(false) // Microphone dropdown state
+  const micDropdownRef = useRef<HTMLDivElement>(null) // Ref for microphone dropdown
   const [showEditor, setShowEditor] = useState(false) // Show audio editor
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -87,6 +89,23 @@ export function MediaRecorderComponent({
   const lastSaveSizeRef = useRef<number>(0) // Track total size saved for video size-based saves
   const durationRef = useRef<number>(0) // Track duration for auto-save
   const transcriptRef = useRef<string>('') // Track transcript for auto-save
+
+  // Close microphone dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (micDropdownRef.current && !micDropdownRef.current.contains(event.target as Node)) {
+        setIsMicDropdownOpen(false)
+      }
+    }
+    
+    if (isMicDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMicDropdownOpen])
 
   // Load audio devices on mount (for microphone selection)
   useEffect(() => {
@@ -802,7 +821,11 @@ export function MediaRecorderComponent({
     <div className={`space-y-4 ${className}`}>
       {/* Recording Controls */}
       {!recordedBlob && !(recordingPurpose === 'quick' && transcript) && (
-        <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6 min-h-[400px] flex flex-col justify-center">
+        <div className={`bg-neutral-900 border-2 rounded-2xl p-6 min-h-[400px] flex flex-col justify-center transition-colors ${
+          isRecording 
+            ? 'border-[#FF0040]' 
+            : 'border-[#39FF14]'
+        }`}>
           {/* Video Preview */}
           {mode === 'video' && (isRecording || isPreparing) && (
             <div className="mb-4 rounded-xl overflow-hidden bg-black relative">
@@ -1018,27 +1041,65 @@ export function MediaRecorderComponent({
 
           {/* Microphone Selector (when not recording and multiple mics available) */}
           {!isRecording && countdown === null && !hasSavedRecording && audioDevices.length > 1 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
+            <div className="mb-4" ref={micDropdownRef}>
+              <label className="block text-sm font-medium text-neutral-200 mb-2">
                 Select Microphone
               </label>
-              <select
-                value={selectedMic}
-                onChange={(e) => setSelectedMic(e.target.value)}
-                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm md:text-base"
-                disabled={isRecording}
-              >
-                {audioDevices.map((device) => {
-                  const label = device.label || `Microphone ${device.deviceId.slice(0, 8)}...`
-                  // Truncate long labels for mobile
-                  const displayLabel = label.length > 40 ? label.substring(0, 37) + '...' : label
-                  return (
-                    <option key={device.deviceId} value={device.deviceId}>
-                      {displayLabel}
-                    </option>
-                  )
-                })}
-              </select>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsMicDropdownOpen(!isMicDropdownOpen)}
+                  disabled={isRecording}
+                  className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                    selectedMic 
+                      ? 'text-white' 
+                      : 'text-[#9CA3AF]'
+                  } ${isRecording ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {selectedMic 
+                    ? (audioDevices.find(d => d.deviceId === selectedMic)?.label || `Microphone ${selectedMic.slice(0, 8)}...`)
+                    : 'Select Microphone'}
+                </button>
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isMicDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                
+                {isMicDropdownOpen && !isRecording && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsMicDropdownOpen(false)}
+                    />
+                    <div className="absolute z-20 w-full top-full mt-1 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[min(200px,calc(100vh-200px))] md:max-h-48 overflow-y-auto overscroll-contain">
+                      <div className="py-2">
+                        {audioDevices.map((device) => {
+                          const label = device.label || `Microphone ${device.deviceId.slice(0, 8)}...`
+                          const isSelected = device.deviceId === selectedMic
+                          return (
+                            <button
+                              key={device.deviceId}
+                              type="button"
+                              onClick={() => {
+                                setSelectedMic(device.deviceId)
+                                setIsMicDropdownOpen(false)
+                              }}
+                              className={`w-full px-6 py-2 text-left transition-colors ${
+                                isSelected
+                                  ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                                  : 'text-white hover:bg-[#333]'
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -1103,8 +1164,18 @@ export function MediaRecorderComponent({
 
       {/* Recorded Media Preview - Hidden in quick mode (no playback needed) */}
       {recordedBlob && recordedUrl && recordingPurpose !== 'quick' && (
-        <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-6 space-y-4">
+        <div className="bg-neutral-900 border-2 border-[#FFB701] rounded-2xl p-6 space-y-4">
           <h3 className="text-lg font-semibold text-white mb-2">Recording Complete</h3>
+
+          {/* Instructions */}
+          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
+            <ol className="space-y-2 text-sm text-neutral-300 list-decimal list-inside">
+              <li>Listen to your recording using the player below</li>
+              {mode === 'audio' && <li>If needed, click "Edit" to trim or remove sections</li>}
+              <li>Click "Transcribe" to convert speech to text (required for saving)</li>
+              <li>Review the transcript, then click "Save" to keep your recording</li>
+            </ol>
+          </div>
 
           {/* Media Player */}
           {mode === 'video' ? (
@@ -1169,67 +1240,22 @@ export function MediaRecorderComponent({
                   <p className="text-sm text-neutral-400 mb-2">Transcript:</p>
                   <p className="text-white whitespace-pre-wrap">{transcript}</p>
                 </div>
-              ) : (
-                <Button
-                  onClick={async () => {
-                    if (!recordedBlob) {
-                      setError('No recording available to transcribe')
-                      return
-                    }
-                    
-                    if (recordedBlob.size === 0) {
-                      setError('Recording is empty or invalid. Please record again.')
-                      return
-                    }
-                    
-                    console.log('🎙️ Starting transcription:', {
-                      blobSize: recordedBlob.size,
-                      blobType: recordedBlob.type
-                    })
-                    
-                    const transcriptResult = await transcribeAudio(recordedBlob)
-                    
-                    // Update IndexedDB with transcript if we have a recording ID
-                    if (recordingIdRef.current && transcriptResult) {
-                      await saveRecordingChunks(
-                        recordingIdRef.current,
-                        category,
-                        chunksRef.current,
-                        duration,
-                        mode,
-                        recordedBlob,
-                        transcriptResult
-                      )
-                    }
-                  }}
-                  variant="secondary"
-                  size="sm"
-                  className="gap-2 w-full"
-                  disabled={!recordedBlob || recordedBlob.size === 0}
-                >
-                  <Mic className="w-4 h-4" />
-                  Transcribe {mode === 'video' ? 'Video' : 'Audio'}
-                </Button>
-              )}
+              ) : null}
             </div>
           )}
 
           {/* Save Recording Option - Only show for non-withFile and non-audioOnly modes */}
           {showSaveOption && recordingPurpose !== 'withFile' && recordingPurpose !== 'audioOnly' && (
             <div className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="saveRecording"
+                label={`Save ${mode === 'video' ? 'video' : 'audio'} file to cloud storage`}
                 checked={saveRecording}
                 onChange={(e) => setSaveRecording(e.target.checked)}
-                className="w-4 h-4 text-primary-500 bg-neutral-700 border-neutral-600 rounded focus:ring-primary-500"
               />
-              <label htmlFor="saveRecording" className="text-sm text-neutral-300 cursor-pointer">
-                Save {mode === 'video' ? 'video' : 'audio'} file to cloud storage
-                <span className="text-neutral-500 ml-1">
-                  ({saveRecording ? 'File will be saved' : 'Only transcript will be saved'})
-                </span>
-              </label>
+              <span className="text-sm text-neutral-500">
+                ({saveRecording ? 'File will be saved' : 'Only transcript will be saved'})
+              </span>
             </div>
           )}
 
@@ -1239,12 +1265,12 @@ export function MediaRecorderComponent({
             {mode === 'audio' && enableEditor && !showEditor && (
               <Button
                 onClick={() => setShowEditor(true)}
-                variant="secondary"
+                variant="primary"
                 size="sm"
-                className="gap-2 w-full sm:w-auto"
+                className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0"
               >
                 <Scissors className="w-4 h-4" />
-                Edit Recording
+                Edit
               </Button>
             )}
             
@@ -1256,22 +1282,17 @@ export function MediaRecorderComponent({
               }}
               variant="primary"
               size="sm"
-              className="gap-2 w-full sm:w-auto"
+              className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0"
               disabled={recordingPurpose === 'audioOnly' ? false : !transcript}
             >
-              <Upload className="w-4 h-4" />
-              {recordingPurpose === 'withFile' || recordingPurpose === 'audioOnly'
-                ? 'Save Recording'
-                : (showSaveOption 
-                    ? (saveRecording ? 'Save Recording & Transcript' : 'Use Transcript Only')
-                    : 'Use Transcript')}
-              {recordingPurpose !== 'audioOnly' && !transcript && ' (Transcribe First)'}
+              <Save className="w-4 h-4" />
+              Save
             </Button>
             <Button
               onClick={discardRecording}
               variant="ghost"
               size="sm"
-              className="gap-2 w-full sm:w-auto"
+              className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0 bg-[rgba(255,0,64,0.1)] text-[#FF0040] border-2 border-[rgba(255,0,64,0.2)] hover:bg-[rgba(255,0,64,0.2)] active:opacity-80"
             >
               <Trash2 className="w-4 h-4" />
               Discard

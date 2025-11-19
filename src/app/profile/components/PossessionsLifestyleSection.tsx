@@ -1,9 +1,9 @@
 'use client'
 
-import React from 'react'
-import { Card, Input } from '@/lib/design-system/components'
+import React, { useState, useEffect, useRef } from 'react'
+import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Package, Plus, Trash2 } from 'lucide-react'
+import { Package, Plus, Trash2, Save } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
@@ -13,6 +13,8 @@ interface PossessionsLifestyleSectionProps {
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
   profileId?: string // Optional profile ID to target specific profile version
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 type VehicleOrToy = {
@@ -21,7 +23,68 @@ type VehicleOrToy = {
   ownership_status: 'paid_in_full' | 'own_with_payment' | 'leased' | 'borrowed'
 }
 
-export function PossessionsLifestyleSection({ profile, onProfileChange, onProfileReload, profileId }: PossessionsLifestyleSectionProps) {
+export function PossessionsLifestyleSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: PossessionsLifestyleSectionProps) {
+  const [isLifestyleCategoryDropdownOpen, setIsLifestyleCategoryDropdownOpen] = useState(false)
+  const [openVehicleDropdowns, setOpenVehicleDropdowns] = useState<Map<number, boolean>>(new Map())
+  const [openToyDropdowns, setOpenToyDropdowns] = useState<Map<number, boolean>>(new Map())
+  const lifestyleCategoryDropdownRef = useRef<HTMLDivElement>(null)
+  const vehicleDropdownRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const toyDropdownRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+
+  const lifestyleCategoryOptions = [
+    { value: '', label: 'Select category...' },
+    { value: 'minimalist', label: 'Minimalist' },
+    { value: 'moderate', label: 'Moderate' },
+    { value: 'comfortable', label: 'Comfortable' },
+    { value: 'luxury', label: 'Luxury' },
+  ]
+
+  const ownershipStatusOptions = [
+    { value: 'paid_in_full', label: 'Paid In Full' },
+    { value: 'own_with_payment', label: 'Own with a payment' },
+    { value: 'leased', label: 'Leased' },
+    { value: 'borrowed', label: 'Borrowed' },
+  ]
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (lifestyleCategoryDropdownRef.current && !lifestyleCategoryDropdownRef.current.contains(event.target as Node)) {
+        setIsLifestyleCategoryDropdownOpen(false)
+      }
+      
+      // Check vehicle dropdowns
+      vehicleDropdownRefs.current.forEach((ref, index) => {
+        if (ref && !ref.contains(event.target as Node)) {
+          setOpenVehicleDropdowns(prev => {
+            const next = new Map(prev)
+            next.set(index, false)
+            return next
+          })
+        }
+      })
+      
+      // Check toy dropdowns
+      toyDropdownRefs.current.forEach((ref, index) => {
+        if (ref && !ref.contains(event.target as Node)) {
+          setOpenToyDropdowns(prev => {
+            const next = new Map(prev)
+            next.set(index, false)
+            return next
+          })
+        }
+      })
+    }
+
+    if (isLifestyleCategoryDropdownOpen || openVehicleDropdowns.size > 0 || openToyDropdowns.size > 0) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isLifestyleCategoryDropdownOpen, openVehicleDropdowns, openToyDropdowns])
+
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -141,17 +204,52 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Lifestyle Category
           </label>
-          <select
-            value={profile.lifestyle_category || ''}
-            onChange={(e) => handleInputChange('lifestyle_category', e.target.value)}
-            className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white focus:border-primary-500 focus:outline-none transition-colors"
-          >
-            <option value="">Select category...</option>
-            <option value="minimalist">Minimalist</option>
-            <option value="moderate">Moderate</option>
-            <option value="comfortable">Comfortable</option>
-            <option value="luxury">Luxury</option>
-          </select>
+          <div className="relative" ref={lifestyleCategoryDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsLifestyleCategoryDropdownOpen(!isLifestyleCategoryDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.lifestyle_category 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {lifestyleCategoryOptions.find(opt => opt.value === (profile.lifestyle_category || ''))?.label || 'Select category...'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isLifestyleCategoryDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isLifestyleCategoryDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsLifestyleCategoryDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {lifestyleCategoryOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('lifestyle_category', option.value)
+                        setIsLifestyleCategoryDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.lifestyle_category || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Vehicles Table */}
@@ -222,16 +320,70 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                         <label className="block text-xs font-medium text-neutral-300 mb-1">
                           Ownership Status *
                         </label>
-                        <select
-                          value={vehicle.ownership_status || 'paid_in_full'}
-                          onChange={(e) => handleVehicleChange(index, 'ownership_status', e.target.value as VehicleOrToy['ownership_status'])}
-                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
+                        <div 
+                          className="relative" 
+                          ref={(el) => {
+                            if (el) vehicleDropdownRefs.current.set(index, el)
+                            else vehicleDropdownRefs.current.delete(index)
+                          }}
                         >
-                          <option value="paid_in_full">Paid In Full</option>
-                          <option value="own_with_payment">Own with a payment</option>
-                          <option value="leased">Leased</option>
-                          <option value="borrowed">Borrowed</option>
-                        </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenVehicleDropdowns(prev => {
+                                const next = new Map(prev)
+                                next.set(index, !next.get(index))
+                                return next
+                              })
+                            }}
+                            className="w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] text-white border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                          >
+                            {ownershipStatusOptions.find(opt => opt.value === (vehicle.ownership_status || 'paid_in_full'))?.label || 'Paid In Full'}
+                          </button>
+                          <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <svg className={`w-4 h-4 text-neutral-400 transition-transform ${openVehicleDropdowns.get(index) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                          
+                          {openVehicleDropdowns.get(index) && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => {
+                                  setOpenVehicleDropdowns(prev => {
+                                    const next = new Map(prev)
+                                    next.set(index, false)
+                                    return next
+                                  })
+                                }}
+                              />
+                              <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                                {ownershipStatusOptions.map(option => (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => {
+                                      handleVehicleChange(index, 'ownership_status', option.value as VehicleOrToy['ownership_status'])
+                                      setOpenVehicleDropdowns(prev => {
+                                        const next = new Map(prev)
+                                        next.set(index, false)
+                                        return next
+                                      })
+                                    }}
+                                    className={`w-full px-6 py-2 text-left transition-colors ${
+                                      (vehicle.ownership_status || 'paid_in_full') === option.value 
+                                        ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                                        : 'text-white hover:bg-[#333]'
+                                    }`}
+                                  >
+                                    {option.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -313,16 +465,70 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                       <label className="block text-xs font-medium text-neutral-300 mb-1">
                         Ownership Status *
                       </label>
-                      <select
-                        value={toy.ownership_status || 'paid_in_full'}
-                        onChange={(e) => handleToyChange(index, 'ownership_status', e.target.value as VehicleOrToy['ownership_status'])}
-                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
+                      <div 
+                        className="relative" 
+                        ref={(el) => {
+                          if (el) toyDropdownRefs.current.set(index, el)
+                          else toyDropdownRefs.current.delete(index)
+                        }}
                       >
-                        <option value="paid_in_full">Paid In Full</option>
-                        <option value="own_with_payment">Own with a payment</option>
-                        <option value="leased">Leased</option>
-                        <option value="borrowed">Borrowed</option>
-                      </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenToyDropdowns(prev => {
+                              const next = new Map(prev)
+                              next.set(index, !next.get(index))
+                              return next
+                            })
+                          }}
+                          className="w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] text-white border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                        >
+                          {ownershipStatusOptions.find(opt => opt.value === (toy.ownership_status || 'paid_in_full'))?.label || 'Paid In Full'}
+                        </button>
+                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <svg className={`w-4 h-4 text-neutral-400 transition-transform ${openToyDropdowns.get(index) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                        
+                        {openToyDropdowns.get(index) && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-10" 
+                              onClick={() => {
+                                setOpenToyDropdowns(prev => {
+                                  const next = new Map(prev)
+                                  next.set(index, false)
+                                  return next
+                                })
+                              }}
+                            />
+                            <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                              {ownershipStatusOptions.map(option => (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() => {
+                                    handleToyChange(index, 'ownership_status', option.value as VehicleOrToy['ownership_status'])
+                                    setOpenToyDropdowns(prev => {
+                                      const next = new Map(prev)
+                                      next.set(index, false)
+                                      return next
+                                    })
+                                  }}
+                                  className={`w-full px-6 py-2 text-left transition-colors ${
+                                    (toy.ownership_status || 'paid_in_full') === option.value 
+                                      ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                                      : 'text-white hover:bg-[#333]'
+                                  }`}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -392,11 +598,20 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
         />
       </div>
 
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-        <p className="text-sm text-neutral-400">
-          Understanding your lifestyle preferences helps Viva provide relevant suggestions for lifestyle improvements and material goals.
-        </p>
-      </div>
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

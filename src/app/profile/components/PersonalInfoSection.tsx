@@ -1,15 +1,18 @@
 'use client'
 
-import React from 'react'
-import { Card, Input, Button } from '@/lib/design-system/components'
+import React, { useState, useEffect, useRef } from 'react'
+import { Card, Input, Button, DatePicker } from '@/lib/design-system/components'
 import { ProfilePictureUpload } from './ProfilePictureUpload'
 import { UserProfile } from '@/lib/supabase/profile'
+import { Save, User } from 'lucide-react'
 
 interface PersonalInfoSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onError: (error: string) => void
   onUploadComplete?: () => void
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 const genderOptions = [
@@ -31,7 +34,32 @@ const ethnicityOptions = [
   { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
-export function PersonalInfoSection({ profile, onProfileChange, onError }: PersonalInfoSectionProps) {
+export function PersonalInfoSection({ profile, onProfileChange, onError, onSave, isSaving }: PersonalInfoSectionProps) {
+  const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false)
+  const [isEthnicityDropdownOpen, setIsEthnicityDropdownOpen] = useState(false)
+  const genderDropdownRef = useRef<HTMLDivElement>(null)
+  const ethnicityDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (genderDropdownRef.current && !genderDropdownRef.current.contains(event.target as Node)) {
+        setIsGenderDropdownOpen(false)
+      }
+      if (ethnicityDropdownRef.current && !ethnicityDropdownRef.current.contains(event.target as Node)) {
+        setIsEthnicityDropdownOpen(false)
+      }
+    }
+
+    if (isGenderDropdownOpen || isEthnicityDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isGenderDropdownOpen, isEthnicityDropdownOpen])
+
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -46,16 +74,21 @@ export function PersonalInfoSection({ profile, onProfileChange, onError }: Perso
 
   return (
     <div className="space-y-6">
-      {/* Profile Picture */}
-      <ProfilePictureUpload
-        currentImageUrl={profile.profile_picture_url}
-        onImageChange={(url) => handleInputChange('profile_picture_url', url)}
-        onError={onError}
-      />
-
       {/* Personal Information Form */}
       <Card className="p-6">
-        <h3 className="text-xl font-bold text-white mb-6">Personal Information</h3>
+        <div className="flex items-center gap-3 mb-6">
+          <User className="w-6 h-6 text-white" />
+          <h3 className="text-xl font-bold text-white">Personal Information</h3>
+        </div>
+        
+        {/* Profile Picture */}
+        <div className="mb-6">
+          <ProfilePictureUpload
+            currentImageUrl={profile.profile_picture_url}
+            onImageChange={(url) => handleInputChange('profile_picture_url', url)}
+            onError={onError}
+          />
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* First Name */}
@@ -116,15 +149,12 @@ export function PersonalInfoSection({ profile, onProfileChange, onError }: Perso
 
           {/* Date of Birth */}
           <div>
-            <label className="block text-sm font-medium text-neutral-200 mb-2">
-              Date of Birth *
-            </label>
-            <Input
-              type="date"
+            <DatePicker
+              label="Date of Birth *"
               value={profile.date_of_birth || ''}
-              onChange={(e) => handleDateChange(e.target.value)}
+              onChange={(dateString) => handleDateChange(dateString)}
+              maxDate={new Date().toISOString().split('T')[0]}
               className="w-full"
-              max={new Date().toISOString().split('T')[0]}
             />
           </div>
 
@@ -133,45 +163,122 @@ export function PersonalInfoSection({ profile, onProfileChange, onError }: Perso
             <label className="block text-sm font-medium text-neutral-200 mb-2">
               Gender/Identity *
             </label>
-            <select
-              value={profile.gender || ''}
-              onChange={(e) => handleInputChange('gender', e.target.value)}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            <div className="relative" ref={genderDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsGenderDropdownOpen(!isGenderDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.gender 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
             >
-              <option value="">Select gender</option>
-              {genderOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+                {genderOptions.find(opt => opt.value === (profile.gender || ''))?.label || 'Select gender'}
+              </button>
+              <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isGenderDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              
+              {isGenderDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsGenderDropdownOpen(false)}
+                  />
+                  <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                    {genderOptions.map(option => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          handleInputChange('gender', option.value)
+                          setIsGenderDropdownOpen(false)
+                        }}
+                        className={`w-full px-6 py-2 text-left transition-colors ${
+                          (profile.gender || '') === option.value 
+                            ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                            : 'text-white hover:bg-[#333]'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Ethnicity */}
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-sm font-medium text-neutral-200 mb-2">
               Ethnicity *
             </label>
-            <select
-              value={profile.ethnicity || ''}
-              onChange={(e) => handleInputChange('ethnicity', e.target.value)}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            <div className="relative" ref={ethnicityDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsEthnicityDropdownOpen(!isEthnicityDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.ethnicity 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
             >
-              <option value="">Select ethnicity</option>
-              {ethnicityOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+                {ethnicityOptions.find(opt => opt.value === (profile.ethnicity || ''))?.label || 'Select ethnicity'}
+              </button>
+              <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isEthnicityDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              
+              {isEthnicityDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsEthnicityDropdownOpen(false)}
+                  />
+                  <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                    {ethnicityOptions.map(option => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          handleInputChange('ethnicity', option.value)
+                          setIsEthnicityDropdownOpen(false)
+                        }}
+                        className={`w-full px-6 py-2 text-left transition-colors ${
+                          (profile.ethnicity || '') === option.value 
+                            ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                            : 'text-white hover:bg-[#333]'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-          <p className="text-sm text-neutral-400">
-            <span className="font-medium text-primary-400">Privacy Note:</span> This information helps your Vibrational Intelligence Virtual Assistant provide more personalized guidance. All data is encrypted and never shared with third parties.
-          </p>
-        </div>
+        {/* Save Button - Bottom Right */}
+        {onSave && (
+          <div className="flex justify-end mt-6">
+            <Button
+              onClick={onSave}
+              variant="primary"
+              disabled={isSaving}
+              className="flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+        )}
       </Card>
     </div>
   )

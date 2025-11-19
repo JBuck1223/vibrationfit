@@ -23,6 +23,7 @@ import {
   Badge,
   Video,
   OfferStack,
+  Checkbox,
 } from '@/lib/design-system'
 
 // Vision Categories
@@ -1134,17 +1135,13 @@ export default function HomePage() {
                         </Stack>
 
                         {/* Required Checkbox */}
-                        <label className="flex items-center justify-center gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
+                        <div className="flex items-center justify-center">
+                          <Checkbox
+                            label="I agree to the renewal terms above."
                             checked={agreedToTerms}
                             onChange={(e) => setAgreedToTerms(e.target.checked)}
-                            className="w-5 h-5 text-[#39FF14] bg-neutral-800 border-neutral-600 rounded focus:ring-[#39FF14] focus:ring-2"
                           />
-                          <span className="text-sm text-neutral-300">
-                            <span className="text-[#39FF14] font-semibold">I agree to the renewal terms above.</span>
-                          </span>
-                        </label>
+                        </div>
 
                         {/* CTA BUTTON */}
                     <Button

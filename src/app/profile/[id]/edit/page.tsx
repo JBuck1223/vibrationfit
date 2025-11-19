@@ -22,7 +22,7 @@ import { PossessionsLifestyleSection } from '../../components/PossessionsLifesty
 import { SpiritualityGrowthSection } from '../../components/SpiritualityGrowthSection'
 import { GivingLegacySection } from '../../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, FileText, User, Camera, Check } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, FileText, User, Camera, Check } from 'lucide-react'
 
 export default function ProfileEditPage() {
   const router = useRouter()
@@ -705,46 +705,46 @@ export default function ProfileEditPage() {
     let sectionContent
     switch (activeSection) {
       case 'personal':
-        sectionContent = <PersonalInfoSection {...commonProps} />
+        sectionContent = <PersonalInfoSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'love':
-        sectionContent = <RelationshipSection {...commonProps} />
+        sectionContent = <RelationshipSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'family':
-        sectionContent = <FamilySection {...commonProps} profileId={profileId} />
+        sectionContent = <FamilySection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'health':
-        sectionContent = <HealthSection {...commonProps} />
+        sectionContent = <HealthSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'home':
-        sectionContent = <LocationSection {...commonProps} />
+        sectionContent = <LocationSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'work':
-        sectionContent = <CareerSection {...commonProps} />
+        sectionContent = <CareerSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'money':
-        sectionContent = <FinancialSection {...commonProps} />
+        sectionContent = <FinancialSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'photos-notes':
-        sectionContent = <PhotosAndNotesSection {...commonProps} />
+        sectionContent = <PhotosAndNotesSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'fun':
-        sectionContent = <FunRecreationSection {...commonProps} profileId={profileId} />
+        sectionContent = <FunRecreationSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'travel':
-        sectionContent = <TravelAdventureSection {...commonProps} profileId={profileId} />
+        sectionContent = <TravelAdventureSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'social':
-        sectionContent = <SocialFriendsSection {...commonProps} />
+        sectionContent = <SocialFriendsSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'stuff':
-        sectionContent = <PossessionsLifestyleSection {...commonProps} profileId={profileId} />
+        sectionContent = <PossessionsLifestyleSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'spirituality':
-        sectionContent = <SpiritualityGrowthSection {...commonProps} />
+        sectionContent = <SpiritualityGrowthSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'giving':
-        sectionContent = <GivingLegacySection {...commonProps} />
+        sectionContent = <GivingLegacySection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       default:
         sectionContent = <PersonalInfoSection {...commonProps} />
@@ -754,19 +754,6 @@ export default function ProfileEditPage() {
       <div className="space-y-6">
         {sectionContent}
         
-        {/* Save Button */}
-        <div className="flex justify-center">
-          <Button
-            onClick={handleManualSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </div>
-        
         {/* Navigation Buttons */}
         <div className="flex items-center justify-between mt-6">
           <div className="flex-1 flex justify-start">
@@ -774,10 +761,12 @@ export default function ProfileEditPage() {
               onClick={goToPreviousSection}
               disabled={isFirstSection()}
               variant="outline"
-              className="flex items-center gap-2 w-24"
+              size="sm"
+              className="w-24 md:w-auto"
             >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
+              <ChevronsLeft className="w-4 h-4 flex-shrink-0 md:hidden" />
+              <ChevronLeft className="w-4 h-4 flex-shrink-0 hidden md:block" />
+              <span className="hidden md:inline">Previous</span>
             </Button>
           </div>
           
@@ -792,10 +781,12 @@ export default function ProfileEditPage() {
               onClick={goToNextSection}
               disabled={isLastSection()}
               variant="outline"
-              className="flex items-center gap-2 w-24"
+              size="sm"
+              className="w-24 md:w-auto"
             >
-              Next
-              <ChevronRight className="w-4 h-4" />
+              <span className="hidden md:inline">Next</span>
+              <ChevronsRight className="w-4 h-4 flex-shrink-0 md:hidden" />
+              <ChevronRight className="w-4 h-4 flex-shrink-0 hidden md:block" />
             </Button>
           </div>
         </div>
@@ -942,61 +933,37 @@ export default function ProfileEditPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4">
-            {/* Profile Percentage Bar */}
-            <div className="flex items-center gap-3 sm:flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-neutral-400">Profile:</span>
-                <span className="text-sm font-medium text-primary-500">{completionPercentage}%</span>
-              </div>
-              <div className="flex-1 bg-neutral-700 rounded-full h-2">
+          {/* Profile Percentage Bar - Standalone */}
+          <Card className="mb-4">
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-base font-semibold text-primary-500">{completionPercentage}% Complete</span>
+              <div className="w-full bg-neutral-700 rounded-full h-3 border border-neutral-600">
                 <div
-                  className="h-2 rounded-full transition-all duration-500 bg-primary-500"
+                  className="h-3 rounded-full transition-all duration-500 bg-primary-500"
                   style={{ width: `${completionPercentage}%` }}
                 ></div>
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-row items-center gap-3">
-              <Button
-                onClick={() => router.push(`/profile/${profileId}`)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 font-semibold"
-              >
-                <Eye className="w-4 h-4" />
-                View
-              </Button>
-              
-              <Button
-                onClick={handleSaveClick}
-                disabled={isSaving}
-                size="sm"
-                className="flex items-center gap-2 font-semibold"
-              >
-                <Save className="w-4 h-4" />
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
-              
-              {currentVersionId && (
-                <VersionActionToolbar
-                  versionId={currentVersionId}
-                  versionNumber={badgeVersionNumber}
-                  isActive={profileAny?.is_active === true}
-                  isDraft={profileAny?.is_draft === true}
-                  onSaveAsDraft={() => saveAsVersion(true)}
-                  onCommitAsActive={() => saveAsVersion(false)}
-                  onCreateDraft={() => saveAsVersion(true)}
-                  onSetActive={() => {
-                    // This would be handled by the toolbar
-                  }}
-                  onDelete={() => handleVersionDelete(currentVersionId)}
-                  isLoading={isSaving}
-                />
-              )}
+          </Card>
+          
+          {currentVersionId && (
+            <div className="mb-6">
+              <VersionActionToolbar
+                versionId={currentVersionId}
+                versionNumber={badgeVersionNumber}
+                isActive={profileAny?.is_active === true}
+                isDraft={profileAny?.is_draft === true}
+                onSaveAsDraft={() => saveAsVersion(true)}
+                onCommitAsActive={() => saveAsVersion(false)}
+                onCreateDraft={() => saveAsVersion(true)}
+                onSetActive={() => {
+                  // This would be handled by the toolbar
+                }}
+                onDelete={() => handleVersionDelete(currentVersionId)}
+                isLoading={isSaving}
+              />
             </div>
-          </div>
+          )}
         </div>
 
         {/* Error Display */}
@@ -1023,8 +990,8 @@ export default function ProfileEditPage() {
 
         {/* Select Life Areas Bar */}
         <div className="mb-6">
-          <Card className="p-4">
-            <div className="mb-4">
+          <Card>
+            <div className="mb-4 text-center">
               <h3 className="text-lg font-semibold text-white mb-1">Select Life Areas</h3>
               <p className="text-sm text-neutral-400">
                 Showing {selectedCategories.length} of {profileSections.length} areas

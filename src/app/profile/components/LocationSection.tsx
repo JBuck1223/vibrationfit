@@ -1,16 +1,19 @@
 'use client'
 
-import React from 'react'
-import { Card, Input } from '@/lib/design-system/components'
+import React, { useState, useEffect, useRef } from 'react'
+import { Card, Input, Button } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
+import { Save } from 'lucide-react'
 
 interface LocationSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 const livingSituationOptions = [
@@ -42,7 +45,37 @@ const countryOptions = [
   { value: 'Other', label: 'Other' }
 ]
 
-export function LocationSection({ profile, onProfileChange, onProfileReload }: LocationSectionProps) {
+export function LocationSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: LocationSectionProps) {
+  const [isLivingSituationDropdownOpen, setIsLivingSituationDropdownOpen] = useState(false)
+  const [isTimeAtLocationDropdownOpen, setIsTimeAtLocationDropdownOpen] = useState(false)
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false)
+  const livingSituationDropdownRef = useRef<HTMLDivElement>(null)
+  const timeAtLocationDropdownRef = useRef<HTMLDivElement>(null)
+  const countryDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (livingSituationDropdownRef.current && !livingSituationDropdownRef.current.contains(event.target as Node)) {
+        setIsLivingSituationDropdownOpen(false)
+      }
+      if (timeAtLocationDropdownRef.current && !timeAtLocationDropdownRef.current.contains(event.target as Node)) {
+        setIsTimeAtLocationDropdownOpen(false)
+      }
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target as Node)) {
+        setIsCountryDropdownOpen(false)
+      }
+    }
+    
+    if (isLivingSituationDropdownOpen || isTimeAtLocationDropdownOpen || isCountryDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isLivingSituationDropdownOpen, isTimeAtLocationDropdownOpen, isCountryDropdownOpen])
+
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -72,9 +105,14 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
     }
   }
 
+  const HomeIcon = getVisionCategoryIcon('home')
+  
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel('home')}</h3>
+      <div className="flex items-center gap-3 mb-6">
+        <HomeIcon className="w-6 h-6 text-white" />
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('home')}</h3>
+      </div>
       
       <div className="space-y-6">
         {/* Living Situation */}
@@ -82,18 +120,52 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             Living Situation *
           </label>
-          <select
-            value={profile.living_situation || ''}
-            onChange={(e) => handleInputChange('living_situation', e.target.value)}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Select living situation</option>
-            {livingSituationOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative" ref={livingSituationDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsLivingSituationDropdownOpen(!isLivingSituationDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.living_situation 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {livingSituationOptions.find(opt => opt.value === (profile.living_situation || ''))?.label || 'Select living situation'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isLivingSituationDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isLivingSituationDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsLivingSituationDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {livingSituationOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('living_situation', option.value)
+                        setIsLivingSituationDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.living_situation || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Time at Current Location */}
@@ -101,18 +173,52 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
           <label className="block text-sm font-medium text-neutral-200 mb-2">
             How long have you lived at your current location? *
           </label>
-          <select
-            value={profile.time_at_location || ''}
-            onChange={(e) => handleInputChange('time_at_location', e.target.value)}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Select time at location</option>
-            {timeAtLocationOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative" ref={timeAtLocationDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsTimeAtLocationDropdownOpen(!isTimeAtLocationDropdownOpen)}
+              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                profile.time_at_location 
+                  ? 'text-white' 
+                  : 'text-[#9CA3AF]'
+              }`}
+            >
+              {timeAtLocationOptions.find(opt => opt.value === (profile.time_at_location || ''))?.label || 'Select time at location'}
+            </button>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isTimeAtLocationDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {isTimeAtLocationDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsTimeAtLocationDropdownOpen(false)}
+                />
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {timeAtLocationOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('time_at_location', option.value)
+                        setIsTimeAtLocationDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.time_at_location || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -163,18 +269,52 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
             <label className="block text-sm font-medium text-neutral-200 mb-2">
               Country *
             </label>
-            <select
-              value={profile.country || ''}
-              onChange={(e) => handleInputChange('country', e.target.value)}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="">Select country</option>
-              {countryOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative" ref={countryDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                  profile.country 
+                    ? 'text-white' 
+                    : 'text-[#9CA3AF]'
+                }`}
+              >
+                {countryOptions.find(opt => opt.value === (profile.country || ''))?.label || 'Select country'}
+              </button>
+              <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              
+              {isCountryDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsCountryDropdownOpen(false)}
+                  />
+                  <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                    {countryOptions.map(option => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          handleInputChange('country', option.value)
+                          setIsCountryDropdownOpen(false)
+                        }}
+                        className={`w-full px-6 py-2 text-left transition-colors ${
+                          (profile.country || '') === option.value 
+                            ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                            : 'text-white hover:bg-[#333]'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -239,11 +379,20 @@ export function LocationSection({ profile, onProfileChange, onProfileReload }: L
         />
       </div>
 
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-        <p className="text-sm text-neutral-400">
-          Location information helps your AI assistant understand your local context and provide relevant regional guidance.
-        </p>
-      </div>
+      {/* Save Button - Bottom Right */}
+      {onSave && (
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={onSave}
+            variant="primary"
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

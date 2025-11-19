@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, Card, Button, Stack, Inline, Text } from '@/lib/design-system/components'
+import { Container, Card, Button, Stack, Inline, Text, DatePicker } from '@/lib/design-system/components'
 import { UploadCloud } from 'lucide-react'
 import { RecordingInput } from '@/components/RecordingInput'
 import { FileUpload } from '@/components/FileUpload'
@@ -199,12 +199,13 @@ export default function NewDailyPaperPage() {
                       }).format(new Date(`${entryDate}T00:00:00`))}
                     </p>
                   </div>
-                  <input
-                    type="date"
-                    value={entryDate}
-                    onChange={(event) => setEntryDate(event.target.value)}
-                    className="ml-auto rounded-xl border border-[#333] bg-[#141414] px-3 py-2 text-sm text-white focus:border-[#199D67] focus:outline-none focus:ring-2 focus:ring-[#199D67]"
-                  />
+                  <div className="ml-auto">
+                    <DatePicker
+                      value={entryDate}
+                      onChange={(dateString) => setEntryDate(dateString)}
+                      className="w-auto"
+                    />
+                  </div>
                 </Inline>
               </div>
 

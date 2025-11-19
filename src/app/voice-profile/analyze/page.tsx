@@ -10,6 +10,7 @@ import {
   Textarea,
   Spinner,
   Badge,
+  Checkbox,
 } from '@/lib/design-system/components'
 import { renderVoiceProfileForPrompt } from '@/lib/viva/voice-profile'
 
@@ -356,22 +357,23 @@ export default function VoiceProfileAnalyzePage() {
                           <p className="text-xs text-neutral-500">No scenes yet. Create one in the Scene Builder.</p>
                         )}
                         {context.scenes.map((scene) => (
-                          <label
+                          <div
                             key={scene.id}
                             className="border border-neutral-800 rounded-xl p-3 bg-neutral-900/60 cursor-pointer flex items-start gap-3"
+                            onClick={() => handleToggle('scenes', scene.id)}
                           >
-                            <input
-                              type="checkbox"
-                              className="mt-1 accent-primary-500"
-                              checked={selectedScenes.has(scene.id)}
-                              onChange={() => handleToggle('scenes', scene.id)}
-                            />
+                            <div className="mt-1">
+                              <Checkbox
+                                checked={selectedScenes.has(scene.id)}
+                                onChange={() => handleToggle('scenes', scene.id)}
+                              />
+                            </div>
                             <div>
                               <p className="text-sm font-medium text-white">{scene.title}</p>
                               <p className="text-xs text-neutral-500 mt-1">{scene.preview}{scene.text.length > scene.preview.length ? '…' : ''}</p>
                               <p className="text-xs text-neutral-600 mt-1">Updated {formatDate(scene.updated_at)}</p>
                             </div>
-                          </label>
+                          </div>
                         ))}
                       </Stack>
                     </div>
@@ -384,22 +386,23 @@ export default function VoiceProfileAnalyzePage() {
                           <p className="text-xs text-neutral-500">No journal entries yet.</p>
                         )}
                         {context.journalEntries.map((entry) => (
-                          <label
+                          <div
                             key={entry.id}
                             className="border border-neutral-800 rounded-xl p-3 bg-neutral-900/60 cursor-pointer flex items-start gap-3"
+                            onClick={() => handleToggle('journal', entry.id)}
                           >
-                            <input
-                              type="checkbox"
-                              className="mt-1 accent-primary-500"
-                              checked={selectedJournals.has(entry.id)}
-                              onChange={() => handleToggle('journal', entry.id)}
-                            />
+                            <div className="mt-1">
+                              <Checkbox
+                                checked={selectedJournals.has(entry.id)}
+                                onChange={() => handleToggle('journal', entry.id)}
+                              />
+                            </div>
                             <div>
                               <p className="text-sm font-medium text-white">{entry.title}</p>
                               <p className="text-xs text-neutral-500 mt-1">{entry.preview}{entry.text.length > entry.preview.length ? '…' : ''}</p>
                               <p className="text-xs text-neutral-600 mt-1">Created {formatDate(entry.created_at)}</p>
                             </div>
-                          </label>
+                          </div>
                         ))}
                       </Stack>
                     </div>
@@ -412,21 +415,22 @@ export default function VoiceProfileAnalyzePage() {
                           <p className="text-xs text-neutral-500">No vision paragraphs found.</p>
                         )}
                         {context.visionParagraphs.map((item) => (
-                          <label
+                          <div
                             key={item.id}
                             className="border border-neutral-800 rounded-xl p-3 bg-neutral-900/60 cursor-pointer flex items-start gap-3"
+                            onClick={() => handleToggle('vision', item.id)}
                           >
-                            <input
-                              type="checkbox"
-                              className="mt-1 accent-primary-500"
-                              checked={selectedVision.has(item.id)}
-                              onChange={() => handleToggle('vision', item.id)}
-                            />
+                            <div className="mt-1">
+                              <Checkbox
+                                checked={selectedVision.has(item.id)}
+                                onChange={() => handleToggle('vision', item.id)}
+                              />
+                            </div>
                             <div>
                               <p className="text-sm font-medium text-white">{item.label}</p>
                               <p className="text-xs text-neutral-500 mt-1">{item.text.slice(0, 160)}{item.text.length > 160 ? '…' : ''}</p>
                             </div>
-                          </label>
+                          </div>
                         ))}
                       </Stack>
                     </div>

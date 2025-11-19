@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {  Card, Button, Input } from '@/lib/design-system/components'
+import {  Card, Button, Input, Checkbox } from '@/lib/design-system/components'
 import { User, Mail, Bell, Shield, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -128,44 +128,38 @@ export default function AccountSettingsPage() {
               </div>
 
               <div className="space-y-4 max-w-md">
-                <label className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl cursor-pointer hover:bg-neutral-800 transition-colors">
+                <div className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl hover:bg-neutral-800 transition-colors">
                   <div>
                     <div className="font-semibold text-white">Product Updates</div>
                     <div className="text-sm text-neutral-400">New features and improvements</div>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={notifications.email_product}
                     onChange={(e) => setNotifications({ ...notifications, email_product: e.target.checked })}
-                    className="w-5 h-5 rounded accent-primary-500"
                   />
-                </label>
+                </div>
 
-                <label className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl cursor-pointer hover:bg-neutral-800 transition-colors">
+                <div className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl hover:bg-neutral-800 transition-colors">
                   <div>
                     <div className="font-semibold text-white">Marketing Emails</div>
                     <div className="text-sm text-neutral-400">Tips, guides, and offers</div>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={notifications.email_marketing}
                     onChange={(e) => setNotifications({ ...notifications, email_marketing: e.target.checked })}
-                    className="w-5 h-5 rounded accent-primary-500"
                   />
-                </label>
+                </div>
 
-                <label className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl cursor-pointer hover:bg-neutral-800 transition-colors">
+                <div className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl hover:bg-neutral-800 transition-colors">
                   <div>
                     <div className="font-semibold text-white">Weekly Summary</div>
                     <div className="text-sm text-neutral-400">Your progress and insights</div>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={notifications.email_weekly}
                     onChange={(e) => setNotifications({ ...notifications, email_weekly: e.target.checked })}
-                    className="w-5 h-5 rounded accent-primary-500"
                   />
-                </label>
+                </div>
 
                 <Button variant="primary" className="w-full">
                   Save Preferences
