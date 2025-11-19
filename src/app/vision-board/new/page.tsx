@@ -56,8 +56,6 @@ export default function NewVisionBoardItemPage() {
     categories: [] as string[]
   })
   
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
-  const actualizedFileInputRef = React.useRef<HTMLInputElement>(null)
 
   // Load existing vision board items to check which categories are covered
   useEffect(() => {
@@ -262,14 +260,8 @@ export default function NewVisionBoardItemPage() {
                     variant={imageSource === 'upload' ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => {
-                      if (imageSource === 'upload') {
-                        // Already in upload mode, trigger file picker
-                        fileInputRef.current?.click()
-                      } else {
-                        // Switch to upload mode
-                        setImageSource('upload')
-                        setAiGeneratedImageUrl(null)
-                      }
+                      setImageSource('upload')
+                      setAiGeneratedImageUrl(null)
                     }}
                     className="w-full sm:flex-1"
                   >
@@ -304,90 +296,21 @@ export default function NewVisionBoardItemPage() {
                   </button>
                 </div>
 
-                {/* Hidden file input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
-                  onChange={(e) => {
-                    const selectedFile = e.target.files?.[0]
-                    if (selectedFile) {
-                      setFile(selectedFile)
-                      setImageSource('upload')
-                    }
-                  }}
-                  className="hidden"
-                />
-
-                {/* Show drag-drop zone or selected file */}
-                {imageSource === 'upload' && !file && (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      e.currentTarget.classList.add('border-primary-500', 'bg-primary-500/5')
-                    }}
-                    onDragLeave={(e) => {
-                      e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault()
-                      e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
-                      const droppedFile = e.dataTransfer.files[0]
-                      if (droppedFile && droppedFile.type.startsWith('image/')) {
-                        setFile(droppedFile)
-                      }
-                    }}
-                    className="border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary-500 hover:bg-neutral-900/50 transition-all"
-                  >
-                    <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
-                    <p className="text-neutral-300 font-medium mb-1">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-neutral-500">
-                      PNG, JPG, WEBP, or HEIC (max 10MB)
-                    </p>
-                  </div>
-                )}
-
-                {imageSource === 'upload' && file && (
-                  <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                      {/* Show image preview for supported formats, custom icon for HEIC */}
-                      {file.type === 'image/heic' || file.type === 'image/heif' ? (
-                        <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mx-auto sm:mx-0">
-                          <div className="text-white text-center">
-                            <div className="text-2xl font-bold">HEIC</div>
-                            <div className="text-xs opacity-80">Apple</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt="Preview"
-                          className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
-                        />
-                      )}
-                      <div className="flex-1 text-center sm:text-left">
-                        <p className="text-sm font-medium text-white break-words">{file.name}</p>
-                        <p className="text-xs text-neutral-400">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                          {(file.type === 'image/heic' || file.type === 'image/heif') && (
-                            <span className="ml-2 text-purple-400">• HEIC Format</span>
-                          )}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setFile(null)}
-                        className="w-full sm:w-auto"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
+                {/* Enhanced FileUpload Component */}
+                {imageSource === 'upload' && (
+                  <FileUpload
+                    dragDrop
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                    multiple={false}
+                    maxFiles={1}
+                    maxSize={10}
+                    value={file ? [file] : []}
+                    onChange={(files) => setFile(files[0] || null)}
+                    onUpload={(files) => setFile(files[0] || null)}
+                    dragDropText="Click to upload or drag and drop"
+                    dragDropSubtext="PNG, JPG, WEBP, or HEIC (max 10MB)"
+                    previewSize="lg"
+                  />
                 )}
 
                 {imageSource === 'ai' && (
@@ -450,12 +373,8 @@ export default function NewVisionBoardItemPage() {
                       variant={actualizedImageSource === 'upload' ? 'primary' : 'outline'}
                       size="sm"
                       onClick={() => {
-                        if (actualizedImageSource === 'upload') {
-                          actualizedFileInputRef.current?.click()
-                        } else {
-                          setActualizedImageSource('upload')
-                          setActualizedAiGeneratedImageUrl(null)
-                        }
+                        setActualizedImageSource('upload')
+                        setActualizedAiGeneratedImageUrl(null)
                       }}
                       className="w-full sm:flex-1"
                     >
@@ -490,89 +409,21 @@ export default function NewVisionBoardItemPage() {
                     </button>
                   </div>
 
-                  {/* Hidden file input for actualized image */}
-                  <input
-                    ref={actualizedFileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
-                    onChange={(e) => {
-                      const selectedFile = e.target.files?.[0]
-                      if (selectedFile) {
-                        setActualizedFile(selectedFile)
-                        setActualizedImageSource('upload')
-                      }
-                    }}
-                    className="hidden"
-                  />
-
-                  {/* Show drag-drop zone or selected file */}
-                  {actualizedImageSource === 'upload' && !actualizedFile && (
-                    <div
-                      onClick={() => actualizedFileInputRef.current?.click()}
-                      onDragOver={(e) => {
-                        e.preventDefault()
-                        e.currentTarget.classList.add('border-primary-500', 'bg-primary-500/5')
-                      }}
-                      onDragLeave={(e) => {
-                        e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault()
-                        e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
-                        const droppedFile = e.dataTransfer.files[0]
-                        if (droppedFile && droppedFile.type.startsWith('image/')) {
-                          setActualizedFile(droppedFile)
-                        }
-                      }}
-                      className="border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary-500 hover:bg-neutral-900/50 transition-all"
-                    >
-                      <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
-                      <p className="text-neutral-300 font-medium mb-1">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-xs text-neutral-500">
-                        PNG, JPG, WEBP, or HEIC (max 10MB)
-                      </p>
-                    </div>
-                  )}
-
-                  {actualizedImageSource === 'upload' && actualizedFile && (
-                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                        {actualizedFile.type === 'image/heic' || actualizedFile.type === 'image/heif' ? (
-                          <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mx-auto sm:mx-0">
-                            <div className="text-white text-center">
-                              <div className="text-2xl font-bold">HEIC</div>
-                              <div className="text-xs opacity-80">Apple</div>
-                            </div>
-                          </div>
-                        ) : (
-                          <img
-                            src={URL.createObjectURL(actualizedFile)}
-                            alt="Preview"
-                            className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
-                          />
-                        )}
-                        <div className="flex-1 text-center sm:text-left">
-                          <p className="text-sm font-medium text-white break-words">{actualizedFile.name}</p>
-                          <p className="text-xs text-neutral-400">
-                            {(actualizedFile.size / 1024 / 1024).toFixed(2)} MB
-                            {(actualizedFile.type === 'image/heic' || actualizedFile.type === 'image/heif') && (
-                              <span className="ml-2 text-purple-400">• HEIC Format</span>
-                            )}
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setActualizedFile(null)}
-                          className="w-full sm:w-auto"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
+                  {/* Enhanced FileUpload Component for Actualized Image */}
+                  {actualizedImageSource === 'upload' && (
+                    <FileUpload
+                      dragDrop
+                      accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                      multiple={false}
+                      maxFiles={1}
+                      maxSize={10}
+                      value={actualizedFile ? [actualizedFile] : []}
+                      onChange={(files) => setActualizedFile(files[0] || null)}
+                      onUpload={(files) => setActualizedFile(files[0] || null)}
+                      dragDropText="Click to upload or drag and drop"
+                      dragDropSubtext="PNG, JPG, WEBP, or HEIC (max 10MB)"
+                      previewSize="lg"
+                    />
                   )}
 
                   {actualizedImageSource === 'ai' && (

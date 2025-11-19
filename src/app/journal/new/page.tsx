@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, CategoryCard, DeleteConfirmationDialog } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -40,10 +40,6 @@ export default function NewJournalEntryPage() {
     content: '',
     categories: [] as string[]
   })
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [fileToDelete, setFileToDelete] = useState<number | null>(null)
-  
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const handleCategoryToggle = (category: string) => {
     setFormData(prev => ({
@@ -108,13 +104,6 @@ export default function NewJournalEntryPage() {
     setAudioRecordings(prev => prev.filter((_, i) => i !== index))
   }
 
-  const handleConfirmDelete = () => {
-    if (fileToDelete !== null) {
-      setFiles(prev => prev.filter((_, i) => i !== fileToDelete))
-      setFileToDelete(null)
-      setDeleteDialogOpen(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -317,14 +306,8 @@ export default function NewJournalEntryPage() {
                     variant={imageSource === 'upload' ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => {
-                      if (imageSource === 'upload') {
-                        // Already in upload mode, trigger file picker
-                        fileInputRef.current?.click()
-                      } else {
-                        // Switch to upload mode
-                        setImageSource('upload')
-                        setAiGeneratedImageUrls([])
-                      }
+                      setImageSource('upload')
+                      setAiGeneratedImageUrls([])
                     }}
                     className="w-full sm:flex-1"
                   >
@@ -359,100 +342,21 @@ export default function NewJournalEntryPage() {
                   </button>
                 </div>
 
-                {/* Hidden file input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,video/*,audio/*"
-                  multiple
-                  onChange={(e) => {
-                    const selectedFiles = Array.from(e.target.files || [])
-                    if (selectedFiles.length > 0) {
-                      setFiles(selectedFiles)
-                      setImageSource('upload')
-                    }
-                  }}
-                  className="hidden"
-                />
-
-                {/* Show drag-drop zone or selected files */}
-                {imageSource === 'upload' && files.length === 0 && (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      e.currentTarget.classList.add('border-primary-500', 'bg-primary-500/5')
-                    }}
-                    onDragLeave={(e) => {
-                      e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault()
-                      e.currentTarget.classList.remove('border-primary-500', 'bg-primary-500/5')
-                      const droppedFiles = Array.from(e.dataTransfer.files).filter(
-                        f => f.type.startsWith('image/') || f.type.startsWith('video/') || f.type.startsWith('audio/')
-                      )
-                      if (droppedFiles.length > 0) {
-                        setFiles(droppedFiles.slice(0, 5)) // Max 5 files
-                      }
-                    }}
-                    className="border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary-500 hover:bg-neutral-900/50 transition-all"
-                  >
-                    <Upload className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
-                    <p className="text-neutral-300 font-medium mb-1">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-neutral-500">
-                      Images, videos, or audio (max 5 files, 500MB each)
-                    </p>
-                  </div>
-                )}
-
-                {imageSource === 'upload' && files.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    {files.map((file, index) => (
-                      <div key={index} className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
-                        <div className="flex items-center gap-3">
-                          {file.type.startsWith('image/') && (
-                            <img
-                              src={URL.createObjectURL(file)}
-                              alt="Preview"
-                              className="w-20 h-20 object-cover rounded-lg"
-                            />
-                          )}
-                          {file.type.startsWith('video/') && (
-                            <video
-                              src={URL.createObjectURL(file)}
-                              className="w-20 h-20 object-cover rounded-lg"
-                              muted
-                            />
-                          )}
-                          {!file.type.startsWith('image/') && !file.type.startsWith('video/') && (
-                            <div className="w-20 h-20 bg-neutral-800 rounded-lg flex items-center justify-center">
-                              <span className="text-2xl">📄</span>
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-white">{file.name}</p>
-                            <p className="text-xs text-neutral-400">
-                              {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type.split('/')[0]}
-                            </p>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="danger"
-                            size="sm"
-                            onClick={() => {
-                              setFileToDelete(index)
-                              setDeleteDialogOpen(true)
-                            }}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                {/* Enhanced FileUpload Component */}
+                {imageSource === 'upload' && (
+                  <FileUpload
+                    dragDrop
+                    accept="image/*,video/*,audio/*"
+                    multiple
+                    maxFiles={5}
+                    maxSize={500}
+                    value={files}
+                    onChange={setFiles}
+                    onUpload={setFiles}
+                    dragDropText="Click to upload or drag and drop"
+                    dragDropSubtext="Images, videos, or audio (max 5 files, 500MB each)"
+                    previewSize="lg"
+                  />
                 )}
 
                 {imageSource === 'ai' && (
@@ -534,16 +438,6 @@ export default function NewJournalEntryPage() {
           </Card>
         </div>
 
-        <DeleteConfirmationDialog
-          isOpen={deleteDialogOpen}
-          onClose={() => {
-            setDeleteDialogOpen(false)
-            setFileToDelete(null)
-          }}
-          onConfirm={handleConfirmDelete}
-          itemName={fileToDelete !== null ? files[fileToDelete]?.name || 'File' : ''}
-          itemType="File"
-        />
     </>
   )
 }
