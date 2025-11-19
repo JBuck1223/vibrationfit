@@ -35,6 +35,12 @@ export function getFileUrl(path: string): string {
 // Files >500KB must use presigned URLs to avoid "Function payload too large" errors
 const PRESIGNED_THRESHOLD = 500 * 1024 // 500KB
 
+// Threshold for multipart upload (files larger than this use multipart)
+const MULTIPART_THRESHOLD = 100 * 1024 * 1024 // 100MB
+
+// Chunk size for multipart uploads (10MB per chunk)
+const CHUNK_SIZE = 10 * 1024 * 1024 // 10MB
+
 // Get presigned URL for direct S3 upload
 export async function getPresignedUploadUrl(
   folder: UserFolder,
@@ -195,6 +201,188 @@ export async function uploadFileWithPresignedUrl(
   }
 }
 
+// Upload large file using multipart upload
+export async function uploadFileWithMultipart(
+  folder: UserFolder,
+  file: File,
+  userId?: string,
+  onProgress?: (progress: number) => void
+): Promise<{ url: string; key: string }> {
+  try {
+    console.log('🚀 Starting multipart upload:', {
+      fileName: file.name,
+      fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+      fileType: file.type,
+    })
+
+    // Generate key
+    if (!userId) {
+      const supabase = createClient()
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error || !user) throw new Error('Not authenticated')
+      userId = user.id
+    }
+
+    const timestamp = Date.now()
+    const randomStr = Math.random().toString(36).substring(2, 15)
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.]/g, '-').toLowerCase()
+    const key = `user-uploads/${userId}/${USER_FOLDERS[folder]}/${timestamp}-${randomStr}-${sanitizedName}`
+
+    // Step 1: Create multipart upload
+    const createResponse = await fetch('/api/upload/multipart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create',
+        key,
+        fileType: file.type,
+        fileName: file.name,
+      }),
+    })
+
+    if (!createResponse.ok) {
+      throw new Error('Failed to create multipart upload')
+    }
+
+    const { uploadId } = await createResponse.json()
+    console.log('✅ Multipart upload created:', uploadId)
+
+    // Step 2: Calculate chunks
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+    console.log(`📦 Splitting into ${totalChunks} chunks of ${CHUNK_SIZE / 1024 / 1024}MB each`)
+
+    // Step 3: Upload chunks in parallel (with concurrency limit)
+    const uploadedParts: Array<{ ETag: string; PartNumber: number }> = []
+    const CONCURRENT_UPLOADS = 3 // Upload 3 chunks at a time
+
+    for (let i = 0; i < totalChunks; i += CONCURRENT_UPLOADS) {
+      const chunkPromises = []
+
+      for (let j = 0; j < CONCURRENT_UPLOADS && (i + j) < totalChunks; j++) {
+        const partNumber = i + j + 1
+        const start = (i + j) * CHUNK_SIZE
+        const end = Math.min(start + CHUNK_SIZE, file.size)
+        const chunk = file.slice(start, end)
+
+        chunkPromises.push(
+          (async () => {
+            // Get presigned URL for this part
+            const partUrlResponse = await fetch('/api/upload/multipart', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'getPartUrl',
+                key,
+                uploadId,
+                partNumber,
+              }),
+            })
+
+            if (!partUrlResponse.ok) {
+              throw new Error(`Failed to get presigned URL for part ${partNumber}`)
+            }
+
+            const { presignedUrl } = await partUrlResponse.json()
+
+            // Upload the chunk
+            const uploadResponse = await fetch(presignedUrl, {
+              method: 'PUT',
+              body: chunk,
+              headers: {
+                'Content-Type': file.type,
+              },
+            })
+
+            if (!uploadResponse.ok) {
+              throw new Error(`Failed to upload part ${partNumber}`)
+            }
+
+            const etag = uploadResponse.headers.get('ETag')
+            if (!etag) {
+              throw new Error(`No ETag returned for part ${partNumber}`)
+            }
+
+            console.log(`✅ Uploaded part ${partNumber}/${totalChunks} (${etag})`)
+
+            // Update progress
+            if (onProgress) {
+              const progress = Math.round((partNumber / totalChunks) * 100)
+              onProgress(progress)
+            }
+
+            return { ETag: etag.replace(/"/g, ''), PartNumber: partNumber }
+          })()
+        )
+      }
+
+      // Wait for this batch of chunks to complete
+      const batchParts = await Promise.all(chunkPromises)
+      uploadedParts.push(...batchParts)
+    }
+
+    // Sort parts by part number (required by S3)
+    uploadedParts.sort((a, b) => a.PartNumber - b.PartNumber)
+
+    console.log('✅ All chunks uploaded, completing multipart upload...')
+
+    // Step 4: Complete multipart upload
+    const completeResponse = await fetch('/api/upload/multipart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'complete',
+        key,
+        uploadId,
+        parts: uploadedParts,
+      }),
+    })
+
+    if (!completeResponse.ok) {
+      // If completion fails, abort the upload
+      await fetch('/api/upload/multipart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'abort',
+          key,
+          uploadId,
+        }),
+      })
+      throw new Error('Failed to complete multipart upload')
+    }
+
+    const { url: finalUrl } = await completeResponse.json()
+    console.log('🎉 Multipart upload complete!', finalUrl)
+
+    if (onProgress) onProgress(100)
+
+    // Trigger video processing if needed
+    if (file.type.startsWith('video/')) {
+      console.log('🎬 Triggering MediaConvert for multipart upload:', key)
+      try {
+        await fetch('/api/mediaconvert/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inputKey: key,
+            filename: file.name,
+            userId: userId || '',
+            folder: USER_FOLDERS[folder]
+          })
+        })
+        console.log('✅ MediaConvert job triggered')
+      } catch (error) {
+        console.error('⚠️ Failed to trigger MediaConvert:', error)
+      }
+    }
+
+    return { url: finalUrl, key }
+  } catch (error) {
+    console.error('❌ Multipart upload error:', error)
+    throw error
+  }
+}
+
 // Smart upload function - chooses best method
 export async function uploadUserFile(
   folder: UserFolder,
@@ -219,14 +407,23 @@ export async function uploadUserFile(
 
   console.log('✅ File validation passed')
 
-  // Use presigned URL for large files (>25MB to avoid issues)
+  // Choose upload method based on file size
+  const fileSizeMB = file.size / 1024 / 1024
+
+  // Use multipart upload for very large files (>100MB)
+  if (file.size > MULTIPART_THRESHOLD) {
+    console.log(`🚀 Using multipart upload for ${file.name} (${fileSizeMB.toFixed(2)}MB)`)
+    return uploadFileWithMultipart(folder, file, userId, onProgress)
+  }
+
+  // Use presigned URL for medium files (500KB - 100MB)
   if (file.size > PRESIGNED_THRESHOLD) {
-    console.log(`Using presigned URL upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+    console.log(`📤 Using presigned URL upload for ${file.name} (${fileSizeMB.toFixed(2)}MB)`)
     return uploadFileWithPresignedUrl(folder, file, userId, onProgress)
   }
 
-  // Use API route for smaller files (more reliable, no CORS issues)
-  console.log(`Using API route upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+  // Use API route for small files (<500KB - more reliable, no CORS issues)
+  console.log(`📦 Using API route upload for ${file.name} (${fileSizeMB.toFixed(2)}MB)`)
   return uploadViaApiRoute(folder, file, userId, onProgress)
 }
 
