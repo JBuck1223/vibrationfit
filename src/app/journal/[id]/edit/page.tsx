@@ -48,6 +48,8 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
   const [aiGeneratedImageUrls, setAiGeneratedImageUrls] = useState<string[]>([])
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [audioRecordings, setAudioRecordings] = useState<any[]>([])
+  const [fileToDelete, setFileToDelete] = useState<number | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({
     progress: 0,
     status: '',
@@ -137,6 +139,13 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
     setAudioRecordings(prev => prev.filter((_, i) => i !== index))
   }
 
+  const handleDeleteExistingFile = () => {
+    if (fileToDelete !== null) {
+      setExistingFiles(prev => prev.filter((_, i) => i !== fileToDelete))
+      setFileToDelete(null)
+      setDeleteDialogOpen(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!entry) return
@@ -519,6 +528,35 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
         </form>
           </Card>
         </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteDialogOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <h3 className="text-xl font-bold text-white mb-4">Delete File?</h3>
+            <p className="text-neutral-300 mb-6">
+              Are you sure you want to remove this file from the journal entry? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDeleteDialogOpen(false)
+                  setFileToDelete(null)
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleDeleteExistingFile}
+              >
+                Delete
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
     </>
   )
