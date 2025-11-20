@@ -218,6 +218,7 @@ export default function AssemblyPage() {
           .insert({
             user_id: user.id,
             version_number: newVersionNumber,
+            title: 'Life Vision Draft',
             forward: data.json.forward || '',
             fun: data.json.fun || '',
             travel: data.json.travel || '',
@@ -235,7 +236,8 @@ export default function AssemblyPage() {
             completion_percent: 100,
             is_draft: true,  // V3: Mark as draft until final sections are added
             is_active: false, // V3: Not active until finalized
-            richness_metadata: data.richnessMetadata || {} // V3: Save richness metadata
+            richness_metadata: data.richnessMetadata || {}, // V3: Save richness metadata
+            perspective: 'singular'
           })
           .select()
           .single()

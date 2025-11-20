@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   Badge,
+  StatusBadge,
   Spinner,
   AutoResizeTextarea,
   WarningConfirmationDialog,
@@ -301,6 +302,7 @@ export default function ManualLifeVisionPage() {
 
         if (!response.ok) {
           const errorData = await response.json()
+          console.error('API error response:', errorData)
           throw new Error(errorData.error || 'Failed to create draft')
         }
 
@@ -390,9 +392,10 @@ export default function ManualLifeVisionPage() {
             {visionData.id && (
               <div className="text-center mb-2">
                 <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                  <Badge variant={visionData.is_draft ? 'info' : 'success'}>
-                    {visionData.is_draft ? 'Draft' : 'Active'}
-                  </Badge>
+                  <StatusBadge 
+                    status={visionData.is_draft ? 'draft' : 'active'}
+                    subtle={!visionData.is_active}
+                  />
                   <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
                     {completionPercentage}%
                   </span>
@@ -414,9 +417,10 @@ export default function ManualLifeVisionPage() {
             {visionData.id && (
               <div className="text-center mb-2">
                 <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                  <Badge variant={visionData.is_draft ? 'info' : 'success'}>
-                    {visionData.is_draft ? 'Draft' : 'Active'}
-                  </Badge>
+                  <StatusBadge 
+                    status={visionData.is_draft ? 'draft' : 'active'}
+                    subtle={!visionData.is_active}
+                  />
                   <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
                     {completionPercentage}%
                   </span>

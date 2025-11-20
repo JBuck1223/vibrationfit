@@ -40,8 +40,21 @@ export async function PATCH(request: NextRequest) {
     const { data: updatedDraft, error: updateError } = await supabase
       .from('vision_versions')
       .update({
-        ...visionData,
-        updated_at: new Date().toISOString()
+        forward: visionData.forward || '',
+        fun: visionData.fun || '',
+        travel: visionData.travel || '',
+        home: visionData.home || '',
+        family: visionData.family || '',
+        love: visionData.love || '',
+        health: visionData.health || '',
+        money: visionData.money || '',
+        work: visionData.work || '',
+        social: visionData.social || '',
+        stuff: visionData.stuff || '',
+        giving: visionData.giving || '',
+        spirituality: visionData.spirituality || '',
+        conclusion: visionData.conclusion || '',
+        completion_percent: visionData.completion_percent || 0
       })
       .eq('id', draftId)
       .select()

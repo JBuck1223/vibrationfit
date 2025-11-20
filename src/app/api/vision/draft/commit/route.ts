@@ -22,6 +22,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing draftId' }, { status: 400 })
     }
 
+    console.log('✅ Committing draft:', draftId, 'for user:', user.id)
+
     // Verify draft exists and user owns it
     const { data: draft, error: draftError } = await supabase
       .from('vision_versions')
@@ -82,9 +84,7 @@ export async function POST(request: NextRequest) {
         is_active: true,
         is_draft: false,
         version_number: newVersionNumber,
-        status: 'complete',
-        title: draft.title?.replace(' (Draft)', '') || 'Life Vision',
-        refined_categories: [], // Clear refinement tracking on commit
+        title: draft.title?.replace('Draft', 'Active Vision') || 'Life Vision',
         updated_at: new Date().toISOString()
       })
       .eq('id', draftId)

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Card, Button, Icon, AudioPlayer } from '@/lib/design-system/components'
+import { Card, Button, Icon, AudioPlayer, AutoResizeTextarea } from '@/lib/design-system/components'
 import { Gem, Edit3, Save, X, LucideIcon } from 'lucide-react'
 
 interface VisionCategoryCardProps {
@@ -61,10 +61,10 @@ export function VisionCategoryCard({
         {/* Content Display */}
         {isEditing ? (
           <div className="mb-4">
-            <textarea
+            <AutoResizeTextarea
               value={content || ''}
-              onChange={(e) => onUpdate?.(e.target.value)}
-              className="w-full min-h-[200px] px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-primary-500 resize-y"
+              onChange={(value) => onUpdate?.(value)}
+              className="w-full min-h-[200px]"
               placeholder={`Describe your vision for ${category.label.toLowerCase()}...`}
             />
             <div className="flex justify-end gap-2 mt-4">

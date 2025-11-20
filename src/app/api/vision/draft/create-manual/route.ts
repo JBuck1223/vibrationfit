@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (userError || !user) {
+      console.error('❌ Auth error:', userError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -21,6 +22,8 @@ export async function POST(request: NextRequest) {
     if (!visionData) {
       return NextResponse.json({ error: 'Missing visionData' }, { status: 400 })
     }
+
+    console.log('📝 Creating manual vision draft for user:', user.id)
 
     // Check if draft already exists for this user
     const { data: existingDraft } = await supabase
@@ -36,8 +39,21 @@ export async function POST(request: NextRequest) {
       const { data: updatedDraft, error: updateError } = await supabase
         .from('vision_versions')
         .update({
-          ...visionData,
-          updated_at: new Date().toISOString()
+          forward: visionData.forward || '',
+          fun: visionData.fun || '',
+          travel: visionData.travel || '',
+          home: visionData.home || '',
+          family: visionData.family || '',
+          love: visionData.love || '',
+          health: visionData.health || '',
+          money: visionData.money || '',
+          work: visionData.work || '',
+          social: visionData.social || '',
+          stuff: visionData.stuff || '',
+          giving: visionData.giving || '',
+          spirituality: visionData.spirituality || '',
+          conclusion: visionData.conclusion || '',
+          completion_percent: visionData.completion_percent || 0
         })
         .eq('id', existingDraft.id)
         .select()
@@ -67,35 +83,56 @@ export async function POST(request: NextRequest) {
       ? existingVersions[0].version_number + 1 
       : 1
 
-    // Create new draft vision from scratch
+    console.log('📊 Creating draft with version:', nextVersion, 'for user:', user.id)
+
+    // Create draft vision
     const { data: draft, error: createError } = await supabase
       .from('vision_versions')
       .insert({
         user_id: user.id,
         version_number: nextVersion,
         title: 'Manual Vision Draft',
-        status: 'draft',
-        
-        // Use provided vision data
-        ...visionData,
-        
-        // Draft flags
-        is_active: false,
+        forward: visionData.forward || '',
+        fun: visionData.fun || '',
+        travel: visionData.travel || '',
+        home: visionData.home || '',
+        family: visionData.family || '',
+        love: visionData.love || '',
+        health: visionData.health || '',
+        money: visionData.money || '',
+        work: visionData.work || '',
+        social: visionData.social || '',
+        stuff: visionData.stuff || '',
+        giving: visionData.giving || '',
+        spirituality: visionData.spirituality || '',
+        conclusion: visionData.conclusion || '',
+        completion_percent: visionData.completion_percent || 0,
         is_draft: true,
-        
-        // Tracking
-        refined_categories: [],
-        
-        // Timestamps
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        is_active: false,
+        richness_metadata: {},
+        perspective: 'singular'
       })
       .select()
       .single()
 
     if (createError) {
-      console.error('Error creating draft:', createError)
-      return NextResponse.json({ error: 'Failed to create draft', details: createError.message }, { status: 500 })
+      console.error('❌ Error creating draft:', createError)
+      console.error('❌ Full error object:', JSON.stringify(createError, null, 2))
+      console.error('❌ Insert data was:', {
+        user_id: user.id,
+        version_number: nextVersion,
+        title: 'Manual Vision Draft',
+        completion_percent: visionData.completion_percent || 0,
+        is_active: false,
+        is_draft: true
+      })
+      return NextResponse.json({ 
+        error: 'Failed to create draft', 
+        details: createError.message,
+        hint: createError.hint,
+        code: createError.code,
+        fullError: createError
+      }, { status: 500 })
     }
 
     return NextResponse.json({ 
@@ -104,8 +141,19 @@ export async function POST(request: NextRequest) {
       message: 'Draft created successfully'
     })
   } catch (error) {
-    console.error('Error in POST /api/vision/draft/create-manual:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('❌ CAUGHT ERROR in POST /api/vision/draft/create-manual:', error)
+    console.error('❌ Error type:', typeof error)
+    console.error('❌ Error stringified:', JSON.stringify(error, null, 2))
+    
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    
+    return NextResponse.json({ 
+      error: errorMessage,
+      stack: errorStack,
+      type: typeof error,
+      raw: String(error)
+    }, { status: 500 })
   }
 }
 

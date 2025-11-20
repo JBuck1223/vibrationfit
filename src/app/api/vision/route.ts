@@ -109,6 +109,7 @@ export async function GET(request: NextRequest) {
             .from('vision_versions')
             .select('*')
             .eq('user_id', user.id)
+            .eq('is_draft', false)  // Exclude drafts from main query (will add separately)
             .order('created_at', { ascending: false })
           
           // Calculate version numbers based on chronological order
@@ -219,6 +220,7 @@ export async function GET(request: NextRequest) {
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
+          .eq('is_draft', false)  // Exclude drafts from main query (will add separately)
           .order('created_at', { ascending: false })
         
         // Calculate version numbers based on chronological order

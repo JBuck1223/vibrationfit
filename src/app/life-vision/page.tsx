@@ -445,11 +445,11 @@ export default function VisionListPage() {
               {versions.map((version, index) => {
                 // Most recent complete version is "Active"
                 const isActive = version.id === activeVision?.id
-                const isDraftVersion = version.id?.startsWith('draft-') || (version as any).isDraft
+                const isDraftVersion = version.is_draft === true
                 
                 return (
                   <VisionVersionCard
-                    key={version.id}
+                    key={`${version.id}-${index}`}
                     version={version}
                     isActive={isActive}
                     actions={

@@ -29,13 +29,13 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
   actions,
   className = ''
 }) => {
-  const isDraftVersion = version.id?.startsWith('draft-') || version.isDraft
+  // Check the database is_draft field, not deprecated isDraft property
+  const isDraftVersion = version.is_draft === true
   
-  // Determine the actual status to display
+  // Determine the actual status to display based on is_active and is_draft flags
   const getDisplayStatus = () => {
-    if (isDraftVersion) return 'draft'
     if (version.is_active && !version.is_draft) return 'active'
-    if (!version.is_active && version.is_draft) return 'draft'
+    if (version.is_draft) return 'draft'
     return 'complete'
   }
   

@@ -35,7 +35,7 @@ We are now powerful magnets in harmony with this active vision, attracting the p
 
 We hereby give the Universe full permission to open all doors leading to the joyful experience of this or something even better. 
 
-Thank you in advance for this fun and satisfying journey of unlimited creation. We are truly grateful for the opportunity to be here and experience ourselves as the conscious creators of the The Life We Choose.`
+Thank you in advance for this fun and satisfying journey of unlimited creation. We are truly grateful for the opportunity to be here and experience ourselves as the conscious creators of The Life We Choose.`
     },
     singular: {
       forward: `I am doing this! I'm taking the initiative to have a vibration transformation in my life!
@@ -51,7 +51,7 @@ I am now a powerful magnet in harmony with this active vision, attracting the pe
 
 I hereby give the Universe full permission to open all doors leading to the joyful experience of this or something even better. 
 
-Thank you in advance for this fun and satisfying journey of unlimited creation. I am truly grateful for the opportunity to be here and experience myself as the conscious creator of the The Life I Choose.`
+Thank you in advance for this fun and satisfying journey of unlimited creation. I am truly grateful for the opportunity to be here and experience myself as the conscious creator of The Life I Choose.`
     }
   },
   medium: {
@@ -69,7 +69,7 @@ We are now powerful magnets in harmony with this active vision, attracting the p
 
 We remain open to all possibilities leading to the joyful experience of this or something even better.
 
-Thank you in advance for this meaningful and satisfying journey. We are truly grateful for the opportunity to be here and experience ourselves as the conscious creators of the The Life We Choose.`
+Thank you in advance for this meaningful and satisfying journey. We are truly grateful for the opportunity to be here and experience ourselves as the conscious creators of The Life We Choose.`
     },
     singular: {
       forward: `I am doing this! I'm taking the initiative to create a vibrational transformation in my life!
@@ -85,7 +85,7 @@ I am now a powerful magnet in harmony with this active vision, attracting the pe
 
 I remain open to all possibilities leading to the experience of this or something even better.
 
-Thank you in advance for this meaningful and satisfying journey. I am truly grateful for the opportunity to be here and experience myself as the conscious creator of the The Life I Choose.`
+Thank you in advance for this meaningful and satisfying journey. I am truly grateful for the opportunity to be here and experience myself as the conscious creator of The Life I Choose.`
     }
   },
   low: {
@@ -103,7 +103,7 @@ We are now powerful magnets in harmony with this active vision, attracting the p
 
 We remain open to all possibilities leading to the experience of this or something even better.
 
-Thank you in advance for this meaningful journey. We are truly grateful for the opportunity to be here and experience ourselves as the conscious creators of the The Life We Choose.`
+Thank you in advance for this meaningful journey. We are truly grateful for the opportunity to be here and experience ourselves as the conscious creators of The Life We Choose.`
     },
     singular: {
       forward: `I am doing this! I'm taking the initiative to create a vibrational transformation in my life!
@@ -119,7 +119,7 @@ I am now a powerful magnet in harmony with this active vision, attracting the pe
 
 I remain open to all possibilities leading to the experience of this or something even better.
 
-Thank you in advance for this meaningful journey. I am truly grateful for the opportunity to be here and experience myself as the conscious creator of the The Life I Choose.`
+Thank you in advance for this meaningful journey. I am truly grateful for the opportunity to be here and experience myself as the conscious creator of The Life I Choose.`
     }
   }
 }
