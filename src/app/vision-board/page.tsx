@@ -21,7 +21,7 @@ export default function VisionBoardPage() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active'])
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active', 'actualized'])
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -78,6 +78,7 @@ export default function VisionBoardPage() {
 
   const filteredItems = items
     .filter(item => {
+      // Show all if 'all' is selected, show none if empty array, otherwise filter by selected categories
       const categoryMatch = selectedCategories.includes('all') || 
         (selectedCategories.length > 0 && item.categories && item.categories.some((cat: string) => selectedCategories.includes(cat)))
       const statusMatch = selectedStatuses.includes('all') || selectedStatuses.includes(item.status)
@@ -696,14 +697,17 @@ export default function VisionBoardPage() {
                             {item.categories && item.categories.length > 0 && (
                               <div className="flex flex-wrap items-center gap-2">
                                 <h3 className="text-sm font-medium text-white">Categories:</h3>
-                                {item.categories.map((category: string) => (
-                                  <span
-                                    key={category}
-                                    className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                                  >
-                                    {category}
-                                  </span>
-                                ))}
+                                {item.categories.map((categoryKey: string) => {
+                                  const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                                  return (
+                                    <span
+                                      key={categoryKey}
+                                      className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                                    >
+                                      {categoryInfo ? categoryInfo.label : categoryKey}
+                                    </span>
+                                  )
+                                })}
                               </div>
                             )}
                           </div>

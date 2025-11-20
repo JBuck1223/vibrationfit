@@ -9,23 +9,8 @@ import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload, CheckCircle, XCircle, Filter } from 'lucide-react'
-import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 import { colors } from '@/lib/design-system/tokens'
-
-const LIFE_CATEGORIES = [
-  'Fun / Recreation',
-  'Variety / Travel / Adventure',
-  'Home / Environment',
-  'Family / Parenting',
-  'Love / Romance / Partner',
-  'Health / Body / Vitality',
-  'Money / Wealth / Investments',
-  'Business / Career / Work',
-  'Social / Friends',
-  'Giving / Contribution / Legacy',
-  'Things / Belongings / Stuff',
-  'Expansion / Spirituality',
-]
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -41,7 +26,7 @@ export default function NewVisionBoardItemPage() {
   
   const [loading, setLoading] = useState(false)
   const [existingItems, setExistingItems] = useState<any[]>([])
-  const [categoriesNeeded, setCategoriesNeeded] = useState<string[]>(LIFE_CATEGORIES)
+  const [categoriesNeeded, setCategoriesNeeded] = useState<string[]>(LIFE_CATEGORY_KEYS)
   const [file, setFile] = useState<File | null>(null)
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
@@ -83,7 +68,7 @@ export default function NewVisionBoardItemPage() {
           })
           
           // Calculate which categories still need items
-          const needed = LIFE_CATEGORIES.filter(cat => !coveredCategories.has(cat))
+          const needed = LIFE_CATEGORY_KEYS.filter(cat => !coveredCategories.has(cat))
           setCategoriesNeeded(needed)
         }
       } catch (error) {
@@ -185,7 +170,7 @@ export default function NewVisionBoardItemPage() {
           })
 
           // Check if all 12 life categories are covered
-          const allCategoriesCovered = LIFE_CATEGORIES.every(cat => coveredCategories.has(cat))
+          const allCategoriesCovered = LIFE_CATEGORY_KEYS.every(cat => coveredCategories.has(cat))
 
           if (allCategoriesCovered) {
             const { markIntensiveStep } = await import('@/lib/intensive/checklist')
@@ -195,8 +180,13 @@ export default function NewVisionBoardItemPage() {
             return
           } else {
             // Show which categories still need items
-            const remaining = LIFE_CATEGORIES.filter(cat => !coveredCategories.has(cat))
-            alert(`Great! ${remaining.length} more ${remaining.length === 1 ? 'category' : 'categories'} to go: ${remaining.join(', ')}`)
+            const remaining = LIFE_CATEGORY_KEYS.filter(cat => !coveredCategories.has(cat))
+            // Convert keys to labels for display
+            const remainingLabels = remaining.map(key => {
+              const cat = VISION_CATEGORIES.find(c => c.key === key)
+              return cat ? cat.label : key
+            })
+            alert(`Great! ${remaining.length} more ${remaining.length === 1 ? 'category' : 'categories'} to go: ${remainingLabels.join(', ')}`)
             router.push('/vision-board/new')
             return
           }
@@ -533,14 +523,14 @@ export default function NewVisionBoardItemPage() {
                 )}
                 <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
                   {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                    const isNeeded = isIntensiveMode && categoriesNeeded.includes(category.label)
-                    const isSelected = formData.categories.includes(category.label)
+                    const isNeeded = isIntensiveMode && categoriesNeeded.includes(category.key)
+                    const isSelected = formData.categories.includes(category.key)
                     return (
                       <CategoryCard 
                         key={category.key} 
                         category={category} 
                         selected={isSelected} 
-                        onClick={() => handleCategoryToggle(category.label)}
+                        onClick={() => handleCategoryToggle(category.key)}
                         variant="outlined"
                         selectionStyle="border"
                         iconColor={isSelected ? "#39FF14" : "#FFFFFF"}

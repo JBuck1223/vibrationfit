@@ -437,21 +437,21 @@ export default function JournalPage() {
               {/* Category Cards Grid */}
               <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
                 {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                  const isSelected = selectedCategories.includes(category.label) || selectedCategories.includes('all')
+                  const isSelected = selectedCategories.includes(category.key) || selectedCategories.includes('all')
                   return (
                     <CategoryCard 
                       key={category.key} 
                       category={category} 
                       selected={isSelected} 
                       onClick={() => {
-                        if (selectedCategories.includes(category.label)) {
+                        if (selectedCategories.includes(category.key)) {
                           // Remove category from selection
-                          setSelectedCategories(prev => prev.filter(cat => cat !== category.label))
+                          setSelectedCategories(prev => prev.filter(cat => cat !== category.key))
                         } else {
                           // Add category to selection (remove 'all' if it exists)
                           setSelectedCategories(prev => {
                             const filtered = prev.filter(cat => cat !== 'all')
-                            return [...filtered, category.label]
+                            return [...filtered, category.key]
                           })
                         }
                       }}
@@ -593,14 +593,17 @@ export default function JournalPage() {
                     {/* Categories - Show All */}
                     {entry.categories && entry.categories.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {entry.categories.map((category: string) => (
-                          <span
-                            key={category}
-                            className="text-xs bg-primary-500/20 text-primary-500 px-2 py-0.5 rounded-full"
-                          >
-                            {category}
-                          </span>
-                        ))}
+                        {entry.categories.map((categoryKey: string) => {
+                          const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                          return (
+                            <span
+                              key={categoryKey}
+                              className="text-xs bg-primary-500/20 text-primary-500 px-2 py-0.5 rounded-full"
+                            >
+                              {categoryInfo ? categoryInfo.label : categoryKey}
+                            </span>
+                          )
+                        })}
                       </div>
                     )}
 
@@ -752,14 +755,17 @@ export default function JournalPage() {
                           {entry.categories && entry.categories.length > 0 && (
                             <div className="flex flex-wrap items-center gap-2">
                               <h3 className="text-sm font-medium text-white">Categories:</h3>
-                              {entry.categories.map((category: string) => (
-                                <span
-                                  key={category}
-                                  className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                                >
-                                  {category}
-                                </span>
-                              ))}
+                              {entry.categories.map((categoryKey: string) => {
+                                const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                                return (
+                                  <span
+                                    key={categoryKey}
+                                    className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                                  >
+                                    {categoryInfo ? categoryInfo.label : categoryKey}
+                                  </span>
+                                )
+                              })}
                             </div>
                           )}
                         </div>

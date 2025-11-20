@@ -711,13 +711,13 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                 </p>
                 <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
                   {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                    const isSelected = formData.categories.includes(category.label)
+                    const isSelected = formData.categories.includes(category.key)
                     return (
                       <CategoryCard
                         key={category.key}
                         category={category}
                         selected={isSelected}
-                        onClick={() => handleCategoryToggle(category.label)}
+                        onClick={() => handleCategoryToggle(category.key)}
                         variant="outlined"
                         selectionStyle="border"
                         iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
@@ -823,14 +823,17 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-medium text-white">Categories:</h3>
                       <div className="flex flex-wrap gap-2">
-                        {item.categories.map((category: string, index: number) => (
-                          <span
-                            key={index}
-                            className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                          >
-                            {category}
-                          </span>
-                        ))}
+                        {item.categories.map((categoryKey: string, index: number) => {
+                          const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                          return (
+                            <span
+                              key={index}
+                              className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                            >
+                              {categoryInfo ? categoryInfo.label : categoryKey}
+                            </span>
+                          )
+                        })}
                       </div>
                     </div>
                   )}

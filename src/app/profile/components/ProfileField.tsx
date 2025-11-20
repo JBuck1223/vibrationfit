@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { AlertCircle, Edit2, Check, X } from 'lucide-react'
+import { AlertCircle, Edit2, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { Input, Textarea, Button, RadioGroup } from '@/lib/design-system/components'
 
 interface ProfileFieldProps {
@@ -15,6 +15,7 @@ interface ProfileFieldProps {
   onSave?: (fieldKey: string, newValue: any) => Promise<void>
   selectOptions?: Array<{ value: string; label: string }>
   placeholder?: string
+  collapsible?: boolean
 }
 
 export function ProfileField({ 
@@ -27,12 +28,14 @@ export function ProfileField({
   fieldKey,
   onSave,
   selectOptions,
-  placeholder
+  placeholder,
+  collapsible = false
 }: ProfileFieldProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(value)
   const [isSaving, setIsSaving] = useState(false)
   const [arrayInput, setArrayInput] = useState('')
+  const [isExpanded, setIsExpanded] = useState(true)
 
   // Sync editValue when value prop changes (when not editing)
   useEffect(() => {
@@ -335,27 +338,44 @@ export function ProfileField({
             <AlertCircle className="w-3 h-3 text-yellow-500" />
           )}
         </div>
-        {editable && !isEditing && (
-          <button
-            onClick={handleEdit}
-            className="text-primary-500 hover:text-primary-400 transition-colors p-1"
-            title="Edit this field"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {editable && !isEditing && (
+            <button
+              onClick={handleEdit}
+              className="text-primary-500 hover:text-primary-400 transition-colors p-1"
+              title="Edit this field"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+          )}
+          {collapsible && !isEditing && !isEmpty() && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-neutral-400 hover:text-white transition-colors p-1"
+              title={isExpanded ? "Collapse" : "Expand"}
+            >
+              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          )}
+        </div>
       </div>
       
       {isEditing ? (
         renderEditMode()
       ) : (
         <>
-          {type === 'story' || type === 'array' ? (
-            renderValue()
+          {collapsible && !isExpanded ? (
+            <p className="text-neutral-500 text-sm italic">Click to expand</p>
           ) : (
-            <p className={`font-medium ${isIncomplete ? 'text-neutral-500 italic' : 'text-white'}`}>
-              {renderValue()}
-            </p>
+            <>
+              {type === 'story' || type === 'array' ? (
+                renderValue()
+              ) : (
+                <p className={`font-medium ${isIncomplete ? 'text-neutral-500 italic' : 'text-white'}`}>
+                  {renderValue()}
+                </p>
+              )}
+            </>
           )}
         </>
       )}

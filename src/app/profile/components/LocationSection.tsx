@@ -331,27 +331,12 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
           category={visionToRecordingKey('home')}
           instanceId="clarity"
         />
-
         <SavedRecordings
           key={`home-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('home')}
           onDelete={handleDeleteRecording}
         />
-
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
-          value={profile.contrast_home || ''}
-          onChange={(value) => handleInputChange('contrast_home', value)}
-          placeholder="Share what's not going well with your home or living environment, or what you'd like to improve..."
-          rows={6}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('home')}
-          instanceId="contrast"
-        />
-
         {/* Dream Field */}
         <RecordingTextarea
           label={`What do you dream about in ${getVisionCategoryLabel('home')}?`}
@@ -364,7 +349,18 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
           category={visionToRecordingKey('home')}
           instanceId="dream"
         />
-
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
+          value={profile.contrast_home || ''}
+          onChange={(value) => handleInputChange('contrast_home', value)}
+          placeholder="Share what's not going well with your home or living environment, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('home')}
+          instanceId="contrast"
+        />
         {/* Worry Field */}
         <RecordingTextarea
           label={`What do you worry about in ${getVisionCategoryLabel('home')}?`}

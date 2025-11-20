@@ -286,19 +286,6 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
           onDelete={handleDeleteRecording}
         />
 
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
-          value={profile.contrast_love || ''}
-          onChange={(value) => handleInputChange('contrast_love', value)}
-          placeholder="Share what's not going well with your relationship or romantic life, or what you'd like to improve..."
-          rows={6}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('love')}
-          instanceId="contrast"
-        />
-
         {/* Dream Field */}
         <RecordingTextarea
           label={`What do you dream about in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
@@ -310,6 +297,19 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
           storageFolder="profile"
           category={visionToRecordingKey('love')}
           instanceId="dream"
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
+          value={profile.contrast_love || ''}
+          onChange={(value) => handleInputChange('contrast_love', value)}
+          placeholder="Share what's not going well with your relationship or romantic life, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('love')}
+          instanceId="contrast"
         />
 
         {/* Worry Field */}

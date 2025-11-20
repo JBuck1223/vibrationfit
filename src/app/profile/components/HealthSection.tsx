@@ -335,19 +335,6 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           onDelete={handleDeleteRecording}
         />
 
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
-          value={profile.contrast_health || ''}
-          onChange={(value) => handleInputChange('contrast_health', value)}
-          placeholder="Share what's not going well with your health, fitness, or wellness, or what you'd like to improve..."
-          rows={6}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('health')}
-          instanceId="contrast"
-        />
-
         {/* Dream Field */}
         <RecordingTextarea
           label={`What do you dream about in ${getVisionCategoryLabel('health')}?`}
@@ -361,11 +348,24 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           instanceId="dream"
         />
 
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
+          value={profile.contrast_health || ''}
+          onChange={(value) => handleInputChange('contrast_health', value)}
+          placeholder="Share what's not going well with your health, fitness, or wellness, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('health')}
+          instanceId="contrast"
+        />
+
         {/* Worry Field */}
         <RecordingTextarea
           label={`What do you worry about in ${getVisionCategoryLabel('health')}?`}
           value={profile.worry_health || ''}
-          onChange={(value) => handleInputChange('clarity_health', value)}
+          onChange={(value) => handleInputChange('worry_health', value)}
           placeholder="What concerns you most about your health, fitness, energy levels, or overall wellbeing?"
           rows={4}
           allowVideo={true}

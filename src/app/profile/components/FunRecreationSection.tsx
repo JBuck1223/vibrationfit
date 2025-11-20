@@ -291,19 +291,6 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           onDelete={handleDeleteRecording}
         />
 
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label="What's not going well in Fun?"
-          value={profile.contrast_fun || ''}
-          onChange={(value) => handleInputChange('contrast_fun', value)}
-          placeholder="Share what's not going well with your recreational activities, leisure time, or what you'd like to improve..."
-          rows={6}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('fun')}
-          instanceId="contrast"
-        />
-
         {/* Dream Field */}
         <RecordingTextarea
           label={`What do you dream about in ${getVisionCategoryLabel('fun')}?`}
@@ -315,6 +302,19 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           storageFolder="profile"
           category={visionToRecordingKey('fun')}
           instanceId="dream"
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label="What's not going well in Fun?"
+          value={profile.contrast_fun || ''}
+          onChange={(value) => handleInputChange('contrast_fun', value)}
+          placeholder="Share what's not going well with your recreational activities, leisure time, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('fun')}
+          instanceId="contrast"
         />
 
         {/* Worry Field */}

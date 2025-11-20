@@ -211,27 +211,12 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           category={visionToRecordingKey('social')}
           instanceId="clarity"
         />
-
         <SavedRecordings
           key={`social-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('social')}
           onDelete={handleDeleteRecording}
         />
-
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
-          value={profile.contrast_social || ''}
-          onChange={(value) => handleInputChange('contrast_social', value)}
-          placeholder="Share what's not going well with your social life or friendships, or what you'd like to improve..."
-          rows={6}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('social')}
-          instanceId="contrast"
-        />
-
         {/* Dream Field */}
         <RecordingTextarea
           label={`What do you dream about in ${getVisionCategoryLabel('social')}?`}
@@ -244,7 +229,18 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           category={visionToRecordingKey('social')}
           instanceId="dream"
         />
-
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
+          value={profile.contrast_social || ''}
+          onChange={(value) => handleInputChange('contrast_social', value)}
+          placeholder="Share what's not going well with your social life or friendships, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('social')}
+          instanceId="contrast"
+        />
         {/* Worry Field */}
         <RecordingTextarea
           label={`What do you worry about in ${getVisionCategoryLabel('social')}?`}

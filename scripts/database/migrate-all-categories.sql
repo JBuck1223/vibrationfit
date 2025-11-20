@@ -1,0 +1,99 @@
+-- Combined Migration: Convert all category arrays from labels to keys
+-- This migrates both vision_board_items and journal_entries
+-- Run this once to standardize all category data
+
+-- ============================================================================
+-- VISION BOARD ITEMS
+-- ============================================================================
+UPDATE vision_board_items
+SET categories = ARRAY(
+  SELECT CASE 
+    -- Old label format -> New key format
+    WHEN unnest = 'Fun / Recreation' THEN 'fun'
+    WHEN unnest = 'Variety / Travel / Adventure' THEN 'travel'
+    WHEN unnest = 'Home / Environment' THEN 'home'
+    WHEN unnest = 'Family / Parenting' THEN 'family'
+    WHEN unnest = 'Love / Romance / Partner' THEN 'love'
+    WHEN unnest = 'Health / Body / Vitality' THEN 'health'
+    WHEN unnest = 'Money / Wealth / Investments' THEN 'money'
+    WHEN unnest = 'Business / Career / Work' THEN 'work'
+    WHEN unnest = 'Social / Friends' THEN 'social'
+    WHEN unnest = 'Giving / Contribution / Legacy' THEN 'giving'
+    WHEN unnest = 'Things / Belongings / Stuff' THEN 'stuff'
+    WHEN unnest = 'Expansion / Spirituality' THEN 'spirituality'
+    
+    -- Single-word labels
+    WHEN unnest = 'Fun' THEN 'fun'
+    WHEN unnest = 'Travel' THEN 'travel'
+    WHEN unnest = 'Home' THEN 'home'
+    WHEN unnest = 'Family' THEN 'family'
+    WHEN unnest = 'Love' THEN 'love'
+    WHEN unnest = 'Health' THEN 'health'
+    WHEN unnest = 'Money' THEN 'money'
+    WHEN unnest = 'Work' THEN 'work'
+    WHEN unnest = 'Social' THEN 'social'
+    WHEN unnest = 'Giving' THEN 'giving'
+    WHEN unnest = 'Stuff' THEN 'stuff'
+    WHEN unnest = 'Spirituality' THEN 'spirituality'
+    
+    -- If already a key (lowercase), keep it as is
+    ELSE unnest
+  END
+  FROM unnest(categories)
+)
+WHERE categories IS NOT NULL AND array_length(categories, 1) > 0;
+
+-- ============================================================================
+-- JOURNAL ENTRIES
+-- ============================================================================
+UPDATE journal_entries
+SET categories = ARRAY(
+  SELECT CASE 
+    -- Old label format -> New key format
+    WHEN unnest = 'Fun / Recreation' THEN 'fun'
+    WHEN unnest = 'Variety / Travel / Adventure' THEN 'travel'
+    WHEN unnest = 'Home / Environment' THEN 'home'
+    WHEN unnest = 'Family / Parenting' THEN 'family'
+    WHEN unnest = 'Love / Romance / Partner' THEN 'love'
+    WHEN unnest = 'Health / Body / Vitality' THEN 'health'
+    WHEN unnest = 'Money / Wealth / Investments' THEN 'money'
+    WHEN unnest = 'Business / Career / Work' THEN 'work'
+    WHEN unnest = 'Social / Friends' THEN 'social'
+    WHEN unnest = 'Giving / Contribution / Legacy' THEN 'giving'
+    WHEN unnest = 'Things / Belongings / Stuff' THEN 'stuff'
+    WHEN unnest = 'Expansion / Spirituality' THEN 'spirituality'
+    
+    -- Single-word labels
+    WHEN unnest = 'Fun' THEN 'fun'
+    WHEN unnest = 'Travel' THEN 'travel'
+    WHEN unnest = 'Home' THEN 'home'
+    WHEN unnest = 'Family' THEN 'family'
+    WHEN unnest = 'Love' THEN 'love'
+    WHEN unnest = 'Health' THEN 'health'
+    WHEN unnest = 'Money' THEN 'money'
+    WHEN unnest = 'Work' THEN 'work'
+    WHEN unnest = 'Social' THEN 'social'
+    WHEN unnest = 'Giving' THEN 'giving'
+    WHEN unnest = 'Stuff' THEN 'stuff'
+    WHEN unnest = 'Spirituality' THEN 'spirituality'
+    
+    -- If already a key (lowercase), keep it as is
+    ELSE unnest
+  END
+  FROM unnest(categories)
+)
+WHERE categories IS NOT NULL AND array_length(categories, 1) > 0;
+
+-- ============================================================================
+-- VERIFY MIGRATION (Optional)
+-- ============================================================================
+-- SELECT 'vision_board_items' as table_name, id, name, categories 
+-- FROM vision_board_items 
+-- WHERE categories IS NOT NULL
+-- ORDER BY created_at DESC LIMIT 10;
+
+-- SELECT 'journal_entries' as table_name, id, title, categories 
+-- FROM journal_entries 
+-- WHERE categories IS NOT NULL
+-- ORDER BY created_at DESC LIMIT 10;
+

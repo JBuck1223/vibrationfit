@@ -550,27 +550,12 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           category={visionToRecordingKey('stuff')}
           instanceId="clarity"
         />
-
         <SavedRecordings
           key={`possessions-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('stuff')}
           onDelete={handleDeleteRecording}
         />
-
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
-          value={profile.contrast_stuff || ''}
-          onChange={(value) => handleInputChange('contrast_stuff', value)}
-          placeholder="Share what's not going well with your lifestyle or possessions, or what you'd like to improve..."
-          rows={6}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('stuff')}
-          instanceId="contrast"
-        />
-
         {/* Dream Field */}
         <RecordingTextarea
           label={`What do you dream about in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
@@ -583,7 +568,18 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           category={visionToRecordingKey('stuff')}
           instanceId="dream"
         />
-
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
+          value={profile.contrast_stuff || ''}
+          onChange={(value) => handleInputChange('contrast_stuff', value)}
+          placeholder="Share what's not going well with your lifestyle or possessions, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('stuff')}
+          instanceId="contrast"
+        />
         {/* Worry Field */}
         <RecordingTextarea
           label={`What do you worry about in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}

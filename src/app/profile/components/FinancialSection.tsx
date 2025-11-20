@@ -442,27 +442,12 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
           category={visionToRecordingKey('money')}
           instanceId="clarity"
         />
-
         <SavedRecordings
           key={`money-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('money')}
           onDelete={handleDeleteRecording}
         />
-
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
-          value={profile.contrast_money || ''}
-          onChange={(value) => handleInputChange('contrast_money', value)}
-          placeholder="Share what's not going well with your finances or wealth, or what you'd like to improve..."
-          rows={6}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('money')}
-          instanceId="contrast"
-        />
-
         {/* Dream Field */}
         <RecordingTextarea
           label={`What do you dream about in ${getVisionCategoryLabel('money')}?`}
@@ -475,7 +460,18 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
           category={visionToRecordingKey('money')}
           instanceId="dream"
         />
-
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
+          value={profile.contrast_money || ''}
+          onChange={(value) => handleInputChange('contrast_money', value)}
+          placeholder="Share what's not going well with your finances or wealth, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('money')}
+          instanceId="contrast"
+        />
         {/* Worry Field */}
         <RecordingTextarea
           label={`What do you worry about in ${getVisionCategoryLabel('money')}?`}

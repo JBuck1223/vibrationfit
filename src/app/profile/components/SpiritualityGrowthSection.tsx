@@ -225,27 +225,12 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           category={visionToRecordingKey('spirituality')}
           instanceId="clarity"
         />
-
         <SavedRecordings
           key={`spirituality-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('spirituality')}
           onDelete={handleDeleteRecording}
         />
-
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
-          value={profile.contrast_spirituality || ''}
-          onChange={(value) => handleInputChange('contrast_spirituality', value)}
-          placeholder="Share what's not going well with your spiritual or growth journey, or what you'd like to improve..."
-          rows={6}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('spirituality')}
-          instanceId="contrast"
-        />
-
         {/* Dream Field */}
         <RecordingTextarea
           label={`What do you dream about in ${getVisionCategoryLabel('spirituality')}?`}
@@ -258,7 +243,18 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           category={visionToRecordingKey('spirituality')}
           instanceId="dream"
         />
-
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
+          value={profile.contrast_spirituality || ''}
+          onChange={(value) => handleInputChange('contrast_spirituality', value)}
+          placeholder="Share what's not going well with your spiritual or growth journey, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('spirituality')}
+          instanceId="contrast"
+        />
         {/* Worry Field */}
         <RecordingTextarea
           label={`What do you worry about in ${getVisionCategoryLabel('spirituality')}?`}

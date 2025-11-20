@@ -234,19 +234,6 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           onDelete={handleDeleteRecording}
         />
 
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
-          value={profile.contrast_family || ''}
-          onChange={(value) => handleInputChange('contrast_family', value)}
-          placeholder="Share what's not going well with your family or parenting, or what you'd like to improve..."
-          rows={6}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('family')}
-          instanceId="contrast"
-        />
-
         {/* Dream Field */}
         <RecordingTextarea
           label={`What do you dream about in ${getVisionCategoryLabel('family')}?`}
@@ -258,6 +245,19 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           storageFolder="profile"
           category={visionToRecordingKey('family')}
           instanceId="dream"
+        />
+
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
+          value={profile.contrast_family || ''}
+          onChange={(value) => handleInputChange('contrast_family', value)}
+          placeholder="Share what's not going well with your family or parenting, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('family')}
+          instanceId="contrast"
         />
 
         {/* Worry Field */}

@@ -223,27 +223,12 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           category={visionToRecordingKey('giving')}
           instanceId="clarity"
         />
-
         <SavedRecordings
           key={`giving-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('giving')}
           onDelete={handleDeleteRecording}
         />
-
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('giving')}?`}
-          value={profile.contrast_giving || ''}
-          onChange={(value) => handleInputChange('contrast_giving', value)}
-          placeholder="Share what's not going well with your giving or legacy goals, or what you'd like to improve..."
-          rows={6}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('giving')}
-          instanceId="contrast"
-        />
-
         {/* Dream Field */}
         <RecordingTextarea
           label={`What do you dream about in ${getVisionCategoryLabel('giving')}?`}
@@ -256,7 +241,18 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           category={visionToRecordingKey('giving')}
           instanceId="dream"
         />
-
+        {/* Contrast Field */}
+        <RecordingTextarea
+          label={`What's not going well in ${getVisionCategoryLabel('giving')}?`}
+          value={profile.contrast_giving || ''}
+          onChange={(value) => handleInputChange('contrast_giving', value)}
+          placeholder="Share what's not going well with your giving or legacy goals, or what you'd like to improve..."
+          rows={6}
+          allowVideo={true}
+          storageFolder="profile"
+          category={visionToRecordingKey('giving')}
+          instanceId="contrast"
+        />
         {/* Worry Field */}
         <RecordingTextarea
           label={`What do you worry about in ${getVisionCategoryLabel('giving')}?`}
