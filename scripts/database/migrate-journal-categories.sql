@@ -44,3 +44,5 @@ WHERE categories IS NOT NULL AND array_length(categories, 1) > 0;
 -- Verify the migration (optional - for debugging)
 -- SELECT id, title, categories FROM journal_entries ORDER BY created_at DESC;
 
+
+

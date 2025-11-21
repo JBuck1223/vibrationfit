@@ -86,3 +86,5 @@ Handwritten PDFs/images upload through `uploadUserFile('journal', file, user.id)
 
 
 
+
+

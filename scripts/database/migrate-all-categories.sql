@@ -97,3 +97,5 @@ WHERE categories IS NOT NULL AND array_length(categories, 1) > 0;
 -- WHERE categories IS NOT NULL
 -- ORDER BY created_at DESC LIMIT 10;
 
+
+

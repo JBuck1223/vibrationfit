@@ -2,16 +2,16 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Badge, StatusBadge } from '@/lib/design-system/components'
+import { Button, Card, Container, StatusBadge, Icon } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
-import { CheckCircle, Eye, Headphones, Mic } from 'lucide-react'
+import { CheckCircle, Eye, Headphones, Mic, Check } from 'lucide-react'
 import Link from 'next/link'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 // Add meta sections (intro/outro) to the vision categories for audio recording
 const VISION_SECTIONS = [
-  { key: 'forward', label: 'Forward', description: 'Your opening vision statement', order: 0 },
+  { key: 'forward', label: 'Forward', description: 'Your opening vision statement', order: 0, icon: Mic },
   ...VISION_CATEGORIES.filter(c => c.order > 0 && c.order < 13).map(c => ({
     key: c.key,
     label: c.label,
@@ -19,7 +19,7 @@ const VISION_SECTIONS = [
     order: c.order,
     icon: c.icon
   })),
-  { key: 'conclusion', label: 'Conclusion', description: 'Your vision conclusion', order: 14 },
+  { key: 'conclusion', label: 'Conclusion', description: 'Your vision conclusion', order: 14, icon: Mic },
 ]
 
 export default function RecordVisionAudioPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,7 +30,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
   const [recordings, setRecordings] = useState<Map<string, { url: string; duration: number }>>(new Map())
   const [saving, setSaving] = useState<string | null>(null)
   const [audioSetId, setAudioSetId] = useState<string | null>(null)
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
+  const [activeSection, setActiveSection] = useState<string>('forward')
 
   useEffect(() => {
     ;(async () => {
@@ -166,8 +166,11 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
       // Update local state
       setRecordings(new Map(recordings.set(sectionKey, { url: s3Url, duration })))
 
-      // Collapse the card after successful save
-      setExpandedCategory(null)
+      // Auto-advance to next section if not last
+      const currentIndex = VISION_SECTIONS.findIndex(s => s.key === sectionKey)
+      if (currentIndex < VISION_SECTIONS.length - 1) {
+        setActiveSection(VISION_SECTIONS[currentIndex + 1].key)
+      }
 
     } catch (error) {
       console.error('Failed to save recording:', error)
@@ -193,7 +196,10 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
 
   const completedCount = recordings.size
   const totalCount = VISION_SECTIONS.length
-  const progressPercent = Math.round((completedCount / totalCount) * 100)
+  const activeSessionSection = VISION_SECTIONS.find(s => s.key === activeSection)
+  const sectionText = getSectionText(activeSection)
+  const hasText = sectionText.trim().length > 0
+  const isRecorded = recordings.has(activeSection)
 
   if (loading) {
     return (
@@ -272,133 +278,140 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      {/* Category Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {VISION_SECTIONS.map((section) => {
-          const sectionText = getSectionText(section.key)
-          const hasText = sectionText.trim().length > 0
-          const isRecorded = recordings.has(section.key)
-          const isSaving = saving === section.key
-          const isExpanded = expandedCategory === section.key
+      {/* Category Selection Bar */}
+      <div className="mb-6">
+        <Card>
+          <div className="mb-4 text-center">
+            <h3 className="text-lg font-semibold text-white mb-1">Select Section to Record</h3>
+            <p className="text-sm text-neutral-400">
+              Recording {VISION_SECTIONS.findIndex(s => s.key === activeSection) + 1} of {VISION_SECTIONS.length}
+              {completedCount > 0 && (
+                <span className="ml-2 text-[#39FF14]">
+                  • {completedCount} completed
+                </span>
+              )}
+            </p>
+          </div>
 
-          return (
-            <Card 
-              key={section.key} 
-              className={`relative transition-all ${isExpanded ? 'md:col-span-2 lg:col-span-3' : ''}`}
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-white mb-1">{section.label}</h3>
-                  <p className="text-sm text-neutral-400">{section.description}</p>
-                </div>
-                {isRecorded && (
-                  <div className="ml-2">
-                    <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-black" />
+          {/* Category Grid */}
+          <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
+            {VISION_SECTIONS.map((section) => {
+              const IconComponent = section.icon
+              const isCompleted = recordings.has(section.key)
+              const isActive = activeSection === section.key
+
+              return (
+                <Card 
+                  key={section.key}
+                  variant="outlined" 
+                  hover 
+                  className={`cursor-pointer aspect-square transition-all duration-300 relative ${
+                    isActive 
+                      ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' 
+                      : '!bg-transparent !border-2 !border-[#333]'
+                  } ${isCompleted && !isActive ? 'bg-green-500/10' : ''}`}
+                  onClick={() => setActiveSection(section.key)}
+                >
+                  {isCompleted && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#39FF14] flex items-center justify-center z-10">
+                      <Check className="w-3 h-3 text-[#39FF14]" strokeWidth={3} />
                     </div>
+                  )}
+                  <div className="flex flex-col items-center gap-1 justify-center h-full">
+                    <Icon 
+                      icon={IconComponent} 
+                      size="sm" 
+                      color={isActive ? '#39FF14' : '#FFFFFF'} 
+                    />
+                    <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
+                      {section.label}
+                    </span>
                   </div>
-                )}
+                </Card>
+              )
+            })}
+          </div>
+        </Card>
+      </div>
+
+      {/* Recording Section */}
+      {activeSessionSection && (
+        <Card className="p-6 md:p-8">
+          {/* Section Header */}
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex-1">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                {activeSessionSection.label}
+              </h2>
+              <p className="text-sm text-neutral-400">{activeSessionSection.description}</p>
+            </div>
+            {isRecorded && (
+              <div className="ml-4">
+                <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-black" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {!hasText ? (
+            <div className="p-8 bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg text-center">
+              <p className="text-neutral-400 mb-4">
+                No vision text for this section yet.
+              </p>
+              <Button
+                asChild
+                variant="primary"
+                size="md"
+              >
+                <Link href={`/life-vision/${visionId}`}>
+                  Add your vision first →
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Vision Text Display */}
+              <div className="mb-6">
+                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 mb-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">
+                      Your Vision Text:
+                    </span>
+                    <span className="text-xs text-neutral-400">
+                      ({sectionText.length} characters)
+                    </span>
+                  </div>
+                  <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">
+                    {sectionText}
+                  </p>
+                </div>
               </div>
 
-              {!hasText ? (
-                <div className="p-4 bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg text-center">
-                  <p className="text-sm text-neutral-400 mb-2">
-                    No vision text for this section yet.
-                  </p>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                  >
-                    <Link href={`/life-vision/${visionId}`}>
-                      Add your vision first →
-                    </Link>
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  {/* Vision Text Display - Like /life-vision/[id] */}
-                  {!isExpanded && (
-                    <div className="mb-4">
-                      <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
-                        <p className="text-neutral-300 text-sm leading-relaxed line-clamp-3 whitespace-pre-wrap">
-                          {sectionText}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Expanded View with Full Text */}
-                  {isExpanded && (
-                    <div className="mb-4">
-                      <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 mb-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">
-                            Your Vision Text:
-                          </span>
-                          <span className="text-xs text-neutral-400">
-                            ({sectionText.length} characters)
-                          </span>
-                        </div>
-                        <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">
-                          {sectionText}
-                        </p>
-                      </div>
-
-                      {/* Recorder */}
-                      <MediaRecorderComponent
-                        mode="audio"
-                        recordingPurpose="audioOnly"
-                        category={section.key}
-                        storageFolder="lifeVisionAudioRecordings"
-                        onRecordingComplete={async (blob, transcript, shouldSave, s3Url) => {
-                          if (s3Url && shouldSave) {
-                            // Get duration from the blob
-                            const audio = new Audio(URL.createObjectURL(blob))
-                            audio.addEventListener('loadedmetadata', async () => {
-                              const duration = audio.duration
-                              await handleSaveRecording(section.key, s3Url, duration)
-                            })
-                          }
-                        }}
-                        enableEditor={true}
-                        instanceId={section.key}
-                        className="w-full"
-                      />
-                    </div>
-                  )}
-
-                  {/* Action Button */}
-                  <div className="flex gap-2">
-                    {!isExpanded ? (
-                      <Button
-                        onClick={() => setExpandedCategory(section.key)}
-                        variant={isRecorded ? "outline" : "primary"}
-                        size="sm"
-                        className="flex-1"
-                        disabled={isSaving}
-                      >
-                        <Mic className="w-4 h-4 mr-2" />
-                        {isRecorded ? 'Re-record' : 'Record'}
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => setExpandedCategory(null)}
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1"
-                      >
-                        Close
-                      </Button>
-                    )}
-                  </div>
-                </>
-              )}
-            </Card>
-          )
-        })}
-      </div>
+              {/* Recorder */}
+              <MediaRecorderComponent
+                mode="audio"
+                recordingPurpose="audioOnly"
+                category={activeSection}
+                storageFolder="lifeVisionAudioRecordings"
+                onRecordingComplete={async (blob, transcript, shouldSave, s3Url) => {
+                  if (s3Url && shouldSave) {
+                    // Get duration from the blob
+                    const audio = new Audio(URL.createObjectURL(blob))
+                    audio.addEventListener('loadedmetadata', async () => {
+                      const duration = audio.duration
+                      await handleSaveRecording(activeSection, s3Url, duration)
+                    })
+                  }
+                }}
+                enableEditor={true}
+                instanceId={activeSection}
+                className="w-full"
+              />
+            </>
+          )}
+        </Card>
+      )}
 
       {/* Completion CTA */}
       {completedCount === totalCount && (

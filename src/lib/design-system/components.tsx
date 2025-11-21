@@ -4,7 +4,7 @@
 // Mobile-First, Neon Cyberpunk Aesthetic
 // Path: /src/lib/design-system/components.tsx
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useId } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -1701,7 +1701,8 @@ interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, '
 
 export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
   ({ label, error, helperText, className = '', id, ...props }, ref) => {
-    const radioId = id || `radio-${Math.random().toString(36).substr(2, 9)}`
+    const generatedId = useId()
+    const radioId = id || generatedId
     
     return (
       <div className={className}>
@@ -1820,7 +1821,8 @@ interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>
 
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
   ({ label, error, helperText, className = '', id, ...props }, ref) => {
-    const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`
+    const generatedId = useId()
+    const checkboxId = id || generatedId
     
     return (
       <div className={className}>
