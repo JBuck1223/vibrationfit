@@ -1261,6 +1261,50 @@ export function MediaRecorderComponent({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
+            {/* Transcribe Button (only if not transcribed yet and not audioOnly) */}
+            {recordingPurpose !== 'audioOnly' && !transcript && !isTranscribing && (
+              <Button
+                onClick={async () => {
+                  if (!recordedBlob) {
+                    setError('No recording available to transcribe')
+                    return
+                  }
+                  
+                  if (recordedBlob.size === 0) {
+                    setError('Recording is empty or invalid. Please record again.')
+                    return
+                  }
+                  
+                  console.log('🎙️ Starting transcription:', {
+                    blobSize: recordedBlob.size,
+                    blobType: recordedBlob.type
+                  })
+                  
+                  const transcriptResult = await transcribeAudio(recordedBlob)
+                  
+                  // Update IndexedDB with transcript if we have a recording ID
+                  if (recordingIdRef.current && transcriptResult) {
+                    await saveRecordingChunks(
+                      recordingIdRef.current,
+                      category,
+                      chunksRef.current,
+                      duration,
+                      mode,
+                      recordedBlob,
+                      transcriptResult
+                    )
+                  }
+                }}
+                variant="primary"
+                size="sm"
+                className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0"
+                disabled={!recordedBlob || recordedBlob.size === 0}
+              >
+                <Mic className="w-4 h-4" />
+                Transcribe
+              </Button>
+            )}
+
             {/* Edit Recording Button (audio only, enabled) */}
             {mode === 'audio' && enableEditor && !showEditor && (
               <Button

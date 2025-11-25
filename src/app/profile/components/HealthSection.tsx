@@ -165,7 +165,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
   }
 
   const isMetric = profile.units === 'Metric'
-  const heightUnit = isMetric ? 'cm' : 'inches'
+  const heightUnit = isMetric ? 'cm' : 'in'
   const weightUnit = isMetric ? 'kg' : 'lbs'
 
   // Convert height for display (database stores in inches or cm)
@@ -211,7 +211,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           value={profile.units || 'US'}
           onChange={(value) => handleInputChange('units', value)}
           options={[
-            { value: 'US', label: 'US (ft/in, lbs)' },
+            { value: 'US', label: 'US (in, lbs)' },
             { value: 'Metric', label: 'Metric (cm, kg)' }
           ]}
         />

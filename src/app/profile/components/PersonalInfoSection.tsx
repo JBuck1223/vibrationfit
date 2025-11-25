@@ -60,6 +60,18 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
     }
   }, [isGenderDropdownOpen, isEthnicityDropdownOpen])
 
+  // Format phone number on initial load
+  useEffect(() => {
+    if (profile.phone && profile.phone.length > 0) {
+      // Only format if it's not already formatted
+      const cleaned = profile.phone.replace(/\D/g, '')
+      const formatted = formatPhoneNumber(cleaned)
+      if (formatted !== profile.phone) {
+        handleInputChange('phone', formatted)
+      }
+    }
+  }, []) // Run only once on mount
+
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -70,6 +82,28 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
     if (!isNaN(date.getTime())) {
       handleInputChange('date_of_birth', date.toISOString().split('T')[0])
     }
+  }
+
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-numeric characters
+    const cleaned = value.replace(/\D/g, '')
+    
+    // Limit to 10 digits
+    const limited = cleaned.slice(0, 10)
+    
+    // Format as (XXX) XXX-XXXX
+    if (limited.length <= 3) {
+      return limited
+    } else if (limited.length <= 6) {
+      return `(${limited.slice(0, 3)}) ${limited.slice(3)}`
+    } else {
+      return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`
+    }
+  }
+
+  const handlePhoneChange = (value: string) => {
+    const formatted = formatPhoneNumber(value)
+    handleInputChange('phone', formatted)
   }
 
   return (
@@ -141,8 +175,8 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
             <Input
               type="tel"
               value={profile.phone || ''}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              placeholder="Enter your phone number"
+              onChange={(e) => handlePhoneChange(e.target.value)}
+              placeholder="(555) 123-4567"
               className="w-full"
             />
           </div>

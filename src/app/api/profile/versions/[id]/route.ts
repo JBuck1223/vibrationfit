@@ -27,15 +27,7 @@ export async function GET(
     // Get the specific profile version
     const { data: profile, error } = await supabase
       .from('user_profiles')
-      .select(`
-        *,
-        parent_version:parent_version_id(
-          id,
-          version_number,
-          version_notes,
-          created_at
-        )
-      `)
+      .select('*')
       .eq('id', profileId)
       .eq('user_id', user.id)
       .single()

@@ -143,47 +143,156 @@
 ## 👤 User Management
 
 ### `user_profiles` ✅ **ACTIVE**
-**Purpose:** Extended user profile data
+**Purpose:** Extended user profile data with versioning support
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | uuid | Primary key |
 | `user_id` | uuid | Foreign key to auth.users |
+| **Personal Information** |
 | `first_name` | text | First name |
 | `last_name` | text | Last name |
 | `email` | text | Email address |
+| `phone` | text | Phone number |
 | `profile_picture_url` | text | Profile picture URL |
 | `date_of_birth` | date | Birthday |
-| `phone` | text | Phone number |
-| `bio` | text | Bio/about |
+| `gender` | text | Gender/Identity |
+| `ethnicity` | text | Ethnicity |
+| `education` | text | Education level |
+| `education_description` | text | Education details |
+| **Relationship & Family** |
+| `relationship_status` | text | Single, In a Relationship, Married |
+| `relationship_length` | text | Length of current relationship |
+| `partner_name` | text | Partner's name |
+| `has_children` | boolean | Has children flag |
+| `number_of_children` | integer | Number of children (0-20) |
+| `children_ages` | text[] | Array of children ages |
+| `children` | jsonb | Children details |
+| **Health & Fitness** |
+| `units` | text | US or Metric |
+| `height` | numeric(5,2) | Height |
+| `weight` | numeric(6,2) | Weight |
+| `exercise_frequency` | text | Exercise frequency |
+| **Location & Home** |
+| `living_situation` | text | Own, Rent, etc. |
+| `time_at_location` | text | Time at current location |
 | `city` | text | City |
 | `state` | text | State |
-| `country` | text | Country |
-| `zip_code` | text | ZIP code |
-| `occupation` | text | Occupation |
-| `company` | text | Company |
-| `linkedin_url` | text | LinkedIn URL |
-| `instagram_handle` | text | Instagram handle |
-| `facebook_url` | text | Facebook URL |
-| `twitter_handle` | text | Twitter handle |
-| `website` | text | Personal website |
-| **Profile Content** |
-| `strengths` | jsonb | User strengths |
-| `values` | jsonb | Core values |
-| `lifestyle` | jsonb | Lifestyle preferences |
-| `priorities` | jsonb | Current priorities |
-| `aspirations` | jsonb | Future aspirations |
-| `pain_points` | jsonb | Current challenges |
-| `preferred_communication` | text | Communication style |
-| `timezone` | text | Timezone |
-| `language_preference` | text | Language |
-| **Metadata** |
-| `is_active` | boolean | Active profile |
-| `is_onboarding_complete` | boolean | Onboarding status |
-| `onboarding_step` | integer | Current onboarding step |
-| `last_login_at` | timestamptz | Last login |
+| `postal_code` | text | Postal/ZIP code |
+| `country` | text | Country (default: United States) |
+| **Work & Career** |
+| `employment_type` | text | Employee, Business Owner, etc. |
+| `occupation` | text | Job title |
+| `company` | text | Company name |
+| `time_in_role` | text | Time in current role |
+| **Financial** |
+| `currency` | text | Currency (default: USD) |
+| `household_income` | text | Household income range |
+| `savings_retirement` | text | Savings/retirement range |
+| `assets_equity` | text | Assets/equity range |
+| `consumer_debt` | text | Consumer debt range |
+| **Fun & Lifestyle** |
+| `hobbies` | text[] | Array of hobbies |
+| `leisure_time_weekly` | text | Weekly leisure time |
+| `lifestyle_category` | enum | Lifestyle category |
+| **Travel & Adventure** |
+| `travel_frequency` | enum | Travel frequency |
+| `passport` | boolean | Has valid passport |
+| `countries_visited` | integer | Number of countries visited |
+| `trips` | jsonb | Trip details |
+| **Social & Friends** |
+| `close_friends_count` | text | Number of close friends |
+| `social_preference` | enum | Social preference |
+| **Possessions & Vehicles** |
+| `has_vehicle` | boolean | Has vehicle flag |
+| `primary_vehicle` | text | Primary vehicle |
+| `vehicles` | jsonb | Vehicle details |
+| `toys` | jsonb | Toys/possessions details |
+| **Spirituality & Growth** |
+| `spiritual_practice` | text | Spiritual practice type |
+| `meditation_frequency` | text | Meditation frequency |
+| `personal_growth_focus` | boolean | Personal growth focus flag |
+| **Giving & Legacy** |
+| `volunteer_status` | text | Volunteer status |
+| `charitable_giving` | text | Charitable giving |
+| `legacy_mindset` | boolean | Legacy mindset flag |
+| **Life Vision Categories (Clarity)** |
+| `clarity_fun` | text | Fun/Recreation clarity |
+| `clarity_health` | text | Health/Vitality clarity |
+| `clarity_travel` | text | Travel/Adventure clarity |
+| `clarity_love` | text | Love/Romance clarity |
+| `clarity_family` | text | Family clarity |
+| `clarity_social` | text | Social/Friends clarity |
+| `clarity_home` | text | Home/Environment clarity |
+| `clarity_work` | text | Work/Career clarity |
+| `clarity_money` | text | Money/Wealth clarity |
+| `clarity_stuff` | text | Stuff/Possessions clarity |
+| `clarity_giving` | text | Giving/Legacy clarity |
+| `clarity_spirituality` | text | Spirituality/Growth clarity |
+| **Life Vision Categories (Dream)** |
+| `dream_fun` | text | Fun/Recreation dreams |
+| `dream_health` | text | Health/Vitality dreams |
+| `dream_travel` | text | Travel/Adventure dreams |
+| `dream_love` | text | Love/Romance dreams |
+| `dream_family` | text | Family dreams |
+| `dream_social` | text | Social/Friends dreams |
+| `dream_home` | text | Home/Environment dreams |
+| `dream_work` | text | Work/Career dreams |
+| `dream_money` | text | Money/Wealth dreams |
+| `dream_stuff` | text | Stuff/Possessions dreams |
+| `dream_giving` | text | Giving/Legacy dreams |
+| `dream_spirituality` | text | Spirituality/Growth dreams |
+| **Life Vision Categories (Contrast)** |
+| `contrast_fun` | text | Fun/Recreation contrasts |
+| `contrast_health` | text | Health/Vitality contrasts |
+| `contrast_travel` | text | Travel/Adventure contrasts |
+| `contrast_love` | text | Love/Romance contrasts |
+| `contrast_family` | text | Family contrasts |
+| `contrast_social` | text | Social/Friends contrasts |
+| `contrast_home` | text | Home/Environment contrasts |
+| `contrast_work` | text | Work/Career contrasts |
+| `contrast_money` | text | Money/Wealth contrasts |
+| `contrast_stuff` | text | Stuff/Possessions contrasts |
+| `contrast_giving` | text | Giving/Legacy contrasts |
+| `contrast_spirituality` | text | Spirituality/Growth contrasts |
+| **Life Vision Categories (Worry)** |
+| `worry_fun` | text | Fun/Recreation worries |
+| `worry_health` | text | Health/Vitality worries |
+| `worry_travel` | text | Travel/Adventure worries |
+| `worry_love` | text | Love/Romance worries |
+| `worry_family` | text | Family worries |
+| `worry_social` | text | Social/Friends worries |
+| `worry_home` | text | Home/Environment worries |
+| `worry_work` | text | Work/Career worries |
+| `worry_money` | text | Money/Wealth worries |
+| `worry_stuff` | text | Stuff/Possessions worries |
+| `worry_giving` | text | Giving/Legacy worries |
+| `worry_spirituality` | text | Spirituality/Growth worries |
+| **Household** |
+| `household_id` | uuid | Foreign key to households |
+| `is_household_admin` | boolean | Household admin flag |
+| `allow_shared_tokens` | boolean | Allow shared tokens flag |
+| **Media & Recordings** |
+| `progress_photos` | text[] | Array of progress photo URLs |
+| `story_recordings` | jsonb | Story recording metadata |
+| `ai_tags` | jsonb | AI-generated tags |
+| **Versioning** |
+| `version_number` | integer | Version number (default: 1) |
+| `is_draft` | boolean | Draft status |
+| `is_active` | boolean | Active version flag |
+| `parent_version_id` | uuid | Parent version ID (self-reference) |
+| `version_notes` | text | Version notes |
+| **Timestamps** |
 | `created_at` | timestamptz | Creation timestamp |
 | `updated_at` | timestamptz | Last update |
+
+**Constraints:**
+- UNIQUE: One active non-draft profile per user
+- UNIQUE: One draft profile per user
+- CHECK: Various enum validations for gender, ethnicity, employment_type, etc.
+- FOREIGN KEY: `parent_version_id` references `user_profiles(id)` (self-referencing)
+- FOREIGN KEY: `household_id` references `households(id)`
+- FOREIGN KEY: `user_id` references `auth.users(id)` on delete CASCADE
 
 ---
 
