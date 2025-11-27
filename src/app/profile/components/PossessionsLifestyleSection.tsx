@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Input, Button } from '@/lib/design-system/components'
+import { Card, Input, SaveButton } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Package, Plus, Trash2, Save } from 'lucide-react'
+import { Package, Plus, Trash2 } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
+import * as tokens from '@/lib/design-system/tokens'
 
 interface PossessionsLifestyleSectionProps {
   profile: Partial<UserProfile>
@@ -15,6 +16,7 @@ interface PossessionsLifestyleSectionProps {
   profileId?: string // Optional profile ID to target specific profile version
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 type VehicleOrToy = {
@@ -23,7 +25,7 @@ type VehicleOrToy = {
   ownership_status: 'paid_in_full' | 'own_with_payment' | 'leased' | 'borrowed'
 }
 
-export function PossessionsLifestyleSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: PossessionsLifestyleSectionProps) {
+export function PossessionsLifestyleSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false }: PossessionsLifestyleSectionProps) {
   const [isLifestyleCategoryDropdownOpen, setIsLifestyleCategoryDropdownOpen] = useState(false)
   const [openVehicleDropdowns, setOpenVehicleDropdowns] = useState<Map<number, boolean>>(new Map())
   const [openToyDropdowns, setOpenToyDropdowns] = useState<Map<number, boolean>>(new Map())
@@ -194,7 +196,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
   return (
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <Package className="w-6 h-6 text-primary-500" />
+        <Package className="w-6 h-6 text-white" />
         <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel(visionToRecordingKey('stuff'))}</h3>
       </div>
       
@@ -259,7 +261,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
               <button
                 type="button"
                 onClick={handleVehicleAdd}
-                className="flex items-center gap-2 px-3 py-1.5 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
                 Add Vehicle
@@ -275,10 +277,14 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                 {vehicles.map((vehicle, index) => (
                   <div
                     key={index}
-                    className="bg-neutral-900 rounded-lg border border-neutral-700 p-4 space-y-3"
+                    className="rounded-lg border-2 p-4 space-y-3"
+                    style={{
+                      backgroundColor: tokens.colors.neutral.cardBg,
+                      borderColor: tokens.colors.neutral.borderLight
+                    }}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-neutral-400">Vehicle {index + 1}</span>
+                      <span className="text-sm font-medium text-neutral-300 uppercase">Vehicle {index + 1}</span>
                       <button
                         type="button"
                         onClick={() => handleVehicleRemove(index)}
@@ -336,7 +342,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                                 return next
                               })
                             }}
-                            className="w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] text-white border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                            className="w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] text-white text-sm border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
                           >
                             {ownershipStatusOptions.find(opt => opt.value === (vehicle.ownership_status || 'paid_in_full'))?.label || 'Paid In Full'}
                           </button>
@@ -404,7 +410,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
             <button
               type="button"
               onClick={handleToyAdd}
-              className="flex items-center gap-2 px-3 py-1.5 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
             >
               <Plus className="w-4 h-4" />
               Add Toy
@@ -420,10 +426,14 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
               {toys.map((toy, index) => (
                 <div
                   key={index}
-                  className="bg-neutral-900 rounded-lg border border-neutral-700 p-4 space-y-3"
+                  className="rounded-lg border-2 p-4 space-y-3"
+                  style={{
+                    backgroundColor: tokens.colors.neutral.cardBg,
+                    borderColor: tokens.colors.neutral.borderLight
+                  }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-neutral-400">Toy {index + 1}</span>
+                    <span className="text-sm font-medium text-neutral-300 uppercase">Toy {index + 1}</span>
                     <button
                       type="button"
                       onClick={() => handleToyRemove(index)}
@@ -481,7 +491,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                               return next
                             })
                           }}
-                          className="w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] text-white border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                          className="w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] text-white text-sm border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
                         >
                           {ownershipStatusOptions.find(opt => opt.value === (toy.ownership_status || 'paid_in_full'))?.label || 'Paid In Full'}
                         </button>
@@ -597,15 +607,11 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

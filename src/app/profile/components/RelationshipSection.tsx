@@ -1,12 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Button } from '@/lib/design-system/components'
+import { Card, SaveButton } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
-import { Save } from 'lucide-react'
 
 interface RelationshipSectionProps {
   profile: Partial<UserProfile>
@@ -14,6 +13,7 @@ interface RelationshipSectionProps {
   onProfileReload?: () => Promise<void>
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 const relationshipStatusOptions = [
@@ -33,7 +33,7 @@ const relationshipLengthOptions = [
   { value: '10+ years', label: '10+ years' }
 ]
 
-export function RelationshipSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: RelationshipSectionProps) {
+export function RelationshipSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false }: RelationshipSectionProps) {
   const [isRelationshipStatusDropdownOpen, setIsRelationshipStatusDropdownOpen] = useState(false)
   const [isRelationshipLengthDropdownOpen, setIsRelationshipLengthDropdownOpen] = useState(false)
   const relationshipStatusDropdownRef = useRef<HTMLDivElement>(null)
@@ -128,7 +128,10 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
   
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel(visionToRecordingKey('love'))}</h3>
+      <div className="flex items-center gap-3 mb-6">
+        <LoveIcon className="w-6 h-6 text-white" />
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel(visionToRecordingKey('love'))}</h3>
+      </div>
       
       <div className="space-y-6">
         {/* Relationship Status */}
@@ -329,15 +332,11 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

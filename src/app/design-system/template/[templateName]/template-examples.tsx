@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import {
   Card,
+  CategoryCard,
   Stack,
   TwoColumn,
   Heading,
@@ -11,7 +12,7 @@ import {
   Button,
   Badge,
 } from '@/lib/design-system/components'
-import { Clock, Shield, Crown, Zap, Check, Filter } from 'lucide-react'
+import { Clock, Shield, Crown, Zap, Check, Filter, CheckCircle } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 export function renderTemplateExample(templateId: string) {
@@ -255,51 +256,68 @@ export function renderTemplateExample(templateId: string) {
 
     case 'category-selection-grid':
       const CategorySelectionGridDemo = () => {
-        const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-        const hasForwardConclusion = VISION_CATEGORIES.some(cat => cat.key === 'forward' || cat.key === 'conclusion')
+        const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+
+        const handleCategoryToggle = (categoryKey: string) => {
+          setSelectedCategories(prev => 
+            prev.includes(categoryKey)
+              ? prev.filter(key => key !== categoryKey)
+              : [...prev, categoryKey]
+          )
+        }
+
+        const handleSelectAll = () => {
+          if (selectedCategories.length === VISION_CATEGORIES.length) {
+            setSelectedCategories([])
+          } else {
+            setSelectedCategories(VISION_CATEGORIES.map(c => c.key))
+          }
+        }
 
         return (
           <Stack gap="md">
-            <div>
-              <Heading level={3} className="text-white mb-4">
-                Choose a Category
-              </Heading>
-              <p className="text-sm text-neutral-400 mb-4">
-                {hasForwardConclusion ? '14 columns (Forward & Conclusion included)' : '12 columns (Forward & Conclusion omitted)'}
-              </p>
-              <div className={`grid grid-cols-4 md:grid-cols-6 gap-2 ${
-                hasForwardConclusion
-                  ? 'lg:grid-cols-[repeat(14,minmax(0,1fr))]'
-                  : 'lg:grid-cols-[repeat(12,minmax(0,1fr))]'
-              }`}>
+            <Card className="p-6">
+              <div className="text-center mb-6">
+                <Heading level={3} className="text-white mb-2">
+                  Life Vision Category Selection Grid
+                </Heading>
+                <p className="text-sm text-neutral-400 mb-4">
+                  Live example from /life-vision/[id] - 4 cols mobile, 7 cols tablet, 14 cols desktop
+                </p>
+              </div>
+
+              {/* Select All Button */}
+              <div className="flex justify-center mb-6">
+                <Button
+                  onClick={handleSelectAll}
+                  variant={selectedCategories.length === VISION_CATEGORIES.length ? "primary" : "outline"}
+                  className="flex items-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  {selectedCategories.length === VISION_CATEGORIES.length ? 'Deselect All' : 'Select All'}
+                </Button>
+              </div>
+
+              {/* Category Grid - Matches /life-vision/[id] exactly */}
+              <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
                 {VISION_CATEGORIES.map((category) => {
-                  const IconComponent = category.icon
+                  const isSelected = selectedCategories.includes(category.key)
                   return (
-                    <Card
-                      key={category.key}
+                    <CategoryCard 
+                      key={category.key} 
+                      category={category} 
+                      selected={isSelected} 
+                      onClick={() => handleCategoryToggle(category.key)}
                       variant="outlined"
-                      hover
-                      className={`cursor-pointer aspect-square transition-all duration-300 ${
-                        selectedCategory === category.key ? 'border border-primary-500' : ''
-                      }`}
-                      onClick={() => setSelectedCategory(category.key)}
-                    >
-                      <div className="flex flex-col items-center gap-2 p-2 justify-center h-full">
-                        <Icon icon={IconComponent} size="sm" color={selectedCategory === category.key ? '#39FF14' : '#14B8A6'} />
-                        <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-                          {category.label}
-                        </span>
-                      </div>
-                    </Card>
+                      selectionStyle="border"
+                      iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                      selectedIconColor="#39FF14"
+                      className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                    />
                   )
                 })}
               </div>
-              {selectedCategory && (
-                <p className="text-sm text-primary-500 mt-4">
-                  Selected: {VISION_CATEGORIES.find(c => c.key === selectedCategory)?.label}
-                </p>
-              )}
-            </div>
+            </Card>
           </Stack>
         )
       }

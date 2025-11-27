@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Input, Button, Checkbox } from '@/lib/design-system/components'
+import { Card, Input, Button, SaveButton, Checkbox } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Plane, Plus, Trash2, Save } from 'lucide-react'
+import { Plane, Plus, Trash2 } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
+import * as tokens from '@/lib/design-system/tokens'
 
 interface TravelAdventureSectionProps {
   profile: Partial<UserProfile>
@@ -15,6 +16,7 @@ interface TravelAdventureSectionProps {
   profileId?: string // Optional profile ID to target specific profile version
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 type Trip = {
@@ -23,7 +25,7 @@ type Trip = {
   duration?: string | null
 }
 
-export function TravelAdventureSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: TravelAdventureSectionProps) {
+export function TravelAdventureSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false }: TravelAdventureSectionProps) {
   const [isTravelFrequencyDropdownOpen, setIsTravelFrequencyDropdownOpen] = useState(false)
   const travelFrequencyDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -224,17 +226,16 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
 
         {/* Trips I've Taken Table */}
         <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center justify-between mb-4">
             <h4 className="text-sm font-semibold text-white">Trips I've Taken</h4>
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
+              type="button"
               onClick={handleTripAdd}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
             >
               <Plus className="w-4 h-4" />
               Add Trip
-            </Button>
+            </button>
           </div>
 
           {trips.length === 0 ? (
@@ -246,10 +247,14 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
               {trips.map((trip, index) => (
                 <div
                   key={index}
-                  className="bg-neutral-900 rounded-lg border border-neutral-700 p-4 space-y-3"
+                  className="rounded-lg border-2 p-4 space-y-3"
+                  style={{
+                    backgroundColor: tokens.colors.neutral.cardBg,
+                    borderColor: tokens.colors.neutral.borderLight
+                  }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-neutral-400">Trip {index + 1}</span>
+                    <span className="text-sm font-medium text-neutral-300 uppercase">Trip {index + 1}</span>
                     <button
                       type="button"
                       onClick={() => handleTripRemove(index)}
@@ -366,15 +371,11 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

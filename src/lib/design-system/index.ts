@@ -24,6 +24,7 @@ export {
   FeatureCard,
   CategoryCard,
   Button,
+  SaveButton,
   VIVAButton,
   Icon,
   Select,

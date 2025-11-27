@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap, Target, Gem, Volume2, Download, VolumeX, Diamond } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap, Target, Gem, Volume2, Download, VolumeX, Diamond, Copy } from 'lucide-react'
 import { Card, Button, Badge, ProgressBar, Spinner, Grid, CreatedDateBadge } from '@/lib/design-system/components'
 import { VisionVersionCard } from './components/VisionVersionCard'
 import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -27,6 +27,7 @@ const getSectionIcon = getVisionCategoryIcon
 interface VisionData {
   id: string
   user_id: string
+  title?: string
   forward: string
   fun: string
   travel: string
@@ -64,6 +65,12 @@ export default function VisionListPage() {
   const [completedSections, setCompletedSections] = useState<string[]>([])
   const [refinementsCount, setRefinementsCount] = useState(0)
   const [audiosCount, setAudiosCount] = useState(0)
+  const [showCloneDialog, setShowCloneDialog] = useState(false)
+  const [versionToClone, setVersionToClone] = useState<string | null>(null)
+  const [isCloning, setIsCloning] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [versionToDelete, setVersionToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Utility: add timeout to any async operation to avoid infinite loading
   const withTimeout = async <T,>(operation: Promise<T> | (() => Promise<T>), ms = 10000, label = 'operation'): Promise<T> => {
@@ -281,18 +288,23 @@ export default function VisionListPage() {
     }
   }
 
-  const deleteVersion = async (versionId: string) => {
-    if (!confirm('Are you sure you want to delete this version? This action cannot be undone.')) {
-      return
-    }
+  const handleDeleteVersion = (versionId: string) => {
+    setVersionToDelete(versionId)
+    setShowDeleteDialog(true)
+  }
 
-    setDeletingVersion(versionId)
+  const confirmDelete = async () => {
+    if (!versionToDelete) return
+    
+    setIsDeleting(true)
+    setShowDeleteDialog(false)
+    
     try {
       const supabase = createClient()
       const { error } = await supabase
         .from('vision_versions')
         .delete()
-        .eq('id', versionId)
+        .eq('id', versionToDelete)
 
       if (error) throw error
 
@@ -302,7 +314,132 @@ export default function VisionListPage() {
       console.error('Error deleting version:', error)
       alert('Failed to delete version. Please try again.')
     } finally {
-      setDeletingVersion(null)
+      setIsDeleting(false)
+      setVersionToDelete(null)
+    }
+  }
+
+  const handleCloneVersion = async (versionId: string) => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Check if a draft already exists
+      const { data: existingDraft } = await supabase
+        .from('vision_versions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_draft', true)
+        .eq('is_active', false)
+        .maybeSingle()
+
+      if (existingDraft) {
+        // Show override dialog
+        setVersionToClone(versionId)
+        setShowCloneDialog(true)
+        return
+      }
+
+      // No existing draft, proceed with clone
+      await performClone(versionId)
+    } catch (error) {
+      console.error('Error checking for drafts:', error)
+      alert('Failed to check for existing drafts. Please try again.')
+    }
+  }
+
+  const performClone = async (versionId: string) => {
+    setIsCloning(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Delete existing draft if any
+      await supabase
+        .from('vision_versions')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('is_draft', true)
+        .eq('is_active', false)
+
+      // Fetch the version to clone
+      const { data: sourceVersion, error: fetchError } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('id', versionId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (fetchError || !sourceVersion) {
+        alert('Failed to fetch version to clone')
+        return
+      }
+
+      // Get the highest version number
+      const maxVersion = Math.max(...versions.map(v => v.version_number), 0)
+      const newVersionNumber = maxVersion + 1
+
+      // Create new version with copied data
+      const { data: newVersion, error: insertError } = await supabase
+        .from('vision_versions')
+        .insert({
+          user_id: user.id,
+          title: sourceVersion.title || `Vision V${newVersionNumber}`,
+          forward: sourceVersion.forward,
+          fun: sourceVersion.fun,
+          travel: sourceVersion.travel,
+          home: sourceVersion.home,
+          family: sourceVersion.family,
+          love: sourceVersion.love,
+          health: sourceVersion.health,
+          money: sourceVersion.money,
+          work: sourceVersion.work,
+          social: sourceVersion.social,
+          stuff: sourceVersion.stuff,
+          giving: sourceVersion.giving,
+          spirituality: sourceVersion.spirituality,
+          conclusion: sourceVersion.conclusion,
+          version_number: newVersionNumber,
+          is_draft: true,
+          is_active: false,
+          completion_percent: sourceVersion.completion_percent
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('Clone insert error:', insertError)
+        console.error('Insert error details:', JSON.stringify(insertError, null, 2))
+        alert(`Failed to clone version: ${insertError.message || 'Unknown error'}`)
+        return
+      }
+
+      if (!newVersion) {
+        console.error('No new version returned from insert')
+        alert('Failed to clone version: No data returned')
+        return
+      }
+
+      // Refresh the vision list
+      await fetchVision()
+      
+      // Navigate to the new draft view page
+      router.push(`/life-vision/${newVersion.id}`)
+    } catch (error) {
+      console.error('Error cloning version:', error)
+      alert('Failed to clone version. Please try again.')
+    } finally {
+      setIsCloning(false)
+    }
+  }
+
+  const confirmClone = async () => {
+    setShowCloneDialog(false)
+    if (versionToClone) {
+      await performClone(versionToClone)
+      setVersionToClone(null)
     }
   }
 
@@ -443,8 +580,8 @@ export default function VisionListPage() {
             </div>
             <div className="space-y-4">
               {versions.map((version, index) => {
-                // Most recent complete version is "Active"
-                const isActive = version.id === activeVision?.id
+                // Check database is_active field
+                const isActive = version.is_active && !version.is_draft
                 const isDraftVersion = version.is_draft === true
                 
                 return (
@@ -452,15 +589,16 @@ export default function VisionListPage() {
                     key={`${version.id}-${index}`}
                     version={version}
                     isActive={isActive}
+                    onDelete={handleDeleteVersion}
                     actions={
                         <>
                           {isDraftVersion ? (
-                            // Draft version - link to draft page with yellow button matching badge
+                            // Draft version - link to draft page with yellow ghost button
                             <Button
                               asChild
-                              variant="ghost"
+                              variant="ghost-yellow"
                               size="sm"
-                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold bg-[#FFFF00]/20 text-[#FFFF00] hover:bg-[#FFFF00]/30"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
                             >
                               <Link href={`/life-vision/${version.id.replace('draft-', '')}/refine/draft`}>
                                 <Eye className="w-4 h-4" />
@@ -468,24 +606,49 @@ export default function VisionListPage() {
                               </Link>
                             </Button>
                           ) : isActive ? (
-                            <Button
-                              onClick={() => router.push(`/life-vision/${version.id}`)}
-                              size="sm"
-                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 bg-[#39FF14] text-black hover:bg-[#39FF14]/90 border-0"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </Button>
+                            <>
+                              <Button
+                                onClick={() => handleCloneVersion(version.id)}
+                                variant="ghost"
+                                size="sm"
+                                disabled={isCloning}
+                                className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                              >
+                                <Copy className="w-4 h-4" />
+                                Clone
+                              </Button>
+                              <Button
+                                onClick={() => router.push(`/life-vision/${version.id}`)}
+                                variant="primary"
+                                size="sm"
+                                className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
+                              >
+                                <Eye className="w-4 h-4" />
+                                View
+                              </Button>
+                            </>
                           ) : (
-                            <Button
-                              onClick={() => router.push(`/life-vision/${version.id}`)}
-                              variant="ghost"
-                              size="sm"
-                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </Button>
+                            <>
+                              <Button
+                                onClick={() => handleCloneVersion(version.id)}
+                                variant="ghost"
+                                size="sm"
+                                disabled={isCloning}
+                                className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                              >
+                                <Copy className="w-4 h-4" />
+                                Clone
+                              </Button>
+                              <Button
+                                onClick={() => router.push(`/life-vision/${version.id}`)}
+                                variant="ghost-blue"
+                                size="sm"
+                                className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                              >
+                                <Eye className="w-4 h-4" />
+                                View
+                              </Button>
+                            </>
                           )}
                         </>
                       }
@@ -512,6 +675,110 @@ export default function VisionListPage() {
                   Create Your First Life Vision
                 </Link>
               </Button>
+            </Card>
+          </div>
+        )}
+
+        {/* Clone Override Dialog */}
+        {showCloneDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white">
+                  Override Existing Draft?
+                </h3>
+                <button
+                  onClick={() => setShowCloneDialog(false)}
+                  className="text-neutral-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <p className="text-neutral-300 mb-6">
+                Only one draft at a time. This will override any existing draft and create a new draft from the selected version.
+              </p>
+              
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCloneDialog(false)}
+                  disabled={isCloning}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={confirmClone}
+                  disabled={isCloning}
+                  className="flex-1 gap-2"
+                >
+                  {isCloning ? (
+                    <>
+                      <Sparkles className="w-4 h-4 animate-spin" />
+                      Cloning...
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Clone Version
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        {showDeleteDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white">
+                  Delete Version?
+                </h3>
+                <button
+                  onClick={() => setShowDeleteDialog(false)}
+                  className="text-neutral-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <p className="text-neutral-300 mb-6">
+                Are you sure you want to delete this vision version? This action cannot be undone.
+              </p>
+              
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteDialog(false)}
+                  disabled={isDeleting}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Sparkles className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Delete Version
+                    </>
+                  )}
+                </Button>
+              </div>
             </Card>
           </div>
         )}

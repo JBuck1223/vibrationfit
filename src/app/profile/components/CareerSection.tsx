@@ -1,12 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Input, Textarea, Button } from '@/lib/design-system/components'
+import { Card, Input, Textarea, SaveButton } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
-import { Save } from 'lucide-react'
 
 interface CareerSectionProps {
   profile: Partial<UserProfile>
@@ -14,6 +13,7 @@ interface CareerSectionProps {
   onProfileReload?: () => Promise<void>
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 const employmentTypeOptions = [
@@ -47,7 +47,7 @@ const educationOptions = [
   { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
-export function CareerSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: CareerSectionProps) {
+export function CareerSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false }: CareerSectionProps) {
   const [isEmploymentTypeDropdownOpen, setIsEmploymentTypeDropdownOpen] = useState(false)
   const [isTimeInRoleDropdownOpen, setIsTimeInRoleDropdownOpen] = useState(false)
   const [isEducationDropdownOpen, setIsEducationDropdownOpen] = useState(false)
@@ -115,7 +115,10 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
   
   return (
     <Card className="p-6">
-      <h3 className="text-xl font-bold text-white mb-6">{getVisionCategoryLabel(visionToRecordingKey('work'))}</h3>
+      <div className="flex items-center gap-3 mb-6">
+        <WorkIcon className="w-6 h-6 text-white" />
+        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel(visionToRecordingKey('work'))}</h3>
+      </div>
       
       <div className="space-y-6">
         {/* Employment Type */}
@@ -379,15 +382,11 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

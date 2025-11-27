@@ -1,12 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Input, Button, RadioGroup } from '@/lib/design-system/components'
+import { Card, Input, SaveButton, RadioGroup } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
-import { Save } from 'lucide-react'
 
 interface HealthSectionProps {
   profile: Partial<UserProfile>
@@ -14,6 +13,7 @@ interface HealthSectionProps {
   onProfileReload?: () => Promise<void>
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 const exerciseFrequencyOptions = [
@@ -23,7 +23,7 @@ const exerciseFrequencyOptions = [
   { value: '5+', label: '5+ times per week' }
 ]
 
-export function HealthSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: HealthSectionProps) {
+export function HealthSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false }: HealthSectionProps) {
   const [isExerciseFrequencyDropdownOpen, setIsExerciseFrequencyDropdownOpen] = useState(false)
   const exerciseFrequencyDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -216,13 +216,13 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           ]}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Height */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Height - Takes 1/4 of container */}
           <div>
             <label className="block text-sm font-medium text-neutral-200 mb-2">
               Height ({heightUnit}) *
             </label>
-            <div className="relative md:w-auto md:inline-block">
+            <div className="relative">
               <Input
                 type="number"
                 value={getDisplayHeight()}
@@ -230,7 +230,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
                 placeholder={isMetric ? "170" : "68"}
                 min="0"
                 step="0.1"
-                className="w-full md:w-auto md:min-w-[200px] pr-10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
+                className="w-full pr-10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-neutral-400">
                 {heightUnit}
@@ -238,12 +238,12 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
             </div>
           </div>
 
-          {/* Weight */}
+          {/* Weight - Takes 1/4 of container */}
           <div>
             <label className="block text-sm font-medium text-neutral-200 mb-2">
               Weight ({weightUnit}) *
             </label>
-            <div className="relative md:w-auto md:inline-block">
+            <div className="relative">
               <Input
                 type="number"
                 value={getDisplayWeight()}
@@ -251,7 +251,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
                 placeholder={isMetric ? "70" : "150"}
                 min="0"
                 step="0.1"
-                className="w-full md:w-auto md:min-w-[200px] pr-10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
+                className="w-full pr-10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-neutral-400">
                 {weightUnit}
@@ -378,15 +378,11 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

@@ -22,7 +22,9 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
-  Eye
+  Eye,
+  Gem,
+  CheckCircle
 } from 'lucide-react'
 import { 
    
@@ -34,7 +36,10 @@ import {
   AutoResizeTextarea,
   Icon,
   VIVAButton,
-  CategoryCard
+  CategoryCard,
+  VersionBadge,
+  CreatedDateBadge,
+  StatusBadge
 } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
@@ -1063,26 +1068,108 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     )
   }
 
+  // Determine display status based on is_active and is_draft
+  const getDisplayStatus = () => {
+    if (!draftVision) return 'active'
+    
+    const isActive = draftVision.is_active === true
+    const isDraft = draftVision.is_draft === true
+    
+    if (isActive && !isDraft) return 'active'
+    else if (!isActive && isDraft) return 'draft'
+    else return 'complete'
+  }
+
+  const displayStatus = getDisplayStatus()
+
   return (
     <div>
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-6">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <Brain className="w-8 h-8 text-purple-400" />
-            <h1 className="text-3xl font-bold text-white">Intelligent Refinement</h1>
-            <Badge variant="premium" className="flex items-center gap-1">
-              <Zap className="w-4 h-4" />
-              VIVA AI
-            </Badge>
+        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            
+            <div className="relative z-10">
+              {/* Eyebrow */}
+              <div className="text-center mb-4">
+                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                  THE LIFE I CHOOSE
+                </div>
+              </div>
+              
+              {/* Title Section */}
+              <div className="text-center mb-4">
+                <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
+                  Refine Life Vision
+                </h1>
+                <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
+                  Select a category and let VIVA help you refine your vision through intelligent conversation
+                </p>
+              </div>
+              
+              {/* Version Info & Status Badges */}
+              {draftVision && (
+                <div className="text-center mb-6">
+                  <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                    
+                    {/* Version Circle Badge */}
+                    <VersionBadge 
+                      versionNumber={draftVision.version_number} 
+                      status={displayStatus} 
+                    />
+                    
+                    {/* Created Date Badge */}
+                    <CreatedDateBadge createdAt={draftVision.created_at} />
+                    
+                    {/* Status Badge */}
+                    <StatusBadge 
+                      status={displayStatus} 
+                      subtle={displayStatus !== 'active'}
+                    />
+                    
+                    {/* Draft Categories Count */}
+                    {getRefinedCategories(draftVision).length > 0 && (
+                      <Badge 
+                        variant="warning" 
+                        className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
+                      >
+                        {getRefinedCategories(draftVision).length} of {VISION_CATEGORIES.length} Refined
+                      </Badge>
+                    )}
+                    
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-3xl mx-auto">
+                <Button
+                  onClick={() => router.push(draftVision ? `/life-vision/${draftVision.id}` : '/life-vision')}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                >
+                  <Icon icon={Eye} size="sm" className="shrink-0" />
+                  <span>View Draft</span>
+                </Button>
+                
+                {draftVision && getRefinedCategories(draftVision).length > 0 && (
+                  <Button
+                    onClick={() => router.push(`/life-vision/${draftVision.id}/refine/draft`)}
+                    variant="primary"
+                    size="sm"
+                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  >
+                    <Icon icon={CheckCircle} size="sm" className="shrink-0" />
+                    <span>Review & Commit</span>
+                  </Button>
+                )}
+              </div>
+              
+            </div>
           </div>
-          <p className="text-neutral-400">
-            Select a category and let VIVA help you refine your vision through intelligent conversation
-          </p>
         </div>
-                          </div>
-                      </div>
+      </div>
 
       {/* Category Selection */}
       <div className="mb-8">

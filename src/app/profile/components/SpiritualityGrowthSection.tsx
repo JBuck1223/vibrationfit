@@ -1,12 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Button, Checkbox } from '@/lib/design-system/components'
+import { Card, SaveButton, Checkbox } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
-import { Save } from 'lucide-react'
 
 interface SpiritualityGrowthSectionProps {
   profile: Partial<UserProfile>
@@ -14,9 +13,10 @@ interface SpiritualityGrowthSectionProps {
   onProfileReload?: () => Promise<void>
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
-export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: SpiritualityGrowthSectionProps) {
+export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false }: SpiritualityGrowthSectionProps) {
   const [isSpiritualPracticeDropdownOpen, setIsSpiritualPracticeDropdownOpen] = useState(false)
   const [isMeditationFrequencyDropdownOpen, setIsMeditationFrequencyDropdownOpen] = useState(false)
   const spiritualPracticeDropdownRef = useRef<HTMLDivElement>(null)
@@ -272,15 +272,11 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

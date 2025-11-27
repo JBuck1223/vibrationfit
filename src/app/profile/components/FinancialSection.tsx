@@ -1,12 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Card, Button } from '@/lib/design-system/components'
+import { Card, SaveButton } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
-import { Save } from 'lucide-react'
 
 interface FinancialSectionProps {
   profile: Partial<UserProfile>
@@ -14,6 +13,7 @@ interface FinancialSectionProps {
   onProfileReload?: () => Promise<void>
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 const currencyOptions = [
@@ -48,7 +48,7 @@ const debtOptions = [
   { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
-export function FinancialSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: FinancialSectionProps) {
+export function FinancialSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false }: FinancialSectionProps) {
   const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false)
   const [isHouseholdIncomeDropdownOpen, setIsHouseholdIncomeDropdownOpen] = useState(false)
   const [isSavingsRetirementDropdownOpen, setIsSavingsRetirementDropdownOpen] = useState(false)
@@ -495,15 +495,11 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Button, Checkbox } from '@/lib/design-system/components'
+import { Card, SaveButton, Checkbox } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Gift, Save } from 'lucide-react'
+import { Gift } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
@@ -14,9 +14,10 @@ interface GivingLegacySectionProps {
   onProfileReload?: () => Promise<void>
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
-export function GivingLegacySection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: GivingLegacySectionProps) {
+export function GivingLegacySection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false }: GivingLegacySectionProps) {
   const [isVolunteerStatusDropdownOpen, setIsVolunteerStatusDropdownOpen] = useState(false)
   const [isCharitableGivingDropdownOpen, setIsCharitableGivingDropdownOpen] = useState(false)
   const volunteerStatusDropdownRef = useRef<HTMLDivElement>(null)
@@ -270,15 +271,11 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

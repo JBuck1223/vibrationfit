@@ -141,6 +141,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     path: '/design-system/component/button'
   },
   {
+    id: 'save-button',
+    name: 'SaveButton',
+    description: 'Specialized button for save/saved states with automatic styling based on change status',
+    category: 'UI',
+    icon: CheckCircle,
+    exportName: 'SaveButton',
+    path: '/design-system/component/save-button'
+  },
+  {
     id: 'viva-button',
     name: 'VIVA Button',
     description: 'Special AI assistant button with animated sparkles icon',

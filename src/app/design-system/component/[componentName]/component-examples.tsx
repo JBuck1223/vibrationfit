@@ -102,6 +102,7 @@ import {
 } from 'lucide-react'
 import { type AudioTrack } from '@/lib/design-system/components'
 import type { ComponentMetadata } from '../../components'
+import { SaveButtonExamples } from '../save-button/component-examples'
 
 // Select Examples Component (needs hooks)
 function SelectExamples() {
@@ -860,6 +861,15 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
             </Card>
             <Card variant="default" className="p-4">
               <Stack gap="sm">
+                <h4 className="text-base md:text-lg font-medium mb-2 text-white">Status Variant Buttons</h4>
+                <Button variant="ghost" fullWidth>Active Status (Ghost Green)</Button>
+                <Button variant="ghost-yellow" fullWidth>Draft Status (Ghost Yellow)</Button>
+                <Button variant="ghost-blue" fullWidth>Complete Status (Ghost Blue)</Button>
+                <Button variant="ghost-purple" fullWidth>Premium Status (Ghost Purple)</Button>
+              </Stack>
+            </Card>
+            <Card variant="default" className="p-4">
+              <Stack gap="sm">
                 <h4 className="text-base md:text-lg font-medium mb-2 text-white">Sizes</h4>
                 <Button variant="primary" size="sm" fullWidth>Small (Mobile-Friendly)</Button>
                 <Button variant="primary" size="md" fullWidth>Medium (Default)</Button>
@@ -955,6 +965,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
           </Card>
         </Stack>
       )
+
+    case 'save-button':
+      return <SaveButtonExamples />
 
     case 'spinner':
       return (

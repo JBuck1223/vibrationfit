@@ -193,7 +193,7 @@ export function RecordingTextarea({
                 setShowRecorder(true)
               }}
               disabled={disabled || isUploading}
-              className="p-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 bg-neutral-600 hover:bg-white text-white hover:text-neutral-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Record audio"
             >
               <Mic className="w-4 h-4" />
@@ -206,7 +206,7 @@ export function RecordingTextarea({
                   setShowRecorder(true)
                 }}
                 disabled={disabled || isUploading}
-                className="p-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 bg-neutral-600 hover:bg-white text-white hover:text-neutral-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Record video"
               >
                 <Video className="w-4 h-4" />

@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Input, Button, DatePicker } from '@/lib/design-system/components'
+import { Card, Input, SaveButton, DatePicker } from '@/lib/design-system/components'
 import { ProfilePictureUpload } from './ProfilePictureUpload'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, User } from 'lucide-react'
+import { User } from 'lucide-react'
 
 interface PersonalInfoSectionProps {
   profile: Partial<UserProfile>
@@ -13,6 +13,7 @@ interface PersonalInfoSectionProps {
   onUploadComplete?: () => void
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 const genderOptions = [
@@ -34,7 +35,7 @@ const ethnicityOptions = [
   { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
-export function PersonalInfoSection({ profile, onProfileChange, onError, onSave, isSaving }: PersonalInfoSectionProps) {
+export function PersonalInfoSection({ profile, onProfileChange, onError, onSave, isSaving, hasUnsavedChanges = false }: PersonalInfoSectionProps) {
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false)
   const [isEthnicityDropdownOpen, setIsEthnicityDropdownOpen] = useState(false)
   const genderDropdownRef = useRef<HTMLDivElement>(null)
@@ -302,15 +303,11 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
         {/* Save Button - Bottom Right */}
         {onSave && (
           <div className="flex justify-end mt-6">
-            <Button
+            <SaveButton
               onClick={onSave}
-              variant="primary"
-              disabled={isSaving}
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Save'}
-            </Button>
+              hasUnsavedChanges={hasUnsavedChanges}
+              isSaving={isSaving}
+            />
           </div>
         )}
       </Card>

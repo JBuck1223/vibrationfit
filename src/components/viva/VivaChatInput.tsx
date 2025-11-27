@@ -123,7 +123,9 @@ export function VivaChatInput({
       })
 
       if (!response.ok) {
-        throw new Error('Failed to transcribe audio')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Transcription API error:', errorData)
+        throw new Error(errorData.error || `Failed to transcribe audio (${response.status})`)
       }
 
       const data = await response.json()
@@ -134,6 +136,7 @@ export function VivaChatInput({
       }
     } catch (err) {
       console.error('Transcription error:', err)
+      alert(`Transcription failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setIsTranscribing(false)
     }

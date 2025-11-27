@@ -66,17 +66,27 @@ export default function ProfilePage() {
     return profileSections.findIndex(section => section.id === activeSection)
   }
 
+  const handleSectionChange = (sectionId: string) => {
+    setActiveSection(sectionId)
+    // Scroll to top after DOM updates
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      })
+    })
+  }
+
   const goToPreviousSection = () => {
     const currentIndex = getCurrentSectionIndex()
     if (currentIndex > 0) {
-      setActiveSection(profileSections[currentIndex - 1].id)
+      handleSectionChange(profileSections[currentIndex - 1].id)
     }
   }
 
   const goToNextSection = () => {
     const currentIndex = getCurrentSectionIndex()
     if (currentIndex < profileSections.length - 1) {
-      setActiveSection(profileSections[currentIndex + 1].id)
+      handleSectionChange(profileSections[currentIndex + 1].id)
     }
   }
 

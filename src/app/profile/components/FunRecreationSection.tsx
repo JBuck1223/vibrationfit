@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Input, Button } from '@/lib/design-system/components'
+import { Card, Input, SaveButton } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { PartyPopper, Plus, X, Save } from 'lucide-react'
+import { PartyPopper, Plus, X } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
@@ -15,9 +15,10 @@ interface FunRecreationSectionProps {
   profileId?: string // Optional profile ID to target specific profile version
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
-export function FunRecreationSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: FunRecreationSectionProps) {
+export function FunRecreationSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false }: FunRecreationSectionProps) {
   const [newHobby, setNewHobby] = useState('')
   const [isLeisureDropdownOpen, setIsLeisureDropdownOpen] = useState(false)
   const leisureDropdownRef = useRef<HTMLDivElement>(null)
@@ -334,15 +335,11 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

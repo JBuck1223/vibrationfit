@@ -3,8 +3,8 @@
 import React from 'react'
 import { UserProfile } from '@/lib/supabase/profile'
 import { MediaUpload } from './MediaUpload'
-import { Button, Card } from '@/lib/design-system/components'
-import { Save, Camera } from 'lucide-react'
+import { SaveButton, Card } from '@/lib/design-system/components'
+import { Camera } from 'lucide-react'
 import { getVisionCategoryIcon } from '@/lib/design-system/vision-categories'
 
 interface PhotosAndNotesSectionProps {
@@ -13,6 +13,7 @@ interface PhotosAndNotesSectionProps {
   disabled?: boolean
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
@@ -20,7 +21,8 @@ export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
   onProfileChange,
   disabled = false,
   onSave,
-  isSaving
+  isSaving,
+  hasUnsavedChanges = false
 }) => {
   const MediaIcon = Camera
   
@@ -41,15 +43,11 @@ export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
         {/* Save Button - Bottom Right */}
         {onSave && (
           <div className="flex justify-end mt-6">
-            <Button
+            <SaveButton
               onClick={onSave}
-              variant="primary"
-              disabled={isSaving}
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Save'}
-            </Button>
+              hasUnsavedChanges={hasUnsavedChanges}
+              isSaving={isSaving}
+            />
           </div>
         )}
       </div>

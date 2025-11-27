@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye, FileText, ArrowUp } from 'lucide-react'
+import { commitDraft, getRefinedCategories } from '@/lib/life-vision/draft-helpers'
 import { 
   Button, 
   Card, 
@@ -84,6 +85,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [editingContent, setEditingContent] = useState('')
   const [audioTracks, setAudioTracks] = useState<Record<string, { url: string; title: string }>>({})
   const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
+  const [isCommitting, setIsCommitting] = useState(false)
 
   // Card-based view functions
   const handleCategoryToggle = (categoryKey: string) => {
@@ -556,6 +558,40 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     }
   }, [vision, supabase, calculateCompletion])
 
+  // Commit draft vision as active version
+  const commitDraftAsActive = async () => {
+    if (!vision) {
+      alert('No draft vision to commit')
+      return
+    }
+
+    const refinedCount = getRefinedCategories(vision).length
+    if (refinedCount === 0) {
+      alert('No refined categories to commit')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to commit this draft vision with ${refinedCount} refined ${refinedCount === 1 ? 'category' : 'categories'} as your active vision? This will create a new version.`)) {
+      return
+    }
+
+    setIsCommitting(true)
+    try {
+      // Use the commitDraft helper
+      const newActive = await commitDraft(vision.id)
+      
+      console.log('Draft committed successfully:', newActive.id)
+      
+      // Redirect to the new active vision
+      router.push(`/life-vision/${newActive.id}`)
+    } catch (error) {
+      console.error('Error committing draft:', error)
+      alert(`Failed to commit draft: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsCommitting(false)
+    }
+  }
+
   // Update vision data
   const updateVision = useCallback((updates: Partial<VisionData>) => {
     if (!vision) return
@@ -657,11 +693,23 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
               
               <div className="relative z-10">
+                {/* Eyebrow */}
+                <div className="text-center mb-4">
+                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                    THE LIFE I CHOOSE
+                  </div>
+                </div>
+                
                 {/* Title Section */}
                 <div className="text-center mb-4">
                   <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
-                    The Life I Choose
+                    {displayStatus === 'draft' ? 'Refine Life Vision' : 'The Life I Choose'}
                   </h1>
+                  {displayStatus === 'draft' && (
+                    <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
+                      Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision"
+                    </p>
+                  )}
                 </div>
                 
                 {/* Centered Version Info with Enhanced Styling */}
@@ -679,46 +727,90 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
                 {/* Action Buttons - Enhanced with Hover Effects */}
                 <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-                  <Button
-                    onClick={() => router.push(`/life-vision/${vision.id}/audio`)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                  >
-                    <Icon icon={VolumeX} size="sm" className="shrink-0" />
-                    <span>Audio Tracks</span>
-                  </Button>
-                  <Button
-                    onClick={() => router.push(`/life-vision/${vision.id}/print`)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                  >
-                    <Icon icon={Download} size="sm" className="shrink-0" />
-                    <span>Download PDF</span>
-                  </Button>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                  >
-                    <Link href={`/life-vision/${vision.id}/refine`}>
-                      <Icon icon={Gem} size="sm" className="shrink-0" />
-                      <span>Refine</span>
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                  >
-                    <Link href="/life-vision">
-                      <Icon icon={Eye} size="sm" className="shrink-0" />
-                      <span>All Visions</span>
-                    </Link>
-                  </Button>
+                  {displayStatus === 'draft' ? (
+                    <>
+                      <Button
+                        onClick={() => router.push('/life-vision/active')}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                      >
+                        <Icon icon={Eye} size="sm" className="shrink-0" />
+                        <span>View Active</span>
+                      </Button>
+                      <Button
+                        onClick={() => router.push(`/life-vision/${vision.id}/refine`)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm bg-[#FFFF00]/20 text-[#FFFF00] hover:bg-[#FFFF00]/30"
+                      >
+                        <Icon icon={Gem} size="sm" className="shrink-0" />
+                        <span>Continue Refining</span>
+                      </Button>
+                      <Button
+                        onClick={commitDraftAsActive}
+                        disabled={isCommitting || getRefinedCategories(vision).length === 0}
+                        variant="primary"
+                        size="sm"
+                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                      >
+                        {isCommitting ? (
+                          <>
+                            <Spinner variant="primary" size="sm" />
+                            <span>Committing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Icon icon={CheckCircle} size="sm" className="shrink-0" />
+                            <span>Commit as Active Vision</span>
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => router.push(`/life-vision/${vision.id}/audio`)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                      >
+                        <Icon icon={VolumeX} size="sm" className="shrink-0" />
+                        <span>Audio Tracks</span>
+                      </Button>
+                      <Button
+                        onClick={() => router.push(`/life-vision/${vision.id}/print`)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                      >
+                        <Icon icon={Download} size="sm" className="shrink-0" />
+                        <span>Download PDF</span>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                      >
+                        <Link href={`/life-vision/${vision.id}/refine`}>
+                          <Icon icon={Gem} size="sm" className="shrink-0" />
+                          <span>Refine</span>
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                      >
+                        <Link href="/life-vision">
+                          <Icon icon={Eye} size="sm" className="shrink-0" />
+                          <span>All Visions</span>
+                        </Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

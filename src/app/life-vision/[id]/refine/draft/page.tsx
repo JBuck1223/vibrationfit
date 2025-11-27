@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Gem, Check, Eye } from 'lucide-react'
+import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Gem, Check, Eye, X } from 'lucide-react'
 import { getDraftVision, commitDraft, getRefinedCategories, isCategoryRefined } from '@/lib/life-vision/draft-helpers'
 import { 
   Button, 
@@ -72,9 +72,8 @@ const VisionCard = ({
       className="transition-all duration-300 hover:shadow-lg"
       style={isDraft ? { border: `2px solid ${NEON_YELLOW}` } : undefined}
     >
-      <div className="px-1 py-4 md:p-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
           <div 
             className={`w-10 h-10 rounded-xl flex items-center justify-center ${
               isDraft ? '' : isCompleted ? 'bg-primary-500' : 'bg-neutral-700'
@@ -84,7 +83,7 @@ const VisionCard = ({
             <Icon 
               icon={category.icon} 
               size="sm" 
-              color={isDraft ? NEON_YELLOW : isCompleted ? '#FFFFFF' : '#14B8A6'} 
+              color={isDraft ? NEON_YELLOW : isCompleted ? '#000000' : '#14B8A6'} 
             />
           </div>
           <div className="flex-1">
@@ -155,7 +154,6 @@ const VisionCard = ({
             </Button>
           </div>
         )}
-      </div>
     </Card>
   )
 }
@@ -174,6 +172,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [activeCategories, setActiveCategories] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [isCommitting, setIsCommitting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Commit draft vision as active version
   const commitDraftAsActive = async () => {
@@ -206,6 +206,35 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       alert(`Failed to commit draft: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsCommitting(false)
+    }
+  }
+
+  // Delete draft vision
+  const handleDeleteVersion = () => {
+    setShowDeleteDialog(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!draftVision) return
+    
+    setIsDeleting(true)
+    setShowDeleteDialog(false)
+    
+    try {
+      const { error } = await supabase
+        .from('vision_versions')
+        .delete()
+        .eq('id', draftVision.id)
+
+      if (error) throw error
+
+      // Redirect back to main vision page
+      router.push('/life-vision')
+    } catch (error) {
+      console.error('Error deleting draft:', error)
+      alert(`Failed to delete draft: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -408,6 +437,13 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
           <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             
             <div className="relative z-10">
+              {/* Eyebrow */}
+              <div className="text-center mb-4">
+                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                  THE LIFE I CHOOSE
+                </div>
+              </div>
+              
               {/* Title Section */}
               <div className="text-center mb-4">
                 <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
@@ -513,8 +549,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                 <p className="text-sm text-neutral-400">
                   Showing {selectedCategories.length} of {VISION_SECTIONS.length} areas
                   {draftCategories.length > 0 && (
-                    <span className="ml-2" style={{ color: NEON_YELLOW }}>
-                      • {draftCategories.length} in draft
+                    <span className="md:ml-2 block md:inline" style={{ color: NEON_YELLOW }}>
+                      <span className="hidden md:inline">• </span>{draftCategories.length} refined
                     </span>
                   )}
                 </p>
@@ -530,23 +566,24 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
               </Button>
             </div>
 
-            {/* Category Grid */}
+            {/* Category Grid - Matches design system template pattern exactly */}
             <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
               {VISION_SECTIONS.map((category) => {
                 const isRefined = draftVision ? isCategoryRefined(draftVision, category.key) : false
+                const isSelected = selectedCategories.includes(category.key)
+                
                 return (
-                  <div key={category.key} className="relative">
-                    {isRefined && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-black z-10">
-                        <Sparkles className="w-2 h-2 text-black absolute top-0.5 left-0.5" />
-                      </div>
-                    )}
-                    <CategoryCard 
-                      category={category} 
-                      selected={selectedCategories.includes(category.key)} 
-                      onClick={() => handleCategoryToggle(category.key)}
-                    />
-                  </div>
+                  <CategoryCard 
+                    key={category.key}
+                    category={category} 
+                    selected={isSelected}
+                    onClick={() => handleCategoryToggle(category.key)}
+                    variant="outlined"
+                    selectionStyle="border"
+                    iconColor={isRefined ? NEON_YELLOW : (isSelected ? "#39FF14" : "#FFFFFF")}
+                    selectedIconColor={isRefined ? NEON_YELLOW : "#39FF14"}
+                    className={isSelected ? (isRefined ? '!bg-[rgba(255,255,0,0.2)] !border-[rgba(255,255,0,0.2)] hover:!bg-[rgba(255,255,0,0.1)]' : '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]') : ''}
+                  />
                 )
               })}
             </div>
@@ -584,15 +621,61 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
-      {/* Navigation */}
+      {/* Delete Vision Button */}
       <div className="mt-8 text-center">
-        <Link 
-          href={`/life-vision/${vision?.id}`} 
-          className="text-neutral-400 hover:text-white transition-colors"
+        <Button
+          onClick={handleDeleteVersion}
+          variant="danger"
+          size="sm"
+          disabled={isDeleting}
+          className="flex items-center gap-2 mx-auto"
         >
-          ← Back to Active Vision
-        </Link>
+          <Trash2 className="w-4 h-4" />
+          {isDeleting ? 'Deleting...' : 'Delete Vision'}
+        </Button>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">
+                Delete Draft Vision?
+              </h3>
+              <button
+                onClick={() => setShowDeleteDialog(false)}
+                className="text-neutral-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-neutral-300 mb-6">
+              Are you sure you want to delete this draft vision? This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteDialog(false)}
+                disabled={isDeleting}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </>
   )
 }

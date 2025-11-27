@@ -729,25 +729,27 @@ export const CategoryCard = React.forwardRef<HTMLDivElement, CategoryCardProps>(
     onClick, 
     variant = 'default',
     hover = true,
-    iconColor = '#00FFFF',
-    selectedIconColor = '#39FF14',
+    iconColor = tokens.colors.secondary[500], // Default: cyan
+    selectedIconColor = tokens.colors.primary[500], // Selected: green
     textSize = 'xs',
     selectionStyle = 'ring',
     className = '', 
     ...props 
   }, ref) => {
     const IconComponent = category.icon
+    
+    // Use design tokens for variants
     const variants = {
-      default: 'bg-[#1F1F1F] border-2 border-[#333]',
-      elevated: 'bg-[#1F1F1F] border-2 border-[#333] shadow-xl',
-      outlined: 'bg-transparent border-2 border-[#333]',
+      default: `bg-[${tokens.colors.neutral.cardBg}] border-2 border-[${tokens.colors.neutral.borderLight}]`,
+      elevated: `bg-[${tokens.colors.neutral.cardBg}] border-2 border-[${tokens.colors.neutral.borderLight}] shadow-xl`,
+      outlined: `bg-transparent border-2 border-[${tokens.colors.neutral.borderLight}]`,
     }
     
-    const hoverEffect = hover ? 'hover:border-[#00CC44] hover:shadow-2xl transition-all duration-200' : ''
+    const hoverEffect = hover ? `hover:border-[${tokens.colors.primary[200]}] hover:shadow-2xl transition-all ${tokens.durations[200]}` : ''
     
     const selectionClass = selected 
       ? selectionStyle === 'ring' 
-        ? 'ring-2 ring-[#39FF14] border-[#39FF14]'
+        ? `ring-2 ring-[${tokens.colors.primary[500]}] border-[${tokens.colors.primary[500]}]`
         : 'border border-primary-500'
       : ''
     
@@ -759,7 +761,8 @@ export const CategoryCard = React.forwardRef<HTMLDivElement, CategoryCardProps>(
         variant={variant} 
         hover={hover}
         className={cn(
-          'cursor-pointer aspect-square transition-all duration-300',
+          'cursor-pointer aspect-square',
+          `transition-all ${tokens.durations[300]}`,
           // Override Card's default padding with minimal padding for square aspect ratio
           '!p-1 md:!p-2',
           selectionClass,
@@ -790,7 +793,7 @@ CategoryCard.displayName = 'CategoryCard'
 // Button Component
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode
-  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'danger'
+  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'danger' | 'ghost-yellow' | 'ghost-blue' | 'ghost-purple'
   size?: 'sm' | 'md' | 'lg' | 'xl'
   fullWidth?: boolean
   loading?: boolean
@@ -822,6 +825,24 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         bg-[rgba(57,255,20,0.1)] text-[#39FF14] 
         border-2 border-[rgba(57,255,20,0.2)]
         hover:bg-[rgba(57,255,20,0.2)]
+        active:opacity-80
+      `,
+      'ghost-yellow': `
+        bg-[rgba(255,255,0,0.1)] text-[#FFFF00] 
+        border-2 border-[rgba(255,255,0,0.2)]
+        hover:bg-[rgba(255,255,0,0.2)]
+        active:opacity-80
+      `,
+      'ghost-blue': `
+        bg-[rgba(59,130,246,0.1)] text-[#3B82F6] 
+        border-2 border-[rgba(59,130,246,0.2)]
+        hover:bg-[rgba(59,130,246,0.2)]
+        active:opacity-80
+      `,
+      'ghost-purple': `
+        bg-[rgba(139,92,246,0.1)] text-[#8B5CF6] 
+        border-2 border-[rgba(139,92,246,0.2)]
+        hover:bg-[rgba(139,92,246,0.2)]
         active:opacity-80
       `,
       outline: `
@@ -875,6 +896,91 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   }
 )
 Button.displayName = 'Button'
+
+/**
+ * SaveButton - Specialized button for save/saved states
+ * Uses design tokens for consistent styling
+ * @param hasUnsavedChanges - Controls saved vs save state
+ * @param isSaving - Shows saving state
+ * @param onClick - Save handler
+ * @param disabled - Disables the button
+ * @param className - Additional CSS classes
+ */
+interface SaveButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
+  hasUnsavedChanges?: boolean
+  isSaving?: boolean
+}
+
+export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
+  ({ hasUnsavedChanges = false, isSaving = false, disabled, className = '', ...props }, ref) => {
+    // Use design tokens for colors
+    const primaryGreen = tokens.colors.primary[500]
+    const black = tokens.colors.neutral[0]
+    const lightGreenBg = `rgba(57, 255, 20, 0.1)` // 10% opacity of primary green
+    const lightGreenBorder = `rgba(57, 255, 20, 0.2)` // 20% opacity of primary green
+    const transparent = 'transparent'
+    
+    const baseClasses = cn(
+      'inline-flex items-center justify-center gap-2',
+      'px-4 py-3 text-sm md:px-7 md:py-3',
+      'font-semibold',
+      'border-2',
+      'disabled:opacity-50 disabled:cursor-not-allowed',
+      'whitespace-nowrap',
+      className
+    )
+    
+    // Define state-specific styles using tokens
+    const savedStyle = {
+      backgroundColor: lightGreenBg,
+      color: primaryGreen,
+      borderColor: lightGreenBorder,
+      borderRadius: tokens.borderRadius.full,
+      transition: `all ${tokens.durations[300]} ${tokens.easings['in-out']}`
+    }
+    
+    const saveStyle = {
+      backgroundColor: primaryGreen,
+      color: black,
+      borderColor: transparent,
+      borderRadius: tokens.borderRadius.full,
+      transition: `all ${tokens.durations[300]} ${tokens.easings['in-out']}`
+    }
+    
+    const [isHovered, setIsHovered] = React.useState(false)
+    
+    // Apply hover state for save button only
+    const currentStyle = hasUnsavedChanges 
+      ? (isHovered ? savedStyle : saveStyle)
+      : savedStyle
+
+    return (
+      <button
+        ref={ref}
+        type="button"
+        disabled={disabled || isSaving}
+        className={baseClasses}
+        style={currentStyle}
+        onMouseEnter={() => hasUnsavedChanges && setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        {...props}
+      >
+        {!hasUnsavedChanges ? (
+          <>
+            <CheckCircle className="w-4 h-4" />
+            Saved
+          </>
+        ) : (
+          <>
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </>
+        )}
+      </button>
+    )
+  }
+)
+SaveButton.displayName = 'SaveButton'
 
 /**
  * ActionButtons - Standardized View/Delete button pair for list cards

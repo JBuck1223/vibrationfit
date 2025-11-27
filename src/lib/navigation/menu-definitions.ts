@@ -25,6 +25,7 @@ import {
   Sparkles,
   Brain,
   Zap,
+  CheckCircle,
   ChevronDown,
   Plus,
   Eye,
@@ -73,7 +74,7 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Manage your profile',
     children: [
-      { name: 'My Active Profile', href: '/profile/active', icon: Zap },
+      { name: 'My Active Profile', href: '/profile/active', icon: CheckCircle },
       { name: 'Edit Profile', href: '/profile/edit', icon: Edit },
       { name: 'All Profiles', href: '/profile', icon: Eye },
       { name: 'Voice Profile', href: '/voice-profile', icon: Palette },
@@ -87,7 +88,7 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Create and manage your life vision',
     children: [
-      { name: 'My Active Vision', href: '/life-vision/active', icon: Zap },
+      { name: 'My Active Vision', href: '/life-vision/active', icon: CheckCircle },
       { name: 'Refine Vision', href: '/life-vision/refine', icon: Edit },
       { name: 'All Visions', href: '/life-vision', icon: Eye },
       { name: 'All Vision Audios', href: '/life-vision/audio', icon: Headphones },

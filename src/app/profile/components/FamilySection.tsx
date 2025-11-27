@@ -1,12 +1,13 @@
 'use client'
 
 import React from 'react'
-import { Card, Input, Button, DatePicker, RadioGroup } from '@/lib/design-system/components'
-import { Plus, Trash2, Save } from 'lucide-react'
+import { Card, Input, Button, SaveButton, DatePicker, RadioGroup } from '@/lib/design-system/components'
+import { Plus, Trash2 } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
+import * as tokens from '@/lib/design-system/tokens'
 
 interface FamilySectionProps {
   profile: Partial<UserProfile>
@@ -15,6 +16,7 @@ interface FamilySectionProps {
   profileId?: string // Optional profile ID to target specific profile version
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 type Child = {
@@ -22,7 +24,7 @@ type Child = {
   birthday?: string | null
 }
 
-export function FamilySection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving }: FamilySectionProps) {
+export function FamilySection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false }: FamilySectionProps) {
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
@@ -152,7 +154,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
               <button
                 type="button"
                 onClick={handleChildAdd}
-                className="flex items-center gap-2 px-3 py-1.5 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
                 Add Child
@@ -165,13 +167,17 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
               </p>
             ) : (
               <div className="space-y-3">
-                {children.map((child, index) => (
-                  <div
-                    key={index}
-                    className="bg-neutral-900 rounded-lg border border-neutral-700 p-4 space-y-3"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-neutral-400">Child {index + 1}</span>
+                    {children.map((child, index) => (
+                      <div
+                        key={index}
+                        className="rounded-lg border-2 p-4 space-y-3"
+                        style={{
+                          backgroundColor: tokens.colors.neutral.cardBg,
+                          borderColor: tokens.colors.neutral.borderLight
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-neutral-300 uppercase">Child {index + 1}</span>
                       <button
                         type="button"
                         onClick={() => handleChildRemove(index)}
@@ -197,11 +203,13 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
                       </div>
 
                       <div>
+                        <label className="block text-xs font-medium text-neutral-300 mb-1">
+                          Birthday
+                        </label>
                         <DatePicker
-                          label="Birthday"
                           value={child.birthday || ''}
                           onChange={(dateString) => handleChildChange(index, 'birthday', dateString)}
-                          className="w-full"
+                          className="w-full text-sm"
                         />
                       </div>
                     </div>
@@ -277,15 +285,11 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

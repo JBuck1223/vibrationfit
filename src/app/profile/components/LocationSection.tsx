@@ -1,12 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Input, Button } from '@/lib/design-system/components'
+import { Card, Input, SaveButton } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
-import { Save } from 'lucide-react'
 
 interface LocationSectionProps {
   profile: Partial<UserProfile>
@@ -14,6 +13,7 @@ interface LocationSectionProps {
   onProfileReload?: () => Promise<void>
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 const livingSituationOptions = [
@@ -45,7 +45,7 @@ const countryOptions = [
   { value: 'Other', label: 'Other' }
 ]
 
-export function LocationSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: LocationSectionProps) {
+export function LocationSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false }: LocationSectionProps) {
   const [isLivingSituationDropdownOpen, setIsLivingSituationDropdownOpen] = useState(false)
   const [isTimeAtLocationDropdownOpen, setIsTimeAtLocationDropdownOpen] = useState(false)
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false)
@@ -378,15 +378,11 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

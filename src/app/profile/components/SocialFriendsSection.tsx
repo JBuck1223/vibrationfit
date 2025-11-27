@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, Button } from '@/lib/design-system/components'
+import { Card, SaveButton } from '@/lib/design-system/components'
 import { UserProfile } from '@/lib/supabase/profile'
-import { UserPlus, Save } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
@@ -14,6 +14,7 @@ interface SocialFriendsSectionProps {
   onProfileReload?: () => Promise<void>
   onSave?: () => void
   isSaving?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 const closeFriendsCountOptions = [
@@ -29,7 +30,7 @@ const socialPreferenceOptions = [
   { value: 'extrovert', label: 'Extrovert' }
 ]
 
-export function SocialFriendsSection({ profile, onProfileChange, onProfileReload, onSave, isSaving }: SocialFriendsSectionProps) {
+export function SocialFriendsSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false }: SocialFriendsSectionProps) {
   const [isCloseFriendsCountDropdownOpen, setIsCloseFriendsCountDropdownOpen] = useState(false)
   const [isSocialPreferenceDropdownOpen, setIsSocialPreferenceDropdownOpen] = useState(false)
   const closeFriendsCountDropdownRef = useRef<HTMLDivElement>(null)
@@ -258,15 +259,11 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
       {/* Save Button - Bottom Right */}
       {onSave && (
         <div className="flex justify-end mt-6">
-          <Button
+          <SaveButton
             onClick={onSave}
-            variant="primary"
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+          />
         </div>
       )}
     </Card>

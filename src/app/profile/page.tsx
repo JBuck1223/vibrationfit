@@ -335,32 +335,38 @@ export default function ProfileDashboardPage() {
         {/* Stats Cards */}
         {activeProfile && (
           <Container size="xl">
-          <div className="grid grid-cols-3 gap-6 mb-8">
-            <Card className="p-6 text-center">
-              <div className="flex flex-col items-center">
-                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center mb-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+            <Card variant="glass" className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
                   <FileText className="w-6 h-6 text-primary-500" />
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">{profileCount}</p>
-                <p className="text-sm text-neutral-400 mb-2">Profiles</p>
+                <div>
+                  <p className="text-2xl font-bold text-white">{profileCount}</p>
+                  <p className="text-xs text-neutral-400">Profiles</p>
+                </div>
               </div>
             </Card>
-            <Card className="p-6 text-center">
-              <div className="flex flex-col items-center">
-                <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center mb-3">
+            <Card variant="glass" className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-6 h-6 text-secondary-500" />
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">{completedProfiles}</p>
-                <p className="text-sm text-neutral-400 mb-2">Active</p>
+                <div>
+                  <p className="text-2xl font-bold text-white">{completedProfiles}</p>
+                  <p className="text-xs text-neutral-400">Active</p>
+                </div>
               </div>
             </Card>
-            <Card className="p-6 text-center">
-              <div className="flex flex-col items-center">
-                <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center mb-3">
+            <Card variant="glass" className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center">
                   <Activity className="w-6 h-6 text-accent-500" />
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">{completionPercentage}%</p>
-                <p className="text-sm text-neutral-400 mb-2">Complete</p>
+                <div>
+                  <p className="text-2xl font-bold text-white">{completionPercentage}%</p>
+                  <p className="text-xs text-neutral-400">Complete</p>
+                </div>
               </div>
             </Card>
           </div>

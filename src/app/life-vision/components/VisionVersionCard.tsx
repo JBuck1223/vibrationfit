@@ -3,6 +3,7 @@
 import React from 'react'
 import { Card, StatusBadge, VersionBadge, CreatedDateBadge } from '@/lib/design-system/components'
 import { colors } from '@/lib/design-system/tokens'
+import { Trash2 } from 'lucide-react'
 
 interface VisionVersionCardProps {
   version: {
@@ -18,6 +19,7 @@ interface VisionVersionCardProps {
   }
   isActive?: boolean
   actions?: React.ReactNode
+  onDelete?: (versionId: string) => void
   className?: string
 }
 
@@ -27,6 +29,7 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
   version,
   isActive = false,
   actions,
+  onDelete,
   className = ''
 }) => {
   // Check the database is_draft field, not deprecated isDraft property
@@ -44,30 +47,46 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
   return (
     <Card 
       variant="outlined" 
-      className={`p-3 md:p-4 ${className}`}
+      className={`p-3 md:p-4 relative ${className}`}
       onClick={(e) => {
         // Prevent any click events from bubbling up
         e.stopPropagation()
       }}
     >
+      {/* Delete Button */}
+      {onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(version.id)
+          }}
+          className="absolute top-2 right-2 p-1.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+          title="Delete version"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+      
       <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
         {/* Version Info */}
-        <div className="flex-1 space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Version Badge - color matches status */}
+        <div className="flex-1">
+          <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-2 text-sm">
+            {/* Version Badge */}
             <VersionBadge 
               versionNumber={version.version_number} 
               status={displayStatus} 
             />
             
-            {/* Created Date Badge */}
-            <CreatedDateBadge createdAt={version.created_at} />
-            
-            {/* Status Badge - Active gets solid bright green, others get subtle */}
+            {/* Status Badge */}
             <StatusBadge 
               status={displayStatus} 
               subtle={displayStatus !== 'active'}
             />
+            
+            {/* Date as plain text */}
+            <span className="text-neutral-300">
+              Created: {new Date(version.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+            </span>
           </div>
         </div>
 

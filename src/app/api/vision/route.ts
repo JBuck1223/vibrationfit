@@ -164,32 +164,43 @@ export async function GET(request: NextRequest) {
 
     // If no specific vision requested, get the active vision for the user
     try {
-      // Use status-based query (reliable - columns definitely exist)
       let latestVision = null
       
-      // Get latest non-draft vision
-      const { data: fallbackVision } = await supabase
+      // First, try to get the vision where is_active = true
+      const { data: activeVision } = await supabase
         .from('vision_versions')
         .select('*')
         .eq('user_id', user.id)
-        .neq('status', 'draft')
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .eq('is_active', true)
         .maybeSingle()
 
-      if (fallbackVision) {
-        latestVision = fallbackVision
+      if (activeVision) {
+        latestVision = activeVision
       } else {
-        // Last resort: get any vision
-        const { data: anyVision } = await supabase
+        // Fallback: Get latest non-draft vision
+        const { data: fallbackVision } = await supabase
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
+          .eq('is_draft', false)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
 
-        latestVision = anyVision || null
+        if (fallbackVision) {
+          latestVision = fallbackVision
+        } else {
+          // Last resort: get any non-draft vision
+          const { data: anyVision } = await supabase
+            .from('vision_versions')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          latestVision = anyVision || null
+        }
       }
 
       // Calculate version number for the latest vision first

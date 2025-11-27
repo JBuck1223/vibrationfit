@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, WarningConfirmationDialog, Icon, VersionBadge, CreatedDateBadge, StatusBadge } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, CreatedDateBadge, StatusBadge } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -28,6 +28,7 @@ export default function ProfileEditPage() {
   const router = useRouter()
   const params = useParams()
   const profileId = params.id as string
+  const categoryGridRef = useRef<HTMLDivElement>(null)
   
   const [profile, setProfile] = useState<Partial<UserProfile>>({})
   const [activeSection, setActiveSection] = useState('personal')
@@ -49,6 +50,7 @@ export default function ProfileEditPage() {
   const [showDraftWarning, setShowDraftWarning] = useState(false)
   const [showCommitWarning, setShowCommitWarning] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   // Handle URL hash navigation to set active section
   useEffect(() => {
@@ -125,17 +127,27 @@ export default function ProfileEditPage() {
     return profileSections.findIndex(section => section.id === activeSection)
   }
 
+  const handleSectionChange = (sectionId: string) => {
+    setActiveSection(sectionId)
+    // Scroll to category grid after DOM updates
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        categoryGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    })
+  }
+
   const goToPreviousSection = () => {
     const currentIndex = getCurrentSectionIndex()
     if (currentIndex > 0) {
-      setActiveSection(profileSections[currentIndex - 1].id)
+      handleSectionChange(profileSections[currentIndex - 1].id)
     }
   }
 
   const goToNextSection = () => {
     const currentIndex = getCurrentSectionIndex()
     if (currentIndex < profileSections.length - 1) {
-      setActiveSection(profileSections[currentIndex + 1].id)
+      handleSectionChange(profileSections[currentIndex + 1].id)
     }
   }
 
@@ -452,6 +464,7 @@ export default function ProfileEditPage() {
       setSaveStatus('saved')
       setLastSaved(new Date())
       setError(null)
+      setHasUnsavedChanges(false)
 
       // Clear save status after 2 seconds
       setTimeout(() => {
@@ -470,6 +483,7 @@ export default function ProfileEditPage() {
   const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
     const newProfile = { ...profile, ...updates }
     setProfile(newProfile)
+    setHasUnsavedChanges(true)
     // No auto-save - user must click "Save Edits" button
   }, [profile])
 
@@ -699,7 +713,8 @@ export default function ProfileEditPage() {
       profile,
       onProfileChange: handleProfileChange,
       onProfileReload: reloadProfile,
-      onError: setError
+      onError: setError,
+      hasUnsavedChanges
     }
 
     let sectionContent
@@ -1007,39 +1022,35 @@ export default function ProfileEditPage() {
             <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
               {profileSections.map((section) => {
                 const categoryInfo = getCategoryInfo(section.id)
-                const IconComponent = categoryInfo.icon
                 const isSelected = selectedCategories.includes(section.id)
                 const isCompleted = completedSections.includes(section.id)
                 const isActive = activeSection === section.id
+                
+                // Create category object for CategoryCard
+                const category = {
+                  key: section.id,
+                  label: categoryInfo.title,
+                  icon: categoryInfo.icon
+                }
 
                 return (
-                  <Card 
-                    key={section.id}
-                    variant="outlined" 
-                    hover 
-                    className={`cursor-pointer aspect-square transition-all duration-300 relative ${
-                      isActive 
-                        ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' 
-                        : '!bg-transparent !border-2 !border-[#333]'
-                    } ${isCompleted && !isActive ? 'bg-green-500/10' : ''}`}
-                    onClick={() => setActiveSection(section.id)}
-                  >
+                  <div key={section.id} className="relative">
                     {isCompleted && (
                       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#39FF14] flex items-center justify-center z-10">
                         <Check className="w-3 h-3 text-[#39FF14]" strokeWidth={3} />
                       </div>
                     )}
-                    <div className="flex flex-col items-center gap-1 justify-center h-full">
-                      <Icon 
-                        icon={IconComponent} 
-                        size="sm" 
-                        color={isActive ? '#39FF14' : '#FFFFFF'} 
-                      />
-                      <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-                        {categoryInfo.title}
-                      </span>
-                    </div>
-                  </Card>
+                    <CategoryCard 
+                      category={category}
+                      selected={isActive}
+                      onClick={() => handleSectionChange(section.id)}
+                      variant="outlined"
+                      selectionStyle="border"
+                      iconColor={isActive ? "#39FF14" : "#FFFFFF"}
+                      selectedIconColor="#39FF14"
+                      className={isActive ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                    />
+                  </div>
                 )
               })}
             </div>
@@ -1047,7 +1058,7 @@ export default function ProfileEditPage() {
         </div>
 
         {/* Main Content - Full Width */}
-        <div className="w-full">
+        <div ref={categoryGridRef} className="w-full">
           {renderSection()}
         </div>
 
