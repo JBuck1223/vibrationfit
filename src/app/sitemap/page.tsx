@@ -33,7 +33,17 @@ import {
   Globe,
   Shield,
   Code,
-  Upload
+  Upload,
+  Headphones,
+  TrendingUp,
+  UserPlus,
+  Megaphone,
+  Link2,
+  Headset,
+  Kanban,
+  UserCheck,
+  UsersRound,
+  LayoutDashboard
 } from 'lucide-react'
 import { Card, Badge, Container } from '@/lib/design-system'
 
@@ -133,13 +143,46 @@ export default function SitemapPage() {
       color: 'text-[#8B5CF6]',
       bgColor: 'bg-[#8B5CF6]/10',
       pages: [
-        { href: '/admin/users', label: 'User Management', icon: Users, description: 'Manage all users' },
-        { href: '/admin/ai-models', label: 'AI Model Management', icon: Zap, description: 'Configure AI models' },
-        { href: '/admin/token-usage', label: 'Token Usage Analytics', icon: BarChart3, description: 'Token usage analytics' },
-        { href: '/admin/assets', label: 'Site Assets', icon: Upload, description: 'Manage site assets and media' },
-        { href: '/admin/audio-mixer', label: 'Audio Mixer', icon: Zap, description: 'Audio mixing tracks' },
-        { href: '/design-system', label: 'Design System', icon: Palette, description: 'Design system showcase' },
-        { href: '/sitemap', label: 'Sitemap', icon: Layers, description: 'Complete site map' },
+        // User Management
+        { href: '/admin/users', label: 'User Management', icon: Users, description: 'Manage all users, roles, and permissions' },
+        { href: '/admin/token-usage', label: 'Token Analytics', icon: BarChart3, description: 'User token usage analytics' },
+        
+        // CRM & Marketing
+        { href: '/admin/crm/dashboard', label: 'CRM Dashboard', icon: LayoutDashboard, description: 'CRM overview and metrics' },
+        { href: '/admin/crm/campaigns', label: 'Campaigns', icon: Megaphone, description: 'Marketing campaigns and tracking' },
+        { href: '/admin/crm/campaigns/new', label: 'New Campaign', icon: Plus, description: 'Create new campaign' },
+        { href: '/admin/crm/campaigns/[id]', label: 'Campaign Detail', icon: Eye, description: 'Campaign details', isDynamic: true },
+        { href: '/admin/crm/campaigns/[id]/edit', label: 'Edit Campaign', icon: Settings, description: 'Edit campaign', isDynamic: true },
+        { href: '/admin/crm/leads', label: 'Leads', icon: UserPlus, description: 'Lead management' },
+        { href: '/admin/crm/leads/board', label: 'Leads Board', icon: Kanban, description: 'Kanban board for leads' },
+        { href: '/admin/crm/leads/[id]', label: 'Lead Detail', icon: Eye, description: 'Lead details', isDynamic: true },
+        { href: '/admin/crm/members', label: 'Members', icon: UserCheck, description: 'Platform members management' },
+        { href: '/admin/crm/members/board', label: 'Members Board', icon: Kanban, description: 'Kanban board for members' },
+        { href: '/admin/crm/members/[id]', label: 'Member Detail', icon: Eye, description: 'Member details', isDynamic: true },
+        { href: '/admin/crm/customers', label: 'Customers', icon: UsersRound, description: 'Customer management' },
+        { href: '/admin/crm/customers/board', label: 'Customers Board', icon: Kanban, description: 'Kanban board for customers' },
+        { href: '/admin/crm/customers/[id]', label: 'Customer Detail', icon: Eye, description: 'Customer details', isDynamic: true },
+        { href: '/admin/crm/support/board', label: 'Support Board', icon: Headset, description: 'Support tickets board' },
+        { href: '/admin/crm/utm-builder', label: 'UTM Builder', icon: Link2, description: 'Build UTM tracking URLs' },
+        
+        // Content Management
+        { href: '/admin/assets', label: 'Site Assets', icon: Upload, description: 'Upload and manage media assets' },
+        { href: '/admin/emails', label: 'Email Templates', icon: FileText, description: 'Manage email templates' },
+        { href: '/admin/emails/list', label: 'Email List', icon: FileText, description: 'View all emails' },
+        { href: '/admin/emails/[id]', label: 'Email Detail', icon: Eye, description: 'Email template detail', isDynamic: true },
+        { href: '/admin/emails/[id]/edit', label: 'Edit Email', icon: Settings, description: 'Edit email template', isDynamic: true },
+        { href: '/admin/vibrational-event/sources', label: 'Vibrational Sources', icon: Layers, description: 'Manage vibrational data sources' },
+        
+        // AI & Models
+        { href: '/admin/ai-models', label: 'AI Model Config', icon: Brain, description: 'Configure AI model settings' },
+        { href: '/admin/audio-mixer', label: 'Audio Mixer', icon: Headphones, description: 'Audio mixing and generation' },
+        
+        // Intensive Program
+        { href: '/admin/intensive/schedule-call', label: 'Intensive Schedule', icon: Calendar, description: 'Schedule intensive coaching calls' },
+        
+        // Developer Tools
+        { href: '/design-system', label: 'Design System', icon: Palette, description: 'Component library showcase' },
+        { href: '/sitemap', label: 'Sitemap', icon: Layers, description: 'Complete site navigation map' },
       ]
     },
     {
@@ -282,13 +325,13 @@ export default function SitemapPage() {
           </span>
           <span className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-[#8B5CF6] rounded-full"></div>
-            <span>ADMIN: 3 pages</span>
+            <span>ADMIN: 31 pages</span>
           </span>
           <span className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-[#14B8A6] rounded-full"></div>
             <span>PUBLIC: 15 pages</span>
           </span>
-          <span className="text-neutral-500">Total: 65 pages</span>
+          <span className="text-neutral-500">Total: 93 pages</span>
         </div>
       </div>
 

@@ -1,0 +1,60 @@
+                                                                                                                  List of relations
+   Schema   |            Name            | Type  |     Owner      | Persistence | Access method |    Size    |                                                              Description                                                               
+------------+----------------------------+-------+----------------+-------------+---------------+------------+----------------------------------------------------------------------------------------------------------------------------------------
+ extensions | pg_stat_statements         | view  | supabase_admin | permanent   |               | 0 bytes    | 
+ extensions | pg_stat_statements_info    | view  | supabase_admin | permanent   |               | 0 bytes    | 
+ public     | abundance_events           | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | ai_action_token_overrides  | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | ai_conversations           | table | postgres       | permanent   | heap          | 64 kB      | Stores individual chat messages between users and VIVA
+ public     | ai_model_pricing           | table | postgres       | permanent   | heap          | 16 kB      | Stores pricing information for AI models to calculate accurate usage costs
+ public     | assessment_insights        | table | postgres       | permanent   | heap          | 8192 bytes | VIVA-generated insights based on assessment responses
+ public     | assessment_responses       | table | postgres       | permanent   | heap          | 40 kB      | Individual question responses for each assessment
+ public     | assessment_results         | table | postgres       | permanent   | heap          | 56 kB      | Stores vibrational assessment results across all 12 life categories
+ public     | audio_sets                 | table | postgres       | permanent   | heap          | 8192 bytes | Audio version sets for life visions - allows multiple audio variants per vision
+ public     | audio_tracks               | table | postgres       | permanent   | heap          | 8192 bytes | AI-narrated audio tracks for life visions (per section)
+ public     | audio_variants             | table | postgres       | permanent   | heap          | 16 kB      | 
+ public     | conversation_sessions      | table | postgres       | permanent   | heap          | 104 kB     | Groups messages into conversations with metadata
+ public     | customer_subscriptions     | table | postgres       | permanent   | heap          | 8192 bytes | Tracks user subscriptions synced with Stripe
+ public     | daily_papers               | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | emotional_snapshots        | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | frequency_flip             | table | postgres       | permanent   | heap          | 16 kB      | Stores flipped clarity seeds from frequency_flip microprompt
+ public     | generated_images           | table | postgres       | permanent   | heap          | 56 kB      | 
+ public     | household_invitations      | table | postgres       | permanent   | heap          | 8192 bytes | Pending invitations to join a household
+ public     | household_members          | table | postgres       | permanent   | heap          | 16 kB      | Tracks household membership with simplified RLS policies to avoid circular references
+ public     | households                 | table | postgres       | permanent   | heap          | 16 kB      | Household subscription units - either solo (1 user) or household (multiple users)
+ public     | intensive_checklist        | table | postgres       | permanent   | heap          | 16 kB      | 48-hour activation intensive completion tracking
+ public     | intensive_purchases        | table | postgres       | permanent   | heap          | 16 kB      | Payment records ONLY - intensive_checklist.status is source of truth for enrollment
+ public     | journal_entries            | table | postgres       | permanent   | heap          | 48 kB      | 
+ public     | lead_tracking_events       | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | leads                      | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | life_vision_category_state | table | postgres       | permanent   | heap          | 32 kB      | V3 Life Vision per-category state storage
+ public     | marketing_campaigns        | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | media_metadata             | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | member_profiles            | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | membership_tiers           | table | postgres       | permanent   | heap          | 16 kB      | Single source of truth for all billing configuration, token grants, and plan features
+ public     | payment_history            | table | postgres       | permanent   | heap          | 8192 bytes | Records all payment transactions
+ public     | profile_versions           | table | postgres       | permanent   | heap          | 32 kB      | 
+ public     | profiles                   | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | refinements                | table | postgres       | permanent   | heap          | 8192 bytes | LEGACY: Old vibe-assistant operations. V3 data moved to life_vision_category_state. Cleaned 2025-11-11 (removed 16 deprecated columns)
+ public     | scenes                     | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | sms_messages               | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | support_ticket_replies     | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | support_tickets            | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | token_transactions         | table | postgres       | permanent   | heap          | 16 kB      | Tracks all AI token usage with real OpenAI costs for precise COGS measurement
+ public     | token_usage                | table | postgres       | permanent   | heap          | 184 kB     | Tracks AI token usage and costs for each user action
+ public     | token_usage_with_costs     | view  | postgres       | permanent   |               | 0 bytes    | Shows token usage with accurate cost analysis and OpenAI reconciliation data. Only includes successful operations.
+ public     | user_activity_metrics      | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | user_profiles              | table | postgres       | permanent   | heap          | 96 kB      | Versioned user profiles allowing multiple profiles per user (active + draft)
+ public     | user_revenue_metrics       | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | user_storage               | table | postgres       | permanent   | heap          | 16 kB      | Tracks storage quota grants. Current quota = SUM(quota_gb). Usage always calculated from S3.
+ public     | vibrational_event_sources  | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | vibrational_events         | table | postgres       | permanent   | heap          | 48 kB      | 
+ public     | vibrational_links          | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | video_mapping              | table | postgres       | permanent   | heap          | 8192 bytes | 
+ public     | vision_board_items         | table | postgres       | permanent   | heap          | 16 kB      | 
+ public     | vision_progress            | table | postgres       | permanent   | heap          | 16 kB      | 
+ public     | vision_versions            | table | postgres       | permanent   | heap          | 200 kB     | User life visions. State managed by is_draft and is_active flags.
+ public     | viva_conversations         | table | postgres       | permanent   | heap          | 16 kB      | 
+ public     | voice_profiles             | table | postgres       | permanent   | heap          | 16 kB      | 
+(55 rows)
+

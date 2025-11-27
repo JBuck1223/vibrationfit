@@ -99,3 +99,4 @@ WHERE categories IS NOT NULL AND array_length(categories, 1) > 0;
 
 
 
+
