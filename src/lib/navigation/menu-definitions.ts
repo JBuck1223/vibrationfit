@@ -108,7 +108,6 @@ export const userNavigation: NavItem[] = [
     description: 'Create and manage your life vision',
     children: [
       { name: 'My Active Vision', href: '/life-vision/active', icon: CheckCircle },
-      { name: 'Refine Vision', href: '/life-vision/refine', icon: Edit },
       { name: 'All Visions', href: '/life-vision', icon: Eye },
       { name: 'All Vision Audios', href: '/life-vision/audio', icon: Headphones },
     ]
@@ -181,16 +180,22 @@ export const userNavigation: NavItem[] = [
     ]
   },
   {
-    name: 'Billing',
-    href: '/billing',
-    icon: CreditCard,
-    description: 'Subscription and billing',
-  },
-  {
     name: 'Support',
     href: '/support',
     icon: Users,
     description: 'Get help and support',
+  },
+  {
+    name: 'Settings',
+    href: '/account/settings',
+    icon: Settings,
+    hasDropdown: true,
+    description: 'Account and preferences',
+    children: [
+      { name: 'Account Settings', href: '/account/settings', icon: User, description: 'Email, password, notifications' },
+      { name: 'Household Settings', href: '/household/settings', icon: Users, description: 'Manage household members' },
+      { name: 'Billing & Subscription', href: '/billing', icon: CreditCard, description: 'Payment and subscription' },
+    ]
   },
 ]
 

@@ -24,3 +24,4 @@ COMMENT ON COLUMN user_profiles.sms_opt_in IS 'User has explicitly consented to 
 COMMENT ON COLUMN user_profiles.sms_opt_in_date IS 'Timestamp when user opted in to SMS (required for A2P compliance audit trail)';
 COMMENT ON COLUMN user_profiles.sms_opt_in_ip IS 'IP address when user opted in (compliance/proof of consent)';
 
+

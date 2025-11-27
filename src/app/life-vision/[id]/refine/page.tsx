@@ -286,6 +286,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [availableConversations, setAvailableConversations] = useState<any[]>([])
   const [showConversationSelector, setShowConversationSelector] = useState(false)
   const isLoadingConversationRef = useRef(false)
+  const [isNonDraft, setIsNonDraft] = useState(false)
+  const [nonDraftVision, setNonDraftVision] = useState<VisionData | null>(null)
+  const [isCloning, setIsCloning] = useState(false)
 
   const supabase = createClient()
 
@@ -339,17 +342,19 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         return
       }
 
-      setVision(visionData)
-      console.log('Vision loaded successfully:', visionData.id)
-      
-      // Ensure draft exists for this vision
-      try {
-        const draft = await ensureDraftExists(visionData.id)
-        setDraftVision(draft)
-        console.log('Draft ensured:', draft.id)
-      } catch (draftError) {
-        console.error('Error ensuring draft:', draftError)
+      // Check if this is actually a draft
+      if (visionData.is_draft !== true) {
+        console.log('Vision is not a draft, showing clone option')
+        setIsNonDraft(true)
+        setNonDraftVision(visionData)
+        setLoading(false)
+        return
       }
+
+      // It's a draft, set it as both vision and draft
+      setVision(visionData)
+      setDraftVision(visionData)
+      console.log('Draft vision loaded successfully:', visionData.id)
       
       // Also fetch user profile for avatar
       const { data: profile } = await supabase
@@ -1049,6 +1054,103 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     )
   }
 
+  // Handle non-draft vision
+  const handleCloneToDraft = async () => {
+    if (!nonDraftVision) return
+    
+    setIsCloning(true)
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) throw new Error('Not authenticated')
+
+      // Get the next version number
+      const { data: latestVersion } = await supabase
+        .from('vision_versions')
+        .select('version_number')
+        .eq('user_id', authUser.id)
+        .order('version_number', { ascending: false })
+        .limit(1)
+        .single()
+
+      const newVersionNumber = (latestVersion?.version_number || 0) + 1
+
+      // Clone the vision as a draft
+      const { data: newDraft, error: insertError } = await supabase
+        .from('vision_versions')
+        .insert({
+          user_id: authUser.id,
+          forward: nonDraftVision.forward,
+          fun: nonDraftVision.fun,
+          travel: nonDraftVision.travel,
+          home: nonDraftVision.home,
+          family: nonDraftVision.family,
+          love: nonDraftVision.love,
+          health: nonDraftVision.health,
+          money: nonDraftVision.money,
+          work: nonDraftVision.work,
+          social: nonDraftVision.social,
+          stuff: nonDraftVision.stuff,
+          giving: nonDraftVision.giving,
+          spirituality: nonDraftVision.spirituality,
+          conclusion: nonDraftVision.conclusion,
+          version_number: newVersionNumber,
+          is_draft: true,
+          is_active: false,
+          completion_percent: nonDraftVision.completion_percent
+        })
+        .select()
+        .single()
+
+      if (insertError) throw insertError
+
+      // Redirect to the new draft refine page
+      router.push(`/life-vision/${newDraft.id}/refine`)
+    } catch (err) {
+      console.error('Error cloning to draft:', err)
+      alert('Failed to create draft. Please try again.')
+    } finally {
+      setIsCloning(false)
+    }
+  }
+
+  if (isNonDraft && nonDraftVision) {
+    return (
+      <>
+        <Card className="text-center py-16 max-w-2xl mx-auto">
+          <div className="text-yellow-400 mb-4">
+            <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-4">This Life Vision ID is not a draft</h2>
+          <p className="text-neutral-400 mb-6">
+            This is an active or completed vision. The refine feature is only available for draft visions.
+          </p>
+          <p className="text-neutral-300 mb-8">
+            Would you like to create a draft from this vision to refine it?
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              onClick={() => router.push('/life-vision')} 
+              variant="outline"
+              disabled={isCloning}
+            >
+              Back to Visions
+            </Button>
+            <Button 
+              onClick={handleCloneToDraft} 
+              variant="primary"
+              disabled={isCloning}
+              loading={isCloning}
+            >
+              {isCloning ? 'Creating Draft...' : 'Create Draft'}
+            </Button>
+          </div>
+        </Card>
+      </>
+    )
+  }
+
   if (error || !vision) {
     return (
       <>
@@ -1144,7 +1246,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               {/* Action Buttons */}
               <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-3xl mx-auto">
                 <Button
-                  onClick={() => router.push(draftVision ? `/life-vision/${draftVision.id}` : '/life-vision')}
+                  onClick={() => router.push(draftVision ? `/life-vision/${draftVision.id}/draft` : '/life-vision')}
                   variant="outline"
                   size="sm"
                   className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
@@ -1155,7 +1257,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 
                 {draftVision && getRefinedCategories(draftVision).length > 0 && (
                   <Button
-                    onClick={() => router.push(`/life-vision/${draftVision.id}/refine/draft`)}
+                    onClick={() => router.push(`/life-vision/${draftVision.id}/draft`)}
                     variant="primary"
                     size="sm"
                     className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
@@ -1251,7 +1353,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                         e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
                       }}
                     >
-                      <Link href={`/life-vision/${visionId}/refine/draft`}>
+                      <Link href={`/life-vision/${visionId}/draft`}>
                         <Eye className="w-4 h-4" />
                         View Draft Vision
                       </Link>

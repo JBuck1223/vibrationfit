@@ -77,3 +77,4 @@ CREATE POLICY "Admins can manage all emails" ON email_messages
 -- Comment
 COMMENT ON TABLE email_messages IS 'Stores all email communications (outbound via SES, inbound via IMAP from Google Workspace)';
 
+

@@ -378,3 +378,4 @@ A: Use the Supabase dashboard to export the `user_activity_metrics` and `user_re
 
 **You now have a complete Member Success system!** 🎉
 
+

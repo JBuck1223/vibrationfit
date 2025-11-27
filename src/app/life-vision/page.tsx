@@ -387,6 +387,7 @@ export default function VisionListPage() {
         .insert({
           user_id: user.id,
           title: sourceVersion.title || `Vision V${newVersionNumber}`,
+          perspective: sourceVersion.perspective || 'singular',
           forward: sourceVersion.forward,
           fun: sourceVersion.fun,
           travel: sourceVersion.travel,
@@ -422,22 +423,22 @@ export default function VisionListPage() {
         return
       }
 
-      // Refresh the vision list
-      await fetchVision()
-      
-      // Navigate to the new draft view page
-      router.push(`/life-vision/${newVersion.id}`)
+      // Navigate directly to the draft page to avoid redirect bounce
+      // No need to refresh since we're navigating away
+      router.push(`/life-vision/${newVersion.id}/draft`)
+      // Don't set isCloning(false) - keep loading overlay visible during navigation
     } catch (error) {
       console.error('Error cloning version:', error)
       alert('Failed to clone version. Please try again.')
-    } finally {
       setIsCloning(false)
     }
   }
 
   const confirmClone = async () => {
-    setShowCloneDialog(false)
     if (versionToClone) {
+      // Set isCloning to true BEFORE dismissing dialog to prevent flash
+      setIsCloning(true)
+      setShowCloneDialog(false)
       await performClone(versionToClone)
       setVersionToClone(null)
     }
@@ -600,7 +601,7 @@ export default function VisionListPage() {
                               size="sm"
                               className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
                             >
-                              <Link href={`/life-vision/${version.id.replace('draft-', '')}/refine/draft`}>
+                              <Link href={`/life-vision/${version.id}/draft`}>
                                 <Eye className="w-4 h-4" />
                                 <span className="ml-1 truncate">View</span>
                               </Link>
@@ -726,6 +727,21 @@ export default function VisionListPage() {
                     </>
                   )}
                 </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Cloning Loading Overlay */}
+        {isCloning && !showCloneDialog && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+            <Card className="max-w-md w-full">
+              <div className="text-center py-8">
+                <Sparkles className="w-12 h-12 text-primary-500 animate-spin mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-white mb-2">Creating Draft...</h3>
+                <p className="text-neutral-400">
+                  Cloning your vision as a draft
+                </p>
               </div>
             </Card>
           </div>

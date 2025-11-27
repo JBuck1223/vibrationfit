@@ -263,6 +263,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           throw new Error('Vision not found')
         }
 
+        // Redirect drafts to the draft route
+        if (vision.is_draft === true) {
+          router.push(`/life-vision/${vision.id}/draft`)
+          return
+        }
+
         const actualCompletion = calculateCompletion(vision)
         const completed = getCompletedSections(vision)
 
@@ -861,7 +867,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                                     e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
                                   }}
                                 >
-                                  <Link href={`/life-vision/${version.id.replace('draft-', '')}/refine/draft`}>
+                                  <Link href={`/life-vision/${version.id}/draft`}>
                                     <Eye className="w-4 h-4" />
                                     <span className="ml-1 truncate">View Draft</span>
                                   </Link>

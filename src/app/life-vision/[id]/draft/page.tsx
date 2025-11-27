@@ -174,9 +174,10 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [isCommitting, setIsCommitting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showCommitDialog, setShowCommitDialog] = useState(false)
 
-  // Commit draft vision as active version
-  const commitDraftAsActive = async () => {
+  // Show commit confirmation dialog
+  const handleCommitAsActive = () => {
     if (!draftVision) {
       alert('No draft vision to commit')
       return
@@ -188,10 +189,14 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       return
     }
 
-    if (!confirm(`Are you sure you want to commit this draft vision with ${refinedCount} refined ${refinedCount === 1 ? 'category' : 'categories'} as your active vision? This will create a new version.`)) {
-      return
-    }
+    setShowCommitDialog(true)
+  }
 
+  // Commit draft vision as active version
+  const confirmCommit = async () => {
+    if (!draftVision) return
+
+    setShowCommitDialog(false)
     setIsCommitting(true)
     try {
       // Use the commitDraft helper
@@ -278,6 +283,11 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   }, [])
 
 
+  // State for non-draft handling
+  const [isNonDraft, setIsNonDraft] = useState(false)
+  const [nonDraftVision, setNonDraftVision] = useState<VisionData | null>(null)
+  const [isCloning, setIsCloning] = useState(false)
+
   // Load draft vision data
   useEffect(() => {
     const loadData = async () => {
@@ -290,40 +300,44 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         }
 
         const resolvedParams = await params
-        console.log('Loading draft vision for user:', user.id)
+        console.log('Loading vision for user:', user.id)
         
-        // Load the active vision (the one being refined)
-        const { data: activeVision, error: visionError } = await supabase
+        // First, load the vision without draft filter to check if it's a draft
+        const { data: visionCheck, error: checkError } = await supabase
           .from('vision_versions')
           .select('*')
           .eq('id', resolvedParams.id)
           .eq('user_id', user.id)
           .single()
 
-        if (visionError || !activeVision) {
-          throw new Error('Active vision not found')
+        if (checkError || !visionCheck) {
+          throw new Error('Vision not found')
         }
 
-        setVision(activeVision)
-
-        // Load draft vision using helper
-        const draft = await getDraftVision(user.id)
-        
-        if (!draft) {
-          throw new Error('No draft vision found. Please start refining your vision first.')
+        // Check if this is actually a draft
+        if (visionCheck.is_draft !== true) {
+          console.log('Vision is not a draft, showing clone option')
+          setIsNonDraft(true)
+          setNonDraftVision(visionCheck)
+          setLoading(false)
+          return
         }
+
+        // It's a draft, proceed normally
+        const draftData = visionCheck
 
         console.log('Loaded draft vision:', {
-          id: draft.id,
-          refinedCount: getRefinedCategories(draft).length,
-          refinedCategories: getRefinedCategories(draft)
+          id: draftData.id,
+          refinedCount: getRefinedCategories(draftData).length,
+          refinedCategories: getRefinedCategories(draftData)
         })
 
-        const actualCompletion = calculateCompletion(draft)
-        const completed = getCompletedSections(draft)
-        const refined = getRefinedCategories(draft)
+        const actualCompletion = calculateCompletion(draftData)
+        const completed = getCompletedSections(draftData)
+        const refined = getRefinedCategories(draftData)
 
-        setDraftVision(draft)
+        setDraftVision(draftData)
+        setVision(draftData)
         setCompletionPercentage(actualCompletion)
         setCompletedSections(completed)
         setDraftCategories(refined)
@@ -350,6 +364,103 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         <div className="flex items-center justify-center py-16">
           <Spinner variant="primary" size="lg" />
         </div>
+      </>
+    )
+  }
+
+  // Handle non-draft vision
+  const handleCloneToDraft = async () => {
+    if (!nonDraftVision) return
+    
+    setIsCloning(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // Get the next version number
+      const { data: latestVersion } = await supabase
+        .from('vision_versions')
+        .select('version_number')
+        .eq('user_id', user.id)
+        .order('version_number', { ascending: false })
+        .limit(1)
+        .single()
+
+      const newVersionNumber = (latestVersion?.version_number || 0) + 1
+
+      // Clone the vision as a draft
+      const { data: newDraft, error: insertError } = await supabase
+        .from('vision_versions')
+        .insert({
+          user_id: user.id,
+          forward: nonDraftVision.forward,
+          fun: nonDraftVision.fun,
+          travel: nonDraftVision.travel,
+          home: nonDraftVision.home,
+          family: nonDraftVision.family,
+          love: nonDraftVision.love,
+          health: nonDraftVision.health,
+          money: nonDraftVision.money,
+          work: nonDraftVision.work,
+          social: nonDraftVision.social,
+          stuff: nonDraftVision.stuff,
+          giving: nonDraftVision.giving,
+          spirituality: nonDraftVision.spirituality,
+          conclusion: nonDraftVision.conclusion,
+          version_number: newVersionNumber,
+          is_draft: true,
+          is_active: false,
+          completion_percent: nonDraftVision.completion_percent
+        })
+        .select()
+        .single()
+
+      if (insertError) throw insertError
+
+      // Redirect to the new draft
+      router.push(`/life-vision/${newDraft.id}/draft`)
+    } catch (err) {
+      console.error('Error cloning to draft:', err)
+      alert('Failed to create draft. Please try again.')
+    } finally {
+      setIsCloning(false)
+    }
+  }
+
+  if (isNonDraft && nonDraftVision) {
+    return (
+      <>
+        <Card className="text-center py-16 max-w-2xl mx-auto">
+          <div className="text-yellow-400 mb-4">
+            <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-4">This Life Vision ID is not a draft</h2>
+          <p className="text-neutral-400 mb-6">
+            This is an active or completed vision. The draft view is only available for draft visions.
+          </p>
+          <p className="text-neutral-300 mb-8">
+            Would you like to create a draft from this vision to refine it?
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              onClick={() => router.push('/life-vision')} 
+              variant="outline"
+              disabled={isCloning}
+            >
+              Back to Visions
+            </Button>
+            <Button 
+              onClick={handleCloneToDraft} 
+              variant="primary"
+              disabled={isCloning}
+              loading={isCloning}
+            >
+              {isCloning ? 'Creating Draft...' : 'Create Draft'}
+            </Button>
+          </div>
+        </Card>
       </>
     )
   }
@@ -447,7 +558,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
               {/* Title Section */}
               <div className="text-center mb-4">
                 <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
-                  Refine Life Vision
+                  Draft Life Vision
                 </h1>
                 <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
                   Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision"
@@ -493,16 +604,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
               {/* Action Buttons */}
               <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-3xl mx-auto">
                 <Button
-                  onClick={() => router.push(`/life-vision/${vision?.id}`)}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  <Icon icon={Eye} size="sm" className="shrink-0" />
-                  <span>View Active</span>
-                </Button>
-                
-                <Button
                   onClick={() => router.push(`/life-vision/${vision?.id}/refine`)}
                   variant="outline"
                   size="sm"
@@ -513,7 +614,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                 </Button>
                 
                 <Button
-                  onClick={commitDraftAsActive}
+                  onClick={handleCommitAsActive}
                   disabled={isCommitting || draftCategories.length === 0}
                   variant="primary"
                   size="sm"
@@ -631,6 +732,51 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         </Button>
       </div>
 
+      {/* Commit Confirmation Dialog */}
+      {showCommitDialog && draftVision && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">
+                Commit Draft as Active Vision?
+              </h3>
+              <button
+                onClick={() => setShowCommitDialog(false)}
+                className="text-neutral-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-neutral-300 mb-4">
+              Are you sure you want to commit this draft vision as your active vision? 
+            </p>
+            <p className="text-neutral-400 text-sm mb-6">
+              This will create a new version with {getRefinedCategories(draftVision).length} refined {getRefinedCategories(draftVision).length === 1 ? 'category' : 'categories'}.
+            </p>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowCommitDialog(false)}
+                disabled={isCommitting}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmCommit}
+                disabled={isCommitting}
+                className="flex-1"
+              >
+                {isCommitting ? 'Committing...' : 'Commit as Active'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Delete Confirmation Dialog */}
       {showDeleteDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -675,3 +821,4 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
     </>
   )
 }
+

@@ -3329,7 +3329,6 @@ const defaultNavigation: NavItem[] = [
     children: [
       { name: 'See Vision', href: '/life-vision', icon: Eye },
       { name: 'Edit Vision', href: '/life-vision/edit', icon: Edit },
-      { name: 'Refine Vision', href: '/life-vision/refine', icon: Target },
     ]
   },
   {
