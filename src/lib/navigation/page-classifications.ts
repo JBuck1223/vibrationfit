@@ -109,23 +109,49 @@ export const PAGE_CLASSIFICATIONS = {
    * by the getPageType() function. This list is kept for reference and explicit routes.
    */
   ADMIN: [
+    // User Management
     '/admin/users',
-    '/admin/ai-models',
     '/admin/token-usage',
-    '/admin/assets',
-    '/admin/audio-mixer',
-    '/admin/intensive/schedule-call', // Explicitly listed for reference
-    '/admin/vibrational-event/sources',
     
-    // Email Management System
+    // CRM & Marketing
+    '/admin/crm/dashboard',
+    '/admin/crm/campaigns',
+    '/admin/crm/campaigns/new',
+    '/admin/crm/campaigns/[id]',
+    '/admin/crm/campaigns/[id]/edit',
+    '/admin/crm/leads',
+    '/admin/crm/leads/board',
+    '/admin/crm/leads/[id]',
+    '/admin/crm/members',
+    '/admin/crm/members/board',
+    '/admin/crm/members/[id]',
+    '/admin/crm/customers',
+    '/admin/crm/customers/board',
+    '/admin/crm/customers/[id]',
+    '/admin/crm/support/board',
+    '/admin/crm/utm-builder',
+    
+    // Content Management
+    '/admin/assets',
     '/admin/emails',
     '/admin/emails/list',
     '/admin/emails/[id]',
     '/admin/emails/[id]/edit',
+    '/admin/vibrational-event/sources',
     
+    // AI & Models
+    '/admin/ai-models',
+    '/admin/audio-mixer',
+    
+    // Intensive Program
+    '/admin/intensive/schedule-call',
+    
+    // Developer Tools
     '/sitemap',
     '/design-system',
     '/design-system/component/[componentName]',
+    '/design-system/template/[templateName]',
+    '/design-system/experiment',
   ],
   
   /**

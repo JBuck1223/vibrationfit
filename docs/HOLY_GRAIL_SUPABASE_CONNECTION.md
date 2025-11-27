@@ -1,6 +1,6 @@
 # 🏆 Holy Grail Supabase Connection
 
-Last Updated: November 16, 2025
+Last Updated: November 26, 2025
 
 ## The Secret That Works
 
@@ -23,10 +23,30 @@ postgresql://postgres.nxjhqibnlbwzzphewncj:PASSWORD@db.nxjhqibnlbwzzphewncj.supa
 
 **Right (works!):**
 ```bash
-postgresql://postgres:nvz6W8EcT4mD95yl@db.nxjhqibnlbwzzphewncj.supabase.co:5432/postgres
+postgresql://postgres:wZnargrTWlMtyC5A@db.nxjhqibnlbwzzphewncj.supabase.co:5432/postgres
 ```
 
 ## Pull Production Schema
+
+### Method 1: Direct pg_dump (Recommended - No Migration History Issues)
+
+```bash
+cd /Users/jordanbuckingham/Desktop/vibrationfit
+
+# Use PostgreSQL 17 pg_dump for production database
+/opt/homebrew/opt/postgresql@17/bin/pg_dump \
+  "postgresql://postgres:wZnargrTWlMtyC5A@db.nxjhqibnlbwzzphewncj.supabase.co:5432/postgres" \
+  --schema-only --no-owner --no-acl \
+  > supabase/COMPLETE_SCHEMA_DUMP.sql
+```
+
+✅ **Advantages:**
+- No migration history conflicts
+- Fast and direct
+- Read-only operation
+- Works even with version mismatches (with PG17 tools)
+
+### Method 2: Supabase CLI (If Migration History Aligned)
 
 ```bash
 # Full command that works
@@ -38,7 +58,7 @@ supabase db pull --db-url "postgresql://postgres:PASSWORD@db.PROJECT_REF.supabas
 ### For VibrationFit Production
 
 ```bash
-supabase db pull --db-url "postgresql://postgres:nvz6W8EcT4mD95yl@db.nxjhqibnlbwzzphewncj.supabase.co:5432/postgres"
+supabase db pull --db-url "postgresql://postgres:wZnargrTWlMtyC5A@db.nxjhqibnlbwzzphewncj.supabase.co:5432/postgres"
 ```
 
 ## What Made This Work
@@ -48,6 +68,11 @@ supabase db pull --db-url "postgresql://postgres:nvz6W8EcT4mD95yl@db.nxjhqibnlbw
 3. **Direct host**: `db.PROJECT_REF.supabase.co`
 4. **Port**: `5432` (standard PostgreSQL port)
 5. **IPv4 addon**: Must be enabled in Supabase settings
+6. **PostgreSQL 17 tools**: If server is v17, use matching client version:
+   ```bash
+   brew install postgresql@17
+   /opt/homebrew/opt/postgresql@17/bin/pg_dump ...
+   ```
 
 ## Migration History Sync
 
@@ -102,7 +127,13 @@ supabase migration repair --status applied NEW_MIGRATION_ID --db-url "CONNECTION
 
 ### "migration history does not match"
 - ❌ Local migrations don't match production
-- ✅ Use `supabase migration repair` to sync
+- ✅ Use Method 1 (direct pg_dump) to avoid this issue
+- ✅ Or use `supabase migration repair` to sync (only if needed)
+
+### "server version mismatch" (e.g., server v17, local v14)
+- ❌ Using older PostgreSQL client tools
+- ✅ Install matching version: `brew install postgresql@17`
+- ✅ Use versioned path: `/opt/homebrew/opt/postgresql@17/bin/pg_dump`
 
 ## Result
 

@@ -37,6 +37,25 @@ import {
   Layers,
   Upload,
   Headphones,
+  Mail,
+  DollarSign,
+  Database,
+  Code,
+  LayoutDashboard,
+  UserCog,
+  Boxes,
+  Wand2,
+  Activity,
+  Rocket,
+  Wrench,
+  TrendingUp,
+  UserPlus,
+  Megaphone,
+  Link2,
+  Headset,
+  Kanban,
+  UserCheck,
+  UsersRound,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -177,74 +196,123 @@ export const userNavigation: NavItem[] = [
 /**
  * ADMIN NAVIGATION - Admin panel navigation
  * Used in: Sidebar component when isAdmin=true
+ * 
+ * Comprehensive admin navigation with all management features organized by category
  */
 export const adminNavigation: NavItem[] = [
+  // ============================================================================
+  // OVERVIEW & DASHBOARD
+  // ============================================================================
   {
     name: 'Admin Dashboard',
     href: '/admin/users',
-    icon: Shield,
+    icon: LayoutDashboard,
     requiresAdmin: true,
-    description: 'Admin dashboard',
+    description: 'Admin overview and quick access',
   },
+  
+  // ============================================================================
+  // USER MANAGEMENT
+  // ============================================================================
   {
     name: 'User Management',
     href: '/admin/users',
-    icon: Users,
+    icon: UserCog,
     requiresAdmin: true,
-    description: 'Manage all users',
+    hasDropdown: true,
+    description: 'Manage users, roles, and permissions',
+    children: [
+      { name: 'All Users', href: '/admin/users', icon: Users, description: 'View and manage all users' },
+      { name: 'Token Analytics', href: '/admin/token-usage', icon: BarChart3, description: 'User token usage analytics' },
+    ]
   },
+  
+  // ============================================================================
+  // CRM & MARKETING
+  // ============================================================================
   {
-    name: 'AI Models',
+    name: 'CRM & Marketing',
+    href: '/admin/crm/dashboard',
+    icon: TrendingUp,
+    requiresAdmin: true,
+    hasDropdown: true,
+    description: 'Campaigns, leads, and customer success',
+    children: [
+      { name: 'CRM Dashboard', href: '/admin/crm/dashboard', icon: LayoutDashboard, description: 'CRM overview and metrics' },
+      { name: 'Campaigns', href: '/admin/crm/campaigns', icon: Megaphone, description: 'Marketing campaigns and tracking' },
+      { name: 'New Campaign', href: '/admin/crm/campaigns/new', icon: Plus, description: 'Create new campaign' },
+      { name: 'Leads', href: '/admin/crm/leads', icon: UserPlus, description: 'Lead management' },
+      { name: 'Leads Board', href: '/admin/crm/leads/board', icon: Kanban, description: 'Kanban board for leads' },
+      { name: 'Members', href: '/admin/crm/members', icon: UserCheck, description: 'Platform members management' },
+      { name: 'Members Board', href: '/admin/crm/members/board', icon: Kanban, description: 'Kanban board for members' },
+      { name: 'Support Board', href: '/admin/crm/support/board', icon: Headset, description: 'Support tickets board' },
+      { name: 'UTM Builder', href: '/admin/crm/utm-builder', icon: Link2, description: 'Build UTM tracking URLs' },
+    ]
+  },
+  
+  // ============================================================================
+  // CONTENT MANAGEMENT
+  // ============================================================================
+  {
+    name: 'Content',
+    href: '/admin/assets',
+    icon: Boxes,
+    requiresAdmin: true,
+    hasDropdown: true,
+    description: 'Manage site content and assets',
+    children: [
+      { name: 'Site Assets', href: '/admin/assets', icon: Upload, description: 'Upload and manage media assets' },
+      { name: 'Email Templates', href: '/admin/emails', icon: Mail, description: 'Manage email templates' },
+      { name: 'Email List', href: '/admin/emails/list', icon: FileText, description: 'View all emails' },
+      { name: 'Vibrational Sources', href: '/admin/vibrational-event/sources', icon: Activity, description: 'Manage vibrational data sources' },
+    ]
+  },
+  
+  // ============================================================================
+  // AI & INTELLIGENCE
+  // ============================================================================
+  {
+    name: 'AI & Models',
     href: '/admin/ai-models',
     icon: Brain,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Configure AI models',
+    description: 'Configure AI models and pricing',
     children: [
-      { name: 'AI Models', href: '/admin/ai-models', icon: Brain },
+      { name: 'AI Model Config', href: '/admin/ai-models', icon: Wand2, description: 'Configure AI model settings' },
+      { name: 'Audio Mixer', href: '/admin/audio-mixer', icon: Headphones, description: 'Audio mixing and generation' },
     ]
   },
+  
+  // ============================================================================
+  // INTENSIVE PROGRAM
+  // ============================================================================
   {
-    name: 'Vibrational Sources',
-    href: '/admin/vibrational-event/sources',
-    icon: Layers,
+    name: 'Intensive Program',
+    href: '/admin/intensive/schedule-call',
+    icon: Rocket,
     requiresAdmin: true,
-    description: 'Manage vibrational ingesters',
+    hasDropdown: true,
+    description: 'Manage Activation Intensive program',
+    children: [
+      { name: 'Schedule Calls', href: '/admin/intensive/schedule-call', icon: Calendar, description: 'Schedule intensive coaching calls' },
+    ]
   },
+  
+  // ============================================================================
+  // DEVELOPER TOOLS
+  // ============================================================================
   {
-    name: 'Token Analytics',
-    href: '/admin/token-usage',
-    icon: Zap,
-    requiresAdmin: true,
-    description: 'Token usage analytics',
-  },
-  {
-    name: 'Site Assets',
-    href: '/admin/assets',
-    icon: Upload,
-    requiresAdmin: true,
-    description: 'Manage site assets and media',
-  },
-  {
-    name: 'Audio Mixer',
-    href: '/admin/audio-mixer',
-    icon: Zap,
-    requiresAdmin: true,
-    description: 'Audio mixing tracks',
-  },
-  {
-    name: 'Design System',
+    name: 'Developer',
     href: '/design-system',
-    icon: Palette,
+    icon: Code,
     requiresAdmin: true,
-    description: 'Design system showcase',
-  },
-  {
-    name: 'Sitemap',
-    href: '/sitemap',
-    icon: Layers,
-    requiresAdmin: true,
-    description: 'Complete site map',
+    hasDropdown: true,
+    description: 'Developer tools and documentation',
+    children: [
+      { name: 'Design System', href: '/design-system', icon: Palette, description: 'Component library showcase' },
+      { name: 'Sitemap', href: '/sitemap', icon: Layers, description: 'Complete site navigation map' },
+    ]
   },
 ]
 
