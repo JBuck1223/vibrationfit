@@ -578,10 +578,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                     category={category} 
                     selected={isSelected}
                     onClick={() => handleCategoryToggle(category.key)}
-                    variant="outlined"
-                    selectionStyle="border"
-                    iconColor={isRefined ? NEON_YELLOW : (isSelected ? "#39FF14" : "#FFFFFF")}
-                    selectedIconColor={isRefined ? NEON_YELLOW : "#39FF14"}
                     className={isSelected ? (isRefined ? '!bg-[rgba(255,255,0,0.2)] !border-[rgba(255,255,0,0.2)] hover:!bg-[rgba(255,255,0,0.1)]' : '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]') : ''}
                   />
                 )

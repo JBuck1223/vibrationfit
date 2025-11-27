@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     // Get member details
     const { data: profiles, error: profileError } = await supabase
       .from('user_profiles')
-      .select('user_id, email, phone, first_name, last_name')
+      .select('user_id, email, phone, first_name, last_name, sms_opt_in')
       .in('user_id', userIds)
       .eq('is_active', true)
 
@@ -65,6 +65,13 @@ export async function POST(request: NextRequest) {
         if (!profile.phone) {
           results.failed++
           results.errors.push(`${profile.email}: No phone number`)
+          continue
+        }
+
+        // Check SMS opt-in (A2P compliance)
+        if (!profile.sms_opt_in) {
+          results.failed++
+          results.errors.push(`${profile.email}: User has not opted in to SMS notifications`)
           continue
         }
 
@@ -101,19 +108,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Email subject is required' }, { status: 400 })
       }
 
-      const emailList = profiles.map((p) => ({
-        to: p.email,
-        subject,
-        htmlBody: `<p>Hi ${p.first_name || 'there'},</p><p>${message.replace(/\n/g, '<br>')}</p>`,
-        textBody: `Hi ${p.first_name || 'there'},\n\n${message}`,
-        replyTo: 'team@vibrationfit.com',
-      }))
+      const recipients = profiles.map((p) => p.email)
 
       try {
-        const result = await sendBulkEmail(emailList)
-        results.success = result.successCount
-        results.failed = result.failureCount
-        results.errors = result.errors
+        await sendBulkEmail({
+          recipients,
+          subject,
+          htmlBody: `<p>Hi there,</p><p>${message.replace(/\n/g, '<br>')}</p>`,
+          textBody: `Hi there,\n\n${message}`,
+          replyTo: 'team@vibrationfit.com',
+        })
+        results.success = profiles.length
+        results.failed = 0
+        results.errors = []
 
         // Log successful emails to database
         const emailLogs = profiles.map((p) => ({

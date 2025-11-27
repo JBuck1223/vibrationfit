@@ -11,9 +11,10 @@ import { createClient } from '@/lib/supabase/server'
 // GET /api/crm/campaigns/[id] - Get campaign details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     const {
       data: { user },
@@ -40,7 +41,7 @@ export async function GET(
     const { data: campaign, error } = await supabase
       .from('marketing_campaigns')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) {
@@ -52,7 +53,7 @@ export async function GET(
     const { data: leads } = await supabase
       .from('leads')
       .select('*')
-      .eq('campaign_id', params.id)
+      .eq('campaign_id', id)
       .order('created_at', { ascending: false })
 
     return NextResponse.json({
@@ -70,9 +71,10 @@ export async function GET(
 // PATCH /api/crm/campaigns/[id] - Update campaign
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     const {
       data: { user },
@@ -98,7 +100,7 @@ export async function PATCH(
     const { data: campaign, error } = await supabase
       .from('marketing_campaigns')
       .update(body)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -117,9 +119,10 @@ export async function PATCH(
 // DELETE /api/crm/campaigns/[id] - Delete campaign
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     const {
       data: { user },
@@ -143,7 +146,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('marketing_campaigns')
       .update({ status: 'archived' })
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       console.error('❌ Error archiving campaign:', error)

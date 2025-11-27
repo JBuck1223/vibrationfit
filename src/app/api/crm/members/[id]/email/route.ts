@@ -7,9 +7,10 @@ import { sendEmail } from '@/lib/email/aws-ses'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     const {
       data: { user },
@@ -40,7 +41,7 @@ export async function POST(
     }
 
     // Send email via AWS SES
-    const result = await sendEmail({
+    await sendEmail({
       to,
       subject,
       htmlBody: htmlBody || `<p>${textBody}</p>`,
@@ -48,15 +49,11 @@ export async function POST(
       replyTo: 'team@vibrationfit.com', // Route replies to Google Workspace
     })
 
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to send email')
-    }
-
     // Log to database for conversation history
     const { error: logError } = await supabase
       .from('email_messages')
       .insert({
-        user_id: params.id,
+        user_id: id,
         from_email: process.env.AWS_SES_FROM_EMAIL || 'no-reply@vibrationfit.com',
         to_email: to,
         subject,
@@ -64,7 +61,6 @@ export async function POST(
         body_html: htmlBody,
         direction: 'outbound',
         status: 'sent',
-        ses_message_id: result.messageId,
         sent_at: new Date().toISOString(),
       })
 
@@ -74,7 +70,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      messageId: result.messageId,
+      message: 'Email sent successfully',
     })
   } catch (error: any) {
     console.error('❌ Error sending email:', error)

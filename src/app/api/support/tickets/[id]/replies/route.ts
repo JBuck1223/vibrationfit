@@ -10,9 +10,10 @@ import { sendEmail } from '@/lib/email/aws-ses'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     const {
       data: { user },
@@ -38,7 +39,7 @@ export async function POST(
     const { data: ticket } = await supabase
       .from('support_tickets')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (!ticket) {
@@ -55,7 +56,7 @@ export async function POST(
     const { data: reply, error } = await supabase
       .from('support_ticket_replies')
       .insert({
-        ticket_id: params.id,
+        ticket_id: id,
         user_id: user.id,
         is_staff: isAdmin,
         message: body.message,
@@ -73,7 +74,7 @@ export async function POST(
       await supabase
         .from('support_tickets')
         .update({ status: 'in_progress' })
-        .eq('id', params.id)
+        .eq('id', id)
     }
 
     // Send email notification

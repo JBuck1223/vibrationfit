@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
       const ltv = totalSpent
       
       // Calculate MRR from subscription tier
-      const tier = subscription?.membership_tiers
+      const tier = subscription?.membership_tiers?.[0]
       let mrr = 0
       if (tier) {
         if (tier.billing_interval === 'month') {
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
         full_name: profile?.first_name && profile?.last_name 
           ? `${profile.first_name} ${profile.last_name}` 
           : profile?.first_name || profile?.last_name || authUser.email?.split('@')[0] || 'Unknown',
-        subscription_tier: subscription?.membership_tiers?.name || 'Free',
+        subscription_tier: subscription?.membership_tiers?.[0]?.name || 'Free',
         subscription_status: subscription?.status || null,
         stripe_customer_id: subscription?.stripe_customer_id || null,
         created_at: authUser.created_at,

@@ -190,13 +190,20 @@ export default function MemberBoardPage() {
       {/* Kanban Board */}
       <Kanban
         columns={getColumns()}
-        items={members}
-        getItemStatus={getMemberStatus}
-        onMove={handleMove}
-        renderCard={(member) => (
+        items={members.map(member => ({
+          ...member,
+          id: member.user_id,
+          columnId: getMemberStatus(member)
+        }))}
+        onItemMove={async (itemId: string, newColumnId: string) => {
+          await handleMove(itemId, newColumnId)
+        }}
+        onItemClick={(item) => {
+          router.push(`/admin/crm/members/${item.user_id}`)
+        }}
+        renderItem={(member) => (
           <div
-            className="p-3 md:p-4 bg-[#1F1F1F] border-2 border-[#333] rounded-xl hover:-translate-y-1 hover:border-primary-500 transition-all duration-300 cursor-pointer"
-            onClick={() => router.push(`/admin/crm/members/${member.user_id}`)}
+            className="p-3 md:p-4 bg-[#1F1F1F] border-2 border-[#333] rounded-xl hover:-translate-y-1 hover:border-primary-500 transition-all duration-300"
           >
             <div className="mb-2 md:mb-3">
               <div className="font-semibold text-sm md:text-base text-white truncate">
@@ -242,7 +249,6 @@ export default function MemberBoardPage() {
             )}
           </div>
         )}
-        getItemId={(member) => member.user_id}
       />
     </Container>
   )

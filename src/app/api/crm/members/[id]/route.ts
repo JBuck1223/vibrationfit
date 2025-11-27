@@ -10,9 +10,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     const {
       data: { user },
@@ -34,7 +35,7 @@ export async function GET(
 
     // Use admin client to get user
     const adminClient = createAdminClient()
-    const { data: authUserData, error: authError } = await adminClient.auth.admin.getUserById(params.id)
+    const { data: authUserData, error: authError } = await adminClient.auth.admin.getUserById(id)
 
     if (authError || !authUserData.user) {
       console.error('❌ Error fetching auth user:', authError)
@@ -47,7 +48,7 @@ export async function GET(
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('*')
-      .eq('user_id', params.id)
+      .eq('user_id', id)
       .eq('is_active', true)
       .eq('is_draft', false)
       .single()
@@ -56,7 +57,7 @@ export async function GET(
     const { data: activityMetrics } = await supabase
       .from('user_activity_metrics')
       .select('*')
-      .eq('user_id', params.id)
+      .eq('user_id', id)
       .single()
 
     // Get subscription with tier info (for revenue calculation)
@@ -72,7 +73,7 @@ export async function GET(
           billing_interval
         )
       `)
-      .eq('user_id', params.id)
+      .eq('user_id', id)
       .in('status', ['active', 'trialing'])
       .single()
 
@@ -80,7 +81,7 @@ export async function GET(
     const { data: payments } = await supabase
       .from('payment_history')
       .select('amount, paid_at, status')
-      .eq('user_id', params.id)
+      .eq('user_id', id)
       .eq('status', 'succeeded')
       .order('paid_at', { ascending: true })
 
@@ -118,28 +119,28 @@ export async function GET(
     const { data: smsMessages } = await supabase
       .from('sms_messages')
       .select('*')
-      .eq('user_id', params.id)
+      .eq('user_id', id)
       .order('created_at', { ascending: true })
 
     // Get email messages
     const { data: emailMessages } = await supabase
       .from('email_messages')
       .select('*')
-      .eq('user_id', params.id)
+      .eq('user_id', id)
       .order('created_at', { ascending: true })
 
     // Get support tickets
     const { data: tickets } = await supabase
       .from('support_tickets')
       .select('*')
-      .eq('user_id', params.id)
+      .eq('user_id', id)
       .order('created_at', { ascending: false })
 
     // Get related lead (if converted from lead)
     const { data: lead } = await supabase
       .from('leads')
       .select('*')
-      .eq('converted_to_user_id', params.id)
+      .eq('converted_to_user_id', id)
       .single()
 
     return NextResponse.json({
@@ -167,9 +168,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     const {
       data: { user },
@@ -195,7 +197,7 @@ export async function PATCH(
     const { data: metrics, error } = await supabase
       .from('user_activity_metrics')
       .upsert({
-        user_id: params.id,
+        user_id: id,
         ...body,
         updated_at: new Date().toISOString(),
       })

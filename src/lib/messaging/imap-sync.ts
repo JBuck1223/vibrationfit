@@ -73,7 +73,7 @@ export async function syncInboundEmails(): Promise<EmailSyncResult> {
 
           fetch.on('message', (msg, seqno) => {
             msg.on('body', (stream) => {
-              simpleParser(stream, async (err, parsed) => {
+              simpleParser(stream as any, async (err, parsed) => {
                 if (err) {
                   result.errors.push(`Parse error: ${err.message}`)
                   return
@@ -81,8 +81,10 @@ export async function syncInboundEmails(): Promise<EmailSyncResult> {
 
                 try {
                   // Extract email data
-                  const fromEmail = parsed.from?.value[0]?.address || ''
-                  const toEmail = parsed.to?.value[0]?.address || ''
+                  const fromValue = Array.isArray(parsed.from) ? parsed.from[0] : parsed.from
+                  const toValue = Array.isArray(parsed.to) ? parsed.to[0] : parsed.to
+                  const fromEmail = fromValue?.value?.[0]?.address || ''
+                  const toEmail = toValue?.value?.[0]?.address || ''
                   const subject = parsed.subject || '(No subject)'
                   const bodyText = parsed.text || ''
                   const bodyHtml = parsed.html || ''
@@ -163,7 +165,7 @@ export async function syncInboundEmails(): Promise<EmailSyncResult> {
       })
     })
 
-    imap.once('error', (err) => {
+    imap.once('error', (err: any) => {
       result.success = false
       result.errors.push(`IMAP connection error: ${err.message}`)
       resolve(result)

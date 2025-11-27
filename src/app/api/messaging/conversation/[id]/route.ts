@@ -7,9 +7,10 @@ import { getConversation } from '@/lib/messaging'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // Check authentication
     const supabase = await createClient()
     const {
@@ -37,16 +38,16 @@ export async function GET(
 
     switch (type) {
       case 'lead':
-        messages = await getConversation({ leadId: params.id })
+        messages = await getConversation({ leadId: id })
         break
       case 'ticket':
-        messages = await getConversation({ ticketId: params.id })
+        messages = await getConversation({ ticketId: id })
         break
       case 'user':
-        messages = await getConversation({ userId: params.id })
+        messages = await getConversation({ userId: id })
         break
       case 'phone':
-        messages = await getConversation({ phoneNumber: params.id })
+        messages = await getConversation({ phoneNumber: id })
         break
       default:
         return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 })

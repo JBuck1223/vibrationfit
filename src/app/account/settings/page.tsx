@@ -5,15 +5,19 @@
 
 import { useState, useEffect } from 'react'
 import {  Card, Button, Input, Checkbox } from '@/lib/design-system/components'
-import { User, Mail, Bell, Shield, Trash2 } from 'lucide-react'
+import { User, Mail, Bell, Shield, Trash2, Phone } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 export default function AccountSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingPhone, setSavingPhone] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [smsOptIn, setSmsOptIn] = useState(false)
   const [notifications, setNotifications] = useState({
     email_marketing: true,
     email_product: true,
@@ -32,6 +36,19 @@ export default function AccountSettingsPage() {
 
       setUser(user)
       setEmail(user.email || '')
+
+      // Fetch user profile for phone/SMS settings
+      const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('phone, sms_opt_in')
+        .eq('user_id', user.id)
+        .single()
+
+      if (profileData) {
+        setProfile(profileData)
+        setPhone(profileData.phone || '')
+        setSmsOptIn(profileData.sms_opt_in || false)
+      }
     } catch (error) {
       console.error('Error fetching user:', error)
     } finally {
@@ -54,9 +71,49 @@ export default function AccountSettingsPage() {
     }
   }
 
-  const handleUpdatePassword = () => {
-    // Trigger password reset email
-    toast.info('Password reset link sent to your email')
+  const handleUpdatePassword = async () => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email)
+      if (error) throw error
+      toast.success('Password reset link sent to your email')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send reset link')
+    }
+  }
+
+  const handleUpdatePhone = async () => {
+    if (!user) return
+    
+    setSavingPhone(true)
+    try {
+      // Get IP address for compliance
+      const ipResponse = await fetch('https://api.ipify.org?format=json')
+      const { ip } = await ipResponse.json()
+
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          phone: phone || null,
+          sms_opt_in: phone ? smsOptIn : false,
+          sms_opt_in_date: smsOptIn ? new Date().toISOString() : null,
+          sms_opt_in_ip: smsOptIn ? ip : null,
+        })
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      toast.success(smsOptIn 
+        ? 'SMS notifications enabled! You\'ll receive updates via text.' 
+        : 'Phone settings updated'
+      )
+      
+      await fetchUserData() // Refresh data
+    } catch (error: any) {
+      console.error('Error updating phone:', error)
+      toast.error(error.message || 'Failed to update phone settings')
+    } finally {
+      setSavingPhone(false)
+    }
   }
 
   return (
@@ -120,11 +177,73 @@ export default function AccountSettingsPage() {
               </div>
             </Card>
 
-            {/* Notification Preferences */}
+            {/* SMS Notifications */}
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <Phone className="w-5 h-5 text-primary-500" />
+                <h2 className="text-2xl font-bold text-white">SMS Notifications</h2>
+              </div>
+
+              <div className="max-w-md space-y-4">
+                <p className="text-neutral-400 text-sm">
+                  Get appointment reminders, progress updates, and important account notifications via text message.
+                </p>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
+                    Phone Number
+                  </label>
+                  <Input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+1 (555) 123-4567"
+                    className="mb-3"
+                  />
+                </div>
+
+                {phone && (
+                  <div className="bg-primary-500/10 border border-primary-500/30 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="sms-consent"
+                        checked={smsOptIn}
+                        onChange={(e) => setSmsOptIn(e.target.checked)}
+                        className="mt-1 w-4 h-4 rounded border-primary-500 text-primary-500 focus:ring-primary-500"
+                      />
+                      <label htmlFor="sms-consent" className="text-sm text-neutral-300 flex-1">
+                        <strong className="text-white block mb-1">Yes, send me SMS notifications</strong>
+                        I agree to receive appointment reminders, progress updates, and account notifications from VibrationFit. 
+                        Message frequency varies. Message and data rates may apply. 
+                        Reply STOP to opt-out or HELP for assistance.
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleUpdatePhone}
+                  disabled={savingPhone || (phone === profile?.phone && smsOptIn === profile?.sms_opt_in)}
+                  variant="primary"
+                  className="w-full"
+                >
+                  {savingPhone ? 'Saving...' : 'Save SMS Preferences'}
+                </Button>
+
+                {smsOptIn && profile?.sms_opt_in_date && (
+                  <p className="text-xs text-neutral-500 text-center">
+                    Opted in on {new Date(profile.sms_opt_in_date).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            </Card>
+
+            {/* Email Notification Preferences */}
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <Bell className="w-5 h-5 text-primary-500" />
-                <h2 className="text-2xl font-bold text-white">Notifications</h2>
+                <h2 className="text-2xl font-bold text-white">Email Notifications</h2>
               </div>
 
               <div className="space-y-4 max-w-md">

@@ -190,13 +190,20 @@ export default function CustomerBoardPage() {
       {/* Kanban Board */}
       <Kanban
         columns={getColumns()}
-        items={customers}
-        getItemStatus={getCustomerStatus}
-        onMove={handleMove}
-        renderCard={(customer) => (
+        items={customers.map(customer => ({
+          ...customer,
+          id: customer.user_id,
+          columnId: getCustomerStatus(customer)
+        }))}
+        onItemMove={async (itemId: string, newColumnId: string) => {
+          await handleMove(itemId, newColumnId)
+        }}
+        onItemClick={(item) => {
+          router.push(`/admin/crm/customers/${item.user_id}`)
+        }}
+        renderItem={(customer) => (
           <div
-            className="p-3 md:p-4 bg-[#1F1F1F] border-2 border-[#333] rounded-xl hover:-translate-y-1 hover:border-primary-500 transition-all duration-300 cursor-pointer"
-            onClick={() => router.push(`/admin/crm/customers/${customer.user_id}`)}
+            className="p-3 md:p-4 bg-[#1F1F1F] border-2 border-[#333] rounded-xl hover:-translate-y-1 hover:border-primary-500 transition-all duration-300"
           >
             <div className="mb-2 md:mb-3">
               <div className="font-semibold text-sm md:text-base text-white truncate">
@@ -242,7 +249,6 @@ export default function CustomerBoardPage() {
             )}
           </div>
         )}
-        getItemId={(customer) => customer.user_id}
       />
     </Container>
   )

@@ -10,9 +10,10 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     const {
       data: { user },
@@ -22,7 +23,7 @@ export async function GET(
     const { data: ticket, error } = await supabase
       .from('support_tickets')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) {
@@ -46,7 +47,7 @@ export async function GET(
     const { data: replies } = await supabase
       .from('support_ticket_replies')
       .select('*')
-      .eq('ticket_id', params.id)
+      .eq('ticket_id', id)
       .order('created_at', { ascending: true })
 
     return NextResponse.json({
@@ -61,9 +62,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     const {
       data: { user },
@@ -92,7 +94,7 @@ export async function PATCH(
     const { data: ticket, error } = await supabase
       .from('support_tickets')
       .update(body)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 

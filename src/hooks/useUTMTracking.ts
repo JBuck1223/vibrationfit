@@ -1,7 +1,8 @@
 // /src/hooks/useUTMTracking.ts
 // Hook to capture UTM parameters and tracking data
+'use client'
 
-import { useEffect, useState } from 'use client'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 export interface UTMData {
