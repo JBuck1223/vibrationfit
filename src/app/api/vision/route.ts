@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
               .insert({
                 id: visionId,
                 user_id: user.id,
-                version_number: 1,
                 status: 'draft',
                 vision: {},
                 created_at: new Date().toISOString(),
@@ -67,15 +66,15 @@ export async function GET(request: NextRequest) {
             }
             
             // Calculate version number based on chronological order
-            let versionNumber = newVision.version_number || 1
+            let versionNumber = 1
             try {
               const { data: calculatedVersionNumber } = await supabase
                 .rpc('get_vision_version_number', { p_vision_id: newVision.id })
               
-              versionNumber = calculatedVersionNumber || newVision.version_number || 1
+              versionNumber = calculatedVersionNumber || 1
             } catch (error) {
-              // If RPC function doesn't exist yet, use stored version_number
-              console.warn('Could not calculate version number, using stored:', error)
+              // If RPC function doesn't exist yet, default to 1
+              console.warn('Could not calculate version number, using default:', error)
             }
             
             return NextResponse.json({
@@ -91,15 +90,15 @@ export async function GET(request: NextRequest) {
         }
 
         // Calculate version number for the current vision first
-        let visionVersionNumber = vision.version_number || 1
+        let visionVersionNumber = 1
         try {
           const { data: calculatedVersionNumber } = await supabase
             .rpc('get_vision_version_number', { p_vision_id: vision.id })
           
-          visionVersionNumber = calculatedVersionNumber || vision.version_number || 1
+          visionVersionNumber = calculatedVersionNumber || 1
         } catch (error) {
-          // If RPC function doesn't exist yet, use stored version_number
-          console.warn('Could not calculate version number, using stored:', error)
+          // If RPC function doesn't exist yet, default to 1
+          console.warn('Could not calculate version number, using default:', error)
         }
 
         // Load versions if requested
@@ -119,7 +118,7 @@ export async function GET(request: NextRequest) {
                 const { data: calculatedVersionNumber } = await supabase
                   .rpc('get_vision_version_number', { p_vision_id: v.id })
                 
-                const versionNumber = calculatedVersionNumber || v.version_number || 1
+                const versionNumber = calculatedVersionNumber || 1
                 
                 return {
                   ...v,
@@ -207,15 +206,14 @@ export async function GET(request: NextRequest) {
       let visionWithVersionNumber = latestVision
       let visionVersionNumber = 1
       if (latestVision) {
-        visionVersionNumber = latestVision.version_number || 1
         try {
           const { data: calculatedVersionNumber } = await supabase
             .rpc('get_vision_version_number', { p_vision_id: latestVision.id })
           
-          visionVersionNumber = calculatedVersionNumber || latestVision.version_number || 1
+          visionVersionNumber = calculatedVersionNumber || 1
         } catch (error) {
-          // If RPC function doesn't exist yet, use stored version_number
-          console.warn('Could not calculate version number, using stored:', error)
+          // If RPC function doesn't exist yet, default to 1
+          console.warn('Could not calculate version number, using default:', error)
         }
         
         visionWithVersionNumber = {
@@ -242,18 +240,18 @@ export async function GET(request: NextRequest) {
                 const { data: calculatedVersionNumber } = await supabase
                   .rpc('get_vision_version_number', { p_vision_id: v.id })
                 
-                const versionNumber = calculatedVersionNumber || v.version_number || 1
+                const versionNumber = calculatedVersionNumber || 1
                 
                 return {
                   ...v,
                   version_number: versionNumber
                 }
               } catch (error) {
-                // If RPC function doesn't exist yet, use stored version_number
-                console.warn('Could not calculate version number, using stored:', error)
+                // If RPC function doesn't exist yet, default to 1
+                console.warn('Could not calculate version number, using default:', error)
                 return {
                   ...v,
-                  version_number: v.version_number || 1
+                  version_number: 1
                 }
               }
             })

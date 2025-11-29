@@ -44,19 +44,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Get current active vision (if exists)
+    // Get current active vision (if exists) for deactivation
     const { data: currentActive } = await supabase
       .from('vision_versions')
-      .select('id, version_number')
+      .select('id')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .eq('is_draft', false)
       .maybeSingle()
-
-    // Determine new version number
-    const newVersionNumber = currentActive 
-      ? (currentActive.version_number || 0) + 1 
-      : 1
 
     // Start transaction-like operations
     // Step 1: Deactivate old active vision (if exists)
@@ -83,7 +78,6 @@ export async function POST(request: NextRequest) {
       .update({
         is_active: true,
         is_draft: false,
-        version_number: newVersionNumber,
         title: draft.title?.replace('Draft', 'Active Vision') || 'Life Vision',
         updated_at: new Date().toISOString()
       })

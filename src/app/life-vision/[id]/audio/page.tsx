@@ -336,7 +336,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+              <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
                 <Button
                   onClick={() => router.push(`/life-vision/${visionId}`)}
                   variant="outline"

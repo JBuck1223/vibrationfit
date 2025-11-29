@@ -506,7 +506,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         giving: vision.giving || '',
         spirituality: vision.spirituality || '',
         conclusion: vision.conclusion || '',
-        completion_percent: completionPercentage,
         is_draft: isDraft,
         is_active: !isDraft  // Active if not a draft
       }
@@ -733,7 +732,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 </div>
 
                 {/* Action Buttons - Enhanced with Hover Effects */}
-                <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+                <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
                   {displayStatus === 'draft' ? (
                     <>
                       <Button
@@ -795,15 +794,30 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                         <span>Download PDF</span>
                       </Button>
                       <Button
-                        asChild
+                        onClick={async () => {
+                          // Check if a draft already exists for this vision
+                          const { data: existingDraft } = await supabase
+                            .from('vision_versions')
+                            .select('id')
+                            .eq('parent_id', vision.id)
+                            .eq('is_draft', true)
+                            .eq('is_active', false)
+                            .maybeSingle()
+                          
+                          if (existingDraft) {
+                            // Open existing draft
+                            router.push(`/life-vision/${existingDraft.id}/refine`)
+                          } else {
+                            // Create new draft
+                            router.push(`/life-vision/${vision.id}/refine`)
+                          }
+                        }}
                         variant="outline"
                         size="sm"
                         className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
                       >
-                        <Link href={`/life-vision/${vision.id}/refine`}>
-                          <Icon icon={Gem} size="sm" className="shrink-0" />
-                          <span>Refine</span>
-                        </Link>
+                        <Icon icon={Gem} size="sm" className="shrink-0" />
+                        <span>Refine</span>
                       </Button>
                       <Button
                         asChild

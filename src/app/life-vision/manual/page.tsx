@@ -81,9 +81,9 @@ export default function ManualLifeVisionPage() {
     giving: '',
     spirituality: '',
     conclusion: '',
+    completion_percent: 0,
     is_draft: true,
-    is_active: false,
-    completion_percent: 0
+    is_active: false
   })
 
   // Define sections in order (matching profile edit pattern)
@@ -199,9 +199,9 @@ export default function ManualLifeVisionPage() {
             giving: existingDraft.giving || '',
             spirituality: existingDraft.spirituality || '',
             conclusion: existingDraft.conclusion || '',
+            completion_percent: existingDraft.completion_percent || 0,
             is_draft: true,
-            is_active: false,
-            completion_percent: existingDraft.completion_percent || 0
+            is_active: false
           })
         }
       } catch (err) {
@@ -259,8 +259,7 @@ export default function ManualLifeVisionPage() {
               stuff: visionData.stuff || '',
               giving: visionData.giving || '',
               spirituality: visionData.spirituality || '',
-              conclusion: visionData.conclusion || '',
-              completion_percent: completion
+              conclusion: visionData.conclusion || ''
             }
           })
         })
@@ -294,8 +293,7 @@ export default function ManualLifeVisionPage() {
               stuff: visionData.stuff || '',
               giving: visionData.giving || '',
               spirituality: visionData.spirituality || '',
-              conclusion: visionData.conclusion || '',
-              completion_percent: completion
+              conclusion: visionData.conclusion || ''
             }
           })
         })

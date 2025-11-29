@@ -53,8 +53,7 @@ export async function PATCH(request: NextRequest) {
         stuff: visionData.stuff || '',
         giving: visionData.giving || '',
         spirituality: visionData.spirituality || '',
-        conclusion: visionData.conclusion || '',
-        completion_percent: visionData.completion_percent || 0
+        conclusion: visionData.conclusion || ''
       })
       .eq('id', draftId)
       .select()

@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { LifeVisionSidebar } from './components/LifeVisionSidebar'
 import { colors } from '@/lib/design-system/tokens'
 import { getUserTotalRefinements } from '@/lib/life-vision/draft-helpers'
+import { addCalculatedVersionNumbers } from '@/lib/life-vision/version-helpers'
 
 // Use centralized vision categories
 const VISION_SECTIONS = getVisionCategoryKeys()
@@ -187,17 +188,27 @@ export default function VisionListPage() {
 
       const data = await response.json()
       
+      // Calculate version numbers for all versions (based on creation order)
+      let versionsWithCalculatedNumbers = data.versions || []
+      if (versionsWithCalculatedNumbers.length > 0) {
+        versionsWithCalculatedNumbers = await addCalculatedVersionNumbers(versionsWithCalculatedNumbers)
+      }
+      
       // Set active vision
       if (data.vision) {
-        const actualCompletion = calculateCompletionPercentage(data.vision)
-        setActiveVision(data.vision)
+        // Calculate version number for active vision
+        const activeWithVersion = versionsWithCalculatedNumbers.find((v: VisionData) => v.id === data.vision.id)
+        const visionWithVersion = activeWithVersion || data.vision
+        
+        const actualCompletion = calculateCompletionPercentage(visionWithVersion)
+        setActiveVision(visionWithVersion)
         setCompletionPercentage(actualCompletion)
-        setCurrentVersionId(data.vision.id)
+        setCurrentVersionId(visionWithVersion.id)
         
         // Calculate completed sections
         const completed: string[] = []
         VISION_SECTIONS.forEach(sectionKey => {
-          const value = data.vision[sectionKey as keyof VisionData]
+          const value = visionWithVersion[sectionKey as keyof VisionData]
           if (typeof value === 'string' && value.trim()) {
             completed.push(sectionKey)
           }
@@ -210,12 +221,8 @@ export default function VisionListPage() {
         setCompletedSections([])
       }
       
-      // Set versions list
-      if (data.versions && Array.isArray(data.versions)) {
-        setVersions(data.versions)
-      } else {
-        setVersions([])
-      }
+      // Set versions list with calculated numbers
+      setVersions(versionsWithCalculatedNumbers)
       
       // Fetch total refined categories count across all versions
       try {
@@ -386,16 +393,13 @@ export default function VisionListPage() {
         return
       }
 
-      // Get the highest version number
-      const maxVersion = Math.max(...versions.map(v => v.version_number), 0)
-      const newVersionNumber = maxVersion + 1
-
       // Create new version with copied data
       const { data: newVersion, error: insertError } = await supabase
         .from('vision_versions')
         .insert({
           user_id: user.id,
-          title: sourceVersion.title || `Vision V${newVersionNumber}`,
+          parent_id: sourceVersion.id, // Track where this draft came from
+          title: sourceVersion.title || 'Vision Draft',
           perspective: sourceVersion.perspective || 'singular',
           forward: sourceVersion.forward,
           fun: sourceVersion.fun,
@@ -411,10 +415,8 @@ export default function VisionListPage() {
           giving: sourceVersion.giving,
           spirituality: sourceVersion.spirituality,
           conclusion: sourceVersion.conclusion,
-          version_number: newVersionNumber,
           is_draft: true,
-          is_active: false,
-          completion_percent: sourceVersion.completion_percent
+          is_active: false
         })
         .select()
         .single()

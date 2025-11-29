@@ -52,8 +52,7 @@ export async function POST(request: NextRequest) {
           stuff: visionData.stuff || '',
           giving: visionData.giving || '',
           spirituality: visionData.spirituality || '',
-          conclusion: visionData.conclusion || '',
-          completion_percent: visionData.completion_percent || 0
+          conclusion: visionData.conclusion || ''
         })
         .eq('id', existingDraft.id)
         .select()
@@ -72,25 +71,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get next version number
-    const { data: existingVersions } = await supabase
-      .from('vision_versions')
-      .select('version_number')
-      .eq('user_id', user.id)
-      .order('version_number', { ascending: false })
-      .limit(1)
-
-    const nextVersion = existingVersions && existingVersions.length > 0 
-      ? existingVersions[0].version_number + 1 
-      : 1
-
-    console.log('📊 Creating draft with version:', nextVersion, 'for user:', user.id)
+    console.log('📊 Creating draft for user:', user.id)
 
     // Create draft vision
     const { data: draft, error: createError } = await supabase
       .from('vision_versions')
       .insert({
         user_id: user.id,
-        version_number: nextVersion,
         title: 'Manual Vision Draft',
         forward: visionData.forward || '',
         fun: visionData.fun || '',
@@ -106,7 +93,6 @@ export async function POST(request: NextRequest) {
         giving: visionData.giving || '',
         spirituality: visionData.spirituality || '',
         conclusion: visionData.conclusion || '',
-        completion_percent: visionData.completion_percent || 0,
         is_draft: true,
         is_active: false,
         richness_metadata: {},
@@ -120,7 +106,6 @@ export async function POST(request: NextRequest) {
       console.error('❌ Full error object:', JSON.stringify(createError, null, 2))
       console.error('❌ Insert data was:', {
         user_id: user.id,
-        version_number: nextVersion,
         title: 'Manual Vision Draft',
         completion_percent: visionData.completion_percent || 0,
         is_active: false,

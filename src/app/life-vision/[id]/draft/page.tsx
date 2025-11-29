@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { CheckCircle, Eye, Gem, Download, VolumeX, Edit3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getDraftVision, commitDraft, getRefinedCategories, isCategoryRefined } from '@/lib/life-vision/draft-helpers'
+import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
 import { 
   Button, 
   Card, 
@@ -148,10 +149,15 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       }
 
       console.log('Draft vision loaded:', draftData)
-      setDraftVision(draftData)
-      setVision(draftData)
+      
+      // Calculate the actual version number based on creation order
+      const calculatedVersion = await calculateVersionNumber(draftData.id)
+      const visionWithVersion = { ...draftData, version_number: calculatedVersion }
+      
+      setDraftVision(visionWithVersion)
+      setVision(visionWithVersion)
 
-      const completion = calculateCompletionPercentage(draftData)
+      const completion = calculateCompletionPercentage(visionWithVersion)
       setCompletionPercentage(completion)
     } catch (err) {
       console.error('Error loading draft vision:', err)
@@ -218,6 +224,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         .from('vision_versions')
         .insert({
           user_id: user.id,
+          parent_id: vision.id, // Track where this draft came from
           title: vision.title,
           perspective: vision.perspective,
           forward: vision.forward,
@@ -235,8 +242,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
           giving: vision.giving,
           spirituality: vision.spirituality,
           is_draft: true,
-          is_active: false,
-          version_number: (vision.version_number || 0) + 1
+          is_active: false
         })
         .select()
         .single()
@@ -426,7 +432,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
               </div>
 
               {/* Action Buttons - Enhanced with Hover Effects */}
-              <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+              <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
                 <Button
                   onClick={() => router.push('/life-vision')}
                   variant="outline"

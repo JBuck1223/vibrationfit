@@ -344,7 +344,26 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
       // Check if this is actually a draft
       if (visionData.is_draft !== true) {
-        console.log('Vision is not a draft, showing clone option')
+        console.log('Vision is not a draft, checking for existing draft...')
+        
+        // Check if a draft already exists for this vision
+        const { data: existingDraft } = await supabase
+          .from('vision_versions')
+          .select('id')
+          .eq('parent_id', visionData.id)
+          .eq('is_draft', true)
+          .eq('is_active', false)
+          .eq('user_id', user.id)
+          .maybeSingle()
+        
+        if (existingDraft) {
+          console.log('Found existing draft, redirecting...')
+          router.push(`/life-vision/${existingDraft.id}/refine`)
+          return
+        }
+        
+        // No existing draft, show clone option
+        console.log('No existing draft, showing clone option')
         setIsNonDraft(true)
         setNonDraftVision(visionData)
         setLoading(false)
@@ -1063,22 +1082,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       const { data: { user: authUser } } = await supabase.auth.getUser()
       if (!authUser) throw new Error('Not authenticated')
 
-      // Get the next version number
-      const { data: latestVersion } = await supabase
-        .from('vision_versions')
-        .select('version_number')
-        .eq('user_id', authUser.id)
-        .order('version_number', { ascending: false })
-        .limit(1)
-        .single()
-
-      const newVersionNumber = (latestVersion?.version_number || 0) + 1
-
       // Clone the vision as a draft
       const { data: newDraft, error: insertError } = await supabase
         .from('vision_versions')
         .insert({
           user_id: authUser.id,
+          parent_id: nonDraftVision.id, // Track where this draft came from
           forward: nonDraftVision.forward,
           fun: nonDraftVision.fun,
           travel: nonDraftVision.travel,
@@ -1093,10 +1102,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           giving: nonDraftVision.giving,
           spirituality: nonDraftVision.spirituality,
           conclusion: nonDraftVision.conclusion,
-          version_number: newVersionNumber,
           is_draft: true,
-          is_active: false,
-          completion_percent: nonDraftVision.completion_percent
+          is_active: false
         })
         .select()
         .single()
@@ -1244,7 +1251,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-3xl mx-auto">
+              <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-3xl mx-auto">
                 <Button
                   onClick={() => router.push(draftVision ? `/life-vision/${draftVision.id}/draft` : '/life-vision')}
                   variant="outline"

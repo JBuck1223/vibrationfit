@@ -200,24 +200,12 @@ export default function AssemblyPage() {
           richnessMetadata: data.richnessMetadata // V3: Store richness metadata
         })
         
-        // Get the highest version number for this user (like the existing vision system does)
-        const { data: latestVersion } = await supabase
-          .from('vision_versions')
-          .select('version_number')
-          .eq('user_id', user.id)
-          .order('version_number', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        const newVersionNumber = (latestVersion?.version_number || 0) + 1
-
         // Save to vision_versions
         // Map API response fields to database columns (API may still use old names for backwards compat)
         const { data: insertedVision } = await supabase
           .from('vision_versions')
           .insert({
             user_id: user.id,
-            version_number: newVersionNumber,
             title: 'Life Vision Draft',
             forward: data.json.forward || '',
             fun: data.json.fun || '',
@@ -233,7 +221,6 @@ export default function AssemblyPage() {
             giving: data.json.giving || '',
             spirituality: data.json.spirituality || '',
             conclusion: '',
-            completion_percent: 100,
             is_draft: true,  // V3: Mark as draft until final sections are added
             is_active: false, // V3: Not active until finalized
             richness_metadata: data.richnessMetadata || {}, // V3: Save richness metadata
