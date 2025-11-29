@@ -472,13 +472,13 @@ export function isNavItemActive(
   
   // Special handling for /life-vision/{id} paths - should match "My Active Vision"
   // Check if we're on a specific vision detail page
-  if (pathname.match(/^\/life-vision\/[^\/]+$/) && !pathname.includes('/refine') && !pathname.includes('/active') && !pathname.includes('/audio')) {
+  if (pathname.match(/^\/life-vision\/[^\/]+$/) && !pathname.includes('/active') && !pathname.includes('/audio') && !pathname.includes('/new')) {
     // If this is the "My Active Vision" menu item, mark it as active for vision detail pages
     if (item.href === '/life-vision/active') {
       return true
     }
     // Don't mark "All Visions" as active for individual vision pages
-    if (item.href === '/life-vision' && !item.children) {
+    if (item.href === '/life-vision') {
       return false
     }
   }
@@ -494,16 +494,30 @@ export function isNavItemActive(
     if (item.href === '/profile/active') {
       return currentProfileId === activeProfileId
     }
-    // If this is the "All Profiles" menu item, mark it as active if viewing a non-active profile
-    if (item.href === '/profile' && !item.children) {
-      return currentProfileId !== activeProfileId
+    // Don't mark "All Profiles" list page as active when viewing individual profile
+    if (item.href === '/profile') {
+      return false
+    }
+  }
+  
+  // Special handling for other detail pages - don't match parent list pages
+  // Match pattern: /parent/[uuid-like-id] but NOT /parent/specific-route-name
+  const isDetailPage = pathname.match(/^\/([^\/]+)\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/)
+  if (isDetailPage) {
+    const parentPath = '/' + isDetailPage[1]
+    // Don't mark parent list page as active when on detail page
+    if (item.href === parentPath) {
+      return false
     }
   }
   
   // Check if pathname starts with item href (for nested routes)
-  // But exclude the case where we're on /life-vision (exact) and checking /life-vision/active
-  // Also exclude /profile (exact) when checking /profile/active
-  if (pathname.startsWith(item.href + '/') && item.href !== '/life-vision' && item.href !== '/profile') {
+  // But exclude parent items that have children (dropdowns) - let children match instead
+  if (pathname.startsWith(item.href + '/')) {
+    // Don't match parent dropdown items, let their children match
+    if (item.hasDropdown && item.children) {
+      return false
+    }
     return true
   }
   

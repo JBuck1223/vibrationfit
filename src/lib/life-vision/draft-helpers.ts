@@ -13,7 +13,7 @@ export interface VisionData {
   title?: string
   is_draft: boolean
   is_active: boolean
-  completion_percent: number
+  completion_percent?: number
   
   // Category fields
   forward: string
@@ -243,5 +243,91 @@ export async function hasDraft(userId: string): Promise<boolean> {
     .eq('is_active', false)
   
   return (count || 0) > 0
+}
+
+/**
+ * Get total refinement count across all versions for a user
+ * Returns the count of unique categories that have been refined across all their vision versions
+ */
+export async function getUserTotalRefinements(userId: string): Promise<{
+  count: number
+  categories: string[]
+}> {
+  const supabase = createClient()
+  
+  const { data, error } = await supabase.rpc('get_user_total_refinements', {
+    p_user_id: userId
+  })
+  
+  if (error) {
+    console.error('Error getting user total refinements:', error)
+    return { count: 0, categories: [] }
+  }
+  
+  // RPC returns an array with one row
+  const result = data?.[0] || { total_refinement_count: 0, refined_category_list: [] }
+  
+  return {
+    count: result.total_refinement_count || 0,
+    categories: result.refined_category_list || []
+  }
+}
+
+/**
+ * Get refinement stats for all versions for a user
+ * Returns details about refinements per version
+ */
+export async function getUserRefinementStats(userId: string): Promise<{
+  totalUniqueRefinements: number
+  totalVersionsWithRefinements: number
+  refinementsByVersion: Array<{
+    versionId: string
+    versionNumber: number
+    refinedCategories: string[]
+    refinementCount: number
+    createdAt: string
+  }>
+}> {
+  const supabase = createClient()
+  
+  // Get all versions with their refined categories
+  const { data: versions, error } = await supabase
+    .from('vision_versions')
+    .select('id, version_number, refined_categories, created_at')
+    .eq('user_id', userId)
+    .order('version_number', { ascending: true })
+  
+  if (error) {
+    console.error('Error getting refinement stats:', error)
+    return {
+      totalUniqueRefinements: 0,
+      totalVersionsWithRefinements: 0,
+      refinementsByVersion: []
+    }
+  }
+  
+  // Calculate stats
+  const allCategories = new Set<string>()
+  const versionsWithRefinements = []
+  
+  for (const version of versions || []) {
+    const refinedCats = version.refined_categories || []
+    if (refinedCats.length > 0) {
+      refinedCats.forEach((cat: string) => allCategories.add(cat))
+      versionsWithRefinements.push({
+        versionId: version.id,
+        versionNumber: version.version_number,
+        refinedCategories: refinedCats,
+        refinementCount: refinedCats.length,
+        createdAt: version.created_at
+      })
+    }
+  }
+  
+  return {
+    totalUniqueRefinements: allCategories.size,
+    totalVersionsWithRefinements: versionsWithRefinements.length,
+    refinementsByVersion: versionsWithRefinements
+  }
 }
 

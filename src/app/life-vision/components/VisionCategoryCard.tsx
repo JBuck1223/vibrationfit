@@ -27,6 +27,7 @@ interface VisionCategoryCardProps {
     title: string
   }
   editable?: boolean
+  isRefined?: boolean
 }
 
 export function VisionCategoryCard({
@@ -40,22 +41,42 @@ export function VisionCategoryCard({
   onEditCategory,
   vision,
   audioTrack,
-  editable = true
+  editable = true,
+  isRefined = false
 }: VisionCategoryCardProps) {
   const isCompleted = content?.trim().length > 0
+  const NEON_YELLOW = '#FFD700'
   
   return (
     <Card className="transition-all duration-300 hover:shadow-lg">
       <div className="px-1 py-2 md:px-0 md:py-0">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCompleted ? 'bg-primary-500' : 'bg-neutral-700'}`}>
-            <Icon icon={category.icon} size="sm" color="#000000" />
+          <div 
+            className={`w-10 h-10 rounded-xl flex items-center justify-center ${!isRefined ? (isCompleted ? 'bg-primary-500' : 'bg-neutral-700') : ''}`}
+            style={isRefined ? { backgroundColor: `${NEON_YELLOW}33`, border: `2px solid ${NEON_YELLOW}` } : undefined}
+          >
+            <Icon 
+              icon={category.icon} 
+              size="sm" 
+              color={isRefined ? NEON_YELLOW : "#000000"} 
+            />
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-white">{category.label}</h3>
             <p className="text-sm text-neutral-400">{category.description}</p>
           </div>
+          {!isEditing && editable && (
+            <Button
+              onClick={() => onEditCategory?.(category.key)}
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Edit3 className="w-4 h-4" />
+              <span className="hidden md:inline">Edit</span>
+            </Button>
+          )}
         </div>
 
         {/* Content Display */}
@@ -120,7 +141,10 @@ export function VisionCategoryCard({
 
             <div className="mb-4">
               {content?.trim() ? (
-                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg px-1 py-3 md:p-4">
+                <div 
+                  className={`bg-neutral-800/50 border rounded-lg px-1 py-3 md:p-4 ${!isRefined ? 'border-neutral-700' : ''}`}
+                  style={isRefined ? { border: `2px solid ${NEON_YELLOW}80` } : undefined}
+                >
                   <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
                     {content}
                   </p>
@@ -151,25 +175,14 @@ export function VisionCategoryCard({
                 {vision && (
                   <Button
                     asChild
-                    variant="outline"
+                    variant={isRefined ? "outline" : "outline"}
                     size="sm"
                     className="flex items-center gap-2 flex-1 md:flex-initial md:min-w-[100px]"
                   >
                     <Link href={`/life-vision/${vision.id}/refine?category=${category.key}`}>
                       <Gem className="w-4 h-4" />
-                      Refine
+                      Refine with VIVA
                     </Link>
-                  </Button>
-                )}
-                {onEditCategory && (
-                  <Button
-                    onClick={() => onEditCategory(category.key)}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2 flex-1 md:flex-initial md:min-w-[100px]"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Edit
                   </Button>
                 )}
               </div>

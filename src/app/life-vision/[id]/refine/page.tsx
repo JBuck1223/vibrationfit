@@ -73,7 +73,7 @@ interface VisionData {
   conclusion: string
   is_draft: boolean
   is_active: boolean
-  completion_percent: number
+  completion_percent?: number
   version_number: number
   refined_categories?: string[]
   created_at: string
@@ -1299,6 +1299,11 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   selectedIconColor="#39FF14"
                   onClick={() => {
                     setSelectedCategory(category.key)
+                    
+                    // Update URL parameter to reflect the selected category
+                    const currentPath = window.location.pathname
+                    router.replace(`${currentPath}?category=${category.key}`, { scroll: false })
+                    
                     // Load content from draft vision
                     if (draftVision) {
                       const draftValue = draftVision[category.key as keyof VisionData] as string

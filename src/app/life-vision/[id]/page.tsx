@@ -56,6 +56,7 @@ interface VisionData {
   is_active: boolean
   is_draft: boolean
   completion_percent: number
+  refined_categories?: string[]
   created_at: string
   updated_at: string
 }
@@ -971,6 +972,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   const originalContent = vision?.[categoryKey as keyof VisionData] as string || ''
                   const isEditing = editingCategory === categoryKey
                   const content = isEditing ? editingContent : originalContent
+                  const isRefined = displayStatus === 'draft' && vision.refined_categories?.includes(categoryKey)
                   
                   return (
                     <VisionCategoryCard
@@ -986,6 +988,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       vision={vision}
                       audioTrack={audioTracks[categoryKey]}
                       editable={!isViewingVersion}
+                      isRefined={isRefined}
                     />
                   )
                 })}

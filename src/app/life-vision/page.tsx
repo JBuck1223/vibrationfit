@@ -10,6 +10,7 @@ import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, V
 import { createClient } from '@/lib/supabase/client'
 import { LifeVisionSidebar } from './components/LifeVisionSidebar'
 import { colors } from '@/lib/design-system/tokens'
+import { getUserTotalRefinements } from '@/lib/life-vision/draft-helpers'
 
 // Use centralized vision categories
 const VISION_SECTIONS = getVisionCategoryKeys()
@@ -104,8 +105,29 @@ export default function VisionListPage() {
         fetchVision()
       }
     }
+    
+    // Also refresh when page gains focus (e.g., coming back from draft page)
+    const handleFocus = () => {
+      fetchVision()
+    }
+    
+    // Refresh on page show (handles back/forward navigation)
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // If page is being restored from cache, refresh the data
+      if (event.persisted) {
+        fetchVision()
+      }
+    }
+    
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    window.addEventListener('pageshow', handlePageShow)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('pageshow', handlePageShow)
+    }
   }, [])
 
   // Check for version parameter in URL
@@ -195,34 +217,21 @@ export default function VisionListPage() {
         setVersions([])
       }
       
-      // Fetch refined categories count from draft vision
+      // Fetch total refined categories count across all versions
       try {
         const { createClient } = await import('@/lib/supabase/client')
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         
         if (user) {
-          // Get draft vision and count refined_categories
-          const { data: draftVision, error } = await supabase
-            .from('vision_versions')
-            .select('refined_categories')
-            .eq('user_id', user.id)
-            .eq('is_draft', true)
-            .eq('is_active', false)
-            .maybeSingle()
-          
-          if (error) {
-            console.warn('Error fetching draft vision for refinements count:', error)
-            setRefinementsCount(0)
-          } else {
-            const refinedCount = draftVision?.refined_categories?.length || 0
-            setRefinementsCount(refinedCount)
-          }
+          // Get total refinements across all versions
+          const result = await getUserTotalRefinements(user.id)
+          setRefinementsCount(result.count)
         } else {
           setRefinementsCount(0)
         }
       } catch (err) {
-        console.warn('Could not fetch refined categories count:', err)
+        console.warn('Could not fetch total refinements count:', err)
         setRefinementsCount(0)
       }
       
