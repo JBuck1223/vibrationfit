@@ -856,6 +856,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 <Button variant="accent" fullWidth>Accent</Button>
                 <Button variant="ghost" fullWidth>Ghost</Button>
                 <Button variant="outline" fullWidth>Outline</Button>
+                <Button variant="outline-purple" fullWidth>Outline Purple</Button>
                 <Button variant="danger" fullWidth>Danger</Button>
               </Stack>
             </Card>

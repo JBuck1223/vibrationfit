@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Eye, Headphones, Music, Moon, Zap, Sparkles, Clock, CheckCircle, Circle, Target, X, Volume2 } from 'lucide-react'
-import { Card, Button, Badge, Spinner, VersionBadge, StatusBadge, CreatedDateBadge } from '@/lib/design-system/components'
+import { Card, Button, Badge, Spinner, VersionBadge, StatusBadge } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { colors } from '@/lib/design-system/tokens'
 
@@ -61,28 +61,70 @@ export default function AllVisionAudiosPage() {
   }, [])
 
   const fetchAudioSets = async () => {
+    console.log('fetchAudioSets called')
     setLoading(true)
     setError(null)
     
     try {
+      console.log('Creating Supabase client...')
       const supabase = createClient()
       
       // Get the current user
+      console.log('Getting user...')
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       
-      if (userError || !user) {
+      if (userError) {
+        console.error('❌ Auth error:', userError)
         router.push('/auth/login')
         return
       }
+      
+      if (!user) {
+        console.warn('⚠️ No user found, redirecting to login')
+        router.push('/auth/login')
+        return
+      }
+      
+      console.log('✅ User authenticated:', user.id)
 
       // Get all visions for this user
-      const { data: visions, error: visionsError } = await supabase
+      console.log('About to query vision_versions for user:', user.id)
+      
+      const visionsResponse = await supabase
         .from('vision_versions')
-        .select('id, version_number, is_active, is_draft')
+        .select('id, is_active, is_draft, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
-      if (visionsError) throw visionsError
+      console.log('Raw visions response received:', visionsResponse)
+      console.log('Visions response analysis:', {
+        hasData: !!visionsResponse.data,
+        dataLength: visionsResponse.data?.length,
+        dataIsArray: Array.isArray(visionsResponse.data),
+        hasError: !!visionsResponse.error,
+        errorType: typeof visionsResponse.error,
+        errorKeys: visionsResponse.error ? Object.keys(visionsResponse.error) : [],
+        errorString: visionsResponse.error ? String(visionsResponse.error) : null,
+        status: visionsResponse.status,
+        statusText: visionsResponse.statusText
+      })
+
+      if (visionsResponse.error) {
+        console.error('Error fetching visions - detailed:', {
+          error: visionsResponse.error,
+          stringified: JSON.stringify(visionsResponse.error),
+          keys: Object.keys(visionsResponse.error),
+          allKeys: Object.getOwnPropertyNames(visionsResponse.error),
+          message: visionsResponse.error.message,
+          details: visionsResponse.error.details,
+          hint: visionsResponse.error.hint,
+          code: visionsResponse.error.code
+        })
+        throw new Error(`Failed to fetch visions: ${JSON.stringify(visionsResponse.error)}`)
+      }
+      
+      const visions = visionsResponse.data
+      console.log('Visions loaded successfully:', visions?.length || 0, 'records')
 
       const visionIds = visions?.map(v => v.id) || []
       setVisionCount(visions?.length || 0)
@@ -93,7 +135,7 @@ export default function AllVisionAudiosPage() {
       }
 
       // Get all audio sets for these visions
-      const { data: sets, error: setsError } = await supabase
+      const setsResponse = await supabase
         .from('audio_sets')
         .select(`
           id,
@@ -107,42 +149,73 @@ export default function AllVisionAudiosPage() {
         .in('vision_id', visionIds)
         .order('created_at', { ascending: false })
 
-      if (setsError) throw setsError
+      console.log('Audio sets response:', {
+        data: setsResponse.data,
+        error: setsResponse.error,
+        status: setsResponse.status
+      })
+
+      if (setsResponse.error) {
+        console.error('Error fetching audio sets from DB:', {
+          error: setsResponse.error,
+          message: setsResponse.error.message,
+          details: setsResponse.error.details,
+          hint: setsResponse.error.hint,
+          code: setsResponse.error.code
+        })
+        throw new Error(`Failed to fetch audio sets: ${setsResponse.error.message || 'Unknown error'}`)
+      }
+      
+      const sets = setsResponse.data
 
       // For each audio set, get track count and status
-      const setsWithDetails = await Promise.all((sets || []).map(async (set) => {
-        // Get vision details
-        const vision = visions?.find(v => v.id === set.vision_id)
-        
-        // Calculate version number
-        let versionNumber = 1
+      const setsWithDetails = await Promise.all((sets || []).map(async (set, index) => {
         try {
-          const { data: calculatedVersionNumber } = await supabase
-            .rpc('get_vision_version_number', { p_vision_id: set.vision_id })
-          versionNumber = calculatedVersionNumber || vision?.version_number || 1
-        } catch (error) {
-          versionNumber = vision?.version_number || 1
-        }
+          // Get vision details
+          const vision = visions?.find(v => v.id === set.vision_id)
+          
+          if (!vision) {
+            console.warn(`Vision not found for audio set ${set.id} (${set.name})`)
+          }
+          
+          // Calculate version number
+          let versionNumber = 1
+          try {
+            const { data: calculatedVersionNumber } = await supabase
+              .rpc('get_vision_version_number', { p_vision_id: set.vision_id })
+            versionNumber = calculatedVersionNumber || 1
+          } catch (error) {
+            console.warn(`Could not calculate version number for ${set.vision_id}:`, error)
+            versionNumber = 1
+          }
 
-        // Get track count and status
-        const { data: tracks } = await supabase
-          .from('audio_tracks')
-          .select('mix_status, status')
-          .eq('audio_set_id', set.id)
+          // Get track count and status
+          const { data: tracks, error: tracksError } = await supabase
+            .from('audio_tracks')
+            .select('mix_status, status')
+            .eq('audio_set_id', set.id)
+          
+          if (tracksError) {
+            console.error(`Error fetching tracks for audio set ${set.id}:`, tracksError)
+          }
 
-        const trackCount = tracks?.length || 0
-        const hasCompletedVoice = tracks?.some((t: any) => t.status === 'completed')
-        const hasCompletedMixing = tracks?.some((t: any) => t.mix_status === 'completed')
-        const isMixing = tracks?.some((t: any) => t.mix_status === 'mixing' || t.mix_status === 'pending')
+          const trackCount = tracks?.length || 0
+          const hasCompletedVoice = tracks?.some((t: any) => t.status === 'completed')
+          const hasCompletedMixing = tracks?.some((t: any) => t.mix_status === 'completed')
+          const isMixing = tracks?.some((t: any) => t.mix_status === 'mixing' || t.mix_status === 'pending')
 
-        return {
-          ...set,
-          vision_version_number: versionNumber,
-          vision_is_active: vision?.is_active || false,
-          vision_is_draft: vision?.is_draft || false,
-          track_count: trackCount,
-          is_ready: !!(hasCompletedVoice && (set.variant === 'standard' || hasCompletedMixing)),
-          is_mixing: !!isMixing
+          return {
+            ...set,
+            vision_version_number: versionNumber,
+            vision_is_active: vision?.is_active || false,
+            vision_is_draft: vision?.is_draft || false,
+            track_count: trackCount,
+            is_ready: !!(hasCompletedVoice && (set.variant === 'standard' || hasCompletedMixing)),
+            is_mixing: !!isMixing
+          }
+        } catch (setError) {
+          console.error(`Error processing audio set ${index} (${set.id}):`, setError)
+          throw setError
         }
       }))
 
@@ -158,12 +231,15 @@ export default function AllVisionAudiosPage() {
           if (audioSet.is_ready) existing.ready_audio_sets_count++
           if (audioSet.is_mixing) existing.mixing_audio_sets_count++
         } else {
+          // Find the vision to get its created_at
+          const vision = visions?.find(v => v.id === audioSet.vision_id)
+          
           visionVersionsMap.set(audioSet.vision_id, {
             vision_id: audioSet.vision_id,
             version_number: audioSet.vision_version_number,
             is_active: audioSet.vision_is_active,
             is_draft: audioSet.vision_is_draft,
-            created_at: audioSet.created_at,
+            created_at: vision?.created_at || audioSet.created_at,
             audio_sets_count: 1,
             ready_audio_sets_count: audioSet.is_ready ? 1 : 0,
             mixing_audio_sets_count: audioSet.is_mixing ? 1 : 0,
@@ -183,7 +259,14 @@ export default function AllVisionAudiosPage() {
       
       setLoading(false)
     } catch (err) {
-      console.error('Error fetching audio sets:', err)
+      // Enhanced error logging
+      console.error('Error fetching audio sets:', {
+        error: err,
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined,
+        details: JSON.stringify(err, Object.getOwnPropertyNames(err))
+      })
+      
       const message = err instanceof Error ? err.message : 'Failed to load audio sets'
       setError(message)
       setLoading(false)
@@ -359,14 +442,16 @@ export default function AllVisionAudiosPage() {
                           status={displayStatus} 
                         />
                         
-                        {/* Created Date Badge */}
-                        <CreatedDateBadge createdAt={visionVersion.created_at} />
-                        
                         {/* Status Badge */}
                         <StatusBadge 
                           status={displayStatus} 
                           subtle={displayStatus !== 'active'}
                         />
+                        
+                        {/* Created Date */}
+                        <span className="text-neutral-300 text-xs md:text-sm">
+                          Created: {new Date(visionVersion.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                        </span>
 
                         {/* Audio Sets Count Badge */}
                         <Badge 
@@ -423,7 +508,9 @@ export default function AllVisionAudiosPage() {
       ) : (
         <div className="text-center py-16">
           <Card className="max-w-md mx-auto">
-            <div className="text-6xl mb-4">🎵</div>
+            <div className="flex justify-center mb-4">
+              <Headphones className="w-16 h-16 text-neutral-400" />
+            </div>
             <h3 className="text-2xl font-bold text-white mb-4">No audio sets yet</h3>
             <p className="text-neutral-400 mb-8">
               Generate audio from your Life Vision to get started. Audio sets bring your vision to life through the power of sound.

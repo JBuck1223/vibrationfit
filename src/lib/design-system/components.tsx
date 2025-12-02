@@ -793,7 +793,7 @@ CategoryCard.displayName = 'CategoryCard'
 // Button Component
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode
-  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'danger' | 'ghost-yellow' | 'ghost-blue' | 'ghost-purple'
+  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'outline-purple' | 'danger' | 'ghost-yellow' | 'ghost-blue' | 'ghost-purple'
   size?: 'sm' | 'md' | 'lg' | 'xl'
   fullWidth?: boolean
   loading?: boolean
@@ -848,6 +848,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       outline: `
         bg-transparent border-2 border-[#39FF14] text-[#39FF14]
         hover:bg-[#39FF14] hover:text-black
+        active:opacity-80
+      `,
+      'outline-purple': `
+        bg-transparent border-2 border-[#8B5CF6] text-[#8B5CF6]
+        hover:bg-[#8B5CF6] hover:text-white
         active:opacity-80
       `,
       danger: `
