@@ -11,3 +11,5 @@ CREATE INDEX idx_vision_versions_parent_draft_lookup ON public.vision_versions(p
 COMMENT ON COLUMN public.vision_versions.parent_id IS 
 'ID of the vision this was cloned from. Used to find existing drafts when refining an active vision.';
 
+
+

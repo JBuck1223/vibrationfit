@@ -25,3 +25,5 @@ COMMENT ON COLUMN user_profiles.sms_opt_in_date IS 'Timestamp when user opted in
 COMMENT ON COLUMN user_profiles.sms_opt_in_ip IS 'IP address when user opted in (compliance/proof of consent)';
 
 
+
+

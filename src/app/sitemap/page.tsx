@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
@@ -43,9 +43,13 @@ import {
   Kanban,
   UserCheck,
   UsersRound,
-  LayoutDashboard
+  LayoutDashboard,
+  Search,
+  X,
+  FlaskConical,
+  Mic
 } from 'lucide-react'
-import { Card, Badge, Container } from '@/lib/design-system'
+import { Card, Badge, Container, Input } from '@/lib/design-system'
 
 interface PageLink {
   href: string
@@ -67,6 +71,7 @@ interface PageSection {
 
 export default function SitemapPage() {
   const pathname = usePathname()
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Complete page classification with descriptions
   const pageSections: PageSection[] = [
@@ -87,12 +92,19 @@ export default function SitemapPage() {
         { href: '/viva', label: 'VIVA Assistant', icon: MessageCircle, description: 'AI assistant usage' },
 
         // Life Vision
-        { href: '/life-vision', label: 'Life Visions', icon: Eye, description: 'All life visions' },
+        { href: '/life-vision', label: 'All Life Visions', icon: Eye, description: 'All life visions list' },
+        { href: '/life-vision/active', label: 'Active Vision', icon: CheckCircle, description: 'Current active vision' },
+        { href: '/life-vision/audio', label: 'All Vision Audios', icon: Headphones, description: 'All vision audio files' },
         { href: '/life-vision/new', label: 'Create Vision', icon: Plus, description: 'Create new life vision' },
+        { href: '/life-vision/new/assembly', label: 'Vision Assembly', icon: Layers, description: 'Assemble vision sections' },
+        { href: '/life-vision/new/category/[key]', label: 'Category Builder', icon: Target, description: 'Build individual category', isDynamic: true },
+        { href: '/life-vision/new/category/[key]/imagination', label: 'Imagination Step', icon: Brain, description: 'Imagination phase', isDynamic: true },
         { href: '/life-vision/[id]', label: 'Vision Details', icon: Eye, description: 'Individual vision page', isDynamic: true },
-        { href: '/life-vision/[id]/audio', label: 'Vision Audio', icon: MessageCircle, description: 'Audio version of vision', isDynamic: true },
-        { href: '/life-vision/[id]/refine', label: 'Refine Vision', icon: Settings, description: 'Edit and refine vision', isDynamic: true },
-        { href: '/life-vision/[id]/experiment', label: 'Vision Experiment', icon: Layers, description: 'Experimental card-based view', isDynamic: true },
+        { href: '/life-vision/[id]/audio', label: 'Vision Audio', icon: Headphones, description: 'Audio version of vision', isDynamic: true },
+        { href: '/life-vision/[id]/audio-generate', label: 'Generate Audio', icon: Mic, description: 'Generate vision audio', isDynamic: true },
+        { href: '/life-vision/[id]/audio-sets', label: 'Audio Sets', icon: Headphones, description: 'Manage audio sets', isDynamic: true },
+        { href: '/life-vision/[id]/audio-sets/[audioSetId]', label: 'Audio Set Detail', icon: Headphones, description: 'Individual audio set', isDynamic: true },
+        { href: '/life-vision/[id]/print', label: 'Print Vision', icon: FileText, description: 'Print-friendly view', isDynamic: true },
 
         // Vision Board
         { href: '/vision-board', label: 'Vision Board', icon: Star, description: 'Visual vision board' },
@@ -101,39 +113,62 @@ export default function SitemapPage() {
         { href: '/vision-board/[id]', label: 'Board Item Details', icon: Eye, description: 'Individual board item', isDynamic: true },
 
         // Journal
-        { href: '/journal', label: 'Journal Entries', icon: FileText, description: 'All journal entries' },
-        { href: '/journal/new', label: 'New Entry', icon: Plus, description: 'Create new journal entry' },
-        { href: '/journal/[id]', label: 'Entry Details', icon: Eye, description: 'Individual journal entry', isDynamic: true },
-        { href: '/journal/[id]/edit', label: 'Edit Entry', icon: Settings, description: 'Edit journal entry', isDynamic: true },
+        { href: '/journal', label: 'All Journal Entries', icon: FileText, description: 'All journal entries list' },
+        { href: '/journal/new', label: 'New Journal Entry', icon: Plus, description: 'Create new journal entry' },
+        { href: '/journal/daily-paper', label: 'Daily Paper', icon: BookOpen, description: 'Daily paper view' },
+        { href: '/journal/[id]', label: 'Journal Entry Detail', icon: Eye, description: 'Individual journal entry', isDynamic: true },
+        { href: '/journal/[id]/edit', label: 'Edit Journal Entry', icon: Settings, description: 'Edit journal entry', isDynamic: true },
 
         // Profile & Account
-        { href: '/profile', label: 'My Profile', icon: User, description: 'User profile page' },
-        { href: '/profile/edit', label: 'Edit Profile', icon: Settings, description: 'Edit user profile' },
-        { href: '/profile/new', label: 'Create Profile', icon: Plus, description: 'Create new profile' },
-        { href: '/account/settings', label: 'Account Settings', icon: Settings, description: 'Account configuration' },
+        { href: '/profile', label: 'All Profiles', icon: Eye, description: 'All user profiles' },
+        { href: '/profile/active', label: 'Active Profile', icon: CheckCircle, description: 'Current active profile' },
+        { href: '/profile/edit', label: 'Edit Profile', icon: Settings, description: 'Edit active profile' },
+        { href: '/profile/new', label: 'Create Profile', icon: Plus, description: 'Create new profile version' },
+        { href: '/profile/compare', label: 'Compare Profiles', icon: BarChart3, description: 'Compare profile versions' },
+        { href: '/profile/[id]', label: 'Profile Detail', icon: Eye, description: 'Individual profile view', isDynamic: true },
+        { href: '/profile/[id]/edit', label: 'Edit Specific Profile', icon: Settings, description: 'Edit specific profile version', isDynamic: true },
+        
+        // Voice Profile
+        { href: '/voice-profile', label: 'Voice Profile', icon: Mic, description: 'Manage voice profile' },
+        { href: '/voice-profile/quiz', label: 'Voice Quiz', icon: Brain, description: 'Voice profile quiz' },
+        { href: '/voice-profile/analyze', label: 'Voice Analysis', icon: BarChart3, description: 'Analyze voice profile' },
+        
+        // Household
+        { href: '/household/settings', label: 'Household Settings', icon: Users, description: 'Manage household' },
+        { href: '/household/invite/[token]', label: 'Household Invite', icon: UserPlus, description: 'Accept household invitation', isDynamic: true },
+        
+        // Account & Settings
+        { href: '/account/settings', label: 'Account Settings', icon: Settings, description: 'Email, password, notifications' },
 
         // Assessment
-        { href: '/assessment', label: 'Vibration Assessment', icon: Brain, description: 'Start assessment' },
+        { href: '/assessment', label: 'Start Assessment', icon: Brain, description: 'Begin vibration assessment' },
+        { href: '/assessment/in-progress', label: 'Current Assessment', icon: BarChart3, description: 'Assessment in progress' },
+        { href: '/assessment/history', label: 'Assessment History', icon: RefreshCw, description: 'All past assessments' },
+        { href: '/assessment/[id]', label: 'Assessment Detail', icon: Eye, description: 'Specific assessment view', isDynamic: true },
         { href: '/assessment/[id]/in-progress', label: 'Assessment Progress', icon: BarChart3, description: 'Assessment in progress', isDynamic: true },
         { href: '/assessment/[id]/results', label: 'Assessment Results', icon: CheckCircle, description: 'Assessment results', isDynamic: true },
-        { href: '/assessment/history', label: 'Assessment History', icon: RefreshCw, description: 'All past assessments' },
-        { href: '/assessment/results', label: 'Assessment Results Overview', icon: BarChart3, description: 'All assessments overview' },
 
         // Intensive Program
         { href: '/intensive', label: 'Intensive Program', icon: Rocket, description: 'Main intensive page' },
-        { href: '/intensive/intake', label: 'Intensive Intake', icon: FileText, description: 'Program intake' },
+        { href: '/intensive/dashboard', label: 'Intensive Dashboard', icon: BarChart3, description: 'Intensive overview' },
+        { href: '/intensive/intake', label: 'Intensive Intake', icon: FileText, description: 'Program intake form' },
         { href: '/intensive/calibration', label: 'Calibration', icon: CheckCircle, description: 'System calibration' },
         { href: '/intensive/builder', label: 'Intensive Builder', icon: Rocket, description: 'Build intensive plan' },
         { href: '/intensive/schedule-call', label: 'Schedule Call', icon: Calendar, description: 'Schedule coaching call' },
-        { href: '/intensive/call-prep', label: 'Call Prep', icon: FileText, description: 'Prepare for call' },
-        { href: '/intensive/refine-vision', label: 'Refine Vision', icon: Eye, description: 'Refine vision in intensive' },
+        { href: '/intensive/call-prep', label: 'Call Preparation', icon: FileText, description: 'Prepare for call' },
+        { href: '/intensive/refine-vision', label: 'Refine Vision', icon: Target, description: 'Refine vision in intensive' },
         { href: '/intensive/activation-protocol', label: 'Activation Protocol', icon: Zap, description: 'Activation process' },
-        { href: '/intensive/activate', label: 'Activation Process', icon: Rocket, description: 'Start activation' },
-        { href: '/intensive/check-email', label: 'Check Email', icon: MessageCircle, description: 'Email verification' },
-        { href: '/intensive/dashboard', label: 'Intensive Dashboard', icon: BarChart3, description: 'Intensive overview' },
+        { href: '/intensive/activate', label: 'Start Activation', icon: Rocket, description: 'Begin activation' },
+        { href: '/intensive/check-email', label: 'Check Email', icon: MessageCircle, description: 'Email verification step' },
 
-        // Billing
-        { href: '/billing', label: 'Billing Dashboard', icon: CreditCard, description: 'Billing management' },
+        // Vibrational System
+        { href: '/scenes/builder', label: 'Scene Builder', icon: Layers, description: 'Build vibrational scenes' },
+        { href: '/abundance', label: 'Abundance Page', icon: Star, description: 'Abundance tracking' },
+
+        // Billing & Support
+        { href: '/billing', label: 'Billing Dashboard', icon: CreditCard, description: 'Subscription and billing' },
+        { href: '/billing/success', label: 'Billing Success', icon: CheckCircle, description: 'Payment successful' },
+        { href: '/support', label: 'Support', icon: HelpCircle, description: 'Get help and support' },
       ]
     },
     {
@@ -206,14 +241,54 @@ export default function SitemapPage() {
 
         // Utilities
         { href: '/checkout', label: 'Checkout', icon: CheckCircle, description: 'Payment checkout' },
-        { href: '/billing/success', label: 'Billing Success', icon: CheckCircle, description: 'Payment success' },
         { href: '/support', label: 'Support', icon: HelpCircle, description: 'Customer support' },
-        { href: '/debug/email', label: 'Debug Email', icon: MessageCircle, description: 'Email debugging', badge: 'DEV' },
-        { href: '/test-recording', label: 'Test Recording', icon: HelpCircle, description: 'Audio recording test', badge: 'DEV' },
-        { href: '/vision/build', label: 'Vision Builder', icon: Eye, description: 'Public vision builder' },
+      ]
+    },
+    {
+      title: '🧪 EXPERIMENTAL / UNUSED',
+      description: 'Development pages, experiments, and deprecated routes',
+      icon: FlaskConical,
+      color: 'text-[#FFB701]',
+      bgColor: 'bg-[#FFB701]/10',
+      pages: [
+        // Experimental Features
+        { href: '/life-vision/[id]/experiment', label: 'Vision Experiment', icon: Layers, description: 'Experimental card-based vision view', isDynamic: true, badge: 'EXPERIMENT' },
+        { href: '/experiment', label: 'Experiment Page', icon: FlaskConical, description: 'General experiments', badge: 'DEV' },
+        { href: '/experiment/design-system', label: 'DS Experiments', icon: Palette, description: 'Design system experiments', badge: 'DEV' },
+        { href: '/experiment/old-home', label: 'Old Home Page', icon: Home, description: 'Previous home page version', badge: 'DEPRECATED' },
+        
+        // Development Tools
+        { href: '/debug/email', label: 'Email Debugger', icon: MessageCircle, description: 'Test email templates', badge: 'DEV' },
+        { href: '/test-recording', label: 'Recording Test', icon: Mic, description: 'Audio recording test page', badge: 'DEV' },
+        { href: '/test-audio-editor', label: 'Audio Editor Test', icon: Headphones, description: 'Test audio editor', badge: 'DEV' },
+        { href: '/test-audio-only', label: 'Audio Only Test', icon: Headphones, description: 'Audio-only test page', badge: 'DEV' },
+        
+        // Legacy/Unused
+        { href: '/vision/build', label: 'Public Vision Builder', icon: Target, description: 'Public-facing vision builder', badge: 'UNUSED' },
+        { href: '/dashboard/north-star', label: 'North Star Goals', icon: Star, description: 'North star goal setting', badge: 'UNUSED' },
       ]
     }
   ]
+
+  // Filter pages based on search query
+  const filteredSections = useMemo(() => {
+    if (!searchQuery.trim()) return pageSections
+
+    const query = searchQuery.toLowerCase()
+    
+    return pageSections.map(section => ({
+      ...section,
+      pages: section.pages.filter(page => 
+        page.label.toLowerCase().includes(query) ||
+        page.description?.toLowerCase().includes(query) ||
+        page.href.toLowerCase().includes(query)
+      )
+    })).filter(section => section.pages.length > 0)
+  }, [searchQuery, pageSections])
+
+  // Calculate totals
+  const totalPages = pageSections.reduce((acc, section) => acc + section.pages.length, 0)
+  const filteredTotal = filteredSections.reduce((acc, section) => acc + section.pages.length, 0)
 
   const PageCard = ({ page, sectionColor }: { page: PageLink; sectionColor: string }) => {
     const Icon = page.icon
@@ -321,23 +396,66 @@ export default function SitemapPage() {
         <div className="flex items-center justify-center space-x-6 text-sm text-neutral-400">
           <span className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-[#39FF14] rounded-full"></div>
-            <span>USER: 47 pages</span>
+            <span>USER: {pageSections[0]?.pages.length || 0} pages</span>
           </span>
           <span className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-[#8B5CF6] rounded-full"></div>
-            <span>ADMIN: 31 pages</span>
+            <span>ADMIN: {pageSections[1]?.pages.length || 0} pages</span>
           </span>
           <span className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-[#14B8A6] rounded-full"></div>
-            <span>PUBLIC: 15 pages</span>
+            <span>PUBLIC: {pageSections[2]?.pages.length || 0} pages</span>
           </span>
-          <span className="text-neutral-500">Total: 93 pages</span>
+          <span className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-[#FFB701] rounded-full"></div>
+            <span>EXPERIMENTAL: {pageSections[3]?.pages.length || 0} pages</span>
+          </span>
+          <span className="text-neutral-500">Total: {totalPages} pages</span>
         </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-8 max-w-2xl mx-auto">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <Input
+            type="text"
+            placeholder="Search pages by name, description, or URL..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-12 pr-12 py-3 text-lg"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <div className="mt-2 text-center text-sm text-neutral-400">
+            Found {filteredTotal} of {totalPages} pages
+          </div>
+        )}
       </div>
 
       {/* Page Sections */}
       <div className="space-y-12">
-        {pageSections.map((section) => (
+        {filteredSections.length === 0 ? (
+          <div className="text-center py-12">
+            <Search className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+            <p className="text-neutral-400 text-lg">No pages found matching "{searchQuery}"</p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mt-4 text-primary-500 hover:text-primary-400 transition-colors"
+            >
+              Clear search
+            </button>
+          </div>
+        ) : (
+          filteredSections.map((section) => (
           <div key={section.title}>
             <SectionHeader section={section} />
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -350,7 +468,8 @@ export default function SitemapPage() {
               ))}
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Footer Info */}

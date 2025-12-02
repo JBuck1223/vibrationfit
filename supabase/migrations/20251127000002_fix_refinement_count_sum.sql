@@ -44,3 +44,5 @@ COMMENT ON FUNCTION public.get_user_total_refinements(p_user_id uuid) IS
 GRANT EXECUTE ON FUNCTION public.get_user_total_refinements(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_user_total_refinements(uuid) TO service_role;
 
+
+
