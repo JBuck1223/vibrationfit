@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, CreatedDateBadge, VersionBadge, StatusBadge, Container } from '@/lib/design-system/components'
+import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VersionCard } from '../components/VersionCard'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
@@ -1905,11 +1905,13 @@ export default function ProfileDetailPage() {
                         versionNumber={versionInfo.version_number} 
                         status={displayStatus} 
                       />
-                      <CreatedDateBadge createdAt={versionInfo.created_at} />
                       <StatusBadge 
                         status={displayStatus} 
                         subtle={displayStatus !== 'active'} 
                       />
+                      <span className="text-neutral-300 text-xs md:text-sm">
+                        Created: {new Date(versionInfo.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                      </span>
                       {/* Profile Completion Percentage */}
                       <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
                         {completionPercentage}%

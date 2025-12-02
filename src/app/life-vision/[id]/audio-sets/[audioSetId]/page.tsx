@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, CreatedDateBadge } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Circle, History, Play, Moon, Zap, Sparkles, Headphones, Eye, Music } from 'lucide-react'
@@ -271,14 +271,16 @@ export default function AudioSetPlayerPage({
                         status={getDisplayStatus()} 
                       />
                       
-                      {/* Created Date Badge */}
-                      <CreatedDateBadge createdAt={vision.created_at} />
-                      
                       {/* Status Badge - Active gets solid, others get subtle */}
                       <StatusBadge 
                         status={getDisplayStatus()} 
                         subtle={getDisplayStatus() !== 'active'}
                       />
+                      
+                      {/* Created Date */}
+                      <span className="text-neutral-300 text-xs md:text-sm">
+                        Created: {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                      </span>
                       
                     </div>
                   </div>

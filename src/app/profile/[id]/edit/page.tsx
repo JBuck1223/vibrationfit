@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, CreatedDateBadge, StatusBadge } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -864,11 +864,13 @@ export default function ProfileEditPage() {
                     versionNumber={badgeVersionNumber}
                     status={displayStatus}
                   />
-                  <CreatedDateBadge createdAt={badgeCreatedAt} />
                   <StatusBadge
                     status={displayStatus}
                     subtle={displayStatus !== 'active'}
                   />
+                  <span className="text-neutral-300 text-xs md:text-sm">
+                    Created: {new Date(badgeCreatedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                  </span>
                   {/* Profile Completion Percentage */}
                   <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
                     {badgeCompletionPercentage}%
@@ -898,11 +900,13 @@ export default function ProfileEditPage() {
                     versionNumber={badgeVersionNumber}
                     status={displayStatus}
                   />
-                  <CreatedDateBadge createdAt={badgeCreatedAt} />
                   <StatusBadge
                     status={displayStatus}
                     subtle={displayStatus !== 'active'}
                   />
+                  <span className="text-neutral-300 text-xs md:text-sm">
+                    Created: {new Date(badgeCreatedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                  </span>
                   {/* Profile Completion Percentage */}
                   <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
                     {badgeCompletionPercentage}%
