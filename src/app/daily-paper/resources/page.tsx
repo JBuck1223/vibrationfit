@@ -36,13 +36,13 @@ export default function DailyPaperResourcesPage() {
             />
             <Inline gap="sm" justify="center" className="flex-wrap">
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/journal/daily-paper">
+                <Link href="/daily-paper">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to archive
                 </Link>
               </Button>
               <Button size="md" asChild>
-                <Link href="/journal/daily-paper/new">New entry</Link>
+                <Link href="/daily-paper/new">New entry</Link>
               </Button>
             </Inline>
           </Stack>

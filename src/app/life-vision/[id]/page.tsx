@@ -725,7 +725,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       versionNumber={vision.version_number} 
                       status={displayStatus} 
                     />
-                    <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} />
+                    <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} className="uppercase tracking-[0.25em]" />
                     <span className="text-neutral-300 text-xs md:text-sm">
                       Created: {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
                     </span>

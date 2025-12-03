@@ -56,6 +56,12 @@ export const PAGE_CLASSIFICATIONS = {
     '/journal/[id]',
     '/journal/[id]/edit',
     
+    // Tracking System
+    '/daily-paper',
+    '/daily-paper/new',
+    '/daily-paper/resources',
+    '/abundance-tracker',
+    
     // Profile & Account
     '/profile',
     '/profile/edit',
@@ -77,7 +83,6 @@ export const PAGE_CLASSIFICATIONS = {
 
     // Vibrational System
     '/scenes/builder',
-    '/abundance',
 
     // Voice Profile System
     '/voice-profile',

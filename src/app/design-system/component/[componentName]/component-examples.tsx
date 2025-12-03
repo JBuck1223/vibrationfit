@@ -51,6 +51,7 @@ import {
   InsufficientStorageDialog,
   Toggle,
   CreatedDateBadge,
+  StatusBadge,
 } from '@/lib/design-system/components'
 import { Copy, Check } from 'lucide-react'
 import {
@@ -854,9 +855,11 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 <Button variant="primary" fullWidth>Primary</Button>
                 <Button variant="secondary" fullWidth>Secondary</Button>
                 <Button variant="accent" fullWidth>Accent</Button>
+                <Button variant="draft" fullWidth>Draft</Button>
                 <Button variant="ghost" fullWidth>Ghost</Button>
                 <Button variant="outline" fullWidth>Outline</Button>
                 <Button variant="outline-purple" fullWidth>Outline Purple</Button>
+                <Button variant="outline-yellow" fullWidth>Outline Yellow</Button>
                 <Button variant="danger" fullWidth>Danger</Button>
               </Stack>
             </Card>
@@ -1162,6 +1165,22 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 <Badge variant="info">Info</Badge>
                 <Badge variant="premium">Premium</Badge>
                 <Badge variant="neutral">Neutral</Badge>
+              </Inline>
+            </Stack>
+          </Card>
+
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">Status Badges</h4>
+              <p className="text-sm text-neutral-400">
+                Status badges with uppercase and letter spacing for Life Vision pages
+              </p>
+              <Inline gap="md" wrap>
+                <StatusBadge status="active" subtle={false} className="uppercase tracking-[0.25em]" />
+                <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
+                <StatusBadge status="complete" subtle={true} className="uppercase tracking-[0.25em]" />
+                <StatusBadge status="paused" subtle={true} className="uppercase tracking-[0.25em]" />
+                <StatusBadge status="archived" subtle={true} className="uppercase tracking-[0.25em]" />
               </Inline>
             </Stack>
           </Card>

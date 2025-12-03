@@ -160,7 +160,7 @@ export default function NewDailyPaperPage() {
       resetUploadState()
 
       setTimeout(() => {
-        router.push('/journal/daily-paper')
+        router.push('/daily-paper')
       }, 900)
     } catch (error) {
       console.error('Daily Paper submission failed:', error)
@@ -330,7 +330,7 @@ export default function NewDailyPaperPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => router.push('/journal/daily-paper/resources')}
+                onClick={() => router.push('/daily-paper/resources')}
               >
                 Open resources
               </Button>

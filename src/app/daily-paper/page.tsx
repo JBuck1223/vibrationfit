@@ -90,13 +90,13 @@ export default function DailyPaperIndexPage() {
           Start with gratitude, set three aligned actions, and add one fun promise.
         </p>
         <Inline gap="sm" className="justify-center">
-          <Button size="md" onClick={() => router.push('/journal/daily-paper/new')}>
+          <Button size="md" onClick={() => router.push('/daily-paper/new')}>
             Create today&apos;s Daily Paper
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/journal/daily-paper/resources')}
+            onClick={() => router.push('/daily-paper/resources')}
           >
             View quick guide
           </Button>
@@ -128,13 +128,13 @@ export default function DailyPaperIndexPage() {
             )}
           </div>
           <Inline gap="sm">
-            <Button size="md" onClick={() => router.push('/journal/daily-paper/new')}>
+            <Button size="md" onClick={() => router.push('/daily-paper/new')}>
               Start today
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/journal/daily-paper/resources')}
+              onClick={() => router.push('/daily-paper/resources')}
             >
               Resources
             </Button>
@@ -237,7 +237,7 @@ export default function DailyPaperIndexPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => router.push('/journal/daily-paper/new')}
+                          onClick={() => router.push('/daily-paper/new')}
                         >
                           Repeat flow
                           <ArrowRight className="ml-2 h-4 w-4" />
@@ -302,7 +302,7 @@ export default function DailyPaperIndexPage() {
                           </Button>
                         )}
                         <Button variant="secondary" size="sm" asChild>
-                          <Link href={`/journal/daily-paper/new?from=${entry.entry_date}`}>
+                          <Link href={`/daily-paper/new?from=${entry.entry_date}`}>
                             Bring into today
                           </Link>
                         </Button>

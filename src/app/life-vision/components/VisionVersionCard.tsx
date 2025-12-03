@@ -81,6 +81,7 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
             <StatusBadge 
               status={displayStatus} 
               subtle={displayStatus !== 'active'}
+              className="uppercase tracking-[0.25em]"
             />
             
             {/* Date as plain text */}

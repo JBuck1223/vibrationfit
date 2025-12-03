@@ -793,7 +793,7 @@ CategoryCard.displayName = 'CategoryCard'
 // Button Component
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode
-  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'outline-purple' | 'danger' | 'ghost-yellow' | 'ghost-blue' | 'ghost-purple'
+  variant?: 'primary' | 'secondary' | 'accent' | 'draft' | 'ghost' | 'outline' | 'outline-purple' | 'outline-yellow' | 'danger' | 'ghost-yellow' | 'ghost-blue' | 'ghost-purple'
   size?: 'sm' | 'md' | 'lg' | 'xl'
   fullWidth?: boolean
   loading?: boolean
@@ -819,6 +819,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         bg-[#BF00FF] text-white font-semibold
         border-2 border-transparent
         hover:bg-[rgba(191,0,255,0.1)] hover:text-[#BF00FF] hover:border-[rgba(191,0,255,0.2)]
+        active:opacity-80
+      `,
+      draft: `
+        bg-[#FFFF00] text-black font-semibold
+        border-2 border-transparent
+        hover:bg-[rgba(255,255,0,0.1)] hover:text-[#FFFF00] hover:border-[rgba(255,255,0,0.2)]
         active:opacity-80
       `,
       ghost: `
@@ -851,8 +857,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         active:opacity-80
       `,
       'outline-purple': `
-        bg-transparent border-2 border-[#8B5CF6] text-[#8B5CF6]
-        hover:bg-[#8B5CF6] hover:text-white
+        bg-transparent border-2 border-[#BF00FF] text-[#BF00FF]
+        hover:bg-[#BF00FF] hover:text-white
+        active:opacity-80
+      `,
+      'outline-yellow': `
+        bg-transparent border-2 border-[#FFFF00] text-[#FFFF00]
+        hover:bg-[#FFFF00] hover:text-black
         active:opacity-80
       `,
       danger: `
@@ -1369,10 +1380,14 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     return null
   }
 
+  // Add extra left padding when wide letter spacing is used for optical balance
+  const hasWideTracking = className.includes('tracking-')
+  
   return (
     <span 
       className={cn(
-        'inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border',
+        'inline-flex items-center justify-center py-1 rounded-full text-xs md:text-sm font-semibold border',
+        hasWideTracking ? 'px-3 pl-4' : 'px-3',
         className
       )}
       style={styles}

@@ -281,6 +281,7 @@ export default function ProfileDashboardPage() {
                       <StatusBadge 
                         status={activeProfile.is_active && !activeProfile.is_draft ? 'active' : activeProfile.is_draft ? 'draft' : 'complete'} 
                         subtle={!(activeProfile.is_active && !activeProfile.is_draft)} 
+                        className="uppercase tracking-[0.25em]"
                       />
                     </div>
                   </div>

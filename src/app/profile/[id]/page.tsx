@@ -1907,7 +1907,8 @@ export default function ProfileDetailPage() {
                       />
                       <StatusBadge 
                         status={displayStatus} 
-                        subtle={displayStatus !== 'active'} 
+                        subtle={displayStatus !== 'active'}
+                        className="uppercase tracking-[0.25em]"
                       />
                       <span className="text-neutral-300 text-xs md:text-sm">
                         Created: {new Date(versionInfo.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}

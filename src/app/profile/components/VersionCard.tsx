@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Card, Badge, Heading, Text } from '@/lib/design-system/components'
+import { Card, Badge, Heading, Text, StatusBadge } from '@/lib/design-system/components'
 
 interface VersionCardProps {
   version: {
@@ -37,19 +37,25 @@ export const VersionCard: React.FC<VersionCardProps> = ({
               Version {version.version_number}
             </Heading>
             {version.is_draft && (
-              <Badge variant="warning">
-                Draft
-              </Badge>
+              <StatusBadge 
+                status="draft" 
+                subtle={true} 
+                className="uppercase tracking-[0.25em]" 
+              />
             )}
             {version.is_active && !version.is_draft && (
-              <Badge variant="success">
-                Active
-              </Badge>
+              <StatusBadge 
+                status="active" 
+                subtle={false} 
+                className="uppercase tracking-[0.25em]" 
+              />
             )}
             {!version.is_active && !version.is_draft && (
-              <Badge variant="info">
-                Complete
-              </Badge>
+              <StatusBadge 
+                status="complete" 
+                subtle={true} 
+                className="uppercase tracking-[0.25em]" 
+              />
             )}
           </div>
           
