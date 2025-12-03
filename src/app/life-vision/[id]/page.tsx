@@ -19,6 +19,7 @@ import {
   AudioPlayer,
   Stack,
   Inline,
+  CreatedDateBadge,
   StatusBadge,
   VersionBadge,
   Heading,
@@ -712,7 +713,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   </h1>
                   {displayStatus === 'draft' && (
                     <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
-                      Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision".
+                      Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision"
                     </p>
                   )}
                 </div>
@@ -725,10 +726,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       versionNumber={vision.version_number} 
                       status={displayStatus} 
                     />
+                    <CreatedDateBadge createdAt={vision.created_at} />
                     <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} />
-                    <span className="text-neutral-300 text-xs md:text-sm">
-                      Created: {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-                    </span>
                   </div>
                 </div>
 

@@ -23,6 +23,7 @@ export {
   Card,
   FeatureCard,
   CategoryCard,
+  TrackingMilestoneCard,
   Button,
   SaveButton,
   VIVAButton,

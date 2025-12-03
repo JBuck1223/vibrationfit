@@ -18,7 +18,7 @@ const HALF_PAGE_PDF =
 const FULL_PAGE_PDF =
   'https://media.vibrationfit.com/site-assets/processes/daily-paper/full-page-daily-paper.pdf'
 const DAILY_PAPER_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/resources/daily-paper-v1.mp4'
+  'https://media.vibrationfit.com/site-assets/video/resources/daily-paper-1080p.mp4'
 
 export default function DailyPaperResourcesPage() {
   return (
@@ -36,13 +36,13 @@ export default function DailyPaperResourcesPage() {
             />
             <Inline gap="sm" justify="center" className="flex-wrap">
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/journal/daily-paper">
+                <Link href="/daily-paper">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to archive
                 </Link>
               </Button>
               <Button size="md" asChild>
-                <Link href="/journal/daily-paper/new">New entry</Link>
+                <Link href="/daily-paper/new">New entry</Link>
               </Button>
             </Inline>
           </Stack>
