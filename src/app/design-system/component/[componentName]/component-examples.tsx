@@ -532,7 +532,8 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               <h4 className="text-base md:text-lg font-semibold text-white">Tracking Milestone Cards</h4>
               <p className="text-xs md:text-sm text-neutral-400 mb-4">
                 Metric cards with themed borders and backgrounds for displaying tracking stats and milestones. 
-                Perfect for dashboards, progress tracking, and data visualization.
+                Perfect for dashboards, progress tracking, and data visualization. 
+                <strong className="text-primary-500"> Use directly in a grid without an outer Card wrapper.</strong>
               </p>
               
               {/* All Themes Example */}
@@ -617,95 +618,35 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 </div>
               </div>
 
-              {/* Action Example */}
-              <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-700">
-                <h5 className="text-sm font-semibold text-white mb-3">With Action Button</h5>
-                <p className="text-xs text-neutral-400 mb-4">
-                  Use the <code className="bg-neutral-800 px-1 py-0.5 rounded text-primary-500">action</code> prop 
-                  to add custom buttons or interactive elements instead of a value.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <TrackingMilestoneCard
-                    label="Sync Status"
-                    theme="neutral"
-                    action={
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="justify-start"
-                      >
-                        <RefreshCcw className="mr-2 h-4 w-4" />
-                        Refresh data
-                      </Button>
-                    }
-                  />
-                  <TrackingMilestoneCard
-                    label="Quick Action"
-                    theme="primary"
-                    action={
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="w-full"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add New
-                      </Button>
-                    }
-                  />
-                  <TrackingMilestoneCard
-                    label="Download"
-                    theme="secondary"
-                    action={
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="w-full"
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        Export
-                      </Button>
-                    }
-                  />
-                </div>
-              </div>
-
               {/* Real World Example - Daily Paper */}
-              <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 rounded-lg p-6 border border-[#39FF14]/30">
-                <h5 className="text-sm font-semibold text-white mb-3">Real-World Example: Daily Paper</h5>
-                <p className="text-xs text-neutral-400 mb-4">
-                  As seen on <code className="bg-neutral-800 px-1 py-0.5 rounded text-primary-500">/daily-paper</code> page
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-sm font-semibold text-white">Real-World Usage Example</h5>
+                  <Badge variant="success">As seen on /daily-paper</Badge>
+                </div>
+                <p className="text-xs text-neutral-400">
+                  Direct grid usage - no outer Card wrapper needed
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <TrackingMilestoneCard
-                    label="Total entries"
-                    value={156}
-                    theme="primary"
-                  />
-                  <TrackingMilestoneCard
-                    label="This week"
-                    value={6}
-                    theme="secondary"
-                  />
-                  <TrackingMilestoneCard
-                    label="Current streak"
-                    value="12 days"
-                    theme="accent"
-                  />
-                  <TrackingMilestoneCard
-                    label="Sync"
-                    theme="neutral"
-                    action={
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="justify-start"
-                      >
-                        <RefreshCcw className="mr-2 h-4 w-4" />
-                        Refresh archive
-                      </Button>
-                    }
-                  />
+                <div className="bg-black/50 rounded-lg p-4 border border-neutral-800">
+                  <code className="text-xs text-neutral-500 mb-3 block">{'<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">'}</code>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <TrackingMilestoneCard
+                      label="Total entries"
+                      value={156}
+                      theme="primary"
+                    />
+                    <TrackingMilestoneCard
+                      label="This week"
+                      value={6}
+                      theme="secondary"
+                    />
+                    <TrackingMilestoneCard
+                      label="Current streak"
+                      value="12 days"
+                      theme="accent"
+                    />
+                  </div>
+                  <code className="text-xs text-neutral-500 mt-3 block">{'</div>'}</code>
                 </div>
               </div>
             </Stack>

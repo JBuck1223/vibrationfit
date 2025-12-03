@@ -142,41 +142,39 @@ export default function DailyPaperIndexPage() {
           </Inline>
         </section>
 
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <TrackingMilestoneCard
-              label="Total entries"
-              value={metrics.total}
-              theme="primary"
-            />
-            <TrackingMilestoneCard
-              label="This week"
-              value={metrics.thisWeek}
-              theme="secondary"
-            />
-            <TrackingMilestoneCard
-              label="Current streak"
-              value={`${metrics.streak} ${metrics.streak === 1 ? 'day' : 'days'}`}
-              theme="accent"
-            />
-            <TrackingMilestoneCard
-              label="Sync"
-              theme="neutral"
-              action={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start"
-                  loading={isRefreshing}
-                  onClick={handleRefresh}
-                >
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  Refresh archive
-                </Button>
-              }
-            />
-          </div>
-        </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <TrackingMilestoneCard
+            label="Total entries"
+            value={metrics.total}
+            theme="primary"
+          />
+          <TrackingMilestoneCard
+            label="This week"
+            value={metrics.thisWeek}
+            theme="secondary"
+          />
+          <TrackingMilestoneCard
+            label="Current streak"
+            value={`${metrics.streak} ${metrics.streak === 1 ? 'day' : 'days'}`}
+            theme="accent"
+          />
+          <TrackingMilestoneCard
+            label="Sync"
+            theme="neutral"
+            action={
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start"
+                loading={isRefreshing}
+                onClick={handleRefresh}
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Refresh archive
+              </Button>
+            }
+          />
+        </div>
 
         {error && (
           <Card variant="outlined" className="border-[#D03739]/40 bg-[#D03739]/10">
