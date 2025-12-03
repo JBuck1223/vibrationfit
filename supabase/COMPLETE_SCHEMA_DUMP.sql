@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7nnk7t5h8aRi0q4pFbzxdOQ143zV4Nnykgsg6lT1nheUj3MBaOxFD8JSWeH1Ohq
+\restrict pXqG9NAdfY1hu01elgIKHH2UOsr5J5OIheMbZtKiMYo7FhKpKGWf6aLbaoA8vt5
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -2024,7 +2024,7 @@ CREATE TABLE public.customer_subscriptions (
 -- Name: TABLE customer_subscriptions; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.customer_subscriptions IS 'Tracks user subscriptions synced with Stripe';
+COMMENT ON TABLE public.customer_subscriptions IS 'Source of truth for user subscriptions. Join with membership_tiers for pricing. Use payment_history to calculate LTV/MRR.';
 
 
 --
@@ -2971,6 +2971,52 @@ $$;
 --
 
 COMMENT ON FUNCTION public.get_user_total_audio_plays(p_user_id uuid) IS 'Returns the total number of audio plays (activations) for a user';
+
+
+--
+-- Name: get_user_total_refinements(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_user_total_refinements(p_user_id uuid) RETURNS TABLE(total_refinement_count integer, refined_category_list text[])
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  total_count integer;
+  all_categories text[];
+BEGIN
+  -- Sum the length of refined_categories arrays across all versions
+  SELECT 
+    COALESCE(SUM(jsonb_array_length(refined_categories)), 0)::integer
+  INTO total_count
+  FROM vision_versions
+  WHERE user_id = p_user_id
+    AND refined_categories IS NOT NULL
+    AND jsonb_array_length(refined_categories) > 0;
+
+  -- Get unique list of all categories that have been refined
+  SELECT 
+    ARRAY_AGG(DISTINCT elem ORDER BY elem)
+  INTO all_categories
+  FROM vision_versions,
+       LATERAL jsonb_array_elements_text(refined_categories) AS elem
+  WHERE user_id = p_user_id
+    AND refined_categories IS NOT NULL
+    AND jsonb_array_length(refined_categories) > 0;
+
+  -- Return total count and list of all unique categories (for reference)
+  RETURN QUERY
+  SELECT 
+    COALESCE(total_count, 0)::integer,
+    COALESCE(all_categories, ARRAY[]::text[]);
+END;
+$$;
+
+
+--
+-- Name: FUNCTION get_user_total_refinements(p_user_id uuid); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.get_user_total_refinements(p_user_id uuid) IS 'Returns the total sum of all category refinements across all vision versions for a user. Each refined category in each version counts separately.';
 
 
 --
@@ -6659,6 +6705,48 @@ CREATE TABLE public.daily_papers (
 
 
 --
+-- Name: email_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.email_messages (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    user_id uuid,
+    guest_email text,
+    from_email text NOT NULL,
+    to_email text NOT NULL,
+    cc_emails text[],
+    bcc_emails text[],
+    subject text NOT NULL,
+    body_text text,
+    body_html text,
+    direction text NOT NULL,
+    status text DEFAULT 'sent'::text,
+    ses_message_id text,
+    imap_message_id text,
+    imap_uid integer,
+    is_reply boolean DEFAULT false,
+    reply_to_message_id uuid,
+    thread_id text,
+    has_attachments boolean DEFAULT false,
+    attachment_urls text[],
+    sent_at timestamp with time zone,
+    delivered_at timestamp with time zone,
+    opened_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT email_messages_direction_check CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text]))),
+    CONSTRAINT email_messages_status_check CHECK ((status = ANY (ARRAY['sent'::text, 'delivered'::text, 'failed'::text, 'bounced'::text, 'opened'::text])))
+);
+
+
+--
+-- Name: TABLE email_messages; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.email_messages IS 'Stores all email communications (outbound via SES, inbound via IMAP from Google Workspace)';
+
+
+--
 -- Name: emotional_snapshots; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8368,26 +8456,6 @@ COMMENT ON COLUMN public.user_profiles.worry_spirituality IS 'User''s worry/conc
 
 
 --
--- Name: user_revenue_metrics; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.user_revenue_metrics (
-    user_id uuid NOT NULL,
-    subscription_tier text,
-    subscription_status text,
-    stripe_customer_id text,
-    stripe_subscription_id text,
-    mrr numeric(10,2) DEFAULT 0,
-    ltv numeric(10,2) DEFAULT 0,
-    total_spent numeric(10,2) DEFAULT 0,
-    subscription_start_date date,
-    months_subscribed integer DEFAULT 0,
-    days_as_customer integer DEFAULT 0,
-    updated_at timestamp with time zone DEFAULT now()
-);
-
-
---
 -- Name: user_storage; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8555,9 +8623,7 @@ CREATE TABLE public.vision_progress (
 CREATE TABLE public.vision_versions (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
     user_id uuid NOT NULL,
-    version_number integer NOT NULL,
     title text NOT NULL,
-    completion_percent integer DEFAULT 0,
     forward text,
     fun text,
     travel text,
@@ -8586,6 +8652,7 @@ CREATE TABLE public.vision_versions (
     richness_metadata jsonb,
     perspective text DEFAULT 'singular'::text,
     refined_categories jsonb DEFAULT '[]'::jsonb,
+    parent_id uuid,
     CONSTRAINT vision_versions_perspective_check CHECK ((perspective = ANY (ARRAY['singular'::text, 'plural'::text])))
 );
 
@@ -8594,7 +8661,7 @@ CREATE TABLE public.vision_versions (
 -- Name: TABLE vision_versions; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.vision_versions IS 'User life visions. State managed by is_draft and is_active flags.';
+COMMENT ON TABLE public.vision_versions IS 'Life vision versions. Version numbers are calculated dynamically using get_vision_version_number() based on created_at order. Completion percentage is calculated in frontend based on filled fields.';
 
 
 --
@@ -8735,6 +8802,13 @@ COMMENT ON COLUMN public.vision_versions.perspective IS 'Whether the vision uses
 --
 
 COMMENT ON COLUMN public.vision_versions.refined_categories IS 'Array of category keys that have been refined in this draft. Format: ["health", "fun", "work"]. Only populated for draft visions.';
+
+
+--
+-- Name: COLUMN vision_versions.parent_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_versions.parent_id IS 'ID of the vision this was cloned from. Used to find existing drafts when refining an active vision.';
 
 
 --
@@ -9386,6 +9460,14 @@ ALTER TABLE ONLY public.daily_papers
 
 
 --
+-- Name: email_messages email_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_messages
+    ADD CONSTRAINT email_messages_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: emotional_snapshots emotional_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9738,14 +9820,6 @@ ALTER TABLE ONLY public.user_profiles
 
 
 --
--- Name: user_revenue_metrics user_revenue_metrics_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_revenue_metrics
-    ADD CONSTRAINT user_revenue_metrics_pkey PRIMARY KEY (user_id);
-
-
---
 -- Name: user_storage user_storage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9847,14 +9921,6 @@ ALTER TABLE ONLY public.vision_progress
 
 ALTER TABLE ONLY public.vision_versions
     ADD CONSTRAINT vision_versions_pkey PRIMARY KEY (id);
-
-
---
--- Name: vision_versions vision_versions_user_id_version_number_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.vision_versions
-    ADD CONSTRAINT vision_versions_user_id_version_number_key UNIQUE (user_id, version_number);
 
 
 --
@@ -10652,6 +10718,48 @@ CREATE INDEX idx_daily_papers_user_entry_date ON public.daily_papers USING btree
 
 
 --
+-- Name: idx_email_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_created_at ON public.email_messages USING btree (created_at DESC);
+
+
+--
+-- Name: idx_email_direction; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_direction ON public.email_messages USING btree (direction);
+
+
+--
+-- Name: idx_email_imap_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_imap_id ON public.email_messages USING btree (imap_message_id);
+
+
+--
+-- Name: idx_email_ses_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_ses_id ON public.email_messages USING btree (ses_message_id);
+
+
+--
+-- Name: idx_email_thread_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_thread_id ON public.email_messages USING btree (thread_id);
+
+
+--
+-- Name: idx_email_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_user_id ON public.email_messages USING btree (user_id);
+
+
+--
 -- Name: idx_emotional_snapshots_user_category; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -11041,27 +11149,6 @@ CREATE INDEX idx_refinements_user_id ON public.refinements USING btree (user_id)
 --
 
 CREATE INDEX idx_refinements_vision_id ON public.refinements USING btree (vision_id);
-
-
---
--- Name: idx_revenue_stripe_customer; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_revenue_stripe_customer ON public.user_revenue_metrics USING btree (stripe_customer_id);
-
-
---
--- Name: idx_revenue_tier; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_revenue_tier ON public.user_revenue_metrics USING btree (subscription_tier);
-
-
---
--- Name: idx_revenue_user_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_revenue_user_id ON public.user_revenue_metrics USING btree (user_id);
 
 
 --
@@ -11517,6 +11604,20 @@ CREATE INDEX idx_vision_versions_is_active ON public.vision_versions USING btree
 --
 
 CREATE INDEX idx_vision_versions_is_draft ON public.vision_versions USING btree (user_id, is_draft);
+
+
+--
+-- Name: idx_vision_versions_parent_draft_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_versions_parent_draft_lookup ON public.vision_versions USING btree (parent_id, is_draft) WHERE (is_draft = true);
+
+
+--
+-- Name: idx_vision_versions_parent_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_versions_parent_id ON public.vision_versions USING btree (parent_id);
 
 
 --
@@ -12245,6 +12346,22 @@ ALTER TABLE ONLY public.daily_papers
 
 
 --
+-- Name: email_messages email_messages_reply_to_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_messages
+    ADD CONSTRAINT email_messages_reply_to_message_id_fkey FOREIGN KEY (reply_to_message_id) REFERENCES public.email_messages(id);
+
+
+--
+-- Name: email_messages email_messages_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_messages
+    ADD CONSTRAINT email_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: emotional_snapshots emotional_snapshots_last_scene_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12621,14 +12738,6 @@ ALTER TABLE ONLY public.user_profiles
 
 
 --
--- Name: user_revenue_metrics user_revenue_metrics_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_revenue_metrics
-    ADD CONSTRAINT user_revenue_metrics_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: user_storage user_storage_subscription_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12698,6 +12807,14 @@ ALTER TABLE ONLY public.vision_progress
 
 ALTER TABLE ONLY public.vision_progress
     ADD CONSTRAINT vision_progress_vision_id_fkey FOREIGN KEY (vision_id) REFERENCES public.vision_versions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vision_versions vision_versions_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_versions
+    ADD CONSTRAINT vision_versions_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.vision_versions(id) ON DELETE SET NULL;
 
 
 --
@@ -12915,6 +13032,15 @@ CREATE POLICY "Admins can insert site content metadata" ON public.media_metadata
 
 
 --
+-- Name: email_messages Admins can manage all emails; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage all emails" ON public.email_messages USING ((EXISTS ( SELECT 1
+   FROM auth.users
+  WHERE ((users.id = auth.uid()) AND (((users.email)::text = ANY ((ARRAY['buckinghambliss@gmail.com'::character varying, 'admin@vibrationfit.com'::character varying])::text[])) OR ((users.raw_user_meta_data ->> 'is_admin'::text) = 'true'::text))))));
+
+
+--
 -- Name: user_activity_metrics Admins can manage all metrics; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -12928,15 +13054,6 @@ CREATE POLICY "Admins can manage all metrics" ON public.user_activity_metrics US
 --
 
 CREATE POLICY "Admins can manage all replies" ON public.support_ticket_replies USING ((EXISTS ( SELECT 1
-   FROM auth.users
-  WHERE ((users.id = auth.uid()) AND (((users.email)::text = ANY ((ARRAY['buckinghambliss@gmail.com'::character varying, 'admin@vibrationfit.com'::character varying])::text[])) OR ((users.raw_user_meta_data ->> 'is_admin'::text) = 'true'::text))))));
-
-
---
--- Name: user_revenue_metrics Admins can manage all revenue; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Admins can manage all revenue" ON public.user_revenue_metrics USING ((EXISTS ( SELECT 1
    FROM auth.users
   WHERE ((users.id = auth.uid()) AND (((users.email)::text = ANY ((ARRAY['buckinghambliss@gmail.com'::character varying, 'admin@vibrationfit.com'::character varying])::text[])) OR ((users.raw_user_meta_data ->> 'is_admin'::text) = 'true'::text))))));
 
@@ -13718,6 +13835,15 @@ CREATE POLICY "Users can view own conversations" ON public.ai_conversations FOR 
 
 
 --
+-- Name: email_messages Users can view own emails; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view own emails" ON public.email_messages FOR SELECT USING (((auth.uid() = user_id) OR (guest_email = (( SELECT users.email
+   FROM auth.users
+  WHERE (users.id = auth.uid())))::text)));
+
+
+--
 -- Name: intensive_checklist Users can view own intensive checklist; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -13771,13 +13897,6 @@ CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT USING (
 --
 
 CREATE POLICY "Users can view own profile" ON public.user_profiles FOR SELECT USING ((auth.uid() = user_id));
-
-
---
--- Name: user_revenue_metrics Users can view own revenue; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can view own revenue" ON public.user_revenue_metrics FOR SELECT USING ((auth.uid() = user_id));
 
 
 --
@@ -14058,6 +14177,12 @@ ALTER TABLE public.customer_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_papers ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: email_messages; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.email_messages ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: emotional_snapshots; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -14238,12 +14363,6 @@ ALTER TABLE public.user_activity_metrics ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
-
---
--- Name: user_revenue_metrics; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.user_revenue_metrics ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: user_storage; Type: ROW SECURITY; Schema: public; Owner: -
@@ -14617,5 +14736,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7nnk7t5h8aRi0q4pFbzxdOQ143zV4Nnykgsg6lT1nheUj3MBaOxFD8JSWeH1Ohq
+\unrestrict pXqG9NAdfY1hu01elgIKHH2UOsr5J5OIheMbZtKiMYo7FhKpKGWf6aLbaoA8vt5
 
