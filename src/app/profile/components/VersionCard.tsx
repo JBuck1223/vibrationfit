@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-import { Card, Badge, Heading, Text, StatusBadge } from '@/lib/design-system/components'
+import { Card, Text, StatusBadge, VersionBadge } from '@/lib/design-system/components'
+import { CalendarDays } from 'lucide-react'
 
 interface VersionCardProps {
   version: {
@@ -20,6 +21,15 @@ export const VersionCard: React.FC<VersionCardProps> = ({
   actions,
   className = ''
 }) => {
+  // Determine the actual status to display
+  const getDisplayStatus = () => {
+    if (version.is_active && !version.is_draft) return 'active'
+    if (version.is_draft) return 'draft'
+    return 'complete'
+  }
+  
+  const displayStatus = getDisplayStatus()
+  
   return (
     <Card 
       variant="outlined" 
@@ -32,40 +42,26 @@ export const VersionCard: React.FC<VersionCardProps> = ({
       <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
         {/* Version Info */}
         <div className="flex-1 space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Heading level={4} className="text-white text-sm md:text-base !mb-0 leading-none pb-0 font-bold">
-              Version {version.version_number}
-            </Heading>
-            {version.is_draft && (
-              <StatusBadge 
-                status="draft" 
-                subtle={true} 
-                className="uppercase tracking-[0.25em]" 
-              />
-            )}
-            {version.is_active && !version.is_draft && (
-              <StatusBadge 
-                status="active" 
-                subtle={false} 
-                className="uppercase tracking-[0.25em]" 
-              />
-            )}
-            {!version.is_active && !version.is_draft && (
-              <StatusBadge 
-                status="complete" 
-                subtle={true} 
-                className="uppercase tracking-[0.25em]" 
-              />
-            )}
-          </div>
-          
-          <div className="space-y-1">
-            <Text size="sm" className="text-neutral-400">
-              <span className="font-medium">Created:</span> {new Date(version.created_at).toLocaleDateString()} at {new Date(version.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-            </Text>
-            <Text size="xs" className="text-neutral-500 font-mono truncate">
-              ID: {version.id}
-            </Text>
+          <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-2 text-sm">
+            {/* Version Badge */}
+            <VersionBadge 
+              versionNumber={version.version_number} 
+              status={displayStatus} 
+            />
+            
+            {/* Status Badge */}
+            <StatusBadge 
+              status={displayStatus} 
+              subtle={displayStatus !== 'active'}
+              className="uppercase tracking-[0.25em]"
+            />
+            
+            {/* Date with icon */}
+            <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+              <CalendarDays className="w-4 h-4 text-neutral-500" />
+              <span className="font-medium">Created:</span>
+              <span>{new Date(version.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            </div>
           </div>
         </div>
 

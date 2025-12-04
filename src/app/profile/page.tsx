@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Card, Button, Badge, DeleteConfirmationDialog, Spinner, Container, Stack, Grid, Heading, Text, CreatedDateBadge, VersionBadge, StatusBadge } from '@/lib/design-system/components'
+import { Card, Button, DeleteConfirmationDialog, Spinner, Container, Stack, Grid, Heading, Text, VersionBadge, StatusBadge, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { VersionCard } from './components/VersionCard'
 import { colors } from '@/lib/design-system/tokens'
 import { 
@@ -15,7 +15,9 @@ import {
   Trash2,
   CheckCircle,
   Activity,
-  GitCompare
+  GitCompare,
+  CalendarDays,
+  Copy
 } from 'lucide-react'
 
 interface ProfileData {
@@ -43,6 +45,9 @@ export default function ProfileDashboardPage() {
   const [versionToDelete, setVersionToDelete] = useState<ProfileData | null>(null)
   const [hasActiveDraft, setHasActiveDraft] = useState(false)
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null)
+  const [showCloneDialog, setShowCloneDialog] = useState(false)
+  const [versionToClone, setVersionToClone] = useState<string | null>(null)
+  const [isCloning, setIsCloning] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -127,6 +132,118 @@ export default function ProfileDashboardPage() {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete version'
       alert(`Failed to delete version: ${errorMessage}`)
       // Keep dialog open for retry
+    }
+  }
+
+  const handleCloneVersion = async (versionId: string) => {
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert('Please log in to clone a profile')
+        return
+      }
+      
+      // Check if a draft already exists
+      const { data: existingDraft } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_draft', true)
+        .eq('is_active', false)
+        .single()
+
+      if (existingDraft) {
+        // Show override dialog
+        setVersionToClone(versionId)
+        setShowCloneDialog(true)
+        return
+      }
+
+      // No existing draft, proceed with clone
+      await performClone(versionId)
+    } catch (error) {
+      console.error('Error checking for drafts:', error)
+      alert('Failed to check for existing drafts. Please try again.')
+    }
+  }
+
+  const performClone = async (versionId: string) => {
+    setIsCloning(true)
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) return
+
+      // Delete any existing drafts
+      await supabase
+        .from('user_profiles')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('is_draft', true)
+        .eq('is_active', false)
+
+      // Fetch the version to clone
+      const { data: sourceVersion, error: fetchError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', versionId)
+        .single()
+
+      if (fetchError || !sourceVersion) {
+        alert('Failed to fetch version to clone')
+        return
+      }
+
+      // Create new draft version
+      const { id, created_at, updated_at, version_number, ...versionData } = sourceVersion
+      const newVersionData = {
+        ...versionData,
+        user_id: user.id,
+        is_draft: true,
+        is_active: false,
+        version_number: 1, // Placeholder
+      }
+
+      const { data: newVersion, error: insertError } = await supabase
+        .from('user_profiles')
+        .insert([newVersionData])
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('Clone insert error:', insertError)
+        alert(`Failed to clone version: ${insertError.message || 'Unknown error'}`)
+        return
+      }
+
+      if (!newVersion) {
+        console.error('No new version returned from insert')
+        alert('Failed to clone version: No data returned')
+        return
+      }
+
+      // Navigate to the draft edit page
+      router.push(`/profile/${newVersion.id}/edit/draft`)
+      // Don't set isCloning(false) - keep loading overlay visible during navigation
+    } catch (error) {
+      console.error('Error cloning version:', error)
+      alert('Failed to clone version. Please try again.')
+      setIsCloning(false)
+    }
+  }
+
+  const confirmClone = async () => {
+    if (versionToClone) {
+      // Set isCloning to true BEFORE dismissing dialog to prevent flash
+      setIsCloning(true)
+      setShowCloneDialog(false)
+      await performClone(versionToClone)
+      setVersionToClone(null)
     }
   }
 
@@ -277,12 +394,16 @@ export default function ProfileDashboardPage() {
                         versionNumber={activeProfile.version_number} 
                         status={activeProfile.is_active && !activeProfile.is_draft ? 'active' : activeProfile.is_draft ? 'draft' : 'complete'} 
                       />
-                      <CreatedDateBadge createdAt={activeProfile.created_at} />
                       <StatusBadge 
                         status={activeProfile.is_active && !activeProfile.is_draft ? 'active' : activeProfile.is_draft ? 'draft' : 'complete'} 
                         subtle={!(activeProfile.is_active && !activeProfile.is_draft)} 
                         className="uppercase tracking-[0.25em]"
                       />
+                      <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                        <CalendarDays className="w-4 h-4 text-neutral-500" />
+                        <span className="font-medium">Created:</span>
+                        <span>{new Date(activeProfile.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -336,40 +457,22 @@ export default function ProfileDashboardPage() {
         {/* Stats Cards */}
         {activeProfile && (
           <Container size="xl">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-primary-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{profileCount}</p>
-                  <p className="text-xs text-neutral-400">Profiles</p>
-                </div>
-              </div>
-            </Card>
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-secondary-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{completedProfiles}</p>
-                  <p className="text-xs text-neutral-400">Active</p>
-                </div>
-              </div>
-            </Card>
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-accent-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{completionPercentage}%</p>
-                  <p className="text-xs text-neutral-400">Complete</p>
-                </div>
-              </div>
-            </Card>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+            <TrackingMilestoneCard
+              label="Profiles"
+              value={profileCount}
+              theme="primary"
+            />
+            <TrackingMilestoneCard
+              label="Active"
+              value={completedProfiles}
+              theme="secondary"
+            />
+            <TrackingMilestoneCard
+              label="Complete"
+              value={`${completionPercentage}%`}
+              theme="accent"
+            />
           </div>
           </Container>
         )}
@@ -378,33 +481,79 @@ export default function ProfileDashboardPage() {
         {activeProfile && versions.length > 0 && (
           <Container size="xl">
           <Card className="p-6 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-white">Profile Versions</h2>
-              <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Profile Versions</h2>
             </div>
             <div className="space-y-4">
               {versions.map((version) => {
                 const isActive = version.id === activeProfile?.id && version.is_active
+                const isDraft = version.is_draft
+                
+                // Determine button variant based on status
+                const getViewButtonVariant = () => {
+                  if (isDraft) return 'ghost-yellow'
+                  if (isActive) return 'primary'
+                  return 'ghost-blue'
+                }
                 
                 return (
                   <VersionCard
                     key={version.id}
                     version={version}
                     actions={
-                      <Button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          router.push(`/profile/${version.id}`)
-                        }}
-                        variant="primary"
-                        size="sm"
-                        className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View
-                      </Button>
+                      <>
+                        {isDraft ? (
+                          // Draft version - only show View button
+                          <Button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              router.push(`/profile/${version.id}/edit/draft`)
+                            }}
+                            variant="ghost-yellow"
+                            size="sm"
+                            className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View
+                          </Button>
+                        ) : (
+                          <>
+                            {/* Clone button for non-draft versions */}
+                            <Button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleCloneVersion(version.id)
+                              }}
+                              variant="ghost"
+                              size="sm"
+                              disabled={isCloning}
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                            >
+                              <Copy className="w-4 h-4" />
+                              Clone
+                            </Button>
+                            {/* View button */}
+                            <Button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                router.push(`/profile/${version.id}`)
+                              }}
+                              variant={getViewButtonVariant()}
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Button>
+                          </>
+                        )}
+                      </>
                     }
                   />
                 )
@@ -449,6 +598,74 @@ export default function ProfileDashboardPage() {
         itemName={versionToDelete ? `Version ${versionToDelete.version_number}` : ''}
         isLoading={deletingVersion !== null}
       />
+
+      {/* Clone Override Dialog */}
+      {showCloneDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">
+                Override Existing Draft?
+              </h3>
+              <button
+                onClick={() => setShowCloneDialog(false)}
+                className="text-neutral-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-neutral-400 mb-6">
+              You already have a draft profile in progress. Cloning this version will replace your current draft. This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowCloneDialog(false)}
+                disabled={isCloning}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmClone}
+                disabled={isCloning}
+                className="flex-1 gap-2"
+              >
+                {isCloning ? (
+                  <>
+                    <Spinner variant="primary" size="sm" />
+                    Cloning...
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Clone Version
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Cloning Loading Overlay */}
+      {isCloning && !showCloneDialog && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <Card className="max-w-md w-full">
+            <div className="text-center py-8">
+              <Spinner variant="primary" size="lg" className="mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">
+                Cloning Profile Version
+              </h3>
+              <p className="text-neutral-400">
+                Creating your draft version...
+              </p>
+            </div>
+          </Card>
+        </div>
+      )}
     </>
   )
 }

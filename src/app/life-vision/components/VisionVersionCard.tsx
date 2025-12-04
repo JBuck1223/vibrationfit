@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import { Card, StatusBadge, VersionBadge, CreatedDateBadge } from '@/lib/design-system/components'
+import { Card, StatusBadge, VersionBadge } from '@/lib/design-system/components'
 import { colors } from '@/lib/design-system/tokens'
-import { Trash2 } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
 
 interface VisionVersionCardProps {
   version: {
@@ -19,7 +19,6 @@ interface VisionVersionCardProps {
   }
   isActive?: boolean
   actions?: React.ReactNode
-  onDelete?: (versionId: string) => void
   className?: string
 }
 
@@ -29,7 +28,6 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
   version,
   isActive = false,
   actions,
-  onDelete,
   className = ''
 }) => {
   // Check the database is_draft field, not deprecated isDraft property
@@ -47,53 +45,41 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
   return (
     <Card 
       variant="outlined" 
-      className={`p-3 md:p-4 relative ${className}`}
+      className={`p-3 md:p-4 ${className}`}
       onClick={(e) => {
         // Prevent any click events from bubbling up
         e.stopPropagation()
       }}
     >
-      {/* Delete Button */}
-      {onDelete && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete(version.id)
-          }}
-          className="absolute top-2 right-2 p-1.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-          title="Delete version"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      )}
-      
       <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
         {/* Version Info */}
         <div className="flex-1">
-          <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-2 text-sm">
-            {/* Version Badge */}
-            <VersionBadge 
-              versionNumber={version.version_number} 
-              status={displayStatus} 
-            />
+          <div className="flex flex-col items-center md:items-start gap-2 text-sm">
+            {/* Badges Row */}
+            <div className="flex flex-col md:flex-row items-center gap-2">
+              <VersionBadge 
+                versionNumber={version.version_number} 
+                status={displayStatus} 
+              />
+              <StatusBadge 
+                status={displayStatus} 
+                subtle={displayStatus !== 'active'}
+                className="uppercase tracking-[0.25em]"
+              />
+            </div>
             
-            {/* Status Badge */}
-            <StatusBadge 
-              status={displayStatus} 
-              subtle={displayStatus !== 'active'}
-              className="uppercase tracking-[0.25em]"
-            />
-            
-            {/* Date as plain text */}
-            <span className="text-neutral-300">
-              Created: {new Date(version.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-            </span>
+            {/* Date Row */}
+            <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+              <CalendarDays className="w-4 h-4 text-neutral-500" />
+              <span className="font-medium">Created:</span>
+              <span>{new Date(version.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            </div>
           </div>
         </div>
 
         {/* Action Buttons */}
         {actions && (
-          <div className="flex flex-row flex-wrap gap-2 w-full md:w-auto md:justify-end">
+          <div className="flex flex-row flex-wrap gap-2 w-full md:w-auto justify-center md:justify-end">
             {actions}
           </div>
         )}

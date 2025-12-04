@@ -11,7 +11,6 @@ import {
   Inline,
   Badge,
   Text,
-  TrackingMilestoneCard,
 } from '@/lib/design-system/components'
 import { ArrowRight, RefreshCcw, FileText, Sparkles } from 'lucide-react'
 import { DailyPaperEntry, useDailyPaperEntries } from '@/hooks/useDailyPaper'
@@ -91,13 +90,13 @@ export default function DailyPaperIndexPage() {
           Start with gratitude, set three aligned actions, and add one fun promise.
         </p>
         <Inline gap="sm" className="justify-center">
-          <Button size="md" onClick={() => router.push('/journal/daily-paper/new')}>
+          <Button size="md" onClick={() => router.push('/daily-paper/new')}>
             Create today&apos;s Daily Paper
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/journal/daily-paper/resources')}
+            onClick={() => router.push('/daily-paper/resources')}
           >
             View quick guide
           </Button>
@@ -142,23 +141,47 @@ export default function DailyPaperIndexPage() {
           </Inline>
         </section>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          <TrackingMilestoneCard
-            label="Total entries"
-            value={metrics.total}
-            theme="primary"
-          />
-          <TrackingMilestoneCard
-            label="This week"
-            value={metrics.thisWeek}
-            theme="secondary"
-          />
-          <TrackingMilestoneCard
-            label="Current streak"
-            value={`${metrics.streak} ${metrics.streak === 1 ? 'day' : 'days'}`}
-            theme="accent"
-          />
-        </div>
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-2xl border border-[#199D67]/25 bg-[#199D67]/10 p-4">
+              <p className="text-xs uppercase tracking-[0.3em] text-[#5EC49A]">
+                Total entries
+              </p>
+              <p className="mt-3 text-2xl md:text-3xl font-semibold text-white">{metrics.total}</p>
+            </div>
+            <div className="rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-4">
+              <p className="text-xs uppercase tracking-[0.3em] text-[#2DD4BF]">
+                This week
+              </p>
+              <p className="mt-3 text-2xl md:text-3xl font-semibold text-white">
+                {metrics.thisWeek}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[#8B5CF6]/25 bg-[#8B5CF6]/10 p-4">
+              <p className="text-xs uppercase tracking-[0.3em] text-[#C4B5FD]">
+                Current streak
+              </p>
+              <p className="mt-3 text-2xl md:text-3xl font-semibold text-white">
+                {metrics.streak} {metrics.streak === 1 ? 'day' : 'days'}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[#333] bg-[#121212] p-4">
+              <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                Sync
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3 justify-start"
+                loading={isRefreshing}
+                onClick={handleRefresh}
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Refresh archive
+              </Button>
+            </div>
+          </div>
+        </Card>
 
         {error && (
           <Card variant="outlined" className="border-[#D03739]/40 bg-[#D03739]/10">
@@ -214,7 +237,7 @@ export default function DailyPaperIndexPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => router.push('/journal/daily-paper/new')}
+                          onClick={() => router.push('/daily-paper/new')}
                         >
                           Repeat flow
                           <ArrowRight className="ml-2 h-4 w-4" />
@@ -279,7 +302,7 @@ export default function DailyPaperIndexPage() {
                           </Button>
                         )}
                         <Button variant="secondary" size="sm" asChild>
-                          <Link href={`/journal/daily-paper/new?from=${entry.entry_date}`}>
+                          <Link href={`/daily-paper/new?from=${entry.entry_date}`}>
                             Bring into today
                           </Link>
                         </Button>

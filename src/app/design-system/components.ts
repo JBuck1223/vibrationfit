@@ -311,6 +311,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     exportName: 'Toggle',
     path: '/design-system/component/toggle'
   },
+  {
+    id: 'tracking-milestone-card',
+    name: 'Tracking Milestone Card',
+    description: 'Metric display card with themed styling for tracking stats',
+    category: 'UI',
+    icon: Activity,
+    exportName: 'TrackingMilestoneCard',
+    path: '/design-system/component/tracking-milestone-card'
+  },
 
   // Feedback Components
   {
@@ -491,6 +500,26 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: Palette,
     exportName: 'ColorPalette',
     path: '/design-system/component/color-palette'
+  },
+
+  // Pattern Components
+  {
+    id: 'page-header',
+    name: 'Page Header',
+    description: 'Centered page header with eyebrow, title, badges, metadata, and actions - based on life-vision pattern',
+    category: 'Patterns',
+    icon: PanelTop,
+    exportName: 'PageHeader',
+    path: '/design-system/component/page-header'
+  },
+  {
+    id: 'page-titles',
+    name: 'Page Titles',
+    description: 'Left-aligned page header with title, subtitle, metadata items, and action buttons',
+    category: 'Patterns',
+    icon: Type,
+    exportName: 'PageTitles',
+    path: '/design-system/component/page-titles'
   },
 ]
 

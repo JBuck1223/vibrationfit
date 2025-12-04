@@ -48,10 +48,11 @@ import {
   Select,
   DeleteConfirmationDialog,
   InsufficientTokensDialog,
+  TrackingMilestoneCard,
   InsufficientStorageDialog,
   Toggle,
-  CreatedDateBadge,
   StatusBadge,
+  VersionBadge,
 } from '@/lib/design-system/components'
 import { Copy, Check } from 'lucide-react'
 import {
@@ -92,6 +93,7 @@ import {
   Activity,
   Zap,
   BookOpen,
+  Calendar,
   CalendarDays,
   HardDrive,
   Target,
@@ -104,6 +106,7 @@ import {
 import { type AudioTrack } from '@/lib/design-system/components'
 import type { ComponentMetadata } from '../../components'
 import { SaveButtonExamples } from '../save-button/component-examples'
+import { PageHeaderExamples } from '../page-header/component-examples'
 
 // Select Examples Component (needs hooks)
 function SelectExamples() {
@@ -2011,6 +2014,13 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
                 
                 <div className="relative z-10">
+                  {/* Eyebrow */}
+                  <div className="text-center mb-4">
+                    <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                      THE LIFE I CHOOSE
+                    </div>
+                  </div>
+                  
                   {/* Title Section */}
                   <div className="text-center mb-4">
                     <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
@@ -2022,14 +2032,16 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   <div className="text-center mb-6">
                     {/* Version, Status & Date Badges */}
                     <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                      <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
-                        V2
-                      </span>
-                      <CreatedDateBadge createdAt={new Date().toISOString()} />
-                      <Badge variant="success" className="!bg-[#39FF14] !text-black !border-[#39FF14]">
-                        <CheckCircle className="w-4 h-4 mr-1 !text-black" />
-                        Active
-                      </Badge>
+                      <VersionBadge 
+                        versionNumber={2} 
+                        status="active" 
+                      />
+                      <StatusBadge status="active" subtle={false} className="uppercase tracking-[0.25em]" />
+                      <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                        <Calendar className="w-4 h-4 text-neutral-500" />
+                        <span className="font-medium">Created:</span>
+                        <span>Jan 15, 2024</span>
+                      </div>
                     </div>
                   </div>
 
@@ -2124,6 +2136,36 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               </div>
             </Stack>
           </Card>
+        </Stack>
+      )
+
+    case 'page-header':
+      return (
+        <Stack gap="md">
+          {Object.entries(PageHeaderExamples).map(([key, example]) => (
+            <Card key={key} variant="default" className="p-4 md:p-6">
+              <Stack gap="md">
+                <h4 className="text-base md:text-lg font-semibold text-white">{example.title}</h4>
+                <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                  {example.description}
+                </p>
+                
+                {/* Live Example */}
+                <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+                  <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent">
+                    {example.component}
+                  </div>
+                </div>
+
+                {/* Code */}
+                <div className="bg-neutral-900 rounded-lg p-4 border border-neutral-700">
+                  <pre className="text-xs md:text-sm text-neutral-300 overflow-x-auto">
+                    <code>{example.code}</code>
+                  </pre>
+                </div>
+              </Stack>
+            </Card>
+          ))}
         </Stack>
       )
 
@@ -2651,6 +2693,58 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
         )
       }
       return <ColorPaletteDemo />
+
+    case 'tracking-milestone-card':
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-medium text-white">Tracking Milestone Card</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Display metrics and stats with themed styling. Perfect for dashboards and tracking pages.
+              </p>
+              
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <TrackingMilestoneCard
+                  label="Total entries"
+                  value={42}
+                  theme="primary"
+                />
+                <TrackingMilestoneCard
+                  label="This week"
+                  value={7}
+                  theme="secondary"
+                />
+                <TrackingMilestoneCard
+                  label="Current streak"
+                  value="5 days"
+                  theme="accent"
+                />
+                <TrackingMilestoneCard
+                  label="All time best"
+                  value="30 days"
+                  theme="neutral"
+                />
+              </div>
+              
+              <Card variant="outlined" className="p-4 bg-neutral-900/50 mt-2">
+                <Stack gap="sm">
+                  <h5 className="text-sm font-semibold text-white">Themes</h5>
+                  <p className="text-xs text-neutral-400">
+                    Each theme applies a unique color scheme:
+                  </p>
+                  <ul className="text-xs text-neutral-400 space-y-1 list-disc list-inside">
+                    <li><span className="text-primary-500">Primary (Green)</span> - Main metrics</li>
+                    <li><span className="text-secondary-500">Secondary (Teal)</span> - Time-based stats</li>
+                    <li><span className="text-accent-500">Accent (Purple)</span> - Special milestones</li>
+                    <li><span className="text-neutral-400">Neutral (Gray)</span> - Secondary metrics</li>
+                  </ul>
+                </Stack>
+              </Card>
+            </Stack>
+          </Card>
+        </Stack>
+      )
 
     default:
       return (

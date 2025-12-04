@@ -338,6 +338,18 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
     { name: 'className', type: 'string', required: false, description: 'Additional CSS classes for the wrapper' },
   ],
 
+  'page-header': [
+    { name: 'eyebrow', type: 'React.ReactNode', required: false, description: 'Small uppercase text displayed above the title' },
+    { name: 'title', type: 'React.ReactNode', required: true, description: 'Main page title (large, centered, bold)' },
+    { name: 'subtitle', type: 'React.ReactNode', required: false, description: 'Descriptive text displayed below the title' },
+    { name: 'badges', type: "Array<{ label: React.ReactNode; variant?: BadgeVariant; icon?: LucideIcon; className?: string }>", required: false, description: 'Array of status badges displayed in the metadata section' },
+    { name: 'metaItems', type: "Array<{ label: string; value: string | number; icon?: LucideIcon; className?: string }>", required: false, description: 'Array of metadata items (label/value pairs) with optional icons' },
+    { name: 'actions', type: "Array<{ label: string; onClick?: () => void; href?: string; variant?: ButtonVariant; size?: ButtonSize; icon?: LucideIcon; loading?: boolean; disabled?: boolean; className?: string }>", required: false, description: 'Array of action buttons displayed below the metadata' },
+    { name: 'gradient', type: 'boolean', required: false, defaultValue: 'true', description: 'Whether to show the gradient background' },
+    { name: 'children', type: 'React.ReactNode', required: false, description: 'Additional custom content displayed below the actions' },
+    { name: 'className', type: 'string', required: false, description: 'Additional CSS classes to apply to the container' },
+  ],
+
   'bulleted-list': [
     { name: 'children', type: 'React.ReactNode', required: true },
     { name: 'variant', type: "'default' | 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'error'", required: false, defaultValue: "'default'", description: 'Color variant' },
