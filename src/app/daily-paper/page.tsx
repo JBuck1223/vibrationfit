@@ -12,6 +12,7 @@ import {
   Badge,
   Text,
   TrackingMilestoneCard,
+  PageTitles,
 } from '@/lib/design-system/components'
 import { ArrowRight, RefreshCcw, FileText, Sparkles } from 'lucide-react'
 import { DailyPaperEntry, useDailyPaperEntries } from '@/hooks/useDailyPaper'
@@ -91,13 +92,13 @@ export default function DailyPaperIndexPage() {
           Start with gratitude, set three aligned actions, and add one fun promise.
         </p>
         <Inline gap="sm" className="justify-center">
-          <Button size="md" onClick={() => router.push('/journal/daily-paper/new')}>
+          <Button size="md" onClick={() => router.push('/daily-paper/new')}>
             Create today&apos;s Daily Paper
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/journal/daily-paper/resources')}
+            onClick={() => router.push('/daily-paper/resources')}
           >
             View quick guide
           </Button>
@@ -109,38 +110,36 @@ export default function DailyPaperIndexPage() {
   return (
     <Container size="xl">
       <Stack gap="xl">
-        <section className="space-y-5">
-          <Inline gap="sm" className="text-xs uppercase tracking-[0.35em] text-neutral-400">
-            <Badge variant="success">Daily Paper</Badge>
-            <Badge variant="accent">Voice Ready</Badge>
-          </Inline>
-          <div className="space-y-3">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white">
-              Daily Paper
-            </h1>
-            <p className="text-sm md:text-base text-neutral-300 max-w-2xl">
-              Capture gratitude, align three actions, and mark a fun moment. Your archive keeps the story tight and easy to review.
-            </p>
-            {metrics.mostRecent && (
-              <p className="text-xs md:text-sm text-neutral-500">
-                Last entry·{' '}
-                {formatDateLabel(metrics.mostRecent.entry_date)}
-              </p>
-            )}
-          </div>
-          <Inline gap="sm">
-            <Button size="md" onClick={() => router.push('/daily-paper/new')}>
-              Start today
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/daily-paper/resources')}
-            >
-              Resources
-            </Button>
-          </Inline>
-        </section>
+        <PageTitles
+          eyebrow={
+            <Inline gap="sm">
+              <Badge variant="success">Daily Paper</Badge>
+              <Badge variant="accent">Voice Ready</Badge>
+            </Inline>
+          }
+          title="Daily Paper"
+          subtitle="Capture gratitude, align three actions, and mark a fun moment. Your archive keeps the story tight and easy to review."
+          metaItems={metrics.mostRecent ? [
+            {
+              icon: null,
+              label: `Last entry · ${formatDateLabel(metrics.mostRecent.entry_date)}`,
+            }
+          ] : []}
+          actions={[
+            {
+              label: 'Start today',
+              onClick: () => router.push('/daily-paper/new'),
+              variant: 'primary',
+              size: 'md',
+            },
+            {
+              label: 'Resources',
+              onClick: () => router.push('/daily-paper/resources'),
+              variant: 'ghost',
+              size: 'sm',
+            }
+          ]}
+        />
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <TrackingMilestoneCard
@@ -214,7 +213,7 @@ export default function DailyPaperIndexPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => router.push('/journal/daily-paper/new')}
+                          onClick={() => router.push('/daily-paper/new')}
                         >
                           Repeat flow
                           <ArrowRight className="ml-2 h-4 w-4" />
@@ -279,7 +278,7 @@ export default function DailyPaperIndexPage() {
                           </Button>
                         )}
                         <Button variant="secondary" size="sm" asChild>
-                          <Link href={`/journal/daily-paper/new?from=${entry.entry_date}`}>
+                          <Link href={`/daily-paper/new?from=${entry.entry_date}`}>
                             Bring into today
                           </Link>
                         </Button>

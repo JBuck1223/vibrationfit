@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, X, Sparkles, Zap, Target, Gem, Volume2, Download, VolumeX, Diamond, Copy } from 'lucide-react'
-import { Card, Button, Badge, ProgressBar, Spinner, Grid } from '@/lib/design-system/components'
+import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, X, Sparkles, Zap, Download, VolumeX, Diamond, Copy } from 'lucide-react'
+import { Card, Button, Badge, ProgressBar, Spinner, Grid, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { VisionVersionCard } from './components/VisionVersionCard'
 import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
@@ -513,40 +513,22 @@ export default function VisionListPage() {
 
         {/* Stats Cards */}
         {activeVision && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
-                  <Target className="w-6 h-6 text-primary-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{versions.length}</p>
-                  <p className="text-xs text-neutral-400">Vision Versions</p>
-                </div>
-              </div>
-            </Card>
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center">
-                  <Gem className="w-6 h-6 text-secondary-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{refinementsCount}</p>
-                  <p className="text-xs text-neutral-400">Refinements</p>
-                </div>
-              </div>
-            </Card>
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center">
-                  <Volume2 className="w-6 h-6 text-accent-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{audiosCount}</p>
-                  <p className="text-xs text-neutral-400">Audios</p>
-                </div>
-              </div>
-            </Card>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+            <TrackingMilestoneCard
+              label="Vision Versions"
+              value={versions.length}
+              theme="primary"
+            />
+            <TrackingMilestoneCard
+              label="Refinements"
+              value={refinementsCount}
+              theme="secondary"
+            />
+            <TrackingMilestoneCard
+              label="Audios"
+              value={audiosCount}
+              theme="accent"
+            />
           </div>
         )}
 

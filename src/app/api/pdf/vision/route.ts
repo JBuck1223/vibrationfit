@@ -80,17 +80,47 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Vision not found' }, { status: 404 })
     }
 
-    // Fetch user profile for name
-    const { data: profile } = await supabase
+    // Get calculated version number using database function
+    const { data: versionData, error: versionError } = await supabase
+      .rpc('get_vision_version_number', { p_vision_id: visionId })
+    
+    const versionNumber = versionData || 1 // Fallback to 1 if function fails
+    console.log('Vision version number:', versionNumber, 'from function get_vision_version_number')
+
+    // Fetch user profile for name (get active profile)
+    const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('first_name, last_name')
       .eq('user_id', user.id)
+      .eq('is_active', true)
       .single()
 
-    const userName = (profile?.first_name && profile?.last_name) 
-                     ? `${profile.first_name} ${profile.last_name}`
-                     : profile?.first_name || profile?.last_name || 'User'
-    const title = vision.title || 'My Life Vision'
+    if (profileError) {
+      console.warn('Failed to fetch user profile for PDF:', profileError.message)
+      console.log('Attempted to fetch profile for user_id:', user.id)
+    }
+    
+    console.log('Profile data:', profile)
+
+    // Get user name from profile, or fall back to email
+    let userName = 'User'
+    if (profile?.first_name && profile?.last_name) {
+      userName = `${profile.first_name} ${profile.last_name}`
+    } else if (profile?.first_name) {
+      userName = profile.first_name
+    } else if (profile?.last_name) {
+      userName = profile.last_name
+    } else if (user.email) {
+      // Extract name from email as last resort (e.g., "john.doe@example.com" -> "John Doe")
+      const emailName = user.email.split('@')[0]
+      userName = emailName
+        .split(/[._-]/)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ')
+    }
+    
+    console.log('PDF Generation - User name:', userName, '(from profile:', !!profile, ', email:', !!user.email, ')')
+    const title = 'The Life I Choose' // Fixed title for all PDFs
     const createdDate = new Date(vision.created_at).toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',
@@ -110,6 +140,9 @@ export async function GET(req: NextRequest) {
   <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>${escapeHtml(title)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     @page {
       size: Letter;
@@ -155,7 +188,7 @@ export async function GET(req: NextRequest) {
       position: relative;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 600px) {
       body {
         font-size: 11pt;
       }
@@ -167,12 +200,32 @@ export async function GET(req: NextRequest) {
       main {
         padding: 15pt;
       }
+
+      .cover-version {
+        font-size: 14pt;
+        color: #666666;
+        margin-top: 4pt;
+        margin-bottom: 0;
+        letter-spacing: 0.10em;
+      }
+
+      .cover-by {
+        font-size: 12pt;
+        white-space: nowrap;
+        margin-top: 16pt;
+      }
+
+      .cover-date {
+        font-size: 11pt;
+        white-space: nowrap;
+        margin-top: 16pt;
+      }
     }
 
     main {
       max-width: 850px;
       margin: 0 auto;
-      padding: 20pt;
+      padding: 0;
       width: 100%;
       position: relative;
       overflow-x: hidden;
@@ -180,39 +233,98 @@ export async function GET(req: NextRequest) {
 
     .cover {
       text-align: center;
-      min-height: 720pt;
-      height: 720pt;
-      max-height: 720pt;
+      min-height: 300pt;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 40pt 20pt;
+      padding: 20pt;
       box-sizing: border-box;
-      page-break-after: always;
       page-break-inside: avoid;
       overflow: hidden;
     }
 
+    @media (min-width: 601px) {
+      .cover {
+        min-height: 720pt;
+        height: 720pt;
+        max-height: 720pt;
+        padding: 40pt 20pt;
+        page-break-after: always;
+      }
+    }
+
+    @media print {
+      .cover {
+        page-break-after: always;
+      }
+      
+      section:first-of-type {
+        margin-top: 0;
+        padding-top: 0;
+      }
+    }
+
     .cover-title {
-      font-size: 48pt;
+      font-size: 22pt;
       font-weight: 700;
       color: #${primary};
       margin-bottom: 0;
+      line-height: 1.25;
+      word-spacing: -0.03em;
+    }
+
+    @media (min-width: 601px) {
+      .cover-title {
+        font-size: 48pt;
+        line-height: 1.1;
+        word-spacing: normal;
+      }
+    }
+
+    .cover-version {
+      font-size: 14pt;
+      color: #666666;
+      margin-top: 4pt;
+      margin-bottom: 0;
+      letter-spacing: 0.10em;
+    }
+
+    @media (min-width: 601px) {
+      .cover-version {
+        font-size: 16pt;
+        margin-top: 6pt;
+      }
     }
 
     .cover-by {
-      font-size: 16pt;
+      font-size: 12pt;
       color: #${textColor};
-      margin-top: 32pt;
+      margin-top: 16pt;
       margin-bottom: 0;
+      white-space: nowrap;
+    }
+
+    @media (min-width: 601px) {
+      .cover-by {
+        font-size: 16pt;
+        margin-top: 32pt;
+      }
     }
 
     .cover-date {
-      font-size: 14pt;
+      font-size: 11pt;
       color: #${textColor};
-      margin-top: 32pt;
+      margin-top: 16pt;
       margin-bottom: 0;
+      white-space: nowrap;
+    }
+
+    @media (min-width: 601px) {
+      .cover-date {
+        font-size: 14pt;
+        margin-top: 32pt;
+      }
     }
 
     .cover-info {
@@ -220,15 +332,15 @@ export async function GET(req: NextRequest) {
       color: #${textColor};
       line-height: 2;
     }
-    
-    .version-badge {
-      display: inline-block;
-      padding: 6pt 16pt;
-      background-color: #${primary};
-      color: ${bgColor === 'FFFFFF' ? '#fff' : '#fff'};
-      border-radius: 50px;
-      font-weight: 600;
-      font-size: 11pt;
+
+    .cover-logo {
+      margin-top: 24pt;
+    }
+
+    @media (min-width: 601px) {
+      .cover-logo {
+        margin-top: 48pt;
+      }
     }
 
     h2 {
@@ -264,9 +376,15 @@ export async function GET(req: NextRequest) {
 
     section {
       margin-bottom: 40pt;
+      padding: 0 20pt;
       page-break-inside: auto;
       width: 100%;
       box-sizing: border-box;
+    }
+
+    section:first-of-type {
+      margin-top: 20pt;
+      padding-top: 0;
     }
   </style>
 </head>
@@ -274,16 +392,13 @@ export async function GET(req: NextRequest) {
   <main>
     <header class="cover">
       <h1 class="cover-title">The Life I Choose</h1>
-      ${vision.version_number > 1 ? `
-        <div style="display: inline-block; margin-top: 32pt; margin-bottom: 0;">
-          <span class="version-badge">Version ${vision.version_number}</span>
-        </div>
-      ` : ''}
-      <div class="cover-by"><strong>By ${escapeHtml(userName)}</strong></div>
-      <div class="cover-date">Created ${createdDate}</div>
-    </header>
-
-    ${categoriesWithContent.map((category) => {
+      <div class="cover-version">VERSION ${versionNumber}</div>
+      <div class="cover-by"><strong>By:</strong> ${escapeHtml(userName)}</div>
+      <div class="cover-date"><strong>Created:</strong> ${createdDate}</div>
+      <div class="cover-logo">
+        <img src="https://media.vibrationfit.com/site-assets/brand/logo/black-bar-top-of-vfit.png" alt="VibrationFit" style="max-width: 300px; width: 100%; height: auto;" />
+      </div>
+    </header>${categoriesWithContent.map((category) => {
       const content = vision[category.key as keyof VisionData] as string
       if (!content || !content.trim()) return ''
 
@@ -293,16 +408,13 @@ export async function GET(req: NextRequest) {
       
       if (paragraphs.length === 0) return ''
 
-      return `
-      <section style="margin-bottom: 40pt;">
-        <h2>${escapeHtml(category.label)}</h2>
-        <div class="section-content">
-          ${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}
-        </div>
-      </section>
-      `
+      return `<section style="margin-bottom: 40pt;">
+<h2>${escapeHtml(category.label)}</h2>
+<div class="section-content">
+${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}
+</div>
+</section>`
     }).join('')}
-
   </main>
 </body>
 </html>`
@@ -351,7 +463,11 @@ export async function GET(req: NextRequest) {
         printBackground: true,
         displayHeaderFooter: true,
       headerTemplate: '<div></div>',
-      footerTemplate: '<div style="width: 100%; text-align: center; font-size: 10pt; color: #666; padding: 0 20pt;"><span class="pageNumber"></span></div>',
+      footerTemplate: `
+        <div style="width: 100%; text-align: center; font-size: 10pt; color: #666; padding: 0 20pt; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
+          <span class="pageNumber"></span>
+        </div>
+      `,
       margin: {
         top: '0.5in',
         right: '0.5in',
@@ -364,7 +480,7 @@ export async function GET(req: NextRequest) {
     await browser.close()
 
     // Return PDF as response
-    const filename = `life-vision-v${vision.version_number}.pdf`
+    const filename = `The-Life-I-Choose-V${versionNumber}.pdf`
     return new NextResponse(Buffer.from(pdfBuffer), {
         headers: {
           'Content-Type': 'application/pdf',
