@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Container, Card, Button, Stack, Inline, Text, DatePicker } from '@/lib/design-system/components'
-import { UploadCloud } from 'lucide-react'
+import { UploadCloud, Save, HelpCircle } from 'lucide-react'
 import { RecordingInput } from '@/components/RecordingInput'
 import { FileUpload } from '@/components/FileUpload'
 import { UploadProgress } from '@/components/UploadProgress'
@@ -262,7 +262,7 @@ export default function NewDailyPaperPage() {
                 <div className="rounded-2xl border border-dashed border-[#333] bg-[#131313] p-5 md:p-6">
                   <Stack gap="md" className="items-center text-center text-neutral-300">
                     <div className="flex justify-center">
-                      <UploadCloud className="h-6 w-6 text-[#14B8A6]" />
+                      <UploadCloud className="h-6 w-6 text-primary-500" />
                     </div>
                     <span className="text-sm">
                       Add a photo or PDF if you filled the printed Daily Paper.
@@ -273,6 +273,7 @@ export default function NewDailyPaperPage() {
                       maxFiles={1}
                       maxSize={50}
                       label={hasAttachment ? 'Replace attachment' : 'Upload attachment'}
+                      variant="ghost"
                       onUpload={(files) => {
                         setAttachmentFiles(files.slice(0, 1))
                         resetUploadState()
@@ -309,8 +310,9 @@ export default function NewDailyPaperPage() {
                 </div>
               )}
 
-              <div className="flex justify-center">
-                <Button type="submit" size="md" loading={isSubmitting || isSaving}>
+              <div className="flex justify-end">
+                <Button type="submit" size="md" loading={isSubmitting || isSaving} className="flex items-center gap-2">
+                  <Save className="w-4 h-4" />
                   Save Daily Paper
                 </Button>
               </div>
@@ -328,11 +330,13 @@ export default function NewDailyPaperPage() {
             </p>
             <div className="flex justify-center">
               <Button
-                variant="secondary"
+                variant="ghost"
                 size="sm"
                 onClick={() => router.push('/daily-paper/resources')}
+                className="flex items-center justify-center gap-2"
               >
-                Open resources
+                <HelpCircle className="w-4 h-4" />
+                Resources
               </Button>
             </div>
           </Stack>

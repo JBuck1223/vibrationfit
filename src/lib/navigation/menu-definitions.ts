@@ -134,7 +134,7 @@ export const userNavigation: NavItem[] = [
   {
     name: 'Journal',
     href: '/journal',
-    icon: FileText,
+    icon: BookOpen,
     hasDropdown: true,
     description: 'Conscious creation journal',
     children: [
@@ -149,7 +149,7 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Track your daily progress and abundance',
     children: [
-      { name: 'Daily Paper', href: '/daily-paper', icon: BookOpen },
+      { name: 'Daily Paper', href: '/daily-paper', icon: FileText },
       { name: 'Abundance Tracker', href: '/abundance-tracker', icon: Star },
     ]
   },
@@ -355,7 +355,7 @@ export const mobileNavigation: NavItem[] = [
   {
     name: 'Journal',
     href: '/journal',
-    icon: FileText,
+    icon: BookOpen,
     description: 'Journal',
   },
   {

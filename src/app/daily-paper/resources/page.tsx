@@ -11,14 +11,14 @@ import {
   Video,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowLeft, Download, Heart, Target, Sparkles } from 'lucide-react'
+import { ArrowLeft, Download, Heart, Target, Sparkles, Plus } from 'lucide-react'
 
 const HALF_PAGE_PDF =
   'https://media.vibrationfit.com/site-assets/processes/daily-paper/daily-paper-for-print.pdf'
 const FULL_PAGE_PDF =
   'https://media.vibrationfit.com/site-assets/processes/daily-paper/full-page-daily-paper.pdf'
 const DAILY_PAPER_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/resources/daily-paper-v1.mp4'
+  'https://media.vibrationfit.com/site-assets/video/resources/daily-paper-1080p.mp4'
 
 export default function DailyPaperResourcesPage() {
   return (
@@ -41,8 +41,11 @@ export default function DailyPaperResourcesPage() {
                   Back to archive
                 </Link>
               </Button>
-              <Button size="md" asChild>
-                <Link href="/daily-paper/new">New entry</Link>
+              <Button variant="outline" size="sm" className="flex items-center gap-2" asChild>
+                <Link href="/daily-paper/new">
+                  <Plus className="w-4 h-4" />
+                  Add entry
+                </Link>
               </Button>
             </Inline>
           </Stack>
