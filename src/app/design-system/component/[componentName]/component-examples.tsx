@@ -627,6 +627,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <TrackingMilestoneCard
                     label="Sync Status"
+                    value="Manual"
                     theme="neutral"
                     action={
                       <Button
@@ -641,6 +642,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   />
                   <TrackingMilestoneCard
                     label="Quick Action"
+                    value="Action"
                     theme="primary"
                     action={
                       <Button
@@ -655,6 +657,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   />
                   <TrackingMilestoneCard
                     label="Download"
+                    value="Available"
                     theme="secondary"
                     action={
                       <Button
@@ -694,6 +697,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   />
                   <TrackingMilestoneCard
                     label="Sync"
+                    value="Manual"
                     theme="neutral"
                     action={
                       <Button
