@@ -1,4 +1,9 @@
-<!-- 30d4943b-9c43-4a24-be6f-6dcd2433db82 c46174fa-f1ec-43c2-a9b8-e3b606b6d2a4 -->
+---
+name: Dynamic Community + Conscious Progress System
+overview: ""
+todos: []
+---
+
 # Dynamic Community + Conscious Progress System
 
 ## Core Philosophy
