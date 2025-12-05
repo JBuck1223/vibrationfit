@@ -17,7 +17,7 @@ if [ "$machine" == "1" ]; then
     BRANCH="jordan"
     MACHINE_NAME="Machine 1"
 elif [ "$machine" == "2" ]; then
-    BRANCH="vanessa"
+    BRANCH="Vanessa"
     MACHINE_NAME="Machine 2"
 else
     echo "❌ Invalid selection. Please run again and choose 1 or 2."
@@ -44,7 +44,7 @@ git log -1 --oneline
 echo ""
 echo "💡 Tips:"
 echo "   - Commit often: git add -A && git commit -m 'your message'"
-echo "   - Save work: ./scripts/git-workflow/save-work.sh"
-echo "   - Merge to dev: ./scripts/git-workflow/merge-to-dev.sh"
+echo "   - Save work: ./workflow/save-work.sh"
+echo "   - Merge to dev: ./workflow/merge-to-dev.sh"
 echo ""
 

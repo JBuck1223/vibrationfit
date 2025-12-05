@@ -28,8 +28,8 @@ echo "✅ Build successful after jordan merge"
 echo ""
 
 # Step 3: Merge Vanessa into dev
-echo "Step 3/6: Merging vanessa into dev..."
-git merge vanessa --no-edit
+echo "Step 3/6: Merging Vanessa into dev..."
+git merge Vanessa --no-edit
 echo "✅ Vanessa merged into dev"
 echo ""
 
@@ -54,10 +54,10 @@ git merge dev --no-edit
 git push origin jordan
 echo "✅ Jordan synced with dev"
 
-# Sync to vanessa
-git checkout vanessa
+# Sync to Vanessa
+git checkout Vanessa
 git merge dev --no-edit
-git push origin vanessa
+git push origin Vanessa
 echo "✅ Vanessa synced with dev"
 echo ""
 
@@ -66,8 +66,8 @@ git checkout "$CURRENT_BRANCH"
 
 echo "✨ SUCCESS! All branches are now in sync:"
 echo "   - jordan ✅"
-echo "   - vanessa ✅"
+echo "   - Vanessa ✅"
 echo "   - dev ✅"
 echo ""
-echo "You can continue working on jordan or vanessa!"
+echo "You can continue working on jordan or Vanessa!"
 

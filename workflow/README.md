@@ -15,7 +15,7 @@ vanessa (Machine 2) ─┘
 ### 1. Starting Work on a Machine
 
 ```bash
-./scripts/git-workflow/start-work.sh
+./workflow/start-work.sh
 ```
 
 This will:
@@ -26,7 +26,7 @@ This will:
 ### 2. Saving Your Work
 
 ```bash
-./scripts/git-workflow/save-work.sh
+./workflow/save-work.sh
 ```
 
 This will:
@@ -37,7 +37,7 @@ This will:
 ### 3. Merging to Dev (Integration Point)
 
 ```bash
-./scripts/git-workflow/merge-to-dev.sh
+./workflow/merge-to-dev.sh
 ```
 
 This will:
@@ -54,7 +54,7 @@ This will:
 ### 4. Deploying to Production
 
 ```bash
-./scripts/git-workflow/deploy-to-main.sh
+./workflow/deploy-to-main.sh
 ```
 
 This will:
@@ -80,14 +80,14 @@ git commit -m "feat: your changes"
 git push origin jordan
 ```
 
-**On Machine 2 (vanessa):**
+**On Machine 2 (Vanessa):**
 ```bash
-git checkout vanessa
-git pull origin vanessa
+git checkout Vanessa
+git pull origin Vanessa
 # work, make changes
 git add -A
 git commit -m "feat: your changes"
-git push origin vanessa
+git push origin Vanessa
 ```
 
 ### Integration to Dev
@@ -98,7 +98,7 @@ git checkout dev
 git pull origin dev
 git merge jordan
 npm run build
-git merge vanessa
+git merge Vanessa
 npm run build
 git push origin dev
 
@@ -107,9 +107,9 @@ git checkout jordan
 git merge dev
 git push origin jordan
 
-git checkout vanessa
+git checkout Vanessa
 git merge dev
-git push origin vanessa
+git push origin Vanessa
 ```
 
 ### Deploy to Production
@@ -137,7 +137,7 @@ If you get merge conflicts during `merge-to-dev.sh`:
    ```bash
    git add .
    git commit -m "Resolve merge conflict"
-   ./scripts/git-workflow/merge-to-dev.sh
+   ./workflow/merge-to-dev.sh
    ```
 
 ### Script Permissions
@@ -145,7 +145,7 @@ If you get merge conflicts during `merge-to-dev.sh`:
 If you get "Permission denied" errors, make scripts executable:
 
 ```bash
-chmod +x scripts/git-workflow/*.sh
+chmod +x workflow/*.sh
 ```
 
 ### Starting Fresh
@@ -170,8 +170,8 @@ git checkout -b messy-branch
 ## Branch Purpose
 
 - **jordan** - Work from Machine 1
-- **vanessa** - Work from Machine 2
-- **dev** - Integration/staging (jordan + vanessa)
+- **Vanessa** - Work from Machine 2
+- **dev** - Integration/staging (jordan + Vanessa)
 - **main** - Production (deployed to Vercel)
 
 ## Safety Features

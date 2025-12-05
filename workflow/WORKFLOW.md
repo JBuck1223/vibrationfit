@@ -12,22 +12,22 @@ Vanessa (Machine 2) ─┘
 
 ### Start Working
 ```bash
-./scripts/git-workflow/start-work.sh
+./workflow/start-work.sh
 ```
 
 ### Save Your Work
 ```bash
-./scripts/git-workflow/save-work.sh
+./workflow/save-work.sh
 ```
 
 ### Merge to Dev (Integration Point)
 ```bash
-./scripts/git-workflow/merge-to-dev.sh
+./workflow/merge-to-dev.sh
 ```
 
 ### Deploy to Production
 ```bash
-./scripts/git-workflow/deploy-to-main.sh
+./workflow/deploy-to-main.sh
 ```
 
 ## 📋 Manual Workflow
@@ -98,15 +98,15 @@ git push origin main
 
 ## 📚 Full Documentation
 
-- Helper Scripts: `scripts/git-workflow/README.md`
+- Helper Scripts: `workflow/README.md`
 - Detailed Guide: `.cursor/plans/two_machine_git_workflow_91e81ce4.plan.md`
 
 ## ⚠️ Important Notes
 
 - **main** = Production (Vercel auto-deploys)
 - **dev** = Staging (test here first)
-- **jordan** = Your Machine 1 work
-- **Vanessa** = Your Machine 2 work
+- **jordan** = Machine 1 work
+- **Vanessa** = Machine 2 work
 
 Always merge through dev before going to main!
 
