@@ -704,74 +704,6 @@ export const FeatureCard = React.forwardRef<HTMLDivElement, FeatureCardProps>(
 )
 FeatureCard.displayName = 'FeatureCard'
 
-// TrackingMilestoneCard Component - Metric card with themed border/background for tracking stats
-interface TrackingMilestoneCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  label: string
-  value: string | number
-  theme?: 'primary' | 'secondary' | 'accent' | 'neutral'
-  action?: React.ReactNode
-}
-
-export const TrackingMilestoneCard = React.forwardRef<HTMLDivElement, TrackingMilestoneCardProps>(
-  ({ label, value, theme = 'neutral', action, className = '', ...props }, ref) => {
-    // Theme configurations using design tokens
-    const themes = {
-      primary: {
-        border: 'border-[#199D67]/25',
-        bg: 'bg-[#199D67]/10',
-        labelColor: 'text-[#5EC49A]'
-      },
-      secondary: {
-        border: 'border-[#14B8A6]/25',
-        bg: 'bg-[#14B8A6]/10',
-        labelColor: 'text-[#2DD4BF]'
-      },
-      accent: {
-        border: 'border-[#8B5CF6]/25',
-        bg: 'bg-[#8B5CF6]/10',
-        labelColor: 'text-[#C4B5FD]'
-      },
-      neutral: {
-        border: 'border-[#333]',
-        bg: 'bg-[#121212]',
-        labelColor: 'text-neutral-400'
-      }
-    }
-    
-    const currentTheme = themes[theme]
-    
-    return (
-      <div 
-        ref={ref}
-        className={cn(
-          'rounded-2xl border p-4',
-          currentTheme.border,
-          currentTheme.bg,
-          className
-        )}
-        {...props}
-      >
-        <p className={cn(
-          'text-xs uppercase tracking-[0.3em]',
-          currentTheme.labelColor
-        )}>
-          {label}
-        </p>
-        {action ? (
-          <div className="mt-3">
-            {action}
-          </div>
-        ) : (
-          <p className="mt-3 text-2xl md:text-3xl font-semibold text-white">
-            {value}
-          </p>
-        )}
-      </div>
-    )
-  }
-)
-TrackingMilestoneCard.displayName = 'TrackingMilestoneCard'
-
 // CategoryCard Component - Square category selection card with icon and label
 // Optimized for mobile with minimal padding to maintain square aspect ratio
 interface CategoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -861,7 +793,7 @@ CategoryCard.displayName = 'CategoryCard'
 // Button Component
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode
-  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'danger' | 'ghost-yellow' | 'ghost-blue' | 'ghost-purple'
+  variant?: 'primary' | 'secondary' | 'accent' | 'draft' | 'ghost' | 'outline' | 'outline-purple' | 'outline-yellow' | 'danger' | 'ghost-yellow' | 'ghost-blue' | 'ghost-purple'
   size?: 'sm' | 'md' | 'lg' | 'xl'
   fullWidth?: boolean
   loading?: boolean
@@ -887,6 +819,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         bg-[#BF00FF] text-white font-semibold
         border-2 border-transparent
         hover:bg-[rgba(191,0,255,0.1)] hover:text-[#BF00FF] hover:border-[rgba(191,0,255,0.2)]
+        active:opacity-80
+      `,
+      draft: `
+        bg-[#FFFF00] text-black font-semibold
+        border-2 border-transparent
+        hover:bg-[rgba(255,255,0,0.1)] hover:text-[#FFFF00] hover:border-[rgba(255,255,0,0.2)]
         active:opacity-80
       `,
       ghost: `
@@ -916,6 +854,16 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       outline: `
         bg-transparent border-2 border-[#39FF14] text-[#39FF14]
         hover:bg-[#39FF14] hover:text-black
+        active:opacity-80
+      `,
+      'outline-purple': `
+        bg-transparent border-2 border-[#BF00FF] text-[#BF00FF]
+        hover:bg-[#BF00FF] hover:text-white
+        active:opacity-80
+      `,
+      'outline-yellow': `
+        bg-transparent border-2 border-[#FFFF00] text-[#FFFF00]
+        hover:bg-[#FFFF00] hover:text-black
         active:opacity-80
       `,
       danger: `
@@ -1432,10 +1380,14 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     return null
   }
 
+  // Add extra left padding when wide letter spacing is used for optical balance
+  const hasWideTracking = className.includes('tracking-')
+  
   return (
     <span 
       className={cn(
-        'inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border',
+        'inline-flex items-center justify-center py-1 rounded-full text-xs md:text-sm font-semibold border',
+        hasWideTracking ? 'px-3 pl-4' : 'px-3',
         className
       )}
       style={styles}
@@ -5827,6 +5779,213 @@ export const PageTitles = React.forwardRef<HTMLDivElement, PageTitlesProps>(
 PageTitles.displayName = 'PageTitles'
 
 // ============================================================================
+// PAGE HEADER COMPONENT
+// Centered header with eyebrow, title, badges, and actions
+// Based on life-vision/[id] page header pattern
+// ============================================================================
+
+export interface PageHeaderBadge {
+  label: React.ReactNode
+  variant?: BadgeProps['variant']
+  icon?: LucideIcon
+  className?: string
+}
+
+export interface PageHeaderMetaItem {
+  label: string
+  value: string | number
+  icon?: LucideIcon
+  className?: string
+}
+
+export interface PageHeaderAction {
+  label: string
+  onClick?: () => void
+  href?: string
+  variant?: ButtonProps['variant']
+  size?: ButtonProps['size']
+  icon?: LucideIcon
+  loading?: boolean
+  disabled?: boolean
+  className?: string
+}
+
+interface PageHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  eyebrow?: React.ReactNode
+  title: React.ReactNode
+  subtitle?: React.ReactNode
+  badges?: PageHeaderBadge[]
+  metaItems?: PageHeaderMetaItem[]
+  actions?: PageHeaderAction[]
+  gradient?: boolean
+  children?: React.ReactNode
+}
+
+export const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
+  (
+    {
+      eyebrow,
+      title,
+      subtitle,
+      badges = [],
+      metaItems = [],
+      actions = [],
+      gradient = true,
+      className = '',
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    const hasBadgesOrMeta = badges.length > 0 || metaItems.length > 0
+    const hasActions = actions.length > 0
+
+    return (
+      <div
+        ref={ref}
+        className={cn('w-full', className)}
+        {...props}
+      >
+        {/* Background Gradient (optional) */}
+        {gradient && (
+          <div className="absolute inset-0 bg-gradient-to-b from-primary-500/5 via-transparent to-transparent pointer-events-none" />
+        )}
+
+        {/* Content */}
+        <div className="relative z-10">
+          {/* Eyebrow */}
+          {eyebrow && (
+            <div className="text-center mb-4">
+              <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                {eyebrow}
+              </div>
+            </div>
+          )}
+
+          {/* Title Section */}
+          <div className="text-center mb-4">
+            <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
+                {subtitle}
+              </p>
+            )}
+          </div>
+
+          {/* Badges & Meta Items */}
+          {hasBadgesOrMeta && (
+            <div className="text-center mb-6">
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                {/* Badges */}
+                {badges.map((badge, index) => {
+                  const BadgeIcon = badge.icon
+                  return (
+                    <Badge
+                      key={`badge-${index}`}
+                      variant={badge.variant ?? 'primary'}
+                      className={cn('uppercase tracking-[0.25em]', badge.className)}
+                    >
+                      {BadgeIcon && (
+                        <Icon icon={BadgeIcon} size="sm" className="mr-1" />
+                      )}
+                      {badge.label}
+                    </Badge>
+                  )
+                })}
+
+                {/* Meta Items */}
+                {metaItems.map((item, index) => {
+                  const MetaIcon = item.icon
+                  return (
+                    <div
+                      key={`meta-${index}`}
+                      className={cn(
+                        'flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm',
+                        item.className
+                      )}
+                    >
+                      {MetaIcon && (
+                        <Icon icon={MetaIcon} size="sm" className="text-neutral-500" />
+                      )}
+                      <span className="font-medium">{item.label}:</span>
+                      <span>{item.value}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          {hasActions && (
+            <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+              {actions.map((action, index) => {
+                const ActionIcon = action.icon
+                const key = `action-${index}`
+
+                if (action.href) {
+                  return (
+                    <Button
+                      key={key}
+                      variant={action.variant ?? 'outline'}
+                      size={action.size ?? 'sm'}
+                      disabled={action.disabled}
+                      loading={action.loading}
+                      className={cn(
+                        'flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm',
+                        action.className
+                      )}
+                      asChild
+                    >
+                      <Link href={action.href}>
+                        {ActionIcon && (
+                          <Icon icon={ActionIcon} size="sm" className="shrink-0" />
+                        )}
+                        <span>{action.label}</span>
+                      </Link>
+                    </Button>
+                  )
+                }
+
+                return (
+                  <Button
+                    key={key}
+                    onClick={action.onClick}
+                    variant={action.variant ?? 'outline'}
+                    size={action.size ?? 'sm'}
+                    disabled={action.disabled}
+                    loading={action.loading}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm',
+                      action.className
+                    )}
+                  >
+                    {ActionIcon && !action.loading && (
+                      <Icon icon={ActionIcon} size="sm" className="shrink-0" />
+                    )}
+                    <span>{action.label}</span>
+                  </Button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Custom Children */}
+          {children && (
+            <div className="mt-6">
+              {children}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+)
+PageHeader.displayName = 'PageHeader'
+
+// ============================================================================
 // TOGGLE COMPONENT
 // ============================================================================
 
@@ -7118,4 +7277,56 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
   }
 )
 SwipeableCards.displayName = 'SwipeableCards'
+
+// ============================================================================
+// TrackingMilestoneCard - Metric display card with themed styling
+// ============================================================================
+
+interface TrackingMilestoneCardProps {
+  label: string
+  value?: string | number
+  theme?: 'primary' | 'secondary' | 'accent' | 'neutral'
+  action?: React.ReactNode
+}
+
+export const TrackingMilestoneCard: React.FC<TrackingMilestoneCardProps> = ({
+  label,
+  value,
+  theme = 'primary',
+  action
+}) => {
+  const themeColors = {
+    primary: 'border-[#199D67]/25 bg-[#199D67]/10',
+    secondary: 'border-[#14B8A6]/25 bg-[#14B8A6]/10',
+    accent: 'border-[#8B5CF6]/25 bg-[#8B5CF6]/10',
+    neutral: 'border-[#666666]/25 bg-[#666666]/10'
+  }
+
+  const textColors = {
+    primary: 'text-[#5EC49A]',
+    secondary: 'text-[#2DD4BF]',
+    accent: 'text-[#C4B5FD]',
+    neutral: 'text-neutral-400'
+  }
+
+  return (
+    <div className={`rounded-2xl border-2 p-4 md:p-6 lg:p-8 ${themeColors[theme]}`}>
+      <div className="space-y-2">
+        <p className={`text-xs uppercase tracking-[0.2em] ${textColors[theme]}`}>
+          {label}
+        </p>
+        {value !== undefined && (
+          <p className="text-2xl md:text-3xl font-bold text-white">
+            {value}
+          </p>
+        )}
+        {action && (
+          <div className="mt-3">
+            {action}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 

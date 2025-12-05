@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, CreatedDateBadge, StatusBadge } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -22,7 +22,7 @@ import { PossessionsLifestyleSection } from '../../components/PossessionsLifesty
 import { SpiritualityGrowthSection } from '../../components/SpiritualityGrowthSection'
 import { GivingLegacySection } from '../../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, FileText, User, Camera, Check } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, FileText, User, Camera, Check, CalendarDays } from 'lucide-react'
 
 export default function ProfileEditPage() {
   const router = useRouter()
@@ -850,71 +850,59 @@ export default function ProfileEditPage() {
     <>
       {/* Header */}
       <div className="mb-8">
-        {/* Mobile Header */}
-        <div className="md:hidden space-y-4 mb-4">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-white">Edit Profile</h1>
-            </div>
-            {/* Badge Row */}
-            {profileId && profile && Object.keys(profile).length > 0 && badgeCreatedAt && (
-              <div className="text-center mb-2">
-                <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                  <VersionBadge
-                    versionNumber={badgeVersionNumber}
-                    status={displayStatus}
-                  />
-                  <CreatedDateBadge createdAt={badgeCreatedAt} />
-                  <StatusBadge
-                    status={displayStatus}
-                    subtle={displayStatus !== 'active'}
-                  />
-                  {/* Profile Completion Percentage */}
-                  <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
-                    {badgeCompletionPercentage}%
-                  </span>
+        {/* Subtle Gradient Background */}
+        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+          {/* Modern Enhanced Layout with Card Container */}
+          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            
+            <div className="relative z-10">
+              {/* Eyebrow */}
+              <div className="text-center mb-4">
+                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                  MY PROFILE
                 </div>
               </div>
-            )}
-            {!profileId && (
-              <p className="text-neutral-400 text-sm text-center">
-                Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Desktop Header */}
-        <div className="hidden md:flex items-center gap-4 mb-4">
-          <div className="flex-1 text-center">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-white">Edit Profile</h1>
-            </div>
-            {/* Badge Row */}
-            {profileId && profile && Object.keys(profile).length > 0 && badgeCreatedAt && (
-              <div className="text-center mb-2">
-                <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                  <VersionBadge
-                    versionNumber={badgeVersionNumber}
-                    status={displayStatus}
-                  />
-                  <CreatedDateBadge createdAt={badgeCreatedAt} />
-                  <StatusBadge
-                    status={displayStatus}
-                    subtle={displayStatus !== 'active'}
-                  />
-                  {/* Profile Completion Percentage */}
-                  <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
-                    {badgeCompletionPercentage}%
-                  </span>
-                </div>
+              
+              {/* Title Section */}
+              <div className="text-center mb-4">
+                <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
+                  Edit Profile
+                </h1>
+                {!profileId && (
+                  <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
+                    Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
+                  </p>
+                )}
               </div>
-            )}
-            {!profileId && (
-              <p className="text-neutral-400 text-center">
-                Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
-              </p>
-            )}
+              
+              {/* Centered Version Info with Enhanced Styling */}
+              {profileId && profile && Object.keys(profile).length > 0 && badgeCreatedAt && (
+                <div className="text-center">
+                  {/* Version, Status & Date Badges */}
+                  <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                    <VersionBadge 
+                      versionNumber={badgeVersionNumber} 
+                      status={displayStatus} 
+                    />
+                    <StatusBadge 
+                      status={displayStatus} 
+                      subtle={displayStatus !== 'active'} 
+                      className="uppercase tracking-[0.25em]" 
+                    />
+                    <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                      <CalendarDays className="w-4 h-4 text-neutral-500" />
+                      <span className="font-medium">Created:</span>
+                      <span>{new Date(badgeCreatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                    {/* Profile Completion Percentage */}
+                    <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                      <span className="font-medium">Complete:</span>
+                      <span className="font-semibold text-[#39FF14]">{badgeCompletionPercentage}%</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

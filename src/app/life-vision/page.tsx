@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, Trash2, X, Sparkles, Zap, Target, Gem, Volume2, Download, VolumeX, Diamond, Copy } from 'lucide-react'
-import { Card, Button, Badge, ProgressBar, Spinner, Grid, CreatedDateBadge } from '@/lib/design-system/components'
+import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, X, Sparkles, Zap, Download, VolumeX, Diamond, Copy } from 'lucide-react'
+import { Card, Button, Badge, ProgressBar, Spinner, Grid, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { VisionVersionCard } from './components/VisionVersionCard'
 import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
@@ -70,9 +70,6 @@ export default function VisionListPage() {
   const [showCloneDialog, setShowCloneDialog] = useState(false)
   const [versionToClone, setVersionToClone] = useState<string | null>(null)
   const [isCloning, setIsCloning] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [versionToDelete, setVersionToDelete] = useState<string | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
 
   // Utility: add timeout to any async operation to avoid infinite loading
   const withTimeout = async <T,>(operation: Promise<T> | (() => Promise<T>), ms = 10000, label = 'operation'): Promise<T> => {
@@ -304,37 +301,6 @@ export default function VisionListPage() {
     }
   }
 
-  const handleDeleteVersion = (versionId: string) => {
-    setVersionToDelete(versionId)
-    setShowDeleteDialog(true)
-  }
-
-  const confirmDelete = async () => {
-    if (!versionToDelete) return
-    
-    setIsDeleting(true)
-    setShowDeleteDialog(false)
-    
-    try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('vision_versions')
-        .delete()
-        .eq('id', versionToDelete)
-
-      if (error) throw error
-
-      // Refresh the vision to get updated versions list
-      await fetchVision()
-    } catch (error) {
-      console.error('Error deleting version:', error)
-      alert('Failed to delete version. Please try again.')
-    } finally {
-      setIsDeleting(false)
-      setVersionToDelete(null)
-    }
-  }
-
   const handleCloneVersion = async (versionId: string) => {
     try {
       const supabase = createClient()
@@ -547,40 +513,22 @@ export default function VisionListPage() {
 
         {/* Stats Cards */}
         {activeVision && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
-                  <Target className="w-6 h-6 text-primary-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{versions.length}</p>
-                  <p className="text-xs text-neutral-400">Vision Versions</p>
-                </div>
-              </div>
-            </Card>
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center">
-                  <Gem className="w-6 h-6 text-secondary-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{refinementsCount}</p>
-                  <p className="text-xs text-neutral-400">Refinements</p>
-                </div>
-              </div>
-            </Card>
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center">
-                  <Volume2 className="w-6 h-6 text-accent-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{audiosCount}</p>
-                  <p className="text-xs text-neutral-400">Audios</p>
-                </div>
-              </div>
-            </Card>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+            <TrackingMilestoneCard
+              label="Vision Versions"
+              value={versions.length}
+              theme="primary"
+            />
+            <TrackingMilestoneCard
+              label="Refinements"
+              value={refinementsCount}
+              theme="secondary"
+            />
+            <TrackingMilestoneCard
+              label="Audios"
+              value={audiosCount}
+              theme="accent"
+            />
           </div>
         )}
 
@@ -601,7 +549,6 @@ export default function VisionListPage() {
                     key={`${version.id}-${index}`}
                     version={version}
                     isActive={isActive}
-                    onDelete={handleDeleteVersion}
                     actions={
                         <>
                           {isDraftVersion ? (
@@ -753,58 +700,6 @@ export default function VisionListPage() {
                 <p className="text-neutral-400">
                   Cloning your vision as a draft
                 </p>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Delete Confirmation Dialog */}
-        {showDeleteDialog && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-md w-full">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-white">
-                  Delete Version?
-                </h3>
-                <button
-                  onClick={() => setShowDeleteDialog(false)}
-                  className="text-neutral-400 hover:text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <p className="text-neutral-300 mb-6">
-                Are you sure you want to delete this vision version? This action cannot be undone.
-              </p>
-              
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDeleteDialog(false)}
-                  disabled={isDeleting}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={confirmDelete}
-                  disabled={isDeleting}
-                  className="flex-1 gap-2"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Sparkles className="w-4 h-4 animate-spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4" />
-                      Delete Version
-                    </>
-                  )}
-                </Button>
               </div>
             </Card>
           </div>

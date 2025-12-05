@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Button, Badge } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { Zap, TrendingUp, Activity, Plus, ArrowRight, History } from 'lucide-react'
 import Link from 'next/link'
 
@@ -134,72 +134,22 @@ export default function TokensPage() {
       ) : (
         <div>
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {/* Current Balance */}
-            <Card className="p-4 md:p-6 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-2 border-primary-500/30">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">
-                  Current Balance
-                </h3>
-                <Zap className="w-5 h-5 text-energy-500" />
-              </div>
-              <div className="mb-4">
-                <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1">
-                  {formatCredits(balance, true)}
-                </div>
-                <div className="text-sm text-neutral-500">
-                  {formatCredits(balance)} credits
-                </div>
-              </div>
-              
-              {/* Progress Bar */}
-              {stats?.totalGranted > 0 && (
-                <>
-                  <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden mb-3">
-                    <div
-                      className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 transition-all duration-500"
-                      style={{ width: `${balancePercentage}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-neutral-500">
-                    {balancePercentage.toFixed(0)}% of total allocation
-                  </p>
-                </>
-              )}
-            </Card>
-
-            {/* Total Used */}
-            <Card className="p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">
-                  Credits Used
-                </h3>
-                <Activity className="w-5 h-5 text-secondary-500" />
-              </div>
-              <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1">
-                {formatCredits(stats?.totalUsed || 0, true)}
-              </div>
-              <div className="text-sm text-neutral-500">
-                Lifetime usage
-              </div>
-            </Card>
-
-            {/* Total Granted */}
-            <Card className="p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">
-                  Total Granted
-                </h3>
-                <TrendingUp className="w-5 h-5 text-accent-500" />
-              </div>
-              <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1">
-                {formatCredits(stats?.totalGranted || 0, true)}
-              </div>
-              <div className="text-sm text-neutral-500">
-                Lifetime allocation
-              </div>
-            </Card>
-
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+            <TrackingMilestoneCard
+              label="Available Credits"
+              value={formatCredits(balance, true)}
+              theme="primary"
+            />
+            <TrackingMilestoneCard
+              label="Credits Used"
+              value={formatCredits(stats?.totalUsed || 0, true)}
+              theme="secondary"
+            />
+            <TrackingMilestoneCard
+              label="Total Granted"
+              value={formatCredits(stats?.totalGranted || 0, true)}
+              theme="accent"
+            />
           </div>
 
           {/* Usage Breakdown */}
