@@ -43,6 +43,7 @@ export {
   Text,
   Title,
   PageTitles,
+  PageHeader,
   
   // List Components
   BulletedList,

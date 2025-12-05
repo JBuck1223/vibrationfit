@@ -14,8 +14,8 @@ import {
   Icon,
   VersionBadge,
   StatusBadge,
-  CreatedDateBadge,
-  WarningConfirmationDialog
+  WarningConfirmationDialog,
+  Badge
 } from '@/lib/design-system/components'
 import { VisionCategoryCard } from '../../components/VisionCategoryCard'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -406,7 +406,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                   Refine Your Life Vision
                 </h1>
                 <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
-                  Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision"
+                  Refined categories will show in yellow. Once you are happy with your refinements, click "Commit as Active Vision".
                 </p>
               </div>
               
@@ -418,15 +418,17 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                     versionNumber={vision.version_number} 
                     status="draft" 
                   />
-                  <CreatedDateBadge createdAt={vision.created_at} />
-                  <StatusBadge status="draft" subtle={false} />
+                  <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
+                  <span className="text-neutral-300 text-xs md:text-sm">
+                    Created: {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                  </span>
                   {refinedCount > 0 && (
-                    <div 
-                      className="px-2 py-1 rounded-lg text-xs font-semibold"
-                      style={{ backgroundColor: `${NEON_YELLOW}20`, color: NEON_YELLOW }}
+                    <Badge 
+                      variant="warning" 
+                      className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
                     >
-                      {refinedCount} Refined
-                    </div>
+                      {refinedCount} of {VISION_CATEGORIES.length} Refined
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -444,9 +446,9 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                 </Button>
                 <Button
                   asChild
-                  variant="outline"
+                  variant="outline-purple"
                   size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm bg-[#FFFF00]/20 text-[#FFFF00] hover:bg-[#FFFF00]/30"
+                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
                 >
                   <Link href={`/life-vision/${vision.id}/refine`}>
                     <Icon icon={Gem} size="sm" className="shrink-0" />

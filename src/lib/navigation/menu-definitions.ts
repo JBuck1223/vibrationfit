@@ -57,6 +57,8 @@ import {
   Kanban,
   UserCheck,
   UsersRound,
+  BookOpen,
+  Star,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -132,12 +134,23 @@ export const userNavigation: NavItem[] = [
   {
     name: 'Journal',
     href: '/journal',
-    icon: FileText,
+    icon: BookOpen,
     hasDropdown: true,
     description: 'Conscious creation journal',
     children: [
       { name: 'My Journal', href: '/journal', icon: Zap },
       { name: 'New Entry', href: '/journal/new', icon: Plus },
+    ]
+  },
+  {
+    name: 'Tracking',
+    href: '/daily-paper',
+    icon: TrendingUp,
+    hasDropdown: true,
+    description: 'Track your daily progress and abundance',
+    children: [
+      { name: 'Daily Paper', href: '/daily-paper', icon: FileText },
+      { name: 'Abundance Tracker', href: '/abundance-tracker', icon: Star },
     ]
   },
   {
@@ -342,7 +355,7 @@ export const mobileNavigation: NavItem[] = [
   {
     name: 'Journal',
     href: '/journal',
-    icon: FileText,
+    icon: BookOpen,
     description: 'Journal',
   },
   {

@@ -12,8 +12,9 @@ import {
   Badge,
   Text,
   TrackingMilestoneCard,
+  PageHeader,
 } from '@/lib/design-system/components'
-import { ArrowRight, RefreshCcw, FileText, Sparkles } from 'lucide-react'
+import { ArrowRight, RefreshCcw, FileText, HelpCircle, Plus, Sparkles } from 'lucide-react'
 import { DailyPaperEntry, useDailyPaperEntries } from '@/hooks/useDailyPaper'
 
 const PREVIEW_LENGTH = 180
@@ -81,27 +82,35 @@ export default function DailyPaperIndexPage() {
   }
 
   const EmptyState = () => (
-    <Card variant="outlined" className="bg-[#111111] border-dashed border-[#333]">
+    <Card className="max-w-md mx-auto">
       <Stack gap="md" className="items-center text-center">
-        <Sparkles className="w-10 h-10 text-[#8B5CF6]" />
+        <FileText className="w-16 h-16 text-neutral-400 mx-auto" />
         <Text size="lg" className="text-white font-semibold">
           No Daily Papers yet
         </Text>
         <p className="text-sm text-neutral-400 max-w-sm">
-          Start with gratitude, set three aligned actions, and add one fun promise.
+          Start with gratitude, align three actions and focus on the fun.
         </p>
-        <Inline gap="sm" className="justify-center">
-          <Button size="md" onClick={() => router.push('/journal/daily-paper/new')}>
-            Create today&apos;s Daily Paper
+        <div className="flex flex-col md:flex-row gap-3 w-full justify-center">
+          <Button 
+            variant="primary"
+            size="sm"
+            onClick={() => router.push('/daily-paper/new')}
+            className="w-full md:w-auto md:min-w-[200px] flex items-center justify-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add entry
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/journal/daily-paper/resources')}
+            onClick={() => router.push('/daily-paper/resources')}
+            className="w-full md:w-auto md:min-w-[200px] flex items-center justify-center gap-2"
           >
-            View quick guide
+            <HelpCircle className="w-4 h-4" />
+            Resources
           </Button>
-        </Inline>
+        </div>
       </Stack>
     </Card>
   )
@@ -109,40 +118,43 @@ export default function DailyPaperIndexPage() {
   return (
     <Container size="xl">
       <Stack gap="xl">
-        <section className="space-y-5">
-          <Inline gap="sm" className="text-xs uppercase tracking-[0.35em] text-neutral-400">
-            <Badge variant="success">Daily Paper</Badge>
-            <Badge variant="accent">Voice Ready</Badge>
-          </Inline>
-          <div className="space-y-3">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white">
-              Daily Paper
-            </h1>
-            <p className="text-sm md:text-base text-neutral-300 max-w-2xl">
-              Capture gratitude, align three actions, and mark a fun moment. Your archive keeps the story tight and easy to review.
-            </p>
-            {metrics.mostRecent && (
-              <p className="text-xs md:text-sm text-neutral-500">
-                Last entry·{' '}
-                {formatDateLabel(metrics.mostRecent.entry_date)}
-              </p>
-            )}
+        {/* Gradient Card Container */}
+        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+          <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <PageHeader
+              eyebrow="STAY ON TRACK"
+              title="Daily Paper"
+              subtitle="Start with gratitude, align three actions and focus on the fun."
+              metaItems={metrics.mostRecent ? [
+                {
+                  label: 'Last entry',
+                  value: formatDateLabel(metrics.mostRecent.entry_date)
+                }
+              ] : []}
+              actions={[
+                {
+                  label: 'Add entry',
+                  icon: Plus,
+                  iconPosition: 'left',
+                  onClick: () => router.push('/daily-paper/new'),
+                  variant: 'outline',
+                  size: 'sm',
+                },
+                {
+                  label: 'Resources',
+                  icon: HelpCircle,
+                  iconPosition: 'left',
+                  onClick: () => router.push('/daily-paper/resources'),
+                  variant: 'outline',
+                  size: 'sm',
+                }
+              ]}
+              gradient={false}
+            />
           </div>
-          <Inline gap="sm">
-            <Button size="md" onClick={() => router.push('/journal/daily-paper/new')}>
-              Start today
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/journal/daily-paper/resources')}
-            >
-              Resources
-            </Button>
-          </Inline>
-        </section>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <TrackingMilestoneCard
             label="Total entries"
             value={metrics.total}
@@ -157,22 +169,6 @@ export default function DailyPaperIndexPage() {
             label="Current streak"
             value={`${metrics.streak} ${metrics.streak === 1 ? 'day' : 'days'}`}
             theme="accent"
-          />
-          <TrackingMilestoneCard
-            label="Sync"
-            theme="neutral"
-            action={
-              <Button
-                variant="ghost"
-                size="sm"
-                className="justify-start"
-                loading={isRefreshing}
-                onClick={handleRefresh}
-              >
-                <RefreshCcw className="mr-2 h-4 w-4" />
-                Refresh archive
-              </Button>
-            }
           />
         </div>
 
@@ -230,7 +226,7 @@ export default function DailyPaperIndexPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => router.push('/journal/daily-paper/new')}
+                          onClick={() => router.push('/daily-paper/new')}
                         >
                           Repeat flow
                           <ArrowRight className="ml-2 h-4 w-4" />
@@ -295,7 +291,7 @@ export default function DailyPaperIndexPage() {
                           </Button>
                         )}
                         <Button variant="secondary" size="sm" asChild>
-                          <Link href={`/journal/daily-paper/new?from=${entry.entry_date}`}>
+                          <Link href={`/daily-paper/new?from=${entry.entry_date}`}>
                             Bring into today
                           </Link>
                         </Button>

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye, FileText, ArrowUp } from 'lucide-react'
+import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye, FileText, ArrowUp, CalendarDays } from 'lucide-react'
 import { commitDraft, getRefinedCategories } from '@/lib/life-vision/draft-helpers'
 import { 
   Button, 
@@ -19,7 +19,6 @@ import {
   AudioPlayer,
   Stack,
   Inline,
-  CreatedDateBadge,
   StatusBadge,
   VersionBadge,
   Heading,
@@ -713,7 +712,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   </h1>
                   {displayStatus === 'draft' && (
                     <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
-                      Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision"
+                      Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision".
                     </p>
                   )}
                 </div>
@@ -726,8 +725,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       versionNumber={vision.version_number} 
                       status={displayStatus} 
                     />
-                    <CreatedDateBadge createdAt={vision.created_at} />
-                    <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} />
+                    <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} className="uppercase tracking-[0.25em]" />
+                    <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                      <CalendarDays className="w-4 h-4 text-neutral-500" />
+                      <span className="font-medium">Created:</span>
+                      <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
                   </div>
                 </div>
 

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Card, Button, Badge, Heading, Text, Stack } from '@/lib/design-system/components'
+import { Card, Button, Badge, Heading, Text, Stack, StatusBadge } from '@/lib/design-system/components'
 import { GitCompare, X } from 'lucide-react'
 
 interface VersionSelectorProps {
@@ -94,10 +94,10 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
                         Version {version.version_number}
                       </Text>
                       {version.is_draft && (
-                        <Badge variant="warning" className="text-xs">Draft</Badge>
+                        <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em] text-xs" />
                       )}
                       {version.is_active && !version.is_draft && (
-                        <Badge variant="success" className="text-xs">Active</Badge>
+                        <StatusBadge status="active" subtle={false} className="uppercase tracking-[0.25em] text-xs" />
                       )}
                     </div>
                     <Text size="xs" className="text-neutral-400">

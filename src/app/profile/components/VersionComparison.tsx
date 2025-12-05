@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, Button, Badge, Spinner, Heading, Text, Stack } from '@/lib/design-system/components'
+import { Card, Button, Badge, Spinner, Heading, Text, Stack, StatusBadge } from '@/lib/design-system/components'
 import { X, GitCompare, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface VersionComparisonProps {
@@ -167,10 +167,10 @@ export const VersionComparison: React.FC<VersionComparisonProps> = ({
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="info">Version {comparison.version1.version_number}</Badge>
             {comparison.version1.is_active && (
-              <Badge variant="success" className="text-xs">Active</Badge>
+              <StatusBadge status="active" subtle={false} className="uppercase tracking-[0.25em] text-xs" />
             )}
             {comparison.version1.is_draft && (
-              <Badge variant="warning" className="text-xs">Draft</Badge>
+              <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em] text-xs" />
             )}
           </div>
           <Text size="sm" className="text-neutral-400">
@@ -189,10 +189,10 @@ export const VersionComparison: React.FC<VersionComparisonProps> = ({
               Version {comparison.version2.version_number}
             </Badge>
             {comparison.version2.is_active && (
-              <Badge variant="success" className="text-xs">Active</Badge>
+              <StatusBadge status="active" subtle={false} className="uppercase tracking-[0.25em] text-xs" />
             )}
             {comparison.version2.is_draft && (
-              <Badge variant="warning" className="text-xs">Draft</Badge>
+              <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em] text-xs" />
             )}
           </div>
           <Text size="sm" className="text-neutral-400">
