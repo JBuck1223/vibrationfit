@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, Button, Badge, ProgressBar, Container, AIButton } from '@/lib/design-system'
+import { Card, Button, Badge, ProgressBar, Container, AIButton, TrackingMilestoneCard } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import Link from 'next/link'
 import AITokenUsage from '@/components/AITokenUsage'
@@ -482,22 +482,21 @@ export default function DashboardContent({ user, profileData, visionData, vision
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-3 rounded-lg bg-neutral-800/50">
-                <div className="text-lg font-bold text-[#FFB701]">{visionBoardData.length}</div>
-                <div className="text-xs text-neutral-400">Total</div>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-neutral-800/50">
-                <div className="text-lg font-bold text-[#00FFFF]">
-                  {visionBoardData.filter(item => item.status === 'active').length}
-                </div>
-                <div className="text-xs text-neutral-400">In Progress</div>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-neutral-800/50">
-                <div className="text-lg font-bold text-[#39FF14]">
-                  {visionBoardData.filter(item => item.status === 'actualized').length}
-                </div>
-                <div className="text-xs text-neutral-400">Actualized</div>
-              </div>
+              <TrackingMilestoneCard
+                label="Total"
+                value={visionBoardData.length}
+                theme="primary"
+              />
+              <TrackingMilestoneCard
+                label="In Progress"
+                value={visionBoardData.filter(item => item.status === 'active').length}
+                theme="secondary"
+              />
+              <TrackingMilestoneCard
+                label="Actualized"
+                value={visionBoardData.filter(item => item.status === 'actualized').length}
+                theme="accent"
+              />
             </div>
           </Card>
 

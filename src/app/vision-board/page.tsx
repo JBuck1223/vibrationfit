@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -357,54 +357,27 @@ export default function VisionBoardPage() {
         </div>
 
           {/* Stats - Responsive Grid */}
-          <div id="stats" className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-[#00FFFF]/20 rounded-full flex items-center justify-center">
-                  <span className="text-[#00FFFF] text-2xl font-bold">=</span>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{totalItems}</p>
-                  <p className="text-xs text-neutral-400">Total</p>
-                </div>
-              </div>
-            </Card>
-            
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
-                  <div className="w-4 h-4 bg-primary-500 rounded-full"></div>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{activeItems}</p>
-                  <p className="text-xs text-neutral-400">Active</p>
-                </div>
-              </div>
-            </Card>
-            
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{actualizedItems}</p>
-                  <p className="text-xs text-neutral-400">Actualized</p>
-                </div>
-              </div>
-            </Card>
-            
-            <Card variant="glass" className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-neutral-500/20 rounded-full flex items-center justify-center">
-                  <XCircle className="w-6 h-6 text-neutral-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{inactiveItems}</p>
-                  <p className="text-xs text-neutral-400">Inactive</p>
-                </div>
-              </div>
-            </Card>
+          <div id="stats" className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+            <TrackingMilestoneCard
+              label="Total"
+              value={totalItems}
+              theme="primary"
+            />
+            <TrackingMilestoneCard
+              label="Active"
+              value={activeItems}
+              theme="secondary"
+            />
+            <TrackingMilestoneCard
+              label="Actualized"
+              value={actualizedItems}
+              theme="accent"
+            />
+            <TrackingMilestoneCard
+              label="Inactive"
+              value={inactiveItems}
+              theme="neutral"
+            />
           </div>
 
         {/* Filter Toggle Button and View Toggle */}

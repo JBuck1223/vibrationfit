@@ -27,3 +27,4 @@ COMMENT ON COLUMN user_profiles.sms_opt_in_ip IS 'IP address when user opted in 
 
 
 
+

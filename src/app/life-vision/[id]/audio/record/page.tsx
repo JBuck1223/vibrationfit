@@ -242,7 +242,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
                     <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
                       V{vision.version_number}
                     </span>
-                    <StatusBadge status="active" subtle={false} showIcon={false} />
+                    <StatusBadge status="active" subtle={false} showIcon={false} className="uppercase tracking-[0.25em]" />
                     <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-[#39FF14]/20 text-[#39FF14] border-[#39FF14]/30">
                       <Mic className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
                       {completedCount} of {totalCount} recorded

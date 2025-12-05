@@ -1,10 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card } from '@/lib/design-system/components'
-import { Badge } from '@/lib/design-system/components'
-import { Button } from '@/lib/design-system/components'
-import { Spinner } from '@/lib/design-system/components'
+import { Card, Badge, Button, Spinner, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { Activity, Brain, DollarSign, Zap } from 'lucide-react'
 
 interface TokenSummary {
@@ -135,38 +132,22 @@ export default function AITokenUsage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="text-center">
-            <div className="p-3 bg-primary-500/20 rounded-lg inline-flex mb-2">
-              <Zap className="w-5 h-5 text-primary-500" />
-            </div>
-            <div className="text-2xl font-bold text-white mb-1">
-              {formatNumber(summary.total_tokens)}
-            </div>
-            <div className="text-xs text-neutral-400">Total Tokens</div>
-          </div>
-          
-          {/* Cost removed from user-facing component */}
-          
-          <div className="text-center">
-            <div className="p-3 bg-purple-500/20 rounded-lg inline-flex mb-2">
-              <Activity className="w-5 h-5 text-purple-500" />
-            </div>
-            <div className="text-2xl font-bold text-white mb-1">
-              {formatNumber(summary.actions_count)}
-            </div>
-            <div className="text-xs text-neutral-400">AI Actions</div>
-          </div>
-          
-          <div className="text-center">
-            <div className="p-3 bg-yellow-500/20 rounded-lg inline-flex mb-2">
-              <Brain className="w-5 h-5 text-yellow-500" />
-            </div>
-            <div className="text-2xl font-bold text-white mb-1">
-              {summary.actions_count}
-            </div>
-            <div className="text-xs text-neutral-400">Total Actions</div>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-6">
+          <TrackingMilestoneCard
+            label="Total Tokens"
+            value={formatNumber(summary.total_tokens)}
+            theme="primary"
+          />
+          <TrackingMilestoneCard
+            label="AI Actions"
+            value={formatNumber(summary.actions_count)}
+            theme="secondary"
+          />
+          <TrackingMilestoneCard
+            label="Total Actions"
+            value={summary.actions_count}
+            theme="accent"
+          />
         </div>
 
         {/* Feature Breakdown */}

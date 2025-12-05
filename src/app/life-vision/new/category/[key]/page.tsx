@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text } from '@/lib/design-system/components'
+import { ProfileClarityCard, ProfileContrastCard, ClarityFromContrastCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, CheckCircle, ArrowLeft, ArrowRight, ChevronDown, User, TrendingUp, RefreshCw, Mic, AlertCircle, Loader2, Video } from 'lucide-react'
-import { VISION_CATEGORIES, getVisionCategory, getCategoryFields, getCategoryStoryField } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getCategoryFields, getCategoryStoryField, getCategoryDreamField, getCategoryWorryField } from '@/lib/design-system/vision-categories'
 import { deleteSavedRecording, getRecordingsForCategory, loadSavedRecording, saveRecordingChunks } from '@/lib/storage/indexed-db-recording'
 
 interface VIVAActionCardProps {
@@ -88,6 +89,12 @@ export default function CategoryPage() {
   const [profileData, setProfileData] = useState<{
     story: string
     hasStory: boolean
+    clarity: string
+    dream: string
+    contrast: string
+    worry: string
+    hasClarityData: boolean
+    hasContrastData: boolean
   } | null>(null)
   const [assessmentData, setAssessmentData] = useState<{
     score?: number
@@ -169,9 +176,22 @@ export default function CategoryPage() {
         : undefined
       const categoryResponses = assessment?.assessment_responses?.filter((r: any) => r.category === categoryKey) || []
 
+      // Load all 4 profile field types for this category
+      const fields = getCategoryFields(categoryKey)
+      const clarityValue = profile?.[fields.clarity] || ''
+      const dreamValue = profile?.[fields.dream] || ''
+      const contrastValue = profile?.[fields.contrast] || ''
+      const worryValue = profile?.[fields.worry] || ''
+
       setProfileData({
         story: profileStory,
-        hasStory: profileStory.trim().length > 0
+        hasStory: profileStory.trim().length > 0,
+        clarity: clarityValue,
+        dream: dreamValue,
+        contrast: contrastValue,
+        worry: worryValue,
+        hasClarityData: !!(clarityValue || dreamValue),
+        hasContrastData: !!(contrastValue || worryValue)
       })
 
       setAssessmentData({
@@ -180,14 +200,8 @@ export default function CategoryPage() {
         hasData: categoryScore !== undefined || categoryResponses.length > 0
       })
 
-      // Load clarity and contrast fields for this category
-      const fields = getCategoryFields(categoryKey)
-      let contrastValue = ''
-      
+      // Set clarity and contrast state variables (already loaded in profileData above)
       if (profile) {
-        const clarityValue = profile[fields.clarity] || ''
-        contrastValue = profile[fields.contrast] || ''
-        
         setCurrentClarity(clarityValue)
         setContrastFromProfile(contrastValue)
       }
@@ -221,10 +235,10 @@ export default function CategoryPage() {
           setContrastFromProfile(existingFlip.input_text)
           setShowContrastToggle(true)
         }
-      } else if (contrastValue.trim().length > 0) {
-        // No existing flip found - auto-flip contrast if it exists
+      } else if (contrastValue.trim().length > 0 || worryValue.trim().length > 0) {
+        // No existing flip found - auto-flip contrast and/or worry if they exist
         console.log('[Exploration] No existing flip found - generating new frequency flip for', categoryKey)
-        await flipContrastToClarity(contrastValue)
+        await flipContrastToClarity(contrastValue, worryValue)
       }
 
       setLoading(false)
@@ -234,8 +248,13 @@ export default function CategoryPage() {
     }
   }
 
-  const flipContrastToClarity = async (contrastText: string) => {
-    if (!contrastText.trim()) return
+  const flipContrastToClarity = async (contrastText: string, worryText?: string) => {
+    // Combine contrast and worry for richer flip
+    const combinedInput = [contrastText, worryText]
+      .filter(text => text?.trim())
+      .join('\n\n')
+    
+    if (!combinedInput.trim()) return
 
     setIsFlippingContrast(true)
     try {
@@ -244,7 +263,7 @@ export default function CategoryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: 'flip',
-          input: contrastText,
+          input: combinedInput,
           category: categoryKey,
           save_to_db: true,
         }),
@@ -684,127 +703,37 @@ export default function CategoryPage() {
         </div>
       )}
 
-      {/* Let's Get Clear - Three Card-Based Text Blocks */}
-      {!aiSummary && (
-        <div className="mb-6 space-y-6">
-          {/* Header */}
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-[#00FFFF]/20 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-4 h-4 text-[#00FFFF]" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-base md:text-lg font-semibold text-[#00FFFF] mb-2">Let's Get Clear...</h3>
-            </div>
-          </div>
-
-          {/* Current Clarity Card */}
-          <Card className="border-2 border-[#00FFFF]/30 bg-[#00FFFF]/5">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#00FFFF]/20 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-[#00FFFF]" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-white">Current Clarity</h4>
-                  <p className="text-sm text-neutral-400">From your profile</p>
-                </div>
-              </div>
-              <AutoResizeTextarea
-                value={currentClarity}
-                onChange={(value) => setCurrentClarity(value)}
-                placeholder={`Your current clarity about ${category.label.toLowerCase()} from your profile...`}
-                className="w-full bg-neutral-800/50 border-2 border-[#00FFFF]/30 text-white placeholder-neutral-500"
-                minHeight={120}
-              />
-            </div>
-          </Card>
-
-          {/* Clarity from Contrast Card */}
-          <Card className="border-2 border-[#39FF14]/30 bg-[#39FF14]/5">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-[#39FF14]" />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-white">Clarity from Contrast</h4>
-                    <p className="text-sm text-neutral-400">Auto-generated from contrast</p>
-                  </div>
-                </div>
-                {isFlippingContrast && (
-                  <Spinner size="sm" variant="primary" />
-                )}
-              </div>
-              <AutoResizeTextarea
-                value={clarityFromContrast}
-                onChange={(value) => setClarityFromContrast(value)}
-                placeholder="This will be auto-generated from your contrast text below..."
-                className="w-full bg-neutral-800/50 border-2 border-[#39FF14]/30 text-white placeholder-neutral-500"
-                minHeight={120}
-                disabled={isFlippingContrast}
-              />
-            </div>
-          </Card>
-
-          {/* Contrast from Profile Card (Toggleable) */}
-          <Card className="border-2 border-[#FFB701]/30 bg-[#FFB701]/5">
-            <div className="space-y-4">
-              <button
-                onClick={() => setShowContrastToggle(!showContrastToggle)}
-                className="flex items-center justify-between w-full text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#FFB701]/20 rounded-xl flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-[#FFB701]" />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-white">Contrast from Profile</h4>
-                    <p className="text-sm text-neutral-400">Used to create frequency flip above</p>
-                  </div>
-                </div>
-                <ChevronDown 
-                  className={`w-5 h-5 text-white transition-transform duration-300 ${
-                    showContrastToggle ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-              {showContrastToggle && (
-                <AutoResizeTextarea
-                  value={contrastFromProfile}
-                  onChange={(value) => {
-                    setContrastFromProfile(value)
-                    // Auto-flip when contrast changes
-                    if (value.trim().length > 0) {
-                      flipContrastToClarity(value)
-                    }
-                  }}
-                  placeholder={`Your contrast text about ${category.label.toLowerCase()} from your profile...`}
-                  className="w-full bg-neutral-800/50 border-2 border-[#FFB701]/30 text-white placeholder-neutral-500"
-                  minHeight={120}
-                />
-              )}
-            </div>
-          </Card>
-
-          {/* Process with VIVA Button */}
-          {(currentClarity.trim() || clarityFromContrast.trim()) && (
-            <Card className="border-2 border-primary-500/30 bg-primary-500/5">
-              <Button
-                variant="primary"
-                size="lg"
-                className="w-full"
-                onClick={handleProcessWithVIVA}
-                disabled={isProcessing}
-                loading={isProcessing}
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Process with VIVA
-              </Button>
-            </Card>
-          )}
+      {/* New Profile Fields Cards - Clarity, Contrast, Clarity from Contrast */}
+      {!aiSummary && profileData && (
+        <div className="mb-8 space-y-4">
+          <h2 className="text-xl font-bold text-white mb-4">Your {category.label} Context</h2>
+          
+          {/* Clarity From Profile (Cyan) */}
+          <ProfileClarityCard
+            clarityText={profileData.clarity}
+            dreamText={profileData.dream}
+            categoryLabel={category.label}
+          />
+          
+          {/* Contrast from Profile (Red) */}
+          <ProfileContrastCard
+            contrastText={profileData.contrast}
+            worryText={profileData.worry}
+            categoryLabel={category.label}
+          />
+          
+          {/* Clarity from Contrast (Purple) - Full Width */}
+          <ClarityFromContrastCard
+            clarityFromContrast={clarityFromContrast}
+            categoryLabel={category.label}
+            hasContrastData={profileData.hasContrastData}
+            onGenerateClarity={() => flipContrastToClarity(profileData.contrast, profileData.worry)}
+            isGenerating={isFlippingContrast}
+          />
         </div>
       )}
+
+      {/* Let's Get Clear - Three Card-Based Text Blocks */}
 
       {/* Error Message */}
       {error && !aiSummary && (

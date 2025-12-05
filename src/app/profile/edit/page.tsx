@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import {  Button, Badge, Card } from '@/lib/design-system/components'
+import {  Button, Badge, Card, StatusBadge } from '@/lib/design-system/components'
 import { ProfileSidebar } from '../components/ProfileSidebar'
 import { PersonalInfoSection } from '../components/PersonalInfoSection'
 import { RelationshipSection } from '../components/RelationshipSection'
@@ -778,7 +778,7 @@ export default function ProfilePage() {
                             Version {version.version_number}
                           </span>
                           {version.is_draft && (
-                            <Badge variant="neutral">Draft</Badge>
+                            <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
                           )}
                         </div>
                         <p className="text-sm text-neutral-400">

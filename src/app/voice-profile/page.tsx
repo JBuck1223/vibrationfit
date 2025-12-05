@@ -13,7 +13,10 @@ import {
   Textarea,
   Select,
   Spinner,
+  VersionBadge,
+  StatusBadge,
 } from '@/lib/design-system/components'
+import { CalendarDays, Save, RotateCcw } from 'lucide-react'
 import { renderVoiceProfileForPrompt } from '@/lib/viva/voice-profile'
 
 const wordFlowOptions = [
@@ -140,7 +143,14 @@ function formatDate(value?: string | null): string {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString()
+  return date.toLocaleString('en-US', { 
+    month: 'numeric', 
+    day: 'numeric', 
+    year: 'numeric', 
+    hour: 'numeric', 
+    minute: '2-digit', 
+    hour12: true 
+  })
 }
 
 function toMultiline(list?: string[] | null): string {
@@ -354,21 +364,77 @@ export default function VoiceProfilePage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <Stack gap="sm">
-          <h1 className="text-3xl md:text-4xl font-bold text-white">Voice Profile</h1>
-          <p className="text-neutral-400 text-sm md:text-base max-w-3xl">
-            Adjust how VIVA writes for you. Save manual edits, run the analyzer, or revisit quiz-based versions. The
-            active version powers scenes, visions, and reflections across the app.
-          </p>
-          <Inline gap="sm" wrap>
-            <Button variant="secondary" size="sm" onClick={() => router.push('/voice-profile/quiz')}>
-              Start / Update Quiz
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => router.push('/voice-profile/analyze')}>
-              Run Analyzer
-            </Button>
-          </Inline>
-        </Stack>
+        {/* Header with Page-Titles Pattern */}
+        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="relative z-10">
+              {/* Eyebrow */}
+              <div className="text-center mb-4">
+                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                  MY VOICE
+                </div>
+              </div>
+              
+              {/* Title Section */}
+              <div className="text-center mb-4">
+                <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
+                  Voice Profile
+                </h1>
+                <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
+                  Adjust how VIVA writes for you. Save manual edits, run the analyzer, or revisit quiz-based versions. The active version powers scenes, visions, and reflections across the app.
+                </p>
+              </div>
+              
+              {/* Badges & Meta Items */}
+              {profile && (
+                <div className="text-center mb-6">
+                  <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                    <VersionBadge 
+                      versionNumber={profile.versionNumber} 
+                      status="active" 
+                    />
+                    <StatusBadge 
+                      status="active" 
+                      subtle={false}
+                      className="uppercase tracking-[0.25em]"
+                    />
+                    {profile.created_at && (
+                      <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                        <CalendarDays className="w-4 h-4 text-neutral-500" />
+                        <span className="font-medium">Created:</span>
+                        <span>{new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
+                    )}
+                    {profile.source && (
+                      <Badge variant="info">{sourceLabel(profile.source)}</Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => router.push('/voice-profile/quiz')}
+                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                >
+                  Start / Update Quiz
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => router.push('/voice-profile/analyze')}
+                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                >
+                  Run Analyzer
+                </Button>
+              </div>
+            </div>
+
+          </div>
+        </div>
 
         {loading ? (
           <Card className="p-6 text-center">
@@ -381,19 +447,13 @@ export default function VoiceProfilePage() {
           <Stack gap="lg">
             <Card className="p-6 space-y-4">
               <Stack gap="sm">
-                <Inline gap="sm" align="center" wrap>
-                  <h2 className="text-xl md:text-2xl font-semibold text-white">Current Profile Overview</h2>
-                  {profile ? (
-                    <Badge variant="success">Active</Badge>
-                  ) : (
-                    <Badge variant="warning">Not Set</Badge>
-                  )}
-                  {profile?.source && <Badge variant="info">{sourceLabel(profile.source)}</Badge>}
-                </Inline>
-                <p className="text-neutral-400 text-sm md:text-base">
-                  Version {profile?.versionNumber ?? '—'} · Last updated {formatDate(profile?.created_at)} · Last refined{' '}
-                  {formatDate(profile?.last_refined_at)}
-                </p>
+                <h2 className="text-xl md:text-2xl font-semibold text-white text-center">Current Profile Overview</h2>
+                {profile?.last_refined_at && (
+                  <div className="flex items-center justify-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                    <span className="font-medium">Last updated:</span>
+                    <span>{new Date(profile.last_refined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
+                )}
               </Stack>
               <pre className="bg-neutral-900/70 border border-neutral-800 rounded-xl p-4 text-xs text-neutral-200 whitespace-pre-wrap">
                 {promptPreview}
@@ -402,8 +462,11 @@ export default function VoiceProfilePage() {
 
             <Card className="p-6 space-y-6">
               <Stack gap="sm">
-                <h2 className="text-xl md:text-2xl font-semibold text-white">Edit Voice Profile</h2>
-                <p className="text-sm text-neutral-400">
+                <div className="flex justify-center">
+                  <Badge variant="info">Manual Edit</Badge>
+                </div>
+                <h2 className="text-xl md:text-2xl font-semibold text-white text-center">Edit Voice Profile</h2>
+                <p className="text-sm text-neutral-400 text-center">
                   Adjust any sliders, then save to create a new manual version. Saved versions appear in the dropdown below.
                 </p>
               </Stack>
@@ -443,26 +506,40 @@ export default function VoiceProfilePage() {
                   label="Forbidden Styles (one per line)"
                   value={form.forbidden_styles_text}
                   onChange={handleFormChange('forbidden_styles_text')}
-                  rows={4}
-                  placeholder="overly poetic\nstiff corporate\ntherapy-speak"
+                  rows={3}
+                  placeholder={`overly poetic
+stiff corporate
+therapy-speak`}
                 />
                 <Textarea
                   label="Sample Phrases (one per line)"
                   value={form.sample_phrases_text}
                   onChange={handleFormChange('sample_phrases_text')}
-                  rows={4}
-                  placeholder="I love how it feels to…\nThis is the life I choose."
+                  rows={3}
+                  placeholder={`I love how it feels to…
+This is the life I choose.`}
                 />
               </div>
 
-              <Inline gap="sm" wrap>
-                <Button variant="primary" size="sm" onClick={handleSave} loading={saving}>
-                  {saving ? 'Saving…' : 'Save Manual Version'}
-                </Button>
+              <div className="flex gap-2 justify-end">
                 <Button variant="ghost" size="sm" onClick={() => loadData()}>
+                  <RotateCcw className="w-4 h-4 mr-1" />
                   Refresh
                 </Button>
-              </Inline>
+                <Button variant="primary" size="sm" onClick={handleSave} loading={saving}>
+                  {saving ? (
+                    <>
+                      <Spinner variant="primary" size="sm" />
+                      Saving…
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save
+                    </>
+                  )}
+                </Button>
+              </div>
 
               {statusMessage && (
                 <div className="bg-primary-500/10 border border-primary-500/40 rounded-xl p-4 text-sm text-primary-200">
@@ -478,70 +555,107 @@ export default function VoiceProfilePage() {
 
             <Card className="p-6 space-y-4">
               <Stack gap="sm">
-                <h2 className="text-xl md:text-2xl font-semibold text-white">Versions</h2>
-                <p className="text-sm text-neutral-400">
+                <h2 className="text-xl md:text-2xl font-semibold text-white text-center">Voice Profile Versions</h2>
+                <p className="text-sm text-neutral-400 text-center">
                   Load a previous version into the editor or activate it directly. Activating a version makes it the live profile for all VIVA outputs.
                 </p>
               </Stack>
 
-              <Select
-                label="Select Version"
-                value={selectedVersionId}
-                onChange={handleVersionSelect}
-                options={[{ value: '', label: 'Select a version…' }, ...versionsOptions]}
-              />
-
-              <Inline gap="sm" wrap>
-                <Button variant="secondary" size="sm" onClick={handleActivate} disabled={!selectedVersionId} loading={activating}>
-                  {activating ? 'Activating…' : 'Activate Selected Version'}
-                </Button>
-              </Inline>
+              <Card className="p-4 md:p-6">
+                <div className="flex flex-col md:flex-row gap-4 md:items-end">
+                  <div className="flex-1">
+                    <Select
+                      label="Select Version"
+                      value={selectedVersionId}
+                      onChange={handleVersionSelect}
+                      options={[{ value: '', label: 'Select a version…' }, ...versionsOptions]}
+                    />
+                  </div>
+                  <div className="w-full md:w-auto flex justify-center md:justify-end">
+                    <Button variant="primary" size="sm" onClick={handleActivate} disabled={!selectedVersionId} loading={activating} className="w-full md:w-auto">
+                      {activating ? 'Activating…' : 'Activate Selected Version'}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
 
               <div className="space-y-3">
                 {versions.length === 0 ? (
                   <div className="text-sm text-neutral-500">No versions saved yet. Start with the quiz or save a manual edit.</div>
                 ) : (
                   versions.map((version) => (
-                    <div
+                    <Card
                       key={version.id}
-                      className="border border-neutral-800 rounded-xl p-4 bg-neutral-900/60 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
+                      variant="outlined"
+                      className="p-3 md:p-4"
                     >
-                      <div>
-                        <Inline gap="sm" align="center" wrap>
-                          <Badge variant={version.is_active ? 'success' : 'neutral'}>
-                            {version.is_active ? 'Active' : `Version ${version.versionNumber}`}
-                          </Badge>
-                          {version.source && <Badge variant="info">{sourceLabel(version.source)}</Badge>}
-                        </Inline>
-                        <p className="text-sm text-neutral-400 mt-2">
-                          Saved {formatDate(version.created_at)} · Last refined {formatDate(version.last_refined_at)}
-                        </p>
+                      <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                        {/* Version Info */}
+                        <div className="flex-1">
+                          <div className="flex flex-col items-center md:items-start gap-2 text-sm">
+                            {/* Badges Row */}
+                            <div className="flex flex-col md:flex-row items-center gap-2">
+                              <VersionBadge 
+                                versionNumber={version.versionNumber} 
+                                status={version.is_active ? 'active' : 'inactive'}
+                              />
+                              <StatusBadge 
+                                status={version.is_active ? 'active' : 'inactive'}
+                                subtle={false}
+                                className="uppercase tracking-[0.25em]"
+                              />
+                              {version.source && <Badge variant="info">{sourceLabel(version.source)}</Badge>}
+                            </div>
+                            
+                            {/* Dates Row */}
+                            <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 text-xs md:text-sm text-neutral-300">
+                              {version.created_at && (
+                                <div className="flex items-center gap-1.5">
+                                  <CalendarDays className="w-4 h-4 text-neutral-500" />
+                                  <span className="font-medium">Created:</span>
+                                  <span>{new Date(version.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                              )}
+                              {version.last_refined_at && version.last_refined_at !== version.created_at && (
+                                <div className="flex items-center gap-1.5">
+                                  <CalendarDays className="w-4 h-4 text-neutral-500" />
+                                  <span className="font-medium">Updated:</span>
+                                  <span>{new Date(version.last_refined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-row flex-wrap gap-2 w-full md:w-auto justify-center md:justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedVersionId(version.id)
+                              setForm({
+                                word_flow: version.word_flow,
+                                emotional_range: version.emotional_range,
+                                detail_level: version.detail_level,
+                                energy_tempo: version.energy_tempo,
+                                woo_level: String(version.woo_level ?? 2),
+                                humor_personality: version.humor_personality,
+                                speech_rhythm: version.speech_rhythm,
+                                emotional_intensity_preference: version.emotional_intensity_preference ?? 'medium',
+                                narrative_preference: version.narrative_preference ?? 'compact_scenes',
+                                depth_preference: version.depth_preference ?? 'balanced',
+                                style_label: version.style_label ?? defaultForm.style_label,
+                                forbidden_styles_text: toMultiline(version.forbidden_styles),
+                                sample_phrases_text: toMultiline(version.sample_phrases),
+                              })
+                            }}
+                          >
+                            Load into Editor
+                          </Button>
+                        </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedVersionId(version.id)
-                          setForm({
-                            word_flow: version.word_flow,
-                            emotional_range: version.emotional_range,
-                            detail_level: version.detail_level,
-                            energy_tempo: version.energy_tempo,
-                            woo_level: String(version.woo_level ?? 2),
-                            humor_personality: version.humor_personality,
-                            speech_rhythm: version.speech_rhythm,
-                            emotional_intensity_preference: version.emotional_intensity_preference ?? 'medium',
-                            narrative_preference: version.narrative_preference ?? 'compact_scenes',
-                            depth_preference: version.depth_preference ?? 'balanced',
-                            style_label: version.style_label ?? defaultForm.style_label,
-                            forbidden_styles_text: toMultiline(version.forbidden_styles),
-                            sample_phrases_text: toMultiline(version.sample_phrases),
-                          })
-                        }}
-                      >
-                        Load into Editor
-                      </Button>
-                    </div>
+                    </Card>
                   ))
                 )}
               </div>

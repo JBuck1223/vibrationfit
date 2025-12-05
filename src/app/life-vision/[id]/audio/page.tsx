@@ -1,11 +1,11 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Stack, Badge } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, Badge, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
-import { Headphones, Play, Clock, CheckCircle, Music, Moon, Zap, Sparkles, ArrowRight, Volume2, Target, Mic, Plus, Eye } from 'lucide-react'
+import { Play, Clock, CheckCircle, Music, Moon, Zap, Sparkles, ArrowRight, Mic, Plus, Eye, Headphones } from 'lucide-react'
 import Link from 'next/link'
 
 export default function VisionAudioPage({ params }: { params: Promise<{ id: string }> }) {
@@ -362,30 +362,17 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card variant="glass" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center">
-                <Headphones className="w-6 h-6 text-accent-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{totalSets}</p>
-                <p className="text-xs text-neutral-400">Audio Sets</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card variant="glass" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-[#06B6D4]/20 rounded-full flex items-center justify-center">
-                <Volume2 className="w-6 h-6 text-[#06B6D4]" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{totalTracks}</p>
-                <p className="text-xs text-neutral-400">Total Tracks</p>
-              </div>
-            </div>
-          </Card>
+        <div className="grid grid-cols-2 gap-4 md:gap-6">
+          <TrackingMilestoneCard
+            label="Audio Sets"
+            value={totalSets}
+            theme="accent"
+          />
+          <TrackingMilestoneCard
+            label="Total Tracks"
+            value={totalTracks}
+            theme="secondary"
+          />
         </div>
 
         {/* Generate Button */}

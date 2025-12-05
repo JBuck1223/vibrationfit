@@ -191,7 +191,7 @@ export default function DesignSystemMasterPage() {
 
       {/* Components by Category */}
       <Stack gap="md">
-        {COMPONENT_CATEGORIES.filter(cat => cat !== 'Patterns').map((category) => {
+        {COMPONENT_CATEGORIES.map((category) => {
               const components = componentsByCategory[category]
               if (components.length === 0) return null
 

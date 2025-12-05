@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Button, Badge, ProgressBar } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, ProgressBar, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { HardDrive, Image, Video, Music, FileText, Folder, Clock, Trash2, ExternalLink, X } from 'lucide-react'
 import Link from 'next/link'
 
@@ -108,18 +108,17 @@ export default function StoragePage() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <p className="text-sm text-neutral-400 mb-1">Total Files</p>
-                      <p className="text-2xl md:text-3xl font-bold text-white">{data?.totalFiles || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-neutral-400 mb-1">Total Storage Used</p>
-                      <p className="text-2xl md:text-3xl font-bold text-white">{formatBytes(data?.totalSize || 0)}</p>
-                      <p className="text-xs text-neutral-500 mt-1">
-                        of {formatBytes(STORAGE_LIMIT)} limit
-                      </p>
-                    </div>
+                  <div className="grid grid-cols-2 gap-4 md:gap-6 mb-6">
+                    <TrackingMilestoneCard
+                      label="Total Files"
+                      value={data?.totalFiles || 0}
+                      theme="primary"
+                    />
+                    <TrackingMilestoneCard
+                      label="Storage Used"
+                      value={`${formatBytes(data?.totalSize || 0)} / ${formatBytes(STORAGE_LIMIT)}`}
+                      theme="secondary"
+                    />
                   </div>
                 </div>
 

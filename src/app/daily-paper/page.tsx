@@ -161,6 +161,7 @@ export default function DailyPaperIndexPage() {
             />
             <TrackingMilestoneCard
               label="Sync"
+              value="Manual"
               theme="neutral"
               action={
                 <Button

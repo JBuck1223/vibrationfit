@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, CreatedDateBadge, VersionBadge, StatusBadge, Container } from '@/lib/design-system/components'
+import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VersionCard } from '../components/VersionCard'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
@@ -22,6 +22,7 @@ import {
   FileText,
   ArrowLeft,
   Calendar,
+  CalendarDays,
   Phone,
   Mail,
   Camera,
@@ -1905,11 +1906,16 @@ export default function ProfileDetailPage() {
                         versionNumber={versionInfo.version_number} 
                         status={displayStatus} 
                       />
-                      <CreatedDateBadge createdAt={versionInfo.created_at} />
                       <StatusBadge 
                         status={displayStatus} 
-                        subtle={displayStatus !== 'active'} 
+                        subtle={displayStatus !== 'active'}
+                        className="uppercase tracking-[0.25em]"
                       />
+                      <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                        <CalendarDays className="w-4 h-4 text-neutral-500" />
+                        <span className="font-medium">Created:</span>
+                        <span>{new Date(versionInfo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
                       {/* Profile Completion Percentage */}
                       <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
                         {completionPercentage}%

@@ -62,7 +62,7 @@ async function fetchDailyPaperEntries(options?: UseDailyPaperEntriesOptions) {
   }
 
   const response = await fetch(
-    `/api/journal/daily-paper${params.toString() ? `?${params.toString()}` : ''}`,
+    `/api/daily-paper${params.toString() ? `?${params.toString()}` : ''}`,
   )
 
   if (!response.ok) {
@@ -145,7 +145,7 @@ export function useDailyPaperMutation(): UseDailyPaperMutationResult {
     setIsSaving(true)
     setError(null)
     try {
-      const response = await fetch('/api/journal/daily-paper', {
+      const response = await fetch('/api/daily-paper', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

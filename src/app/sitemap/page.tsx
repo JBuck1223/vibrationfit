@@ -115,9 +115,14 @@ export default function SitemapPage() {
         // Journal
         { href: '/journal', label: 'All Journal Entries', icon: FileText, description: 'All journal entries list' },
         { href: '/journal/new', label: 'New Journal Entry', icon: Plus, description: 'Create new journal entry' },
-        { href: '/journal/daily-paper', label: 'Daily Paper', icon: BookOpen, description: 'Daily paper view' },
         { href: '/journal/[id]', label: 'Journal Entry Detail', icon: Eye, description: 'Individual journal entry', isDynamic: true },
         { href: '/journal/[id]/edit', label: 'Edit Journal Entry', icon: Settings, description: 'Edit journal entry', isDynamic: true },
+        
+        // Tracking
+        { href: '/daily-paper', label: 'Daily Paper', icon: BookOpen, description: 'Daily paper view and tracking' },
+        { href: '/daily-paper/new', label: 'New Daily Paper Entry', icon: Plus, description: 'Create new daily paper entry' },
+        { href: '/daily-paper/resources', label: 'Daily Paper Resources', icon: FileText, description: 'Daily paper PDFs and resources' },
+        { href: '/abundance-tracker', label: 'Abundance Tracker', icon: Star, description: 'Track abundance and gratitude' },
 
         // Profile & Account
         { href: '/profile', label: 'All Profiles', icon: Eye, description: 'All user profiles' },
@@ -163,7 +168,6 @@ export default function SitemapPage() {
 
         // Vibrational System
         { href: '/scenes/builder', label: 'Scene Builder', icon: Layers, description: 'Build vibrational scenes' },
-        { href: '/abundance', label: 'Abundance Page', icon: Star, description: 'Abundance tracking' },
 
         // Billing & Support
         { href: '/billing', label: 'Billing Dashboard', icon: CreditCard, description: 'Subscription and billing' },

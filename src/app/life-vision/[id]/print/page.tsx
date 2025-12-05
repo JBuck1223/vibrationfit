@@ -30,6 +30,7 @@ export default function PrintPreviewPage() {
       accent: colors.accent.replace('#', ''),
       text: colors.text.replace('#', ''),
       bg: colors.background.replace('#', ''),
+      t: Date.now().toString(), // Cache buster
     })
     // Use the API route for both preview and PDF - it generates the same HTML
     setIframeUrl(`/api/pdf/vision?${colorParams.toString()}`)
@@ -132,33 +133,28 @@ export default function PrintPreviewPage() {
   return (
     <div className="min-h-screen">
       {/* Toolbar */}
-      <div className="sticky top-0 z-10 bg-neutral-800 border-b border-neutral-700 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold">PDF Preview & Editor</h1>
-            <span className="text-sm text-neutral-400">Vision ID: {visionId}</span>
-          </div>
+      <div className="sticky top-0 z-10 bg-neutral-800 border-b border-neutral-700 px-4 py-6 lg:py-8">
+        <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-4">
+          <h1 className="text-xl lg:text-2xl font-bold text-white">PDF Preview & Editor</h1>
           
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={handleDownload}
-              variant="primary"
-              className="flex items-center gap-2"
-              disabled={isGenerating}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Download PDF
-                </>
-              )}
-            </Button>
-          </div>
+          <Button
+            onClick={handleDownload}
+            variant="primary"
+            className="flex items-center gap-2"
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Download PDF
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
@@ -166,8 +162,8 @@ export default function PrintPreviewPage() {
         {/* Color Picker Sidebar */}
         <div className="w-full lg:w-80 bg-neutral-800 border-r-0 lg:border-r border-b lg:border-b-0 border-neutral-700 p-4 lg:p-6 overflow-y-auto h-auto lg:h-[calc(100vh-73px)]">
           <div className="flex items-center gap-2 mb-6">
-            <Palette className="w-5 h-5 text-primary-500" />
-            <h2 className="text-lg font-semibold">Color Theme</h2>
+            <Palette className="w-5 h-5 text-neutral-500" />
+            <h2 className="text-lg font-semibold text-white">Color Theme</h2>
           </div>
 
           {/* Color Presets */}
@@ -180,10 +176,10 @@ export default function PrintPreviewPage() {
                 onClick={() => applyPreset('default')}
                 variant="outline"
                 size="sm"
-                className="w-full justify-start"
+                className="w-full justify-start border-neutral-600 hover:border-primary-500 text-white"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.default.primary }} />
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colorPresets.default.primary }} />
                   <span>Black & White</span>
                 </div>
               </Button>
@@ -191,10 +187,10 @@ export default function PrintPreviewPage() {
                 onClick={() => applyPreset('purple')}
                 variant="outline"
                 size="sm"
-                className="w-full justify-start"
+                className="w-full justify-start border-neutral-600 hover:border-primary-500 text-white"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.purple.primary }} />
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colorPresets.purple.primary }} />
                   <span>Purple</span>
                 </div>
               </Button>
@@ -202,10 +198,10 @@ export default function PrintPreviewPage() {
                 onClick={() => applyPreset('cyan')}
                 variant="outline"
                 size="sm"
-                className="w-full justify-start"
+                className="w-full justify-start border-neutral-600 hover:border-primary-500 text-white"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.cyan.primary }} />
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colorPresets.cyan.primary }} />
                   <span>Cyan</span>
                 </div>
               </Button>
@@ -213,10 +209,10 @@ export default function PrintPreviewPage() {
                 onClick={() => applyPreset('forestGreen')}
                 variant="outline"
                 size="sm"
-                className="w-full justify-start"
+                className="w-full justify-start border-neutral-600 hover:border-primary-500 text-white"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full border-2 border-current" style={{ backgroundColor: colorPresets.forestGreen.primary }} />
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colorPresets.forestGreen.primary }} />
                   <span>Forest Green</span>
                 </div>
               </Button>
@@ -318,7 +314,7 @@ export default function PrintPreviewPage() {
                       })}
                       variant="outline"
                       size="sm"
-                      className="w-full flex items-center justify-center gap-2"
+                      className="w-full flex items-center justify-center gap-2 border-neutral-600 hover:border-primary-500 text-white"
                     >
                       <RefreshCw className="w-4 h-4" />
                       Reset to Default
@@ -330,16 +326,10 @@ export default function PrintPreviewPage() {
         {/* Preview Area */}
         <div className="flex-1 bg-black overflow-auto h-auto lg:h-[calc(100vh-73px)]">
           <div className="w-full">
-            {/* Mobile Instructions */}
-            <div className="lg:hidden p-4 bg-neutral-800 border-b border-neutral-700">
-              <p className="text-sm text-neutral-300 text-center">
-                💡 Swipe left on the color picker to customize, then tap "Download PDF"
-              </p>
-            </div>
             
             {/* Preview Container */}
             <div className="w-full flex justify-center items-start min-h-[600px] py-4 lg:py-8">
-              <div className="w-full max-w-full px-4 lg:px-16 xl:px-24">
+              <div className="w-full max-w-4xl px-4 lg:px-8">
                 {iframeUrl ? (
                   <iframe
                     src={iframeUrl}

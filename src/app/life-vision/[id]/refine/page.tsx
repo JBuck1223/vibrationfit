@@ -38,7 +38,6 @@ import {
   VIVAButton,
   CategoryCard,
   VersionBadge,
-  CreatedDateBadge,
   StatusBadge
 } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
@@ -53,6 +52,7 @@ import {
   isCategoryRefined,
   commitDraft
 } from '@/lib/life-vision/draft-helpers'
+import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
 
 interface VisionData {
   id: string
@@ -116,7 +116,7 @@ const ChatInterface = ({
 }) => (
   <div className="space-y-6">
     {/* Chat Interface */}
-    <Card className="p-6">
+    <Card>
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
           <Bot className="w-5 h-5 text-white" />
@@ -305,8 +305,11 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       const draft = await getDraftVision(user.id)
       
       if (draft) {
-        console.log('Draft vision loaded:', draft.id, 'Refined categories:', draft.refined_categories)
-        setDraftVision(draft)
+        // Calculate the actual version number based on creation order
+        const calculatedVersion = await calculateVersionNumber(draft.id)
+        const draftWithVersion = { ...draft, version_number: calculatedVersion }
+        console.log('Draft vision loaded:', draftWithVersion.id, 'Version:', calculatedVersion, 'Refined categories:', draftWithVersion.refined_categories)
+        setDraftVision(draftWithVersion)
       } else {
         console.log('No draft vision found for user')
         setDraftVision(null)
@@ -370,10 +373,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         return
       }
 
-      // It's a draft, set it as both vision and draft
-      setVision(visionData)
-      setDraftVision(visionData)
-      console.log('Draft vision loaded successfully:', visionData.id)
+      // It's a draft, calculate version number and set it as both vision and draft
+      const calculatedVersion = await calculateVersionNumber(visionData.id)
+      const visionWithVersion = { ...visionData, version_number: calculatedVersion }
+      setVision(visionWithVersion)
+      setDraftVision(visionWithVersion)
+      console.log('Draft vision loaded successfully:', visionWithVersion.id, 'Version:', calculatedVersion)
       
       // Also fetch user profile for avatar
       const { data: profile } = await supabase
@@ -1040,6 +1045,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const saveDraft = async () => {
     if (!draftVision || !selectedCategory || !currentRefinement.trim()) return
     
+    // Save current scroll position and active element
+    const scrollPosition = window.scrollY
+    const activeElement = document.activeElement as HTMLElement
+    
     setIsDraftSaving(true)
     try {
       console.log('Saving draft for category:', selectedCategory, 'draft:', draftVision.id)
@@ -1054,6 +1063,14 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setDraftVision(updatedDraft)
       setLastSaved(new Date())
       console.log('Draft saved successfully, refined categories:', updatedDraft.refined_categories)
+      
+      // Restore scroll position and focus after React re-renders
+      setTimeout(() => {
+        window.scrollTo({ top: scrollPosition, behavior: 'instant' })
+        if (activeElement && activeElement.focus) {
+          activeElement.focus()
+        }
+      }, 0)
     } catch (error) {
       console.error('Error saving draft:', error)
       alert(`Failed to save draft: ${error}`)
@@ -1223,18 +1240,21 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     
                     {/* Version Circle Badge */}
                     <VersionBadge 
-                      versionNumber={draftVision.version_number} 
-                      status={displayStatus} 
+                      versionNumber={draftVision.version_number ?? 1} 
+                      status="draft" 
                     />
-                    
-                    {/* Created Date Badge */}
-                    <CreatedDateBadge createdAt={draftVision.created_at} />
                     
                     {/* Status Badge */}
                     <StatusBadge 
-                      status={displayStatus} 
-                      subtle={displayStatus !== 'active'}
+                      status="draft" 
+                      subtle={true}
+                      className="uppercase tracking-[0.25em]"
                     />
+                    
+                    {/* Created Date */}
+                    <span className="text-neutral-300 text-xs md:text-sm">
+                      Created: {new Date(draftVision.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                    </span>
                     
                     {/* Draft Categories Count */}
                     {getRefinedCategories(draftVision).length > 0 && (
@@ -1282,7 +1302,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
       {/* Category Selection */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-6">Choose a Category to Refine</h2>
+        <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose a Category to Refine</h2>
         <div className={`grid grid-cols-4 md:grid-cols-6 gap-2 ${
           VISION_CATEGORIES.some(cat => cat.key === 'forward' || cat.key === 'conclusion')
             ? 'lg:grid-cols-[repeat(14,minmax(0,1fr))]'
@@ -1293,8 +1313,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             return (
               <div key={category.key} className="relative">
                 {isRefined && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-black z-10">
-                    <Sparkles className="w-2 h-2 text-black absolute top-0.5 left-0.5" />
+                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#FFFF00] flex items-center justify-center z-10">
+                    <Check className="w-3 h-3 text-[#FFFF00]" strokeWidth={3} />
                   </div>
                 )}
                 <CategoryCard 
@@ -1302,8 +1322,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   selected={selectedCategory === category.key} 
                   variant="outlined"
                   selectionStyle="border"
-                  iconColor={isRefined ? colors.energy.yellow[500] : "#14B8A6"}
-                  selectedIconColor="#39FF14"
+                  iconColor={isRefined ? colors.energy.yellow[500] : (selectedCategory === category.key ? "#39FF14" : "#FFFFFF")}
+                  selectedIconColor={isRefined ? colors.energy.yellow[500] : "#39FF14"}
+                  className={selectedCategory === category.key ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
                   onClick={() => {
                     setSelectedCategory(category.key)
                     
@@ -1327,98 +1348,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* Draft Vision Status */}
-      {draftVision && (
-        <div className="mb-8">
-          <Card className="p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                  <span className="text-yellow-500 text-sm font-bold">
-                    {getRefinedCategories(draftVision).length}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white">Draft Vision</h3>
-                  <p className="text-sm text-neutral-400">
-                    {getRefinedCategories(draftVision).length} {getRefinedCategories(draftVision).length === 1 ? 'category' : 'categories'} refined
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                {getRefinedCategories(draftVision).length > 0 && (
-                  <>
-                    <Button
-                      asChild
-                      variant="primary"
-                      size="sm"
-                      className="flex items-center justify-center gap-1 w-full sm:w-auto font-semibold"
-                      style={{
-                        backgroundColor: colors.energy.yellow[500],
-                        color: '#000000',
-                        border: `2px solid ${colors.energy.yellow[500]}`
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = `${colors.energy.yellow[500]}E6`
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
-                      }}
-                    >
-                      <Link href={`/life-vision/${visionId}/draft`}>
-                        <Eye className="w-4 h-4" />
-                        View Draft Vision
-                      </Link>
-                    </Button>
-                    <Button
-                      onClick={commitDraftVision}
-                      disabled={isDraftSaving}
-                      variant="primary"
-                      size="sm"
-                      className="flex items-center justify-center gap-1 w-full sm:w-auto"
-                    >
-                      {isDraftSaving ? (
-                        <Spinner variant="primary" size="sm" />
-                      ) : (
-                        <Check className="w-4 h-4" />
-                      )}
-                      Commit Draft
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-            
-            {/* Show refined categories */}
-            {getRefinedCategories(draftVision).length > 0 && (
-              <div className="mt-4">
-                <p className="text-sm text-neutral-400 mb-2">Refined categories:</p>
-                <div className="flex flex-wrap gap-2">
-                  {getRefinedCategories(draftVision).map((categoryKey) => {
-                    const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === categoryKey)
-                    return (
-                      <Badge
-                        key={categoryKey}
-                        variant="warning"
-                        className="text-xs"
-                        style={{
-                          backgroundColor: `${colors.energy.yellow[500]}33`,
-                          color: colors.energy.yellow[500],
-                          border: `1px solid ${colors.energy.yellow[500]}`
-                        }}
-                      >
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        {categoryInfo?.label}
-                      </Badge>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </Card>
-        </div>
-      )}
-
       {/* Current Vision & Refinement Display */}
       {selectedCategory && (
         <div className="mb-8">
@@ -1426,7 +1355,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           <div className="lg:hidden mb-4 space-y-2">
             <Button
               onClick={() => setShowCurrentVision(!showCurrentVision)}
-              variant="outline"
+              variant={showCurrentVision ? "primary" : "outline"}
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
@@ -1435,7 +1364,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </Button>
             <Button
               onClick={() => setShowRefinement(!showRefinement)}
-              variant="outline"
+              variant={showRefinement ? "draft" : "outline-yellow"}
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
@@ -1457,7 +1386,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </Button>
             <Button
               onClick={() => setShowRefinement(!showRefinement)}
-              variant={showRefinement ? "accent" : "outline"}
+              variant={showRefinement ? "draft" : "outline-yellow"}
               size="sm"
               className="flex-1 flex items-center justify-center gap-2"
             >
@@ -1469,122 +1398,100 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           <div className={`space-y-6 ${showCurrentVision && showRefinement ? 'lg:grid lg:grid-cols-2' : ''} lg:gap-6 lg:space-y-0`}>
             {/* Current Vision Card - Toggle visibility */}
             <div className={`${showCurrentVision ? 'block' : 'hidden'}`}>
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
+              <Card>
+                {/* Centered Header */}
+                <div className="text-center mb-4 md:mb-6 lg:mb-8">
+                  <h3 className="text-sm font-semibold text-primary-500 tracking-widest mb-3">
+                    CURRENT VISION
+                  </h3>
+                  <div className="flex flex-row items-center justify-center gap-2">
                     {(() => {
                       const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
-                      return categoryInfo && <categoryInfo.icon className="w-8 h-8 text-primary-500" />
+                      return categoryInfo && (
+                        <>
+                          <categoryInfo.icon className="w-6 h-6 text-primary-500" />
+                          <span className="text-base font-semibold text-primary-500">
+                            {categoryInfo.label}
+                          </span>
+                        </>
+                      )
                     })()}
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">
-                        Current Vision - {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label}
-                      </h3>
-                      <p className="text-sm text-neutral-400">
-                        Your existing vision for this category
-                      </p>
-                    </div>
                   </div>
+                </div>
+                
+                {/* Text Area */}
+                <AutoResizeTextarea
+                  value={getCategoryValue(selectedCategory) || "No vision content available for this category."}
+                  onChange={() => {}}
+                  readOnly
+                  className="!bg-neutral-800/50 !border-primary-500 text-sm cursor-default !rounded-lg !px-4 !py-3 scroll-mt-24"
+                  minHeight={120}
+                />
+                
+                {/* Centered Copy Button */}
+                <div className="flex justify-center mt-4 md:mt-5 lg:mt-6">
                   <Button
                     onClick={() => setCurrentRefinement(getCategoryValue(selectedCategory!))}
                     variant="outline"
                     size="sm"
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-2"
                   >
                     <Copy className="w-4 h-4" />
                     Copy to Refinement
                   </Button>
                 </div>
-                <AutoResizeTextarea
-                  value={getCategoryValue(selectedCategory) || "No vision content available for this category."}
-                  onChange={() => {}}
-                  readOnly
-                  className="!bg-neutral-800/50 !border-neutral-600 text-sm cursor-default !rounded-lg !px-4 !py-3"
-                  minHeight={120}
-                />
               </Card>
             </div>
 
             {/* Refinement Card - Toggle visibility */}
-            <div className={`${showRefinement ? 'block' : 'hidden'}`}>
-              <Card className="p-6" data-refinement-section>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Wand2 className="w-8 h-8 text-purple-400" />
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">
-                        Refinement - {VISION_CATEGORIES.find(cat => cat.key === selectedCategory)?.label}
-                      </h3>
-                      <p className="text-sm text-neutral-400">
-                        Your refined version of this vision
-                      </p>
-                    </div>
+            <div className={`${showRefinement ? 'block' : 'hidden'}`} style={{ overflowAnchor: 'none' } as React.CSSProperties}>
+              <Card data-refinement-section>
+                {/* Centered Header */}
+                <div className="text-center mb-4 md:mb-6 lg:mb-8">
+                  <h3 className="text-sm font-semibold tracking-widest mb-3" style={{ color: '#FFFF00' }}>
+                    REFINEMENT
+                  </h3>
+                  <div className="flex flex-row items-center justify-center gap-2">
+                    {(() => {
+                      const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
+                      return categoryInfo && (
+                        <>
+                          <categoryInfo.icon className="w-6 h-6" style={{ color: '#FFFF00' }} />
+                          <span className="text-base font-semibold" style={{ color: '#FFFF00' }}>
+                            {categoryInfo.label}
+                          </span>
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
+                
+                {/* Text Area */}
                 <AutoResizeTextarea
                   value={currentRefinement}
                   onChange={setCurrentRefinement}
                   placeholder="Start refining your vision here, or let VIVA help you through conversation..."
-                  className="!bg-neutral-800/50 !border-neutral-600 text-sm !rounded-lg !px-4 !py-3"
+                  className="!bg-neutral-800/50 text-sm !rounded-lg !px-4 !py-3"
+                  style={{ overflowAnchor: 'none', borderColor: '#FFFF00', borderWidth: '2px' } as React.CSSProperties}
                   minHeight={120}
                 />
-              
-              {/* Draft Status & Actions */}
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {draftStatus === 'draft' && (
-                    <Badge variant="warning" className="flex items-center gap-1">
-                      <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-                      Draft
-                    </Badge>
-                  )}
-                  {draftStatus === 'committed' && (
-                    <Badge variant="success" className="flex items-center gap-1">
-                      <Check className="w-3 h-3" />
-                      Committed
-                    </Badge>
-                  )}
-                  {lastSaved && (
-                    <span className="text-xs text-neutral-500">
-                      Saved {lastSaved.toLocaleTimeString()}
-                    </span>
-                  )}
-                </div>
                 
-                <div className="flex items-center gap-2">
-                  {draftStatus === 'draft' && (
-                    <>
+                {/* Centered Save Button */}
+                <div className="flex justify-center mt-4 md:mt-5 lg:mt-6">
                   <Button
-                        onClick={saveDraft}
-                        disabled={isDraftSaving}
-                        variant="outline"
+                    onClick={saveDraft}
+                    disabled={isDraftSaving}
+                    variant="draft"
                     size="sm"
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-2"
                   >
-                        {isDraftSaving ? (
-                      <Spinner variant="primary" size="sm" />
-                  ) : (
-                          <Save className="w-4 h-4" />
-                  )}
-                        Save Draft
-                </Button>
-                  <Button
-                        onClick={commitDraftVision}
-                        disabled={isDraftSaving}
-                        variant="primary"
-                    size="sm"
-                    className="flex items-center gap-1"
-                      >
-                        {isDraftSaving ? (
-                          <Spinner variant="primary" size="sm" />
-                        ) : (
-                          <Check className="w-4 h-4" />
-                        )}
-                        Commit Draft to Life Vision
-                    </Button>
-                    </>
-                  )}
-                  </div>
+                    {isDraftSaving ? (
+                      <Spinner variant="secondary" size="sm" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save Refinement
+                  </Button>
                 </div>
               </Card>
             </div>
@@ -1607,7 +1514,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </div>
           ) : chatMessages.length === 0 ? (
             availableConversations.length > 0 ? (
-              <Card className="p-8">
+              <Card>
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
                     <MessageCircle className="w-8 h-8 text-white" />

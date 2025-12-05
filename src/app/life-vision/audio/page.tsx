@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Eye, Headphones, Music, Moon, Zap, Sparkles, Clock, CheckCircle, Circle, Target, X, Volume2 } from 'lucide-react'
-import { Card, Button, Badge, Spinner, VersionBadge, StatusBadge } from '@/lib/design-system/components'
+import { Plus, Eye, Headphones, Music, Moon, Zap, Sparkles, Clock, CheckCircle, Circle, X, Target, Volume2 } from 'lucide-react'
+import { Card, Button, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { colors } from '@/lib/design-system/tokens'
 
@@ -379,40 +379,22 @@ export default function AllVisionAudiosPage() {
 
       {/* Stats Cards */}
       {visionVersions.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-          <Card variant="glass" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
-                <Target className="w-6 h-6 text-primary-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{visionCount}</p>
-                <p className="text-xs text-neutral-400">Vision Versions</p>
-              </div>
-            </div>
-          </Card>
-          <Card variant="glass" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center">
-                <Volume2 className="w-6 h-6 text-accent-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{totalAudioSets}</p>
-                <p className="text-xs text-neutral-400">Audio Sets</p>
-              </div>
-            </div>
-          </Card>
-          <Card variant="glass" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{readyAudioSets}</p>
-                <p className="text-xs text-neutral-400">Ready</p>
-              </div>
-            </div>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+          <TrackingMilestoneCard
+            label="Vision Versions"
+            value={visionCount}
+            theme="primary"
+          />
+          <TrackingMilestoneCard
+            label="Audio Sets"
+            value={totalAudioSets}
+            theme="accent"
+          />
+          <TrackingMilestoneCard
+            label="Ready"
+            value={readyAudioSets}
+            theme="primary"
+          />
         </div>
       )}
 
