@@ -108,7 +108,7 @@ export const userNavigation: NavItem[] = [
     description: 'Create and manage your life vision',
     children: [
       { name: 'My Active Vision', href: '/life-vision/active', icon: CheckCircle },
-      { name: 'All Visions', href: '/life-vision', icon: Target },
+      { name: 'All Visions', href: '/life-vision', icon: Eye },
       { name: 'All Vision Audios', href: '/life-vision/audio', icon: Headphones },
     ]
   },
@@ -465,24 +465,9 @@ export function isNavItemActive(
   pathname: string,
   activeProfileId?: string | null
 ): boolean {
-  // Exact match - but if this is a dropdown parent, let the child handle it
+  // Exact match
   if (item.href === pathname) {
-    // If this item has a dropdown with children, check if any child has the exact same href
-    if (item.hasDropdown && item.children) {
-      const childHasSameHref = item.children.some(child => child.href === pathname)
-      if (childHasSameHref) {
-        return false // Let the child be highlighted instead
-      }
-    }
     return true
-  }
-  
-  // Special handling for /life-vision/audio - only match exact audio route
-  if (pathname.startsWith('/life-vision/audio')) {
-    // Don't mark "All Visions" as active when on audio pages
-    if (item.href === '/life-vision') {
-      return false
-    }
   }
   
   // Special handling for /life-vision/{id} paths - should match "My Active Vision"

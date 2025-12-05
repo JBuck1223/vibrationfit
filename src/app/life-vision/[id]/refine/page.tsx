@@ -38,6 +38,7 @@ import {
   VIVAButton,
   CategoryCard,
   VersionBadge,
+  CreatedDateBadge,
   StatusBadge
 } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
@@ -1226,16 +1227,14 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                       status={displayStatus} 
                     />
                     
+                    {/* Created Date Badge */}
+                    <CreatedDateBadge createdAt={draftVision.created_at} />
+                    
                     {/* Status Badge */}
                     <StatusBadge 
                       status={displayStatus} 
                       subtle={displayStatus !== 'active'}
                     />
-                    
-                    {/* Created Date */}
-                    <span className="text-neutral-300 text-xs md:text-sm">
-                      Created: {new Date(draftVision.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-                    </span>
                     
                     {/* Draft Categories Count */}
                     {getRefinedCategories(draftVision).length > 0 && (
@@ -1283,7 +1282,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
       {/* Category Selection */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose a Category to Refine</h2>
+        <h2 className="text-2xl font-bold text-white mb-6">Choose a Category to Refine</h2>
         <div className={`grid grid-cols-4 md:grid-cols-6 gap-2 ${
           VISION_CATEGORIES.some(cat => cat.key === 'forward' || cat.key === 'conclusion')
             ? 'lg:grid-cols-[repeat(14,minmax(0,1fr))]'
@@ -1294,8 +1293,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             return (
               <div key={category.key} className="relative">
                 {isRefined && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#FFFF00] flex items-center justify-center z-10">
-                    <Check className="w-3 h-3 text-[#FFFF00]" strokeWidth={3} />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-black z-10">
+                    <Sparkles className="w-2 h-2 text-black absolute top-0.5 left-0.5" />
                   </div>
                 )}
                 <CategoryCard 
@@ -1303,9 +1302,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   selected={selectedCategory === category.key} 
                   variant="outlined"
                   selectionStyle="border"
-                  iconColor={isRefined ? colors.energy.yellow[500] : (selectedCategory === category.key ? "#39FF14" : "#FFFFFF")}
-                  selectedIconColor={isRefined ? colors.energy.yellow[500] : "#39FF14"}
-                  className={selectedCategory === category.key ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                  iconColor={isRefined ? colors.energy.yellow[500] : "#14B8A6"}
+                  selectedIconColor="#39FF14"
                   onClick={() => {
                     setSelectedCategory(category.key)
                     
@@ -1335,26 +1333,41 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           <Card className="p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <h3 className="text-lg font-semibold text-white">Draft Vision</h3>
-                <Badge 
-                  variant="warning" 
-                  className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
-                >
-                  {getRefinedCategories(draftVision).length} of {VISION_CATEGORIES.length} Refined
-                </Badge>
+                <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                  <span className="text-yellow-500 text-sm font-bold">
+                    {getRefinedCategories(draftVision).length}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Draft Vision</h3>
+                  <p className="text-sm text-neutral-400">
+                    {getRefinedCategories(draftVision).length} {getRefinedCategories(draftVision).length === 1 ? 'category' : 'categories'} refined
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-row items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 {getRefinedCategories(draftVision).length > 0 && (
                   <>
                     <Button
                       asChild
-                      variant="outline"
+                      variant="primary"
                       size="sm"
-                      className="flex items-center justify-center gap-1"
+                      className="flex items-center justify-center gap-1 w-full sm:w-auto font-semibold"
+                      style={{
+                        backgroundColor: colors.energy.yellow[500],
+                        color: '#000000',
+                        border: `2px solid ${colors.energy.yellow[500]}`
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${colors.energy.yellow[500]}E6`
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = colors.energy.yellow[500]
+                      }}
                     >
                       <Link href={`/life-vision/${visionId}/draft`}>
                         <Eye className="w-4 h-4" />
-                        View Draft
+                        View Draft Vision
                       </Link>
                     </Button>
                     <Button
@@ -1362,14 +1375,14 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                       disabled={isDraftSaving}
                       variant="primary"
                       size="sm"
-                      className="flex items-center justify-center gap-1"
+                      className="flex items-center justify-center gap-1 w-full sm:w-auto"
                     >
                       {isDraftSaving ? (
                         <Spinner variant="primary" size="sm" />
                       ) : (
-                        <Icon icon={CheckCircle} size="sm" className="shrink-0" />
+                        <Check className="w-4 h-4" />
                       )}
-                      <span>Review & Commit</span>
+                      Commit Draft
                     </Button>
                   </>
                 )}
@@ -1394,6 +1407,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                           border: `1px solid ${colors.energy.yellow[500]}`
                         }}
                       >
+                        <Sparkles className="w-3 h-3 mr-1" />
                         {categoryInfo?.label}
                       </Badge>
                     )

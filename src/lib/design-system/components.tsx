@@ -704,6 +704,74 @@ export const FeatureCard = React.forwardRef<HTMLDivElement, FeatureCardProps>(
 )
 FeatureCard.displayName = 'FeatureCard'
 
+// TrackingMilestoneCard Component - Metric card with themed border/background for tracking stats
+interface TrackingMilestoneCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  label: string
+  value: string | number
+  theme?: 'primary' | 'secondary' | 'accent' | 'neutral'
+  action?: React.ReactNode
+}
+
+export const TrackingMilestoneCard = React.forwardRef<HTMLDivElement, TrackingMilestoneCardProps>(
+  ({ label, value, theme = 'neutral', action, className = '', ...props }, ref) => {
+    // Theme configurations using design tokens
+    const themes = {
+      primary: {
+        border: 'border-[#199D67]/25',
+        bg: 'bg-[#199D67]/10',
+        labelColor: 'text-[#5EC49A]'
+      },
+      secondary: {
+        border: 'border-[#14B8A6]/25',
+        bg: 'bg-[#14B8A6]/10',
+        labelColor: 'text-[#2DD4BF]'
+      },
+      accent: {
+        border: 'border-[#8B5CF6]/25',
+        bg: 'bg-[#8B5CF6]/10',
+        labelColor: 'text-[#C4B5FD]'
+      },
+      neutral: {
+        border: 'border-[#333]',
+        bg: 'bg-[#121212]',
+        labelColor: 'text-neutral-400'
+      }
+    }
+    
+    const currentTheme = themes[theme]
+    
+    return (
+      <div 
+        ref={ref}
+        className={cn(
+          'rounded-2xl border p-4',
+          currentTheme.border,
+          currentTheme.bg,
+          className
+        )}
+        {...props}
+      >
+        <p className={cn(
+          'text-xs uppercase tracking-[0.3em]',
+          currentTheme.labelColor
+        )}>
+          {label}
+        </p>
+        {action ? (
+          <div className="mt-3">
+            {action}
+          </div>
+        ) : (
+          <p className="mt-3 text-2xl md:text-3xl font-semibold text-white">
+            {value}
+          </p>
+        )}
+      </div>
+    )
+  }
+)
+TrackingMilestoneCard.displayName = 'TrackingMilestoneCard'
+
 // CategoryCard Component - Square category selection card with icon and label
 // Optimized for mobile with minimal padding to maintain square aspect ratio
 interface CategoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -793,7 +861,7 @@ CategoryCard.displayName = 'CategoryCard'
 // Button Component
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode
-  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'outline-purple' | 'danger' | 'ghost-yellow' | 'ghost-blue' | 'ghost-purple'
+  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'danger' | 'ghost-yellow' | 'ghost-blue' | 'ghost-purple'
   size?: 'sm' | 'md' | 'lg' | 'xl'
   fullWidth?: boolean
   loading?: boolean
@@ -848,11 +916,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       outline: `
         bg-transparent border-2 border-[#39FF14] text-[#39FF14]
         hover:bg-[#39FF14] hover:text-black
-        active:opacity-80
-      `,
-      'outline-purple': `
-        bg-transparent border-2 border-[#8B5CF6] text-[#8B5CF6]
-        hover:bg-[#8B5CF6] hover:text-white
         active:opacity-80
       `,
       danger: `

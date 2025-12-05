@@ -7,6 +7,7 @@ import React, { useState } from 'react'
 import {
   Card,
   FeatureCard,
+  TrackingMilestoneCard,
   FlowCards,
   ProofWall,
   SwipeableCards,
@@ -98,6 +99,7 @@ import {
   BarChart3,
   History,
   VolumeX,
+  RefreshCcw,
   Gem,
 } from 'lucide-react'
 import { type AudioTrack } from '@/lib/design-system/components'
@@ -522,6 +524,195 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
         </Stack>
       )
 
+    case 'tracking-milestone-card':
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">Tracking Milestone Cards</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Metric cards with themed borders and backgrounds for displaying tracking stats and milestones. 
+                Perfect for dashboards, progress tracking, and data visualization.
+              </p>
+              
+              {/* All Themes Example */}
+              <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-700">
+                <h5 className="text-sm font-semibold text-white mb-4">All Themes</h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <TrackingMilestoneCard
+                    label="Total entries"
+                    value={142}
+                    theme="primary"
+                  />
+                  <TrackingMilestoneCard
+                    label="This week"
+                    value={7}
+                    theme="secondary"
+                  />
+                  <TrackingMilestoneCard
+                    label="Current streak"
+                    value="5 days"
+                    theme="accent"
+                  />
+                  <TrackingMilestoneCard
+                    label="Average score"
+                    value="8.4"
+                    theme="neutral"
+                  />
+                </div>
+              </div>
+
+              {/* Individual Theme Examples */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Primary Theme */}
+                <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-700">
+                  <h5 className="text-sm font-semibold text-[#5EC49A] mb-3">Primary (Green)</h5>
+                  <p className="text-xs text-neutral-400 mb-4">
+                    For success metrics, "Above Green Line" stats, growth indicators
+                  </p>
+                  <TrackingMilestoneCard
+                    label="Total Visions"
+                    value={24}
+                    theme="primary"
+                  />
+                </div>
+
+                {/* Secondary Theme */}
+                <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-700">
+                  <h5 className="text-sm font-semibold text-[#2DD4BF] mb-3">Secondary (Teal)</h5>
+                  <p className="text-xs text-neutral-400 mb-4">
+                    For clarity metrics, information, flow indicators
+                  </p>
+                  <TrackingMilestoneCard
+                    label="This Month"
+                    value={12}
+                    theme="secondary"
+                  />
+                </div>
+
+                {/* Accent Theme */}
+                <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-700">
+                  <h5 className="text-sm font-semibold text-[#C4B5FD] mb-3">Accent (Purple)</h5>
+                  <p className="text-xs text-neutral-400 mb-4">
+                    For premium metrics, AI usage, special milestones
+                  </p>
+                  <TrackingMilestoneCard
+                    label="AI Interactions"
+                    value={89}
+                    theme="accent"
+                  />
+                </div>
+
+                {/* Neutral Theme */}
+                <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-700">
+                  <h5 className="text-sm font-semibold text-neutral-400 mb-3">Neutral (Gray)</h5>
+                  <p className="text-xs text-neutral-400 mb-4">
+                    For utility metrics, system stats, neutral data
+                  </p>
+                  <TrackingMilestoneCard
+                    label="Storage Used"
+                    value="2.4 GB"
+                    theme="neutral"
+                  />
+                </div>
+              </div>
+
+              {/* Action Example */}
+              <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-700">
+                <h5 className="text-sm font-semibold text-white mb-3">With Action Button</h5>
+                <p className="text-xs text-neutral-400 mb-4">
+                  Use the <code className="bg-neutral-800 px-1 py-0.5 rounded text-primary-500">action</code> prop 
+                  to add custom buttons or interactive elements instead of a value.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <TrackingMilestoneCard
+                    label="Sync Status"
+                    theme="neutral"
+                    action={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start"
+                      >
+                        <RefreshCcw className="mr-2 h-4 w-4" />
+                        Refresh data
+                      </Button>
+                    }
+                  />
+                  <TrackingMilestoneCard
+                    label="Quick Action"
+                    theme="primary"
+                    action={
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New
+                      </Button>
+                    }
+                  />
+                  <TrackingMilestoneCard
+                    label="Download"
+                    theme="secondary"
+                    action={
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Export
+                      </Button>
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Real World Example - Daily Paper */}
+              <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 rounded-lg p-6 border border-[#39FF14]/30">
+                <h5 className="text-sm font-semibold text-white mb-3">Real-World Example: Daily Paper</h5>
+                <p className="text-xs text-neutral-400 mb-4">
+                  As seen on <code className="bg-neutral-800 px-1 py-0.5 rounded text-primary-500">/daily-paper</code> page
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <TrackingMilestoneCard
+                    label="Total entries"
+                    value={156}
+                    theme="primary"
+                  />
+                  <TrackingMilestoneCard
+                    label="This week"
+                    value={6}
+                    theme="secondary"
+                  />
+                  <TrackingMilestoneCard
+                    label="Current streak"
+                    value="12 days"
+                    theme="accent"
+                  />
+                  <TrackingMilestoneCard
+                    label="Sync"
+                    theme="neutral"
+                    action={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start"
+                      >
+                        <RefreshCcw className="mr-2 h-4 w-4" />
+                        Refresh archive
+                      </Button>
+                    }
+                  />
+                </div>
+              </div>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
     case 'flow-cards':
       return (
         <Stack gap="md">
@@ -856,7 +1047,6 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 <Button variant="accent" fullWidth>Accent</Button>
                 <Button variant="ghost" fullWidth>Ghost</Button>
                 <Button variant="outline" fullWidth>Outline</Button>
-                <Button variant="outline-purple" fullWidth>Outline Purple</Button>
                 <Button variant="danger" fullWidth>Danger</Button>
               </Stack>
             </Card>

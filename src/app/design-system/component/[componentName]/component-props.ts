@@ -62,6 +62,14 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
     { name: 'className', type: 'string', required: false },
   ],
 
+  'tracking-milestone-card': [
+    { name: 'label', type: 'string', required: true, description: 'Uppercase label text (e.g., "Total entries", "This week")' },
+    { name: 'value', type: 'string | number', required: false, description: 'Large display value (e.g., 142, "5 days"). Omit if using action prop.' },
+    { name: 'theme', type: "'primary' | 'secondary' | 'accent' | 'neutral'", required: false, defaultValue: "'neutral'", description: 'Color theme: primary (green), secondary (teal), accent (purple), neutral (gray)' },
+    { name: 'action', type: 'React.ReactNode', required: false, description: 'Custom action/button to display instead of value. Use for interactive cards (e.g., sync button).' },
+    { name: 'className', type: 'string', required: false, description: 'Additional CSS classes' },
+  ],
+
   'button': [
     { name: 'children', type: 'React.ReactNode', required: true, description: 'Button content (text or icon)' },
     { name: 'variant', type: "'primary' | 'secondary' | 'accent' | 'ghost' | 'outline' | 'danger'", required: false, defaultValue: "'primary'", description: 'Visual style variant' },

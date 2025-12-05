@@ -132,6 +132,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     path: '/design-system/component/feature-card'
   },
   {
+    id: 'tracking-milestone-card',
+    name: 'Tracking Milestone Card',
+    description: 'Metric card with themed border/background for displaying tracking stats and milestones',
+    category: 'UI',
+    icon: Activity,
+    exportName: 'TrackingMilestoneCard',
+    path: '/design-system/component/tracking-milestone-card'
+  },
+  {
     id: 'button',
     name: 'Button',
     description: 'Primary interactive element with multiple variants and sizes',

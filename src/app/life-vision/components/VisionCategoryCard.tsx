@@ -66,6 +66,17 @@ export function VisionCategoryCard({
             <h3 className="text-lg font-semibold text-white">{category.label}</h3>
             <p className="text-sm text-neutral-400">{category.description}</p>
           </div>
+          {!isEditing && editable && (
+            <Button
+              onClick={() => onEditCategory?.(category.key)}
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Edit3 className="w-4 h-4" />
+              <span className="hidden md:inline">Edit</span>
+            </Button>
+          )}
         </div>
 
         {/* Content Display */}
@@ -164,24 +175,14 @@ export function VisionCategoryCard({
                 {vision && (
                   <Button
                     asChild
-                    variant="outline-purple"
+                    variant={isRefined ? "outline" : "outline"}
                     size="sm"
-                    className="flex-1 md:flex-initial md:min-w-[100px]"
+                    className="flex items-center gap-2 flex-1 md:flex-initial md:min-w-[100px]"
                   >
                     <Link href={`/life-vision/${vision.id}/refine?category=${category.key}`}>
                       <Gem className="w-4 h-4" />
                       Refine with VIVA
                     </Link>
-                  </Button>
-                )}
-                {!isEditing && (
-                  <Button
-                    onClick={() => onEditCategory?.(category.key)}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Edit
                   </Button>
                 )}
               </div>
