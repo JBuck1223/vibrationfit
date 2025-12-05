@@ -5810,7 +5810,7 @@ export interface PageHeaderAction {
   className?: string
 }
 
-interface PageHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+interface PageHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   eyebrow?: React.ReactNode
   title: React.ReactNode
   subtitle?: React.ReactNode
