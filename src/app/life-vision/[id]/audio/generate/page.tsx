@@ -731,15 +731,6 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                       }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          selectedBaseVoice === set.voice_id
-                            ? 'border-primary-500 bg-primary-500'
-                            : 'border-neutral-600'
-                        }`}>
-                          {selectedBaseVoice === set.voice_id && (
-                            <div className="w-2 h-2 bg-white rounded-full" />
-                          )}
-                        </div>
                         <div className="flex-1">
                           <p className="text-white font-medium">{voices.find(v => v.id === set.voice_id)?.name || set.voice_id}</p>
                           <p className="text-xs text-neutral-400">{set.track_count} tracks</p>
@@ -778,18 +769,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                           )
                         }}
                       >
-                        <div className="flex items-start gap-3">
-                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center mt-1 transition-colors ${
-                            isSelected
-                              ? 'border-primary-500 bg-primary-500'
-                              : 'border-neutral-600'
-                          }`}>
-                            {isSelected && (
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
+                        <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg ${variant.color}`}>
                             <Icon className="w-5 h-5" />
                           </div>
