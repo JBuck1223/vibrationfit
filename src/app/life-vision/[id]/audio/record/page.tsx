@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, StatusBadge, Icon } from '@/lib/design-system/components'
+import { Button, Card, Container, StatusBadge, Icon, Spinner } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { CheckCircle, Eye, Headphones, Mic, Check } from 'lucide-react'
@@ -205,7 +205,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
     return (
       <Container size="xl">
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+          <Spinner size="lg" />
         </div>
       </Container>
     )

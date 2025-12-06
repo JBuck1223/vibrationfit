@@ -25,11 +25,7 @@ export async function POST(request: NextRequest) {
       batchId?: string
     }
 
-    console.log('🎤 [API] Received generation request')
-    console.log('🎤 [API] Voice parameter:', voice)
-    console.log('🎤 [API] Voice type:', typeof voice)
-    console.log('🎤 [API] Is cloned voice:', typeof voice === 'string' && voice.startsWith('clone-'))
-    console.log('🎤 [API] Variant:', variant || 'standard')
+    console.log('[API] Received generation request:', { visionId, voice, variant: variant || 'standard', sectionCount: sections.length })
 
     if (!visionId || !Array.isArray(sections)) {
       return NextResponse.json({ error: 'visionId and sections are required' }, { status: 400 })

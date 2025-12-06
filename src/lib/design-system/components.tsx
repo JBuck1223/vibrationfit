@@ -4166,7 +4166,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
           </p>
           <div className="flex gap-3">
             <Button
-              variant="ghost"
+              variant="outline"
               onClick={onClose}
               className="flex-1"
               disabled={isLoading}
@@ -4174,10 +4174,11 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
               Cancel
             </Button>
             <Button
+              variant="danger"
               onClick={onConfirm}
               loading={isLoading}
               disabled={isLoading}
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+              className="flex-1"
             >
               {isLoading ? loadingText : 'Delete'}
             </Button>
@@ -5221,12 +5222,15 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   const handleTrackSelect = (index: number) => {
     setCurrentTrackIndex(index)
     setCurrentTime(0)
-    if (isPlaying) {
-      // Small delay to ensure audio is loaded
-      setTimeout(() => {
-        audioRef.current?.play()
-      }, 100)
-    }
+    // Always play when a track is clicked
+    setIsPlaying(true)
+    // Small delay to ensure audio is loaded
+    setTimeout(() => {
+      audioRef.current?.play().catch(() => {
+        console.warn('Failed to auto-play track')
+        setIsPlaying(false)
+      })
+    }, 100)
   }
 
   const formatTime = (seconds: number) => {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getVisionCategoryKeys } from '@/lib/design-system'
-import { generateAudioTracks } from '@/lib/services/audioService'
+import { generateAudioTracks } from '../audioService-with-dryrun'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60

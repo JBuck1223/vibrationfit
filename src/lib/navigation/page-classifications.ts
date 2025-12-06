@@ -35,11 +35,12 @@ export const PAGE_CLASSIFICATIONS = {
     '/life-vision/new',
     '/life-vision/[id]',              // Dynamic: /life-vision/:id
     '/life-vision/[id]/audio',
-    '/life-vision/[id]/audio-generate',
-    '/life-vision/[id]/audio-sets',
-    '/life-vision/[id]/audio-queue/[batchId]',
+    '/life-vision/[id]/audio/generate',
+    '/life-vision/[id]/audio/sets',
+    '/life-vision/[id]/audio/queue',
+    '/life-vision/[id]/audio/queue/[batchId]',
     '/life-vision/[id]/experiment',
-    '/settings/voice-clone',
+    // '/settings/voice-clone', // REMOVED: Voice cloning archived to experiments/elevenlabs (Dec 6, 2025)
     // '/life-vision/[id]/refine', // REMOVED: Deprecated vibe-assistant refine page (Nov 11, 2025)
     '/life-vision/[id]/print',        // PDF preview page (with sidebar)
     '/life-vision/new/assembly',

@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, DeleteConfirmationDialog } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
@@ -31,6 +31,8 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
   const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null)
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([])
   const [loadingTracks, setLoadingTracks] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [setToDelete, setSetToDelete] = useState<{ id: string, name: string } | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -207,33 +209,37 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
     setLoadingTracks(false)
   }
 
-  const handleDelete = async (setId: string, setName: string) => {
-    if (!confirm(`Are you sure you want to delete "${setName}"? This will delete all audio tracks in this version. This action cannot be undone.`)) {
-      return
-    }
+  const handleDelete = (setId: string, setName: string) => {
+    setSetToDelete({ id: setId, name: setName })
+    setShowDeleteDialog(true)
+  }
 
-    setDeleting(setId)
+  const confirmDelete = async () => {
+    if (!setToDelete) return
+
+    setDeleting(setToDelete.id)
+    setShowDeleteDialog(false)
     const supabase = createClient()
 
     try {
       const { error } = await supabase
         .from('audio_sets')
         .delete()
-        .eq('id', setId)
+        .eq('id', setToDelete.id)
 
       if (error) {
         console.error('Error deleting audio set:', error)
         alert('Failed to delete audio version. Please try again.')
       } else {
         // Remove from local state
-        setAudioSets(audioSets.filter(s => s.id !== setId))
+        setAudioSets(audioSets.filter(s => s.id !== setToDelete.id))
         
         // If deleted set was selected, clear selection
-        if (selectedAudioSetId === setId) {
+        if (selectedAudioSetId === setToDelete.id) {
           setSelectedAudioSetId(null)
           setAudioTracks([])
           // Auto-select next available set
-          const remainingSets = audioSets.filter(s => s.id !== setId && s.isReady)
+          const remainingSets = audioSets.filter(s => s.id !== setToDelete.id && s.isReady)
           if (remainingSets.length > 0) {
             setSelectedAudioSetId(remainingSets[0].id)
             await loadAudioTracks(remainingSets[0].id)
@@ -245,6 +251,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
       alert('Failed to delete audio version. Please try again.')
     } finally {
       setDeleting(null)
+      setSetToDelete(null)
     }
   }
 
@@ -405,7 +412,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
         <Card variant="elevated" className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href={`/life-vision/${visionId}/audio-generate`}>
+              <Link href={`/life-vision/${visionId}/audio/generate`}>
                 <div className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200">
                   <Plus className="w-6 h-6 text-[#39FF14]" />
                 </div>
@@ -416,7 +423,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               </div>
             </div>
             <Button variant="primary" asChild>
-              <Link href={`/life-vision/${visionId}/audio-generate`}>
+              <Link href={`/life-vision/${visionId}/audio/generate`}>
                 Audio Studio
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
@@ -431,7 +438,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
             <h3 className="text-xl font-semibold text-white mb-2">No Audio Sets Yet</h3>
             <p className="text-neutral-400 mb-6">Create your first audio set to bring your vision to life through sound.</p>
             <Button variant="primary" asChild>
-              <Link href={`/life-vision/${visionId}/audio-generate`}>
+              <Link href={`/life-vision/${visionId}/audio/generate`}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create Audio Set
               </Link>
@@ -442,13 +449,13 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
             {/* Audio Sets Selection */}
             <div>
               <h2 className="text-xl md:text-2xl font-semibold text-white mb-4">Select Audio Set</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {audioSets.map((set) => (
                   <Card
                     key={set.id}
                     variant="elevated"
                     hover
-                    className={`cursor-pointer transition-all ${
+                    className={`cursor-pointer transition-all p-5 ${
                       selectedAudioSetId === set.id 
                         ? 'border-primary-500 bg-primary-500/10 -translate-y-1' 
                         : ''
@@ -574,6 +581,20 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
           </>
         )}
       </Stack>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false)
+          setSetToDelete(null)
+        }}
+        onConfirm={confirmDelete}
+        itemName={setToDelete?.name || ''}
+        itemType="Audio Set"
+        isLoading={deleting === setToDelete?.id}
+        loadingText="Deleting audio set..."
+      />
     </Container>
   )
 }

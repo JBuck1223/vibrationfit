@@ -193,7 +193,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Generate audio from text using OpenAI TTS',
     filePath: 'src/lib/services/audioService.ts',
     hasTokenTracking: true,
-    usedBy: ['/life-vision/[id]/audio-generate - Vision Audio Generation', '/life-vision/[id]/audio-sets - Audio Set Creation'],
+    usedBy: ['/life-vision/[id]/audio/generate - Vision Audio Generation', '/life-vision/[id]/audio/sets - Audio Set Creation'],
   },
   
   // ==========================================================================

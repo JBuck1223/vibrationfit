@@ -28,12 +28,21 @@ This folder contains the complete ElevenLabs text-to-speech integration that was
 2. Voice cloning UI and database tables
 3. ElevenLabs voice selection in audio generation
 4. Test single section feature (ElevenLabs-specific)
-5. Model switching logic (Turbo v2.5 vs Multilingual v2)
+5. Test voice feature ("Test Voice (1 Line)" button)
+6. Model switching logic (Turbo v2.5 vs Multilingual v2)
+7. Dry run mode (`dryRun` parameter and logic)
+8. "See What Will Be Sent" preview button
+9. Preview generation modal
+10. Cloned voice loading from `audio_voice_clones` table
 
 ### Files Archived
-- `audioService-with-elevenlabs.ts` - Full audio service with ElevenLabs
+- `audioService-with-elevenlabs.ts` - Full audio service with ElevenLabs integration
+- `audioService-with-dryrun.ts` - Audio service with dry run mode (no ElevenLabs)
 - `test-single-section-route.ts` - API route for testing single sections
+- `test-voice-api/` - Test voice with 1 line API endpoint (`/api/audio/test-voice`)
+- `preview-generation-api/` - Dry run API endpoint (`/api/audio/preview-generation`)
 - `voice-cloning-schema.sql` - Database schema for voice clones
+- `voice-clone-page/` - Settings page for voice cloning UI (`/settings/voice-clone`)
 - `elevenlabs-voices.ts` - List of pre-made ElevenLabs voices
 
 ### If You Want to Restore

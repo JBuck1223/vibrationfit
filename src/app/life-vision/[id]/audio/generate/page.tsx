@@ -280,8 +280,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       })
 
       // Redirect to queue page immediately
-      console.log('Redirecting to queue page:', `/life-vision/${visionId}/audio-queue/${batch.id}`)
-      router.push(`/life-vision/${visionId}/audio-queue/${batch.id}`)
+      console.log('Redirecting to queue page:', `/life-vision/${visionId}/audio/queue/${batch.id}`)
+      router.push(`/life-vision/${visionId}/audio/queue/${batch.id}`)
     } catch (error) {
       console.error('Generation error:', error)
       alert('An error occurred during generation. Please try again.')
@@ -389,8 +389,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       }
 
       // Redirect to queue page immediately
-      console.log('Redirecting to queue page:', `/life-vision/${visionId}/audio-queue/${batch.id}`)
-      router.push(`/life-vision/${visionId}/audio-queue/${batch.id}`)
+      console.log('Redirecting to queue page:', `/life-vision/${visionId}/audio/queue/${batch.id}`)
+      router.push(`/life-vision/${visionId}/audio/queue/${batch.id}`)
     } catch (error) {
       console.error('Generation error:', error)
       alert('An error occurred during generation. Please try again.')
@@ -835,7 +835,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
         {/* Quick Links */}
         <div className="flex gap-4">
           <Button variant="outline" asChild className="flex-1">
-            <Link href={`/life-vision/${visionId}/audio-sets`}>
+            <Link href={`/life-vision/${visionId}/audio/sets`}>
               View Audio Sets
             </Link>
           </Button>
@@ -872,17 +872,17 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
-            <div className="space-y-3">
+            <div className="flex flex-col gap-4">
               {activeBatches.map((batch) => {
                 const isActive = ['pending', 'processing'].includes(batch.status)
                 const progressPercent = Math.round((batch.tracks_completed / batch.total_tracks_expected) * 100)
                 
                 return (
-                  <Link key={batch.id} href={`/life-vision/${visionId}/audio-queue/${batch.id}`}>
+                  <Link key={batch.id} href={`/life-vision/${visionId}/audio/queue/${batch.id}`}>
                     <Card 
                       variant="default" 
                       hover
-                      className="cursor-pointer"
+                      className="cursor-pointer !py-4 !px-5"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">

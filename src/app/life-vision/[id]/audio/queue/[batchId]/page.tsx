@@ -213,13 +213,13 @@ export default function AudioQueuePage({
   const getStatusBadge = (status: BatchStatus) => {
     switch (status) {
       case 'processing':
-        return <Badge variant="info" className="text-sm">⏳ In Progress</Badge>
+        return <Badge variant="info" className="text-sm flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />In Progress</Badge>
       case 'completed':
-        return <Badge variant="success" className="text-sm">✓ Complete</Badge>
+        return <Badge variant="success" className="text-sm flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5" />Complete</Badge>
       case 'partial_success':
-        return <Badge variant="warning" className="text-sm">⚠ Partial Success</Badge>
+        return <Badge variant="warning" className="text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />Partial Success</Badge>
       case 'failed':
-        return <Badge variant="error" className="text-sm">✗ Failed</Badge>
+        return <Badge variant="error" className="text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />Failed</Badge>
       default:
         return <Badge variant="info" className="text-sm">Pending</Badge>
     }
@@ -230,7 +230,7 @@ export default function AudioQueuePage({
       case 'processing':
         return <Spinner size="md" />
       case 'completed':
-        return <CheckCircle className="w-12 h-12 text-green-400" />
+        return <CheckCircle className="w-12 h-12" style={{ color: '#39FF14' }} />
       case 'partial_success':
         return <AlertCircle className="w-12 h-12 text-yellow-400" />
       case 'failed':
@@ -271,7 +271,7 @@ export default function AudioQueuePage({
           <h2 className="text-xl font-semibold text-white mb-2">Batch Not Found</h2>
           <p className="text-neutral-400 mb-6">The audio generation batch could not be found.</p>
           <Button variant="primary" asChild>
-            <Link href={`/life-vision/${visionId}/audio-generate`}>
+            <Link href={`/life-vision/${visionId}/audio/generate`}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Audio Studio
             </Link>
@@ -284,22 +284,11 @@ export default function AudioQueuePage({
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Breadcrumb Navigation */}
-        <div className="flex items-center gap-2 text-sm text-neutral-400">
-          <Link href="/dashboard" className="hover:text-primary-500 transition-colors">Dashboard</Link>
-          <span>›</span>
-          <Link href="/life-vision" className="hover:text-primary-500 transition-colors">Life Vision</Link>
-          <span>›</span>
-          <Link href={`/life-vision/${visionId}/audio-generate`} className="hover:text-primary-500 transition-colors">Audio Studio</Link>
-          <span>›</span>
-          <span className="text-white">Generation Queue</span>
-        </div>
-
         {/* Hero Header */}
         <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
           <div className="relative p-6 md:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <div className="text-center">
-              <div className="mb-4">
+              <div className="mb-4 flex justify-center">
                 {getStatusIcon(batch.status)}
               </div>
               <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
@@ -383,8 +372,9 @@ export default function AudioQueuePage({
             {batch.status === 'completed' && (
               <div className="pt-4 border-t border-neutral-700">
                 <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-                  <p className="text-green-400 font-medium text-center">
-                    ✓ All tracks generated successfully!
+                  <p className="text-green-400 font-medium text-center flex items-center justify-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    All tracks generated successfully!
                   </p>
                 </div>
               </div>
@@ -394,8 +384,9 @@ export default function AudioQueuePage({
             {batch.status === 'partial_success' && (
               <div className="pt-4 border-t border-neutral-700">
                 <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                  <p className="text-yellow-400 font-medium text-center">
-                    ⚠ {batch.tracks_completed} of {batch.total_tracks_expected} tracks completed successfully
+                  <p className="text-yellow-400 font-medium text-center flex items-center justify-center gap-2">
+                    <AlertCircle className="w-5 h-5" />
+                    {batch.tracks_completed} of {batch.total_tracks_expected} tracks completed successfully
                   </p>
                   <p className="text-yellow-300 text-sm text-center mt-1">
                     {batch.tracks_failed} track{batch.tracks_failed > 1 ? 's' : ''} failed
@@ -429,18 +420,18 @@ export default function AudioQueuePage({
                 </span>
                 <div className="flex gap-2">
                   {completedTracks.length > 0 && (
-                    <Badge variant="success" className="text-xs">
-                      {completedTracks.length} ✓
+                    <Badge variant="success" className="text-xs flex items-center gap-1">
+                      {completedTracks.length} <CheckCircle className="w-3 h-3" />
                     </Badge>
                   )}
                   {processingTracks.length > 0 && (
-                    <Badge variant="info" className="text-xs">
-                      {processingTracks.length} ⏳
+                    <Badge variant="info" className="text-xs flex items-center gap-1">
+                      {processingTracks.length} <Clock className="w-3 h-3" />
                     </Badge>
                   )}
                   {failedTracks.length > 0 && (
-                    <Badge variant="error" className="text-xs">
-                      {failedTracks.length} ✗
+                    <Badge variant="error" className="text-xs flex items-center gap-1">
+                      {failedTracks.length} <AlertCircle className="w-3 h-3" />
                     </Badge>
                   )}
                 </div>
@@ -486,10 +477,10 @@ export default function AudioQueuePage({
                             </Badge>
                           )}
                           {isComplete && (
-                            <Badge variant="success" className="text-xs whitespace-nowrap">✓ Complete</Badge>
+                            <Badge variant="success" className="text-xs whitespace-nowrap flex items-center gap-1"><CheckCircle className="w-3 h-3" />Complete</Badge>
                           )}
                           {isFailed && (
-                            <Badge variant="error" className="text-xs whitespace-nowrap">✗ Failed</Badge>
+                            <Badge variant="error" className="text-xs whitespace-nowrap flex items-center gap-1"><AlertCircle className="w-3 h-3" />Failed</Badge>
                           )}
                         </div>
                       </div>
@@ -504,7 +495,7 @@ export default function AudioQueuePage({
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
           <Button variant="outline" asChild className="flex-1">
-            <Link href={`/life-vision/${visionId}/audio-generate?refresh=1`}>
+            <Link href={`/life-vision/${visionId}/audio/generate?refresh=1`}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Audio Studio
             </Link>
@@ -534,7 +525,7 @@ export default function AudioQueuePage({
           
           {batch.audio_set_ids.length > 0 && ['completed', 'partial_success'].includes(batch.status) && (
             <Button variant="primary" asChild className="flex-1">
-              <Link href={`/life-vision/${visionId}/audio-sets`}>
+              <Link href={`/life-vision/${visionId}/audio/sets`}>
                 <Play className="w-4 h-4 mr-2" />
                 Play Generated Audio
               </Link>

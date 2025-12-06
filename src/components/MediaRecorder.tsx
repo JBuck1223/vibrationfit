@@ -841,10 +841,15 @@ export function MediaRecorderComponent({
     <div className={`space-y-4 ${className}`}>
       {/* Recording Controls */}
       {!recordedBlob && !(recordingPurpose === 'quick' && transcript) && (
-        <div className={`bg-neutral-900 border-2 rounded-2xl p-6 min-h-[400px] flex flex-col justify-center transition-colors ${
+        <div className={`bg-neutral-900 border-2 rounded-2xl flex flex-col transition-colors ${
           isRecording 
             ? 'border-[#FF0040]' 
             : 'border-[#39FF14]'
+        } ${
+          // Compact when idle, expand when engaged
+          isRecording || countdown !== null || isPreparing || hasSavedRecording || (mode === 'video' && isRecording)
+            ? 'p-6 min-h-[400px] justify-center'
+            : 'p-4 justify-start'
         }`}>
           {/* Video Preview */}
           {mode === 'video' && (isRecording || isPreparing) && (
