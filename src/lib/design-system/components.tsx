@@ -898,6 +898,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       })
     }
 
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault()
+      e.stopPropagation()
+      props.onClick?.(e)
+    }
+
     return (
       <button
         ref={ref}
@@ -905,6 +911,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         className={buttonClasses}
         {...props}
+        onClick={handleClick}
       >
         {loading ? 'Loading...' : children}
       </button>

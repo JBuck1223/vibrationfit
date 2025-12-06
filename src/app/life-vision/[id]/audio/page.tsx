@@ -1,11 +1,11 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Stack, Badge, TrackingMilestoneCard } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, Badge, TrackingMilestoneCard, VersionBadge, StatusBadge } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
-import { Play, Clock, CheckCircle, Music, Moon, Zap, Sparkles, ArrowRight, Mic, Plus, Eye, Headphones } from 'lucide-react'
+import { Play, Clock, CheckCircle, Music, Moon, Zap, Sparkles, ArrowRight, Mic, Plus, Eye, Headphones, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 
 export default function VisionAudioPage({ params }: { params: Promise<{ id: string }> }) {
@@ -146,7 +146,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
 
     // Build section map for titles
     const sectionMap = new Map<string, string>()
-    sectionMap.set('meta_intro', 'Forward')
+    sectionMap.set('forward', 'Forward')
     sectionMap.set('fun', 'Fun')
     sectionMap.set('health', 'Health')
     sectionMap.set('travel', 'Travel')
@@ -162,7 +162,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
     sectionMap.set(assessmentToVisionKey('possessions'), 'Stuff')  // Legacy mapping
     sectionMap.set('giving', 'Giving')
     sectionMap.set('spirituality', 'Spirituality')
-    sectionMap.set('meta_outro', 'Conclusion')
+    sectionMap.set('conclusion', 'Conclusion')
 
     // Map legacy section keys to current ones for sorting
     const sectionKeyNormalizer = new Map<string, string>()
@@ -172,7 +172,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
 
     // Build canonical order for sorting
     const canonicalOrder = [
-      'meta_intro',
+      'forward',
       'fun',
       'health',
       'travel',
@@ -185,7 +185,7 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
       'stuff',
       'giving',
       'spirituality',
-      'meta_outro'
+      'conclusion'
     ]
     
     // Format tracks for PlaylistPlayer
@@ -321,16 +321,20 @@ export default function VisionAudioPage({ params }: { params: Promise<{ id: stri
               {vision && (
                 <div className="flex justify-center mb-4">
                   <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                    <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
-                      V{vision.version_number}
-                    </span>
-                    <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg text-xs md:text-sm">
-                      {new Date(vision.created_at).toLocaleDateString()}
+                    <VersionBadge 
+                      versionNumber={vision.version_number} 
+                      status={vision.is_active ? 'active' : (vision.is_draft ? 'draft' : 'complete')} 
+                    />
+                    <StatusBadge 
+                      status={vision.is_active ? 'active' : (vision.is_draft ? 'draft' : 'complete')} 
+                      subtle={!vision.is_active} 
+                      className="uppercase tracking-[0.25em]" 
+                    />
+                    <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                      <CalendarDays className="w-4 h-4 text-neutral-500" />
+                      <span className="font-medium">Created:</span>
+                      <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
-                    <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-green-500/20 text-green-400 border-green-500/30 !bg-[#39FF14] !text-black !border-[#39FF14]">
-                      <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
-                      Active
-                    </span>
                   </div>
                 </div>
               )}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { generateAudioTracks, OpenAIVoice, hashContent } from '@/lib/services/audioService'
+import { generateAudioTracks, OpenAIVoice, VoiceId, hashContent } from '@/lib/services/audioService'
 import { validateTokenBalance, getDefaultTokenEstimate } from '@/lib/tokens/tracking'
 
 export const runtime = 'nodejs'
@@ -13,16 +13,23 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const { visionId, sections, voice = 'alloy', format = 'mp3', force = false, variant, audioSetId, audioSetName } = body as {
+    const { visionId, sections, voice = 'alloy', format = 'mp3', force = false, variant, audioSetId, audioSetName, batchId } = body as {
       visionId: string
       sections: { sectionKey: string; text: string }[]
-      voice?: OpenAIVoice
+      voice?: VoiceId | string
       format?: 'mp3' | 'wav'
       force?: boolean
       variant?: string
       audioSetId?: string
       audioSetName?: string
+      batchId?: string
     }
+
+    console.log('🎤 [API] Received generation request')
+    console.log('🎤 [API] Voice parameter:', voice)
+    console.log('🎤 [API] Voice type:', typeof voice)
+    console.log('🎤 [API] Is cloned voice:', typeof voice === 'string' && voice.startsWith('clone-'))
+    console.log('🎤 [API] Variant:', variant || 'standard')
 
     if (!visionId || !Array.isArray(sections)) {
       return NextResponse.json({ error: 'visionId and sections are required' }, { status: 400 })
@@ -36,6 +43,18 @@ export async function POST(request: NextRequest) {
     // Validate token balance
     const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
     if (tokenValidation) {
+      // Mark batch as failed if provided
+      if (batchId) {
+        await supabase
+          .from('audio_generation_batches')
+          .update({
+            status: 'failed',
+            error_message: tokenValidation.error,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', batchId)
+      }
+      
       return NextResponse.json(
         { 
           error: tokenValidation.error,
@@ -43,6 +62,17 @@ export async function POST(request: NextRequest) {
         },
         { status: tokenValidation.status }
       )
+    }
+
+    // Mark batch as processing if provided
+    if (batchId) {
+      await supabase
+        .from('audio_generation_batches')
+        .update({
+          status: 'processing',
+          started_at: new Date().toISOString()
+        })
+        .eq('id', batchId)
     }
 
     const results = await generateAudioTracks({
@@ -55,11 +85,31 @@ export async function POST(request: NextRequest) {
       variant,
       audioSetId,
       audioSetName,
+      batchId,
     })
 
-    return NextResponse.json({ results })
+    return NextResponse.json({ results, batchId })
   } catch (error) {
     console.error('Audio generation error:', error)
+    
+    // Mark batch as failed if provided
+    const body = await request.json().catch(() => ({}))
+    if (body.batchId) {
+      const supabase = await createClient()
+      await Promise.resolve(
+        supabase
+          .from('audio_generation_batches')
+          .update({
+            status: 'failed',
+            error_message: error instanceof Error ? error.message : 'Unknown error',
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', body.batchId)
+      )
+        .then(() => {})
+        .catch(() => {})
+    }
+    
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Generation failed' }, { status: 500 })
   }
 }

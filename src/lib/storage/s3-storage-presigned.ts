@@ -21,6 +21,7 @@ export const USER_FOLDERS = {
   profileAudioRecordings: 'profile/audio-recordings',
   profileVideoRecordings: 'profile/video-recordings',
   customTracks: 'custom-tracks',
+  voiceCloneSamples: 'voice-clone-samples',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS
@@ -598,6 +599,10 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     visionBoardUploaded: {
       maxSize: 20 * 1024 * 1024, // 20MB for uploaded images
       types: ['image/jpeg', 'image/png', 'image/webp'],
+    },
+    voiceCloneSamples: {
+      maxSize: 500 * 1024 * 1024, // 500MB for voice clone audio samples
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },
   }
 

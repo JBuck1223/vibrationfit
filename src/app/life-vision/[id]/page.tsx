@@ -191,10 +191,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       if (!tracks) return
 
       // Map tracks by section_key
-      // Map audio section_keys to vision category keys
+      // Map audio section_keys to vision category keys (handles both old and new keys)
       const sectionToCategory: Record<string, string> = {
-        'meta_intro': 'forward',
-        'meta_outro': 'conclusion',
+        'meta_intro': 'forward',  // Legacy mapping
+        'meta_outro': 'conclusion',  // Legacy mapping
+        'forward': 'forward',  // Direct mapping for new tracks
+        'conclusion': 'conclusion',  // Direct mapping for new tracks
         // Map all other keys 1:1, with legacy assessment key support
         health: 'health',
         family: 'family',

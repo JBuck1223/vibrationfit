@@ -102,8 +102,7 @@ export default function SitemapPage() {
         { href: '/life-vision/[id]', label: 'Vision Details', icon: Eye, description: 'Individual vision page', isDynamic: true },
         { href: '/life-vision/[id]/audio', label: 'Vision Audio', icon: Headphones, description: 'Audio version of vision', isDynamic: true },
         { href: '/life-vision/[id]/audio-generate', label: 'Generate Audio', icon: Mic, description: 'Generate vision audio', isDynamic: true },
-        { href: '/life-vision/[id]/audio-sets', label: 'Audio Sets', icon: Headphones, description: 'Manage audio sets', isDynamic: true },
-        { href: '/life-vision/[id]/audio-sets/[audioSetId]', label: 'Audio Set Detail', icon: Headphones, description: 'Individual audio set', isDynamic: true },
+        { href: '/life-vision/[id]/audio-sets', label: 'Audio Sets', icon: Headphones, description: 'Manage & play audio sets', isDynamic: true },
         { href: '/life-vision/[id]/print', label: 'Print Vision', icon: FileText, description: 'Print-friendly view', isDynamic: true },
 
         // Vision Board
@@ -144,6 +143,7 @@ export default function SitemapPage() {
         
         // Account & Settings
         { href: '/account/settings', label: 'Account Settings', icon: Settings, description: 'Email, password, notifications' },
+        { href: '/settings/voice-clone', label: 'Voice Cloning', icon: Mic, description: 'Clone your voice for audio generation' },
 
         // Assessment
         { href: '/assessment', label: 'Start Assessment', icon: Brain, description: 'Begin vibration assessment' },
