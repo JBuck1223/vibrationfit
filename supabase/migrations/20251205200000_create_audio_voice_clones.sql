@@ -61,3 +61,4 @@ CREATE POLICY "Users can delete their own voice clones"
 COMMENT ON TABLE public.audio_voice_clones IS 'Stores user voice clones from ElevenLabs for personalized TTS generation';
 
 
+
