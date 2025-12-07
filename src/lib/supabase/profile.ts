@@ -3,6 +3,7 @@ import { createClient } from './server'
 export interface UserProfile {
   id?: string
   user_id: string
+  parent_id?: string | null
   first_name?: string | null
   last_name?: string | null
   email?: string | null
@@ -143,6 +144,9 @@ export interface UserProfile {
   charitable_giving?: string | null
   legacy_mindset?: boolean | null
   ai_tags?: any | null
+  version_number?: number
+  is_draft?: boolean
+  is_active?: boolean
   created_at?: string
   updated_at?: string
 }

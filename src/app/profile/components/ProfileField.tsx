@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { AlertCircle, Edit2, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
-import { Input, Textarea, Button, RadioGroup } from '@/lib/design-system/components'
+import { Input, Button, RadioGroup, AutoResizeTextarea } from '@/lib/design-system/components'
 
 interface ProfileFieldProps {
   label: string
@@ -16,6 +16,7 @@ interface ProfileFieldProps {
   selectOptions?: Array<{ value: string; label: string }>
   placeholder?: string
   collapsible?: boolean
+  autoEdit?: boolean // If true, automatically enters edit mode when editable is true
 }
 
 export function ProfileField({ 
@@ -29,7 +30,8 @@ export function ProfileField({
   onSave,
   selectOptions,
   placeholder,
-  collapsible = false
+  collapsible = false,
+  autoEdit = true
 }: ProfileFieldProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(value)
@@ -37,12 +39,19 @@ export function ProfileField({
   const [arrayInput, setArrayInput] = useState('')
   const [isExpanded, setIsExpanded] = useState(true)
 
-  // Sync editValue when value prop changes (when not editing)
+  // Sync editValue when value prop changes
   useEffect(() => {
-    if (!isEditing) {
-      setEditValue(value)
+    setEditValue(value)
+  }, [value])
+  
+  // Auto-enter edit mode when editable becomes true (for section-level editing)
+  useEffect(() => {
+    if (autoEdit && editable) {
+      setIsEditing(true)
+    } else if (!editable) {
+      setIsEditing(false)
     }
-  }, [value, isEditing])
+  }, [editable, autoEdit])
 
   const isEmpty = () => {
     if (Array.isArray(value)) return value.length === 0
@@ -60,7 +69,9 @@ export function ProfileField({
   const handleCancel = () => {
     setEditValue(value)
     setArrayInput('')
-    setIsEditing(false)
+    if (!autoEdit) {
+      setIsEditing(false)
+    }
   }
 
   const handleSave = async () => {
@@ -81,13 +92,23 @@ export function ProfileField({
       }
       
       await onSave(fieldKey, valueToSave)
-      setIsEditing(false)
+      if (!autoEdit) {
+        setIsEditing(false)
+      }
       setArrayInput('')
     } catch (error) {
       console.error('Failed to save:', error)
       throw error // Re-throw so the component can show error state
     } finally {
       setIsSaving(false)
+    }
+  }
+  
+  // Auto-save on change when in autoEdit mode
+  const handleChange = (newValue: any) => {
+    setEditValue(newValue)
+    if (autoEdit && onSave && fieldKey) {
+      onSave(fieldKey, newValue)
     }
   }
 
@@ -110,31 +131,32 @@ export function ProfileField({
     if (type === 'story') {
       return (
         <div className="space-y-2">
-          <Textarea
+          <AutoResizeTextarea
             value={editValue || ''}
-            onChange={(e) => setEditValue(e.target.value)}
+            onChange={handleChange}
             placeholder={placeholder || `Enter your ${label.toLowerCase()}...`}
-            rows={6}
-            className="w-full"
+            className="w-full min-h-[120px]"
           />
-          <div className="flex gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? 'Saving...' : <><Check className="w-4 h-4 mr-1" /> Save</>}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancel}
-              disabled={isSaving}
-            >
-              <X className="w-4 h-4 mr-1" /> Cancel
-            </Button>
-          </div>
+          {!autoEdit && (
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : <><Check className="w-4 h-4 mr-1" /> Save</>}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+                disabled={isSaving}
+              >
+                <X className="w-4 h-4 mr-1" /> Cancel
+              </Button>
+            </div>
+          )}
         </div>
       )
     }
@@ -171,24 +193,26 @@ export function ProfileField({
               Add
             </Button>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? 'Saving...' : <><Check className="w-4 h-4 mr-1" /> Save</>}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancel}
-              disabled={isSaving}
-            >
-              <X className="w-4 h-4 mr-1" /> Cancel
-            </Button>
-          </div>
+          {!autoEdit && (
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : <><Check className="w-4 h-4 mr-1" /> Save</>}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+                disabled={isSaving}
+              >
+                <X className="w-4 h-4 mr-1" /> Cancel
+              </Button>
+            </div>
+          )}
         </div>
       )
     }
@@ -199,13 +223,14 @@ export function ProfileField({
           <RadioGroup
             name={`${fieldKey}-boolean`}
             value={editValue}
-            onChange={(value) => setEditValue(value)}
+            onChange={(value) => handleChange(value)}
             options={[
               { value: true, label: 'Yes' },
               { value: false, label: 'No' }
             ]}
           />
-          <div className="flex gap-2">
+          {!autoEdit && (
+            <div className="flex gap-2">
             <Button
               variant="primary"
               size="sm"
@@ -223,6 +248,7 @@ export function ProfileField({
               <X className="w-4 h-4 mr-1" /> Cancel
             </Button>
           </div>
+          )}
         </div>
       )
     }
@@ -232,7 +258,7 @@ export function ProfileField({
         <div className="space-y-2">
           <select
             value={editValue || ''}
-            onChange={(e) => setEditValue(e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-primary-500"
           >
             <option value="">Select...</option>
@@ -242,7 +268,8 @@ export function ProfileField({
               </option>
             ))}
           </select>
-          <div className="flex gap-2">
+          {!autoEdit && (
+            <div className="flex gap-2">
             <Button
               variant="primary"
               size="sm"
@@ -260,6 +287,7 @@ export function ProfileField({
               <X className="w-4 h-4 mr-1" /> Cancel
             </Button>
           </div>
+          )}
         </div>
       )
     }
@@ -270,28 +298,30 @@ export function ProfileField({
         <Input
           type={type === 'number' ? 'number' : 'text'}
           value={editValue || ''}
-          onChange={(e) => setEditValue(type === 'number' ? parseFloat(e.target.value) : e.target.value)}
+          onChange={(e) => handleChange(type === 'number' ? parseFloat(e.target.value) : e.target.value)}
           placeholder={placeholder || `Enter ${label.toLowerCase()}...`}
           className="w-full"
         />
-        <div className="flex gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? 'Saving...' : <><Check className="w-4 h-4 mr-1" /> Save</>}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCancel}
-            disabled={isSaving}
-          >
-            <X className="w-4 h-4 mr-1" /> Cancel
-          </Button>
-        </div>
+        {!autoEdit && (
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Saving...' : <><Check className="w-4 h-4 mr-1" /> Save</>}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              disabled={isSaving}
+            >
+              <X className="w-4 h-4 mr-1" /> Cancel
+            </Button>
+          </div>
+        )}
       </div>
     )
   }

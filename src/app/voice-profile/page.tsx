@@ -381,7 +381,7 @@ export default function VoiceProfilePage() {
                   Voice Profile
                 </h1>
                 <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
-                  Adjust how VIVA writes for you. Save manual edits, run the analyzer, or revisit quiz-based versions. The active version powers scenes, visions, and reflections across the app.
+                  Adjust how VIVA writes for you. Save manual edits or run the analyzer on your latest writing. The active version powers scenes, visions, and reflections across the app.
                 </p>
               </div>
               
@@ -417,10 +417,10 @@ export default function VoiceProfilePage() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => router.push('/voice-profile/quiz')}
+                  onClick={() => router.push('/voice-profile/analyze/initial')}
                   className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
                 >
-                  Start / Update Quiz
+                  Initial Bootstrap
                 </Button>
                 <Button 
                   variant="outline" 
@@ -581,7 +581,7 @@ This is the life I choose.`}
 
               <div className="space-y-3">
                 {versions.length === 0 ? (
-                  <div className="text-sm text-neutral-500">No versions saved yet. Start with the quiz or save a manual edit.</div>
+                  <div className="text-sm text-neutral-500">No versions saved yet. Run the initial bootstrap or save a manual edit.</div>
                 ) : (
                   versions.map((version) => (
                     <Card

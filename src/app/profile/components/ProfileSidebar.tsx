@@ -1,15 +1,20 @@
 'use client'
 
 import React from 'react'
-import { Card } from '@/lib/design-system/components'
+import { Card, Badge } from '@/lib/design-system/components'
 import { VISION_CATEGORIES, getVisionCategory, profileSectionToVisionKey } from '@/lib/design-system/vision-categories'
 import { User, CheckCircle, Camera } from 'lucide-react'
+import { colors } from '@/lib/design-system/tokens'
 
 interface ProfileSidebarProps {
   activeSection: string
   onSectionChange: (section: string) => void
-  completedSections: string[]
+  completedSections?: string[]
+  profile?: any
+  changedSections?: Record<string, string[]>
 }
+
+const NEON_YELLOW = colors.energy.yellow[500]
 
 // Helper function to get category info from design system
 const getCategoryInfo = (categoryId: string) => {
@@ -161,7 +166,7 @@ const sections = [
   }
 ].sort((a, b) => a.order - b.order)
 
-export function ProfileSidebar({ activeSection, onSectionChange, completedSections }: ProfileSidebarProps) {
+export function ProfileSidebar({ activeSection, onSectionChange, completedSections = [], profile, changedSections }: ProfileSidebarProps) {
   const basicsSections = sections.filter(s => s.category === 'basics')
   const lifeVisionSections = sections.filter(s => s.category === 'life-vision')
 
@@ -169,6 +174,7 @@ export function ProfileSidebar({ activeSection, onSectionChange, completedSectio
     const Icon = section.icon
     const isActive = activeSection === section.id
     const isCompleted = completedSections.includes(section.id)
+    const hasChanges = changedSections && changedSections[section.id]?.length > 0
 
     return (
       <button
@@ -190,8 +196,16 @@ export function ProfileSidebar({ activeSection, onSectionChange, completedSectio
               <span className="font-medium text-sm truncate">
                 {section.title}
               </span>
-              {isCompleted && (
+              {isCompleted && !hasChanges && (
                 <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+              )}
+              {hasChanges && (
+                <Badge 
+                  variant="warning" 
+                  className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30 flex-shrink-0 text-xs !py-0 !px-1"
+                >
+                  {changedSections[section.id].length}
+                </Badge>
               )}
             </div>
             <p className="text-xs text-neutral-500 mt-1 truncate">

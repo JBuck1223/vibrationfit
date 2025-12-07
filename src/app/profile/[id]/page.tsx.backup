@@ -341,6 +341,7 @@ export default function ProfileDetailPage() {
 
   // Section-level editing functions
   const handleSectionEdit = (sectionId: string) => {
+    console.log('🔧 Editing section:', sectionId)
     setEditingSection(sectionId)
     setEditedFields({}) // Reset edited fields when starting to edit a section
   }
@@ -778,11 +779,11 @@ export default function ProfileDetailPage() {
           <>
             <ProfileField 
               label="Has Children" 
-              value={editedFields.has_children !== undefined ? editedFields.has_children : profile.has_children} 
+              value={profile.has_children} 
               type="boolean"
-              editable={editingSection === 'family'}
+              editable={false}
               fieldKey="has_children"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
 
             {/* Children Table */}
@@ -814,38 +815,38 @@ export default function ProfileDetailPage() {
 
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('family')}?`}
-              value={editedFields.clarity_family !== undefined ? editedFields.clarity_family : profile.clarity_family}
+              value={profile.clarity_family}
               type="story"
-              editable={editingSection === 'family'}
+              editable={false}
               fieldKey="clarity_family"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('family')}?`}
-              value={editedFields.dream_family !== undefined ? editedFields.dream_family : profile.dream_family}
+              value={profile.dream_family}
               type="story"
-              editable={editingSection === 'family'}
+              editable={false}
               fieldKey="dream_family"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
-              value={editedFields.contrast_family !== undefined ? editedFields.contrast_family : profile.contrast_family}
+              value={profile.contrast_family}
               type="story"
-              editable={editingSection === 'family'}
+              editable={false}
               fieldKey="contrast_family"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('family')}?`}
-              value={editedFields.worry_family !== undefined ? editedFields.worry_family : profile.worry_family}
+              value={profile.worry_family}
               type="story"
-              editable={editingSection === 'family'}
+              editable={false}
               fieldKey="worry_family"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -857,25 +858,25 @@ export default function ProfileDetailPage() {
             <ProfileField 
               label="Height" 
               value={profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : null}
-              editable={editingSection === 'health'}
+              editable={false}
               fieldKey="height"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="number"
             />
             <ProfileField 
               label="Weight" 
               value={profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : null}
-              editable={editingSection === 'health'}
+              editable={false}
               fieldKey="weight"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="number"
             />
             <ProfileField 
               label="Units" 
-              value={editedFields.units !== undefined ? editedFields.units : profile.units}
-              editable={editingSection === 'health'}
+              value={profile.units}
+              editable={false}
               fieldKey="units"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'US', label: 'US (inches, lbs)' },
@@ -884,10 +885,10 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Exercise Frequency" 
-              value={editedFields.exercise_frequency !== undefined ? editedFields.exercise_frequency : profile.exercise_frequency}
-              editable={editingSection === 'health'}
+              value={profile.exercise_frequency}
+              editable={false}
               fieldKey="exercise_frequency"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'Never', label: 'Never' },
@@ -899,38 +900,38 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('health')}?`}
-              value={editedFields.clarity_health !== undefined ? editedFields.clarity_health : profile.clarity_health}
+              value={profile.clarity_health}
               type="story"
-              editable={editingSection === 'health'}
+              editable={false}
               fieldKey="clarity_health"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('health')}?`}
-              value={editedFields.dream_health !== undefined ? editedFields.dream_health : profile.dream_health}
+              value={profile.dream_health}
               type="story"
-              editable={editingSection === 'health'}
+              editable={false}
               fieldKey="dream_health"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
-              value={editedFields.contrast_health !== undefined ? editedFields.contrast_health : profile.contrast_health}
+              value={profile.contrast_health}
               type="story"
-              editable={editingSection === 'health'}
+              editable={false}
               fieldKey="contrast_health"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('health')}?`}
-              value={editedFields.worry_health !== undefined ? editedFields.worry_health : profile.worry_health}
+              value={profile.worry_health}
               type="story"
-              editable={editingSection === 'health'}
+              editable={false}
               fieldKey="worry_health"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -941,10 +942,10 @@ export default function ProfileDetailPage() {
           <>
             <ProfileField 
               label="Living Situation" 
-              value={editedFields.living_situation !== undefined ? editedFields.living_situation : profile.living_situation}
-              editable={editingSection === 'home'}
+              value={profile.living_situation}
+              editable={false}
               fieldKey="living_situation"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'Own', label: 'Own' },
@@ -955,10 +956,10 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Time at Location" 
-              value={editedFields.time_at_location !== undefined ? editedFields.time_at_location : profile.time_at_location}
-              editable={editingSection === 'home'}
+              value={profile.time_at_location}
+              editable={false}
               fieldKey="time_at_location"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'Less than 1 year', label: 'Less than 1 year' },
@@ -970,66 +971,66 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="City" 
-              value={editedFields.city !== undefined ? editedFields.city : profile.city}
-              editable={editingSection === 'home'}
+              value={profile.city}
+              editable={false}
               fieldKey="city"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
             <ProfileField 
               label="State" 
-              value={editedFields.state !== undefined ? editedFields.state : profile.state}
-              editable={editingSection === 'home'}
+              value={profile.state}
+              editable={false}
               fieldKey="state"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
             <ProfileField 
               label="Postal Code" 
-              value={editedFields.postal_code !== undefined ? editedFields.postal_code : profile.postal_code}
-              editable={editingSection === 'home'}
+              value={profile.postal_code}
+              editable={false}
               fieldKey="postal_code"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
             <ProfileField 
               label="Country" 
-              value={editedFields.country !== undefined ? editedFields.country : profile.country}
-              editable={editingSection === 'home'}
+              value={profile.country}
+              editable={false}
               fieldKey="country"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('home')}?`}
-              value={editedFields.clarity_home !== undefined ? editedFields.clarity_home : profile.clarity_home}
+              value={profile.clarity_home}
               type="story"
-              editable={editingSection === 'home'}
+              editable={false}
               fieldKey="clarity_home"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('home')}?`}
-              value={editedFields.dream_home !== undefined ? editedFields.dream_home : profile.dream_home}
+              value={profile.dream_home}
               type="story"
-              editable={editingSection === 'home'}
+              editable={false}
               fieldKey="dream_home"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
-              value={editedFields.contrast_home !== undefined ? editedFields.contrast_home : profile.contrast_home}
+              value={profile.contrast_home}
               type="story"
-              editable={editingSection === 'home'}
+              editable={false}
               fieldKey="contrast_home"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('home')}?`}
-              value={editedFields.worry_home !== undefined ? editedFields.worry_home : profile.worry_home}
+              value={profile.worry_home}
               type="story"
-              editable={editingSection === 'home'}
+              editable={false}
               fieldKey="worry_home"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -1040,10 +1041,10 @@ export default function ProfileDetailPage() {
           <>
             <ProfileField 
               label="Employment Type" 
-              value={editedFields.employment_type !== undefined ? editedFields.employment_type : profile.employment_type}
-              editable={editingSection === 'work'}
+              value={profile.employment_type}
+              editable={false}
               fieldKey="employment_type"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'Full-time', label: 'Full-time' },
@@ -1058,24 +1059,24 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Occupation" 
-              value={editedFields.occupation !== undefined ? editedFields.occupation : profile.occupation}
-              editable={editingSection === 'work'}
+              value={profile.occupation}
+              editable={false}
               fieldKey="occupation"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
             <ProfileField 
               label="Company" 
-              value={editedFields.company !== undefined ? editedFields.company : profile.company}
-              editable={editingSection === 'work'}
+              value={profile.company}
+              editable={false}
               fieldKey="company"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
             <ProfileField 
               label="Time in Role" 
-              value={editedFields.time_in_role !== undefined ? editedFields.time_in_role : profile.time_in_role}
-              editable={editingSection === 'work'}
+              value={profile.time_in_role}
+              editable={false}
               fieldKey="time_in_role"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'Less than 1 year', label: 'Less than 1 year' },
@@ -1087,10 +1088,10 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Education" 
-              value={editedFields.education !== undefined ? editedFields.education : profile.education}
-              editable={editingSection === 'work'}
+              value={profile.education}
+              editable={false}
               fieldKey="education"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'High School', label: 'High School' },
@@ -1104,46 +1105,46 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Education Description" 
-              value={editedFields.education_description !== undefined ? editedFields.education_description : profile.education_description}
-              editable={editingSection === 'work'}
+              value={profile.education_description}
+              editable={false}
               fieldKey="education_description"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="story"
             />
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('work')}?`}
-              value={editedFields.clarity_work !== undefined ? editedFields.clarity_work : profile.clarity_work}
+              value={profile.clarity_work}
               type="story"
-              editable={editingSection === 'work'}
+              editable={false}
               fieldKey="clarity_work"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('work')}?`}
-              value={editedFields.dream_work !== undefined ? editedFields.dream_work : profile.dream_work}
+              value={profile.dream_work}
               type="story"
-              editable={editingSection === 'work'}
+              editable={false}
               fieldKey="dream_work"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('work')}?`}
-              value={editedFields.contrast_work !== undefined ? editedFields.contrast_work : profile.contrast_work}
+              value={profile.contrast_work}
               type="story"
-              editable={editingSection === 'work'}
+              editable={false}
               fieldKey="contrast_work"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('work')}?`}
-              value={editedFields.worry_work !== undefined ? editedFields.worry_work : profile.worry_work}
+              value={profile.worry_work}
               type="story"
-              editable={editingSection === 'work'}
+              editable={false}
               fieldKey="worry_work"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -1154,10 +1155,10 @@ export default function ProfileDetailPage() {
           <>
             <ProfileField 
               label="Currency" 
-              value={editedFields.currency !== undefined ? editedFields.currency : profile.currency}
-              editable={editingSection === 'money'}
+              value={profile.currency}
+              editable={false}
               fieldKey="currency"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'USD', label: 'USD ($)' },
@@ -1169,10 +1170,10 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Household Income" 
-              value={editedFields.household_income !== undefined ? editedFields.household_income : profile.household_income}
-              editable={editingSection === 'money'}
+              value={profile.household_income}
+              editable={false}
               fieldKey="household_income"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'Under 25,000', label: 'Under $25,000' },
@@ -1186,10 +1187,10 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Savings & Retirement" 
-              value={editedFields.savings_retirement !== undefined ? editedFields.savings_retirement : profile.savings_retirement}
-              editable={editingSection === 'money'}
+              value={profile.savings_retirement}
+              editable={false}
               fieldKey="savings_retirement"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'Under 10,000', label: 'Under $10,000' },
@@ -1203,10 +1204,10 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Assets & Equity" 
-              value={editedFields.assets_equity !== undefined ? editedFields.assets_equity : profile.assets_equity}
-              editable={editingSection === 'money'}
+              value={profile.assets_equity}
+              editable={false}
               fieldKey="assets_equity"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'Under 10,000', label: 'Under $10,000' },
@@ -1220,10 +1221,10 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Consumer Debt" 
-              value={editedFields.consumer_debt !== undefined ? editedFields.consumer_debt : profile.consumer_debt}
-              editable={editingSection === 'money'}
+              value={profile.consumer_debt}
+              editable={false}
               fieldKey="consumer_debt"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'None', label: 'None' },
@@ -1235,38 +1236,38 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('money')}?`}
-              value={editedFields.clarity_money !== undefined ? editedFields.clarity_money : profile.clarity_money}
+              value={profile.clarity_money}
               type="story"
-              editable={editingSection === 'money'}
+              editable={false}
               fieldKey="clarity_money"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('money')}?`}
-              value={editedFields.dream_money !== undefined ? editedFields.dream_money : profile.dream_money}
+              value={profile.dream_money}
               type="story"
-              editable={editingSection === 'money'}
+              editable={false}
               fieldKey="dream_money"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
-              value={editedFields.contrast_money !== undefined ? editedFields.contrast_money : profile.contrast_money}
+              value={profile.contrast_money}
               type="story"
-              editable={editingSection === 'money'}
+              editable={false}
               fieldKey="contrast_money"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('money')}?`}
-              value={editedFields.worry_money !== undefined ? editedFields.worry_money : profile.worry_money}
+              value={profile.worry_money}
               type="story"
-              editable={editingSection === 'money'}
+              editable={false}
               fieldKey="worry_money"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -1277,19 +1278,19 @@ export default function ProfileDetailPage() {
           <>
             <ProfileField 
               label="Current Hobbies" 
-              value={editedFields.hobbies !== undefined ? editedFields.hobbies : profile.hobbies} 
+              value={profile.hobbies} 
               type="array"
-              editable={editingSection === 'fun'}
+              editable={false}
               fieldKey="hobbies"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               placeholder="Add a hobby"
             />
             <ProfileField 
               label="Leisure Time Per Week" 
-              value={editedFields.leisure_time_weekly !== undefined ? editedFields.leisure_time_weekly : profile.leisure_time_weekly}
-              editable={editingSection === 'fun'}
+              value={profile.leisure_time_weekly}
+              editable={false}
               fieldKey="leisure_time_weekly"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: '0-5 hours', label: '0-5 hours' },
@@ -1300,38 +1301,38 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('fun')}?`}
-              value={editedFields.clarity_fun !== undefined ? editedFields.clarity_fun : profile.clarity_fun}
+              value={profile.clarity_fun}
               type="story"
-              editable={editingSection === 'fun'}
+              editable={false}
               fieldKey="clarity_fun"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('fun')}?`}
-              value={editedFields.dream_fun !== undefined ? editedFields.dream_fun : profile.dream_fun}
+              value={profile.dream_fun}
               type="story"
-              editable={editingSection === 'fun'}
+              editable={false}
               fieldKey="dream_fun"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('fun')}?`}
-              value={editedFields.contrast_fun !== undefined ? editedFields.contrast_fun : profile.contrast_fun}
+              value={profile.contrast_fun}
               type="story"
-              editable={editingSection === 'fun'}
+              editable={false}
               fieldKey="contrast_fun"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('fun')}?`}
-              value={editedFields.worry_fun !== undefined ? editedFields.worry_fun : profile.worry_fun}
+              value={profile.worry_fun}
               type="story"
-              editable={editingSection === 'fun'}
+              editable={false}
               fieldKey="worry_fun"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -1342,10 +1343,10 @@ export default function ProfileDetailPage() {
           <>
             <ProfileField 
               label="Travel Frequency" 
-              value={editedFields.travel_frequency !== undefined ? editedFields.travel_frequency : profile.travel_frequency}
-              editable={editingSection === 'travel'}
+              value={profile.travel_frequency}
+              editable={false}
               fieldKey="travel_frequency"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'never', label: 'Never' },
@@ -1356,19 +1357,19 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Has Valid Passport" 
-              value={editedFields.passport !== undefined ? editedFields.passport : profile.passport} 
+              value={profile.passport} 
               type="boolean"
-              editable={editingSection === 'travel'}
+              editable={false}
               fieldKey="passport"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
             <ProfileField 
               label="Countries Visited" 
-              value={editedFields.countries_visited !== undefined ? editedFields.countries_visited : profile.countries_visited}
+              value={profile.countries_visited}
               type="number"
-              editable={editingSection === 'travel'}
+              editable={false}
               fieldKey="countries_visited"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
 
             {/* Trips Table */}
@@ -1400,38 +1401,38 @@ export default function ProfileDetailPage() {
 
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('travel')}?`}
-              value={editedFields.clarity_travel !== undefined ? editedFields.clarity_travel : profile.clarity_travel}
+              value={profile.clarity_travel}
               type="story"
-              editable={editingSection === 'travel'}
+              editable={false}
               fieldKey="clarity_travel"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('travel')}?`}
-              value={editedFields.dream_travel !== undefined ? editedFields.dream_travel : profile.dream_travel}
+              value={profile.dream_travel}
               type="story"
-              editable={editingSection === 'travel'}
+              editable={false}
               fieldKey="dream_travel"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('travel')}?`}
-              value={editedFields.contrast_travel !== undefined ? editedFields.contrast_travel : profile.contrast_travel}
+              value={profile.contrast_travel}
               type="story"
-              editable={editingSection === 'travel'}
+              editable={false}
               fieldKey="contrast_travel"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('travel')}?`}
-              value={editedFields.worry_travel !== undefined ? editedFields.worry_travel : profile.worry_travel}
+              value={profile.worry_travel}
               type="story"
-              editable={editingSection === 'travel'}
+              editable={false}
               fieldKey="worry_travel"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -1442,10 +1443,10 @@ export default function ProfileDetailPage() {
           <>
             <ProfileField 
               label="Close Friends Count" 
-              value={editedFields.close_friends_count !== undefined ? editedFields.close_friends_count : profile.close_friends_count}
-              editable={editingSection === 'social'}
+              value={profile.close_friends_count}
+              editable={false}
               fieldKey="close_friends_count"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: '0', label: '0' },
@@ -1456,10 +1457,10 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Social Preference" 
-              value={editedFields.social_preference !== undefined ? editedFields.social_preference : profile.social_preference}
-              editable={editingSection === 'social'}
+              value={profile.social_preference}
+              editable={false}
               fieldKey="social_preference"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'introvert', label: 'Introvert' },
@@ -1469,38 +1470,38 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('social')}?`}
-              value={editedFields.clarity_social !== undefined ? editedFields.clarity_social : profile.clarity_social}
+              value={profile.clarity_social}
               type="story"
-              editable={editingSection === 'social'}
+              editable={false}
               fieldKey="clarity_social"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('social')}?`}
-              value={editedFields.dream_social !== undefined ? editedFields.dream_social : profile.dream_social}
+              value={profile.dream_social}
               type="story"
-              editable={editingSection === 'social'}
+              editable={false}
               fieldKey="dream_social"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
-              value={editedFields.contrast_social !== undefined ? editedFields.contrast_social : profile.contrast_social}
+              value={profile.contrast_social}
               type="story"
-              editable={editingSection === 'social'}
+              editable={false}
               fieldKey="contrast_social"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('social')}?`}
-              value={editedFields.worry_social !== undefined ? editedFields.worry_social : profile.worry_social}
+              value={profile.worry_social}
               type="story"
-              editable={editingSection === 'social'}
+              editable={false}
               fieldKey="worry_social"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -1511,10 +1512,10 @@ export default function ProfileDetailPage() {
           <>
             <ProfileField 
               label="Lifestyle Category" 
-              value={editedFields.lifestyle_category !== undefined ? editedFields.lifestyle_category : profile.lifestyle_category}
-              editable={editingSection === 'stuff'}
+              value={profile.lifestyle_category}
+              editable={false}
               fieldKey="lifestyle_category"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'minimalist', label: 'Minimalist' },
@@ -1592,38 +1593,38 @@ export default function ProfileDetailPage() {
 
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('stuff')}?`}
-              value={editedFields.clarity_stuff !== undefined ? editedFields.clarity_stuff : profile.clarity_stuff}
+              value={profile.clarity_stuff}
               type="story"
-              editable={editingSection === 'stuff'}
+              editable={false}
               fieldKey="clarity_stuff"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('stuff')}?`}
-              value={editedFields.dream_stuff !== undefined ? editedFields.dream_stuff : profile.dream_stuff}
+              value={profile.dream_stuff}
               type="story"
-              editable={editingSection === 'stuff'}
+              editable={false}
               fieldKey="dream_stuff"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('stuff')}?`}
-              value={editedFields.contrast_stuff !== undefined ? editedFields.contrast_stuff : profile.contrast_stuff}
+              value={profile.contrast_stuff}
               type="story"
-              editable={editingSection === 'stuff'}
+              editable={false}
               fieldKey="contrast_stuff"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('stuff')}?`}
-              value={editedFields.worry_stuff !== undefined ? editedFields.worry_stuff : profile.worry_stuff}
+              value={profile.worry_stuff}
               type="story"
-              editable={editingSection === 'stuff'}
+              editable={false}
               fieldKey="worry_stuff"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -1634,10 +1635,10 @@ export default function ProfileDetailPage() {
           <>
             <ProfileField 
               label="Spiritual Practice" 
-              value={editedFields.spiritual_practice !== undefined ? editedFields.spiritual_practice : profile.spiritual_practice}
-              editable={editingSection === 'spirituality'}
+              value={profile.spiritual_practice}
+              editable={false}
               fieldKey="spiritual_practice"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'none', label: 'None' },
@@ -1648,10 +1649,10 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Meditation Frequency" 
-              value={editedFields.meditation_frequency !== undefined ? editedFields.meditation_frequency : profile.meditation_frequency}
-              editable={editingSection === 'spirituality'}
+              value={profile.meditation_frequency}
+              editable={false}
               fieldKey="meditation_frequency"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'never', label: 'Never' },
@@ -1662,46 +1663,46 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Personal Growth Focus" 
-              value={editedFields.personal_growth_focus !== undefined ? editedFields.personal_growth_focus : profile.personal_growth_focus} 
+              value={profile.personal_growth_focus} 
               type="boolean"
-              editable={editingSection === 'spirituality'}
+              editable={false}
               fieldKey="personal_growth_focus"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('spirituality')}?`}
-              value={editedFields.clarity_spirituality !== undefined ? editedFields.clarity_spirituality : profile.clarity_spirituality}
+              value={profile.clarity_spirituality}
               type="story"
-              editable={editingSection === 'spirituality'}
+              editable={false}
               fieldKey="clarity_spirituality"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('spirituality')}?`}
-              value={editedFields.dream_spirituality !== undefined ? editedFields.dream_spirituality : profile.dream_spirituality}
+              value={profile.dream_spirituality}
               type="story"
-              editable={editingSection === 'spirituality'}
+              editable={false}
               fieldKey="dream_spirituality"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
-              value={editedFields.contrast_spirituality !== undefined ? editedFields.contrast_spirituality : profile.contrast_spirituality}
+              value={profile.contrast_spirituality}
               type="story"
-              editable={editingSection === 'spirituality'}
+              editable={false}
               fieldKey="contrast_spirituality"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('spirituality')}?`}
-              value={editedFields.worry_spirituality !== undefined ? editedFields.worry_spirituality : profile.worry_spirituality}
+              value={profile.worry_spirituality}
               type="story"
-              editable={editingSection === 'spirituality'}
+              editable={false}
               fieldKey="worry_spirituality"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -1712,10 +1713,10 @@ export default function ProfileDetailPage() {
           <>
             <ProfileField 
               label="Volunteer Status" 
-              value={editedFields.volunteer_status !== undefined ? editedFields.volunteer_status : profile.volunteer_status}
-              editable={editingSection === 'giving'}
+              value={profile.volunteer_status}
+              editable={false}
               fieldKey="volunteer_status"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'none', label: 'None' },
@@ -1726,10 +1727,10 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Annual Charitable Giving" 
-              value={editedFields.charitable_giving !== undefined ? editedFields.charitable_giving : profile.charitable_giving}
-              editable={editingSection === 'giving'}
+              value={profile.charitable_giving}
+              editable={false}
               fieldKey="charitable_giving"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               type="select"
               selectOptions={[
                 { value: 'none', label: 'None' },
@@ -1740,46 +1741,46 @@ export default function ProfileDetailPage() {
             />
             <ProfileField 
               label="Legacy Mindset" 
-              value={editedFields.legacy_mindset !== undefined ? editedFields.legacy_mindset : profile.legacy_mindset} 
+              value={profile.legacy_mindset} 
               type="boolean"
-              editable={editingSection === 'giving'}
+              editable={false}
               fieldKey="legacy_mindset"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
             />
             <ProfileField 
               label={`What's going well in ${getVisionCategoryLabel('giving')}?`}
-              value={editedFields.clarity_giving !== undefined ? editedFields.clarity_giving : profile.clarity_giving}
+              value={profile.clarity_giving}
               type="story"
-              editable={editingSection === 'giving'}
+              editable={false}
               fieldKey="clarity_giving"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you dream about in ${getVisionCategoryLabel('giving')}?`}
-              value={editedFields.dream_giving !== undefined ? editedFields.dream_giving : profile.dream_giving}
+              value={profile.dream_giving}
               type="story"
-              editable={editingSection === 'giving'}
+              editable={false}
               fieldKey="dream_giving"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('giving')}?`}
-              value={editedFields.contrast_giving !== undefined ? editedFields.contrast_giving : profile.contrast_giving}
+              value={profile.contrast_giving}
               type="story"
-              editable={editingSection === 'giving'}
+              editable={false}
               fieldKey="contrast_giving"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
             <ProfileField 
               label={`What do you worry about in ${getVisionCategoryLabel('giving')}?`}
-              value={editedFields.worry_giving !== undefined ? editedFields.worry_giving : profile.worry_giving}
+              value={profile.worry_giving}
               type="story"
-              editable={editingSection === 'giving'}
+              editable={false}
               fieldKey="worry_giving"
-              onSave={handleFieldChange}
+              onSave={handleFieldSave}
               collapsible={true}
             />
           </>
@@ -2048,6 +2049,7 @@ export default function ProfileDetailPage() {
                 )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {console.log('🎯 Personal section - editingSection:', editingSection, 'editable:', editingSection === 'personal')}
                 <ProfileField
                   label="Email"
                   value={editedFields.email !== undefined ? editedFields.email : profile.email}

@@ -443,6 +443,14 @@ export async function POST(request: NextRequest) {
             p_user_id: user.id,
             p_version_notes: isDraft ? 'Draft version' : 'Committed version'
           })
+        
+        // Set parent_id explicitly if trigger didn't catch it
+        if (!versionError && draftId) {
+          await supabase
+            .from('user_profiles')
+            .update({ parent_id: actualSourceId })
+            .eq('id', draftId)
+        }
 
         if (versionError) {
           console.error('Version creation error:', versionError)
