@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, Eye, Gem, Download, VolumeX, Edit3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getDraftVision, commitDraft, getRefinedCategories, isCategoryRefined } from '@/lib/life-vision/draft-helpers'
+import { getDraftVision, commitDraft, getDraftCategories } from '@/lib/life-vision/draft-helpers'
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
 import { 
   Button, 
@@ -71,6 +71,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [error, setError] = useState<string | null>(null)
   const [vision, setVision] = useState<VisionData | null>(null)
   const [draftVision, setDraftVision] = useState<VisionData | null>(null)
+  const [activeVision, setActiveVision] = useState<VisionData | null>(null)
+  const [refinedCategories, setRefinedCategories] = useState<string[]>([])
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [isCommitting, setIsCommitting] = useState(false)
   const [showCommitDialog, setShowCommitDialog] = useState(false)
@@ -87,8 +89,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       return
     }
 
-    const refinedCount = getRefinedCategories(draftVision).length
-    if (refinedCount === 0) {
+    if (refinedCategories.length === 0) {
       alert('No refined categories to commit')
       return
     }
@@ -157,6 +158,22 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       setDraftVision(visionWithVersion)
       setVision(visionWithVersion)
 
+      // Fetch the active vision for comparison
+      const { data: activeVisionData } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .eq('is_draft', false)
+        .maybeSingle()
+      
+      if (activeVisionData) {
+        const activeVersion = await calculateVersionNumber(activeVisionData.id)
+        const activeWithVersion = { ...activeVisionData, version_number: activeVersion }
+        setActiveVision(activeWithVersion)
+        console.log('Active vision loaded for comparison:', activeVisionData.id, 'Version:', activeVersion)
+      }
+
       const completion = calculateCompletionPercentage(visionWithVersion)
       setCompletionPercentage(completion)
     } catch (err) {
@@ -164,6 +181,18 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       setError('Failed to load draft vision')
     }
   }, [supabase])
+
+  // Calculate refined categories when both visions are loaded
+  useEffect(() => {
+    if (draftVision && activeVision) {
+      const calculated = getDraftCategories(draftVision, activeVision)
+      setRefinedCategories(calculated)
+      console.log('Calculated refined categories:', calculated)
+    } else if (draftVision && draftVision.refined_categories) {
+      // Fallback if no active vision loaded
+      setRefinedCategories(draftVision.refined_categories)
+    }
+  }, [draftVision, activeVision])
 
   useEffect(() => {
     const loadVisionById = async () => {
@@ -381,7 +410,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
     )
   }
 
-  const refinedCount = getRefinedCategories(draftVision).length
+  const refinedCount = refinedCategories.length
 
   return (
     <>
@@ -487,7 +516,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
           const originalContent = vision[categoryKey as keyof VisionData] as string
           const isEditing = editingCategory === categoryKey
           const content = isEditing ? editContent : originalContent
-          const isDraft = isCategoryRefined(draftVision, categoryKey)
+          const isDraft = refinedCategories.includes(categoryKey)
           
           return (
             <VisionCategoryCard

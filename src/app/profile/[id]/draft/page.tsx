@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, Eye, Edit3, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getDraftProfile, getParentProfile, getChangedFields, getChangedSections, commitDraft } from '@/lib/profile/draft-helpers'
+import { 
+  getDraftProfile, 
+  getParentProfile, 
+  getChangedFields, 
+  getChangedSections, 
+  commitDraft
+} from '@/lib/profile/draft-helpers'
 import { UserProfile } from '@/lib/supabase/profile'
 import { 
   Button, 
@@ -277,6 +283,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
 
   // Render field with yellow highlighting if changed
   const renderField = (props: any) => {
+    // Use calculated changedFields for highlighting (more reliable than DB refined_fields)
     const isChanged = isFieldChanged(props.fieldKey)
     
     return (
@@ -362,6 +369,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
     )
   }
 
+  // Use calculated changed fields/sections (more reliable than DB refined_fields at this stage)
   const changedFieldCount = changedFields.length
   const totalSections = profileSections.length
   const sectionsWithChanges = Object.keys(changedSections).filter(

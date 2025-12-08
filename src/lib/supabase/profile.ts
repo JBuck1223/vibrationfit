@@ -147,6 +147,7 @@ export interface UserProfile {
   version_number?: number
   is_draft?: boolean
   is_active?: boolean
+  refined_fields?: string[]
   created_at?: string
   updated_at?: string
 }

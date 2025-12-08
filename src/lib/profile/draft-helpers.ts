@@ -424,3 +424,168 @@ export async function hasDraft(userId: string): Promise<boolean> {
   return (count || 0) > 0
 }
 
+/**
+ * Get refined fields from draft
+ */
+export function getRefinedFields(draft: Partial<UserProfile>): string[] {
+  return draft.refined_fields || []
+}
+
+/**
+ * Check if specific field is refined
+ */
+export function isFieldRefined(draft: Partial<UserProfile>, fieldKey: string): boolean {
+  return draft.refined_fields?.includes(fieldKey) || false
+}
+
+/**
+ * Derive refined sections from refined fields
+ * This provides section-level view from field-level data
+ */
+export function getRefinedSections(draft: Partial<UserProfile>): string[] {
+  const refinedFields = getRefinedFields(draft)
+  const sections = new Set<string>()
+  
+  // Map fields to their sections
+  const fieldToSection: Record<string, string> = {
+    // Personal
+    'email': 'personal', 
+    'phone': 'personal', 
+    'date_of_birth': 'personal',
+    'gender': 'personal', 
+    'ethnicity': 'personal',
+    'first_name': 'personal',
+    'last_name': 'personal',
+    'profile_picture_url': 'personal',
+    
+    // Love
+    'relationship_status': 'love', 
+    'partner_name': 'love', 
+    'relationship_length': 'love', 
+    'clarity_love': 'love',
+    'dream_love': 'love', 
+    'contrast_love': 'love', 
+    'worry_love': 'love',
+    
+    // Family
+    'has_children': 'family', 
+    'children': 'family',
+    'clarity_family': 'family',
+    'dream_family': 'family', 
+    'contrast_family': 'family', 
+    'worry_family': 'family',
+    
+    // Health
+    'units': 'health',
+    'height': 'health', 
+    'weight': 'health', 
+    'exercise_frequency': 'health',
+    'clarity_health': 'health', 
+    'dream_health': 'health',
+    'contrast_health': 'health', 
+    'worry_health': 'health',
+    
+    // Home
+    'living_situation': 'home', 
+    'time_at_location': 'home',
+    'city': 'home', 
+    'state': 'home', 
+    'postal_code': 'home',
+    'country': 'home',
+    'clarity_home': 'home', 
+    'dream_home': 'home',
+    'contrast_home': 'home', 
+    'worry_home': 'home',
+    
+    // Work
+    'employment_type': 'work', 
+    'occupation': 'work', 
+    'company': 'work',
+    'time_in_role': 'work',
+    'education': 'work',
+    'education_description': 'work',
+    'clarity_work': 'work', 
+    'dream_work': 'work',
+    'contrast_work': 'work', 
+    'worry_work': 'work',
+    
+    // Money
+    'currency': 'money',
+    'household_income': 'money', 
+    'savings_retirement': 'money',
+    'assets_equity': 'money',
+    'consumer_debt': 'money',
+    'clarity_money': 'money', 
+    'dream_money': 'money',
+    'contrast_money': 'money', 
+    'worry_money': 'money',
+    
+    // Fun
+    'hobbies': 'fun', 
+    'leisure_time_weekly': 'fun',
+    'clarity_fun': 'fun', 
+    'dream_fun': 'fun',
+    'contrast_fun': 'fun', 
+    'worry_fun': 'fun',
+    
+    // Travel
+    'travel_frequency': 'travel', 
+    'passport': 'travel',
+    'countries_visited': 'travel',
+    'trips': 'travel',
+    'clarity_travel': 'travel', 
+    'dream_travel': 'travel',
+    'contrast_travel': 'travel', 
+    'worry_travel': 'travel',
+    
+    // Social
+    'close_friends_count': 'social', 
+    'social_preference': 'social',
+    'clarity_social': 'social', 
+    'dream_social': 'social',
+    'contrast_social': 'social', 
+    'worry_social': 'social',
+    
+    // Stuff
+    'lifestyle_category': 'stuff',
+    'vehicles': 'stuff',
+    'toys': 'stuff',
+    'clarity_stuff': 'stuff', 
+    'dream_stuff': 'stuff',
+    'contrast_stuff': 'stuff', 
+    'worry_stuff': 'stuff',
+    
+    // Spirituality
+    'spiritual_practice': 'spirituality', 
+    'meditation_frequency': 'spirituality',
+    'personal_growth_focus': 'spirituality',
+    'clarity_spirituality': 'spirituality', 
+    'dream_spirituality': 'spirituality',
+    'contrast_spirituality': 'spirituality', 
+    'worry_spirituality': 'spirituality',
+    
+    // Giving
+    'volunteer_status': 'giving', 
+    'charitable_giving': 'giving',
+    'legacy_mindset': 'giving',
+    'clarity_giving': 'giving', 
+    'dream_giving': 'giving',
+    'contrast_giving': 'giving', 
+    'worry_giving': 'giving',
+  }
+  
+  refinedFields.forEach(field => {
+    const section = fieldToSection[field]
+    if (section) sections.add(section)
+  })
+  
+  return Array.from(sections)
+}
+
+/**
+ * Check if section is refined (derived from fields)
+ */
+export function isSectionRefined(draft: Partial<UserProfile>, sectionKey: string): boolean {
+  return getRefinedSections(draft).includes(sectionKey)
+}
+
