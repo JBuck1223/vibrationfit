@@ -295,28 +295,29 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
   }
 
   const getVariantIcon = (variant: string) => {
+    const iconClass = "w-6 h-6"
     switch (variant) {
       case 'sleep':
-        return <Moon className="w-5 h-5" />
+        return <Moon className={iconClass} />
       case 'energy':
-        return <Zap className="w-5 h-5" />
+        return <Zap className={iconClass} />
       case 'meditation':
-        return <Sparkles className="w-5 h-5" />
+        return <Sparkles className={iconClass} />
       default:
-        return <Headphones className="w-5 h-5" />
+        return <Headphones className={iconClass} />
     }
   }
 
   const getVariantColor = (variant: string) => {
     switch (variant) {
       case 'sleep':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+        return 'bg-blue-500/20 text-blue-400'
       case 'energy':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+        return 'bg-yellow-500/20 text-yellow-400'
       case 'meditation':
-        return 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+        return 'bg-purple-500/20 text-purple-400'
       default:
-        return 'bg-[#39FF14]/20 text-[#39FF14] border-[#39FF14]/30'
+        return 'bg-[#39FF14]/20 text-[#39FF14]'
     }
   }
 
@@ -524,101 +525,95 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               <Card variant="elevated" className="bg-[#1A1A1A]">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {audioSets.map((set) => (
-                  <Card
-                    key={set.id}
-                    variant="elevated"
-                    hover
-                    className={`group cursor-pointer transition-all p-5 ${
-                      selectedAudioSetId === set.id 
-                        ? 'border-primary-500 bg-primary-500/10 -translate-y-1' 
-                        : ''
-                    }`}
-                    onClick={() => {
-                      if (set.isReady) {
-                        handleSelectSet(set.id)
-                      }
-                    }}
-                  >
-                    <Stack gap="md">
-                      {/* Header with icon and delete */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className={`p-2 rounded-lg ${getVariantColor(set.variant)}`}>
-                            {getVariantIcon(set.variant)}
+                  <div key={set.id} className="relative">
+                    {/* Now Playing Badge - positioned at top center of card border */}
+                    {selectedAudioSetId === set.id && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-primary-500 text-[#1A1A1A] text-xs font-semibold rounded-full">
+                          <div className="w-5 h-5 rounded-full bg-[#1A1A1A] flex items-center justify-center">
+                            <Play className="w-3 h-3 text-primary-500" fill="currentColor" />
                           </div>
-                          <div className="flex-1">
-                            {editingSetId === set.id ? (
-                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                <Input
-                                  value={editingName}
-                                  onChange={(e) => setEditingName(e.target.value)}
-                                  className="text-base md:text-lg"
-                                  autoFocus
-                                />
-                                <Check 
-                                  className="w-4 h-4 text-primary-500 cursor-pointer hover:text-primary-400 flex-shrink-0" 
-                                  onClick={() => handleSaveName(set.id)}
-                                />
-                                <X 
-                                  className="w-4 h-4 text-neutral-400 cursor-pointer hover:text-white flex-shrink-0" 
-                                  onClick={handleCancelEdit}
-                                />
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-base md:text-lg font-semibold text-white">
-                                  {set.name && !set.name.includes('Version') && !set.name.includes(':') ? set.name : getVariantDisplayInfo(set.variant).title}
-                                </h3>
-                                <Edit2 
-                                  className="w-4 h-4 text-neutral-400 hover:text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" 
-                                  onClick={(e) => handleStartEdit(set.id, set.name && !set.name.includes('Version') && !set.name.includes(':') ? set.name : getVariantDisplayInfo(set.variant).title, e)}
-                                />
-                              </div>
-                            )}
-                          </div>
+                          <span>Now Playing</span>
                         </div>
-                        {deleting === set.id ? (
-                          <Spinner size="sm" className="flex-shrink-0" />
-                        ) : (
-                          <Trash2 
-                            className="w-4 h-4 text-[#FF0040] cursor-pointer hover:text-[#FF0040]/80 flex-shrink-0" 
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDelete(set.id, set.name)
-                            }}
-                          />
-                        )}
                       </div>
-
-                      {/* Status and Info */}
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-400">
-                        <span>{set.track_count} tracks</span>
-                        <span>•</span>
-                        <span>{new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        <span>•</span>
-                        {set.isReady ? (
-                          <Badge variant="success" className="text-xs">Ready</Badge>
-                        ) : set.isMixing ? (
-                          <Badge variant="info" className="text-xs">
-                            <Spinner size="sm" className="w-3 h-3 mr-1" />
-                            Mixing
-                          </Badge>
-                        ) : (
-                          <Badge variant="warning" className="text-xs">Processing</Badge>
-                        )}
-                      </div>
-
-                      {/* Selected Indicator */}
-                      {selectedAudioSetId === set.id && (
-                        <div className="pt-2 border-t border-primary-500/30">
-                          <div className="flex items-center gap-2 text-primary-500 text-sm font-medium">
-                            <Play className="w-4 h-4" />
-                            <span>Now Playing</span>
-                          </div>
+                    )}
+                    
+                    <Card
+                      variant="elevated"
+                      hover
+                      className={`group cursor-pointer transition-all p-5 ${
+                        selectedAudioSetId === set.id 
+                          ? 'border-primary-500 bg-primary-500/10' 
+                          : ''
+                      }`}
+                      onClick={() => {
+                        if (set.isReady) {
+                          handleSelectSet(set.id)
+                        }
+                      }}
+                    >
+                      <Stack gap="sm" className="items-center text-center">
+                        {/* Delete button - top right corner */}
+                        <div className="absolute top-3 right-3">
+                          {deleting === set.id ? (
+                            <Spinner size="sm" className="flex-shrink-0" />
+                          ) : (
+                            <Trash2 
+                              className="w-4 h-4 text-[#FF0040] cursor-pointer hover:text-[#FF0040]/80 flex-shrink-0" 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDelete(set.id, set.name)
+                              }}
+                            />
+                          )}
                         </div>
-                      )}
-                    </Stack>
-                  </Card>
+
+                        {/* Icon - centered */}
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto ${getVariantColor(set.variant)}`}>
+                          {getVariantIcon(set.variant)}
+                        </div>
+
+                        {/* Title - centered */}
+                        <div className="w-full text-center">
+                          {editingSetId === set.id ? (
+                            <div className="flex items-center gap-2 justify-center" onClick={(e) => e.stopPropagation()}>
+                              <Input
+                                value={editingName}
+                                onChange={(e) => setEditingName(e.target.value)}
+                                className="text-base md:text-lg text-center"
+                                autoFocus
+                              />
+                              <Check 
+                                className="w-4 h-4 text-primary-500 cursor-pointer hover:text-primary-400 flex-shrink-0" 
+                                onClick={() => handleSaveName(set.id)}
+                              />
+                              <X 
+                                className="w-4 h-4 text-neutral-400 cursor-pointer hover:text-white flex-shrink-0" 
+                                onClick={handleCancelEdit}
+                              />
+                            </div>
+                          ) : (
+                            <div className="relative inline-block">
+                              <h3 className="text-base md:text-lg font-semibold text-white">
+                                {set.name && !set.name.includes('Version') && !set.name.includes(':') ? set.name : getVariantDisplayInfo(set.variant).title}
+                              </h3>
+                              <Edit2 
+                                className="w-4 h-4 text-neutral-400 hover:text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity absolute top-1/2 -translate-y-1/2 left-full ml-1" 
+                                onClick={(e) => handleStartEdit(set.id, set.name && !set.name.includes('Version') && !set.name.includes(':') ? set.name : getVariantDisplayInfo(set.variant).title, e)}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Status and Info - centered */}
+                        <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-neutral-400">
+                          <span>{set.track_count} tracks</span>
+                          <span>•</span>
+                          <span>{new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        </div>
+                      </Stack>
+                    </Card>
+                  </div>
                 ))}
               </div>
               </Card>
