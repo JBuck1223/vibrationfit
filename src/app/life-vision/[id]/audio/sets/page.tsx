@@ -517,11 +517,12 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
             </Button>
           </Card>
         ) : (
-          <>
+          <Card variant="elevated" className="bg-[#0A0A0A]">
             {/* Audio Sets Selection */}
-            <div>
-              <h2 className="text-xl md:text-2xl font-semibold text-white mb-4 text-center">Select Audio Set</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="mb-8">
+              <h2 className="text-xl md:text-2xl font-semibold text-white mb-6 text-center">Select Audio Set</h2>
+              <Card variant="elevated" className="bg-[#1A1A1A]">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {audioSets.map((set) => (
                   <Card
                     key={set.id}
@@ -620,58 +621,32 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                   </Card>
                 ))}
               </div>
+              </Card>
             </div>
 
             {/* Audio Player */}
             {selectedAudioSetId && (
-              <Card variant="elevated">
-                {/* Selected Set Header */}
-                <div className="mb-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${getVariantColor(audioSets.find(s => s.id === selectedAudioSetId)?.variant || '')}`}>
-                        {getVariantIcon(audioSets.find(s => s.id === selectedAudioSetId)?.variant || '')}
-                      </div>
-                      <div>
-                        <h2 className="text-lg md:text-xl font-semibold text-white">
-                          {audioSets.find(s => s.id === selectedAudioSetId)?.name}
-                        </h2>
-                        <p className="text-sm text-neutral-400">
-                          {audioSets.find(s => s.id === selectedAudioSetId)?.description}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="success" className="text-xs">Playing</Badge>
-                  </div>
-                  
-                  {/* Set Info */}
-                  <div className="flex flex-wrap gap-3 text-sm text-neutral-400">
-                    <span>Voice: <span className="text-white capitalize">{audioSets.find(s => s.id === selectedAudioSetId)?.voice_id}</span></span>
-                    <span>•</span>
-                    <span><span className="text-white">{audioTracks.length}</span> tracks</span>
-                    <span>•</span>
-                    <span>Created: <span className="text-white">{new Date(audioSets.find(s => s.id === selectedAudioSetId)?.created_at || '').toLocaleDateString()}</span></span>
-                  </div>
-                </div>
-
+              <div className="mt-8">
                 {/* Playlist Player */}
-                {loadingTracks ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Spinner size="lg" />
-                  </div>
-                ) : audioTracks.length > 0 ? (
-                  <div className="rounded-2xl p-4 md:p-6 bg-[#1F1F1F] border-2 border-[#333]">
-                    <PlaylistPlayer tracks={audioTracks} />
-                  </div>
-                ) : (
-                  <Card variant="glass" className="p-8 text-center">
-                    <Music className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-                    <p className="text-neutral-400">No audio tracks available for this set</p>
-                  </Card>
-                )}
-              </Card>
+                <div className="max-w-2xl mx-auto">
+                  {loadingTracks ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Spinner size="lg" />
+                    </div>
+                  ) : audioTracks.length > 0 ? (
+                    <div className="rounded-2xl p-4 md:p-6 bg-[#1F1F1F] border-2 border-[#333]">
+                      <PlaylistPlayer tracks={audioTracks} />
+                    </div>
+                  ) : (
+                    <Card variant="glass" className="p-8 text-center">
+                      <Music className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+                      <p className="text-neutral-400">No audio tracks available for this set</p>
+                    </Card>
+                  )}
+                </div>
+              </div>
             )}
-          </>
+          </Card>
         )}
       </Stack>
 

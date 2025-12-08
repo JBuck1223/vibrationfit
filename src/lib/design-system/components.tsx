@@ -5378,9 +5378,8 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       </div>
 
       {/* Track List */}
-      <Card variant="default" className="overflow-hidden">
+      <div className="overflow-hidden">
         <Stack gap="xs">
-          <h4 className="text-lg font-semibold text-white mb-2">Playlist</h4>
           <div className="max-h-[60vh] overflow-y-auto pr-2">
           {tracks.map((track, index) => {
             const handlePlayClick = (e: React.MouseEvent) => {
@@ -5395,50 +5394,67 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
             }
 
             return (
-              <div
-                key={`playlist-item-${index}`}
-                onClick={() => handleTrackSelect(index)}
-                className={cn(
-                  'w-full text-left p-3 rounded-lg transition-all duration-200 cursor-pointer',
-                  'hover:bg-neutral-800',
-                  currentTrackIndex === index && 'bg-[#39FF14]/20 border border-[#39FF14]'
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handlePlayClick}
-                    className="flex-shrink-0 hover:scale-110 transition-transform"
-                    aria-label={currentTrackIndex === index && isPlaying ? 'Pause' : 'Play'}
-                  >
-                    {currentTrackIndex === index && isPlaying ? (
-                      <Pause className="w-5 h-5 text-[#39FF14]" fill="currentColor" />
-                    ) : (
-                      <Play className="w-5 h-5 text-neutral-400" fill="currentColor" />
-                    )}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      'text-sm font-medium truncate capitalize',
-                      currentTrackIndex === index ? 'text-[#39FF14]' : 'text-white'
-                    )}>
-                      {track.title}
-                    </p>
-                    <p className="text-xs text-neutral-400 truncate">{track.artist}</p>
-                  </div>
-                  <div className="text-xs text-neutral-500">
-                    {(() => {
-                      const storedDuration = trackDurations.get(track.id)
-                      const displayDuration = storedDuration || track.duration
-                      return displayDuration > 0 ? formatTime(displayDuration) : '--:--'
-                    })()}
+              <div key={`playlist-item-${index}`}>
+                <div
+                  onClick={() => handleTrackSelect(index)}
+                  className={cn(
+                    'w-full text-left p-3 transition-all duration-200 cursor-pointer',
+                    'hover:bg-neutral-800/50',
+                    currentTrackIndex === index && 'bg-[#39FF14]/10'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Track Number */}
+                    <div className="w-6 text-center flex-shrink-0 flex items-center justify-center">
+                      {currentTrackIndex === index && isPlaying ? (
+                        <button
+                          onClick={handlePlayClick}
+                          className="hover:scale-110 transition-transform"
+                          aria-label="Pause"
+                        >
+                          <Pause className="w-4 h-4 text-[#39FF14]" fill="currentColor" />
+                        </button>
+                      ) : currentTrackIndex === index ? (
+                        <button
+                          onClick={handlePlayClick}
+                          className="hover:scale-110 transition-transform"
+                          aria-label="Play"
+                        >
+                          <Play className="w-4 h-4 text-[#39FF14]" fill="currentColor" />
+                        </button>
+                      ) : (
+                        <span className="text-sm text-neutral-500">{index + 1}</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <p className={cn(
+                        'text-sm font-medium truncate capitalize',
+                        currentTrackIndex === index ? 'text-[#39FF14]' : 'text-white'
+                      )}>
+                        {track.title}
+                      </p>
+                      <p className="text-xs text-neutral-400 truncate">{track.artist}</p>
+                    </div>
+                    <div className="text-xs text-neutral-500">
+                      {(() => {
+                        const storedDuration = trackDurations.get(track.id)
+                        const displayDuration = storedDuration || track.duration
+                        return displayDuration > 0 ? formatTime(displayDuration) : '--:--'
+                      })()}
+                    </div>
                   </div>
                 </div>
+                {/* Separator Line */}
+                {index < tracks.length - 1 && (
+                  <div className="border-b border-neutral-700"></div>
+                )}
               </div>
             )
           })}
           </div>
         </Stack>
-      </Card>
+      </div>
     </div>
   )
 }
