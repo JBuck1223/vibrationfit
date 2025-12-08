@@ -1,11 +1,11 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, DeleteConfirmationDialog, Input } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
-import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Eye, Music } from 'lucide-react'
+import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Eye, Music, Wand2, Mic, Edit2, Check, X } from 'lucide-react'
 import Link from 'next/link'
 
 interface AudioSet {
@@ -33,6 +33,8 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
   const [loadingTracks, setLoadingTracks] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [setToDelete, setSetToDelete] = useState<{ id: string, name: string } | null>(null)
+  const [editingSetId, setEditingSetId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState('')
 
   useEffect(() => {
     ;(async () => {
@@ -260,6 +262,38 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
     await loadAudioTracks(setId)
   }
 
+  const handleStartEdit = (setId: string, currentName: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingSetId(setId)
+    setEditingName(currentName)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingSetId(null)
+    setEditingName('')
+  }
+
+  const handleSaveName = async (setId: string) => {
+    const supabase = createClient()
+    
+    try {
+      const { error } = await supabase
+        .from('audio_sets')
+        .update({ name: editingName })
+        .eq('id', setId)
+      
+      if (error) throw error
+      
+      // Update local state
+      setAudioSets(audioSets.map(s => s.id === setId ? { ...s, name: editingName } : s))
+      setEditingSetId(null)
+      setEditingName('')
+    } catch (error) {
+      console.error('Error updating audio set name:', error)
+      alert('Failed to update name. Please try again.')
+    }
+  }
+
   const getVariantIcon = (variant: string) => {
     switch (variant) {
       case 'sleep':
@@ -348,7 +382,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               
               {/* Version Badge */}
               {vision && (
-                <div className="flex justify-center mb-4">
+                <div className="flex justify-center mb-6">
                   <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
                     <VersionBadge 
                       versionNumber={vision.version_number} 
@@ -369,25 +403,55 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-4xl mx-auto">
                 <Button
                   onClick={() => router.push(`/life-vision/${visionId}`)}
                   variant="outline"
                   size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  className="w-full flex items-center justify-center gap-2"
                 >
-                  <Eye className="w-4 h-4 shrink-0" />
-                  <span>View Vision</span>
+                  <Eye className="w-4 h-4 hidden lg:block" />
+                  View Vision
                 </Button>
                 
                 <Button
-                  onClick={() => router.push(`/life-vision/audio`)}
+                  onClick={() => router.push(`/life-vision/${visionId}/audio`)}
                   variant="outline"
                   size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  className="w-full flex items-center justify-center gap-2"
                 >
-                  <Headphones className="w-4 h-4 shrink-0" />
-                  <span>All Vision Audios</span>
+                  <Headphones className="w-4 h-4 hidden lg:block" />
+                  All Audios
+                </Button>
+                
+                <Button
+                  onClick={() => router.push(`/life-vision/${visionId}/audio/generate`)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <Wand2 className="w-4 h-4 hidden lg:block" />
+                  Generate
+                </Button>
+                
+                <Button
+                  onClick={() => router.push(`/life-vision/${visionId}/audio/record`)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <Mic className="w-4 h-4 hidden lg:block" />
+                  Record
+                </Button>
+                
+                <Button
+                  onClick={() => router.push(`/life-vision/${visionId}/audio/queue`)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <Clock className="w-4 h-4 hidden lg:block" />
+                  Queue
                 </Button>
               </div>
             </div>
@@ -408,28 +472,36 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
           />
         </div>
 
-        {/* Generate More Button */}
-        <Card variant="elevated" className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href={`/life-vision/${visionId}/audio/generate`}>
-                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200">
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Generate Card */}
+          <Link href={`/life-vision/${visionId}/audio/generate`}>
+            <Card variant="elevated" hover className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30 cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0">
                   <Plus className="w-6 h-6 text-[#39FF14]" />
                 </div>
-              </Link>
-              <div>
-                <p className="text-white font-semibold text-lg">Want more sets?</p>
-                <p className="text-sm text-neutral-300">Create in audio studio</p>
+                <div>
+                  <p className="text-white text-lg">Generate more audio sets</p>
+                </div>
               </div>
-            </div>
-            <Button variant="primary" asChild>
-              <Link href={`/life-vision/${visionId}/audio/generate`}>
-                Audio Studio
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Link>
-            </Button>
-          </div>
-        </Card>
+            </Card>
+          </Link>
+
+          {/* Record Card */}
+          <Link href={`/life-vision/${visionId}/audio/record`}>
+            <Card variant="elevated" hover className="bg-gradient-to-br from-[#D03739]/20 via-[#8B5CF6]/10 to-[#14B8A6]/20 border-[#D03739]/30 cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#D03739]/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Mic className="w-6 h-6 text-[#D03739]" />
+                </div>
+                <div>
+                  <p className="text-white text-lg">Record life vision in your voice</p>
+                </div>
+              </div>
+            </Card>
+          </Link>
+        </div>
 
         {/* Audio Sets Grid */}
         {audioSets.length === 0 ? (
@@ -448,14 +520,14 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
           <>
             {/* Audio Sets Selection */}
             <div>
-              <h2 className="text-xl md:text-2xl font-semibold text-white mb-4">Select Audio Set</h2>
+              <h2 className="text-xl md:text-2xl font-semibold text-white mb-4 text-center">Select Audio Set</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {audioSets.map((set) => (
                   <Card
                     key={set.id}
                     variant="elevated"
                     hover
-                    className={`cursor-pointer transition-all p-5 ${
+                    className={`group cursor-pointer transition-all p-5 ${
                       selectedAudioSetId === set.id 
                         ? 'border-primary-500 bg-primary-500/10 -translate-y-1' 
                         : ''
@@ -469,38 +541,59 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                     <Stack gap="md">
                       {/* Header with icon and delete */}
                       <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-1">
                           <div className={`p-2 rounded-lg ${getVariantColor(set.variant)}`}>
                             {getVariantIcon(set.variant)}
                           </div>
                           <div className="flex-1">
-                            <h3 className="text-base md:text-lg font-semibold text-white">{set.name}</h3>
-                            <p className="text-xs md:text-sm text-neutral-400">{set.description}</p>
+                            {editingSetId === set.id ? (
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <Input
+                                  value={editingName}
+                                  onChange={(e) => setEditingName(e.target.value)}
+                                  className="text-base md:text-lg"
+                                  autoFocus
+                                />
+                                <Check 
+                                  className="w-4 h-4 text-primary-500 cursor-pointer hover:text-primary-400 flex-shrink-0" 
+                                  onClick={() => handleSaveName(set.id)}
+                                />
+                                <X 
+                                  className="w-4 h-4 text-neutral-400 cursor-pointer hover:text-white flex-shrink-0" 
+                                  onClick={handleCancelEdit}
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-base md:text-lg font-semibold text-white">
+                                  {set.name && !set.name.includes('Version') && !set.name.includes(':') ? set.name : getVariantDisplayInfo(set.variant).title}
+                                </h3>
+                                <Edit2 
+                                  className="w-4 h-4 text-neutral-400 hover:text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" 
+                                  onClick={(e) => handleStartEdit(set.id, set.name && !set.name.includes('Version') && !set.name.includes(':') ? set.name : getVariantDisplayInfo(set.variant).title, e)}
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <Button 
-                          variant="danger" 
-                          size="sm"
-                          disabled={deleting === set.id}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDelete(set.id, set.name)
-                          }}
-                          className="flex-shrink-0"
-                        >
-                          {deleting === set.id ? (
-                            <Spinner size="sm" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </Button>
+                        {deleting === set.id ? (
+                          <Spinner size="sm" className="flex-shrink-0" />
+                        ) : (
+                          <Trash2 
+                            className="w-4 h-4 text-[#FF0040] cursor-pointer hover:text-[#FF0040]/80 flex-shrink-0" 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDelete(set.id, set.name)
+                            }}
+                          />
+                        )}
                       </div>
 
                       {/* Status and Info */}
                       <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-400">
                         <span>{set.track_count} tracks</span>
                         <span>•</span>
-                        <span>{new Date(set.created_at).toLocaleDateString()}</span>
+                        <span>{new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         <span>•</span>
                         {set.isReady ? (
                           <Badge variant="success" className="text-xs">Ready</Badge>
