@@ -221,7 +221,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
               {/* Eyebrow */}
               <div className="text-center mb-4">
                 <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  RECORD YOUR VISION
+                  THE LIFE I CHOOSE
                 </div>
               </div>
               

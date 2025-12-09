@@ -527,6 +527,11 @@ export function isNavItemActive(
   // Check if pathname starts with item href (for nested routes)
   // But exclude parent items that have children (dropdowns) - let children match instead
   if (pathname.startsWith(item.href + '/')) {
+    // Special case: Don't match "/life-vision" for "/life-vision/audio" paths
+    if (item.href === '/life-vision' && pathname.startsWith('/life-vision/audio')) {
+      return false
+    }
+    
     // Don't match parent dropdown items, let their children match
     if (item.hasDropdown && item.children) {
       return false

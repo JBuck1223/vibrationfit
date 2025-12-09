@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, CalendarDays, Moon, Zap, Sparkles, Plus, Music, X, AlertCircle } from 'lucide-react'
+import { Headphones, CheckCircle, Play, CalendarDays, Moon, Zap, Sparkles, Plus, Music, X, AlertCircle, Wand2, Mic, Clock, Eye, Music2 } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys } from '@/lib/design-system'
 
@@ -417,7 +417,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
             <div className="relative z-10">
               <div className="text-center mb-4">
                 <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  AUDIO STUDIO
+                  THE LIFE I CHOOSE
                 </div>
               </div>
               
@@ -431,24 +431,60 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               </div>
               
               {vision && (
-                <div className="flex justify-center mb-4">
-                  <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                    <VersionBadge 
-                      versionNumber={vision.version_number} 
-                      status={vision.is_active ? 'active' : (vision.is_draft ? 'draft' : 'complete')} 
-                    />
-                    <StatusBadge 
-                      status={vision.is_active ? 'active' : (vision.is_draft ? 'draft' : 'complete')} 
-                      subtle={!vision.is_active} 
-                      className="uppercase tracking-[0.25em]" 
-                    />
-                    <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                      <CalendarDays className="w-4 h-4 text-neutral-500" />
-                      <span className="font-medium">Created:</span>
-                      <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <>
+                  <div className="flex justify-center mb-6">
+                    <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                      <VersionBadge 
+                        versionNumber={vision.version_number} 
+                        status={vision.is_active ? 'active' : (vision.is_draft ? 'draft' : 'complete')} 
+                      />
+                      <StatusBadge 
+                        status={vision.is_active ? 'active' : (vision.is_draft ? 'draft' : 'complete')} 
+                        subtle={!vision.is_active} 
+                        className="uppercase tracking-[0.25em]" 
+                      />
+                      <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                        <CalendarDays className="w-4 h-4 text-neutral-500" />
+                        <span className="font-medium">Created:</span>
+                        <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <Link href={`/life-vision/${visionId}/audio/sets`} className="flex items-center justify-center gap-2">
+                        <Headphones className="w-4 h-4" />
+                        <span>Audio Sets</span>
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <Link href={`/life-vision/${visionId}/audio/record`} className="flex items-center justify-center gap-2">
+                        <Mic className="w-4 h-4" />
+                        <span>Record</span>
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <Link href={`/life-vision/${visionId}/audio/queue`} className="flex items-center justify-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        <span>Queue</span>
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <Link href={`/life-vision/audio`} className="flex items-center justify-center gap-2">
+                        <Music2 className="w-4 h-4" />
+                        <span>All Audios</span>
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
+                        <Eye className="w-4 h-4" />
+                        <span>View Vision</span>
+                      </Link>
+                    </Button>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -456,14 +492,12 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
         {/* SECTION 1: Voice Only Tracks */}
         <Card variant="elevated">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-[#39FF14]/20 rounded-full flex items-center justify-center">
-              <Headphones className="w-5 h-5 text-[#39FF14]" />
+          <div className="flex flex-col items-center text-center mb-6">
+            <div className="w-16 h-16 bg-[#39FF14]/20 rounded-full flex items-center justify-center mb-3">
+              <span className="text-3xl font-bold text-[#39FF14]">1</span>
             </div>
-            <div>
-              <h2 className="text-xl md:text-2xl font-semibold text-white">Step 1: Voice Only Tracks</h2>
-              <p className="text-sm text-neutral-400">Base recordings without background music</p>
-            </div>
+            <h2 className="text-xl md:text-2xl font-semibold text-white">Voice Only Tracks</h2>
+            <p className="text-sm text-neutral-400">Base recordings without background music</p>
           </div>
 
           {/* Existing Voice Sets */}
@@ -694,14 +728,12 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
         {/* SECTION 2: Mixing Variants */}
         <Card variant="elevated" className={existingVoiceSets.length === 0 ? 'opacity-50 pointer-events-none' : ''}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
-              <Music className="w-5 h-5 text-purple-400" />
+          <div className="flex flex-col items-center text-center mb-6">
+            <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-3">
+              <span className="text-3xl font-bold text-purple-400">2</span>
             </div>
-            <div>
-              <h2 className="text-xl md:text-2xl font-semibold text-white">Step 2: Add Background Mixes</h2>
-              <p className="text-sm text-neutral-400">Combine voice with background music</p>
-            </div>
+            <h2 className="text-xl md:text-2xl font-semibold text-white">Add Background Mixes</h2>
+            <p className="text-sm text-neutral-400">Combine voice with background music</p>
           </div>
 
           {existingVoiceSets.length === 0 ? (

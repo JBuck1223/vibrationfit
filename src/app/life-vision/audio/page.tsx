@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Eye, Headphones, Music, Moon, Zap, Sparkles, Clock, CheckCircle, Circle, X, Target, Volume2 } from 'lucide-react'
+import { Plus, Eye, Headphones, Music, Moon, Zap, Sparkles, Clock, CheckCircle, Circle, X, Target, Volume2, CalendarDays } from 'lucide-react'
 import { Card, Button, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { colors } from '@/lib/design-system/tokens'
@@ -355,7 +355,7 @@ export default function AllVisionAudiosPage() {
               {/* Eyebrow */}
               <div className="text-center mb-3">
                 <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  AUDIO LIBRARY
+                  THE LIFE I CHOOSE
                 </div>
               </div>
               
@@ -416,56 +416,57 @@ export default function AllVisionAudiosPage() {
                 >
                   <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                     {/* Vision Version Info */}
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Version Circle Badge */}
-                        <VersionBadge 
-                          versionNumber={visionVersion.version_number} 
-                          status={displayStatus} 
-                        />
-                        
-                        {/* Status Badge */}
-                        <StatusBadge 
-                          status={displayStatus} 
-                          subtle={displayStatus !== 'active'}
-                        />
-                        
-                        {/* Created Date */}
-                        <span className="text-neutral-300 text-xs md:text-sm">
-                          Created: {new Date(visionVersion.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-                        </span>
-
-                        {/* Audio Sets Count Badge */}
-                        <Badge 
-                          className={`${
-                            displayStatus === 'active' 
-                              ? 'bg-primary-500/20 text-primary-500 border-primary-500/30' 
-                              : displayStatus === 'draft'
-                              ? 'bg-[#FFFF00]/20 text-[#FFFF00] border-[#FFFF00]/30'
-                              : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                          }`}
-                        >
-                          <Volume2 className="w-4 h-4 mr-1" />
-                          {visionVersion.audio_sets_count} {visionVersion.audio_sets_count === 1 ? 'Audio Set' : 'Audio Sets'}
-                        </Badge>
-
-                        {/* Ready/Mixing Status */}
-                        {visionVersion.mixing_audio_sets_count > 0 && (
-                          <Badge variant="warning">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {visionVersion.mixing_audio_sets_count} Mixing
+                    <div className="flex-1">
+                      <div className="flex flex-col items-center md:items-start gap-2 text-sm">
+                        {/* Badges Row */}
+                        <div className="flex flex-col md:flex-row items-center gap-2 flex-wrap">
+                          <VersionBadge 
+                            versionNumber={visionVersion.version_number} 
+                            status={displayStatus} 
+                          />
+                          <StatusBadge 
+                            status={displayStatus} 
+                            subtle={displayStatus !== 'active'}
+                            className="uppercase tracking-[0.25em]"
+                          />
+                          {/* Audio Sets Count - Desktop Only */}
+                          <Badge 
+                            className={`hidden md:inline-flex ${
+                              displayStatus === 'active' 
+                                ? 'bg-primary-500/20 text-primary-500 border-primary-500/30' 
+                                : displayStatus === 'draft'
+                                ? 'bg-[#FFFF00]/20 text-[#FFFF00] border-[#FFFF00]/30'
+                                : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                            }`}
+                          >
+                            <Volume2 className="w-4 h-4 mr-1" />
+                            {visionVersion.audio_sets_count} {visionVersion.audio_sets_count === 1 ? 'Audio Set' : 'Audio Sets'}
                           </Badge>
-                        )}
+                          {/* Ready/Mixing Status - Desktop Only */}
+                          {visionVersion.mixing_audio_sets_count > 0 && (
+                            <Badge variant="warning" className="hidden md:inline-flex">
+                              <Clock className="w-4 h-4 mr-1" />
+                              {visionVersion.mixing_audio_sets_count} Mixing
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {/* Date Row */}
+                        <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                          <CalendarDays className="w-4 h-4 text-neutral-500" />
+                          <span className="font-medium">Created:</span>
+                          <span>{new Date(visionVersion.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-row flex-wrap gap-2 w-full md:w-auto md:justify-end">
+                    <div className="flex flex-row flex-wrap gap-2 w-full md:w-auto justify-center md:justify-end">
                       <Button
                         onClick={() => router.push(`/life-vision/${visionVersion.vision_id}/audio`)}
                         variant="primary"
                         size="sm"
-                        className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                        className="text-xs md:text-sm flex-1 md:flex-initial flex items-center justify-center gap-2"
                       >
                         <Headphones className="w-4 h-4" />
                         <span>Audios</span>
@@ -475,10 +476,10 @@ export default function AllVisionAudiosPage() {
                         onClick={() => router.push(`/life-vision/${visionVersion.vision_id}`)}
                         variant="outline"
                         size="sm"
-                        className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                        className="text-xs md:text-sm flex-1 md:flex-initial flex items-center justify-center gap-2"
                       >
                         <Eye className="w-4 h-4" />
-                        <span>Life Vision</span>
+                        <span>Vision</span>
                       </Button>
                     </div>
                   </div>

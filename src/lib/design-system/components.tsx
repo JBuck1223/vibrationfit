@@ -4964,12 +4964,20 @@ interface PlaylistPlayerProps {
   tracks: AudioTrack[]
   className?: string
   autoPlay?: boolean
+  setIcon?: React.ReactNode
+  setName?: string
+  trackCount?: number
+  createdDate?: string
 }
 
 export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({ 
   tracks, 
   className = '',
-  autoPlay = false 
+  autoPlay = false,
+  setIcon,
+  setName,
+  trackCount,
+  createdDate
 }) => {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -5252,7 +5260,33 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       />
 
       {/* Current Track Info */}
-      <div className="mb-6 py-4">
+      <div className="mb-4 pt-4 pb-2">
+        {/* Set Info */}
+        {(setIcon || setName || trackCount || createdDate) && (
+          <div className="flex flex-col items-center gap-2 mb-4">
+            {setIcon && (
+              <div className="flex items-center justify-center">
+                {setIcon}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-neutral-400">
+              {setName && <span className="text-white">{setName}</span>}
+              {trackCount !== undefined && (
+                <>
+                  {setName && <span>•</span>}
+                  <span>{trackCount} tracks</span>
+                </>
+              )}
+              {createdDate && (
+                <>
+                  {(setName || trackCount !== undefined) && <span>•</span>}
+                  <span>{createdDate}</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-center justify-center gap-4">
           {currentTrack?.thumbnail && (
             <img 
@@ -5447,7 +5481,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
                 </div>
                 {/* Separator Line */}
                 {index < tracks.length - 1 && (
-                  <div className="border-b border-neutral-700"></div>
+                  <div className="border-b border-neutral-600/50"></div>
                 )}
               </div>
             )

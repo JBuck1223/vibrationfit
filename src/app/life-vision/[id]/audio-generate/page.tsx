@@ -417,7 +417,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
             <div className="relative z-10">
               <div className="text-center mb-4">
                 <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  AUDIO STUDIO
+                  THE LIFE I CHOOSE
                 </div>
               </div>
               
@@ -456,14 +456,12 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
         {/* SECTION 1: Voice Only Tracks */}
         <Card variant="elevated">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-[#39FF14]/20 rounded-full flex items-center justify-center">
-              <Headphones className="w-5 h-5 text-[#39FF14]" />
+          <div className="flex flex-col items-center text-center mb-6">
+            <div className="w-16 h-16 bg-[#39FF14]/20 rounded-full flex items-center justify-center mb-3">
+              <span className="text-3xl font-bold text-[#39FF14]">1</span>
             </div>
-            <div>
-              <h2 className="text-xl md:text-2xl font-semibold text-white">Step 1: Voice Only Tracks</h2>
-              <p className="text-sm text-neutral-400">Base recordings without background music</p>
-            </div>
+            <h2 className="text-xl md:text-2xl font-semibold text-white">Voice Only Tracks</h2>
+            <p className="text-sm text-neutral-400">Base recordings without background music</p>
           </div>
 
           {/* Existing Voice Sets */}
@@ -694,14 +692,12 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
         {/* SECTION 2: Mixing Variants */}
         <Card variant="elevated" className={existingVoiceSets.length === 0 ? 'opacity-50 pointer-events-none' : ''}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
-              <Music className="w-5 h-5 text-purple-400" />
+          <div className="flex flex-col items-center text-center mb-6">
+            <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-3">
+              <span className="text-3xl font-bold text-purple-400">2</span>
             </div>
-            <div>
-              <h2 className="text-xl md:text-2xl font-semibold text-white">Step 2: Add Background Mixes</h2>
-              <p className="text-sm text-neutral-400">Combine voice with background music</p>
-            </div>
+            <h2 className="text-xl md:text-2xl font-semibold text-white">Add Background Mixes</h2>
+            <p className="text-sm text-neutral-400">Combine voice with background music</p>
           </div>
 
           {existingVoiceSets.length === 0 ? (

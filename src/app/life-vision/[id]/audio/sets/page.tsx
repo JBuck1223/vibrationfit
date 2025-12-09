@@ -416,7 +416,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                 </Button>
                 
                 <Button
-                  onClick={() => router.push(`/life-vision/${visionId}/audio`)}
+                  onClick={() => router.push(`/life-vision/audio`)}
                   variant="outline"
                   size="sm"
                   className="w-full flex items-center justify-center gap-2"
@@ -630,7 +630,17 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                     </div>
                   ) : audioTracks.length > 0 ? (
                     <div className="rounded-2xl p-4 md:p-6 bg-[#1F1F1F] border-2 border-[#333]">
-                      <PlaylistPlayer tracks={audioTracks} />
+                      <PlaylistPlayer 
+                        tracks={audioTracks}
+                        setIcon={
+                          <div className={`p-2 rounded-lg ${getVariantColor(audioSets.find(s => s.id === selectedAudioSetId)?.variant || '')}`}>
+                            {getVariantIcon(audioSets.find(s => s.id === selectedAudioSetId)?.variant || '')}
+                          </div>
+                        }
+                        setName={getVariantDisplayInfo(audioSets.find(s => s.id === selectedAudioSetId)?.variant || 'standard').title}
+                        trackCount={audioTracks.length}
+                        createdDate={new Date(audioSets.find(s => s.id === selectedAudioSetId)?.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      />
                     </div>
                   ) : (
                     <Card variant="glass" className="p-8 text-center">
