@@ -48,9 +48,8 @@ import {
   ensureDraftExists,
   getDraftVision,
   updateDraftCategory,
-  getRefinedCategories,
-  isCategoryRefined,
-  commitDraft
+  commitDraft,
+  getDraftCategories
 } from '@/lib/life-vision/draft-helpers'
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
 
@@ -258,6 +257,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [vision, setVision] = useState<VisionData | null>(null)
   const [draftVision, setDraftVision] = useState<VisionData | null>(null)
+  const [refinedCategories, setRefinedCategories] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
@@ -373,12 +373,29 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         return
       }
 
-      // It's a draft, calculate version number and set it as both vision and draft
+      // It's a draft, calculate version number and set it as draft
       const calculatedVersion = await calculateVersionNumber(visionData.id)
       const visionWithVersion = { ...visionData, version_number: calculatedVersion }
-      setVision(visionWithVersion)
       setDraftVision(visionWithVersion)
       console.log('Draft vision loaded successfully:', visionWithVersion.id, 'Version:', calculatedVersion)
+      
+      // Fetch the active vision for comparison
+      const { data: activeVisionData } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('is_draft', false)
+        .maybeSingle()
+      
+      if (activeVisionData) {
+        const activeVersion = await calculateVersionNumber(activeVisionData.id)
+        setVision({ ...activeVisionData, version_number: activeVersion })
+        console.log('Active vision loaded for comparison:', activeVisionData.id, 'Version:', activeVersion)
+      } else {
+        // No active vision, use draft as vision too (edge case)
+        setVision(visionWithVersion)
+      }
       
       // Also fetch user profile for avatar
       const { data: profile } = await supabase
@@ -483,6 +500,19 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       console.log('useEffect skipped - missing user')
     }
   }, [user, loadDraftVision])
+
+  // Calculate refined categories when both visions are loaded
+  useEffect(() => {
+    if (draftVision && vision && !vision.is_draft) {
+      // Compare draft to active vision to calculate refined categories
+      const calculated = getDraftCategories(draftVision, vision)
+      setRefinedCategories(calculated)
+      console.log('Calculated refined categories:', calculated)
+    } else if (draftVision && draftVision.refined_categories) {
+      // Fallback to DB refined_categories if active not loaded
+      setRefinedCategories(draftVision.refined_categories)
+    }
+  }, [draftVision, vision])
 
   // Read category from URL parameters
   useEffect(() => {
@@ -1257,12 +1287,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     </span>
                     
                     {/* Draft Categories Count */}
-                    {getRefinedCategories(draftVision).length > 0 && (
+                    {refinedCategories.length > 0 && (
                       <Badge 
                         variant="warning" 
                         className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
                       >
-                        {getRefinedCategories(draftVision).length} of {VISION_CATEGORIES.length} Refined
+                        {refinedCategories.length} of {VISION_CATEGORIES.length} Refined
                       </Badge>
                     )}
                     
@@ -1282,7 +1312,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   <span>View Draft</span>
                 </Button>
                 
-                {draftVision && getRefinedCategories(draftVision).length > 0 && (
+                {draftVision && refinedCategories.length > 0 && (
                   <Button
                     onClick={() => router.push(`/life-vision/${draftVision.id}/draft`)}
                     variant="primary"
@@ -1309,7 +1339,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             : 'lg:grid-cols-[repeat(12,minmax(0,1fr))]'
         }`}>
           {VISION_CATEGORIES.map((category) => {
-            const isRefined = draftVision && isCategoryRefined(draftVision, category.key)
+            const isRefined = refinedCategories.includes(category.key)
             return (
               <div key={category.key} className="relative">
                 {isRefined && (

@@ -443,6 +443,14 @@ export async function POST(request: NextRequest) {
             p_user_id: user.id,
             p_version_notes: isDraft ? 'Draft version' : 'Committed version'
           })
+        
+        // Set parent_id explicitly if trigger didn't catch it
+        if (!versionError && draftId) {
+          await supabase
+            .from('user_profiles')
+            .update({ parent_id: actualSourceId })
+            .eq('id', draftId)
+        }
 
         if (versionError) {
           console.error('Version creation error:', versionError)
@@ -806,6 +814,32 @@ export async function PUT(request: NextRequest) {
 
       // Calculate completion percentage using shared utility (for response only, not stored)
       const completionPercentage = calculateProfileCompletion(profile)
+
+      // Auto-calculate refined_fields if this is a draft with a parent
+      if (profile.parent_id && profile.is_draft) {
+        const { data: parentProfile } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', profile.parent_id)
+          .single()
+        
+        if (parentProfile) {
+          // Calculate which fields have changed
+          const { getChangedFields } = await import('@/lib/profile/draft-helpers')
+          const refinedFields = getChangedFields(profile, parentProfile)
+          
+          // Update refined_fields in database
+          await supabase
+            .from('user_profiles')
+            .update({ refined_fields: refinedFields })
+            .eq('id', profile.id)
+          
+          // Add to response
+          profile.refined_fields = refinedFields
+          
+          console.log('Profile API PUT: Calculated refined_fields:', refinedFields)
+        }
+      }
 
       console.log('Profile API PUT: Update successful, completion:', completionPercentage)
 

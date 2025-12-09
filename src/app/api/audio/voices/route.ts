@@ -1,14 +1,14 @@
 export const runtime = 'nodejs'
 export const maxDuration = 60
 import { NextRequest, NextResponse } from 'next/server'
-import { getOpenAIVoices, synthesizePreview, getOrCreateVoiceReference } from '@/lib/services/audioService'
+import { getOpenAIVoices } from '@/lib/services/audioService'
 
 export async function GET(_request: NextRequest) {
   try {
     const { searchParams } = new URL(_request.url)
     const previewVoice = searchParams.get('preview') as any
     if (previewVoice) {
-      // Return voice-specific reference tracks
+      // OpenAI voice previews are pre-generated and served from S3
       const voiceSamples = {
         'alloy': 'https://media.vibrationfit.com/site-assets/voice-previews/alloy-v1759856713602.mp3',
         'ash': 'https://media.vibrationfit.com/site-assets/voice-previews/ash-v1759856717540.mp3',
@@ -18,10 +18,10 @@ export async function GET(_request: NextRequest) {
         'onyx': 'https://media.vibrationfit.com/site-assets/voice-previews/onyx-v1759856739405.mp3',
         'nova': 'https://media.vibrationfit.com/site-assets/voice-previews/nova-v1759856746503.mp3',
         'sage': 'https://media.vibrationfit.com/site-assets/voice-previews/sage-v1759856752077.mp3',
-        'shimmer': 'https://media.vibrationfit.com/site-assets/voice-previews/shimmer-v1759856756423.mp3'
+        'shimmer': 'https://media.vibrationfit.com/site-assets/voice-previews/shimmer-v1759856756423.mp3',
       }
       
-      const url = voiceSamples[previewVoice as keyof typeof voiceSamples] || voiceSamples['alloy'] // fallback to alloy
+      const url = voiceSamples[previewVoice as keyof typeof voiceSamples] || voiceSamples['alloy']
       return NextResponse.json({ url })
     }
 

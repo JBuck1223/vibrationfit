@@ -47,7 +47,8 @@ import {
   Search,
   X,
   FlaskConical,
-  Mic
+  Mic,
+  Clock
 } from 'lucide-react'
 import { Card, Badge, Container, Input } from '@/lib/design-system'
 
@@ -101,9 +102,9 @@ export default function SitemapPage() {
         { href: '/life-vision/new/category/[key]/imagination', label: 'Imagination Step', icon: Brain, description: 'Imagination phase', isDynamic: true },
         { href: '/life-vision/[id]', label: 'Vision Details', icon: Eye, description: 'Individual vision page', isDynamic: true },
         { href: '/life-vision/[id]/audio', label: 'Vision Audio', icon: Headphones, description: 'Audio version of vision', isDynamic: true },
-        { href: '/life-vision/[id]/audio-generate', label: 'Generate Audio', icon: Mic, description: 'Generate vision audio', isDynamic: true },
-        { href: '/life-vision/[id]/audio-sets', label: 'Audio Sets', icon: Headphones, description: 'Manage audio sets', isDynamic: true },
-        { href: '/life-vision/[id]/audio-sets/[audioSetId]', label: 'Audio Set Detail', icon: Headphones, description: 'Individual audio set', isDynamic: true },
+        { href: '/life-vision/[id]/audio/generate', label: 'Generate Audio', icon: Mic, description: 'Generate vision audio', isDynamic: true },
+        { href: '/life-vision/[id]/audio/queue', label: 'Generation Queue', icon: Clock, description: 'View generation history & queue', isDynamic: true },
+        { href: '/life-vision/[id]/audio/sets', label: 'Audio Sets', icon: Headphones, description: 'Manage & play audio sets', isDynamic: true },
         { href: '/life-vision/[id]/print', label: 'Print Vision', icon: FileText, description: 'Print-friendly view', isDynamic: true },
 
         // Vision Board

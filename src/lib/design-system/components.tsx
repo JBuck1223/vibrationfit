@@ -898,6 +898,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       })
     }
 
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault()
+      e.stopPropagation()
+      props.onClick?.(e)
+    }
+
     return (
       <button
         ref={ref}
@@ -905,6 +911,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         className={buttonClasses}
         {...props}
+        onClick={handleClick}
       >
         {loading ? 'Loading...' : children}
       </button>
@@ -4159,7 +4166,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
           </p>
           <div className="flex gap-3">
             <Button
-              variant="ghost"
+              variant="outline"
               onClick={onClose}
               className="flex-1"
               disabled={isLoading}
@@ -4167,10 +4174,11 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
               Cancel
             </Button>
             <Button
+              variant="danger"
               onClick={onConfirm}
               loading={isLoading}
               disabled={isLoading}
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+              className="flex-1"
             >
               {isLoading ? loadingText : 'Delete'}
             </Button>
@@ -4956,12 +4964,20 @@ interface PlaylistPlayerProps {
   tracks: AudioTrack[]
   className?: string
   autoPlay?: boolean
+  setIcon?: React.ReactNode
+  setName?: string
+  trackCount?: number
+  createdDate?: string
 }
 
 export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({ 
   tracks, 
   className = '',
-  autoPlay = false 
+  autoPlay = false,
+  setIcon,
+  setName,
+  trackCount,
+  createdDate
 }) => {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -5214,12 +5230,15 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   const handleTrackSelect = (index: number) => {
     setCurrentTrackIndex(index)
     setCurrentTime(0)
-    if (isPlaying) {
-      // Small delay to ensure audio is loaded
-      setTimeout(() => {
-        audioRef.current?.play()
-      }, 100)
-    }
+    // Always play when a track is clicked
+    setIsPlaying(true)
+    // Small delay to ensure audio is loaded
+    setTimeout(() => {
+      audioRef.current?.play().catch(() => {
+        console.warn('Failed to auto-play track')
+        setIsPlaying(false)
+      })
+    }, 100)
   }
 
   const formatTime = (seconds: number) => {
@@ -5241,7 +5260,33 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       />
 
       {/* Current Track Info */}
-      <div className="mb-6 py-4">
+      <div className="mb-4 pt-4 pb-2">
+        {/* Set Info */}
+        {(setIcon || setName || trackCount || createdDate) && (
+          <div className="flex flex-col items-center gap-2 mb-4">
+            {setIcon && (
+              <div className="flex items-center justify-center">
+                {setIcon}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-neutral-400">
+              {setName && <span className="text-white">{setName}</span>}
+              {trackCount !== undefined && (
+                <>
+                  {setName && <span>•</span>}
+                  <span>{trackCount} tracks</span>
+                </>
+              )}
+              {createdDate && (
+                <>
+                  {(setName || trackCount !== undefined) && <span>•</span>}
+                  <span>{createdDate}</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-center justify-center gap-4">
           {currentTrack?.thumbnail && (
             <img 
@@ -5367,9 +5412,8 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       </div>
 
       {/* Track List */}
-      <Card variant="default" className="overflow-hidden">
+      <div className="overflow-hidden">
         <Stack gap="xs">
-          <h4 className="text-lg font-semibold text-white mb-2">Playlist</h4>
           <div className="max-h-[60vh] overflow-y-auto pr-2">
           {tracks.map((track, index) => {
             const handlePlayClick = (e: React.MouseEvent) => {
@@ -5384,50 +5428,67 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
             }
 
             return (
-              <div
-                key={`playlist-item-${index}`}
-                onClick={() => handleTrackSelect(index)}
-                className={cn(
-                  'w-full text-left p-3 rounded-lg transition-all duration-200 cursor-pointer',
-                  'hover:bg-neutral-800',
-                  currentTrackIndex === index && 'bg-[#39FF14]/20 border border-[#39FF14]'
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handlePlayClick}
-                    className="flex-shrink-0 hover:scale-110 transition-transform"
-                    aria-label={currentTrackIndex === index && isPlaying ? 'Pause' : 'Play'}
-                  >
-                    {currentTrackIndex === index && isPlaying ? (
-                      <Pause className="w-5 h-5 text-[#39FF14]" fill="currentColor" />
-                    ) : (
-                      <Play className="w-5 h-5 text-neutral-400" fill="currentColor" />
-                    )}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      'text-sm font-medium truncate capitalize',
-                      currentTrackIndex === index ? 'text-[#39FF14]' : 'text-white'
-                    )}>
-                      {track.title}
-                    </p>
-                    <p className="text-xs text-neutral-400 truncate">{track.artist}</p>
-                  </div>
-                  <div className="text-xs text-neutral-500">
-                    {(() => {
-                      const storedDuration = trackDurations.get(track.id)
-                      const displayDuration = storedDuration || track.duration
-                      return displayDuration > 0 ? formatTime(displayDuration) : '--:--'
-                    })()}
+              <div key={`playlist-item-${index}`}>
+                <div
+                  onClick={() => handleTrackSelect(index)}
+                  className={cn(
+                    'w-full text-left p-3 transition-all duration-200 cursor-pointer',
+                    'hover:bg-neutral-800/50',
+                    currentTrackIndex === index && 'bg-[#39FF14]/10'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Track Number */}
+                    <div className="w-6 text-center flex-shrink-0 flex items-center justify-center">
+                      {currentTrackIndex === index && isPlaying ? (
+                        <button
+                          onClick={handlePlayClick}
+                          className="hover:scale-110 transition-transform"
+                          aria-label="Pause"
+                        >
+                          <Pause className="w-4 h-4 text-[#39FF14]" fill="currentColor" />
+                        </button>
+                      ) : currentTrackIndex === index ? (
+                        <button
+                          onClick={handlePlayClick}
+                          className="hover:scale-110 transition-transform"
+                          aria-label="Play"
+                        >
+                          <Play className="w-4 h-4 text-[#39FF14]" fill="currentColor" />
+                        </button>
+                      ) : (
+                        <span className="text-sm text-neutral-500">{index + 1}</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <p className={cn(
+                        'text-sm font-medium truncate capitalize',
+                        currentTrackIndex === index ? 'text-[#39FF14]' : 'text-white'
+                      )}>
+                        {track.title}
+                      </p>
+                      <p className="text-xs text-neutral-400 truncate">{track.artist}</p>
+                    </div>
+                    <div className="text-xs text-neutral-500">
+                      {(() => {
+                        const storedDuration = trackDurations.get(track.id)
+                        const displayDuration = storedDuration || track.duration
+                        return displayDuration > 0 ? formatTime(displayDuration) : '--:--'
+                      })()}
+                    </div>
                   </div>
                 </div>
+                {/* Separator Line */}
+                {index < tracks.length - 1 && (
+                  <div className="border-b border-neutral-600/50"></div>
+                )}
               </div>
             )
           })}
           </div>
         </Stack>
-      </Card>
+      </div>
     </div>
   )
 }
