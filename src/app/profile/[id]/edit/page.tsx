@@ -983,7 +983,7 @@ export default function ProfileEditPage() {
             </div>
 
             {/* Category Grid */}
-            <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
+            <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
               {profileSections.map((section) => {
                 const categoryInfo = getCategoryInfo(section.id)
                 const isSelected = selectedCategories.includes(section.id)

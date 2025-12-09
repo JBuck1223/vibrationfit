@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, CalendarDays, Moon, Zap, Sparkles, Plus, Music, X, AlertCircle, Wand2, Mic, Clock, Eye, Music2 } from 'lucide-react'
+import { Headphones, CheckCircle, Play, CalendarDays, Moon, Zap, Sparkles, Plus, Music, X, AlertCircle, Wand2, Mic, Clock, Eye, Music2, ListMusic } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys } from '@/lib/design-system'
 
@@ -453,9 +453,9 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
                   {/* Action Buttons */}
                   <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
-                    <Button variant="outline" size="sm" asChild className="w-full">
+                    <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
                       <Link href={`/life-vision/${visionId}/audio/sets`} className="flex items-center justify-center gap-2">
-                        <Headphones className="w-4 h-4" />
+                        <ListMusic className="w-4 h-4" />
                         <span>Audio Sets</span>
                       </Link>
                     </Button>
@@ -473,14 +473,15 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                     </Button>
                     <Button variant="outline" size="sm" asChild className="w-full">
                       <Link href={`/life-vision/audio`} className="flex items-center justify-center gap-2">
-                        <Music2 className="w-4 h-4" />
+                        <Headphones className="w-4 h-4" />
                         <span>All Audios</span>
                       </Link>
                     </Button>
                     <Button variant="outline" size="sm" asChild className="w-full">
                       <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
                         <Eye className="w-4 h-4" />
-                        <span>View Vision</span>
+                        <span className="lg:hidden">Vision</span>
+                        <span className="hidden lg:inline">View Vision</span>
                       </Link>
                     </Button>
                   </div>
@@ -490,39 +491,55 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
-        {/* SECTION 1: Voice Only Tracks */}
-        <Card variant="elevated">
-          <div className="flex flex-col items-center text-center mb-6">
+        {/* Combined Generation Card */}
+        <Card variant="glass" className="mb-6">
+          {/* SECTION 1: Select Base Voice */}
+          <div className="flex flex-col items-center text-center mb-8">
             <div className="w-16 h-16 bg-[#39FF14]/20 rounded-full flex items-center justify-center mb-3">
               <span className="text-3xl font-bold text-[#39FF14]">1</span>
             </div>
-            <h2 className="text-xl md:text-2xl font-semibold text-white">Voice Only Tracks</h2>
-            <p className="text-sm text-neutral-400">Base recordings without background music</p>
+            <h2 className="text-xl md:text-2xl font-semibold text-white">Select Base Voice</h2>
+            <p className="text-sm text-neutral-400">Choose a voice recording to use. You must have a base voice to generate background mixes with.</p>
           </div>
 
           {/* Existing Voice Sets */}
-          {existingVoiceSets.length > 0 && (
-            <div className="mb-6">
-              <p className="text-sm text-neutral-400 mb-3">Existing voice recordings:</p>
-              <div className="flex flex-wrap gap-3">
+          {existingVoiceSets.length > 0 ? (
+            <>
+              <p className="text-sm text-neutral-400 mb-3 text-center">Select a voice to use for mixing:</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
                 {existingVoiceSets.map((set) => (
-                  <Card key={set.id} variant="default" className="p-4">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-primary-500" />
-                      <div>
-                        <p className="text-white font-medium">{voices.find(v => v.id === set.voice_id)?.name || set.voice_id}</p>
-                        <p className="text-xs text-neutral-400">{set.track_count} tracks • {new Date(set.created_at).toLocaleDateString()}</p>
-                      </div>
+                  <Card 
+                    key={set.id} 
+                    variant="default" 
+                    hover
+                    className={`p-4 cursor-pointer transition-all ${
+                      selectedBaseVoice === set.voice_id
+                        ? 'border-primary-500 bg-primary-500/10'
+                        : ''
+                    }`}
+                    onClick={(e: React.MouseEvent) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setSelectedBaseVoice(set.voice_id)
+                    }}
+                  >
+                    <div>
+                      <p className="text-white font-medium">{voices.find(v => v.id === set.voice_id)?.name || set.voice_id}</p>
+                      <p className="text-xs text-neutral-400">{set.track_count} tracks • {new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                     </div>
                   </Card>
                 ))}
               </div>
+            </>
+          ) : (
+            <div className="text-center py-8 mb-6">
+              <p className="text-neutral-400">No voice recordings yet. Generate your first set below.</p>
             </div>
           )}
 
           {/* Action Buttons */}
           {!showNewVoiceForm ? (
-            <div className="space-y-3">
+            <div className="space-y-3 flex justify-center">
               <Button 
                 variant="primary" 
                 onClick={(e) => {
@@ -530,9 +547,11 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                   e.stopPropagation()
                   setShowNewVoiceForm(true)
                 }}
-                className="w-full"
+                className="w-full md:w-auto"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <div className="w-6 h-6 rounded-full bg-black/20 flex items-center justify-center mr-2">
+                  <Plus className="w-4 h-4" />
+                </div>
                 Generate New Voice Only Set
               </Button>
             </div>
@@ -724,235 +743,98 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               </div>
             </Card>
           )}
-        </Card>
 
-        {/* SECTION 2: Mixing Variants */}
-        <Card variant="elevated" className={existingVoiceSets.length === 0 ? 'opacity-50 pointer-events-none' : ''}>
-          <div className="flex flex-col items-center text-center mb-6">
+          {/* Divider */}
+          <div className="my-12 border-t border-neutral-700/50"></div>
+
+          {/* SECTION 2: Select Mix Variants */}
+          <div className="flex flex-col items-center text-center mb-8">
             <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-3">
               <span className="text-3xl font-bold text-purple-400">2</span>
             </div>
-            <h2 className="text-xl md:text-2xl font-semibold text-white">Add Background Mixes</h2>
-            <p className="text-sm text-neutral-400">Combine voice with background music</p>
+            <h2 className="text-xl md:text-2xl font-semibold text-white">Select Mix Variants</h2>
+            <p className="text-sm text-neutral-400">Add background music to your voice recording.</p>
           </div>
 
-          {existingVoiceSets.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-neutral-400">Generate a voice-only set first to unlock mixing</p>
-            </div>
-          ) : (
+          <div className={existingVoiceSets.length === 0 ? 'opacity-50 pointer-events-none' : ''}>
+            {existingVoiceSets.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-neutral-400">Generate a voice-only set first to unlock mixing</p>
+              </div>
+            ) : (
             <>
-              {/* Select Base Voice */}
-              <div className="mb-6">
-                <h3 className="text-base font-semibold text-white mb-3">Select Base Voice</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {existingVoiceSets.map((set) => (
+              {/* Mix Variants Selection */}
+              <p className="text-sm text-neutral-400 mb-3 text-center">Choose which background mixes to create:</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {mixVariants.map((variant) => {
+                  const Icon = variant.icon
+                  const isSelected = selectedMixVariants.includes(variant.id)
+                  
+                  return (
                     <Card
-                      key={set.id}
+                      key={variant.id}
                       variant="default"
                       hover
                       className={`cursor-pointer transition-all ${
-                        selectedBaseVoice === set.voice_id
+                        isSelected
                           ? 'border-primary-500 bg-primary-500/10'
                           : ''
                       }`}
                       onClick={(e: React.MouseEvent) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        setSelectedBaseVoice(set.voice_id)
+                        setSelectedMixVariants(prev =>
+                          prev.includes(variant.id)
+                            ? prev.filter(v => v !== variant.id)
+                            : [...prev, variant.id]
+                        )
                       }}
                     >
                       <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${variant.color}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
                         <div className="flex-1">
-                          <p className="text-white font-medium">{voices.find(v => v.id === set.voice_id)?.name || set.voice_id}</p>
-                          <p className="text-xs text-neutral-400">{set.track_count} tracks</p>
+                          <p className="text-white font-medium">{variant.name}</p>
+                          <p className="text-xs text-neutral-400">
+                            {variant.voice_volume}% voice • {variant.bg_volume}% background
+                          </p>
                         </div>
                       </div>
                     </Card>
-                  ))}
-                </div>
-              </div>
-
-              {/* Select Mix Variants */}
-              <div className="mb-6">
-                <h3 className="text-base font-semibold text-white mb-3">Select Mix Variants</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {mixVariants.map((variant) => {
-                    const Icon = variant.icon
-                    const isSelected = selectedMixVariants.includes(variant.id)
-                    
-                    return (
-                      <Card
-                        key={variant.id}
-                        variant="default"
-                        hover
-                        className={`cursor-pointer transition-all ${
-                          isSelected
-                            ? 'border-primary-500 bg-primary-500/10'
-                            : ''
-                        }`}
-                        onClick={(e: React.MouseEvent) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setSelectedMixVariants(prev =>
-                            prev.includes(variant.id)
-                              ? prev.filter(v => v !== variant.id)
-                              : [...prev, variant.id]
-                          )
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${variant.color}`}>
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-white font-medium">{variant.name}</p>
-                            <p className="text-xs text-neutral-400">
-                              {variant.voice_volume}% voice • {variant.bg_volume}% background
-                            </p>
-                          </div>
-                        </div>
-                      </Card>
-                    )
-                  })}
-                </div>
+                  )
+                })}
               </div>
 
               {/* Generate Button */}
-              <Button 
-                variant="primary" 
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleGenerateMixes()
-                }}
-                disabled={generating || selectedMixVariants.length === 0 || !selectedBaseVoice}
-                className="w-full"
-              >
-                {generating ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" />
-                    Generating Mixes...
-                  </>
-                ) : (
-                  <>
-                    Generate {selectedMixVariants.length} Mix{selectedMixVariants.length !== 1 ? 'es' : ''}
-                  </>
-                )}
-              </Button>
+              <div className="flex justify-center">
+                <Button 
+                  variant="primary" 
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleGenerateMixes()
+                  }}
+                  disabled={generating || selectedMixVariants.length === 0 || !selectedBaseVoice}
+                  className="w-full md:w-auto"
+                >
+                  {generating ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Generating Mixes...
+                    </>
+                  ) : (
+                    <>
+                      Generate {selectedMixVariants.length} Mix{selectedMixVariants.length !== 1 ? 'es' : ''}
+                    </>
+                  )}
+                </Button>
+              </div>
             </>
-          )}
+            )}
+          </div>
         </Card>
 
-        {/* Quick Links */}
-        <div className="flex gap-4">
-          <Button variant="outline" asChild className="flex-1">
-            <Link href={`/life-vision/${visionId}/audio/sets`}>
-              View Audio Sets
-            </Link>
-          </Button>
-          <Button variant="ghost" asChild className="flex-1">
-            <Link href={`/life-vision/${visionId}`}>
-              Back to Vision
-            </Link>
-          </Button>
-        </div>
-
-        {/* Active Generation Queue */}
-        {activeBatches.length > 0 && (() => {
-          const hasActiveBatches = activeBatches.some(b => ['pending', 'processing'].includes(b.status))
-          
-          return (
-            <Card variant="elevated" className={hasActiveBatches ? "bg-blue-500/5 border-blue-500/30" : ""}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                    {hasActiveBatches ? (
-                      <Spinner size="sm" className="text-blue-400" />
-                    ) : (
-                      <CheckCircle className="w-5 h-5 text-blue-400" />
-                    )}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-white">
-                      {hasActiveBatches ? 'Generation Queue' : 'Recent Generations'}
-                    </h2>
-                    <p className="text-sm text-neutral-400">
-                      {hasActiveBatches ? 'In-progress generations' : 'Completed generations'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-            <div className="flex flex-col gap-4">
-              {activeBatches.map((batch) => {
-                const isActive = ['pending', 'processing'].includes(batch.status)
-                const progressPercent = Math.round((batch.tracks_completed / batch.total_tracks_expected) * 100)
-                
-                return (
-                  <Link key={batch.id} href={`/life-vision/${visionId}/audio/queue/${batch.id}`}>
-                    <Card 
-                      variant="default" 
-                      hover
-                      className="cursor-pointer !py-4 !px-5"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <p className="text-white font-medium">
-                              {batch.variant_ids.map(v => v === 'standard' ? 'Voice Only' : v.charAt(0).toUpperCase() + v.slice(1)).join(', ')}
-                            </p>
-                            <Badge 
-                              variant={
-                                batch.status === 'completed' ? 'success' :
-                                batch.status === 'failed' ? 'error' :
-                                batch.status === 'partial_success' ? 'warning' :
-                                'info'
-                              }
-                              className="text-xs"
-                            >
-                              {batch.status === 'processing' ? 'In Progress' : 
-                               batch.status === 'pending' ? 'Queued' :
-                               batch.status === 'completed' ? 'Complete' :
-                               batch.status === 'partial_success' ? 'Partial' :
-                               batch.status}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex items-center gap-3 text-xs text-neutral-400 mb-2">
-                            <span>Voice: {voices.find(v => v.id === batch.voice_id)?.name || batch.voice_id}</span>
-                            <span>•</span>
-                            <span>{batch.tracks_completed} / {batch.total_tracks_expected} tracks</span>
-                            {batch.tracks_failed > 0 && (
-                              <>
-                                <span>•</span>
-                                <span className="text-red-400">{batch.tracks_failed} failed</span>
-                              </>
-                            )}
-                          </div>
-
-                          {isActive && (
-                            <div className="w-full bg-neutral-800 rounded-full h-1.5">
-                              <div 
-                                className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
-                                style={{ width: `${progressPercent}%` }}
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="text-xs text-neutral-500">
-                          {new Date(batch.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                )
-              })}
-            </div>
-          </Card>
-          )
-        })()}
       </Stack>
     </Container>
   )
