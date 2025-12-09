@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, Eye, Edit3, Save } from 'lucide-react'
+import { CheckCircle, Eye, Edit3, Save, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { 
   getDraftProfile, 
@@ -22,7 +22,9 @@ import {
   StatusBadge,
   WarningConfirmationDialog,
   Badge,
-  Container
+  Container,
+  CategoryCard,
+  PageHero
 } from '@/lib/design-system/components'
 import { ProfileField } from '../../components/ProfileField'
 import { colors } from '@/lib/design-system/tokens'
@@ -34,26 +36,26 @@ import {
 // Neon Yellow from design tokens
 const NEON_YELLOW = colors.energy.yellow[500]
 
-// Profile sections mapping
-const profileSections = [
-  { id: 'personal', title: 'Personal Info', icon: User },
-  { id: 'relationship', title: 'Love', icon: Heart },
-  { id: 'family', title: 'Family', icon: Users },
-  { id: 'health', title: 'Health', icon: Activity },
-  { id: 'location', title: 'Home', icon: MapPin },
-  { id: 'career', title: 'Work', icon: Briefcase },
-  { id: 'financial', title: 'Money', icon: DollarSign },
-  { id: 'fun-recreation', title: 'Fun', icon: Sparkles },
-  { id: 'travel-adventure', title: 'Travel', icon: Plane },
-  { id: 'social-friends', title: 'Social', icon: UserPlus },
-  { id: 'possessions-lifestyle', title: 'Possessions', icon: Package },
-  { id: 'spirituality-growth', title: 'Spirituality', icon: Sparkles },
-  { id: 'giving-legacy', title: 'Giving', icon: Heart },
-  { id: 'photos-notes', title: 'Photos & Notes', icon: Camera }
+// Profile sections (matching the 12 life categories + personal info)
+const PROFILE_CATEGORIES = [
+  { key: 'personal', label: 'Personal Info', icon: User, order: 0 },
+  { key: 'fun', label: 'Fun', icon: Sparkles, order: 1 },
+  { key: 'health', label: 'Health', icon: Activity, order: 2 },
+  { key: 'travel', label: 'Travel', icon: Plane, order: 3 },
+  { key: 'love', label: 'Love', icon: Heart, order: 4 },
+  { key: 'family', label: 'Family', icon: Users, order: 5 },
+  { key: 'social', label: 'Social', icon: UserPlus, order: 6 },
+  { key: 'home', label: 'Home', icon: MapPin, order: 7 },
+  { key: 'work', label: 'Work', icon: Briefcase, order: 8 },
+  { key: 'money', label: 'Money', icon: DollarSign, order: 9 },
+  { key: 'stuff', label: 'Stuff', icon: Package, order: 10 },
+  { key: 'giving', label: 'Giving', icon: Heart, order: 11 },
+  { key: 'spirituality', label: 'Spirituality', icon: Sparkles, order: 12 },
 ]
 
 export default function ProfileDraftPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   
   const [loading, setLoading] = useState(true)
@@ -67,6 +69,9 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
   const [isNotDraft, setIsNotDraft] = useState(false)
   const [activeProfile, setActiveProfile] = useState<Partial<UserProfile> | null>(null)
   const [user, setUser] = useState<any>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get('section') || 'personal')
+  const [editedFields, setEditedFields] = useState<Record<string, any>>({})
+  const [saving, setSaving] = useState(false)
 
   // Load draft profile
   const loadDraftProfile = useCallback(async (draftId: string, userId: string) => {
@@ -204,42 +209,67 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
     }
   }
 
-  // Handle field save
-  const handleFieldSave = async (fieldKey: string, newValue: any) => {
-    if (!draftProfile) return
+  // Handle category selection
+  const handleCategorySelect = (categoryKey: string) => {
+    setSelectedCategory(categoryKey)
+    const currentPath = window.location.pathname
+    router.replace(`${currentPath}?section=${categoryKey}`, { scroll: false })
+  }
 
+  // Track field changes locally
+  const handleFieldChange = useCallback((fieldKey: string, value: any) => {
+    setEditedFields(prev => ({
+      ...prev,
+      [fieldKey]: value
+    }))
+  }, [])
+
+  // Save all changes
+  const handleSaveChanges = async () => {
+    if (!draftProfile?.id || Object.keys(editedFields).length === 0) return
+
+    setSaving(true)
     try {
       const response = await fetch(`/api/profile?profileId=${draftProfile.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [fieldKey]: newValue })
+        body: JSON.stringify(editedFields)
       })
 
-      if (!response.ok) throw new Error('Failed to save field')
-
-      // Reload draft to get updated data
-      const { data: updatedDraft } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', draftProfile.id)
-        .single()
-
-      if (updatedDraft) {
-        setDraftProfile(updatedDraft)
-        
-        // Recalculate changed fields
-        if (parentProfile) {
-          const changed = getChangedFields(updatedDraft, parentProfile)
-          const sections = getChangedSections(updatedDraft, parentProfile)
-          setChangedFields(changed)
-          setChangedSections(sections)
-        }
+      if (!response.ok) {
+        throw new Error('Failed to save changes')
       }
-    } catch (err) {
-      console.error('Error saving field:', err)
-      throw err
+
+      const { profile } = await response.json()
+      
+      // Update draft profile with server response
+      setDraftProfile(profile)
+
+      // Clear edited fields
+      setEditedFields({})
+
+      // Recalculate changed fields
+      if (parentProfile) {
+        const changed = getChangedFields(profile, parentProfile)
+        const sections = getChangedSections(profile, parentProfile)
+        setChangedFields(changed)
+        setChangedSections(sections)
+      }
+    } catch (error) {
+      console.error('Error saving changes:', error)
+      alert('Failed to save changes')
+    } finally {
+      setSaving(false)
     }
   }
+
+  // Cancel changes
+  const handleCancelChanges = () => {
+    setEditedFields({})
+  }
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = Object.keys(editedFields).length > 0
 
   // Show commit confirmation dialog
   const handleCommitAsActive = () => {
@@ -286,6 +316,11 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
     // Use calculated changedFields for highlighting (more reliable than DB refined_fields)
     const isChanged = isFieldChanged(props.fieldKey)
     
+    // Use edited value if available, otherwise use profile value
+    const displayValue = editedFields[props.fieldKey] !== undefined 
+      ? editedFields[props.fieldKey] 
+      : props.value
+    
     return (
       <div
         className={`rounded-lg p-3 ${isChanged ? '' : ''}`}
@@ -296,8 +331,10 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
       >
         <ProfileField
           {...props}
+          value={displayValue}
           editable={true}
-          onSave={handleFieldSave}
+          autoEdit={true}
+          onSave={handleFieldChange}
         />
       </div>
     )
@@ -371,7 +408,6 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
 
   // Use calculated changed fields/sections (more reliable than DB refined_fields at this stage)
   const changedFieldCount = changedFields.length
-  const totalSections = profileSections.length
   const sectionsWithChanges = Object.keys(changedSections).filter(
     key => changedSections[key].length > 0
   ).length
@@ -379,118 +415,131 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
   return (
     <>
       {/* Header */}
-      <div className="mb-8">
-        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            
-            <div className="relative z-10">
-              {/* Eyebrow */}
-              <div className="text-center mb-4">
-                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  DRAFT PROFILE
-                </div>
-              </div>
-              
-              {/* Title Section */}
-              <div className="text-center mb-4">
-                <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
-                  Refine Your Profile
-                </h1>
-                <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
-                  Changed fields will show in yellow. Once you are happy with your changes, click "Commit as Active Profile".
-                </p>
-              </div>
-              
-              {/* Centered Version Info */}
-              <div className="text-center mb-6">
-                <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                  <VersionBadge 
-                    versionNumber={draftProfile.version_number || 1} 
-                    status="draft" 
-                  />
-                  <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
-                  <span className="text-neutral-300 text-xs md:text-sm">
-                    Created: {new Date(draftProfile.created_at || '').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-                  </span>
-                  {changedFieldCount > 0 && (
-                    <Badge 
-                      variant="warning" 
-                      className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
-                    >
-                      {changedFieldCount} {changedFieldCount === 1 ? 'field' : 'fields'} changed
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-                <Button
-                  onClick={() => router.push('/profile')}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  <Icon icon={Eye} size="sm" className="shrink-0" />
-                  <span>All Profiles</span>
-                </Button>
-                <Button
-                  onClick={handleCommitAsActive}
-                  disabled={isCommitting || changedFieldCount === 0}
-                  variant="primary"
-                  size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  {isCommitting ? (
-                    <>
-                      <Spinner variant="primary" size="sm" />
-                      <span>Committing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Icon icon={CheckCircle} size="sm" className="shrink-0" />
-                      <span>Commit as Active Profile</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
+      <PageHero
+        eyebrow="DRAFT PROFILE"
+        title="Refine Your Profile"
+        subtitle="Changed fields will show in yellow. Once you are happy with your changes, click 'Commit as Active Profile'."
+      >
+        {/* Centered Version Info */}
+        <div className="text-center mb-6">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+            <VersionBadge 
+              versionNumber={draftProfile.version_number || 1} 
+              status="draft" 
+            />
+            <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
+            <span className="text-neutral-300 text-xs md:text-sm">
+              Created: {new Date(draftProfile.created_at || '').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+            </span>
+            {changedFieldCount > 0 && (
+              <Badge 
+                variant="warning" 
+                className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
+              >
+                {changedFieldCount} {changedFieldCount === 1 ? 'field' : 'fields'} changed
+              </Badge>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Profile Sections */}
+        {/* Action Buttons */}
+        <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+          <Button
+            onClick={() => router.push('/profile')}
+            variant="outline"
+            size="sm"
+            className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+          >
+            <Icon icon={Eye} size="sm" className="shrink-0" />
+            <span>All Profiles</span>
+          </Button>
+          <Button
+            onClick={handleCommitAsActive}
+            disabled={isCommitting || changedFieldCount === 0}
+            variant="primary"
+            size="sm"
+            className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+          >
+            {isCommitting ? (
+              <>
+                <Spinner variant="primary" size="sm" />
+                <span>Committing...</span>
+              </>
+            ) : (
+              <>
+                <Icon icon={CheckCircle} size="sm" className="shrink-0" />
+                <span>Commit as Active Profile</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </PageHero>
+
+      {/* Category Selection */}
       <Container size="xl">
-        <div className="space-y-8">
-          {profileSections.map((section) => {
-            const sectionChanges = changedSections[section.id] || []
-            const hasSectionChanges = sectionChanges.length > 0
-            
-            return (
-              <Card key={section.id} className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div 
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${!hasSectionChanges ? 'bg-neutral-700' : ''}`}
-                    style={hasSectionChanges ? { backgroundColor: `${NEON_YELLOW}33`, border: `2px solid ${NEON_YELLOW}` } : undefined}
-                  >
-                    <Icon 
-                      icon={section.icon} 
-                      size="sm" 
-                      color={hasSectionChanges ? NEON_YELLOW : '#FFFFFF'} 
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white">{section.title}</h3>
-                    {hasSectionChanges && (
-                      <p className="text-sm" style={{ color: NEON_YELLOW }}>
-                        {sectionChanges.length} {sectionChanges.length === 1 ? 'field' : 'fields'} changed
-                      </p>
-                    )}
-                  </div>
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose a Section to Edit</h2>
+          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-[repeat(13,minmax(0,1fr))] gap-2">
+            {PROFILE_CATEGORIES.map((category) => {
+              const isRefined = (changedSections[category.key]?.length || 0) > 0
+              return (
+                <div key={category.key} className="relative">
+                  {isRefined && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#FFFF00] flex items-center justify-center z-10">
+                      <Check className="w-3 h-3 text-[#FFFF00]" strokeWidth={3} />
+                    </div>
+                  )}
+                  <CategoryCard 
+                    category={category} 
+                    selected={selectedCategory === category.key} 
+                    variant="outlined"
+                    selectionStyle="border"
+                    iconColor={isRefined ? NEON_YELLOW : (selectedCategory === category.key ? "#39FF14" : "#FFFFFF")}
+                    selectedIconColor={isRefined ? NEON_YELLOW : "#39FF14"}
+                    className={selectedCategory === category.key ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                    onClick={() => handleCategorySelect(category.key)}
+                  />
                 </div>
+              )
+            })}
+          </div>
+        </div>
+      </Container>
 
-                <div className="space-y-4">
-                  {section.id === 'personal' && (
+      {/* Selected Section */}
+      <Container size="xl">
+        {selectedCategory && (() => {
+          const currentSection = PROFILE_CATEGORIES.find(cat => cat.key === selectedCategory)
+          if (!currentSection) return null
+          
+          const sectionChanges = changedSections[currentSection.key] || []
+          const hasSectionChanges = sectionChanges.length > 0
+          
+          return (
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div 
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${!hasSectionChanges ? 'bg-neutral-700' : ''}`}
+                  style={hasSectionChanges ? { backgroundColor: `${NEON_YELLOW}33`, border: `2px solid ${NEON_YELLOW}` } : undefined}
+                >
+                  <Icon 
+                    icon={currentSection.icon} 
+                    size="sm" 
+                    color={hasSectionChanges ? NEON_YELLOW : '#FFFFFF'} 
+                  />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white">{currentSection.label}</h3>
+                  {hasSectionChanges && (
+                    <p className="text-sm" style={{ color: NEON_YELLOW }}>
+                      {sectionChanges.length} {sectionChanges.length === 1 ? 'field' : 'fields'} changed
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {selectedCategory === 'personal' && (
                     <>
                       {renderField({ label: 'Email', value: draftProfile.email, fieldKey: 'email', type: 'text' })}
                       {renderField({ label: 'Phone', value: draftProfile.phone, fieldKey: 'phone', type: 'text' })}
@@ -510,7 +559,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'relationship' && (
+                  {selectedCategory === 'love' && (
                     <>
                       {renderField({ label: 'Status', value: draftProfile.relationship_status, fieldKey: 'relationship_status', type: 'select', selectOptions: [
                         { value: 'Single', label: 'Single' },
@@ -527,7 +576,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'family' && (
+                  {selectedCategory === 'family' && (
                     <>
                       {renderField({ label: 'Has Children', value: draftProfile.has_children, fieldKey: 'has_children', type: 'boolean' })}
                       {renderField({ label: "What's going well?", value: draftProfile.clarity_family, fieldKey: 'clarity_family', type: 'story', collapsible: true })}
@@ -537,7 +586,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'health' && (
+                  {selectedCategory === 'health' && (
                     <>
                       {renderField({ label: 'Height', value: draftProfile.height, fieldKey: 'height', type: 'number' })}
                       {renderField({ label: 'Weight', value: draftProfile.weight, fieldKey: 'weight', type: 'number' })}
@@ -549,7 +598,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'location' && (
+                  {selectedCategory === 'home' && (
                     <>
                       {renderField({ label: 'Living Situation', value: draftProfile.living_situation, fieldKey: 'living_situation' })}
                       {renderField({ label: 'City', value: draftProfile.city, fieldKey: 'city' })}
@@ -562,7 +611,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'career' && (
+                  {selectedCategory === 'work' && (
                     <>
                       {renderField({ label: 'Employment Type', value: draftProfile.employment_type, fieldKey: 'employment_type' })}
                       {renderField({ label: 'Occupation', value: draftProfile.occupation, fieldKey: 'occupation' })}
@@ -574,7 +623,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'financial' && (
+                  {selectedCategory === 'money' && (
                     <>
                       {renderField({ label: 'Household Income', value: draftProfile.household_income, fieldKey: 'household_income' })}
                       {renderField({ label: 'Savings & Retirement', value: draftProfile.savings_retirement, fieldKey: 'savings_retirement' })}
@@ -585,7 +634,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'fun-recreation' && (
+                  {selectedCategory === 'fun' && (
                     <>
                       {renderField({ label: 'Hobbies', value: draftProfile.hobbies, fieldKey: 'hobbies', type: 'array' })}
                       {renderField({ label: "What's going well?", value: draftProfile.clarity_fun, fieldKey: 'clarity_fun', type: 'story', collapsible: true })}
@@ -595,7 +644,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'travel-adventure' && (
+                  {selectedCategory === 'travel' && (
                     <>
                       {renderField({ label: 'Travel Frequency', value: draftProfile.travel_frequency, fieldKey: 'travel_frequency' })}
                       {renderField({ label: 'Countries Visited', value: draftProfile.countries_visited, fieldKey: 'countries_visited', type: 'number' })}
@@ -606,7 +655,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'social-friends' && (
+                  {selectedCategory === 'social' && (
                     <>
                       {renderField({ label: 'Close Friends Count', value: draftProfile.close_friends_count, fieldKey: 'close_friends_count' })}
                       {renderField({ label: 'Social Preference', value: draftProfile.social_preference, fieldKey: 'social_preference' })}
@@ -617,7 +666,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'possessions-lifestyle' && (
+                  {selectedCategory === 'stuff' && (
                     <>
                       {renderField({ label: 'Lifestyle Category', value: draftProfile.lifestyle_category, fieldKey: 'lifestyle_category' })}
                       {renderField({ label: "What's going well?", value: draftProfile.clarity_stuff, fieldKey: 'clarity_stuff', type: 'story', collapsible: true })}
@@ -627,7 +676,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'spirituality-growth' && (
+                  {selectedCategory === 'spirituality' && (
                     <>
                       {renderField({ label: 'Spiritual Practice', value: draftProfile.spiritual_practice, fieldKey: 'spiritual_practice' })}
                       {renderField({ label: 'Meditation Frequency', value: draftProfile.meditation_frequency, fieldKey: 'meditation_frequency' })}
@@ -638,7 +687,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     </>
                   )}
                   
-                  {section.id === 'giving-legacy' && (
+                  {selectedCategory === 'giving' && (
                     <>
                       {renderField({ label: 'Volunteer Status', value: draftProfile.volunteer_status, fieldKey: 'volunteer_status' })}
                       {renderField({ label: 'Charitable Giving', value: draftProfile.charitable_giving, fieldKey: 'charitable_giving' })}
@@ -648,11 +697,44 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                       {renderField({ label: 'Worries', value: draftProfile.worry_giving, fieldKey: 'worry_giving', type: 'story', collapsible: true })}
                     </>
                   )}
+              </div>
+              
+              {/* Save/Cancel Buttons */}
+              {hasUnsavedChanges && (
+                <div className="mt-6 pt-6 border-t border-neutral-700 flex gap-3">
+                  <Button
+                    onClick={handleSaveChanges}
+                    variant="primary"
+                    size="sm"
+                    disabled={saving}
+                    className="flex-1 flex items-center justify-center gap-2"
+                  >
+                    {saving ? (
+                      <>
+                        <Spinner variant="primary" size="sm" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleCancelChanges}
+                    variant="outline"
+                    size="sm"
+                    disabled={saving}
+                    className="flex-1 flex items-center justify-center gap-2"
+                  >
+                    Cancel
+                  </Button>
                 </div>
-              </Card>
-            )
-          })}
-        </div>
+              )}
+            </Card>
+          )
+        })()}
       </Container>
 
       {/* Commit Confirmation Dialog */}

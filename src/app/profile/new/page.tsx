@@ -1,449 +1,181 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import {  Button, Badge } from '@/lib/design-system/components'
-import { ProfileSidebar } from '../components/ProfileSidebar'
-import { PersonalInfoSection } from '../components/PersonalInfoSection'
-import { RelationshipSection } from '../components/RelationshipSection'
-import { FamilySection } from '../components/FamilySection'
-import { HealthSection } from '../components/HealthSection'
-import { LocationSection } from '../components/LocationSection'
-import { CareerSection } from '../components/CareerSection'
-import { FinancialSection } from '../components/FinancialSection'
-import { PhotosAndNotesSection } from '../components/PhotosAndNotesSection'
-import { FunRecreationSection } from '../components/FunRecreationSection'
-import { TravelAdventureSection } from '../components/TravelAdventureSection'
-import { SocialFriendsSection } from '../components/SocialFriendsSection'
-import { PossessionsLifestyleSection } from '../components/PossessionsLifestyleSection'
-import { SpiritualityGrowthSection } from '../components/SpiritualityGrowthSection'
-import { GivingLegacySection } from '../components/GivingLegacySection'
-import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
+import {
+  Container,
+  Card,
+  Button,
+  Stack,
+  Inline,
+  Text,
+  PageHero,
+} from '@/lib/design-system/components'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { ArrowRight, User, Heart, Activity, Sparkles } from 'lucide-react'
 
-export default function NewProfileVersionPage() {
-  const router = useRouter()
-  const [profile, setProfile] = useState<Partial<UserProfile>>({})
-  const [activeSection, setActiveSection] = useState('personal')
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [error, setError] = useState<string | null>(null)
-  const [completionPercentage, setCompletionPercentage] = useState(0)
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+// Placeholder video URL - user will replace this later
+const PROFILE_INTRO_VIDEO =
+  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
-  // Manual save only - no auto-save timeout needed
-
-  // Manual completion calculation with intelligent conditionals (matches API logic)
-  const calculateCompletionManually = (profileData: Partial<UserProfile>): number => {
-    if (!profileData) return 0
-
-    let totalFields = 0
-    let completedFields = 0
-
-    // Helper to check if a field has value
-    const hasValue = (field: keyof UserProfile) => {
-      const value = profileData[field]
-      if (Array.isArray(value)) return value.length > 0
-      if (typeof value === 'boolean') return true
-      return value !== null && value !== undefined && value !== ''
-    }
-
-    // Core Fields (always required)
-    const coreFields: (keyof UserProfile)[] = ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'profile_picture_url']
-    coreFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Relationship Fields (conditional)
-    totalFields++
-    if (hasValue('relationship_status')) {
-      completedFields++
-      if (profileData.relationship_status !== 'Single') {
-        totalFields += 2
-        if (hasValue('partner_name')) completedFields++
-        if (hasValue('relationship_length')) completedFields++
-      }
-    }
-
-    // Family Fields (conditional)
-    totalFields++
-    if (profileData.has_children !== undefined && profileData.has_children !== null) {
-      completedFields++
-      if (profileData.has_children === true) {
-        totalFields += 2
-        if (hasValue('number_of_children')) completedFields++
-        if (hasValue('children_ages')) completedFields++
-      }
-    }
-
-    // Health, Location, Career, Financial Fields
-    const healthFields: (keyof UserProfile)[] = ['units', 'height', 'weight', 'exercise_frequency']
-    const locationFields: (keyof UserProfile)[] = ['living_situation', 'time_at_location', 'city', 'state', 'postal_code', 'country']
-    const careerFields: (keyof UserProfile)[] = ['employment_type', 'occupation', 'company', 'time_in_role', 'education']
-    const financialFields: (keyof UserProfile)[] = ['currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt']
-
-    ;[...healthFields, ...locationFields, ...careerFields, ...financialFields].forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Life Category Clarity Fields (12 categories)
-    const clarityFields: (keyof UserProfile)[] = [
-      'clarity_fun', 'clarity_health', 'clarity_travel', 'clarity_love', 'clarity_family', 'clarity_social',
-      'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff', 'clarity_giving', 'clarity_spirituality'
-    ]
-    clarityFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Structured Life Category Fields
-    const structuredFields: (keyof UserProfile)[] = [
-      'hobbies', 'leisure_time_weekly',
-      'travel_frequency', 'passport', 'countries_visited',
-      'close_friends_count', 'social_preference',
-      'lifestyle_category',
-      'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
-      'volunteer_status', 'charitable_giving', 'legacy_mindset'
-    ]
-    structuredFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    return totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0
-  }
-
-  // Fetch current profile to use as starting point
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const response = await fetch('/api/profile')
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile')
-        }
-        const data = await response.json()
-        const existingProfile = data.profile && Object.keys(data.profile).length > 0
-        
-        // If profile already exists, redirect to dashboard
-        // /profile/new should ONLY be for creating the first profile
-        if (existingProfile) {
-          router.push('/profile')
-          return
-        }
-        
-        // No profile exists - start with empty profile for first-time creation
-        setProfile({})
-        setCompletionPercentage(0)
-      } catch (error) {
-        console.error('Error fetching profile:', error)
-        setError('Failed to load profile data')
-        // If error, assume no profile exists and start fresh
-        setProfile({})
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchProfile()
-  }, [router])
-
-  // Recalculate completion percentage whenever profile changes
-  useEffect(() => {
-    if (Object.keys(profile).length > 0) {
-      const newPercentage = calculateCompletionManually(profile)
-      setCompletionPercentage(newPercentage)
-    }
-  }, [profile])
-
-  // Manual save only - no auto-save for new versions
-  const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
-    setProfile(prev => ({ ...prev, ...updates }))
-    // No auto-save for new versions - user must click "Create Version" button
-  }, [])
-
-  // Save as new version function (or create first profile)
-  const saveAsNewVersion = async (isDraft = false) => {
-    setIsSaving(true)
-    setSaveStatus('saving')
-
-    try {
-      // /profile/new should ONLY create the first profile (never create versions)
-      const response = await fetch('/api/profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          profileData: profile, 
-          saveAsVersion: false, // Always false - this is for first profile only
-          isDraft: false // First profile cannot be a draft
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('New version save error response:', errorText)
-        throw new Error(`Failed to save new version: ${response.status} ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      console.log('New version save response:', data)
-      
-      setSaveStatus('saved')
-      setLastSaved(new Date())
-      setError(null)
-      
-      // Redirect to view the new version
-      if (data.version?.id) {
-        router.push(`/profile?versionId=${data.version.id}`)
-      } else {
-        router.push('/profile')
-      }
-    } catch (error) {
-      console.error('Error saving new version:', error)
-      setError(error instanceof Error ? error.message : 'Failed to save new version')
-      setSaveStatus('error')
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  // Manual save function
-  const handleManualSave = useCallback(async () => {
-    await saveAsNewVersion(false)
-  }, [profile])
-
-  // Get completed sections
-  const getCompletedSections = useCallback(() => {
-    return Object.keys({
-      personal: true,
-      relationship: true,
-      family: true,
-      health: true,
-      location: true,
-      career: true,
-      financial: true,
-      'fun-recreation': true,
-      'travel-adventure': true,
-      'social-friends': true,
-      'possessions-lifestyle': true,
-      'spirituality-growth': true,
-      'giving-legacy': true,
-      'photos-notes': true
-    }).filter(section => {
-      switch (section) {
-        case 'personal':
-          return profile.first_name && profile.last_name && profile.email
-        case 'relationship':
-          return profile.relationship_status
-        case 'family':
-          return profile.has_children !== undefined && 
-                 (profile.has_children === false || 
-                  (profile.number_of_children && profile.children_ages?.length))
-        case 'health':
-          return profile.exercise_frequency
-        case 'location':
-          return profile.living_situation && profile.time_at_location && 
-                 profile.city && profile.state
-        case 'career':
-          return profile.employment_type && profile.occupation
-        case 'financial':
-          return profile.household_income
-        case 'fun-recreation':
-          return (profile.hobbies && profile.hobbies.length > 0) || 
-                 profile.leisure_time_weekly ||
-                 (profile.clarity_fun && profile.clarity_fun.trim().length > 0)
-        case 'travel-adventure':
-          return profile.travel_frequency || 
-                 profile.passport !== undefined || 
-                 profile.countries_visited !== undefined ||
-                 (profile.clarity_travel && profile.clarity_travel.trim().length > 0)
-        case 'social-friends':
-          return profile.close_friends_count || 
-                 profile.social_preference ||
-                 (profile.clarity_social && profile.clarity_social.trim().length > 0)
-        case 'possessions-lifestyle':
-          return profile.lifestyle_category || 
-                 (profile.clarity_stuff && profile.clarity_stuff.trim().length > 0)
-        case 'spirituality-growth':
-          return profile.spiritual_practice || 
-                 profile.meditation_frequency || 
-                 profile.personal_growth_focus !== undefined ||
-                 (profile.clarity_spirituality && profile.clarity_spirituality.trim().length > 0)
-        case 'giving-legacy':
-          return profile.volunteer_status || 
-                 profile.charitable_giving || 
-                 profile.legacy_mindset !== undefined ||
-                 (profile.clarity_giving && profile.clarity_giving.trim().length > 0)
-        case 'photos-notes':
-          return (profile.version_notes && profile.version_notes.trim().length > 0) || 
-                 (profile.progress_photos && profile.progress_photos.length > 0)
-        default:
-          return false
-      }
-    })
-  }, [profile])
-
-  const completedSections = getCompletedSections()
-
-  // Render section content
-  const renderSection = () => {
-    const commonProps = {
-      profile,
-      onProfileChange: handleProfileChange,
-      onError: setError
-    }
-
-    switch (activeSection) {
-      case 'personal':
-        return <PersonalInfoSection {...commonProps} />
-      case 'relationship':
-        return <RelationshipSection {...commonProps} />
-      case 'family':
-        return <FamilySection {...commonProps} />
-      case 'health':
-        return <HealthSection {...commonProps} />
-      case 'location':
-        return <LocationSection {...commonProps} />
-      case 'career':
-        return <CareerSection {...commonProps} />
-      case 'financial':
-        return <FinancialSection {...commonProps} />
-      case 'photos-notes':
-        return <PhotosAndNotesSection {...commonProps} />
-      case 'fun-recreation':
-        return <FunRecreationSection {...commonProps} />
-      case 'travel-adventure':
-        return <TravelAdventureSection {...commonProps} />
-      case 'social-friends':
-        return <SocialFriendsSection {...commonProps} />
-      case 'possessions-lifestyle':
-        return <PossessionsLifestyleSection {...commonProps} />
-      case 'spirituality-growth':
-        return <SpiritualityGrowthSection {...commonProps} />
-      case 'giving-legacy':
-        return <GivingLegacySection {...commonProps} />
-      default:
-        return <PersonalInfoSection {...commonProps} />
-    }
-  }
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="text-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
-        <div className="text-neutral-400">Loading profile...</div>
-      </div>
-    )
-  }
-
+export default function ProfileNewPage() {
   return (
-    <>
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              onClick={() => router.push('/profile')}
-              variant="ghost"
-              className="text-neutral-400 hover:text-white"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back to Profile
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold text-white mb-2">Create Your Profile</h1>
-              <p className="text-neutral-400">
-                Fill out your profile information to get started with VibrationFit.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Save Status Bar */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {saveStatus === 'saving' && (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                <span className="text-sm text-primary-500">Saving...</span>
-              </>
-            )}
-            {saveStatus === 'saved' && (
-              <>
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-green-500">Version Saved!</span>
-              </>
-            )}
-            {saveStatus === 'error' && (
-              <>
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <span className="text-sm text-red-500">Save failed</span>
-              </>
-            )}
-            {lastSaved && saveStatus === 'idle' && (
-              <span className="text-sm text-neutral-500">
-                Last saved: {lastSaved.toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Badge variant="info" className="flex items-center gap-2">
-              {completionPercentage}% Complete
-            </Badge>
-            <Button
-              onClick={handleManualSave}
-              disabled={isSaving}
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Create Profile'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500" />
-              <span className="text-red-400">{error}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <ProfileSidebar
-              activeSection={activeSection}
-              onSectionChange={setActiveSection}
-              completedSections={completedSections}
+    <Container size="xl">
+      <Stack gap="xl">
+        {/* Centered Hero Title */}
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Welcome to Your Profile"
+          subtitle="Your profile is the foundation of your journey with VibrationFit."
+        >
+          {/* Video */}
+          <div className="mb-6">
+            <OptimizedVideo
+              url={PROFILE_INTRO_VIDEO}
+              context="single"
+              className="mx-auto w-full max-w-3xl"
             />
           </div>
 
-          {/* Content */}
-          <div className="lg:col-span-3">
-            {renderSection()}
+          {/* Action Buttons */}
+          <div className="flex flex-col md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
+            <Button variant="primary" size="sm" asChild className="w-full md:w-auto flex-1 md:flex-none">
+              <Link href="/profile/new/create">
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Create Your Profile
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild className="w-full md:w-auto flex-1 md:flex-none">
+              <Link href="/profile">
+                View Dashboard
+              </Link>
+            </Button>
           </div>
-        </div>
+        </PageHero>
 
-        {/* Completion Celebration */}
-        {completionPercentage === 100 && (
-          <div className="mt-8 p-6 bg-gradient-to-r from-primary-500/20 to-secondary-500/20 border border-primary-500/30 rounded-xl text-center">
-            <div className="text-4xl mb-4">🎉</div>
-            <h3 className="text-2xl font-bold text-white mb-2">Profile Complete!</h3>
-            <p className="text-neutral-300">
-              Your profile is 100% complete! Your AI assistant now has all the information needed to provide personalized guidance.
+        {/* What is a Profile? */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="md">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              What is Your Profile?
+            </Text>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              Your VibrationFit Profile is a comprehensive snapshot of where you are right now across all 12 categories of your life. It helps you understand your current state so you can intentionally create the life you desire.
             </p>
-          </div>
-        )}
-    </>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              Think of it as your personal GPS coordinates - you need to know where you are before you can map out where you're going. Your profile isn't about judgment; it's about clarity and self-awareness.
+            </p>
+          </Stack>
+        </Card>
+
+        {/* What You'll Share */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="lg">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              What You'll Share
+            </Text>
+            <Stack gap="lg">
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <User className="h-5 w-5 text-[#5EC49A]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Personal Information
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Basic details about you - your name, contact information, and demographic information. This helps us personalize your experience and understand your unique context.
+                </p>
+              </Stack>
+
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <Heart className="h-5 w-5 text-[#2DD4BF]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Life Categories
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Your current reality across 12 key life areas: Love, Family, Health, Home, Work, Money, Fun, Travel, Social, Stuff, Spirituality, and Giving. For each category, you'll share what's going well, what's not working, your dreams, and your worries.
+                </p>
+              </Stack>
+
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <Activity className="h-5 w-5 text-[#8B5CF6]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Your Patterns
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Lifestyle details like your daily routines, habits, and preferences. This helps us understand the patterns that shape your current experience and identify opportunities for positive change.
+                </p>
+              </Stack>
+
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <Sparkles className="h-5 w-5 text-[#FFB701]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Your Truth
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  The honest assessment of where you are. Remember, this is a judgment-free zone. The more honest you are, the more powerful your transformation will be. Your profile is private and for your eyes only.
+                </p>
+              </Stack>
+            </Stack>
+          </Stack>
+        </Card>
+
+        {/* Why It Matters */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="md">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              Why Your Profile Matters
+            </Text>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              Your profile is the foundation for everything that follows - your Life Vision, your daily practices, and your transformation journey. Here's why it's so powerful:
+            </p>
+            <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
+              <p>
+                • <span className="text-white font-semibold">Clarity</span> - Get crystal clear on where you actually are right now, not where you think you should be or where you were yesterday.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Context for VIVA</span> - Your AI guide uses your profile to provide personalized guidance that's specifically tailored to your unique situation.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Progress Tracking</span> - Create multiple profile versions over time to see how far you've come and celebrate your growth.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Authentic Visioning</span> - When you create your Life Vision, it will be grounded in your real, current reality - making it more powerful and achievable.
+              </p>
+            </Stack>
+          </Stack>
+        </Card>
+
+        {/* Ready to Begin */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="md" className="text-center">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              Ready to Begin?
+            </Text>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
+              Take your time filling out your profile. You can save your progress and come back anytime. Remember, this is about honest self-reflection, not perfection.
+            </p>
+            <div className="flex flex-col md:flex-row gap-2 md:gap-4 justify-center items-center">
+              <Button variant="primary" size="sm" asChild className="w-full md:w-auto">
+                <Link href="/profile/new/create">
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Start Creating Your Profile
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="w-full md:w-auto">
+                <Link href="/dashboard">
+                  I'll Do This Later
+                </Link>
+              </Button>
+            </div>
+          </Stack>
+        </Card>
+      </Stack>
+    </Container>
   )
 }

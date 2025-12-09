@@ -144,7 +144,7 @@ export function calculateProfileCompletion(profileData: ProfileData | null | und
     if (hasValue(field)) completedFields++
   })
 
-  // Possessions & Lifestyle
+  // Stuff & Lifestyle
   const lifestyleFields = ['lifestyle_category']
   lifestyleFields.forEach(field => {
     totalFields++

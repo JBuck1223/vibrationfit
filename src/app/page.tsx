@@ -67,7 +67,7 @@ const VISION_CATEGORIES = [
   { key: 'money', label: 'Money / Wealth', icon: DollarSign, description: 'Financial abundance' },
   { key: 'business', label: 'Business / Career', icon: Briefcase, description: 'Professional success' },
   { key: 'social', label: 'Social / Friends', icon: UserPlus, description: 'Friendships & connections' },
-  { key: 'possessions', label: 'Possessions / Stuff', icon: Package, description: 'Material abundance' },
+  { key: 'possessions', label: 'Stuff', icon: Package, description: 'Material abundance' },
   { key: 'giving', label: 'Giving / Legacy', icon: Gift, description: 'Impact & contribution' },
   { key: 'spirituality', label: 'Spirituality', icon: Zap, description: 'Inner connection & purpose' },
   { key: 'conclusion', label: 'Conclusion', icon: CheckCircle, description: 'Integration & completion' },

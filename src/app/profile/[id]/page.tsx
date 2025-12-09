@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container } from '@/lib/design-system/components'
+import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container, PageHero } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VersionCard } from '../components/VersionCard'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
@@ -1861,149 +1861,135 @@ export default function ProfileDetailPage() {
   return (
     <>
         {/* Page Hero */}
-        <div className="mb-8">
-          {/* Subtle Gradient Background */}
-          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-            {/* Modern Enhanced Layout with Card Container */}
-            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-              
-              <div className="relative z-10">
-                {/* Profile Picture */}
-                <div className="text-center mb-4 relative">
-                  <button
-                    ref={photoButtonRef}
-                    onClick={() => {
-                      if (!isViewingVersion) {
-                        setShowPhotoMenu(!showPhotoMenu)
-                      }
-                    }}
-                    disabled={isViewingVersion}
-                    className="inline-block relative group"
-                  >
-                    {profile.profile_picture_url ? (
-                      <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-white relative">
-                        <NextImage
-                          src={profile.profile_picture_url}
-                          alt="Profile picture"
-                          width={128}
-                          height={128}
-                          className="w-full h-full object-cover"
-                        />
-                        {!isViewingVersion && (
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
-                            <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 border-2 border-white flex items-center justify-center">
-                        <Camera className="w-8 h-8 md:w-12 md:h-12 text-white" />
-                      </div>
-                    )}
-                  </button>
-                  {/* Hidden file input */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        setSelectedFile(file)
-                        setShowPhotoUpload(true)
-                      }
-                    }}
-                    className="hidden"
+        <PageHero
+          title={profile.first_name && profile.last_name
+            ? `${profile.first_name} ${profile.last_name}`
+            : 'My Profile'}
+        >
+          {/* Profile Picture */}
+          <div className="text-center mb-6 relative">
+            <button
+              ref={photoButtonRef}
+              onClick={() => {
+                if (!isViewingVersion) {
+                  setShowPhotoMenu(!showPhotoMenu)
+                }
+              }}
+              disabled={isViewingVersion}
+              className="inline-block relative group"
+            >
+              {profile.profile_picture_url ? (
+                <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-white relative">
+                  <NextImage
+                    src={profile.profile_picture_url}
+                    alt="Profile picture"
+                    width={128}
+                    height={128}
+                    className="w-full h-full object-cover"
                   />
-                  
-                  {/* Profile Photo Menu */}
-                  {showPhotoMenu && !isViewingVersion && (
-                    <div 
-                      ref={photoMenuRef}
-                      className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {/* Caret pointing up to photo */}
-                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white"></div>
-                      <div className="absolute -top-[9px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-b-[5px] border-transparent border-b-white"></div>
-                      <Card className="!p-1 min-w-[240px] md:min-w-[200px] shadow-xl relative !border !border-white !bg-white">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleSeeProfilePicture()
-                          }}
-                          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
-                        >
-                          <Eye className="w-4 h-4 text-[#1F1F1F]" />
-                          <span className="text-[#1F1F1F] text-sm">See profile picture</span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleSelectProfilePicture()
-                          }}
-                          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
-                        >
-                          <Camera className="w-4 h-4 text-[#1F1F1F]" />
-                          <span className="text-[#1F1F1F] text-sm">Update profile picture</span>
-                        </button>
-                      </Card>
+                  {!isViewingVersion && (
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                      <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </div>
                   )}
                 </div>
-
-                {/* Title Section */}
-                <div className="text-center mb-4">
-                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
-                    {profile.first_name && profile.last_name
-                      ? `${profile.first_name} ${profile.last_name}`
-                      : 'My Profile'}
-                  </h1>
+              ) : (
+                <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 border-2 border-white flex items-center justify-center">
+                  <Camera className="w-8 h-8 md:w-12 md:h-12 text-white" />
                 </div>
-
-                {/* Centered Version Info with Enhanced Styling */}
-                {versionInfo && (
-                  <div className="text-center mb-6">
-                    {/* Version, Status & Date Badges */}
-                    <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                      <VersionBadge 
-                        versionNumber={versionInfo.version_number} 
-                        status={displayStatus} 
-                      />
-                      <StatusBadge 
-                        status={displayStatus} 
-                        subtle={displayStatus !== 'active'}
-                        className="uppercase tracking-[0.25em]"
-                      />
-                      <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                        <CalendarDays className="w-4 h-4 text-neutral-500" />
-                        <span className="font-medium">Created:</span>
-                        <span>{new Date(versionInfo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                      </div>
-                      {/* Profile Completion Percentage */}
-                      <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
-                        {completionPercentage}%
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Buttons - Enhanced with Hover Effects */}
-                <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-                  <Button
-                    onClick={() => router.push('/profile')}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+              )}
+            </button>
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  setSelectedFile(file)
+                  setShowPhotoUpload(true)
+                }
+              }}
+              className="hidden"
+            />
+            
+            {/* Profile Photo Menu */}
+            {showPhotoMenu && !isViewingVersion && (
+              <div 
+                ref={photoMenuRef}
+                className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Caret pointing up to photo */}
+                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white"></div>
+                <div className="absolute -top-[9px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-b-[5px] border-transparent border-b-white"></div>
+                <Card className="!p-1 min-w-[240px] md:min-w-[200px] shadow-xl relative !border !border-white !bg-white">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSeeProfilePicture()
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
                   >
-                    <Eye className="w-4 h-4 shrink-0" />
-                    <span>See All Profiles</span>
-                  </Button>
+                    <Eye className="w-4 h-4 text-[#1F1F1F]" />
+                    <span className="text-[#1F1F1F] text-sm">See profile picture</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSelectProfilePicture()
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
+                  >
+                    <Camera className="w-4 h-4 text-[#1F1F1F]" />
+                    <span className="text-[#1F1F1F] text-sm">Update profile picture</span>
+                  </button>
+                </Card>
+              </div>
+            )}
+          </div>
+
+          {/* Centered Version Info with Enhanced Styling */}
+          {versionInfo && (
+            <div className="text-center mb-6">
+              {/* Version, Status & Date Badges */}
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                <VersionBadge 
+                  versionNumber={versionInfo.version_number} 
+                  status={displayStatus} 
+                />
+                <StatusBadge 
+                  status={displayStatus} 
+                  subtle={displayStatus !== 'active'}
+                  className="uppercase tracking-[0.25em]"
+                />
+                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                  <CalendarDays className="w-4 h-4 text-neutral-500" />
+                  <span className="font-medium">Created:</span>
+                  <span>{new Date(versionInfo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
+                {/* Profile Completion Percentage */}
+                <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
+                  {completionPercentage}%
+                </span>
               </div>
             </div>
+          )}
+
+          {/* Action Buttons - Enhanced with Hover Effects */}
+          <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+            <Button
+              onClick={() => router.push('/profile')}
+              variant="outline"
+              size="sm"
+              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Eye className="w-4 h-4 shrink-0" />
+              <span>See All Profiles</span>
+            </Button>
           </div>
-        </div>
+        </PageHero>
 
         {/* Main Content */}
         <Container size="xl">

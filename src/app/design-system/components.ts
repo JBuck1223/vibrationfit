@@ -522,6 +522,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     path: '/design-system/component/page-header'
   },
   {
+    id: 'hero',
+    name: 'Page Hero',
+    description: 'Stunning gradient-bordered hero section with rainbow gradient border and dual-layer background - perfect for dashboard pages',
+    category: 'Patterns',
+    icon: Sparkles,
+    exportName: 'PageHero',
+    path: '/design-system/component/hero'
+  },
+  {
     id: 'page-titles',
     name: 'Page Titles',
     description: 'Left-aligned page header with title, subtitle, metadata items, and action buttons',

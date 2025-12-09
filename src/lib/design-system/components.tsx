@@ -2199,7 +2199,7 @@ export const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
     return (
       <div
         ref={ref}
-        className={cn('min-h-screen bg-black text-white pt-6 pb-12 md:py-12 px-4 sm:px-6 lg:px-8', className)}
+        className={cn('min-h-screen bg-black text-white pt-6 pb-12 md:py-12 lg:pt-8 px-4 sm:px-6 lg:px-8', className)}
         {...props}
       >
         {children}
@@ -6045,6 +6045,77 @@ export const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
   }
 )
 PageHeader.displayName = 'PageHeader'
+
+// ============================================================================
+// PAGE HERO COMPONENT
+// ============================================================================
+
+export interface PageHeroProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+  eyebrow?: React.ReactNode
+  title: React.ReactNode
+  subtitle?: React.ReactNode
+  children?: React.ReactNode
+}
+
+export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
+  (
+    {
+      eyebrow,
+      title,
+      subtitle,
+      children,
+      className = '',
+      ...props
+    },
+    ref
+  ) => {
+    return (
+      <div
+        ref={ref}
+        className={cn('mb-8', className)}
+        {...props}
+      >
+        {/* Subtle Gradient Border */}
+        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+          {/* Modern Enhanced Layout with Card Container */}
+          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            
+            <div className="relative z-10">
+              {/* Eyebrow */}
+              {eyebrow && (
+                <div className="text-center mb-4">
+                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                    {eyebrow}
+                  </div>
+                </div>
+              )}
+              
+              {/* Title Section */}
+              <div className={cn("text-center", subtitle || children ? "mb-4" : "")}>
+                <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                  {title}
+                </h1>
+              </div>
+              
+              {/* Subtitle */}
+              {subtitle && (
+                <div className={cn("text-center", children ? "mb-6" : "")}>
+                  <p className="text-xs md:text-lg text-neutral-300">
+                    {subtitle}
+                  </p>
+                </div>
+              )}
+
+              {/* Custom Children (video, buttons, etc.) */}
+              {children}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+)
+PageHero.displayName = 'PageHero'
 
 // ============================================================================
 // TOGGLE COMPONENT

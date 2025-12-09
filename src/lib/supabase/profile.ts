@@ -123,7 +123,7 @@ export interface UserProfile {
   // Social & Friends
   close_friends_count?: string | null
   social_preference?: 'introvert' | 'ambivert' | 'extrovert' | null
-  // Possessions & Lifestyle
+  // Stuff & Lifestyle
   lifestyle_category?: 'minimalist' | 'moderate' | 'comfortable' | 'luxury' | null
   vehicles?: Array<{
     name: string

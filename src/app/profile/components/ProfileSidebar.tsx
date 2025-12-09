@@ -134,7 +134,7 @@ const sections = [
   },
   {
     id: 'possessions-lifestyle',
-    title: 'Possessions',
+    title: 'Stuff',
     icon: getCategoryInfo('possessions-lifestyle').icon,
     description: 'Material belongings and things',
     category: 'life-vision',

@@ -55,7 +55,7 @@ export default function NewProfileVersionPage({ params }: { params: Promise<{ id
     { id: 'location', title: 'Home', description: 'Living space and environment' },
     { id: 'career', title: 'Work', description: 'Work and career aspirations' },
     { id: 'financial', title: 'Money', description: 'Financial goals and wealth' },
-    { id: 'possessions-lifestyle', title: 'Possessions', description: 'Material belongings and things' },
+    { id: 'possessions-lifestyle', title: 'Stuff', description: 'Material belongings and things' },
     { id: 'giving-legacy', title: 'Giving', description: 'Contribution and legacy' },
     { id: 'spirituality-growth', title: 'Spirituality', description: 'Spiritual growth and expansion' },
     { id: 'photos-notes', title: 'Photos & Notes', description: 'Media and additional notes' }
