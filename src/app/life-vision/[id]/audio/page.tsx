@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { Container, Stack, Card, Button, Badge, Spinner, TrackingMilestoneCard, StatusBadge, VersionBadge } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Mic, Headphones, Clock, ArrowRight, CheckCircle, Wand2, CalendarDays } from 'lucide-react'
+import { Mic, Headphones, Clock, ArrowRight, CheckCircle, Wand2, CalendarDays, Eye, ListMusic } from 'lucide-react'
 import Link from 'next/link'
 
 interface VisionData {
@@ -110,7 +110,7 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
       <Stack gap="lg">
         {/* Hero Header */}
         <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          <div className="relative p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <div className="text-center">
               {/* Eyebrow */}
               <div className="mb-4">
@@ -149,32 +149,36 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
               )}
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 max-w-4xl mx-auto">
-                <Button variant="outline" size="sm" asChild className="w-full">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
+                <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
                   <Link href={`/life-vision/${visionId}/audio/sets`} className="flex items-center justify-center gap-2">
-                    <Headphones className="w-4 h-4" />
-                    Audio Sets
+                    <ListMusic className="w-4 h-4" />
+                    <span>Audio Sets</span>
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center justify-center gap-2">
                     <Wand2 className="w-4 h-4" />
-                    <span className="lg:hidden">Generate</span>
-                    <span className="hidden lg:inline">Generate Audio</span>
+                    <span>Generate</span>
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/record`} className="flex items-center justify-center gap-2">
                     <Mic className="w-4 h-4" />
-                    <span className="lg:hidden">Record</span>
-                    <span className="hidden lg:inline">Record Voice</span>
+                    <span>Record</span>
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/queue`} className="flex items-center justify-center gap-2">
                     <Clock className="w-4 h-4" />
-                    <span className="lg:hidden">Queue</span>
-                    <span className="hidden lg:inline">Audio Queue</span>
+                    <span>Queue</span>
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="w-full">
+                  <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    <span className="lg:hidden">Vision</span>
+                    <span className="hidden lg:inline">View Vision</span>
                   </Link>
                 </Button>
               </div>
@@ -241,7 +245,7 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
             <Link href={`/life-vision/${visionId}/audio/sets`}>
               <Card variant="elevated" hover className="cursor-pointer h-full p-6 flex flex-col items-center text-center">
                 <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center mb-4">
-                  <Headphones className="w-6 h-6 text-primary-500" />
+                  <ListMusic className="w-6 h-6 text-primary-500" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">Audio Sets</h3>
                 <p className="text-sm text-neutral-300">

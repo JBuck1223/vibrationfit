@@ -286,7 +286,7 @@ export default function AudioQueuePage({
       <Stack gap="lg">
         {/* Hero Header */}
         <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          <div className="relative p-6 md:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <div className="text-center">
               <div className="mb-4 flex justify-center">
                 {getStatusIcon(batch.status)}

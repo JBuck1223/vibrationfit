@@ -1097,7 +1097,7 @@ export function MediaRecorderComponent({
                       className="fixed inset-0 z-10" 
                       onClick={() => setIsMicDropdownOpen(false)}
                     />
-                    <div className="absolute z-20 w-full top-full mt-1 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[min(200px,calc(100vh-200px))] md:max-h-48 overflow-y-auto overscroll-contain">
+                    <div className="absolute z-20 w-full bottom-full mb-1 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
                       <div className="py-2">
                         {audioDevices.map((device) => {
                           const label = device.label || `Microphone ${device.deviceId.slice(0, 8)}...`
@@ -1135,7 +1135,7 @@ export function MediaRecorderComponent({
                 onClick={startRecording}
                 variant="primary"
                 size="sm"
-                className="gap-2"
+                className="gap-2 w-full md:w-auto"
               >
                 {mode === 'video' ? <Video className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 Start Recording

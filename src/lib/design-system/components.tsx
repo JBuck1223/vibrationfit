@@ -2199,7 +2199,7 @@ export const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
     return (
       <div
         ref={ref}
-        className={cn('min-h-screen bg-black text-white pt-6 pb-12 md:py-12 px-4 sm:px-6 lg:px-8', className)}
+        className={cn('min-h-screen bg-black text-white pt-6 pb-8 md:pt-12 md:pb-8 px-4 sm:px-6 lg:px-8', className)}
         {...props}
       >
         {children}

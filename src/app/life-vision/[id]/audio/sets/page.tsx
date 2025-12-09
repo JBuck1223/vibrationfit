@@ -404,35 +404,15 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               )}
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-4xl mx-auto">
-                <Button
-                  onClick={() => router.push(`/life-vision/${visionId}`)}
-                  variant="outline"
-                  size="sm"
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  <Eye className="w-4 h-4 hidden lg:block" />
-                  View Vision
-                </Button>
-                
-                <Button
-                  onClick={() => router.push(`/life-vision/audio`)}
-                  variant="outline"
-                  size="sm"
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  <Headphones className="w-4 h-4 hidden lg:block" />
-                  All Audios
-                </Button>
-                
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
                 <Button
                   onClick={() => router.push(`/life-vision/${visionId}/audio/generate`)}
                   variant="outline"
                   size="sm"
-                  className="w-full flex items-center justify-center gap-2"
+                  className="w-full col-span-2 lg:col-span-1 flex items-center justify-center gap-2"
                 >
-                  <Wand2 className="w-4 h-4 hidden lg:block" />
-                  Generate
+                  <Wand2 className="w-4 h-4" />
+                  <span>Generate</span>
                 </Button>
                 
                 <Button
@@ -441,8 +421,8 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                   size="sm"
                   className="w-full flex items-center justify-center gap-2"
                 >
-                  <Mic className="w-4 h-4 hidden lg:block" />
-                  Record
+                  <Mic className="w-4 h-4" />
+                  <span>Record</span>
                 </Button>
                 
                 <Button
@@ -451,8 +431,29 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                   size="sm"
                   className="w-full flex items-center justify-center gap-2"
                 >
-                  <Clock className="w-4 h-4 hidden lg:block" />
-                  Queue
+                  <Clock className="w-4 h-4" />
+                  <span>Queue</span>
+                </Button>
+                
+                <Button
+                  onClick={() => router.push(`/life-vision/audio`)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <Headphones className="w-4 h-4" />
+                  <span>All Audios</span>
+                </Button>
+                
+                <Button
+                  onClick={() => router.push(`/life-vision/${visionId}`)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span className="lg:hidden">Vision</span>
+                  <span className="hidden lg:inline">View Vision</span>
                 </Button>
               </div>
             </div>
