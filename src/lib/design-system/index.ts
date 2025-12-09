@@ -23,6 +23,7 @@ export {
   Card,
   FeatureCard,
   CategoryCard,
+  CategoryGrid,
   TrackingMilestoneCard,
   Button,
   SaveButton,

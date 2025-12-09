@@ -23,7 +23,8 @@ import {
   VersionBadge,
   Heading,
   Text,
-  PageTitles
+  PageTitles,
+  CategoryGrid
 } from '@/lib/design-system/components'
 import { VersionCard } from '@/app/profile/components/VersionCard'
 import { VisionVersionCard } from '../components/VisionVersionCard'
@@ -948,36 +949,20 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       Showing {selectedCategories.length} of {VISION_SECTIONS.length}
                     </p>
                   </div>
-                  <Button
-                    onClick={handleSelectAll}
-                    variant={selectedCategories.length === VISION_SECTIONS.length ? "primary" : "outline"}
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Check className="w-4 h-4" />
-                    {selectedCategories.length === VISION_SECTIONS.length ? 'Deselect All' : 'Select All'}
-                  </Button>
                 </div>
 
                 {/* Category Grid */}
-                <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
-                  {VISION_SECTIONS.map((category) => {
-                    const isSelected = selectedCategories.includes(category.key)
-                    return (
-                      <CategoryCard 
-                        key={category.key} 
-                        category={category} 
-                        selected={isSelected} 
-                        onClick={() => handleCategoryToggle(category.key)}
-                        variant="outlined"
-                        selectionStyle="border"
-                        iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                        selectedIconColor="#39FF14"
-                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
-                      />
-                    )
-                  })}
-                </div>
+                <CategoryGrid
+                  categories={VISION_SECTIONS}
+                  selectedCategories={selectedCategories}
+                  onCategoryClick={handleCategoryToggle}
+                  layout="14-column"
+                  mode="selection"
+                  showSelectAll
+                  onSelectAll={handleSelectAll}
+                  variant="outlined"
+                  withCard={false}
+                />
               </Card>
             </div>
 
