@@ -1865,9 +1865,10 @@ export default function ProfileDetailPage() {
           title={profile.first_name && profile.last_name
             ? `${profile.first_name} ${profile.last_name}`
             : 'My Profile'}
+          className="mb-8"
         >
           {/* Profile Picture */}
-          <div className="text-center mb-6 relative">
+          <div className="text-center relative">
             <button
               ref={photoButtonRef}
               onClick={() => {
@@ -1952,7 +1953,7 @@ export default function ProfileDetailPage() {
 
           {/* Centered Version Info with Enhanced Styling */}
           {versionInfo && (
-            <div className="text-center mb-6">
+            <div className="text-center">
               {/* Version, Status & Date Badges */}
               <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
                 <VersionBadge 

@@ -28,7 +28,7 @@ export default function ProfileNewPage() {
           subtitle="Your profile is the foundation of your journey with VibrationFit."
         >
           {/* Video */}
-          <div className="mb-6">
+          <div>
             <OptimizedVideo
               url={PROFILE_INTRO_VIDEO}
               context="single"

@@ -361,10 +361,11 @@ export default function ProfileDashboardPage() {
           subtitle={activeProfile 
             ? 'View and manage your profile versions below.'
             : 'Create and manage your profile versions below.'}
+          className="mb-8"
         >
           {/* Centered Version Info with Enhanced Styling */}
           {activeProfile && (
-            <div className="text-center mb-6">
+            <div className="text-center">
               {/* Version, Status & Date Badges */}
               <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
                 <VersionBadge 

@@ -17,6 +17,7 @@ import {
   AutoResizeTextarea,
   Icon,
   AudioPlayer,
+  Container,
   Stack,
   Inline,
   StatusBadge,
@@ -24,7 +25,8 @@ import {
   Heading,
   Text,
   PageTitles,
-  CategoryGrid
+  CategoryGrid,
+  PageHero
 } from '@/lib/design-system/components'
 import { VersionCard } from '@/app/profile/components/VersionCard'
 import { VisionVersionCard } from '../components/VisionVersionCard'
@@ -692,53 +694,32 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const displayStatus = getDisplayStatus()
 
   return (
-    <>
+    <Container size="xl">
+      <Stack gap="lg">
         {/* Header */}
-        <div className="mb-8">
-          {/* Subtle Gradient Background */}
-          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-            {/* Modern Enhanced Layout with Card Container */}
-            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-              
-              <div className="relative z-10">
-                {/* Eyebrow */}
-                <div className="text-center mb-4">
-                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                    THE LIFE I CHOOSE
-                  </div>
-                </div>
-                
-                {/* Title Section */}
-                <div className="text-center mb-4">
-                  <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
-                    {displayStatus === 'draft' ? 'Refine Life Vision' : 'The Life I Choose'}
-                  </h1>
-                  {displayStatus === 'draft' && (
-                    <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
-                      Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision".
-                    </p>
-                  )}
-                </div>
-                
-                {/* Centered Version Info with Enhanced Styling */}
-                <div className="text-center mb-6">
-                  {/* Version, Status & Date Badges */}
-                  <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                    <VersionBadge 
-                      versionNumber={vision.version_number} 
-                      status={displayStatus} 
-                    />
-                    <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} className="uppercase tracking-[0.25em]" />
-                    <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                      <CalendarDays className="w-4 h-4 text-neutral-500" />
-                      <span className="font-medium">Created:</span>
-                      <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    </div>
-                  </div>
-                </div>
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title={displayStatus === 'draft' ? 'Refine Life Vision' : 'The Life I Choose'}
+          subtitle={displayStatus === 'draft' ? 'Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision".' : undefined}
+        >
+          {/* Version Info Badges */}
+          <div className="text-center">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+              <VersionBadge 
+                versionNumber={vision.version_number} 
+                status={displayStatus} 
+              />
+              <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} className="uppercase tracking-[0.25em]" />
+              <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                <CalendarDays className="w-4 h-4 text-neutral-500" />
+                <span className="font-medium">Created:</span>
+                <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              </div>
+            </div>
+          </div>
 
-                {/* Action Buttons - Enhanced with Hover Effects */}
-                <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+          {/* Action Buttons */}
+          <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
                   {displayStatus === 'draft' ? (
                     <>
                       <Button
@@ -838,15 +819,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                       </Button>
                     </>
                   )}
-                </div>
-              </div>
-            </div>
           </div>
-        </div>
+        </PageHero>
 
         {/* Versions Dropdown */}
         {showVersions && (
-            <Card className="p-4 md:p-6 mb-6 md:mb-8">
+            <Card className="p-4 md:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
                 <Heading level={3} className="text-white text-lg md:text-xl">Version History</Heading>
                 <Badge variant="info">{versions.length} {versions.length === 1 ? 'Version' : 'Versions'}</Badge>
@@ -937,11 +915,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             </Card>
           )}
 
-        {/* Vision Cards */}
-        <div className="space-y-6">
-            {/* Compact Category Selection */}
-            <div className="mb-4">
-              <Card className="p-4">
+        {/* Compact Category Selection */}
+        <Card className="p-4">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-white">Select Life Areas</h3>
@@ -963,52 +938,50 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   variant="outlined"
                   withCard={false}
                 />
-              </Card>
-            </div>
+        </Card>
 
-            {/* Vision Cards */}
-            {selectedCategories.length > 0 ? (
-              <div className="grid grid-cols-1 gap-6">
-                {selectedCategories.map((categoryKey) => {
-                  const category = VISION_SECTIONS.find(cat => cat.key === categoryKey)
-                  if (!category) return null
-                  
-                  const originalContent = vision?.[categoryKey as keyof VisionData] as string || ''
-                  const isEditing = editingCategory === categoryKey
-                  const content = isEditing ? editingContent : originalContent
-                  const isRefined = displayStatus === 'draft' && vision.refined_categories?.includes(categoryKey)
-                  
-                  return (
-                    <VisionCategoryCard
-                      key={categoryKey}
-                      category={category}
-                      content={content}
-                      isEditing={isEditing}
-                      onSave={handleSaveEdit}
-                      onCancel={handleCancelEdit}
-                      onUpdate={handleUpdateContent}
-                      saving={saving}
-                      onEditCategory={handleEditCategory}
-                      vision={vision}
-                      audioTrack={audioTracks[categoryKey]}
-                      editable={!isViewingVersion}
-                      isRefined={isRefined}
-                    />
-                  )
-                })}
-              </div>
-            ) : (
-              <Card className="p-8 text-center">
-                <p className="text-neutral-400 mb-4">Select categories above to view your life vision</p>
-                <Button onClick={handleSelectAll} variant="primary">
-                  Select All Categories
-                </Button>
-              </Card>
-            )}
-        </div>
+        {/* Vision Cards */}
+        {selectedCategories.length > 0 ? (
+          <>
+            {selectedCategories.map((categoryKey) => {
+              const category = VISION_SECTIONS.find(cat => cat.key === categoryKey)
+              if (!category) return null
+              
+              const originalContent = vision?.[categoryKey as keyof VisionData] as string || ''
+              const isEditing = editingCategory === categoryKey
+              const content = isEditing ? editingContent : originalContent
+              const isRefined = displayStatus === 'draft' && vision.refined_categories?.includes(categoryKey)
+              
+              return (
+                <VisionCategoryCard
+                  key={categoryKey}
+                  category={category}
+                  content={content}
+                  isEditing={isEditing}
+                  onSave={handleSaveEdit}
+                  onCancel={handleCancelEdit}
+                  onUpdate={handleUpdateContent}
+                  saving={saving}
+                  onEditCategory={handleEditCategory}
+                  vision={vision}
+                  audioTrack={audioTracks[categoryKey]}
+                  editable={!isViewingVersion}
+                  isRefined={isRefined}
+                />
+              )
+            })}
+          </>
+        ) : (
+          <Card className="p-8 text-center">
+            <p className="text-neutral-400 mb-4">Select categories above to view your life vision</p>
+            <Button onClick={handleSelectAll} variant="primary">
+              Select All Categories
+            </Button>
+          </Card>
+        )}
 
         {/* Navigation */}
-        <div className="mt-8 text-center space-y-4">
+        <div className="text-center space-y-4">
           {/* Delete Button */}
           <div>
             <Button
@@ -1036,6 +1009,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             </Button>
           </div>
         </div>
-    </>
+      </Stack>
+    </Container>
   )
 }

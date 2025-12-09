@@ -419,9 +419,10 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
         eyebrow="DRAFT PROFILE"
         title="Refine Your Profile"
         subtitle="Changed fields will show in yellow. Once you are happy with your changes, click 'Commit as Active Profile'."
+        className="mb-8"
       >
         {/* Centered Version Info */}
-        <div className="text-center mb-6">
+        <div className="text-center">
           <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
             <VersionBadge 
               versionNumber={draftProfile.version_number || 1} 

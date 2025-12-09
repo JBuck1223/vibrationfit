@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, X, Sparkles, Zap, Download, VolumeX, Diamond, Copy } from 'lucide-react'
-import { Card, Button, Badge, ProgressBar, Spinner, Grid, TrackingMilestoneCard, PageHero } from '@/lib/design-system/components'
+import { Card, Button, Badge, ProgressBar, Spinner, Grid, TrackingMilestoneCard, PageHero, Container, Stack } from '@/lib/design-system/components'
 import { VisionVersionCard } from './components/VisionVersionCard'
 import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
@@ -463,7 +463,8 @@ export default function VisionListPage() {
   }
 
   return (
-    <>
+    <Container size="xl">
+      <Stack gap="lg">
         {/* Page Hero - All Life Visions */}
         <PageHero
           eyebrow="THE LIFE I CHOOSE"
@@ -473,7 +474,7 @@ export default function VisionListPage() {
 
         {/* Create Button (only when no active vision) */}
         {!activeVision && (
-          <div className="flex justify-end mb-8">
+          <div className="flex justify-end">
             <Button
               onClick={() => router.push('/life-vision/new')}
               variant="primary"
@@ -487,7 +488,7 @@ export default function VisionListPage() {
 
         {/* Stats Cards */}
         {activeVision && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             <TrackingMilestoneCard
               label="Vision Versions"
               value={versions.length}
@@ -508,7 +509,7 @@ export default function VisionListPage() {
 
         {/* All Versions List */}
         {activeVision && versions.length > 0 && (
-          <Card className="p-6 mb-8">
+          <Card className="p-6">
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-white">Life Vision Versions</h3>
             </div>
@@ -678,7 +679,7 @@ export default function VisionListPage() {
             </Card>
           </div>
         )}
-
-    </>
+      </Stack>
+    </Container>
   )
 }

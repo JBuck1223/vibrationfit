@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge, PageHero } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { Headphones, CheckCircle, Play, CalendarDays, Moon, Zap, Sparkles, Plus, Music, X, AlertCircle, Wand2, Mic, Clock, Eye, Music2, ListMusic } from 'lucide-react'
 import Link from 'next/link'
@@ -412,84 +412,69 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
     <Container size="xl">
       <Stack gap="lg">
         {/* Hero Header */}
-        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            <div className="relative z-10">
-              <div className="text-center mb-4">
-                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  THE LIFE I CHOOSE
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Generate Audio Sets"
+          subtitle="Create voice-only tracks, then add background music mixes"
+        >
+          {vision && (
+            <>
+              <div className="flex justify-center">
+                <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                  <VersionBadge 
+                    versionNumber={vision.version_number} 
+                    status={vision.is_active ? 'active' : (vision.is_draft ? 'draft' : 'complete')} 
+                  />
+                  <StatusBadge 
+                    status={vision.is_active ? 'active' : (vision.is_draft ? 'draft' : 'complete')} 
+                    subtle={!vision.is_active} 
+                    className="uppercase tracking-[0.25em]" 
+                  />
+                  <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                    <CalendarDays className="w-4 h-4 text-neutral-500" />
+                    <span className="font-medium">Created:</span>
+                    <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
                 </div>
               </div>
-              
-              <div className="text-center mb-4">
-                <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
-                  Generate Audio Sets
-                </h1>
-                <p className="text-sm md:text-base text-neutral-300 mt-2">
-                  Create voice-only tracks, then add background music mixes
-                </p>
-              </div>
-              
-              {vision && (
-                <>
-                  <div className="flex justify-center mb-6">
-                    <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                      <VersionBadge 
-                        versionNumber={vision.version_number} 
-                        status={vision.is_active ? 'active' : (vision.is_draft ? 'draft' : 'complete')} 
-                      />
-                      <StatusBadge 
-                        status={vision.is_active ? 'active' : (vision.is_draft ? 'draft' : 'complete')} 
-                        subtle={!vision.is_active} 
-                        className="uppercase tracking-[0.25em]" 
-                      />
-                      <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                        <CalendarDays className="w-4 h-4 text-neutral-500" />
-                        <span className="font-medium">Created:</span>
-                        <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Action Buttons */}
-                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
-                    <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
-                      <Link href={`/life-vision/${visionId}/audio/sets`} className="flex items-center justify-center gap-2">
-                        <ListMusic className="w-4 h-4" />
-                        <span>Audio Sets</span>
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild className="w-full">
-                      <Link href={`/life-vision/${visionId}/audio/record`} className="flex items-center justify-center gap-2">
-                        <Mic className="w-4 h-4" />
-                        <span>Record</span>
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild className="w-full">
-                      <Link href={`/life-vision/${visionId}/audio/queue`} className="flex items-center justify-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        <span>Queue</span>
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild className="w-full">
-                      <Link href={`/life-vision/audio`} className="flex items-center justify-center gap-2">
-                        <Headphones className="w-4 h-4" />
-                        <span>All Audios</span>
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild className="w-full">
-                      <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
-                        <Eye className="w-4 h-4" />
-                        <span className="lg:hidden">Vision</span>
-                        <span className="hidden lg:inline">View Vision</span>
-                      </Link>
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
+                <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
+                  <Link href={`/life-vision/${visionId}/audio/sets`} className="flex items-center justify-center gap-2">
+                    <ListMusic className="w-4 h-4" />
+                    <span>Audio Sets</span>
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="w-full">
+                  <Link href={`/life-vision/${visionId}/audio/record`} className="flex items-center justify-center gap-2">
+                    <Mic className="w-4 h-4" />
+                    <span>Record</span>
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="w-full">
+                  <Link href={`/life-vision/${visionId}/audio/queue`} className="flex items-center justify-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span>Queue</span>
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="w-full">
+                  <Link href={`/life-vision/audio`} className="flex items-center justify-center gap-2">
+                    <Headphones className="w-4 h-4" />
+                    <span>All Audios</span>
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="w-full">
+                  <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    <span className="lg:hidden">Vision</span>
+                    <span className="hidden lg:inline">View Vision</span>
+                  </Link>
+                </Button>
+              </div>
+            </>
+          )}
+        </PageHero>
 
         {/* Combined Generation Card */}
         <Card variant="glass" className="mb-6">
