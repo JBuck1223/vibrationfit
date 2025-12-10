@@ -10,6 +10,7 @@ import {
   Stack,
   Inline,
   Text,
+  PageHero,
 } from '@/lib/design-system/components'
 import { BarChart3, Eye, Plus, ArrowLeft, History, RefreshCw } from 'lucide-react'
 import { fetchAssessments, fetchAssessment } from '@/lib/services/assessmentService'
@@ -139,41 +140,47 @@ export default function AssessmentResultsPage() {
 
   return (
     <Container size="xl" className="">
-      <Stack gap="xl">
-        <Stack gap="md">
+      <PageHero
+        title="Assessment Results"
+        subtitle="Review your vibrational alignment scores and insights."
+        actions={[
           <button
+            key="back"
             onClick={() => router.push('/assessment')}
-            className="inline-flex items-center gap-2 text-xs text-neutral-400 transition-colors hover:text-white"
+            className="inline-flex items-center gap-2 text-xs text-neutral-400 transition-colors hover:text-white mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Assessment Hub
-          </button>
-          <Text size="lg" className="text-white font-bold">
-            Assessment Results
-          </Text>
-          <p className="text-sm md:text-base text-neutral-400">
-            Review your vibrational alignment scores and insights.
-          </p>
-          <Inline gap="sm" className="justify-start flex-wrap">
-            {otherAssessments.length > 0 && (
-              <Button
-                variant={showHistory ? 'primary' : 'ghost'}
-                size="sm"
-                className="flex items-center gap-2"
-                onClick={() => setShowHistory((prev) => !prev)}
-              >
-                <History className="h-4 w-4" />
-                {showHistory ? 'Hide History' : 'Show History'}
-              </Button>
-            )}
-            <Button variant="primary" onClick={() => router.push('/assessment')} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Start New Assessment
-            </Button>
-          </Inline>
-        </Stack>
+          </button>,
+          ...(otherAssessments.length > 0
+            ? [
+                <Button
+                  key="history"
+                  variant={showHistory ? 'primary' : 'ghost'}
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => setShowHistory((prev) => !prev)}
+                >
+                  <History className="h-4 w-4" />
+                  {showHistory ? 'Hide History' : 'Show History'}
+                </Button>,
+              ]
+            : []),
+          <Button
+            key="new"
+            variant="primary"
+            size="sm"
+            onClick={() => router.push('/assessment')}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Start New Assessment
+          </Button>,
+        ]}
+        className="mb-6 md:mb-8"
+      />
 
-        <Stack gap="lg">
+      <Stack gap="lg">
           <Card className="p-6 md:p-8">
             <Stack gap="md">
               <Stack gap="sm">
@@ -253,7 +260,7 @@ export default function AssessmentResultsPage() {
         </Stack>
 
         {showHistory && (
-          <Card className="p-6">
+          <Card className="p-6 mt-6 md:mt-8">
             <Stack gap="md">
               <Inline className="items-center justify-between">
                 <Text size="lg" className="font-semibold text-white">
@@ -300,7 +307,6 @@ export default function AssessmentResultsPage() {
             </Stack>
           </Card>
         )}
-      </Stack>
     </Container>
   )
 }

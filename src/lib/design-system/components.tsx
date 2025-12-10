@@ -6175,6 +6175,9 @@ PageHeader.displayName = 'PageHeader'
 
 // ============================================================================
 // PAGE HERO COMPONENT
+// 🔒 LOCKED - See FEATURE_REGISTRY.md before modifying
+// Current padding: 24px mobile (p-6), 32px desktop (lg:p-8)
+// DO NOT modify internal padding - manage spacing at page level
 // ============================================================================
 
 export interface PageHeroProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
@@ -6205,7 +6208,7 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
         {/* Subtle Gradient Border */}
         <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
           {/* Modern Enhanced Layout with Card Container */}
-          <div className="relative px-4 py-6 lg:px-8 lg:py-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          <div className="relative p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             
             <div className="relative z-10">
               {/* Eyebrow */}
@@ -6226,7 +6229,7 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
               
               {/* Subtitle */}
               {subtitle && (
-                <div className={cn("text-center", children ? "mb-6" : "")}>
+                <div className={cn("text-center", children ? "mb-4" : "")}>
                   <p className="text-xs md:text-lg text-neutral-300">
                     {subtitle}
                   </p>
@@ -6235,7 +6238,7 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
 
               {/* Custom Children (video, buttons, etc.) */}
               {children && (
-                <div className="space-y-8 md:space-y-6 lg:space-y-8">
+                <div className="space-y-4 md:space-y-4 lg:space-y-6">
                   {children}
                 </div>
               )}
