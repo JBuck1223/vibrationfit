@@ -406,7 +406,7 @@ export default function VoiceProfilePage() {
               onClick={() => router.push('/voice-profile/analyze/initial')}
               className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
             >
-              Initial Bootstrap
+              Create From Active Profile
             </Button>
             <Button 
               variant="outline" 
@@ -564,7 +564,7 @@ This is the life I choose.`}
 
               <div className="space-y-3">
                 {versions.length === 0 ? (
-                  <div className="text-sm text-neutral-500">No versions saved yet. Run the initial bootstrap or save a manual edit.</div>
+                  <div className="text-sm text-neutral-500">No versions saved yet. Create from your active profile or save a manual edit.</div>
                 ) : (
                   versions.map((version) => (
                     <Card

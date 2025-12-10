@@ -59,6 +59,7 @@ import {
   UsersRound,
   BookOpen,
   Star,
+  Compass,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -189,6 +190,16 @@ export const userNavigation: NavItem[] = [
     description: 'File storage management',
     children: [
       { name: 'Storage Usage', href: '/dashboard/storage', icon: Eye },
+    ]
+  },
+  {
+    name: 'Framework',
+    href: '/framework/emotional-guidance-scale',
+    icon: Compass,
+    hasDropdown: true,
+    description: 'Vibrational framework and resources',
+    children: [
+      { name: 'Emotional Guidance Scale', href: '/framework/emotional-guidance-scale', icon: TrendingUp },
     ]
   },
   {

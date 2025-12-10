@@ -59,7 +59,7 @@ export default function InitialVoiceAnalyzerPage() {
         <PageHero
           eyebrow="MY VOICE"
           title="Initial Voice Analyzer"
-          subtitle="Generate your first voice profile based on your clarity and dream statements from your user profile. This gives VIVA a starting point to write in your voice before you have scenes, journals, or vision paragraphs."
+          subtitle="Generate your first voice profile based on your clarity statements from your active profile. This gives VIVA a starting point to write in your voice before you have scenes, journals, or vision paragraphs."
         />
 
         <Card className="p-6 space-y-6">
@@ -68,11 +68,7 @@ export default function InitialVoiceAnalyzerPage() {
             <ul className="space-y-2 text-neutral-300 text-sm md:text-base">
               <li className="flex items-start gap-2">
                 <span className="text-primary-500 mt-1">•</span>
-                <span>We analyze your clarity statements (what you love about each life category)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary-500 mt-1">•</span>
-                <span>We analyze your dream statements (what you want in each life category)</span>
+                <span>We analyze your clarity statements from your active profile</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary-500 mt-1">•</span>
@@ -88,13 +84,13 @@ export default function InitialVoiceAnalyzerPage() {
           <Stack gap="sm">
             <h3 className="text-lg font-semibold text-white">Requirements</h3>
             <p className="text-neutral-400 text-sm">
-              You must have completed at least some of your clarity and dream fields in your user profile. The more fields you've filled out, the better the analysis will be.
+              You must have completed at least some of your clarity fields in your active profile. The more fields you've filled out, the better the analysis will be.
             </p>
           </Stack>
 
           <Stack gap="sm">
             <h3 className="text-lg font-semibold text-white">When to Use This</h3>
-            <Badge variant="info" className="w-fit">Bootstrap</Badge>
+            <Badge variant="info" className="w-fit">Create From Active Profile</Badge>
             <ul className="space-y-2 text-neutral-300 text-sm">
               <li className="flex items-start gap-2">
                 <span className="text-secondary-500 mt-1">✓</span>
@@ -106,7 +102,7 @@ export default function InitialVoiceAnalyzerPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-secondary-500 mt-1">✓</span>
-                <span>You've recently updated your clarity/dream statements and want to refresh your voice</span>
+                <span>You've recently updated your profile and want to refresh your voice</span>
               </li>
             </ul>
           </Stack>
@@ -142,7 +138,7 @@ export default function InitialVoiceAnalyzerPage() {
 
           {samplesAnalyzed !== null && (
             <div className="bg-primary-500/10 border border-primary-500/40 rounded-xl p-4 text-sm text-primary-200">
-              Analyzed {samplesAnalyzed} clarity and dream statements.
+              Analyzed {samplesAnalyzed} clarity statements from your profile.
             </div>
           )}
 

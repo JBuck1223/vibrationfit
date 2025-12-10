@@ -106,6 +106,9 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Billing & Payments
     '/billing',
+    
+    // Framework & Resources
+    '/framework/emotional-guidance-scale',
   ],
   
   /**

@@ -54,3 +54,4 @@ CREATE TRIGGER set_draft_parent_id_trigger
   FOR EACH ROW
   EXECUTE FUNCTION set_draft_parent_id();
 
+
