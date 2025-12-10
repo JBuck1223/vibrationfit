@@ -143,31 +143,28 @@ export default function AssessmentResultsPage() {
       <PageHero
         title="Assessment Results"
         subtitle="Review your vibrational alignment scores and insights."
-        actions={[
+        className="mb-6 md:mb-8"
+      >
+        <div className="flex flex-wrap items-center gap-3 mt-4">
           <button
-            key="back"
             onClick={() => router.push('/assessment')}
-            className="inline-flex items-center gap-2 text-xs text-neutral-400 transition-colors hover:text-white mb-4"
+            className="inline-flex items-center gap-2 text-xs text-neutral-400 transition-colors hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Assessment Hub
-          </button>,
-          ...(otherAssessments.length > 0
-            ? [
-                <Button
-                  key="history"
-                  variant={showHistory ? 'primary' : 'ghost'}
-                  size="sm"
-                  className="flex items-center gap-2"
-                  onClick={() => setShowHistory((prev) => !prev)}
-                >
-                  <History className="h-4 w-4" />
-                  {showHistory ? 'Hide History' : 'Show History'}
-                </Button>,
-              ]
-            : []),
+          </button>
+          {otherAssessments.length > 0 && (
+            <Button
+              variant={showHistory ? 'primary' : 'ghost'}
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => setShowHistory((prev) => !prev)}
+            >
+              <History className="h-4 w-4" />
+              {showHistory ? 'Hide History' : 'Show History'}
+            </Button>
+          )}
           <Button
-            key="new"
             variant="primary"
             size="sm"
             onClick={() => router.push('/assessment')}
@@ -175,10 +172,9 @@ export default function AssessmentResultsPage() {
           >
             <Plus className="h-4 w-4" />
             Start New Assessment
-          </Button>,
-        ]}
-        className="mb-6 md:mb-8"
-      />
+          </Button>
+        </div>
+      </PageHero>
 
       <Stack gap="lg">
           <Card className="p-6 md:p-8">
