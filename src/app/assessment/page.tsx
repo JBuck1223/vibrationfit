@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, PageHero } from '@/lib/design-system/components'
-import { fetchAssessments, deleteAssessment, createAssessment } from '@/lib/services/assessmentService'
+import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { fetchAssessments, deleteAssessment, createAssessment, fetchAssessmentProgress, AssessmentProgress } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import { 
   PlayCircle, 
@@ -12,7 +12,8 @@ import {
   PlusCircle, 
   Clock, 
   CheckCircle,
-  AlertTriangle 
+  AlertTriangle,
+  CalendarDays 
 } from 'lucide-react'
 
 export default function AssessmentHub() {
@@ -22,6 +23,9 @@ export default function AssessmentHub() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [progress, setProgress] = useState<AssessmentProgress | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [assessmentToDelete, setAssessmentToDelete] = useState<string | null>(null)
 
   const toTimestamp = (value?: Date | string | null) => {
     if (!value) return 0
@@ -49,6 +53,22 @@ export default function AssessmentHub() {
     }
   }, [incompleteAssessment, errorMessage])
 
+  useEffect(() => {
+    const loadProgress = async () => {
+      if (incompleteAssessment) {
+        try {
+          const progressData = await fetchAssessmentProgress(incompleteAssessment.id)
+          setProgress(progressData)
+        } catch (error) {
+          console.error('Failed to load progress:', error)
+        }
+      } else {
+        setProgress(null)
+      }
+    }
+    loadProgress()
+  }, [incompleteAssessment])
+
   const loadAssessments = async () => {
     try {
       const { assessments } = await fetchAssessments()
@@ -66,15 +86,20 @@ export default function AssessmentHub() {
     }
   }
 
-  const handleDeleteAssessment = async (assessmentId: string) => {
-    if (!confirm('Are you sure you want to delete this assessment? This action cannot be undone.')) {
-      return
-    }
+  const handleDeleteClick = (assessmentId: string) => {
+    setAssessmentToDelete(assessmentId)
+    setShowDeleteDialog(true)
+  }
 
-    setDeletingId(assessmentId)
+  const handleConfirmDelete = async () => {
+    if (!assessmentToDelete) return
+
+    setDeletingId(assessmentToDelete)
     try {
-      await deleteAssessment(assessmentId)
+      await deleteAssessment(assessmentToDelete)
       await loadAssessments() // Reload the list
+      setShowDeleteDialog(false)
+      setAssessmentToDelete(null)
     } catch (error) {
       console.error('Failed to delete assessment:', error)
       alert('Failed to delete assessment. Please try again.')
@@ -114,6 +139,21 @@ export default function AssessmentHub() {
     })
   }
 
+  const formatStartDate = (date: Date | string) => {
+    const d = new Date(date)
+    const dateStr = d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+    const timeStr = d.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+    return `${dateStr} at ${timeStr}`
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black">
@@ -130,60 +170,61 @@ export default function AssessmentHub() {
         <PageHero
           title="Assessment Hub"
           subtitle="Manage your life assessments and track your progress across 12 key life areas."
+          className="mb-6 md:mb-8"
         />
 
         {/* In-Progress Assessment Section */}
         {incompleteAssessment && (
           <Card variant="elevated" className="mb-6 md:mb-8 p-4 md:p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4 mb-4 md:mb-6">
+            <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Clock className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                <Clock className="w-5 h-5 md:w-6 md:h-6 text-[#1F1F1F]" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2">
-                  <h2 className="text-lg md:text-xl lg:text-2xl font-semibold">Assessment In Progress</h2>
-                  <Badge variant="info">Active</Badge>
+              <div>
+                <h2 className="text-lg md:text-xl lg:text-2xl font-semibold mb-2">Assessment In Progress</h2>
+                <div className="flex items-center justify-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                  <CalendarDays className="w-4 h-4 text-neutral-500" />
+                  <span className="font-medium">Started:</span>
+                  <span>{formatStartDate(incompleteAssessment.started_at || incompleteAssessment.created_at)}</span>
                 </div>
-                <p className="text-xs md:text-sm text-neutral-400 break-words">
-                  Started on {formatDate(incompleteAssessment.started_at || incompleteAssessment.created_at)}
-                </p>
               </div>
             </div>
             
             <div className="bg-primary-500/10 p-3 md:p-4 rounded-lg mb-4 md:mb-6">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs md:text-sm text-primary-500 font-medium">Progress</p>
-                  <p className="text-xs md:text-sm text-neutral-300">
-                    Assessment in progress
-                  </p>
-                </div>
-                <div className="text-right">
                   <p className="text-xs md:text-sm text-primary-500 font-medium">Status</p>
                   <p className="text-xs md:text-sm text-neutral-300">In Progress</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs md:text-sm text-primary-500 font-medium">Progress</p>
+                  <p className="text-xs md:text-sm text-neutral-300">
+                    {progress ? `${progress.overall.percentage}%` : '0%'} Complete
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-row gap-3">
               <Button 
-                onClick={handleContinueAssessment}
-                variant="primary" 
-                size="md"
-                className="w-full sm:flex-1"
-              >
-                <PlayCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                Continue Assessment
-              </Button>
-              <Button 
-                onClick={() => handleDeleteAssessment(incompleteAssessment.id)}
+                onClick={() => handleDeleteClick(incompleteAssessment.id)}
                 variant="danger" 
                 size="md"
-                className="w-full sm:w-auto"
+                className="flex-1"
                 disabled={deletingId === incompleteAssessment.id}
               >
                 <Trash2 className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                 {deletingId === incompleteAssessment.id ? 'Deleting...' : 'Delete'}
+              </Button>
+              <Button 
+                onClick={handleContinueAssessment}
+                variant="primary" 
+                size="md"
+                className="flex-1"
+              >
+                <PlayCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                <span className="md:hidden">Continue</span>
+                <span className="hidden md:inline">Continue Assessment</span>
               </Button>
             </div>
           </Card>
@@ -191,11 +232,11 @@ export default function AssessmentHub() {
 
         {/* Start New Assessment Section */}
         <Card variant="elevated" className="mb-6 md:mb-8 p-4 md:p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4 mb-4 md:mb-6">
+          <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0">
-              <PlusCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
+              <PlusCircle className="w-5 h-5 md:w-6 md:h-6 text-[#1F1F1F]" />
             </div>
-            <div className="flex-1 min-w-0">
+            <div>
               <h2 className="text-lg md:text-xl lg:text-2xl font-semibold mb-1 md:mb-2">
                 Start New Assessment
               </h2>
@@ -252,11 +293,11 @@ export default function AssessmentHub() {
         {/* Previous Assessments Section */}
         {completedAssessments.length > 0 && (
           <Card variant="default" className="p-4 md:p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4 mb-4 md:mb-6">
+            <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-accent-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-[#1F1F1F]" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div>
                 <h2 className="text-lg md:text-xl lg:text-2xl font-semibold mb-1">Previous Assessments</h2>
                 <p className="text-xs md:text-sm text-neutral-400">
                   Review your past assessment results and track your progress over time
@@ -272,44 +313,46 @@ export default function AssessmentHub() {
                   key={assessment.id}
                   className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 rounded-lg transition-all ${
                     isActive
-                      ? 'bg-primary-500/10 border border-primary-500 hover:border-primary-400 hover:bg-primary-500/20'
-                      : 'bg-neutral-800 border border-neutral-700 hover:bg-neutral-700'
+                      ? 'border border-primary-500 hover:border-primary-400'
+                      : 'border border-neutral-700 hover:border-neutral-600'
                   }`}
                 >
-                  <div className="flex-1 min-w-0 w-full sm:w-auto">
-                    <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2">
-                      <p className="text-sm md:text-base font-medium">
-                        Assessment {isActive ? '(Most Recent)' : 'Completed'}
-                      </p>
+                  <div className="flex-1 min-w-0 w-full sm:w-auto text-center sm:text-left">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 md:gap-3 mb-2">
                       <Badge variant={isActive ? 'primary' : 'success'}>
-                        {isActive ? 'Active' : 'Completed'}
+                        {isActive ? 'Active' : 'Complete'}
                       </Badge>
                     </div>
-                    <p className="text-xs md:text-sm text-neutral-400 break-words">
-                      Started: {formatDate(assessment.started_at || assessment.created_at)}
-                    </p>
-                    <p className="text-xs md:text-sm text-neutral-400 break-words">
-                      Completed: {assessment.completed_at ? formatDate(assessment.completed_at) : 'Not completed'}
-                    </p>
+                    <div className="flex items-center justify-center sm:justify-start gap-1.5 text-neutral-300 text-xs md:text-sm mb-1">
+                      <CalendarDays className="w-4 h-4 text-neutral-500" />
+                      <span className="font-medium">Started:</span>
+                      <span>{formatStartDate(assessment.started_at || assessment.created_at)}</span>
+                    </div>
+                    <div className="flex items-center justify-center sm:justify-start gap-1.5 text-neutral-300 text-xs md:text-sm">
+                      <CalendarDays className="w-4 h-4 text-neutral-500" />
+                      <span className="font-medium">Completed:</span>
+                      <span>{assessment.completed_at ? formatStartDate(assessment.completed_at) : 'Not completed'}</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <div className="flex flex-row gap-2 w-full sm:w-auto">
+                    <Button 
+                      onClick={() => handleDeleteClick(assessment.id)}
+                      variant="danger"
+                      size="sm"
+                      className="flex-1 sm:flex-initial"
+                      disabled={deletingId === assessment.id}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      {deletingId === assessment.id ? 'Deleting...' : 'Delete'}
+                    </Button>
                     <Button 
                       onClick={() => router.push(`/assessment/${assessment.id}`)}
                       variant="ghost"
                       size="sm"
-                      className="w-full sm:w-auto"
+                      className="flex-1 sm:flex-initial"
                     >
                       <BarChart3 className="w-4 h-4 mr-2" />
                       See Results
-                    </Button>
-                    <Button 
-                      onClick={() => handleDeleteAssessment(assessment.id)}
-                      variant="danger"
-                      size="sm"
-                      className="w-full sm:w-auto"
-                      disabled={deletingId === assessment.id}
-                    >
-                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -353,6 +396,19 @@ export default function AssessmentHub() {
             </Button>
           </Card>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteDialog}
+          onClose={() => {
+            setShowDeleteDialog(false)
+            setAssessmentToDelete(null)
+          }}
+          onConfirm={handleConfirmDelete}
+          itemName="assessment"
+          itemType="assessment"
+          isLoading={deletingId === assessmentToDelete}
+        />
     </div>
   )
 }

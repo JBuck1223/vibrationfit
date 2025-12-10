@@ -1,6 +1,6 @@
 # VibrationFit Feature Registry
 
-**Last Updated:** November 18, 2024  
+**Last Updated:** December 10, 2024  
 **Purpose:** Single source of truth for all features, their versions, and status
 
 > ⚠️ **FOR AI AGENTS:** Before modifying ANY feature, check this registry first. Features marked 🔒 LOCKED should NOT be modified without explicit user permission.
@@ -222,6 +222,7 @@
 - `Card` (3 variants: default, elevated, outlined)
 - `Input`, `Textarea`, `Badge`, `ProgressBar`, `Spinner`
 - `Container`, `PageLayout`, `Footer`
+- 🔒 `PageHero` (Hero component for page headers with gradient styling)
 
 **Verification:**
 ```bash
@@ -242,6 +243,25 @@ Visit any page and verify:
 - ✅ DO import from @/lib/design-system/components
 - ✅ DO reference vibrationfit-brand-kit.html for visual style
 - ✅ DO test mobile responsive behavior
+
+#### 🔒 PageHero Component - SPECIAL RULES
+**Location:** `src/lib/design-system/components.tsx` (lines 6187-6249)  
+**Current Padding:** 24px mobile/tablet (`p-6`), 32px desktop (`lg:p-8`)
+
+**Critical Rules:**
+- ❌ DO NOT modify internal padding without explicit permission
+- ❌ DO NOT add default margins to the component
+- ✅ DO manage spacing at the page level using `className` prop
+- ✅ DO keep top and bottom padding equal (e.g., `p-6` not `pt-6 pb-3`)
+
+**Correct Usage:**
+```tsx
+// ✅ Good - spacing managed at page level
+<PageHero title="Title" subtitle="Subtitle" className="mb-8" />
+
+// ❌ Bad - modifying component's internal padding
+// Don't change p-6 lg:p-8 in the component itself
+```
 
 ---
 
@@ -445,6 +465,7 @@ Verification:
 
 | Feature | Version | Date | Change |
 |---------|---------|------|--------|
+| FEATURE_REGISTRY | v1.0.0 → v1.1.0 | Dec 10 | Added PageHero component with lock rules |
 | FEATURE_REGISTRY | - → v1.0.0 | Nov 18 | Added UI components tracking |
 | Media Recorder | - → v3.5.0 | Nov 18 | Documented current state (locked) |
 | Audio Editor | - → v1.2.0 | Nov 18 | Documented current state (stable) |
