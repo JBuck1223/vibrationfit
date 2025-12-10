@@ -565,20 +565,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('stuff')}
           onDelete={handleDeleteRecording}
-        />
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
-          value={profile.dream_stuff || ''}
-          onChange={(value) => handleInputChange('dream_stuff', value)}
-          placeholder="What's your ideal vision for your possessions and material life?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('stuff')}
-          instanceId="dream"
-        />
-        {/* Contrast Field */}
+        />        {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
           value={profile.contrast_stuff || ''}
@@ -589,20 +576,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           storageFolder="profile"
           category={visionToRecordingKey('stuff')}
           instanceId="contrast"
-        />
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
-          value={profile.worry_stuff || ''}
-          onChange={(value) => handleInputChange('worry_stuff', value)}
-          placeholder="What concerns you most about your possessions, lifestyle, or material needs?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('stuff')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

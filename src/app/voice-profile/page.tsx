@@ -15,6 +15,7 @@ import {
   Spinner,
   VersionBadge,
   StatusBadge,
+  PageHero,
 } from '@/lib/design-system/components'
 import { CalendarDays, Save, RotateCcw } from 'lucide-react'
 import { renderVoiceProfileForPrompt } from '@/lib/viva/voice-profile'
@@ -363,78 +364,60 @@ export default function VoiceProfilePage() {
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
+      <Stack gap="md">
         {/* Header with Page-Titles Pattern */}
-        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            <div className="relative z-10">
-              {/* Eyebrow */}
-              <div className="text-center mb-4">
-                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  MY VOICE
-                </div>
-              </div>
-              
-              {/* Title Section */}
-              <div className="text-center mb-4">
-                <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
-                  Voice Profile
-                </h1>
-                <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
-                  Adjust how VIVA writes for you. Save manual edits or run the analyzer on your latest writing. The active version powers scenes, visions, and reflections across the app.
-                </p>
-              </div>
-              
-              {/* Badges & Meta Items */}
-              {profile && (
-                <div className="text-center mb-6">
-                  <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                    <VersionBadge 
-                      versionNumber={profile.versionNumber} 
-                      status="active" 
-                    />
-                    <StatusBadge 
-                      status="active" 
-                      subtle={false}
-                      className="uppercase tracking-[0.25em]"
-                    />
-                    {profile.created_at && (
-                      <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                        <CalendarDays className="w-4 h-4 text-neutral-500" />
-                        <span className="font-medium">Created:</span>
-                        <span>{new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                      </div>
-                    )}
-                    {profile.source && (
-                      <Badge variant="info">{sourceLabel(profile.source)}</Badge>
-                    )}
+        <PageHero
+          eyebrow="MY VOICE"
+          title="Voice Profile"
+          subtitle="Adjust how VIVA writes for you. Save manual edits or run the analyzer on your latest writing. The active version powers scenes, visions, and reflections across the app."
+        >
+          {/* Badges & Meta Items */}
+          {profile && (
+            <div className="text-center">
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                <VersionBadge 
+                  versionNumber={profile.versionNumber} 
+                  status="active" 
+                />
+                <StatusBadge 
+                  status="active" 
+                  subtle={false}
+                  className="uppercase tracking-[0.25em]"
+                />
+                {profile.created_at && (
+                  <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                    <CalendarDays className="w-4 h-4 text-neutral-500" />
+                    <span className="font-medium">Created:</span>
+                    <span>{new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => router.push('/voice-profile/analyze/initial')}
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  Initial Bootstrap
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => router.push('/voice-profile/analyze')}
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  Run Analyzer
-                </Button>
+                )}
+                {profile.source && (
+                  <Badge variant="info">{sourceLabel(profile.source)}</Badge>
+                )}
               </div>
             </div>
+          )}
 
+          {/* Action Buttons */}
+          <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push('/voice-profile/analyze/initial')}
+              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              Initial Bootstrap
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push('/voice-profile/analyze')}
+              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              Run Analyzer
+            </Button>
           </div>
-        </div>
+        </PageHero>
 
         {loading ? (
           <Card className="p-6 text-center">

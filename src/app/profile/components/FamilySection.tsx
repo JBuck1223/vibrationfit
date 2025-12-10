@@ -241,20 +241,6 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           categoryFilter={visionToRecordingKey('family')}
           onDelete={handleDeleteRecording}
         />
-
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel('family')}?`}
-          value={profile.dream_family || ''}
-          onChange={(value) => handleInputChange('dream_family', value)}
-          placeholder="What's your ideal vision for your family life and relationships with your loved ones?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('family')}
-          instanceId="dream"
-        />
-
         {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
@@ -266,21 +252,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           storageFolder="profile"
           category={visionToRecordingKey('family')}
           instanceId="contrast"
-        />
-
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel('family')}?`}
-          value={profile.worry_family || ''}
-          onChange={(value) => handleInputChange('worry_family', value)}
-          placeholder="What concerns you most about your family dynamics, parenting, or relationships with loved ones?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('family')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

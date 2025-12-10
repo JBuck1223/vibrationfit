@@ -229,20 +229,7 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('giving')}
           onDelete={handleDeleteRecording}
-        />
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel('giving')}?`}
-          value={profile.dream_giving || ''}
-          onChange={(value) => handleInputChange('dream_giving', value)}
-          placeholder="What's your ideal vision for the impact you want to make and the legacy you want to leave?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('giving')}
-          instanceId="dream"
-        />
-        {/* Contrast Field */}
+        />        {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel('giving')}?`}
           value={profile.contrast_giving || ''}
@@ -253,20 +240,7 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           storageFolder="profile"
           category={visionToRecordingKey('giving')}
           instanceId="contrast"
-        />
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel('giving')}?`}
-          value={profile.worry_giving || ''}
-          onChange={(value) => handleInputChange('worry_giving', value)}
-          placeholder="What concerns you most about making a meaningful impact or leaving a lasting legacy?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('giving')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

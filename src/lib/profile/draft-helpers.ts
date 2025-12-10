@@ -192,20 +192,10 @@ export function getChangedFields(
     'clarity_social', 'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff',
     'clarity_giving', 'clarity_spirituality',
     
-    // Life category dream fields
-    'dream_fun', 'dream_health', 'dream_travel', 'dream_love', 'dream_family',
-    'dream_social', 'dream_home', 'dream_work', 'dream_money', 'dream_stuff',
-    'dream_giving', 'dream_spirituality',
-    
     // Life category contrast fields
     'contrast_fun', 'contrast_health', 'contrast_travel', 'contrast_love', 'contrast_family',
     'contrast_social', 'contrast_home', 'contrast_work', 'contrast_money', 'contrast_stuff',
     'contrast_giving', 'contrast_spirituality',
-    
-    // Life category worry fields
-    'worry_fun', 'worry_health', 'worry_travel', 'worry_love', 'worry_family',
-    'worry_social', 'worry_home', 'worry_work', 'worry_money', 'worry_stuff',
-    'worry_giving', 'worry_spirituality',
     
     // Structured fields
     'hobbies', 'leisure_time_weekly', 'travel_frequency', 'passport', 'countries_visited',
@@ -266,19 +256,18 @@ export function getChangedSections(
   const changedFields = getChangedFields(draft, parent)
   const sections: Record<string, string[]> = {
     personal: [],
-    relationship: [],
-    family: [],
+    fun: [],
     health: [],
-    location: [],
-    career: [],
-    financial: [],
-    'fun-recreation': [],
-    'travel-adventure': [],
-    'social-friends': [],
-    'possessions-lifestyle': [],
-    'spirituality-growth': [],
-    'giving-legacy': [],
-    'photos-notes': []
+    travel: [],
+    love: [],
+    family: [],
+    social: [],
+    home: [],
+    work: [],
+    money: [],
+    stuff: [],
+    spirituality: [],
+    giving: []
   }
   
   // Map fields to sections
@@ -292,111 +281,84 @@ export function getChangedSections(
     ethnicity: 'personal',
     profile_picture_url: 'personal',
     
-    relationship_status: 'relationship',
-    partner_name: 'relationship',
-    relationship_length: 'relationship',
-    clarity_love: 'relationship',
-    dream_love: 'relationship',
-    contrast_love: 'relationship',
-    worry_love: 'relationship',
+    relationship_status: 'love',
+    partner_name: 'love',
+    relationship_length: 'love',
+    clarity_love: 'love',
+    contrast_love: 'love',
     
     has_children: 'family',
     children: 'family',
     clarity_family: 'family',
-    dream_family: 'family',
     contrast_family: 'family',
-    worry_family: 'family',
     
     units: 'health',
     height: 'health',
     weight: 'health',
     exercise_frequency: 'health',
     clarity_health: 'health',
-    dream_health: 'health',
     contrast_health: 'health',
-    worry_health: 'health',
     
-    living_situation: 'location',
-    time_at_location: 'location',
-    city: 'location',
-    state: 'location',
-    postal_code: 'location',
-    country: 'location',
-    clarity_home: 'location',
-    dream_home: 'location',
-    contrast_home: 'location',
-    worry_home: 'location',
+    living_situation: 'home',
+    time_at_location: 'home',
+    city: 'home',
+    state: 'home',
+    postal_code: 'home',
+    country: 'home',
+    clarity_home: 'home',
+    contrast_home: 'home',
     
-    employment_type: 'career',
-    occupation: 'career',
-    company: 'career',
-    time_in_role: 'career',
-    education: 'career',
-    education_description: 'career',
-    clarity_work: 'career',
-    dream_work: 'career',
-    contrast_work: 'career',
-    worry_work: 'career',
+    employment_type: 'work',
+    occupation: 'work',
+    company: 'work',
+    time_in_role: 'work',
+    education: 'work',
+    education_description: 'work',
+    clarity_work: 'work',
+    contrast_work: 'work',
     
-    currency: 'financial',
-    household_income: 'financial',
-    savings_retirement: 'financial',
-    assets_equity: 'financial',
-    consumer_debt: 'financial',
-    clarity_money: 'financial',
-    dream_money: 'financial',
-    contrast_money: 'financial',
-    worry_money: 'financial',
+    currency: 'money',
+    household_income: 'money',
+    savings_retirement: 'money',
+    assets_equity: 'money',
+    consumer_debt: 'money',
+    clarity_money: 'money',
+    contrast_money: 'money',
     
-    hobbies: 'fun-recreation',
-    leisure_time_weekly: 'fun-recreation',
-    clarity_fun: 'fun-recreation',
-    dream_fun: 'fun-recreation',
-    contrast_fun: 'fun-recreation',
-    worry_fun: 'fun-recreation',
+    hobbies: 'fun',
+    leisure_time_weekly: 'fun',
+    clarity_fun: 'fun',
+    contrast_fun: 'fun',
     
-    travel_frequency: 'travel-adventure',
-    passport: 'travel-adventure',
-    countries_visited: 'travel-adventure',
-    trips: 'travel-adventure',
-    clarity_travel: 'travel-adventure',
-    dream_travel: 'travel-adventure',
-    contrast_travel: 'travel-adventure',
-    worry_travel: 'travel-adventure',
+    travel_frequency: 'travel',
+    passport: 'travel',
+    countries_visited: 'travel',
+    trips: 'travel',
+    clarity_travel: 'travel',
+    contrast_travel: 'travel',
     
-    close_friends_count: 'social-friends',
-    social_preference: 'social-friends',
-    clarity_social: 'social-friends',
-    dream_social: 'social-friends',
-    contrast_social: 'social-friends',
-    worry_social: 'social-friends',
+    close_friends_count: 'social',
+    social_preference: 'social',
+    clarity_social: 'social',
+    contrast_social: 'social',
     
-    lifestyle_category: 'possessions-lifestyle',
-    vehicles: 'possessions-lifestyle',
-    toys: 'possessions-lifestyle',
-    clarity_stuff: 'possessions-lifestyle',
-    dream_stuff: 'possessions-lifestyle',
-    contrast_stuff: 'possessions-lifestyle',
-    worry_stuff: 'possessions-lifestyle',
+    lifestyle_category: 'stuff',
+    vehicles: 'stuff',
+    toys: 'stuff',
+    clarity_stuff: 'stuff',
+    contrast_stuff: 'stuff',
     
-    spiritual_practice: 'spirituality-growth',
-    meditation_frequency: 'spirituality-growth',
-    personal_growth_focus: 'spirituality-growth',
-    clarity_spirituality: 'spirituality-growth',
-    dream_spirituality: 'spirituality-growth',
-    contrast_spirituality: 'spirituality-growth',
-    worry_spirituality: 'spirituality-growth',
+    spiritual_practice: 'spirituality',
+    meditation_frequency: 'spirituality',
+    personal_growth_focus: 'spirituality',
+    clarity_spirituality: 'spirituality',
+    contrast_spirituality: 'spirituality',
     
-    volunteer_status: 'giving-legacy',
-    charitable_giving: 'giving-legacy',
-    legacy_mindset: 'giving-legacy',
-    clarity_giving: 'giving-legacy',
-    dream_giving: 'giving-legacy',
-    contrast_giving: 'giving-legacy',
-    worry_giving: 'giving-legacy',
-    
-    progress_photos: 'photos-notes',
-    version_notes: 'photos-notes'
+    volunteer_status: 'giving',
+    charitable_giving: 'giving',
+    legacy_mindset: 'giving',
+    clarity_giving: 'giving',
+    contrast_giving: 'giving',
   }
   
   for (const field of changedFields) {
@@ -463,17 +425,13 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     'partner_name': 'love', 
     'relationship_length': 'love', 
     'clarity_love': 'love',
-    'dream_love': 'love', 
     'contrast_love': 'love', 
-    'worry_love': 'love',
     
     // Family
     'has_children': 'family', 
     'children': 'family',
     'clarity_family': 'family',
-    'dream_family': 'family', 
     'contrast_family': 'family', 
-    'worry_family': 'family',
     
     // Health
     'units': 'health',
@@ -481,9 +439,7 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     'weight': 'health', 
     'exercise_frequency': 'health',
     'clarity_health': 'health', 
-    'dream_health': 'health',
     'contrast_health': 'health', 
-    'worry_health': 'health',
     
     // Home
     'living_situation': 'home', 
@@ -493,9 +449,7 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     'postal_code': 'home',
     'country': 'home',
     'clarity_home': 'home', 
-    'dream_home': 'home',
     'contrast_home': 'home', 
-    'worry_home': 'home',
     
     // Work
     'employment_type': 'work', 
@@ -505,9 +459,7 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     'education': 'work',
     'education_description': 'work',
     'clarity_work': 'work', 
-    'dream_work': 'work',
     'contrast_work': 'work', 
-    'worry_work': 'work',
     
     // Money
     'currency': 'money',
@@ -516,17 +468,13 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     'assets_equity': 'money',
     'consumer_debt': 'money',
     'clarity_money': 'money', 
-    'dream_money': 'money',
     'contrast_money': 'money', 
-    'worry_money': 'money',
     
     // Fun
     'hobbies': 'fun', 
     'leisure_time_weekly': 'fun',
     'clarity_fun': 'fun', 
-    'dream_fun': 'fun',
     'contrast_fun': 'fun', 
-    'worry_fun': 'fun',
     
     // Travel
     'travel_frequency': 'travel', 
@@ -534,44 +482,34 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     'countries_visited': 'travel',
     'trips': 'travel',
     'clarity_travel': 'travel', 
-    'dream_travel': 'travel',
     'contrast_travel': 'travel', 
-    'worry_travel': 'travel',
     
     // Social
     'close_friends_count': 'social', 
     'social_preference': 'social',
     'clarity_social': 'social', 
-    'dream_social': 'social',
     'contrast_social': 'social', 
-    'worry_social': 'social',
     
     // Stuff
     'lifestyle_category': 'stuff',
     'vehicles': 'stuff',
     'toys': 'stuff',
     'clarity_stuff': 'stuff', 
-    'dream_stuff': 'stuff',
     'contrast_stuff': 'stuff', 
-    'worry_stuff': 'stuff',
     
     // Spirituality
     'spiritual_practice': 'spirituality', 
     'meditation_frequency': 'spirituality',
     'personal_growth_focus': 'spirituality',
     'clarity_spirituality': 'spirituality', 
-    'dream_spirituality': 'spirituality',
     'contrast_spirituality': 'spirituality', 
-    'worry_spirituality': 'spirituality',
     
     // Giving
     'volunteer_status': 'giving', 
     'charitable_giving': 'giving',
     'legacy_mindset': 'giving',
     'clarity_giving': 'giving', 
-    'dream_giving': 'giving',
     'contrast_giving': 'giving', 
-    'worry_giving': 'giving',
   }
   
   refinedFields.forEach(field => {

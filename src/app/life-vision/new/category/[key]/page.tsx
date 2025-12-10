@@ -7,7 +7,7 @@ import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text } from '@/lib/de
 import { ProfileClarityCard, ProfileContrastCard, ClarityFromContrastCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, CheckCircle, ArrowLeft, ArrowRight, ChevronDown, User, TrendingUp, RefreshCw, Mic, AlertCircle, Loader2, Video } from 'lucide-react'
-import { VISION_CATEGORIES, getVisionCategory, getCategoryFields, getCategoryStoryField, getCategoryDreamField, getCategoryWorryField } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getCategoryFields, getCategoryStoryField } from '@/lib/design-system/vision-categories'
 import { deleteSavedRecording, getRecordingsForCategory, loadSavedRecording, saveRecordingChunks } from '@/lib/storage/indexed-db-recording'
 
 interface VIVAActionCardProps {
@@ -90,9 +90,7 @@ export default function CategoryPage() {
     story: string
     hasStory: boolean
     clarity: string
-    dream: string
     contrast: string
-    worry: string
     hasClarityData: boolean
     hasContrastData: boolean
   } | null>(null)
@@ -176,22 +174,18 @@ export default function CategoryPage() {
         : undefined
       const categoryResponses = assessment?.assessment_responses?.filter((r: any) => r.category === categoryKey) || []
 
-      // Load all 4 profile field types for this category
+      // Load clarity and contrast profile fields for this category
       const fields = getCategoryFields(categoryKey)
       const clarityValue = profile?.[fields.clarity] || ''
-      const dreamValue = profile?.[fields.dream] || ''
       const contrastValue = profile?.[fields.contrast] || ''
-      const worryValue = profile?.[fields.worry] || ''
 
       setProfileData({
         story: profileStory,
         hasStory: profileStory.trim().length > 0,
         clarity: clarityValue,
-        dream: dreamValue,
         contrast: contrastValue,
-        worry: worryValue,
-        hasClarityData: !!(clarityValue || dreamValue),
-        hasContrastData: !!(contrastValue || worryValue)
+        hasClarityData: !!clarityValue,
+        hasContrastData: !!contrastValue
       })
 
       setAssessmentData({
@@ -235,10 +229,10 @@ export default function CategoryPage() {
           setContrastFromProfile(existingFlip.input_text)
           setShowContrastToggle(true)
         }
-      } else if (contrastValue.trim().length > 0 || worryValue.trim().length > 0) {
-        // No existing flip found - auto-flip contrast and/or worry if they exist
+      } else if (contrastValue.trim().length > 0) {
+        // No existing flip found - auto-flip contrast if it exists
         console.log('[Exploration] No existing flip found - generating new frequency flip for', categoryKey)
-        await flipContrastToClarity(contrastValue, worryValue)
+        await flipContrastToClarity(contrastValue)
       }
 
       setLoading(false)
@@ -248,13 +242,8 @@ export default function CategoryPage() {
     }
   }
 
-  const flipContrastToClarity = async (contrastText: string, worryText?: string) => {
-    // Combine contrast and worry for richer flip
-    const combinedInput = [contrastText, worryText]
-      .filter(text => text?.trim())
-      .join('\n\n')
-    
-    if (!combinedInput.trim()) return
+  const flipContrastToClarity = async (contrastText: string) => {
+    if (!contrastText?.trim()) return
 
     setIsFlippingContrast(true)
     try {
@@ -263,7 +252,7 @@ export default function CategoryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: 'flip',
-          input: combinedInput,
+          input: contrastText,
           category: categoryKey,
           save_to_db: true,
         }),
@@ -711,14 +700,12 @@ export default function CategoryPage() {
           {/* Clarity From Profile (Cyan) */}
           <ProfileClarityCard
             clarityText={profileData.clarity}
-            dreamText={profileData.dream}
             categoryLabel={category.label}
           />
           
           {/* Contrast from Profile (Red) */}
           <ProfileContrastCard
             contrastText={profileData.contrast}
-            worryText={profileData.worry}
             categoryLabel={category.label}
           />
           
@@ -727,7 +714,7 @@ export default function CategoryPage() {
             clarityFromContrast={clarityFromContrast}
             categoryLabel={category.label}
             hasContrastData={profileData.hasContrastData}
-            onGenerateClarity={() => flipContrastToClarity(profileData.contrast, profileData.worry)}
+            onGenerateClarity={() => flipContrastToClarity(profileData.contrast)}
             isGenerating={isFlippingContrast}
           />
         </div>

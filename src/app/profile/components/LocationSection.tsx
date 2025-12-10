@@ -336,20 +336,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('home')}
           onDelete={handleDeleteRecording}
-        />
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel('home')}?`}
-          value={profile.dream_home || ''}
-          onChange={(value) => handleInputChange('dream_home', value)}
-          placeholder="What's your ideal vision for your home and living environment?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('home')}
-          instanceId="dream"
-        />
-        {/* Contrast Field */}
+        />        {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
           value={profile.contrast_home || ''}
@@ -360,20 +347,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
           storageFolder="profile"
           category={visionToRecordingKey('home')}
           instanceId="contrast"
-        />
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel('home')}?`}
-          value={profile.worry_home || ''}
-          onChange={(value) => handleInputChange('worry_home', value)}
-          placeholder="What concerns you most about your home, location, or living situation?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('home')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

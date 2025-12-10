@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, X, Sparkles, Zap, Download, VolumeX, Diamond, Copy } from 'lucide-react'
-import { Card, Button, Badge, ProgressBar, Spinner, Grid, TrackingMilestoneCard } from '@/lib/design-system/components'
+import { Card, Button, Badge, ProgressBar, Spinner, Grid, TrackingMilestoneCard, PageHero, Container, Stack } from '@/lib/design-system/components'
 import { VisionVersionCard } from './components/VisionVersionCard'
 import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
@@ -463,43 +463,18 @@ export default function VisionListPage() {
   }
 
   return (
-    <>
+    <Container size="xl">
+      <Stack gap="lg">
         {/* Page Hero - All Life Visions */}
-        <div className="mb-8">
-          {/* Subtle Gradient Background */}
-          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-            {/* Modern Enhanced Layout with Card Container */}
-            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-              
-              <div className="relative z-10">
-                {/* Eyebrow */}
-                <div className="text-center mb-4">
-                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                    THE LIFE I CHOOSE
-                  </div>
-                </div>
-                
-                {/* Title Section */}
-                <div className="text-center mb-4">
-                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
-                    All Life Visions
-                  </h1>
-                </div>
-                
-                {/* Subtitle */}
-                <div className="text-center">
-                  <p className="text-xs md:text-lg text-neutral-300">
-                    View all of your Life Vision versions below.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="All Life Visions"
+          subtitle="View all of your Life Vision versions below."
+        />
 
         {/* Create Button (only when no active vision) */}
         {!activeVision && (
-          <div className="flex justify-end mb-8">
+          <div className="flex justify-end">
             <Button
               onClick={() => router.push('/life-vision/new')}
               variant="primary"
@@ -513,7 +488,7 @@ export default function VisionListPage() {
 
         {/* Stats Cards */}
         {activeVision && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             <TrackingMilestoneCard
               label="Vision Versions"
               value={versions.length}
@@ -534,7 +509,7 @@ export default function VisionListPage() {
 
         {/* All Versions List */}
         {activeVision && versions.length > 0 && (
-          <Card className="p-6 mb-8">
+          <Card className="p-6">
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-white">Life Vision Versions</h3>
             </div>
@@ -704,7 +679,7 @@ export default function VisionListPage() {
             </Card>
           </div>
         )}
-
-    </>
+      </Stack>
+    </Container>
   )
 }

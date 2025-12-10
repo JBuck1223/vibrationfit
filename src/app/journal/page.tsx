@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import {  Card, Button, Video, CategoryCard } from '@/lib/design-system'
+import {  Card, Button, Video, CategoryCard, PageHero } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
@@ -264,54 +264,26 @@ export default function JournalPage() {
   return (
     <>
         {/* Header */}
-        <div className="mb-8">
-          {/* Gradient Border Wrapper */}
-          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-            {/* Inner Card with Gradient Background */}
-            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-              
-              <div className="relative z-10">
-                
-                {/* "THE LIFE I CHOOSE" Label */}
-                <div className="text-center mb-4">
-                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                    THE LIFE I CHOOSE
-                  </div>
-                </div>
-                
-                {/* Title Section */}
-                <div className="text-center mb-3">
-                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
-                    Conscious Creation Journal
-                  </h1>
-                </div>
-                
-                {/* Subtitle */}
-                <div className="text-center mb-6">
-                  <p className="text-xs md:text-lg text-neutral-300">
-                    Capture evidence of actualization in real time
-                  </p>
-                </div>
-
-                {/* Action Button */}
-                <div className="flex justify-center">
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                  >
-                    <Link href="/journal/new">
-                      <Plus className="w-4 h-4 shrink-0" />
-                      <span>New Entry</span>
-                    </Link>
-                  </Button>
-                </div>
-                
-              </div>
-            </div>
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Conscious Creation Journal"
+          subtitle="Capture evidence of actualization in real time"
+          className="mb-8"
+        >
+          <div className="flex justify-center">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href="/journal/new">
+                <Plus className="w-4 h-4 shrink-0" />
+                <span>New Entry</span>
+              </Link>
+            </Button>
           </div>
-        </div>
+        </PageHero>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">

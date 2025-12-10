@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge } from '@/lib/design-system/components'
+import { Button, Card, Badge, PageHero } from '@/lib/design-system/components'
 import { fetchAssessments, deleteAssessment, createAssessment } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import { 
@@ -127,12 +127,10 @@ export default function AssessmentHub() {
 
   return (
     <div className="min-h-screen bg-black">
-        <div className="text-center mb-8 md:mb-12">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">Assessment Hub</h1>
-          <p className="text-sm md:text-base lg:text-xl text-neutral-300 max-w-2xl mx-auto">
-            Manage your life assessments and track your progress across 12 key life areas.
-          </p>
-        </div>
+        <PageHero
+          title="Assessment Hub"
+          subtitle="Manage your life assessments and track your progress across 12 key life areas."
+        />
 
         {/* In-Progress Assessment Section */}
         {incompleteAssessment && (

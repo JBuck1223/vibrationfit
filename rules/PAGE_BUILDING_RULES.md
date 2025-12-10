@@ -188,6 +188,64 @@ export default function YourPage() {
 <Card variant="outlined">Outlined Card</Card>
 ```
 
+### PageHero - Centered Hero Title
+
+The `PageHero` component creates a stunning gradient-bordered hero section at the top of pages.
+
+```tsx
+import { PageHero } from '@/lib/design-system/components'
+
+// Basic usage
+<PageHero
+  eyebrow="THE LIFE I CHOOSE"
+  title="Page Title"
+  subtitle="Page description"
+/>
+
+// With custom content (video, buttons, etc.)
+<PageHero
+  eyebrow="THE LIFE I CHOOSE"
+  title="Welcome to Your Profile"
+  subtitle="Your profile is the foundation of your journey."
+>
+  {/* Video */}
+  <div className="mb-6">
+    <OptimizedVideo url={VIDEO_URL} />
+  </div>
+
+  {/* Buttons */}
+  <div className="flex gap-4 justify-center">
+    <Button variant="primary">Get Started</Button>
+    <Button variant="ghost">Learn More</Button>
+  </div>
+</PageHero>
+```
+
+**Features:**
+- **Gradient Border**: Rainbow gradient border (`#39FF14` → `#14B8A6` → `#BF00FF`)
+- **Gradient Background**: Soft background gradient for depth
+- **Responsive Text**: Auto-scales from mobile (`text-2xl`) to desktop (`text-5xl`)
+- **Centered Layout**: All content centered with proper spacing
+- **Flexible Content**: Use `children` prop for custom content (videos, badges, buttons)
+
+**Props:**
+- `eyebrow?: ReactNode` - Small uppercase text above title
+- `title: ReactNode` - Main hero title (can be string or JSX)
+- `subtitle?: ReactNode` - Descriptive text below title
+- `children?: ReactNode` - Custom content (videos, buttons, badges, etc.)
+- `className?: string` - Additional classes for wrapper
+
+**When to Use:**
+- Dashboard pages (profile, life-vision, etc.)
+- Welcome/onboarding pages  
+- Feature landing pages
+- Any page that needs a prominent hero section
+
+**Examples in Codebase:**
+- `/profile/page.tsx` - Profile dashboard
+- `/profile/new/page.tsx` - New user welcome
+- `/life-vision/page.tsx` - Vision dashboard
+
 ---
 
 ## 📋 Common Patterns

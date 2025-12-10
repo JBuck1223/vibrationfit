@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container } from '@/lib/design-system/components'
+import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container, PageHero } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VersionCard } from '../components/VersionCard'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
@@ -742,17 +742,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_love"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('love')}?`}
-              value={editedFields.dream_love !== undefined ? editedFields.dream_love : profile.dream_love}
-              type="story"
-              editable={editingSection === 'love'}
-              fieldKey="dream_love"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('love')}?`}
               value={editedFields.contrast_love !== undefined ? editedFields.contrast_love : profile.contrast_love}
               type="story"
@@ -760,17 +750,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_love"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('love')}?`}
-              value={editedFields.worry_love !== undefined ? editedFields.worry_love : profile.worry_love}
-              type="story"
-              editable={editingSection === 'love'}
-              fieldKey="worry_love"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'family':
@@ -820,17 +800,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_family"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('family')}?`}
-              value={editedFields.dream_family !== undefined ? editedFields.dream_family : profile.dream_family}
-              type="story"
-              editable={editingSection === 'family'}
-              fieldKey="dream_family"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
               value={editedFields.contrast_family !== undefined ? editedFields.contrast_family : profile.contrast_family}
               type="story"
@@ -838,17 +808,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_family"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('family')}?`}
-              value={editedFields.worry_family !== undefined ? editedFields.worry_family : profile.worry_family}
-              type="story"
-              editable={editingSection === 'family'}
-              fieldKey="worry_family"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'health':
@@ -905,17 +865,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_health"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('health')}?`}
-              value={editedFields.dream_health !== undefined ? editedFields.dream_health : profile.dream_health}
-              type="story"
-              editable={editingSection === 'health'}
-              fieldKey="dream_health"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
               value={editedFields.contrast_health !== undefined ? editedFields.contrast_health : profile.contrast_health}
               type="story"
@@ -923,17 +873,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_health"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('health')}?`}
-              value={editedFields.worry_health !== undefined ? editedFields.worry_health : profile.worry_health}
-              type="story"
-              editable={editingSection === 'health'}
-              fieldKey="worry_health"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'home':
@@ -1004,17 +944,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_home"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('home')}?`}
-              value={editedFields.dream_home !== undefined ? editedFields.dream_home : profile.dream_home}
-              type="story"
-              editable={editingSection === 'home'}
-              fieldKey="dream_home"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
               value={editedFields.contrast_home !== undefined ? editedFields.contrast_home : profile.contrast_home}
               type="story"
@@ -1022,17 +952,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_home"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('home')}?`}
-              value={editedFields.worry_home !== undefined ? editedFields.worry_home : profile.worry_home}
-              type="story"
-              editable={editingSection === 'home'}
-              fieldKey="worry_home"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'work':
@@ -1118,17 +1038,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_work"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('work')}?`}
-              value={editedFields.dream_work !== undefined ? editedFields.dream_work : profile.dream_work}
-              type="story"
-              editable={editingSection === 'work'}
-              fieldKey="dream_work"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('work')}?`}
               value={editedFields.contrast_work !== undefined ? editedFields.contrast_work : profile.contrast_work}
               type="story"
@@ -1136,17 +1046,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_work"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('work')}?`}
-              value={editedFields.worry_work !== undefined ? editedFields.worry_work : profile.worry_work}
-              type="story"
-              editable={editingSection === 'work'}
-              fieldKey="worry_work"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'money':
@@ -1241,17 +1141,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_money"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('money')}?`}
-              value={editedFields.dream_money !== undefined ? editedFields.dream_money : profile.dream_money}
-              type="story"
-              editable={editingSection === 'money'}
-              fieldKey="dream_money"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
               value={editedFields.contrast_money !== undefined ? editedFields.contrast_money : profile.contrast_money}
               type="story"
@@ -1259,17 +1149,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_money"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('money')}?`}
-              value={editedFields.worry_money !== undefined ? editedFields.worry_money : profile.worry_money}
-              type="story"
-              editable={editingSection === 'money'}
-              fieldKey="worry_money"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'fun':
@@ -1306,17 +1186,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_fun"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('fun')}?`}
-              value={editedFields.dream_fun !== undefined ? editedFields.dream_fun : profile.dream_fun}
-              type="story"
-              editable={editingSection === 'fun'}
-              fieldKey="dream_fun"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('fun')}?`}
               value={editedFields.contrast_fun !== undefined ? editedFields.contrast_fun : profile.contrast_fun}
               type="story"
@@ -1324,17 +1194,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_fun"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('fun')}?`}
-              value={editedFields.worry_fun !== undefined ? editedFields.worry_fun : profile.worry_fun}
-              type="story"
-              editable={editingSection === 'fun'}
-              fieldKey="worry_fun"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'travel':
@@ -1406,17 +1266,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_travel"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('travel')}?`}
-              value={editedFields.dream_travel !== undefined ? editedFields.dream_travel : profile.dream_travel}
-              type="story"
-              editable={editingSection === 'travel'}
-              fieldKey="dream_travel"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('travel')}?`}
               value={editedFields.contrast_travel !== undefined ? editedFields.contrast_travel : profile.contrast_travel}
               type="story"
@@ -1424,17 +1274,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_travel"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('travel')}?`}
-              value={editedFields.worry_travel !== undefined ? editedFields.worry_travel : profile.worry_travel}
-              type="story"
-              editable={editingSection === 'travel'}
-              fieldKey="worry_travel"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'social':
@@ -1475,17 +1315,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_social"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('social')}?`}
-              value={editedFields.dream_social !== undefined ? editedFields.dream_social : profile.dream_social}
-              type="story"
-              editable={editingSection === 'social'}
-              fieldKey="dream_social"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
               value={editedFields.contrast_social !== undefined ? editedFields.contrast_social : profile.contrast_social}
               type="story"
@@ -1493,17 +1323,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_social"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('social')}?`}
-              value={editedFields.worry_social !== undefined ? editedFields.worry_social : profile.worry_social}
-              type="story"
-              editable={editingSection === 'social'}
-              fieldKey="worry_social"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'stuff':
@@ -1598,17 +1418,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_stuff"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('stuff')}?`}
-              value={editedFields.dream_stuff !== undefined ? editedFields.dream_stuff : profile.dream_stuff}
-              type="story"
-              editable={editingSection === 'stuff'}
-              fieldKey="dream_stuff"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('stuff')}?`}
               value={editedFields.contrast_stuff !== undefined ? editedFields.contrast_stuff : profile.contrast_stuff}
               type="story"
@@ -1616,17 +1426,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_stuff"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('stuff')}?`}
-              value={editedFields.worry_stuff !== undefined ? editedFields.worry_stuff : profile.worry_stuff}
-              type="story"
-              editable={editingSection === 'stuff'}
-              fieldKey="worry_stuff"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'spirituality':
@@ -1676,17 +1476,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_spirituality"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('spirituality')}?`}
-              value={editedFields.dream_spirituality !== undefined ? editedFields.dream_spirituality : profile.dream_spirituality}
-              type="story"
-              editable={editingSection === 'spirituality'}
-              fieldKey="dream_spirituality"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
               value={editedFields.contrast_spirituality !== undefined ? editedFields.contrast_spirituality : profile.contrast_spirituality}
               type="story"
@@ -1694,17 +1484,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_spirituality"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('spirituality')}?`}
-              value={editedFields.worry_spirituality !== undefined ? editedFields.worry_spirituality : profile.worry_spirituality}
-              type="story"
-              editable={editingSection === 'spirituality'}
-              fieldKey="worry_spirituality"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'giving':
@@ -1754,17 +1534,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_giving"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('giving')}?`}
-              value={editedFields.dream_giving !== undefined ? editedFields.dream_giving : profile.dream_giving}
-              type="story"
-              editable={editingSection === 'giving'}
-              fieldKey="dream_giving"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('giving')}?`}
               value={editedFields.contrast_giving !== undefined ? editedFields.contrast_giving : profile.contrast_giving}
               type="story"
@@ -1772,17 +1542,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_giving"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('giving')}?`}
-              value={editedFields.worry_giving !== undefined ? editedFields.worry_giving : profile.worry_giving}
-              type="story"
-              editable={editingSection === 'giving'}
-              fieldKey="worry_giving"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       default:
@@ -1861,149 +1621,136 @@ export default function ProfileDetailPage() {
   return (
     <>
         {/* Page Hero */}
-        <div className="mb-8">
-          {/* Subtle Gradient Background */}
-          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-            {/* Modern Enhanced Layout with Card Container */}
-            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-              
-              <div className="relative z-10">
-                {/* Profile Picture */}
-                <div className="text-center mb-4 relative">
-                  <button
-                    ref={photoButtonRef}
-                    onClick={() => {
-                      if (!isViewingVersion) {
-                        setShowPhotoMenu(!showPhotoMenu)
-                      }
-                    }}
-                    disabled={isViewingVersion}
-                    className="inline-block relative group"
-                  >
-                    {profile.profile_picture_url ? (
-                      <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-white relative">
-                        <NextImage
-                          src={profile.profile_picture_url}
-                          alt="Profile picture"
-                          width={128}
-                          height={128}
-                          className="w-full h-full object-cover"
-                        />
-                        {!isViewingVersion && (
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
-                            <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 border-2 border-white flex items-center justify-center">
-                        <Camera className="w-8 h-8 md:w-12 md:h-12 text-white" />
-                      </div>
-                    )}
-                  </button>
-                  {/* Hidden file input */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        setSelectedFile(file)
-                        setShowPhotoUpload(true)
-                      }
-                    }}
-                    className="hidden"
+        <PageHero
+          title={profile.first_name && profile.last_name
+            ? `${profile.first_name} ${profile.last_name}`
+            : 'My Profile'}
+          className="mb-8"
+        >
+          {/* Profile Picture */}
+          <div className="text-center relative">
+            <button
+              ref={photoButtonRef}
+              onClick={() => {
+                if (!isViewingVersion) {
+                  setShowPhotoMenu(!showPhotoMenu)
+                }
+              }}
+              disabled={isViewingVersion}
+              className="inline-block relative group"
+            >
+              {profile.profile_picture_url ? (
+                <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-white relative">
+                  <NextImage
+                    src={profile.profile_picture_url}
+                    alt="Profile picture"
+                    width={128}
+                    height={128}
+                    className="w-full h-full object-cover"
                   />
-                  
-                  {/* Profile Photo Menu */}
-                  {showPhotoMenu && !isViewingVersion && (
-                    <div 
-                      ref={photoMenuRef}
-                      className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {/* Caret pointing up to photo */}
-                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white"></div>
-                      <div className="absolute -top-[9px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-b-[5px] border-transparent border-b-white"></div>
-                      <Card className="!p-1 min-w-[240px] md:min-w-[200px] shadow-xl relative !border !border-white !bg-white">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleSeeProfilePicture()
-                          }}
-                          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
-                        >
-                          <Eye className="w-4 h-4 text-[#1F1F1F]" />
-                          <span className="text-[#1F1F1F] text-sm">See profile picture</span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleSelectProfilePicture()
-                          }}
-                          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
-                        >
-                          <Camera className="w-4 h-4 text-[#1F1F1F]" />
-                          <span className="text-[#1F1F1F] text-sm">Update profile picture</span>
-                        </button>
-                      </Card>
+                  {!isViewingVersion && (
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                      <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </div>
                   )}
                 </div>
-
-                {/* Title Section */}
-                <div className="text-center mb-4">
-                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
-                    {profile.first_name && profile.last_name
-                      ? `${profile.first_name} ${profile.last_name}`
-                      : 'My Profile'}
-                  </h1>
+              ) : (
+                <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 border-2 border-white flex items-center justify-center">
+                  <Camera className="w-8 h-8 md:w-12 md:h-12 text-white" />
                 </div>
-
-                {/* Centered Version Info with Enhanced Styling */}
-                {versionInfo && (
-                  <div className="text-center mb-6">
-                    {/* Version, Status & Date Badges */}
-                    <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                      <VersionBadge 
-                        versionNumber={versionInfo.version_number} 
-                        status={displayStatus} 
-                      />
-                      <StatusBadge 
-                        status={displayStatus} 
-                        subtle={displayStatus !== 'active'}
-                        className="uppercase tracking-[0.25em]"
-                      />
-                      <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                        <CalendarDays className="w-4 h-4 text-neutral-500" />
-                        <span className="font-medium">Created:</span>
-                        <span>{new Date(versionInfo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                      </div>
-                      {/* Profile Completion Percentage */}
-                      <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
-                        {completionPercentage}%
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Buttons - Enhanced with Hover Effects */}
-                <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-                  <Button
-                    onClick={() => router.push('/profile')}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+              )}
+            </button>
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  setSelectedFile(file)
+                  setShowPhotoUpload(true)
+                }
+              }}
+              className="hidden"
+            />
+            
+            {/* Profile Photo Menu */}
+            {showPhotoMenu && !isViewingVersion && (
+              <div 
+                ref={photoMenuRef}
+                className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Caret pointing up to photo */}
+                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white"></div>
+                <div className="absolute -top-[9px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-b-[5px] border-transparent border-b-white"></div>
+                <Card className="!p-1 min-w-[240px] md:min-w-[200px] shadow-xl relative !border !border-white !bg-white">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSeeProfilePicture()
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
                   >
-                    <Eye className="w-4 h-4 shrink-0" />
-                    <span>See All Profiles</span>
-                  </Button>
+                    <Eye className="w-4 h-4 text-[#1F1F1F]" />
+                    <span className="text-[#1F1F1F] text-sm">See profile picture</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSelectProfilePicture()
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
+                  >
+                    <Camera className="w-4 h-4 text-[#1F1F1F]" />
+                    <span className="text-[#1F1F1F] text-sm">Update profile picture</span>
+                  </button>
+                </Card>
+              </div>
+            )}
+          </div>
+
+          {/* Centered Version Info with Enhanced Styling */}
+          {versionInfo && (
+            <div className="text-center">
+              {/* Version, Status & Date Badges */}
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                <VersionBadge 
+                  versionNumber={versionInfo.version_number} 
+                  status={displayStatus} 
+                />
+                <StatusBadge 
+                  status={displayStatus} 
+                  subtle={displayStatus !== 'active'}
+                  className="uppercase tracking-[0.25em]"
+                />
+                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                  <CalendarDays className="w-4 h-4 text-neutral-500" />
+                  <span className="font-medium">Created:</span>
+                  <span>{new Date(versionInfo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
+                {/* Profile Completion Percentage */}
+                <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
+                  {completionPercentage}%
+                </span>
               </div>
             </div>
+          )}
+
+          {/* Action Buttons - Enhanced with Hover Effects */}
+          <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+            <Button
+              onClick={() => router.push('/profile')}
+              variant="outline"
+              size="sm"
+              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Eye className="w-4 h-4 shrink-0" />
+              <span>See All Profiles</span>
+            </Button>
           </div>
-        </div>
+        </PageHero>
 
         {/* Main Content */}
         <Container size="xl">

@@ -141,6 +141,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     path: '/design-system/component/tracking-milestone-card'
   },
   {
+    id: 'category-grid',
+    name: 'Category Grid',
+    description: 'Responsive 14-column or 12-column grid for displaying category cards with selection, completion, and draft modes',
+    category: 'Patterns',
+    icon: GridIcon,
+    exportName: 'CategoryGrid',
+    path: '/design-system/component/category-grid'
+  },
+  {
     id: 'button',
     name: 'Button',
     description: 'Primary interactive element with multiple variants and sizes',
@@ -520,6 +529,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: PanelTop,
     exportName: 'PageHeader',
     path: '/design-system/component/page-header'
+  },
+  {
+    id: 'hero',
+    name: 'Page Hero',
+    description: 'Stunning gradient-bordered hero section with rainbow gradient border and dual-layer background - perfect for dashboard pages',
+    category: 'Patterns',
+    icon: Sparkles,
+    exportName: 'PageHero',
+    path: '/design-system/component/hero'
   },
   {
     id: 'page-titles',

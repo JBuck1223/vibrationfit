@@ -704,6 +704,133 @@ export const FeatureCard = React.forwardRef<HTMLDivElement, FeatureCardProps>(
 )
 FeatureCard.displayName = 'FeatureCard'
 
+// CategoryGrid Component - Responsive grid for category cards with selection/completion states
+interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
+  categories: Array<{
+    key: string
+    label: string
+    icon: React.ElementType
+  }>
+  selectedCategories?: string[]
+  completedCategories?: string[]
+  refinedCategories?: string[]
+  onCategoryClick?: (categoryKey: string) => void
+  layout?: '14-column' | '12-column' // 14 = all categories, 12 = exclude forward/conclusion
+  
+  // Mode system - determines what badges to show
+  mode?: 'selection' | 'completion' | 'draft'
+  
+  // Optional features
+  showSelectAll?: boolean
+  onSelectAll?: () => void
+  selectAllLabel?: string
+  variant?: 'default' | 'elevated' | 'outlined'
+  withCard?: boolean // Wrap in Card component
+  
+  // Custom colors (optional overrides)
+  completionBadgeColor?: string
+  refinementBadgeColor?: string
+}
+
+export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
+  ({ 
+    categories,
+    selectedCategories = [],
+    completedCategories = [],
+    refinedCategories = [],
+    onCategoryClick,
+    layout = '14-column',
+    mode = 'selection',
+    showSelectAll = false,
+    onSelectAll,
+    selectAllLabel,
+    variant = 'outlined',
+    withCard = true,
+    completionBadgeColor = '#39FF14',
+    refinementBadgeColor = '#FFFF00',
+    className = '',
+    ...props
+  }, ref) => {
+    // Determine grid class based on layout
+    const gridClass = layout === '14-column'
+      ? 'grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1'
+      : 'grid grid-cols-4 md:grid-cols-12 gap-3'
+
+    // Calculate if all are selected for "Select All" button
+    const allSelected = selectedCategories.length === categories.length
+
+    const gridContent = (
+      <div ref={ref} {...props}>
+        {/* Optional Select All Button */}
+        {showSelectAll && onSelectAll && (
+          <div className="flex justify-center mb-4">
+            <Button
+              onClick={onSelectAll}
+              variant="ghost"
+              size="sm"
+            >
+              {selectAllLabel || (allSelected ? 'Deselect All' : 'Select All')}
+            </Button>
+          </div>
+        )}
+
+        {/* Category Grid */}
+        <div className={gridClass}>
+          {categories.map((category) => {
+            const isSelected = selectedCategories.includes(category.key)
+            const isCompleted = completedCategories.includes(category.key)
+            const isRefined = refinedCategories.includes(category.key)
+            
+            // Determine badge display based on mode
+            const showBadge = 
+              (mode === 'completion' && isCompleted) || 
+              (mode === 'draft' && isRefined)
+            
+            const badgeColor = mode === 'draft' ? refinementBadgeColor : completionBadgeColor
+
+            return (
+              <div key={category.key} className="relative">
+                {/* Mode-based Badge */}
+                {showBadge && (
+                  <div
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 flex items-center justify-center z-10"
+                    style={{ borderColor: badgeColor }}
+                  >
+                    <Check className="w-3 h-3" style={{ color: badgeColor }} strokeWidth={3} />
+                  </div>
+                )}
+
+                <CategoryCard
+                  category={category}
+                  selected={isSelected}
+                  onClick={() => onCategoryClick?.(category.key)}
+                  variant={variant}
+                  selectionStyle="border"
+                  iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                  selectedIconColor="#39FF14"
+                  className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                />
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+
+    // Optionally wrap in Card
+    if (withCard) {
+      return (
+        <Card className={cn('p-4', className)}>
+          {gridContent}
+        </Card>
+      )
+    }
+
+    return gridContent
+  }
+)
+CategoryGrid.displayName = 'CategoryGrid'
+
 // CategoryCard Component - Square category selection card with icon and label
 // Optimized for mobile with minimal padding to maintain square aspect ratio
 interface CategoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -2199,7 +2326,7 @@ export const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
     return (
       <div
         ref={ref}
-        className={cn('min-h-screen bg-black text-white pt-6 pb-12 md:py-12 px-4 sm:px-6 lg:px-8', className)}
+        className={cn('min-h-screen bg-black text-white pt-6 pb-12 md:py-12 lg:pt-8 px-4 sm:px-6 lg:px-8', className)}
         {...props}
       >
         {children}
@@ -6047,6 +6174,81 @@ export const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
 PageHeader.displayName = 'PageHeader'
 
 // ============================================================================
+// PAGE HERO COMPONENT
+// ============================================================================
+
+export interface PageHeroProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+  eyebrow?: React.ReactNode
+  title: React.ReactNode
+  subtitle?: React.ReactNode
+  children?: React.ReactNode
+}
+
+export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
+  (
+    {
+      eyebrow,
+      title,
+      subtitle,
+      children,
+      className = '',
+      ...props
+    },
+    ref
+  ) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(className)}
+        {...props}
+      >
+        {/* Subtle Gradient Border */}
+        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+          {/* Modern Enhanced Layout with Card Container */}
+          <div className="relative px-4 py-6 lg:px-8 lg:py-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            
+            <div className="relative z-10">
+              {/* Eyebrow */}
+              {eyebrow && (
+                <div className="text-center mb-4">
+                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
+                    {eyebrow}
+                  </div>
+                </div>
+              )}
+              
+              {/* Title Section */}
+              <div className={cn("text-center", subtitle || children ? "mb-4" : "")}>
+                <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
+                  {title}
+                </h1>
+              </div>
+              
+              {/* Subtitle */}
+              {subtitle && (
+                <div className={cn("text-center", children ? "mb-6" : "")}>
+                  <p className="text-xs md:text-lg text-neutral-300">
+                    {subtitle}
+                  </p>
+                </div>
+              )}
+
+              {/* Custom Children (video, buttons, etc.) */}
+              {children && (
+                <div className="space-y-8 md:space-y-6 lg:space-y-8">
+                  {children}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+)
+PageHero.displayName = 'PageHero'
+
+// ============================================================================
 // TOGGLE COMPONENT
 // ============================================================================
 
@@ -7390,4 +7592,5 @@ export const TrackingMilestoneCard: React.FC<TrackingMilestoneCardProps> = ({
     </div>
   )
 }
+
 

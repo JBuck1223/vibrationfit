@@ -3,13 +3,10 @@ import { Sparkles } from 'lucide-react'
 
 interface ProfileClarityCardProps {
   clarityText?: string | null
-  dreamText?: string | null
   categoryLabel: string
 }
 
-export function ProfileClarityCard({ clarityText, dreamText, categoryLabel }: ProfileClarityCardProps) {
-  const hasData = clarityText || dreamText
-
+export function ProfileClarityCard({ clarityText, categoryLabel }: ProfileClarityCardProps) {
   return (
     <Card 
       variant="outlined" 
@@ -24,29 +21,18 @@ export function ProfileClarityCard({ clarityText, dreamText, categoryLabel }: Pr
         </h3>
       </div>
       
-      {hasData ? (
-        <div className="space-y-4">
-          {clarityText && (
-            <div>
-              <p className="text-xs text-[#00FFFF]/70 mb-2 font-medium">What's Going Well</p>
-              <p className="text-sm md:text-base text-neutral-200 leading-relaxed">{clarityText}</p>
-            </div>
-          )}
-          
-          {dreamText && (
-            <div>
-              <p className="text-xs text-[#00FFFF]/70 mb-2 font-medium">Your Dreams & Aspirations</p>
-              <p className="text-sm md:text-base text-neutral-200 leading-relaxed">{dreamText}</p>
-            </div>
-          )}
+      {clarityText ? (
+        <div>
+          <p className="text-xs text-[#00FFFF]/70 mb-2 font-medium">What's Going Well</p>
+          <p className="text-sm md:text-base text-neutral-200 leading-relaxed">{clarityText}</p>
         </div>
       ) : (
         <div className="space-y-2">
           <p className="text-neutral-400 text-sm">
-            No clarity or dreams recorded yet for {categoryLabel}.
+            No clarity recorded yet for {categoryLabel}.
           </p>
           <p className="text-[#00FFFF]/70 text-xs italic">
-            This will help VIVA understand your aspirations and what's already working well.
+            This will help VIVA understand what's already working well.
           </p>
         </div>
       )}

@@ -340,20 +340,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('work')}
           onDelete={handleDeleteRecording}
-        />
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
-          value={profile.dream_work || ''}
-          onChange={(value) => handleInputChange('dream_work', value)}
-          placeholder="What's your ideal vision for your career and professional life?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('work')}
-          instanceId="dream"
-        />
-        {/* Contrast Field */}
+        />        {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
           value={profile.contrast_work || ''}
@@ -364,20 +351,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           storageFolder="profile"
           category={visionToRecordingKey('work')}
           instanceId="contrast"
-        />
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
-          value={profile.worry_work || ''}
-          onChange={(value) => handleInputChange('worry_work', value)}
-          placeholder="What concerns you most about your career, job security, or professional growth?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('work')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

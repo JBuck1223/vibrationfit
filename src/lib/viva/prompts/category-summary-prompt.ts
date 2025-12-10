@@ -11,7 +11,7 @@
 
 import { VIVA_PERSONA } from './shared/viva-persona'
 import { flattenAssessmentResponsesNumbered } from '../prompt-flatteners'
-import { getCategoryClarityField, getCategoryDreamField, getCategoryContrastField, getCategoryWorryField } from '@/lib/design-system/vision-categories'
+import { getCategoryClarityField, getCategoryContrastField } from '@/lib/design-system/vision-categories'
 import { computeTargetLengthRange, combineTextSources } from '../text-metrics'
 
 export const CATEGORY_SUMMARY_SYSTEM_PROMPT = `${VIVA_PERSONA}
@@ -28,16 +28,12 @@ export function buildCategorySummaryPrompt(
   profile: any,
   assessment: any
 ): string {
-  // Get all 4 profile field types for this category
+  // Get clarity and contrast profile fields for this category
   const clarityField = getCategoryClarityField(category)
-  const dreamField = getCategoryDreamField(category)
   const contrastField = getCategoryContrastField(category)
-  const worryField = getCategoryWorryField(category)
   
   const profileClarity = profile?.[clarityField]?.trim() || null
-  const profileDream = profile?.[dreamField]?.trim() || null
   const profileContrast = profile?.[contrastField]?.trim() || null
-  const profileWorry = profile?.[worryField]?.trim() || null
 
   // Get category-specific assessment responses
   const categoryResponses = assessment?.responses?.filter((r: any) => r.category === category) || []
@@ -47,8 +43,8 @@ export function buildCategorySummaryPrompt(
     ? flattenAssessmentResponsesNumbered(categoryResponses, false)
     : ''
   
-  // Combine all text sources including new profile fields
-  const allProfileText = [profileClarity, profileDream, profileContrast, profileWorry]
+  // Combine all text sources from profile fields
+  const allProfileText = [profileClarity, profileContrast]
     .filter(Boolean)
     .join('\n\n')
   const combinedInput = combineTextSources(transcript, allProfileText, assessmentText)
@@ -64,40 +60,22 @@ export function buildCategorySummaryPrompt(
 `
   }
 
-  // Add profile clarity and dreams (Positive/Aspirational)
-  if (profileClarity || profileDream) {
-    dataSections += `## DATA SOURCE 2: User's Profile - Clarity & Dreams (Positive/Aspirational)
-`
-    if (profileClarity) {
-      dataSections += `**What's Going Well:**
+  // Add profile clarity (Positive/Aspirational)
+  if (profileClarity) {
+    dataSections += `## DATA SOURCE 2: User's Profile - Clarity (What's Going Well)
+**What's Going Well:**
 "${profileClarity}"
 
 `
-    }
-    if (profileDream) {
-      dataSections += `**Dreams & Aspirations:**
-"${profileDream}"
-
-`
-    }
   }
 
-  // Add profile contrast and worries (Awareness/Concerns)
-  if (profileContrast || profileWorry) {
-    dataSections += `## DATA SOURCE 3: User's Profile - Contrast & Worries (Awareness/Concerns)
-`
-    if (profileContrast) {
-      dataSections += `**What's Not Working:**
+  // Add profile contrast (Awareness/Concerns)
+  if (profileContrast) {
+    dataSections += `## DATA SOURCE 3: User's Profile - Contrast (What's Not Working)
+**What's Not Working:**
 "${profileContrast}"
 
 `
-    }
-    if (profileWorry) {
-      dataSections += `**Worries & Concerns:**
-"${profileWorry}"
-
-`
-    }
   }
 
   if (categoryResponses.length > 0) {

@@ -220,53 +220,21 @@ export function getCategoryContrastField(categoryKey: string): string {
 }
 
 /**
- * Get the dream field name for a category
- * e.g., 'fun' → 'dream_fun'
- */
-export function getCategoryDreamField(categoryKey: string): string {
-  return `dream_${categoryKey}`
-}
-
-/**
- * Get the worry field name for a category
- * e.g., 'fun' → 'worry_fun'
- */
-export function getCategoryWorryField(categoryKey: string): string {
-  return `worry_${categoryKey}`
-}
-
-/**
- * Get clarity, contrast, dream, and worry field names for a category
+ * Get clarity and contrast field names for a category
  */
 export function getCategoryFields(categoryKey: string): { 
   clarity: string
   contrast: string
-  dream: string
-  worry: string
 } {
   return {
     clarity: getCategoryClarityField(categoryKey),
     contrast: getCategoryContrastField(categoryKey),
-    dream: getCategoryDreamField(categoryKey),
-    worry: getCategoryWorryField(categoryKey),
   }
 }
 
 // Map of all category story fields for batch operations
 export const CATEGORY_STORY_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
   acc[key] = getCategoryStoryField(key)
-  return acc
-}, {} as Record<string, string>)
-
-// Map of all category dream fields for batch operations
-export const CATEGORY_DREAM_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
-  acc[key] = getCategoryDreamField(key)
-  return acc
-}, {} as Record<string, string>)
-
-// Map of all category worry fields for batch operations
-export const CATEGORY_WORRY_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
-  acc[key] = getCategoryWorryField(key)
   return acc
 }, {} as Record<string, string>)
 

@@ -10,6 +10,7 @@ import {
   Button,
   Spinner,
   Badge,
+  PageHero,
 } from '@/lib/design-system/components'
 import { Sparkles } from 'lucide-react'
 
@@ -54,16 +55,12 @@ export default function InitialVoiceAnalyzerPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
-        <Stack gap="sm">
-          <Inline gap="sm" align="center">
-            <Sparkles className="w-8 h-8 text-primary-500" />
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Initial Voice Analyzer</h1>
-          </Inline>
-          <p className="text-neutral-400 text-sm md:text-base max-w-3xl">
-            Generate your first voice profile based on your clarity and dream statements from your user profile. This gives VIVA a starting point to write in your voice before you have scenes, journals, or vision paragraphs.
-          </p>
-        </Stack>
+      <Stack gap="md">
+        <PageHero
+          eyebrow="MY VOICE"
+          title="Initial Voice Analyzer"
+          subtitle="Generate your first voice profile based on your clarity and dream statements from your user profile. This gives VIVA a starting point to write in your voice before you have scenes, journals, or vision paragraphs."
+        />
 
         <Card className="p-6 space-y-6">
           <Stack gap="sm">

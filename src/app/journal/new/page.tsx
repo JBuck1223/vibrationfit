@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, CategoryCard, DatePicker } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard, DatePicker, PageHero } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -235,14 +235,11 @@ export default function NewJournalEntryPage() {
   return (
     <>
         <div className="pb-8">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-white mb-2">
-              New Journal Entry
-            </h1>
-            <p className="text-neutral-400">
-              Capture your thoughts, evidence, and insights
-            </p>
-          </div>
+          <PageHero
+            title="New Journal Entry"
+            subtitle="Capture your thoughts, evidence, and insights"
+            className="mb-8"
+          />
 
           <Card>
             <form onSubmit={handleSubmit} className="space-y-6">

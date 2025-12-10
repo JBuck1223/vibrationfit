@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, StatusBadge, Icon, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
-import { CheckCircle, Eye, Headphones, Mic, Check } from 'lucide-react'
+import { CheckCircle, Eye, Headphones, Mic, Check, Wand2, Clock, ListMusic } from 'lucide-react'
 import Link from 'next/link'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -215,72 +215,86 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
     <Container size="xl">
       {/* Header */}
       <div className="mb-8">
-        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            <div className="relative z-10">
-              {/* Eyebrow */}
-              <div className="text-center mb-4">
-                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  THE LIFE I CHOOSE
-                </div>
-              </div>
-              
-              {/* Title Section */}
-              <div className="text-center mb-4">
-                <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
-                  Personal Voice Recording
-                </h1>
-                <p className="text-sm md:text-base text-neutral-400 mt-2">
-                  Read your Life Vision in your own voice
-                </p>
-              </div>
-              
-              {/* Stats */}
-              {vision && (
-                <div className="flex justify-center mb-4">
-                  <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                    <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
-                      V{vision.version_number}
-                    </span>
-                    <StatusBadge status="active" subtle={false} showIcon={false} className="uppercase tracking-[0.25em]" />
-                    <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-[#39FF14]/20 text-[#39FF14] border-[#39FF14]/30">
-                      <Mic className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
-                      {completedCount} of {totalCount} recorded
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-                <Button
-                  onClick={() => router.push(`/life-vision/${visionId}`)}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2"
-                >
-                  <Eye className="w-4 h-4 shrink-0" />
-                  <span>View Vision</span>
-                </Button>
-                
-                <Button
-                  onClick={() => router.push(`/life-vision/${visionId}/audio`)}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2"
-                >
-                  <Headphones className="w-4 h-4 shrink-0" />
-                  <span>Audio Sets</span>
-                </Button>
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Personal Voice Recording"
+          subtitle="Read your Life Vision in your own voice"
+        >
+          {/* Stats */}
+          {vision && (
+            <div className="flex justify-center">
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                <span className="w-7 h-7 flex items-center justify-center bg-[#39FF14] text-black rounded-full text-xs font-semibold">
+                  V{vision.version_number}
+                </span>
+                <StatusBadge status="active" subtle={false} showIcon={false} className="uppercase tracking-[0.25em]" />
+                <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-[#39FF14]/20 text-[#39FF14] border-[#39FF14]/30">
+                  <Mic className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
+                  {completedCount} of {totalCount} recorded
+                </span>
               </div>
             </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
+            <Button
+              onClick={() => router.push(`/life-vision/${visionId}/audio/sets`)}
+              variant="outline"
+              size="sm"
+              className="w-full col-span-2 lg:col-span-1 flex items-center justify-center gap-2"
+            >
+              <ListMusic className="w-4 h-4" />
+              <span>Audio Sets</span>
+            </Button>
+            
+            <Button
+              onClick={() => router.push(`/life-vision/${visionId}/audio/generate`)}
+              variant="outline"
+              size="sm"
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <Wand2 className="w-4 h-4" />
+              <span>Generate</span>
+            </Button>
+            
+            <Button
+              onClick={() => router.push(`/life-vision/${visionId}/audio/queue`)}
+              variant="outline"
+              size="sm"
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <Clock className="w-4 h-4" />
+              <span>Queue</span>
+            </Button>
+            
+            <Button
+              onClick={() => router.push(`/life-vision/audio`)}
+              variant="outline"
+              size="sm"
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <Headphones className="w-4 h-4" />
+              <span>All Audios</span>
+            </Button>
+            
+            <Button
+              onClick={() => router.push(`/life-vision/${visionId}`)}
+              variant="outline"
+              size="sm"
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              <span className="lg:hidden">Vision</span>
+              <span className="hidden lg:inline">View Vision</span>
+            </Button>
           </div>
-        </div>
+        </PageHero>
       </div>
 
       {/* Category Selection Bar */}
       <div className="mb-6">
-        <Card>
+        <Card className="p-4">
           <div className="mb-4 text-center">
             <h3 className="text-lg font-semibold text-white mb-1">Select Section to Record</h3>
             <p className="text-sm text-neutral-400">
@@ -294,7 +308,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
           </div>
 
           {/* Category Grid */}
-          <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
+          <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
             {VISION_SECTIONS.map((section) => {
               const IconComponent = section.icon
               const isCompleted = recordings.has(section.key)
@@ -339,11 +353,20 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
         <Card className="p-6 md:p-8">
           {/* Section Header */}
           <div className="flex items-start justify-between mb-6">
-            <div className="flex-1">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                {activeSessionSection.label}
-              </h2>
-              <p className="text-sm text-neutral-400">{activeSessionSection.description}</p>
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary-500">
+                <Icon 
+                  icon={activeSessionSection.icon} 
+                  size="sm" 
+                  color="#000000"
+                />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-white">
+                  {activeSessionSection.label}
+                </h2>
+                <p className="text-sm text-neutral-400">{activeSessionSection.description}</p>
+              </div>
             </div>
             {isRecorded && (
               <div className="ml-4">

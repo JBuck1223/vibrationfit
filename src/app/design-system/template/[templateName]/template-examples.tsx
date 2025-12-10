@@ -282,7 +282,7 @@ export function renderTemplateExample(templateId: string) {
                   Life Vision Category Selection Grid
                 </Heading>
                 <p className="text-sm text-neutral-400 mb-4">
-                  Live example from /life-vision/[id] - 4 cols mobile, 7 cols tablet, 14 cols desktop
+                  Live example from /life-vision/[id] - 4 cols mobile, 5 cols tablet, 7 cols iPad landscape, 14 cols desktop
                 </p>
               </div>
 
@@ -299,7 +299,7 @@ export function renderTemplateExample(templateId: string) {
               </div>
 
               {/* Category Grid - Matches /life-vision/[id] exactly */}
-              <div className="grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
+              <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
                 {VISION_CATEGORIES.map((category) => {
                   const isSelected = selectedCategories.includes(category.key)
                   return (

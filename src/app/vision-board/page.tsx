@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard, PageHero } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -313,48 +313,24 @@ export default function VisionBoardPage() {
   return (
     <>
         {/* Header */}
-        <div className="mb-8">
-          {/* Hero Header with Gradient Background */}
-          <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-            <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-              <div className="relative z-10">
-                {/* "THE LIFE I CHOOSE" Label */}
-                <div className="text-center mb-4">
-                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                    THE LIFE I CHOOSE
-                  </div>
-                </div>
-                
-                {/* Title Section */}
-                <div className="text-center mb-3">
-                  <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
-                    Vision Board
-                  </h1>
-                </div>
-                
-                {/* Subtitle */}
-                <div className="text-center mb-6">
-                  <p className="text-xs md:text-lg text-neutral-300">
-                    Visualize and track your conscious creations
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-center">
-                  <Button
-                    onClick={() => router.push('/vision-board/new')}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                  >
-                    <Plus className="w-4 h-4 shrink-0" />
-                    <span>Add Creation</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Vision Board"
+          subtitle="Visualize and track your conscious creations"
+          className="mb-8"
+        >
+          <div className="flex justify-center">
+            <Button
+              onClick={() => router.push('/vision-board/new')}
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Plus className="w-4 h-4 shrink-0" />
+              <span>Add Creation</span>
+            </Button>
           </div>
-        </div>
+        </PageHero>
 
           {/* Stats - Responsive Grid */}
           <div id="stats" className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">

@@ -329,20 +329,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('travel')}
           onDelete={handleDeleteRecording}
-        />
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel('travel')}?`}
-          value={profile.dream_travel || ''}
-          onChange={(value) => handleInputChange('dream_travel', value)}
-          placeholder="What's your ideal vision for travel and adventure? Where do you dream of going and what experiences do you crave?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('travel')}
-          instanceId="dream"
-        />
-        {/* Contrast Field */}
+        />        {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel('travel')}?`}
           value={profile.contrast_travel || ''}
@@ -353,20 +340,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           storageFolder="profile"
           category={visionToRecordingKey('travel')}
           instanceId="contrast"
-        />
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel('travel')}?`}
-          value={profile.worry_travel || ''}
-          onChange={(value) => handleInputChange('worry_travel', value)}
-          placeholder="What concerns you most about travel—time, money, responsibilities, or something else?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('travel')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (
