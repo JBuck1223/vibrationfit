@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, Card, Button, Stack, Inline, Text, DatePicker } from '@/lib/design-system/components'
+import { Container, Card, Button, Stack, Inline, Text, DatePicker, PageHero } from '@/lib/design-system/components'
 import { UploadCloud, Save, HelpCircle } from 'lucide-react'
 import { RecordingInput } from '@/components/RecordingInput'
 import { FileUpload } from '@/components/FileUpload'
@@ -176,11 +176,11 @@ export default function NewDailyPaperPage() {
   return (
     <Container size="xl">
       <Stack gap="xl">
-        <section className="space-y-3 text-center">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">
-            Daily Paper Entry
-          </h1>
-        </section>
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Daily Paper Entry"
+          subtitle="Your daily practice for vibrational alignment"
+        />
 
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <form onSubmit={handleSubmit}>

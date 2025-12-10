@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog, Container, Stack } from '@/lib/design-system/components'
 import { fetchAssessments, deleteAssessment, createAssessment, fetchAssessmentProgress, AssessmentProgress } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import { 
@@ -156,26 +156,27 @@ export default function AssessmentHub() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black">
-        <div className="text-center">
+      <Container size="xl">
+        <div className="text-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
           <p className="mt-4 text-sm md:text-base text-neutral-400">Loading your assessments...</p>
         </div>
-      </div>
+      </Container>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <Container size="xl">
+      <Stack gap="lg">
         <PageHero
+          eyebrow="THE LIFE I CHOOSE"
           title="Assessment Hub"
           subtitle="Manage your life assessments and track your progress across 12 key life areas."
-          className="mb-6 md:mb-8"
         />
 
         {/* In-Progress Assessment Section */}
         {incompleteAssessment && (
-          <Card variant="elevated" className="mb-6 md:mb-8 p-4 md:p-6">
+          <Card variant="elevated" className="p-4 md:p-6">
             <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Clock className="w-5 h-5 md:w-6 md:h-6 text-[#1F1F1F]" />
@@ -231,7 +232,7 @@ export default function AssessmentHub() {
         )}
 
         {/* Start New Assessment Section */}
-        <Card variant="elevated" className="mb-6 md:mb-8 p-4 md:p-6">
+        <Card variant="elevated" className="p-4 md:p-6">
           <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0">
               <PlusCircle className="w-5 h-5 md:w-6 md:h-6 text-[#1F1F1F]" />
@@ -396,19 +397,20 @@ export default function AssessmentHub() {
             </Button>
           </Card>
         )}
+      </Stack>
 
-        {/* Delete Confirmation Dialog */}
-        <DeleteConfirmationDialog
-          isOpen={showDeleteDialog}
-          onClose={() => {
-            setShowDeleteDialog(false)
-            setAssessmentToDelete(null)
-          }}
-          onConfirm={handleConfirmDelete}
-          itemName="assessment"
-          itemType="assessment"
-          isLoading={deletingId === assessmentToDelete}
-        />
-    </div>
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false)
+          setAssessmentToDelete(null)
+        }}
+        onConfirm={handleConfirmDelete}
+        itemName="assessment"
+        itemType="assessment"
+        isLoading={deletingId === assessmentToDelete}
+      />
+    </Container>
   )
 }

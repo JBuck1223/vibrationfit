@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {  Card, Button, Badge } from '@/lib/design-system/components'
+import {  Card, Button, Badge, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { CreditCard, Calendar, TrendingUp, ExternalLink, AlertCircle, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -61,13 +61,13 @@ export default function BillingPage() {
   }
 
   return (
-    <>
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Billing & Subscription</h1>
-          <p className="text-neutral-400">
-            Manage your membership and payment details
-          </p>
-        </div>
+    <Container size="xl">
+      <Stack gap="lg">
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Billing & Subscription"
+          subtitle="Manage your membership and payment details"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Current Plan */}
@@ -199,7 +199,8 @@ export default function BillingPage() {
             </Card>
           </div>
         </div>
-    </>
+      </Stack>
+    </Container>
   )
 }
 

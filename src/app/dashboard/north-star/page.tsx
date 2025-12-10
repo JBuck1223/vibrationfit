@@ -11,6 +11,7 @@ import {
   Stack,
   Grid,
   Inline,
+  PageHero,
 } from '@/lib/design-system/components'
 import { ArrowUpRight, ArrowDownRight, Minus, ArrowRight } from 'lucide-react'
 import type {

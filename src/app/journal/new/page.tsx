@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, CategoryCard, DatePicker, PageHero } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard, DatePicker, PageHero, Container, Stack } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -233,15 +233,15 @@ export default function NewJournalEntryPage() {
   }
 
   return (
-    <>
-        <div className="pb-8">
-          <PageHero
-            title="New Journal Entry"
-            subtitle="Capture your thoughts, evidence, and insights"
-            className="mb-8"
-          />
+    <Container size="xl">
+      <Stack gap="lg">
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="New Journal Entry"
+          subtitle="Capture your thoughts, evidence, and insights"
+        />
 
-          <Card>
+        <Card>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Date */}
               <div>
@@ -432,8 +432,7 @@ export default function NewJournalEntryPage() {
               </div>
             </form>
           </Card>
-        </div>
-
-    </>
+      </Stack>
+    </Container>
   )
 }

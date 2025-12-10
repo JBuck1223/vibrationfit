@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Button, Badge, ProgressBar, TrackingMilestoneCard } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, ProgressBar, TrackingMilestoneCard, Stack, PageHero } from '@/lib/design-system/components'
 import { HardDrive, Image, Video, Music, FileText, Folder, Clock, Trash2, ExternalLink, X } from 'lucide-react'
 import Link from 'next/link'
 
@@ -79,13 +79,13 @@ export default function StoragePage() {
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
         {/* Header */}
-        <div className="mb-8 md:mb-12">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">Storage Usage</h1>
-          <p className="text-sm md:text-base text-neutral-400">
-            Track your file storage across all features
-          </p>
-        </div>
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Storage Usage"
+          subtitle="Track your file storage across all features"
+        />
 
         {loading ? (
           <div className="text-center py-12">
@@ -95,7 +95,7 @@ export default function StoragePage() {
         ) : (
           <>
             {/* Overview Card */}
-            <Card className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-2 border-primary-500/30">
+            <Card className="p-4 md:p-6 lg:p-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-2 border-primary-500/30">
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <div className="flex items-center gap-3 mb-4">
@@ -139,7 +139,7 @@ export default function StoragePage() {
             </Card>
 
             {/* Storage by Type */}
-            <Card className="p-6 mb-8">
+            <Card className="p-6">
               <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">Storage by Type</h2>
               
               {data?.storageByType && Object.keys(data.storageByType).length > 0 ? (
@@ -275,7 +275,7 @@ export default function StoragePage() {
             )}
 
             {/* Storage Tips */}
-            <Card className="p-6 bg-neutral-900 mt-8">
+            <Card className="p-6 bg-neutral-900">
               <h2 className="text-xl font-bold text-white mb-4">Storage Tips</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-start gap-3">
@@ -329,8 +329,9 @@ export default function StoragePage() {
             </Card>
           </>
         )}
+      </Stack>
 
-        {/* File Preview Modal */}
+      {/* File Preview Modal */}
         {previewFile && (
           <div 
             className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"

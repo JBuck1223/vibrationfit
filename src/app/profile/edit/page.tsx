@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import {  Button, Badge, Card, StatusBadge } from '@/lib/design-system/components'
+import {  Button, Badge, Card, StatusBadge, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { ProfileSidebar } from '../components/ProfileSidebar'
 import { PersonalInfoSection } from '../components/PersonalInfoSection'
 import { RelationshipSection } from '../components/RelationshipSection'
@@ -632,36 +632,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <>
-      {/* Header */}
-      <div className="mb-8">
-        {/* Mobile Header */}
-        <div className="md:hidden space-y-4 mb-4">
-          {/* Title and Badge */}
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-white">Complete Your Profile</h1>
-            </div>
-            <p className="text-neutral-400 text-sm">
-              Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
-            </p>
-          </div>
-        </div>
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Complete Your Profile"
+          subtitle="Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes."
+        />
 
-        {/* Desktop Header */}
-        <div className="hidden md:flex items-center gap-4 mb-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-white">Complete Your Profile</h1>
-            </div>
-            <p className="text-neutral-400">
-              Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.
-            </p>
-          </div>
-        </div>
-      </div>
-
-        <div className="mb-4">
+        <div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               {saveStatus === 'saving' && (
@@ -741,7 +721,7 @@ export default function ProfilePage() {
 
         {/* Error Display */}
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-500" />
               <span className="text-red-400">{error}</span>
@@ -751,7 +731,7 @@ export default function ProfilePage() {
 
         {/* Versions List */}
         {showVersions && (
-          <div className="mb-6 p-6 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+          <div className="p-6 bg-neutral-800/50 border border-neutral-700 rounded-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Profile Versions</h3>
               <Button
@@ -817,7 +797,7 @@ export default function ProfilePage() {
         )}
 
         {/* Mobile Dropdown Navigation */}
-        <div className="lg:hidden mb-6">
+        <div className="lg:hidden">
           <Card className="p-4">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -952,6 +932,7 @@ export default function ProfilePage() {
             </Card>
           </div>
         )}
-      </>
-    )
-  }
+      </Stack>
+    </Container>
+  )
+}

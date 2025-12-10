@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Input, Button, CategoryCard } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard, Container, Stack, PageHero } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
@@ -353,25 +353,26 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
   }
 
   return (
-    <>
-      {/* Header */}
-      {!isEditing && (
-        <div className="mb-6 md:mb-8">
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+    <Container size="xl">
+      <Stack gap="lg">
+        {!isEditing && (
+          <PageHero
+            eyebrow="THE LIFE I CHOOSE"
+            title={item?.name || 'Vision Board Item'}
+            subtitle="View and manage your creation"
+          >
             <Button variant="ghost" size="sm" onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-          </div>
-        </div>
-      )}
+          </PageHero>
+        )}
 
-      {isEditing && (
-        <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 text-center -mt-1 md:-mt-3">Edit Creation</h2>
-      )}
+        {isEditing && (
+          <h2 className="text-2xl md:text-3xl font-bold text-white text-center">Edit Creation</h2>
+        )}
 
-      <Card className="p-4 md:p-6 lg:p-8">
+        <Card className="p-4 md:p-6 lg:p-8">
           {isEditing ? (
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-8">
               {/* Name */}
@@ -916,6 +917,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             </Card>
           </div>
         )}
-    </>
+      </Stack>
+    </Container>
   )
 }

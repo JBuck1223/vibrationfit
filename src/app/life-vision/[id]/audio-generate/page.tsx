@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge, PageHero } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { Headphones, CheckCircle, Play, CalendarDays, Moon, Zap, Sparkles, Plus, Music, X, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
@@ -412,23 +412,11 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
     <Container size="xl">
       <Stack gap="lg">
         {/* Hero Header */}
-        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            <div className="relative z-10">
-              <div className="text-center mb-4">
-                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  THE LIFE I CHOOSE
-                </div>
-              </div>
-              
-              <div className="text-center mb-4">
-                <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
-                  Generate Audio Sets
-                </h1>
-                <p className="text-sm md:text-base text-neutral-300 mt-2">
-                  Create voice-only tracks, then add background music mixes
-                </p>
-              </div>
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Generate Audio Sets"
+          subtitle="Create voice-only tracks, then add background music mixes"
+        >
               
               {vision && (
                 <div className="flex justify-center mb-4">
@@ -450,9 +438,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
+        </PageHero>
 
         {/* SECTION 1: Voice Only Tracks */}
         <Card variant="elevated">

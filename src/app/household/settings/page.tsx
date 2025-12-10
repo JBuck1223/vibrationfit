@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, Button, Card, Input, Badge, Spinner } from '@/lib/design-system/components'
+import { Container, Button, Card, Input, Badge, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 
 export default function HouseholdSettingsPage() {
   const router = useRouter()
@@ -169,24 +169,24 @@ export default function HouseholdSettingsPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <Button 
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push('/dashboard')}
-          className="mb-3 md:mb-4"
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Household Settings"
+          subtitle="Manage your household account and members"
         >
-          ← Back to Dashboard
-        </Button>
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-1 md:mb-2">Household Settings</h1>
-        <p className="text-sm md:text-base text-neutral-300">
-          Manage your household account and members
-        </p>
-      </div>
+          <Button 
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/dashboard')}
+          >
+            ← Back to Dashboard
+          </Button>
+        </PageHero>
 
-      {/* Household Info Card */}
-      <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+        {/* Household Info Card */}
+        <Card variant="elevated" className="p-4 md:p-6 lg:p-8">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-0">
           <div>
             <h2 className="text-xl md:text-2xl font-semibold mb-1">{householdInfo.name}</h2>
@@ -226,9 +226,9 @@ export default function HouseholdSettingsPage() {
         )}
       </Card>
 
-      {/* Members List */}
-      {members && members.length > 0 && (
-        <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+        {/* Members List */}
+        {members && members.length > 0 && (
+          <Card variant="elevated" className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Household Members</h2>
             
             <div className="space-y-4">
@@ -263,11 +263,11 @@ export default function HouseholdSettingsPage() {
               })}
           </div>
         </Card>
-      )}
+        )}
 
-      {/* Invite New Member (Admin Only) */}
-      {isAdmin && members && members.length < householdInfo.max_members && (
-        <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+        {/* Invite New Member (Admin Only) */}
+        {isAdmin && members && members.length < householdInfo.max_members && (
+          <Card variant="elevated" className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Invite Member</h2>
           
           <div className="flex flex-col md:flex-row gap-3 md:gap-4">
@@ -297,11 +297,11 @@ export default function HouseholdSettingsPage() {
             <p className="text-primary-500 text-xs md:text-sm mt-2">{inviteSuccess}</p>
           )}
         </Card>
-      )}
+        )}
 
-      {/* Pending Invitations (Admin Only) */}
-      {isAdmin && invitations && invitations.length > 0 && (
-        <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+        {/* Pending Invitations (Admin Only) */}
+        {isAdmin && invitations && invitations.length > 0 && (
+          <Card variant="elevated" className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Pending Invitations</h2>
             
           <div className="space-y-3">
@@ -328,7 +328,8 @@ export default function HouseholdSettingsPage() {
             ))}
           </div>
         </Card>
-      )}
+        )}
+      </Stack>
 
       {/* Delete Confirmation Dialog */}
       {showDeleteDialog && (

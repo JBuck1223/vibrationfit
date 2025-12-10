@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Button, Badge, Spinner, Heading, Text, Stack, Container } from '@/lib/design-system/components'
+import { Card, Button, Badge, Spinner, Heading, Text, Stack, Container, PageHero } from '@/lib/design-system/components'
 import { VersionComparison } from '../components/VersionComparison'
 import { VersionSelector } from '../components/VersionSelector'
 import { ArrowLeft } from 'lucide-react'
@@ -80,20 +80,21 @@ export default function ProfileComparePage() {
   if (showSelector || !version1Id || !version2Id) {
     return (
       <Container size="xl">
-        <div className="mb-6">
-          <Button
-            onClick={handleBack}
-            variant="ghost"
-            className="text-neutral-400 hover:text-white mb-4"
+        <Stack gap="lg">
+          <PageHero
+            eyebrow="THE LIFE I CHOOSE"
+            title="Compare Profile Versions"
+            subtitle="Select two versions to compare and see what changed between them."
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Profile
-          </Button>
-          <Heading level={1} className="text-white mb-2">Compare Profile Versions</Heading>
-          <Text className="text-neutral-400">
-            Select two versions to compare and see what changed between them.
-          </Text>
-        </div>
+            <Button
+              onClick={handleBack}
+              variant="ghost"
+              className="text-neutral-400 hover:text-white"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Back to Profile
+            </Button>
+          </PageHero>
         
         {versions.length < 2 ? (
           <Card className="p-8 text-center">
@@ -111,6 +112,7 @@ export default function ProfileComparePage() {
             onClose={handleBack}
           />
         )}
+        </Stack>
       </Container>
     )
   }
@@ -118,22 +120,28 @@ export default function ProfileComparePage() {
   // Show comparison view
   return (
     <Container size="xl">
-      <div className="mb-6">
-        <Button
-          onClick={handleBack}
-          variant="ghost"
-          className="text-neutral-400 hover:text-white mb-4"
+      <Stack gap="lg">
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Compare Profile Versions"
+          subtitle="View changes between versions"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to Profile
-        </Button>
-      </div>
-      
-      <VersionComparison
-        version1Id={version1Id}
-        version2Id={version2Id}
-        onClose={handleBack}
-      />
+          <Button
+            onClick={handleBack}
+            variant="ghost"
+            className="text-neutral-400 hover:text-white"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Profile
+          </Button>
+        </PageHero>
+        
+        <VersionComparison
+          version1Id={version1Id}
+          version2Id={version2Id}
+          onClose={handleBack}
+        />
+      </Stack>
     </Container>
   )
 }

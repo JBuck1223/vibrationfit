@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Eye, Headphones, Music, Moon, Zap, Sparkles, Clock, CheckCircle, Circle, X, Target, Volume2, CalendarDays } from 'lucide-react'
-import { Card, Button, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard } from '@/lib/design-system/components'
+import { Card, Button, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { colors } from '@/lib/design-system/tokens'
 
@@ -311,75 +311,46 @@ export default function AllVisionAudiosPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center py-16">
-            <Spinner variant="primary" size="lg" />
-          </div>
+      <Container size="xl">
+        <div className="flex items-center justify-center py-20">
+          <Spinner variant="primary" size="lg" />
         </div>
-      </div>
+      </Container>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="text-red-500 mb-4">
-                <X className="w-16 h-16 mx-auto" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Error Loading Audios</h2>
-              <p className="text-neutral-400 mb-6">{error}</p>
-              <Button onClick={fetchAudioSets} variant="primary">
-                Try Again
-              </Button>
+      <Container size="xl">
+        <div className="flex items-center justify-center py-16">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <X className="w-16 h-16 mx-auto" />
             </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Error Loading Audios</h2>
+            <p className="text-neutral-400 mb-6">{error}</p>
+            <Button onClick={fetchAudioSets} variant="primary">
+              Try Again
+            </Button>
           </div>
         </div>
-      </div>
+      </Container>
     )
   }
 
   return (
-    <>
-      {/* Page Hero - All Vision Audios */}
-      <div className="mb-8">
-        {/* Subtle Gradient Background */}
-        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          {/* Modern Enhanced Layout with Card Container */}
-          <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            
-            <div className="relative z-10">
-              {/* Eyebrow */}
-              <div className="text-center mb-3">
-                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  THE LIFE I CHOOSE
-                </div>
-              </div>
-              
-              {/* Title Section */}
-              <div className="text-center mb-4">
-                <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
-                  All Vision Audios
-                </h1>
-              </div>
-              
-              {/* Subtitle */}
-              <div className="text-center">
-                <h4 className="text-xs md:text-xl text-neutral-300 max-w-3xl mx-auto font-normal">
-                  Browse all audio sets generated from your Life Visions.
-                </h4>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Page Hero - All Vision Audios */}
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="All Vision Audios"
+          subtitle="Browse all audio sets generated from your Life Visions."
+        />
 
-      {/* Stats Cards */}
-      {visionVersions.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+        {/* Stats Cards */}
+        {visionVersions.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
           <TrackingMilestoneCard
             label="Vision Versions"
             value={visionCount}
@@ -396,11 +367,11 @@ export default function AllVisionAudiosPage() {
             theme="primary"
           />
         </div>
-      )}
+        )}
 
-      {/* All Audio Sets List */}
-      {visionVersions.length > 0 ? (
-        <Card className="p-6 mb-8">
+        {/* All Audio Sets List */}
+        {visionVersions.length > 0 ? (
+          <Card className="p-6">
           <div className="text-center mb-6">
             <h3 className="text-2xl font-bold text-white">Vision Versions Audio Sets</h3>
           </div>
@@ -488,26 +459,27 @@ export default function AllVisionAudiosPage() {
             })}
           </div>
         </Card>
-      ) : (
-        <div className="text-center py-16">
-          <Card className="max-w-md mx-auto">
-            <div className="flex justify-center mb-4">
-              <Headphones className="w-16 h-16 text-neutral-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-4">No audio sets yet</h3>
-            <p className="text-neutral-400 mb-8">
-              Generate audio from your Life Vision to get started. Audio sets bring your vision to life through the power of sound.
-            </p>
-            <Button asChild size="lg">
-              <Link href="/life-vision">
-                <Target className="w-5 h-5 mr-2" />
-                View Visions
-              </Link>
-            </Button>
-          </Card>
-        </div>
-      )}
-    </>
+        ) : (
+          <div className="text-center py-16">
+            <Card className="max-w-md mx-auto">
+              <div className="flex justify-center mb-4">
+                <Headphones className="w-16 h-16 text-neutral-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">No audio sets yet</h3>
+              <p className="text-neutral-400 mb-8">
+                Generate audio from your Life Vision to get started. Audio sets bring your vision to life through the power of sound.
+              </p>
+              <Button asChild size="lg">
+                <Link href="/life-vision">
+                  <Target className="w-5 h-5 mr-2" />
+                  View Visions
+                </Link>
+              </Button>
+            </Card>
+          </div>
+        )}
+      </Stack>
+    </Container>
   )
 }
 

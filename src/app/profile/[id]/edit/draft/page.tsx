@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, WarningConfirmationDialog } from '@/lib/design-system/components'
+import {  Button, Badge, Card, WarningConfirmationDialog, Container, Stack, PageHero } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -699,37 +699,27 @@ export default function ProfileEditPage() {
   }
 
   return (
-    <>
-      {/* Header */}
-      <div className="mb-8">
-        {/* Mobile Header */}
-        <div className="md:hidden space-y-4 mb-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-white">Edit Draft Profile</h1>
-              {currentVersionId && (
-                <VersionStatusIndicator
-                  isActive={versionStatus.isActive}
-                  isDraft={versionStatus.isDraft}
-                  versionNumber={versionStatus.versionNumber}
-                  completionPercentage={completionPercentage}
-                  showIcon={true}
-                  showCompletion={true}
-                />
-              )}
-            </div>
-            <p className="text-neutral-400 text-sm">
-              {profileId ? (
-                versionStatus.isActive ? 'Editing active profile version' :
-                versionStatus.isDraft ? 'Editing draft version' :
-                `Editing version ${versionStatus.versionNumber}`
-              ) : 'Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes.'}
-            </p>
-          </div>
-        </div>
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Edit Draft Profile"
+          subtitle="Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes."
+        >
+          {currentVersionId && (
+            <VersionStatusIndicator
+              isActive={versionStatus.isActive}
+              isDraft={versionStatus.isDraft}
+              versionNumber={versionStatus.versionNumber}
+              completionPercentage={completionPercentage}
+              showIcon={true}
+              showCompletion={true}
+            />
+          )}
+        </PageHero>
 
-        {/* Desktop Header */}
-        <div className="hidden md:flex items-center gap-4 mb-4">
+        <div className="hidden md:block">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-white">Edit Draft Profile</h1>
@@ -981,6 +971,7 @@ export default function ProfileEditPage() {
           type="commit"
           isLoading={isSaving}
         />
-      </>
-    )
-  }
+      </Stack>
+    </Container>
+  )
+}

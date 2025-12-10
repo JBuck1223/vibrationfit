@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import {  Card, Button, Video, CategoryCard, PageHero } from '@/lib/design-system'
+import {  Card, Button, Video, CategoryCard, PageHero, Container, Stack } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
@@ -262,13 +262,13 @@ export default function JournalPage() {
   })
 
   return (
-    <>
+    <Container size="xl">
+      <Stack gap="lg">
         {/* Header */}
         <PageHero
           eyebrow="THE LIFE I CHOOSE"
           title="Conscious Creation Journal"
           subtitle="Capture evidence of actualization in real time"
-          className="mb-8"
         >
           <div className="flex justify-center">
             <Button
@@ -286,7 +286,7 @@ export default function JournalPage() {
         </PageHero>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Card variant="glass" className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
@@ -335,7 +335,7 @@ export default function JournalPage() {
         </div>
 
         {/* Action Bar */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <div className="flex-1 flex justify-start">
             <button
               onClick={() => router.push('/journal/new')}
@@ -384,7 +384,7 @@ export default function JournalPage() {
 
         {/* Filters */}
         {showFilters && (
-          <div id="filters" className="mb-8 space-y-6 animate-in slide-in-from-top duration-300">
+          <div id="filters" className="space-y-6 animate-in slide-in-from-top duration-300">
             {/* Category Filter */}
             <Card variant="elevated" className="p-4">
               <div className="flex items-center justify-between mb-4">
@@ -911,6 +911,7 @@ export default function JournalPage() {
             </div>
           </div>
         )}
-    </>
+      </Stack>
+    </Container>
   )
 }

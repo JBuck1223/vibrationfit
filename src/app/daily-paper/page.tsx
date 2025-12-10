@@ -109,26 +109,23 @@ export default function DailyPaperIndexPage() {
   return (
     <Container size="xl">
       <Stack gap="xl">
-        <section className="space-y-5">
-          <Inline gap="sm" className="text-xs uppercase tracking-[0.35em] text-neutral-400">
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Daily Paper"
+          subtitle="Capture gratitude, align three actions, and mark a fun moment. Your archive keeps the story tight and easy to review."
+        >
+          <Inline gap="sm" className="justify-center">
             <Badge variant="success">Daily Paper</Badge>
             <Badge variant="accent">Voice Ready</Badge>
           </Inline>
-          <div className="space-y-3">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white">
-              Daily Paper
-            </h1>
-            <p className="text-sm md:text-base text-neutral-300 max-w-2xl">
-              Capture gratitude, align three actions, and mark a fun moment. Your archive keeps the story tight and easy to review.
+          
+          {metrics.mostRecent && (
+            <p className="text-xs md:text-sm text-neutral-500 text-center">
+              Last entry · {formatDateLabel(metrics.mostRecent.entry_date)}
             </p>
-            {metrics.mostRecent && (
-              <p className="text-xs md:text-sm text-neutral-500">
-                Last entry·{' '}
-                {formatDateLabel(metrics.mostRecent.entry_date)}
-              </p>
-            )}
-          </div>
-          <Inline gap="sm">
+          )}
+          
+          <Inline gap="sm" className="justify-center">
             <Button size="md" onClick={() => router.push('/journal/daily-paper/new')}>
               Start today
             </Button>
@@ -140,7 +137,7 @@ export default function DailyPaperIndexPage() {
               Resources
             </Button>
           </Inline>
-        </section>
+        </PageHero>
 
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

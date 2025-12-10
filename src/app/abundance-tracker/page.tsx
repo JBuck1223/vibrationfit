@@ -10,6 +10,7 @@ import {
   Select,
   Stack,
   DatePicker,
+  PageHero,
 } from '@/lib/design-system/components'
 
 const VALUE_TYPES = [
@@ -95,8 +96,12 @@ export default function AbundanceLogPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <Stack gap="sm" className="text-center">
-          <h1 className="text-3xl md:text-4xl font-semibold text-white">Abundance Tracker</h1>
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Abundance Tracker"
+          subtitle="Log daily gifts, synchronicities, and abundance moments. Train your mind to notice what's flowing to you."
+        />
+        <Card className="p-4 md:p-6">
           <p className="text-neutral-400 text-sm md:text-base">
             Celebrate every moment of receiving. Each entry updates your vibrational log with an Above the Green Line pulse.
           </p>

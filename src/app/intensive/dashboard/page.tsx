@@ -30,7 +30,9 @@ import {
   Button, 
   Badge,
   ProgressBar,
-  Spinner
+  Spinner,
+  Stack,
+  PageHero
 } from '@/lib/design-system/components'
 
 interface IntensivePurchase {
@@ -412,23 +414,21 @@ export default function IntensiveDashboard() {
 
   return (
     <Container size="xl">
-        
+      <Stack gap="lg">
         {/* Header */}
-        <div className="text-center mb-8 md:mb-12">
-          <Badge variant="premium" className="mb-3 md:mb-4">
+        <PageHero
+          eyebrow="ACTIVATION INTENSIVE"
+          title="Your Activation Journey"
+          subtitle={`Current Phase: ${currentPhase}`}
+        >
+          <Badge variant="premium">
             <Clock className="w-4 h-4 inline mr-2" />
             Activation Intensive
           </Badge>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
-            Your Activation Journey
-          </h1>
-          <p className="text-base md:text-lg lg:text-xl text-neutral-400">
-            Current Phase: <span className="text-primary-500">{currentPhase}</span>
-          </p>
-        </div>
+        </PageHero>
 
         {/* Countdown Timer */}
-        <Card variant="elevated" className="mb-6 md:mb-8 p-4 md:p-6 lg:p-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
+        <Card variant="elevated" className="p-4 md:p-6 lg:p-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               {timeRemaining && hoursRemaining > 0 ? (
@@ -473,7 +473,7 @@ export default function IntensiveDashboard() {
 
         {/* Next Action */}
         {nextStep && (
-          <Card variant="elevated" className="mb-6 md:mb-8 p-4 md:p-6 lg:p-8 bg-gradient-to-br from-accent-500/10 to-purple-500/10 border-accent-500/30">
+          <Card variant="elevated" className="p-4 md:p-6 lg:p-8 bg-gradient-to-br from-accent-500/10 to-purple-500/10 border-accent-500/30">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3 md:gap-4">
                 <div className="w-12 h-12 md:w-16 md:h-16 bg-accent-500 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -583,7 +583,7 @@ export default function IntensiveDashboard() {
             )
           })}
         </div>
-
+      </Stack>
     </Container>
   )
 }

@@ -6,12 +6,13 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Video, CheckCircle, ArrowRight } from 'lucide-react'
 
 import { 
-   
   Container, 
   Card, 
   Button,
   Badge,
-  Spinner
+  Spinner,
+  Stack,
+  PageHero
 } from '@/lib/design-system/components'
 
 export default function CallPrepPage() {
@@ -231,6 +232,7 @@ export default function CallPrepPage() {
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </Card>
+      </Stack>
     </Container>
   )
 }
