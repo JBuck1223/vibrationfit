@@ -217,20 +217,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('social')}
           onDelete={handleDeleteRecording}
-        />
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel('social')}?`}
-          value={profile.dream_social || ''}
-          onChange={(value) => handleInputChange('dream_social', value)}
-          placeholder="What's your ideal vision for your social life and friendships?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('social')}
-          instanceId="dream"
-        />
-        {/* Contrast Field */}
+        />        {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
           value={profile.contrast_social || ''}
@@ -241,20 +228,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           storageFolder="profile"
           category={visionToRecordingKey('social')}
           instanceId="contrast"
-        />
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel('social')}?`}
-          value={profile.worry_social || ''}
-          onChange={(value) => handleInputChange('worry_social', value)}
-          placeholder="What concerns you most about your social connections and friendships?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('social')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

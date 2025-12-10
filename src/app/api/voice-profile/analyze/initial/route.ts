@@ -60,21 +60,6 @@ const CLARITY_FIELDS = [
   'clarity_spirituality',
 ] as const
 
-const DREAM_FIELDS = [
-  'dream_fun',
-  'dream_health',
-  'dream_travel',
-  'dream_love',
-  'dream_family',
-  'dream_social',
-  'dream_home',
-  'dream_work',
-  'dream_money',
-  'dream_stuff',
-  'dream_giving',
-  'dream_spirituality',
-] as const
-
 export async function POST() {
   try {
     const supabase = await createClient()
@@ -105,7 +90,7 @@ export async function POST() {
       return NextResponse.json({ error: 'No active user profile found.' }, { status: 404 })
     }
 
-    // Collect clarity and dream fields
+    // Collect clarity fields
     const samples: string[] = []
 
     // Add clarity fields
@@ -116,17 +101,9 @@ export async function POST() {
       }
     })
 
-    // Add dream fields
-    DREAM_FIELDS.forEach((field) => {
-      const value = userProfile[field]
-      if (value && typeof value === 'string' && value.trim().length > 0) {
-        samples.push(`DREAM (${field.replace('dream_', '')}): ${value}`)
-      }
-    })
-
     if (samples.length === 0) {
       return NextResponse.json(
-        { error: 'No clarity or dream fields found in user profile. Complete your profile first.' },
+        { error: 'No clarity fields found in user profile. Complete your profile first.' },
         { status: 400 }
       )
     }
@@ -192,7 +169,7 @@ export async function POST() {
         metadata: {
           sample_count: samples.length,
           has_existing_profile: Boolean(currentProfile),
-          source: 'clarity_and_dream_fields',
+          source: 'clarity_fields',
         },
       }
     )

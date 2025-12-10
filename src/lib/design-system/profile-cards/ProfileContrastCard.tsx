@@ -3,13 +3,10 @@ import { AlertTriangle } from 'lucide-react'
 
 interface ProfileContrastCardProps {
   contrastText?: string | null
-  worryText?: string | null
   categoryLabel: string
 }
 
-export function ProfileContrastCard({ contrastText, worryText, categoryLabel }: ProfileContrastCardProps) {
-  const hasData = contrastText || worryText
-
+export function ProfileContrastCard({ contrastText, categoryLabel }: ProfileContrastCardProps) {
   return (
     <Card 
       variant="outlined" 
@@ -24,26 +21,15 @@ export function ProfileContrastCard({ contrastText, worryText, categoryLabel }: 
         </h3>
       </div>
       
-      {hasData ? (
-        <div className="space-y-4">
-          {contrastText && (
-            <div>
-              <p className="text-xs text-[#FF0040]/70 mb-2 font-medium">What's Not Working</p>
-              <p className="text-sm md:text-base text-neutral-200 leading-relaxed">{contrastText}</p>
-            </div>
-          )}
-          
-          {worryText && (
-            <div>
-              <p className="text-xs text-[#FF0040]/70 mb-2 font-medium">Your Worries & Concerns</p>
-              <p className="text-sm md:text-base text-neutral-200 leading-relaxed">{worryText}</p>
-            </div>
-          )}
+      {contrastText ? (
+        <div>
+          <p className="text-xs text-[#FF0040]/70 mb-2 font-medium">What's Not Working</p>
+          <p className="text-sm md:text-base text-neutral-200 leading-relaxed">{contrastText}</p>
         </div>
       ) : (
         <div className="space-y-2">
           <p className="text-neutral-400 text-sm">
-            No contrast or worries recorded yet for {categoryLabel}.
+            No contrast recorded yet for {categoryLabel}.
           </p>
           <p className="text-[#FF0040]/70 text-xs italic">
             Acknowledging contrast helps VIVA understand what you want to move away from.

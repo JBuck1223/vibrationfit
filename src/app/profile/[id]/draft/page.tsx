@@ -570,21 +570,13 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                       ]})}
                       {renderField({ label: 'Partner', value: draftProfile.partner_name, fieldKey: 'partner_name' })}
                       {renderField({ label: 'Relationship Length', value: draftProfile.relationship_length, fieldKey: 'relationship_length' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_love, fieldKey: 'clarity_love', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_love, fieldKey: 'dream_love', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_love, fieldKey: 'contrast_love', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_love, fieldKey: 'worry_love', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_love, fieldKey: 'clarity_love', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_love, fieldKey: 'contrast_love', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'family' && (
                     <>
                       {renderField({ label: 'Has Children', value: draftProfile.has_children, fieldKey: 'has_children', type: 'boolean' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_family, fieldKey: 'clarity_family', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_family, fieldKey: 'dream_family', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_family, fieldKey: 'contrast_family', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_family, fieldKey: 'worry_family', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_family, fieldKey: 'clarity_family', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_family, fieldKey: 'contrast_family', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'health' && (
@@ -592,11 +584,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                       {renderField({ label: 'Height', value: draftProfile.height, fieldKey: 'height', type: 'number' })}
                       {renderField({ label: 'Weight', value: draftProfile.weight, fieldKey: 'weight', type: 'number' })}
                       {renderField({ label: 'Exercise Frequency', value: draftProfile.exercise_frequency, fieldKey: 'exercise_frequency' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_health, fieldKey: 'clarity_health', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_health, fieldKey: 'dream_health', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_health, fieldKey: 'contrast_health', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_health, fieldKey: 'worry_health', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_health, fieldKey: 'clarity_health', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_health, fieldKey: 'contrast_health', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'home' && (
@@ -605,11 +593,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                       {renderField({ label: 'City', value: draftProfile.city, fieldKey: 'city' })}
                       {renderField({ label: 'State', value: draftProfile.state, fieldKey: 'state' })}
                       {renderField({ label: 'Country', value: draftProfile.country, fieldKey: 'country' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_home, fieldKey: 'clarity_home', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_home, fieldKey: 'dream_home', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_home, fieldKey: 'contrast_home', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_home, fieldKey: 'worry_home', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_home, fieldKey: 'clarity_home', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_home, fieldKey: 'contrast_home', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'work' && (
@@ -617,86 +601,54 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                       {renderField({ label: 'Employment Type', value: draftProfile.employment_type, fieldKey: 'employment_type' })}
                       {renderField({ label: 'Occupation', value: draftProfile.occupation, fieldKey: 'occupation' })}
                       {renderField({ label: 'Company', value: draftProfile.company, fieldKey: 'company' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_work, fieldKey: 'clarity_work', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_work, fieldKey: 'dream_work', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_work, fieldKey: 'contrast_work', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_work, fieldKey: 'worry_work', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_work, fieldKey: 'clarity_work', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_work, fieldKey: 'contrast_work', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'money' && (
                     <>
                       {renderField({ label: 'Household Income', value: draftProfile.household_income, fieldKey: 'household_income' })}
                       {renderField({ label: 'Savings & Retirement', value: draftProfile.savings_retirement, fieldKey: 'savings_retirement' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_money, fieldKey: 'clarity_money', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_money, fieldKey: 'dream_money', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_money, fieldKey: 'contrast_money', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_money, fieldKey: 'worry_money', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_money, fieldKey: 'clarity_money', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_money, fieldKey: 'contrast_money', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'fun' && (
                     <>
                       {renderField({ label: 'Hobbies', value: draftProfile.hobbies, fieldKey: 'hobbies', type: 'array' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_fun, fieldKey: 'clarity_fun', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_fun, fieldKey: 'dream_fun', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_fun, fieldKey: 'contrast_fun', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_fun, fieldKey: 'worry_fun', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_fun, fieldKey: 'clarity_fun', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_fun, fieldKey: 'contrast_fun', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'travel' && (
                     <>
                       {renderField({ label: 'Travel Frequency', value: draftProfile.travel_frequency, fieldKey: 'travel_frequency' })}
                       {renderField({ label: 'Countries Visited', value: draftProfile.countries_visited, fieldKey: 'countries_visited', type: 'number' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_travel, fieldKey: 'clarity_travel', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_travel, fieldKey: 'dream_travel', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_travel, fieldKey: 'contrast_travel', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_travel, fieldKey: 'worry_travel', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_travel, fieldKey: 'clarity_travel', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_travel, fieldKey: 'contrast_travel', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'social' && (
                     <>
                       {renderField({ label: 'Close Friends Count', value: draftProfile.close_friends_count, fieldKey: 'close_friends_count' })}
                       {renderField({ label: 'Social Preference', value: draftProfile.social_preference, fieldKey: 'social_preference' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_social, fieldKey: 'clarity_social', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_social, fieldKey: 'dream_social', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_social, fieldKey: 'contrast_social', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_social, fieldKey: 'worry_social', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_social, fieldKey: 'clarity_social', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_social, fieldKey: 'contrast_social', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'stuff' && (
                     <>
                       {renderField({ label: 'Lifestyle Category', value: draftProfile.lifestyle_category, fieldKey: 'lifestyle_category' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_stuff, fieldKey: 'clarity_stuff', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_stuff, fieldKey: 'dream_stuff', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_stuff, fieldKey: 'contrast_stuff', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_stuff, fieldKey: 'worry_stuff', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_stuff, fieldKey: 'clarity_stuff', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_stuff, fieldKey: 'contrast_stuff', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'spirituality' && (
                     <>
                       {renderField({ label: 'Spiritual Practice', value: draftProfile.spiritual_practice, fieldKey: 'spiritual_practice' })}
                       {renderField({ label: 'Meditation Frequency', value: draftProfile.meditation_frequency, fieldKey: 'meditation_frequency' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_spirituality, fieldKey: 'clarity_spirituality', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_spirituality, fieldKey: 'dream_spirituality', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_spirituality, fieldKey: 'contrast_spirituality', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_spirituality, fieldKey: 'worry_spirituality', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_spirituality, fieldKey: 'clarity_spirituality', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_spirituality, fieldKey: 'contrast_spirituality', type: 'story', collapsible: true })}                    </>
                   )}
                   
                   {selectedCategory === 'giving' && (
                     <>
                       {renderField({ label: 'Volunteer Status', value: draftProfile.volunteer_status, fieldKey: 'volunteer_status' })}
                       {renderField({ label: 'Charitable Giving', value: draftProfile.charitable_giving, fieldKey: 'charitable_giving' })}
-                      {renderField({ label: "What's going well?", value: draftProfile.clarity_giving, fieldKey: 'clarity_giving', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Dreams', value: draftProfile.dream_giving, fieldKey: 'dream_giving', type: 'story', collapsible: true })}
-                      {renderField({ label: "What's not working?", value: draftProfile.contrast_giving, fieldKey: 'contrast_giving', type: 'story', collapsible: true })}
-                      {renderField({ label: 'Worries', value: draftProfile.worry_giving, fieldKey: 'worry_giving', type: 'story', collapsible: true })}
-                    </>
+                      {renderField({ label: "What's going well?", value: draftProfile.clarity_giving, fieldKey: 'clarity_giving', type: 'story', collapsible: true })}                      {renderField({ label: "What's not working?", value: draftProfile.contrast_giving, fieldKey: 'contrast_giving', type: 'story', collapsible: true })}                    </>
                   )}
               </div>
               

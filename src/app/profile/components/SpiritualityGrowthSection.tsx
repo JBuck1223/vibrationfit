@@ -230,20 +230,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('spirituality')}
           onDelete={handleDeleteRecording}
-        />
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel('spirituality')}?`}
-          value={profile.dream_spirituality || ''}
-          onChange={(value) => handleInputChange('dream_spirituality', value)}
-          placeholder="What's your ideal vision for your spiritual journey and personal growth?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('spirituality')}
-          instanceId="dream"
-        />
-        {/* Contrast Field */}
+        />        {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
           value={profile.contrast_spirituality || ''}
@@ -254,20 +241,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           storageFolder="profile"
           category={visionToRecordingKey('spirituality')}
           instanceId="contrast"
-        />
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel('spirituality')}?`}
-          value={profile.worry_spirituality || ''}
-          onChange={(value) => handleInputChange('worry_spirituality', value)}
-          placeholder="What concerns you most about your spiritual path or personal development?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('spirituality')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

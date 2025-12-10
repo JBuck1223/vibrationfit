@@ -447,20 +447,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('money')}
           onDelete={handleDeleteRecording}
-        />
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel('money')}?`}
-          value={profile.dream_money || ''}
-          onChange={(value) => handleInputChange('dream_money', value)}
-          placeholder="What's your ideal vision for your financial life and wealth?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('money')}
-          instanceId="dream"
-        />
-        {/* Contrast Field */}
+        />        {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
           value={profile.contrast_money || ''}
@@ -471,20 +458,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
           storageFolder="profile"
           category={visionToRecordingKey('money')}
           instanceId="contrast"
-        />
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel('money')}?`}
-          value={profile.worry_money || ''}
-          onChange={(value) => handleInputChange('worry_money', value)}
-          placeholder="What concerns you most about your finances, income, or financial future?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('money')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
         <p className="text-sm text-neutral-400">

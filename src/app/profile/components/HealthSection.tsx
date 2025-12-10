@@ -335,19 +335,6 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           onDelete={handleDeleteRecording}
         />
 
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel('health')}?`}
-          value={profile.dream_health || ''}
-          onChange={(value) => handleInputChange('dream_health', value)}
-          placeholder="What's your ideal vision for your health and vitality? How do you want to feel in your body?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('health')}
-          instanceId="dream"
-        />
-
         {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
@@ -359,19 +346,6 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           storageFolder="profile"
           category={visionToRecordingKey('health')}
           instanceId="contrast"
-        />
-
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel('health')}?`}
-          value={profile.worry_health || ''}
-          onChange={(value) => handleInputChange('worry_health', value)}
-          placeholder="What concerns you most about your health, fitness, energy levels, or overall wellbeing?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('health')}
-          instanceId="worry"
         />
       </div>
 

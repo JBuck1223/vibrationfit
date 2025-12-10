@@ -742,17 +742,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_love"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('love')}?`}
-              value={editedFields.dream_love !== undefined ? editedFields.dream_love : profile.dream_love}
-              type="story"
-              editable={editingSection === 'love'}
-              fieldKey="dream_love"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('love')}?`}
               value={editedFields.contrast_love !== undefined ? editedFields.contrast_love : profile.contrast_love}
               type="story"
@@ -760,17 +750,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_love"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('love')}?`}
-              value={editedFields.worry_love !== undefined ? editedFields.worry_love : profile.worry_love}
-              type="story"
-              editable={editingSection === 'love'}
-              fieldKey="worry_love"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'family':
@@ -820,17 +800,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_family"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('family')}?`}
-              value={editedFields.dream_family !== undefined ? editedFields.dream_family : profile.dream_family}
-              type="story"
-              editable={editingSection === 'family'}
-              fieldKey="dream_family"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
               value={editedFields.contrast_family !== undefined ? editedFields.contrast_family : profile.contrast_family}
               type="story"
@@ -838,17 +808,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_family"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('family')}?`}
-              value={editedFields.worry_family !== undefined ? editedFields.worry_family : profile.worry_family}
-              type="story"
-              editable={editingSection === 'family'}
-              fieldKey="worry_family"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'health':
@@ -905,17 +865,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_health"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('health')}?`}
-              value={editedFields.dream_health !== undefined ? editedFields.dream_health : profile.dream_health}
-              type="story"
-              editable={editingSection === 'health'}
-              fieldKey="dream_health"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
               value={editedFields.contrast_health !== undefined ? editedFields.contrast_health : profile.contrast_health}
               type="story"
@@ -923,17 +873,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_health"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('health')}?`}
-              value={editedFields.worry_health !== undefined ? editedFields.worry_health : profile.worry_health}
-              type="story"
-              editable={editingSection === 'health'}
-              fieldKey="worry_health"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'home':
@@ -1004,17 +944,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_home"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('home')}?`}
-              value={editedFields.dream_home !== undefined ? editedFields.dream_home : profile.dream_home}
-              type="story"
-              editable={editingSection === 'home'}
-              fieldKey="dream_home"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
               value={editedFields.contrast_home !== undefined ? editedFields.contrast_home : profile.contrast_home}
               type="story"
@@ -1022,17 +952,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_home"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('home')}?`}
-              value={editedFields.worry_home !== undefined ? editedFields.worry_home : profile.worry_home}
-              type="story"
-              editable={editingSection === 'home'}
-              fieldKey="worry_home"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'work':
@@ -1118,17 +1038,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_work"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('work')}?`}
-              value={editedFields.dream_work !== undefined ? editedFields.dream_work : profile.dream_work}
-              type="story"
-              editable={editingSection === 'work'}
-              fieldKey="dream_work"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('work')}?`}
               value={editedFields.contrast_work !== undefined ? editedFields.contrast_work : profile.contrast_work}
               type="story"
@@ -1136,17 +1046,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_work"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('work')}?`}
-              value={editedFields.worry_work !== undefined ? editedFields.worry_work : profile.worry_work}
-              type="story"
-              editable={editingSection === 'work'}
-              fieldKey="worry_work"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'money':
@@ -1241,17 +1141,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_money"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('money')}?`}
-              value={editedFields.dream_money !== undefined ? editedFields.dream_money : profile.dream_money}
-              type="story"
-              editable={editingSection === 'money'}
-              fieldKey="dream_money"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
               value={editedFields.contrast_money !== undefined ? editedFields.contrast_money : profile.contrast_money}
               type="story"
@@ -1259,17 +1149,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_money"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('money')}?`}
-              value={editedFields.worry_money !== undefined ? editedFields.worry_money : profile.worry_money}
-              type="story"
-              editable={editingSection === 'money'}
-              fieldKey="worry_money"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'fun':
@@ -1306,17 +1186,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_fun"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('fun')}?`}
-              value={editedFields.dream_fun !== undefined ? editedFields.dream_fun : profile.dream_fun}
-              type="story"
-              editable={editingSection === 'fun'}
-              fieldKey="dream_fun"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('fun')}?`}
               value={editedFields.contrast_fun !== undefined ? editedFields.contrast_fun : profile.contrast_fun}
               type="story"
@@ -1324,17 +1194,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_fun"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('fun')}?`}
-              value={editedFields.worry_fun !== undefined ? editedFields.worry_fun : profile.worry_fun}
-              type="story"
-              editable={editingSection === 'fun'}
-              fieldKey="worry_fun"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'travel':
@@ -1406,17 +1266,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_travel"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('travel')}?`}
-              value={editedFields.dream_travel !== undefined ? editedFields.dream_travel : profile.dream_travel}
-              type="story"
-              editable={editingSection === 'travel'}
-              fieldKey="dream_travel"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('travel')}?`}
               value={editedFields.contrast_travel !== undefined ? editedFields.contrast_travel : profile.contrast_travel}
               type="story"
@@ -1424,17 +1274,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_travel"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('travel')}?`}
-              value={editedFields.worry_travel !== undefined ? editedFields.worry_travel : profile.worry_travel}
-              type="story"
-              editable={editingSection === 'travel'}
-              fieldKey="worry_travel"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'social':
@@ -1475,17 +1315,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_social"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('social')}?`}
-              value={editedFields.dream_social !== undefined ? editedFields.dream_social : profile.dream_social}
-              type="story"
-              editable={editingSection === 'social'}
-              fieldKey="dream_social"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
               value={editedFields.contrast_social !== undefined ? editedFields.contrast_social : profile.contrast_social}
               type="story"
@@ -1493,17 +1323,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_social"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('social')}?`}
-              value={editedFields.worry_social !== undefined ? editedFields.worry_social : profile.worry_social}
-              type="story"
-              editable={editingSection === 'social'}
-              fieldKey="worry_social"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'stuff':
@@ -1598,17 +1418,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_stuff"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('stuff')}?`}
-              value={editedFields.dream_stuff !== undefined ? editedFields.dream_stuff : profile.dream_stuff}
-              type="story"
-              editable={editingSection === 'stuff'}
-              fieldKey="dream_stuff"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('stuff')}?`}
               value={editedFields.contrast_stuff !== undefined ? editedFields.contrast_stuff : profile.contrast_stuff}
               type="story"
@@ -1616,17 +1426,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_stuff"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('stuff')}?`}
-              value={editedFields.worry_stuff !== undefined ? editedFields.worry_stuff : profile.worry_stuff}
-              type="story"
-              editable={editingSection === 'stuff'}
-              fieldKey="worry_stuff"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'spirituality':
@@ -1676,17 +1476,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_spirituality"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('spirituality')}?`}
-              value={editedFields.dream_spirituality !== undefined ? editedFields.dream_spirituality : profile.dream_spirituality}
-              type="story"
-              editable={editingSection === 'spirituality'}
-              fieldKey="dream_spirituality"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
               value={editedFields.contrast_spirituality !== undefined ? editedFields.contrast_spirituality : profile.contrast_spirituality}
               type="story"
@@ -1694,17 +1484,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_spirituality"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('spirituality')}?`}
-              value={editedFields.worry_spirituality !== undefined ? editedFields.worry_spirituality : profile.worry_spirituality}
-              type="story"
-              editable={editingSection === 'spirituality'}
-              fieldKey="worry_spirituality"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       case 'giving':
@@ -1754,17 +1534,7 @@ export default function ProfileDetailPage() {
               fieldKey="clarity_giving"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you dream about in ${getVisionCategoryLabel('giving')}?`}
-              value={editedFields.dream_giving !== undefined ? editedFields.dream_giving : profile.dream_giving}
-              type="story"
-              editable={editingSection === 'giving'}
-              fieldKey="dream_giving"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-            <ProfileField 
+            /><ProfileField 
               label={`What's not going well in ${getVisionCategoryLabel('giving')}?`}
               value={editedFields.contrast_giving !== undefined ? editedFields.contrast_giving : profile.contrast_giving}
               type="story"
@@ -1772,17 +1542,7 @@ export default function ProfileDetailPage() {
               fieldKey="contrast_giving"
               onSave={handleFieldChange}
               collapsible={true}
-            />
-            <ProfileField 
-              label={`What do you worry about in ${getVisionCategoryLabel('giving')}?`}
-              value={editedFields.worry_giving !== undefined ? editedFields.worry_giving : profile.worry_giving}
-              type="story"
-              editable={editingSection === 'giving'}
-              fieldKey="worry_giving"
-              onSave={handleFieldChange}
-              collapsible={true}
-            />
-          </>
+            /></>
         )
       
       default:

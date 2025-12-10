@@ -291,20 +291,6 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           categoryFilter={visionToRecordingKey('fun')}
           onDelete={handleDeleteRecording}
         />
-
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel('fun')}?`}
-          value={profile.dream_fun || ''}
-          onChange={(value) => handleInputChange('dream_fun', value)}
-          placeholder="What's your ideal vision for fun and recreation in your life? What would bring you the most joy?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('fun')}
-          instanceId="dream"
-        />
-
         {/* Contrast Field */}
         <RecordingTextarea
           label="What's not going well in Fun?"
@@ -316,21 +302,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           storageFolder="profile"
           category={visionToRecordingKey('fun')}
           instanceId="contrast"
-        />
-
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel('fun')}?`}
-          value={profile.worry_fun || ''}
-          onChange={(value) => handleInputChange('worry_fun', value)}
-          placeholder="What concerns you most about finding time for fun, pursuing your hobbies, or enjoying life?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('fun')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

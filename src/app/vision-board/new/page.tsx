@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, Badge, CategoryCard } from '@/lib/design-system'
+import { Card, Input, Button, Badge, CategoryCard, PageHero } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -205,14 +205,11 @@ export default function NewVisionBoardItemPage() {
   return (
     <>
         <div className="pb-8">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-white mb-2">
-              Add to Vision Board
-            </h1>
-            <p className="text-neutral-400">
-              Create a visual representation of your vision.
-            </p>
-          </div>
+          <PageHero
+            title="Add to Vision Board"
+            subtitle="Create a visual representation of your vision."
+            className="mb-8"
+          />
 
           <Card>
             <form onSubmit={handleSubmit} className="space-y-6">

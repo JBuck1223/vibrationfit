@@ -288,20 +288,6 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
           categoryFilter={visionToRecordingKey('love')}
           onDelete={handleDeleteRecording}
         />
-
-        {/* Dream Field */}
-        <RecordingTextarea
-          label={`What do you dream about in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
-          value={profile.dream_love || ''}
-          onChange={(value) => handleInputChange('dream_love', value)}
-          placeholder="What's your ideal vision for love and romantic connection in your life?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('love')}
-          instanceId="dream"
-        />
-
         {/* Contrast Field */}
         <RecordingTextarea
           label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
@@ -313,21 +299,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
           storageFolder="profile"
           category={visionToRecordingKey('love')}
           instanceId="contrast"
-        />
-
-        {/* Worry Field */}
-        <RecordingTextarea
-          label={`What do you worry about in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
-          value={profile.worry_love || ''}
-          onChange={(value) => handleInputChange('worry_love', value)}
-          placeholder="What concerns you most about your romantic life or relationships?"
-          rows={4}
-          allowVideo={true}
-          storageFolder="profile"
-          category={visionToRecordingKey('love')}
-          instanceId="worry"
-        />
-      </div>
+        />      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (
