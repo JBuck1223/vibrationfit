@@ -4,7 +4,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Button, Card, Input, Container } from '@/lib/design-system/components'
+import { Button, Card, Input, Container, Stack, PageHero } from '@/lib/design-system/components'
 
 export default function UTMBuilderPage() {
   const [baseUrl, setBaseUrl] = useState('https://vibrationfit.com')
@@ -100,6 +100,8 @@ export default function UTMBuilderPage() {
 
   return (
     <Container size="lg">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       <div className="mb-8 md:mb-12">
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">UTM Builder</h1>
         <p className="text-sm md:text-base text-neutral-400">
@@ -258,6 +260,7 @@ export default function UTMBuilderPage() {
           </li>
         </ul>
       </Card>
+      </Stack>
     </Container>
   )
 }

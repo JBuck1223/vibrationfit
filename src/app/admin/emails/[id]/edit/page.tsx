@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Container, Card, Button, Input, Textarea } from '@/lib/design-system/components'
+import { Container, Card, Button, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { ArrowLeft, Save, Eye } from 'lucide-react'
 import { generateHouseholdInvitationEmail } from '@/lib/email/templates/household-invitation'
@@ -65,6 +65,8 @@ function EditEmailContent() {
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       {/* Header */}
       <div className="mb-6 md:mb-8">
         <Button
@@ -238,6 +240,7 @@ function EditEmailContent() {
           </Card>
         </div>
       </div>
+      </Stack>
     </Container>
   )
 }

@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Input, Textarea } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
 
 interface Lead {
   id: string
@@ -123,7 +123,10 @@ export default function LeadDetailPage() {
   if (loading) {
     return (
       <Container className="py-12">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <p className="text-neutral-300">Loading lead...</p>
+        </Stack>
       </Container>
     )
   }
@@ -131,13 +134,18 @@ export default function LeadDetailPage() {
   if (!lead) {
     return (
       <Container className="py-12">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <p className="text-neutral-300">Lead not found</p>
+        </Stack>
       </Container>
     )
   }
 
   return (
     <Container className="py-12">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       <div className="mb-8">
         <Button
           variant="ghost"
@@ -374,6 +382,7 @@ export default function LeadDetailPage() {
           {updating ? 'Saving...' : 'Save Changes'}
         </Button>
       </Card>
+      </Stack>
     </Container>
   )
 }

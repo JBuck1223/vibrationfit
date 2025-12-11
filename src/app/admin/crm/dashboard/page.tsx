@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Container, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 
 interface DashboardStats {
   totalMembers: number
@@ -102,24 +102,25 @@ export default function CRMDashboardPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">CRM Dashboard</h1>
-          <p className="text-sm md:text-base text-neutral-400">Overview of your business metrics</p>
-        </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleUpdateMetrics}
-          disabled={updating}
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="ADMIN"
+          title="CRM Dashboard"
+          subtitle="Overview of your business metrics"
         >
-          {updating ? 'Updating...' : '🔄 Refresh Metrics'}
-        </Button>
-      </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleUpdateMetrics}
+            disabled={updating}
+          >
+            {updating ? 'Updating...' : '🔄 Refresh Metrics'}
+          </Button>
+        </PageHero>
 
-      {/* Quick Actions */}
-      <div className="mb-8 md:mb-12 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Button variant="primary" size="sm" onClick={() => router.push('/admin/crm/members')}>
           Members
         </Button>
@@ -137,8 +138,10 @@ export default function CRMDashboardPage() {
       {/* Stats Grid */}
       {stats && (
         <>
-          <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Member Metrics</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8 md:mb-12">
+          <div>
+            <h2 className="text-xl md:text-2xl font-semibold mb-4">Member Metrics</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <Card className="text-center p-4 md:p-6">
               <div className="text-2xl md:text-3xl font-bold text-primary-500">
                 {stats.totalMembers}
@@ -168,8 +171,10 @@ export default function CRMDashboardPage() {
             </Card>
           </div>
 
-          <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Revenue & Pipeline</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8 md:mb-12">
+          <div>
+            <h2 className="text-xl md:text-2xl font-semibold mb-4">Revenue & Pipeline</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <Card className="text-center p-4 md:p-6">
               <div className="text-2xl md:text-3xl font-bold text-[#8B5CF6]">
                 ${stats.totalMRR.toFixed(0)}
@@ -227,6 +232,7 @@ export default function CRMDashboardPage() {
           </Card>
         </>
       )}
+      </Stack>
     </Container>
   )
 }

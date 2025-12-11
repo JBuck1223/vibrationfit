@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Input, Textarea, Container } from '@/lib/design-system/components'
+import { Button, Card, Input, Textarea, Container, Stack, PageHero } from '@/lib/design-system/components'
 
 export default function EditCampaignPage() {
   const router = useRouter()
@@ -110,27 +110,28 @@ export default function EditCampaignPage() {
   if (fetching) {
     return (
       <Container className="py-12">
-        <p className="text-neutral-300">Loading campaign...</p>
+        <Stack gap="lg">
+          <PageHero eyebrow="CRM / CAMPAIGNS" title="Loading..." subtitle="" />
+          <p className="text-neutral-300">Loading campaign...</p>
+        </Stack>
       </Container>
     )
   }
 
   return (
     <Container className="py-12 max-w-4xl">
-      <div className="mb-8">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="mb-4"
-        >
-          ← Back
-        </Button>
-        <h1 className="text-4xl font-bold mb-2">Edit Campaign</h1>
-        <p className="text-neutral-400">Update campaign details and tracking</p>
-      </div>
+      <Stack gap="lg">
+        <PageHero eyebrow="CRM / CAMPAIGNS" title="Edit Campaign" subtitle="Update campaign details and settings">
+          <Button
+            variant="ghost"
+            onClick={() => router.back()}
+          >
+            ← Back
+          </Button>
+        </PageHero>
 
-      <form onSubmit={handleSubmit}>
-        <Card className="mb-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <Card>
           <h2 className="text-2xl font-semibold mb-6">Campaign Details</h2>
 
           <div className="space-y-4">
@@ -235,7 +236,7 @@ export default function EditCampaignPage() {
           </div>
         </Card>
 
-        <Card className="mb-6">
+        <Card>
           <h2 className="text-2xl font-semibold mb-6">UTM Parameters</h2>
 
           <div className="space-y-4">
@@ -298,7 +299,7 @@ export default function EditCampaignPage() {
           </div>
         </Card>
 
-        <Card className="mb-6">
+        <Card>
           <h2 className="text-2xl font-semibold mb-6">Additional Info</h2>
 
           <div className="space-y-4">
@@ -345,6 +346,7 @@ export default function EditCampaignPage() {
           </Button>
         </div>
       </form>
+      </Stack>
     </Container>
   )
 }

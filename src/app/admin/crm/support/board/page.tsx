@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 import { Kanban, KanbanColumn, KanbanItem } from '@/components/crm/Kanban'
 
 interface Ticket {
@@ -109,7 +109,10 @@ export default function SupportBoardPage() {
   if (loading) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <Spinner size="lg" />
+        </Stack>
       </Container>
     )
   }
@@ -121,6 +124,8 @@ export default function SupportBoardPage() {
 
   return (
     <Container size="full">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       <div className="mb-8 md:mb-12">
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Support Board</h1>
         <p className="text-sm md:text-base text-neutral-400">{tickets.length} total tickets</p>
@@ -133,6 +138,7 @@ export default function SupportBoardPage() {
         onItemClick={handleItemClick}
         renderItem={renderTicketCard}
       />
+      </Stack>
     </Container>
   )
 }

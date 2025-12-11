@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Container, Card, Badge, Button, Spinner } from '@/lib/design-system/components'
+import { Container, Card, Badge, Button, Spinner , Stack, PageHero } from '@/lib/design-system/components'
 
 interface TokenSummary {
   total_tokens: number
@@ -111,29 +111,11 @@ export default function AdminTokenUsagePage() {
   return (
     <AdminWrapper>
       <Container size="xl">
-        <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4 mb-6 md:mb-8">
-          <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Token Usage Analytics</h1>
-            <p className="text-xs md:text-sm lg:text-base text-neutral-400">Track AI token consumption and costs across the platform</p>
-          </div>
-          
-          <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
-            <select
-              value={days}
-              onChange={(e) => setDays(parseInt(e.target.value))}
-              className="bg-[#1F1F1F] border border-[#333] text-white rounded-lg px-3 py-2 text-sm w-full sm:w-auto"
-            >
-              <option value={7}>Last 7 days</option>
-              <option value={30}>Last 30 days</option>
-              <option value={90}>Last 90 days</option>
-            </select>
-          </div>
-        </div>
+        <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Token Usage Analytics" subtitle="" />
 
         {/* Tabs */}
-        <div className="flex space-x-1 bg-[#1F1F1F] p-1 rounded-lg mb-6 overflow-x-auto">
+        <div className="flex space-x-1 bg-[#1F1F1F] p-1 rounded-lg  overflow-x-auto">
           <button
             onClick={() => setActiveTab('summary')}
             className={`px-3 md:px-4 py-2 rounded-md transition-colors text-sm md:text-base whitespace-nowrap ${
@@ -174,8 +156,8 @@ export default function AdminTokenUsagePage() {
           </div>
         ) : error ? (
           <Card variant="outlined" className="p-4 md:p-6 text-center">
-            <div className="text-red-400 mb-4">⚠️ Error loading data</div>
-            <p className="text-neutral-300 mb-4">{error}</p>
+            <div className="text-red-400 ">⚠️ Error loading data</div>
+            <p className="text-neutral-300 ">{error}</p>
             <Button 
               variant="primary" 
               onClick={() => fetchData(activeTab)}
@@ -188,13 +170,13 @@ export default function AdminTokenUsagePage() {
             {/* Total Tokens */}
             <Card variant="elevated" className="p-4 md:p-6">
               <div>
-                <div className="flex items-center justify-between mb-3 md:mb-4">
+                <div className="flex items-center justify-between mb-3 md:">
                   <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Total Tokens</h3>
                   <div className="w-7 h-7 md:w-8 md:h-8 bg-primary-500 rounded-lg flex items-center justify-center">
                     <span className="text-white text-xs md:text-sm">🔢</span>
                   </div>
                 </div>
-                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-primary-500 mb-1">
+                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-primary-500 ">
                   {formatNumber(summary.total_tokens)}
                 </div>
                 <div className="text-xs md:text-sm text-neutral-400">
@@ -206,13 +188,13 @@ export default function AdminTokenUsagePage() {
             {/* Total Cost */}
             <Card variant="elevated" className="p-4 md:p-6">
               <div>
-                <div className="flex items-center justify-between mb-3 md:mb-4">
+                <div className="flex items-center justify-between mb-3 md:">
                   <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Total Cost</h3>
                   <div className="w-7 h-7 md:w-8 md:h-8 bg-green-500 rounded-lg flex items-center justify-center">
                     <span className="text-white text-xs md:text-sm">💰</span>
                   </div>
                 </div>
-                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-green-500 mb-1">
+                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-green-500 ">
                   {formatCurrency(summary.total_cost)}
                 </div>
                 <div className="text-xs md:text-sm text-neutral-400">
@@ -224,13 +206,13 @@ export default function AdminTokenUsagePage() {
             {/* Actions Count */}
             <Card variant="elevated" className="p-4 md:p-6">
               <div>
-                <div className="flex items-center justify-between mb-3 md:mb-4">
+                <div className="flex items-center justify-between mb-3 md:">
                   <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Total Actions</h3>
                   <div className="w-7 h-7 md:w-8 md:h-8 bg-purple-500 rounded-lg flex items-center justify-center">
                     <span className="text-white text-xs md:text-sm">⚡</span>
                   </div>
                 </div>
-                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-purple-500 mb-1">
+                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-purple-500 ">
                   {formatNumber(summary.actions_count)}
                 </div>
                 <div className="text-xs md:text-sm text-neutral-400">
@@ -242,13 +224,13 @@ export default function AdminTokenUsagePage() {
             {/* Average Cost per Action */}
             <Card variant="elevated" className="p-4 md:p-6">
               <div>
-                <div className="flex items-center justify-between mb-3 md:mb-4">
+                <div className="flex items-center justify-between mb-3 md:">
                   <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Avg Cost/Action</h3>
                   <div className="w-7 h-7 md:w-8 md:h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
                     <span className="text-white text-xs md:text-sm">📊</span>
                   </div>
                 </div>
-                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-yellow-500 mb-1">
+                <div className="text-xl md:text-2xl lg:text-3xl font-bold text-yellow-500 ">
                   {formatCurrency(summary.actions_count > 0 ? summary.total_cost / summary.actions_count : 0)}
                 </div>
                 <div className="text-xs md:text-sm text-neutral-400">
@@ -260,7 +242,7 @@ export default function AdminTokenUsagePage() {
         ) : activeTab === 'users' && userUsage.length > 0 ? (
           <Card variant="elevated" className="p-4 md:p-6">
             <div>
-              <h3 className="text-lg md:text-xl font-semibold text-white mb-4 md:mb-6">Top Users by Token Usage</h3>
+              <h3 className="text-lg md:text-xl font-semibold text-white mb-4 md:">Top Users by Token Usage</h3>
               
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -310,7 +292,7 @@ export default function AdminTokenUsagePage() {
           </Card>
         ) : activeTab === 'users' ? (
           <Card variant="outlined" className="p-4 md:p-6 text-center">
-            <div className="text-neutral-400 mb-4">📊 No user data available</div>
+            <div className="text-neutral-400 ">📊 No user data available</div>
             <p className="text-neutral-300">No token usage data found for the selected period.</p>
           </Card>
         ) : activeTab === 'reconciliation' && reconciliationData ? (
@@ -318,11 +300,11 @@ export default function AdminTokenUsagePage() {
             {/* Reconciliation Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               <Card variant="elevated" className="p-4 md:p-6">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between ">
                   <h3 className="text-sm md:text-base font-semibold text-white">Pending</h3>
                   <Badge variant="warning">⏳</Badge>
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-yellow-500 mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-yellow-500 ">
                   {formatNumber(reconciliationData.pending_count)}
                 </div>
                 <div className="text-xs md:text-sm text-neutral-400">
@@ -331,11 +313,11 @@ export default function AdminTokenUsagePage() {
               </Card>
 
               <Card variant="elevated" className="p-4 md:p-6">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between ">
                   <h3 className="text-sm md:text-base font-semibold text-white">Matched</h3>
                   <Badge variant="success">✓</Badge>
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-green-500 mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-green-500 ">
                   {formatNumber(reconciliationData.matched_count)}
                 </div>
                 <div className="text-xs md:text-sm text-neutral-400">
@@ -344,11 +326,11 @@ export default function AdminTokenUsagePage() {
               </Card>
 
               <Card variant="elevated" className="p-4 md:p-6">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between ">
                   <h3 className="text-sm md:text-base font-semibold text-white">Discrepancies</h3>
                   <Badge variant="error">!</Badge>
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-red-500 mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-red-500 ">
                   {formatNumber(reconciliationData.discrepancy_count)}
                 </div>
                 <div className="text-xs md:text-sm text-neutral-400">
@@ -357,11 +339,11 @@ export default function AdminTokenUsagePage() {
               </Card>
 
               <Card variant="elevated" className="p-4 md:p-6">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between ">
                   <h3 className="text-sm md:text-base font-semibold text-white">Accuracy</h3>
                   <span className="text-primary-500">%</span>
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-primary-500 mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-primary-500 ">
                   {reconciliationData.average_accuracy.toFixed(1)}%
                 </div>
                 <div className="text-xs md:text-sm text-neutral-400">
@@ -372,7 +354,7 @@ export default function AdminTokenUsagePage() {
 
             {/* Recent Requests with OpenAI IDs */}
             <Card variant="elevated" className="p-4 md:p-6">
-              <h3 className="text-lg md:text-xl font-semibold text-white mb-4 md:mb-6">
+              <h3 className="text-lg md:text-xl font-semibold text-white mb-4 md:">
                 Recent Requests with OpenAI Tracking
               </h3>
               
@@ -452,27 +434,27 @@ export default function AdminTokenUsagePage() {
             {/* Cost Comparison */}
             {reconciliationData.total_actual_cost > 0 && (
               <Card variant="elevated" className="p-4 md:p-6">
-                <h3 className="text-lg md:text-xl font-semibold text-white mb-4 md:mb-6">
+                <h3 className="text-lg md:text-xl font-semibold text-white mb-4 md:">
                   Cost Comparison
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <div className="text-neutral-400 text-sm mb-2">Estimated Total</div>
+                    <div className="text-neutral-400 text-sm ">Estimated Total</div>
                     <div className="text-2xl font-bold text-green-400">
                       ${reconciliationData.total_estimated_cost.toFixed(2)}
                     </div>
                   </div>
                   
                   <div>
-                    <div className="text-neutral-400 text-sm mb-2">Actual Total (OpenAI)</div>
+                    <div className="text-neutral-400 text-sm ">Actual Total (OpenAI)</div>
                     <div className="text-2xl font-bold text-green-500">
                       ${reconciliationData.total_actual_cost.toFixed(2)}
                     </div>
                   </div>
                   
                   <div>
-                    <div className="text-neutral-400 text-sm mb-2">Difference</div>
+                    <div className="text-neutral-400 text-sm ">Difference</div>
                     <div className={`text-2xl font-bold ${
                       reconciliationData.total_actual_cost > reconciliationData.total_estimated_cost
                         ? 'text-red-400'
@@ -492,7 +474,7 @@ export default function AdminTokenUsagePage() {
         {activeTab === 'summary' && summary && Object.keys(summary.model_breakdown).length > 0 && (
           <Card variant="elevated" className="p-4 md:p-6">
             <div>
-              <h3 className="text-lg md:text-xl font-semibold text-white mb-4 md:mb-6">Usage by Model</h3>
+              <h3 className="text-lg md:text-xl font-semibold text-white mb-4 md:">Usage by Model</h3>
               
               <div className="space-y-4">
                 {Object.entries(summary.model_breakdown)
@@ -525,7 +507,7 @@ export default function AdminTokenUsagePage() {
             </div>
           </Card>
         )}
-        </div>
+        </Stack>
       </Container>
     </AdminWrapper>
   )

@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner , Stack, PageHero } from '@/lib/design-system/components'
 import { Kanban, KanbanColumn } from '@/components/crm/Kanban'
 
 interface Customer {
@@ -133,13 +133,18 @@ export default function CustomerBoardPage() {
   if (loading) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <Spinner size="lg" />
+        </Stack>
       </Container>
     )
   }
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       {/* Header */}
       <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -250,6 +255,7 @@ export default function CustomerBoardPage() {
           </div>
         )}
       />
+      </Stack>
     </Container>
   )
 }

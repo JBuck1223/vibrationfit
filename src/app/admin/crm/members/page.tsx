@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner, Input, Textarea } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
 
 interface Member {
   user_id: string
@@ -143,15 +143,13 @@ export default function MembersPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Members</h1>
-          <p className="text-sm md:text-base text-neutral-400">
-            {members.length} total members
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="CRM"
+          title="Members"
+          subtitle={`${members.length} total members`}
+        >
           <Button 
             variant="secondary" 
             size="sm"
@@ -159,11 +157,10 @@ export default function MembersPage() {
           >
             Kanban View
           </Button>
-        </div>
-      </div>
+        </PageHero>
 
-      {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-2">
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2">
         {['all', 'active', 'at_risk', 'champion', 'inactive'].map((status) => (
           <Button
             key={status}
@@ -278,6 +275,7 @@ export default function MembersPage() {
           </div>
         </Card>
       )}
+      </Stack>
 
       {/* Bulk Message Modal */}
       {showBulkModal && (

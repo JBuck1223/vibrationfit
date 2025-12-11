@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner, Input, Textarea } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
 
 interface Member {
   user_id: string
@@ -234,7 +234,10 @@ export default function MemberDetailPage() {
   if (loading) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <Spinner size="lg" />
+        </Stack>
       </Container>
     )
   }
@@ -242,9 +245,12 @@ export default function MemberDetailPage() {
   if (!member) {
     return (
       <Container size="xl">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <Card className="text-center p-8 md:p-12">
           <p className="text-sm md:text-base text-neutral-400">Member not found</p>
         </Card>
+        </Stack>
       </Container>
     )
   }
@@ -255,6 +261,8 @@ export default function MemberDetailPage() {
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       {/* Header */}
       <div className="mb-8 md:mb-12">
         <Button
@@ -807,6 +815,7 @@ export default function MemberDetailPage() {
           )}
         </Card>
       )}
+      </Stack>
     </Container>
   )
 }

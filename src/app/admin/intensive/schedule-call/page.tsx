@@ -11,6 +11,7 @@ import {
   Badge,
   Spinner,
   Stack,
+  PageHero,
   DatePicker,
   Checkbox
 } from '@/lib/design-system/components'
@@ -640,7 +641,10 @@ export default function AdminScheduleCallPage() {
     return (
       <AdminWrapper>
         <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+          <Stack gap="lg">
+            <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
           <Spinner size="lg" />
+          </Stack>
         </Container>
       </AdminWrapper>
     )
@@ -649,6 +653,8 @@ export default function AdminScheduleCallPage() {
   return (
     <AdminWrapper>
       <Container size="xl">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
           <div className="mb-6 md:mb-8">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Schedule Call Admin</h1>
             <p className="text-sm md:text-base text-neutral-400">Manage schedules and view booked appointments</p>
@@ -1193,6 +1199,7 @@ export default function AdminScheduleCallPage() {
               </Card>
             </Stack>
           )}
+        </Stack>
       </Container>
     </AdminWrapper>
   )

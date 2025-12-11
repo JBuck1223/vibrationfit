@@ -12,6 +12,7 @@ import {
   Spinner,
   Inline,
   Stack,
+  PageHero
 } from '@/lib/design-system/components'
 import { RefreshCcw, Plus, Trash2, Save, ToggleLeft, ToggleRight } from 'lucide-react'
 
@@ -274,6 +275,8 @@ export default function VibrationalEventSourcesAdminPage() {
   return (
     <AdminWrapper>
       <Container size="xl">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <div>
           <div className="mb-8">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3">
@@ -513,6 +516,7 @@ export default function VibrationalEventSourcesAdminPage() {
             </Card>
           </div>
         </div>
+        </Stack>
       </Container>
     </AdminWrapper>
   )

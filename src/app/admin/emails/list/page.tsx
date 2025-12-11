@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Container, Card, Badge, Button } from '@/lib/design-system/components'
+import { Container, Card, Badge, Button , Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { Mail, Send, Eye, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -106,18 +106,16 @@ function EmailsPageContent() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-1 md:mb-2">
-          Transactional Emails
-        </h1>
-        <p className="text-sm md:text-base text-neutral-400">
-          Manage and monitor automated email templates
-        </p>
-      </div>
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="ADMIN"
+          title="Transactional Emails"
+          subtitle="Manage and monitor automated email templates"
+        />
 
-      {/* Category Filter */}
-      <div className="flex flex-wrap gap-2 mb-6 md:mb-8">
+        {/* Category Filter */}
+        <div className="flex flex-wrap gap-2">
         {CATEGORIES.map(category => (
           <button
             key={category}
@@ -143,30 +141,20 @@ function EmailsPageContent() {
             onClick={() => router.push(`/admin/emails/${email.id}`)}
           >
             {/* Header */}
-            <div className="flex items-start justify-between mb-3 md:mb-4">
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500/20 rounded-xl flex items-center justify-center">
-                  <Mail className="w-5 h-5 md:w-6 md:h-6 text-primary-500" />
-                </div>
-                <div>
-                  <h3 className="text-sm md:text-base font-semibold">{email.name}</h3>
-                  <Badge 
-                    variant={email.status === 'active' ? 'success' : 'info'}
-                    className="text-xs mt-1"
-                  >
-                    {email.status}
-                  </Badge>
-                </div>
-              </div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base md:text-lg font-semibold">{email.name}</h3>
+              <Badge variant={email.status === 'active' ? 'success' : 'default'}>
+                {email.category}
+              </Badge>
             </div>
 
             {/* Description */}
-            <p className="text-xs md:text-sm text-neutral-400 mb-3 md:mb-4 line-clamp-2">
+            <p className="text-xs md:text-sm text-neutral-400 mb-3 md: line-clamp-2">
               {email.description}
             </p>
 
             {/* Stats */}
-            <div className="flex items-center gap-4 mb-3 md:mb-4 text-xs text-neutral-500">
+            <div className="flex items-center gap-4 mb-3 md: text-xs text-neutral-500">
               <div>
                 <Send className="w-3 h-3 md:w-4 md:h-4 inline mr-1" />
                 {email.totalSent} sent
@@ -180,7 +168,7 @@ function EmailsPageContent() {
 
             {/* Triggers Preview */}
             <div className="pt-3 md:pt-4 border-t border-neutral-800">
-              <p className="text-xs font-medium text-neutral-400 mb-2">Triggers:</p>
+              <p className="text-xs font-medium text-neutral-400 ">Triggers:</p>
               <div className="space-y-1">
                 {email.triggers.slice(0, 2).map((trigger, idx) => (
                   <p key={idx} className="text-xs text-neutral-500 truncate">
@@ -224,15 +212,16 @@ function EmailsPageContent() {
       </div>
 
       {/* Coming Soon Notice */}
-      <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mt-6 md:mt-8 text-center">
-        <h3 className="text-lg md:text-xl font-semibold mb-2">More Templates Coming Soon</h3>
-        <p className="text-xs md:text-sm text-neutral-400 mb-4">
-          We're building a comprehensive email system. Check back for updates!
-        </p>
-        <Button size="sm" variant="secondary">
-          Request New Template
-        </Button>
-      </Card>
+        <Card variant="elevated" className="text-center">
+          <h3 className="text-lg md:text-xl font-semibold">More Templates Coming Soon</h3>
+          <p className="text-xs md:text-sm text-neutral-400">
+            We're building a comprehensive email system. Check back for updates!
+          </p>
+          <Button size="sm" variant="secondary">
+            Request New Template
+          </Button>
+        </Card>
+      </Stack>
     </Container>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Container, Card, Button, Badge, Input } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, Input , Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { ArrowLeft, Send, Eye, Code, Settings, Copy } from 'lucide-react'
 import { generateHouseholdInvitationEmail } from '@/lib/email/templates/household-invitation'
@@ -76,6 +76,8 @@ export default function EmailDetailPage() {
   if (!email) {
     return (
       <Container size="md">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <Card className="text-center p-4 md:p-6 lg:p-8">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Email Not Found</h1>
           <p className="text-sm md:text-base text-neutral-400 mb-4">
@@ -85,6 +87,7 @@ export default function EmailDetailPage() {
             Back to Email List
           </Button>
         </Card>
+        </Stack>
       </Container>
     )
   }
@@ -139,6 +142,8 @@ export default function EmailDetailPage() {
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       {/* Header */}
       <div className="mb-6 md:mb-8">
         <Button
@@ -346,6 +351,7 @@ export default function EmailDetailPage() {
           </div>
         </Card>
       )}
+      </Stack>
     </Container>
   )
 }

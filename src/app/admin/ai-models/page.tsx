@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Container, Card, Button, Badge, Input, Textarea } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, Input, Textarea, Stack, PageHero } from '@/lib/design-system/components'
 import { AI_MODELS, type AIModelConfig } from '@/lib/ai/config'
 import { API_ROUTES_REGISTRY, type APIRouteConfig } from '@/lib/ai/api-routes-registry'
 import { AdminWrapper } from '@/components/AdminWrapper'
@@ -183,6 +183,8 @@ function AIModelsAdminContent() {
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       <div className="mb-8 md:mb-12">
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">AI Models & Configuration</h1>
         <p className="text-sm md:text-base lg:text-lg text-neutral-400">
@@ -815,6 +817,7 @@ function AIModelsAdminContent() {
           )}
         </>
       )}
+      </Stack>
     </Container>
   )
 }

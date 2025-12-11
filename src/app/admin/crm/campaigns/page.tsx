@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 
 interface Campaign {
   id: string
@@ -80,25 +80,24 @@ export default function CampaignsPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Marketing Campaigns</h1>
-          <p className="text-sm md:text-base text-neutral-400">
-            Manage campaigns and track ROI
-          </p>
-        </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => router.push('/admin/crm/campaigns/new')}
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="CRM"
+          title="Marketing Campaigns"
+          subtitle="Manage campaigns and track ROI"
         >
-          + New Campaign
-        </Button>
-      </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => router.push('/admin/crm/campaigns/new')}
+          >
+            + New Campaign
+          </Button>
+        </PageHero>
 
-      {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-2">
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2">
         {['all', 'active', 'draft', 'paused', 'completed'].map((status) => (
           <Button
             key={status}
@@ -200,6 +199,7 @@ export default function CampaignsPage() {
           ))}
         </div>
       )}
+      </Stack>
     </Container>
   )
 }
