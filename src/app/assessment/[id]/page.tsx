@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation'
 
 type AssessmentRouteParams = {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default function AssessmentIdPage({ params }: AssessmentRouteParams) {
-  redirect(`/assessment/${params.id}/results`)
+export default async function AssessmentIdPage({ params }: AssessmentRouteParams) {
+  const { id } = await params
+  redirect(`/assessment/${id}/results`)
 }
