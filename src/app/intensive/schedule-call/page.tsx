@@ -312,7 +312,6 @@ export default function ScheduleCallPage() {
     <Container size="lg">
       <Stack gap="lg">
         <PageHero
-          eyebrow="INTENSIVE PROGRAM"
           title="Schedule Your Calibration Call"
           subtitle="Book your personalized 1-on-1 session to activate your transformation"
         >

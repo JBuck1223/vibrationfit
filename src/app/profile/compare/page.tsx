@@ -82,7 +82,6 @@ export default function ProfileComparePage() {
       <Container size="xl">
         <Stack gap="lg">
           <PageHero
-            eyebrow="THE LIFE I CHOOSE"
             title="Compare Profile Versions"
             subtitle="Select two versions to compare and see what changed between them."
           >
@@ -122,7 +121,6 @@ export default function ProfileComparePage() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Compare Profile Versions"
           subtitle="View changes between versions"
         >

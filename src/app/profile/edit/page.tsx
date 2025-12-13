@@ -636,7 +636,6 @@ export default function ProfilePage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Complete Your Profile"
           subtitle="Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes."
         />

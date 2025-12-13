@@ -51,13 +51,13 @@ function EditEmailContent() {
       const data = await response.json()
 
       if (response.ok) {
-        setSendResult(`✅ Test email sent successfully to ${testEmail}!`)
+        setSendResult(`Test email sent successfully to ${testEmail}!`)
         setTestEmail('')
       } else {
-        setSendResult(`❌ Failed: ${data.error}`)
+        setSendResult(`Failed: ${data.error}`)
       }
     } catch (error) {
-      setSendResult('❌ Failed to send test email')
+      setSendResult('Failed to send test email')
     } finally {
       setSending(false)
     }
@@ -169,7 +169,7 @@ function EditEmailContent() {
               </Button>
 
               {sendResult && (
-                <p className={`text-xs md:text-sm ${sendResult.startsWith('✅') ? 'text-primary-500' : 'text-red-500'}`}>
+                <p className={`text-xs md:text-sm ${sendResult.includes('successfully') ? 'text-primary-500' : 'text-red-500'}`}>
                   {sendResult}
                 </p>
               )}

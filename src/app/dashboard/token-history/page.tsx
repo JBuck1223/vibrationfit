@@ -131,7 +131,6 @@ export default function TokenHistoryPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Token Usage History"
           subtitle="Track where your AI tokens are being used"
         >

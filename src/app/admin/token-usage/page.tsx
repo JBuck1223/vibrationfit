@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { Container, Card, Badge, Button, Spinner , Stack, PageHero } from '@/lib/design-system/components'
+import { DollarSign, Zap, BarChart3, AlertTriangle, Search } from 'lucide-react'
 
 interface TokenSummary {
   total_tokens: number
@@ -144,7 +145,8 @@ export default function AdminTokenUsagePage() {
                 : 'text-neutral-400 hover:text-white'
             }`}
           >
-            🔍 Reconciliation
+            <Search className="w-4 h-4 mr-2 inline" />
+            Reconciliation
           </button>
         </div>
 
@@ -156,7 +158,10 @@ export default function AdminTokenUsagePage() {
           </div>
         ) : error ? (
           <Card variant="outlined" className="p-4 md:p-6 text-center">
-            <div className="text-red-400 ">⚠️ Error loading data</div>
+            <div className="text-red-400 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Error loading data
+            </div>
             <p className="text-neutral-300 ">{error}</p>
             <Button 
               variant="primary" 
@@ -191,7 +196,7 @@ export default function AdminTokenUsagePage() {
                 <div className="flex items-center justify-between mb-3 md:">
                   <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Total Cost</h3>
                   <div className="w-7 h-7 md:w-8 md:h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">💰</span>
+                    <DollarSign className="w-4 h-4 text-white" />
                   </div>
                 </div>
                 <div className="text-xl md:text-2xl lg:text-3xl font-bold text-green-500 ">
@@ -209,7 +214,7 @@ export default function AdminTokenUsagePage() {
                 <div className="flex items-center justify-between mb-3 md:">
                   <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Total Actions</h3>
                   <div className="w-7 h-7 md:w-8 md:h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">⚡</span>
+                    <Zap className="w-4 h-4 text-white" />
                   </div>
                 </div>
                 <div className="text-xl md:text-2xl lg:text-3xl font-bold text-purple-500 ">
@@ -227,7 +232,7 @@ export default function AdminTokenUsagePage() {
                 <div className="flex items-center justify-between mb-3 md:">
                   <h3 className="text-sm md:text-base lg:text-lg font-semibold text-white">Avg Cost/Action</h3>
                   <div className="w-7 h-7 md:w-8 md:h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">📊</span>
+                    <BarChart3 className="w-4 h-4 text-white" />
                   </div>
                 </div>
                 <div className="text-xl md:text-2xl lg:text-3xl font-bold text-yellow-500 ">
@@ -292,7 +297,10 @@ export default function AdminTokenUsagePage() {
           </Card>
         ) : activeTab === 'users' ? (
           <Card variant="outlined" className="p-4 md:p-6 text-center">
-            <div className="text-neutral-400 ">📊 No user data available</div>
+            <div className="text-neutral-400 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              No user data available
+            </div>
             <p className="text-neutral-300">No token usage data found for the selected period.</p>
           </Card>
         ) : activeTab === 'reconciliation' && reconciliationData ? (

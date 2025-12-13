@@ -392,7 +392,6 @@ export default function IntensiveActivation() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="INTENSIVE PROGRAM"
           title="7-Day Activation Protocol"
           subtitle="Start living your vision today. Complete daily activities to activate your transformation."
         >

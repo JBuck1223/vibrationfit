@@ -110,7 +110,6 @@ export default function RefineVisionPage() {
     <Container size="lg">
       <Stack gap="lg">
         <PageHero
-          eyebrow="INTENSIVE PROGRAM"
           title="Refine Your Vision"
           subtitle="Review and enhance your vision with VIVA"
         >

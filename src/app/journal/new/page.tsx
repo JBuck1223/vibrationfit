@@ -236,7 +236,6 @@ export default function NewJournalEntryPage() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="New Journal Entry"
           subtitle="Capture your thoughts, evidence, and insights"
         />

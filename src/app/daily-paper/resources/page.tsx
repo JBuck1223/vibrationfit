@@ -26,7 +26,6 @@ export default function DailyPaperResourcesPage() {
     <Container size="xl">
       <Stack gap="xl">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Daily Paper Resources"
           subtitle="Learn the daily practice that keeps you vibrationally aligned"
         >

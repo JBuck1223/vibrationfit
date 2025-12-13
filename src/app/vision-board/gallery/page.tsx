@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import {  Container, Card, Button, Badge, Stack, Icon, PageHero } from '@/lib/design-system'
+import {  Container, Card, Button, Badge, Stack, Icon, PageHero, Spinner } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { Image as ImageIcon, ArrowLeft, Trash2, Plus } from 'lucide-react'
 import Link from 'next/link'
@@ -44,7 +44,6 @@ export default function GeneratedGalleryPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="VIVA GALLERY"
           title="My Vision Board Library"
           subtitle="Browse and manage your generated and uploaded images"
         >
@@ -77,10 +76,9 @@ export default function GeneratedGalleryPage() {
 
         {/* Content */}
         {loading ? (
-          <Card className="p-8 text-center">
-            <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-neutral-400">Loading your gallery...</p>
-          </Card>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Spinner size="lg" />
+          </div>
         ) : images.length === 0 ? (
           <Card className="p-8 text-center">
             <Icon icon={ImageIcon} size="xl" color="#666" className="mx-auto mb-4" />

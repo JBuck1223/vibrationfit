@@ -100,7 +100,6 @@ export default function ActivationProtocolPage() {
     <Container size="lg">
       <Stack gap="lg">
         <PageHero
-          eyebrow="INTENSIVE PROGRAM"
           title="Your Activation Protocol"
           subtitle="Daily rituals to bring your vision to life"
         >

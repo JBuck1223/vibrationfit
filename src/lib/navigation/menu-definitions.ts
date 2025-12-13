@@ -154,17 +154,6 @@ export const userNavigation: NavItem[] = [
     ]
   },
   {
-    name: 'VIVA',
-    href: '/viva',
-    icon: Sparkles,
-    hasDropdown: true,
-    description: 'Vibrational Intelligence Virtual Assistant',
-    children: [
-      { name: 'Chat with VIVA', href: '/viva', icon: Sparkles },
-      { name: 'Create Life Vision', href: '/life-vision/new', icon: Target },
-    ]
-  },
-  {
     name: 'Activity',
     href: '/dashboard/activity',
     icon: BarChart3,
@@ -177,7 +166,7 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Manage Creation Credits',
     children: [
-      { name: 'Creation Credits', href: '/dashboard/tokens', icon: Zap },
+      { name: 'Token Dashboard', href: '/dashboard/tokens', icon: Zap },
       { name: 'Token History', href: '/dashboard/token-history', icon: BarChart3 },
       { name: 'Buy Tokens', href: '/dashboard/add-tokens', icon: ShoppingCart },
     ]
@@ -190,16 +179,6 @@ export const userNavigation: NavItem[] = [
     description: 'File storage management',
     children: [
       { name: 'Storage Usage', href: '/dashboard/storage', icon: Eye },
-    ]
-  },
-  {
-    name: 'Framework',
-    href: '/framework/emotional-guidance-scale',
-    icon: Compass,
-    hasDropdown: true,
-    description: 'Vibrational framework and resources',
-    children: [
-      { name: 'Emotional Guidance Scale', href: '/framework/emotional-guidance-scale', icon: TrendingUp },
     ]
   },
   {

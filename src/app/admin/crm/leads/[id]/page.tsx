@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Button, Card, Badge, Container, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
+import { MessageSquare, Mail } from 'lucide-react'
 
 interface Lead {
   id: string
@@ -122,11 +123,8 @@ export default function LeadDetailPage() {
 
   if (loading) {
     return (
-      <Container className="py-12">
-        <Stack gap="lg">
-          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
-        <p className="text-neutral-300">Loading lead...</p>
-        </Stack>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
@@ -168,14 +166,16 @@ export default function LeadDetailPage() {
           <div className="flex gap-3">
             {lead.phone && (
               <Button variant="secondary" onClick={handleSendSMS}>
-                📱 Text
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Text
               </Button>
             )}
             <Button
               variant="secondary"
               onClick={() => window.location.href = `mailto:${lead.email}`}
             >
-              ✉️ Email
+              <Mail className="w-4 h-4 mr-2" />
+              Email
             </Button>
           </div>
         </div>
@@ -386,6 +386,7 @@ export default function LeadDetailPage() {
     </Container>
   )
 }
+
 
 
 

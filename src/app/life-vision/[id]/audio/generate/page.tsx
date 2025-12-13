@@ -400,10 +400,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-      <Container size="xl">
-        <div className="flex items-center justify-center py-20">
-          <Spinner size="lg" />
-        </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }

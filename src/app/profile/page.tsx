@@ -321,10 +321,8 @@ export default function ProfileDashboardPage() {
 
   if (loading) {
     return (
-      <Container size="xl">
-        <div className="flex items-center justify-center py-16">
-          <Spinner variant="primary" size="lg" />
-        </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
@@ -355,7 +353,6 @@ export default function ProfileDashboardPage() {
       <Stack gap="lg">
         {/* Page Hero */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title={activeProfile && activeProfile.first_name && activeProfile.last_name
             ? `${activeProfile.first_name} ${activeProfile.last_name}`
             : 'My Profile'}

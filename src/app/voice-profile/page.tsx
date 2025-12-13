@@ -367,7 +367,6 @@ export default function VoiceProfilePage() {
       <Stack gap="md">
         {/* Header with Page-Titles Pattern */}
         <PageHero
-          eyebrow="MY VOICE"
           title="Voice Profile"
           subtitle="Adjust how VIVA writes for you. Save manual edits or run the analyzer on your latest writing. The active version powers scenes, visions, and reflections across the app."
         >

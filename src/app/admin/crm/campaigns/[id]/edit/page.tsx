@@ -109,11 +109,8 @@ export default function EditCampaignPage() {
 
   if (fetching) {
     return (
-      <Container className="py-12">
-        <Stack gap="lg">
-          <PageHero eyebrow="CRM / CAMPAIGNS" title="Loading..." subtitle="" />
-          <p className="text-neutral-300">Loading campaign...</p>
-        </Stack>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
@@ -350,6 +347,7 @@ export default function EditCampaignPage() {
     </Container>
   )
 }
+
 
 
 

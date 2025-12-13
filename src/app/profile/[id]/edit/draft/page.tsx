@@ -703,7 +703,6 @@ export default function ProfileEditPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Edit Draft Profile"
           subtitle="Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes."
         >

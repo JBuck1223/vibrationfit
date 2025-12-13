@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import {  Card, Button, Video, CategoryCard, PageHero, Container, Stack } from '@/lib/design-system'
+import {  Card, Button, Video, CategoryCard, PageHero, Container, Stack, Spinner } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
@@ -246,9 +246,9 @@ export default function JournalPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-16">
-        <div className="text-neutral-400">Loading journal entries...</div>
-      </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -266,7 +266,6 @@ export default function JournalPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Conscious Creation Journal"
           subtitle="Capture evidence of actualization in real time"
         >

@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { Button, Card, Input, Container, Stack, PageHero } from '@/lib/design-system/components'
+import { Check, ArrowRight } from 'lucide-react'
 
 export default function UTMBuilderPage() {
   const [baseUrl, setBaseUrl] = useState('https://vibrationfit.com')
@@ -224,7 +225,14 @@ export default function UTMBuilderPage() {
 
         <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
           <Button variant="primary" size="sm" onClick={copyToClipboard} className="flex-1 sm:flex-none">
-            {copied ? '✓ Copied!' : 'Copy URL'}
+            {copied ? (
+              <>
+                <Check className="w-4 h-4 mr-1" />
+                Copied!
+              </>
+            ) : (
+              'Copy URL'
+            )}
           </Button>
           <Button
             variant="secondary"
@@ -232,7 +240,8 @@ export default function UTMBuilderPage() {
             onClick={() => window.open(finalURL, '_blank')}
             className="flex-1 sm:flex-none"
           >
-            Test URL →
+            <ArrowRight className="w-4 h-4 inline mr-1" />
+            Test URL
           </Button>
         </div>
       </Card>

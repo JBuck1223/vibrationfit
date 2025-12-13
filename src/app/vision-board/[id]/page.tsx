@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Input, Button, CategoryCard, Container, Stack, PageHero } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard, Container, Stack, PageHero, Spinner } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
@@ -330,11 +330,9 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
 
   if (loading) {
     return (
-      <>
-        <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-        </div>
-      </>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -357,7 +355,6 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
       <Stack gap="lg">
         {!isEditing && (
           <PageHero
-            eyebrow="THE LIFE I CHOOSE"
             title={item?.name || 'Vision Board Item'}
             subtitle="View and manage your creation"
           >

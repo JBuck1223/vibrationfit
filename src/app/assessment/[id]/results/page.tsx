@@ -11,6 +11,7 @@ import {
   Inline,
   Text,
   PageHero,
+  Spinner,
 } from '@/lib/design-system/components'
 import { BarChart3, Eye, Plus, ArrowLeft, History, RefreshCw } from 'lucide-react'
 import { fetchAssessments, fetchAssessment } from '@/lib/services/assessmentService'
@@ -105,11 +106,8 @@ export default function AssessmentResultsPage() {
 
   if (loading) {
     return (
-      <Container size="xl" className="py-12">
-        <Stack gap="sm" className="items-center text-center text-neutral-400">
-          <RefreshCw className="h-8 w-8 animate-spin text-primary-500" />
-          <p>Loading assessment results...</p>
-        </Stack>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }

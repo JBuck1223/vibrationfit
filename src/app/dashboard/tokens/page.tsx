@@ -1,5 +1,5 @@
 // /src/app/dashboard/tokens/page.tsx
-// Creation Credits usage history and balance management - Shows transactions, usage, and accurate balance
+// Token usage history and balance management - Shows transactions, usage, and accurate balance
 
 'use client'
 
@@ -121,27 +121,26 @@ export default function TokensPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
-          title="Creation Credits"
-          subtitle="Track your Creation Credits: transactions, usage, and balance"
+          title="Tokens"
+          subtitle="Track your tokens: transactions, usage, and balance"
         />
 
         {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto" />
-          <p className="text-neutral-400 mt-4">Loading your Creation Credits data...</p>
+          <p className="text-neutral-400 mt-4">Loading your token data...</p>
         </div>
         ) : (
           <>
             {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <TrackingMilestoneCard
-              label="Available Credits"
+              label="Available Tokens"
               value={formatCredits(balance, true)}
               theme="primary"
             />
             <TrackingMilestoneCard
-              label="Credits Used"
+              label="Tokens Used"
               value={formatCredits(stats?.totalUsed || 0, true)}
               theme="secondary"
             />
@@ -182,20 +181,20 @@ export default function TokensPage() {
             </Card>
           )}
 
-            {/* Add Credits CTA */}
+            {/* Add Tokens CTA */}
             {balance < 1_000_000 && (
               <Card className="p-4 md:p-6 bg-gradient-to-br from-energy-500/10 to-accent-500/10 border-2 border-energy-500/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg md:text-xl font-bold text-white mb-2">Running Low on Credits?</h3>
+                  <h3 className="text-lg md:text-xl font-bold text-white mb-2">Need More Tokens?</h3>
                   <p className="text-neutral-300 mb-4">
-                    Add more Creation Credits to keep transforming without limits
+                    Purchase additional tokens to continue creating
                   </p>
                 </div>
                 <Button asChild variant="primary" size="sm">
                   <Link href="/dashboard/add-tokens">
                     <Plus className="w-5 h-5 mr-2" />
-                    Add Credits
+                    Purchase Tokens
                   </Link>
                 </Button>
               </div>
@@ -249,10 +248,10 @@ export default function TokensPage() {
                 <p className="text-neutral-400">No activity yet</p>
                 <p className="text-sm text-neutral-500 mt-2">
                   {activeTab === 'transactions' 
-                    ? 'No transactions yet. Purchase credits or receive grants to see them here.'
+                    ? 'No transactions yet. Purchase tokens or receive grants to see activity here.'
                     : activeTab === 'usage'
                     ? 'No AI usage yet. Start creating to see your usage here!'
-                    : 'Start creating to see your Creation Credits activity here!'}
+                    : 'Start creating to see your token activity here!'}
                 </p>
               </div>
             ) : (

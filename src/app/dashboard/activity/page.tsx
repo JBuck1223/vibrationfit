@@ -97,7 +97,6 @@ export default function ActivityFeedPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="My Activity Feed"
           subtitle="Your transformation journey in real-time"
         />

@@ -177,7 +177,6 @@ export default function NewDailyPaperPage() {
     <Container size="xl">
       <Stack gap="xl">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Daily Paper Entry"
           subtitle="Your daily practice for vibrational alignment"
         />

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard, PageHero, Container, Stack } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard, PageHero, Container, Stack, Spinner } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -315,7 +315,6 @@ export default function VisionBoardPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Vision Board"
           subtitle="Visualize and track your conscious creations"
         >
@@ -518,9 +517,8 @@ export default function VisionBoardPage() {
         {/* Vision Board Content */}
         <div id="content">
         {loading ? (
-          <div className="text-center py-16">
-            <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-neutral-400">Loading your vision board...</p>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Spinner size="lg" />
           </div>
         ) : filteredItems && filteredItems.length > 0 ? (
           <>

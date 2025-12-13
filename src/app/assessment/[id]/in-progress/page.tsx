@@ -582,7 +582,6 @@ export default function AssessmentPage() {
       <Stack gap="lg">
         {/* Page Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Vibrational Assessment"
           subtitle="Discover your current state across all 12 life categories"
         />

@@ -133,10 +133,7 @@ export default function MemberBoardPage() {
   if (loading) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Stack gap="lg">
-          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <Spinner size="lg" />
-        </Stack>
       </Container>
     )
   }

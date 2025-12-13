@@ -54,11 +54,8 @@ export default function AssessmentHistoryPage() {
 
   if (loading) {
     return (
-      <Container size="xl">
-        <div className="flex flex-col items-center justify-center gap-4 text-neutral-400 py-20">
-          <Spinner variant="primary" size="lg" />
-          <p>Loading your assessment history...</p>
-        </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
@@ -80,7 +77,6 @@ export default function AssessmentHistoryPage() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Assessment History"
           subtitle="Review every Vibrational Assessment you've completed and resume drafts in progress."
         />

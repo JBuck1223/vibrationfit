@@ -94,7 +94,6 @@ export default function AddTokensPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="TOKEN PACKS"
           title="Add More Creation Tokens"
           subtitle="Never expires • Use anytime • Full creative freedom"
         >

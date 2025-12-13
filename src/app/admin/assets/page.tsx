@@ -314,7 +314,7 @@ function AssetsAdminContent() {
       // Show results
       if (errors.length === 0) {
         setSuccessMessage({
-          title: `✨ ${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully!`,
+          title: `${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully!`,
         })
         // Reset form after successful upload
         setSelectedFiles([])
@@ -325,7 +325,7 @@ function AssetsAdminContent() {
         setTimeout(() => setSuccessMessage(null), 4000)
       } else if (uploadedFiles.length > 0) {
         setSuccessMessage({
-          title: `✨ ${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully!`,
+          title: `${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully!`,
           details: [`${errors.length} file${errors.length > 1 ? 's' : ''} failed to upload`, ...errors],
         })
       } else {
@@ -463,12 +463,12 @@ function AssetsAdminContent() {
       // Show results
       if (errors.length === 0) {
         setSuccessMessage({
-          title: `✨ ${deletedFiles.length} file${deletedFiles.length > 1 ? 's' : ''} deleted successfully!`,
+          title: `${deletedFiles.length} file${deletedFiles.length > 1 ? 's' : ''} deleted successfully!`,
         })
         setTimeout(() => setSuccessMessage(null), 4000)
       } else if (deletedFiles.length > 0) {
         setSuccessMessage({
-          title: `✨ ${deletedFiles.length} file${deletedFiles.length > 1 ? 's' : ''} deleted successfully!`,
+          title: `${deletedFiles.length} file${deletedFiles.length > 1 ? 's' : ''} deleted successfully!`,
           details: [`${errors.length} file${errors.length > 1 ? 's' : ''} failed to delete`, ...errors],
         })
       } else {
@@ -998,7 +998,7 @@ function AssetsAdminContent() {
                           
                           // Show success message
                           setSuccessMessage({
-                            title: `✨ Folder "${folderName}" created successfully!`,
+                            title: `Folder "${folderName}" created successfully!`,
                           })
                           setTimeout(() => setSuccessMessage(null), 3000)
                         } catch (error) {

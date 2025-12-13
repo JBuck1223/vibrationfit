@@ -64,7 +64,6 @@ export default function BillingPage() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Billing & Subscription"
           subtitle="Manage your membership and payment details"
         />

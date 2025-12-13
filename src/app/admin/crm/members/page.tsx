@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Badge, Container, Spinner, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
+import { Mail, MessageSquare } from 'lucide-react'
 
 interface Member {
   user_id: string
@@ -99,7 +100,7 @@ export default function MembersPage() {
       }
 
       const data = await response.json()
-      alert(`✅ Sent to ${data.results.success} members\n❌ Failed: ${data.results.failed}`)
+      alert(`Sent to ${data.results.success} members\nFailed: ${data.results.failed}`)
 
       // Clear
       setBulkSubject('')
@@ -300,14 +301,16 @@ export default function MembersPage() {
                 size="sm"
                 onClick={() => setBulkType('email')}
               >
-                ✉️ Email
+                <Mail className="w-4 h-4 mr-2" />
+                Email
               </Button>
               <Button
                 variant={bulkType === 'sms' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setBulkType('sms')}
               >
-                📱 SMS
+                <MessageSquare className="w-4 h-4 mr-2" />
+                SMS
               </Button>
             </div>
 

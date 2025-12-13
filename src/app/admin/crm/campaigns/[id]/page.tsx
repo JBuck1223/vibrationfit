@@ -73,22 +73,21 @@ export default function CampaignDetailPage() {
 
   if (loading) {
     return (
-      <Container className="py-12">
-        <Stack gap="lg">
-          <PageHero eyebrow="CRM / CAMPAIGNS" title="Loading..." subtitle="" />
-          <p className="text-neutral-300">Loading campaign...</p>
-        </Stack>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
 
   if (!campaign) {
     return (
-      <Container className="py-12">
-        <Stack gap="lg">
-          <PageHero eyebrow="CRM / CAMPAIGNS" title="Not Found" subtitle="" />
-          <p className="text-neutral-300">Campaign not found</p>
-        </Stack>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <div className="text-center">
+          <p className="text-xl text-neutral-300 mb-2">Campaign not found</p>
+          <Button variant="ghost" onClick={() => router.push('/admin/crm/campaigns')}>
+            ← Back to Campaigns
+          </Button>
+        </div>
       </Container>
     )
   }
@@ -318,6 +317,7 @@ export default function CampaignDetailPage() {
     </Container>
   )
 }
+
 
 
 

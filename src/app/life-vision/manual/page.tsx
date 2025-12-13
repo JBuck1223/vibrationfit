@@ -369,11 +369,8 @@ export default function ManualLifeVisionPage() {
 
   if (loading) {
     return (
-      <Container size="xl">
-        <div className="text-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
-          <div className="text-neutral-400">Loading your vision...</div>
-        </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }

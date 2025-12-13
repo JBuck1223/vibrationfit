@@ -342,10 +342,8 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <Container size="xl">
-        <div className="flex items-center justify-center py-16">
-          <Spinner variant="primary" size="lg" />
-        </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
@@ -416,7 +414,6 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
     <>
       {/* Header */}
       <PageHero
-        eyebrow="DRAFT PROFILE"
         title="Refine Your Profile"
         subtitle="Changed fields will show in yellow. Once you are happy with your changes, click 'Commit as Active Profile'."
         className="mb-8"

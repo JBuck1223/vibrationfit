@@ -335,7 +335,6 @@ export default function IntensiveCalibration() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="INTENSIVE PROGRAM"
           title="Calibration Session"
           subtitle="Schedule your 1:1 calibration call to personalize your activation audios and finalize your vision."
         >

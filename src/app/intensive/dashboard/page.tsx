@@ -417,7 +417,6 @@ export default function IntensiveDashboard() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="ACTIVATION INTENSIVE"
           title="Your Activation Journey"
           subtitle={`Current Phase: ${currentPhase}`}
         >

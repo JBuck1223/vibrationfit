@@ -12,6 +12,7 @@ import {
   Badge,
   Text,
   TrackingMilestoneCard,
+  PageHero,
 } from '@/lib/design-system/components'
 import { ArrowRight, RefreshCcw, FileText, Sparkles } from 'lucide-react'
 import { DailyPaperEntry, useDailyPaperEntries } from '@/hooks/useDailyPaper'
@@ -110,7 +111,6 @@ export default function DailyPaperIndexPage() {
     <Container size="xl">
       <Stack gap="xl">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Daily Paper"
           subtitle="Capture gratitude, align three actions, and mark a fun moment. Your archive keeps the story tight and easy to review."
         >

@@ -82,7 +82,6 @@ export default function StoragePage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Storage Usage"
           subtitle="Track your file storage across all features"
         />

@@ -546,7 +546,6 @@ export default function IntensiveIntake() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="INTENSIVE PROGRAM"
           title="Intensive Intake Form"
           subtitle="Share your story so we can personalize your transformation"
         >

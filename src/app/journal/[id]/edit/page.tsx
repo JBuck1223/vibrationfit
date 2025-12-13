@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Card, Button, Input, CategoryCard, DatePicker, Container, Stack, PageHero } from '@/lib/design-system'
+import { Card, Button, Input, CategoryCard, DatePicker, Container, Stack, PageHero, Spinner } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -263,11 +263,9 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
   if (loading) {
     return (
-      <>
-        <div className="text-center py-16">
-          <div className="text-neutral-400">Loading journal entry...</div>
-        </div>
-      </>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -285,7 +283,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Edit Journal Entry"
           subtitle="Update your journal entry details"
         />

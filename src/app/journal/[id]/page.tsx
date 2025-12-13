@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import {  Card, Button, DeleteConfirmationDialog, Container, Stack, PageHero } from '@/lib/design-system'
+import {  Card, Button, DeleteConfirmationDialog, Container, Stack, PageHero, Spinner } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -350,11 +350,9 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <>
-        <div className="text-center py-16">
-          <div className="text-neutral-400">Loading journal entry...</div>
-        </div>
-      </>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -372,7 +370,6 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title={entry?.title || 'Journal Entry'}
           subtitle="View your journal entry"
         >

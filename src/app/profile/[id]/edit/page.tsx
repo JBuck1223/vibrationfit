@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero, Container, Stack } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero, Container, Stack, Spinner } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -812,10 +812,9 @@ export default function ProfileEditPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="text-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
-        <div className="text-neutral-400">Loading your profile...</div>
-      </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -851,7 +850,6 @@ export default function ProfileEditPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="MY PROFILE"
           title="Edit Profile"
           subtitle={!profileId ? "Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes." : undefined}
         >
@@ -889,7 +887,7 @@ export default function ProfileEditPage() {
           <div className="flex items-center gap-3">
             {saveStatus === 'saving' && (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                <Spinner size="sm" />
                 <span className="text-sm text-primary-500">Saving...</span>
               </>
             )}

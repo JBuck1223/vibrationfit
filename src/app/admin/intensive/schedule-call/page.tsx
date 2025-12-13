@@ -15,7 +15,7 @@ import {
   DatePicker,
   Checkbox
 } from '@/lib/design-system/components'
-import { Calendar, Clock, Plus, X, Trash2, Users, CheckCircle, Repeat, CalendarRange, Edit2, MoreVertical } from 'lucide-react'
+import { Calendar, Clock, Plus, X, Trash2, Users, CheckCircle, Repeat, CalendarRange, Edit2, MoreVertical, Target, MessageSquare, Video, GraduationCap, User } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Schedule {
@@ -71,11 +71,11 @@ export default function AdminScheduleCallPage() {
   
   // Event types
   const eventTypes = [
-    { value: 'intensive_calibration', label: 'Intensive Calibration', icon: '🎯' },
-    { value: 'group_workshop', label: 'Group Workshop', icon: '👥' },
-    { value: 'coaching_session', label: 'Coaching Session', icon: '💬' },
-    { value: 'webinar', label: 'Webinar', icon: '📹' },
-    { value: 'masterclass', label: 'Masterclass', icon: '🎓' },
+    { value: 'intensive_calibration', label: 'Intensive Calibration', Icon: Target },
+    { value: 'group_workshop', label: 'Group Workshop', Icon: Users },
+    { value: 'coaching_session', label: 'Coaching Session', Icon: MessageSquare },
+    { value: 'webinar', label: 'Webinar', Icon: Video },
+    { value: 'masterclass', label: 'Masterclass', Icon: GraduationCap },
   ]
   
   // Add schedule modes
@@ -641,10 +641,7 @@ export default function AdminScheduleCallPage() {
     return (
       <AdminWrapper>
         <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <Stack gap="lg">
-            <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
           <Spinner size="lg" />
-          </Stack>
         </Container>
       </AdminWrapper>
     )
@@ -654,14 +651,14 @@ export default function AdminScheduleCallPage() {
     <AdminWrapper>
       <Container size="xl">
         <Stack gap="lg">
-          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
-          <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Schedule Call Admin</h1>
-            <p className="text-sm md:text-base text-neutral-400">Manage schedules and view booked appointments</p>
-          </div>
+          <PageHero 
+            eyebrow="ADMIN" 
+            title="Schedule Call Admin" 
+            subtitle="Manage schedules and view booked appointments"
+          />
 
           {/* Tabs */}
-          <div className="flex gap-2 md:gap-4 mb-4 md:mb-6 border-b border-neutral-800 overflow-x-auto">
+          <div className="flex gap-2 md:gap-4 border-b border-neutral-800 overflow-x-auto">
             <button
               onClick={() => setActiveTab('schedules')}
               className={`px-3 md:px-4 py-2 text-sm md:text-base font-semibold border-b-2 transition-colors whitespace-nowrap ${
@@ -725,8 +722,8 @@ export default function AdminScheduleCallPage() {
                       }}
                       className="w-full px-4 py-3 bg-[#1F1F1F] border-2 border-[#333] rounded-xl focus:border-primary-500 focus:outline-none transition-all"
                     >
-                      <option value="one_on_one">👤 One-on-One</option>
-                      <option value="group">👥 Group Meeting</option>
+                      <option value="one_on_one">One-on-One</option>
+                      <option value="group">Group Meeting</option>
                     </select>
                     {meetingType === 'one_on_one' && (
                       <p className="text-xs text-neutral-400 mt-1">Max bookings will be set to 1</p>
@@ -1061,10 +1058,17 @@ export default function AdminScheduleCallPage() {
                                 {schedule.is_active ? 'Active' : 'Inactive'}
                               </Badge>
                               <Badge variant="premium" className="text-xs">
-                                {eventTypes.find(e => e.value === schedule.event_type)?.icon || '📅'} {eventTypes.find(e => e.value === schedule.event_type)?.label || schedule.event_type}
+                                {(() => {
+                                  const EventIcon = eventTypes.find(e => e.value === schedule.event_type)?.Icon || Calendar
+                                  return <EventIcon className="w-4 h-4 inline mr-2" />
+                                })()} {eventTypes.find(e => e.value === schedule.event_type)?.label || schedule.event_type}
                               </Badge>
                               <Badge variant={schedule.meeting_type === 'group' ? 'accent' : 'neutral'} className="text-xs">
-                                {schedule.meeting_type === 'group' ? '👥 Group' : '👤 One-on-One'}
+                                {schedule.meeting_type === 'group' ? (
+                                  <><Users className="w-4 h-4 inline mr-1" />Group</>
+                                ) : (
+                                  <><User className="w-4 h-4 inline mr-1" />One-on-One</>
+                                )}
                               </Badge>
                               <Badge variant="info" className="text-xs">
                                 {schedule.slot_count || 0} slots

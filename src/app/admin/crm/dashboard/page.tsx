@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Container, Spinner, Stack, PageHero } from '@/lib/design-system/components'
+import { RefreshCw } from 'lucide-react'
 
 interface DashboardStats {
   totalMembers: number
@@ -82,7 +83,7 @@ export default function CRMDashboardPage() {
       if (!response.ok) throw new Error('Failed to update metrics')
 
       const result = await response.json()
-      alert(`✅ Successfully updated metrics for ${result.usersProcessed} users!`)
+      alert(`Successfully updated metrics for ${result.usersProcessed} users!`)
       fetchDashboardStats()
     } catch (error: any) {
       console.error('Error updating metrics:', error)
@@ -115,7 +116,14 @@ export default function CRMDashboardPage() {
             onClick={handleUpdateMetrics}
             disabled={updating}
           >
-            {updating ? 'Updating...' : '🔄 Refresh Metrics'}
+            {updating ? (
+              'Updating...'
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh Metrics
+              </>
+            )}
           </Button>
         </PageHero>
 
@@ -236,6 +244,7 @@ export default function CRMDashboardPage() {
     </Container>
   )
 }
+
 
 
 

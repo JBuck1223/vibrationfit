@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog, Container, Stack } from '@/lib/design-system/components'
+import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog, Container, Stack, Spinner } from '@/lib/design-system/components'
 import { fetchAssessments, deleteAssessment, createAssessment, fetchAssessmentProgress, AssessmentProgress } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import { 
@@ -156,11 +156,8 @@ export default function AssessmentHub() {
 
   if (isLoading) {
     return (
-      <Container size="xl">
-        <div className="text-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
-          <p className="mt-4 text-sm md:text-base text-neutral-400">Loading your assessments...</p>
-        </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
@@ -169,7 +166,6 @@ export default function AssessmentHub() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Assessment Hub"
           subtitle="Manage your life assessments and track your progress across 12 key life areas."
         />

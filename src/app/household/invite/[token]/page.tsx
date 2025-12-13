@@ -197,7 +197,6 @@ export default function AcceptInvitationPage() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Household Invitation"
           subtitle="Join a household and share your transformation journey"
         >

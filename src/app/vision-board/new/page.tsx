@@ -206,7 +206,6 @@ export default function NewVisionBoardItemPage() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Add to Vision Board"
           subtitle="Create a visual representation of your vision."
         />

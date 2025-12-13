@@ -11,7 +11,6 @@ export default function CheckEmailPage() {
     <Container size="sm">
       <Stack gap="lg">
         <PageHero
-          eyebrow="INTENSIVE PROGRAM"
           title="Check Your Email!"
           subtitle="Your payment was successful! 🎉"
         >

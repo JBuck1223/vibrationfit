@@ -172,7 +172,6 @@ export default function HouseholdSettingsPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Household Settings"
           subtitle="Manage your household account and members"
         >

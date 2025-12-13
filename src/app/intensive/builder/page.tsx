@@ -388,7 +388,6 @@ My daily routines support my vision and values. I wake up with purpose and energ
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="INTENSIVE PROGRAM"
           title="Vision Builder"
           subtitle="Build your comprehensive life vision step by step"
         >

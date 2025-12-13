@@ -97,7 +97,6 @@ export default function AbundanceLogPage() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Abundance Tracker"
           subtitle="Log daily gifts, synchronicities, and abundance moments. Train your mind to notice what's flowing to you."
         />
@@ -105,7 +104,7 @@ export default function AbundanceLogPage() {
           <p className="text-neutral-400 text-sm md:text-base">
             Celebrate every moment of receiving. Each entry updates your vibrational log with an Above the Green Line pulse.
           </p>
-        </Stack>
+        </Card>
 
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">

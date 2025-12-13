@@ -193,7 +193,7 @@ export default function MemberDetailPage() {
       setEmailSubject('')
       setEmailBody('')
       setShowEmailModal(false)
-      alert('✅ Email sent successfully!')
+      alert('Email sent successfully!')
     } catch (error: any) {
       alert(error.message || 'Failed to send email')
     } finally {
@@ -234,10 +234,7 @@ export default function MemberDetailPage() {
   if (loading) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Stack gap="lg">
-          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <Spinner size="lg" />
-        </Stack>
       </Container>
     )
   }
@@ -659,7 +656,7 @@ export default function MemberDetailPage() {
           <div className="border-t border-[#333] pt-4">
             {!member?.phone ? (
               <p className="text-sm text-yellow-500 text-center py-2">
-                ⚠️ No phone number on file. Add phone number to send messages.
+                No phone number on file. Add phone number to send messages.
               </p>
             ) : (
               <div className="space-y-3">
@@ -703,7 +700,7 @@ export default function MemberDetailPage() {
           
           {!member?.email ? (
             <p className="text-sm text-yellow-500 text-center py-8">
-              ⚠️ No email on file
+              No email on file
             </p>
           ) : (
             <>
