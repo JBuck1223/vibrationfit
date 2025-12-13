@@ -6,6 +6,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Button, Card, Badge, Container, Spinner, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
+import { ConversationThread } from '@/components/crm/ConversationThread'
+import { RefreshCw, MessageSquare } from 'lucide-react'
 
 interface Member {
   user_id: string
@@ -50,6 +52,8 @@ export default function MemberDetailPage() {
   const [member, setMember] = useState<Member | null>(null)
   const [smsMessages, setSmsMessages] = useState<any[]>([])
   const [emailMessages, setEmailMessages] = useState<any[]>([])
+  const [conversation, setConversation] = useState<any[]>([])
+  const [loadingConversation, setLoadingConversation] = useState(false)
   const [tickets, setTickets] = useState<any[]>([])
   const [lead, setLead] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -75,6 +79,7 @@ export default function MemberDetailPage() {
 
   useEffect(() => {
     fetchMember()
+    fetchConversation()
   }, [params.id])
 
   async function fetchMember() {
@@ -98,6 +103,33 @@ export default function MemberDetailPage() {
       console.error('Error fetching member:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchConversation() {
+    setLoadingConversation(true)
+    try {
+      const response = await fetch(`/api/crm/members/${params.id}/conversation`)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ Conversation API error:', response.status, errorData)
+        
+        // Don't show error for 404 - just means no conversation yet
+        if (response.status === 404) {
+          setConversation([])
+          return
+        }
+        
+        throw new Error('Failed to fetch conversation')
+      }
+
+      const data = await response.json()
+      setConversation(data.conversation || [])
+    } catch (error) {
+      console.error('Error fetching conversation:', error)
+      setConversation([]) // Set empty array on error
+    } finally {
+      setLoadingConversation(false)
     }
   }
 
@@ -148,8 +180,8 @@ export default function MemberDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: member.phone,
-          body: messageBody.trim(),
-          user_id: member.user_id,
+          message: messageBody.trim(),
+          userId: member.user_id,
         }),
       })
 
@@ -161,6 +193,7 @@ export default function MemberDetailPage() {
       // Clear message and refresh
       setMessageBody('')
       await fetchMember()
+      await fetchConversation() // Refresh conversation thread
     } catch (error: any) {
       alert(error.message || 'Failed to send message')
     } finally {
@@ -189,10 +222,10 @@ export default function MemberDetailPage() {
         throw new Error(error.error || 'Failed to send email')
       }
 
-      // Clear and close
+      // Clear and refresh
       setEmailSubject('')
       setEmailBody('')
-      setShowEmailModal(false)
+      await fetchConversation() // Refresh conversation thread
       alert('Email sent successfully!')
     } catch (error: any) {
       alert(error.message || 'Failed to send email')
@@ -293,7 +326,7 @@ export default function MemberDetailPage() {
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-[#333] pb-4">
-        {['overview', 'activity', 'features', 'revenue', 'messages', 'email', 'support'].map((tab) => (
+        {['overview', 'activity', 'features', 'revenue', 'conversation', 'support'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -612,161 +645,121 @@ export default function MemberDetailPage() {
         </Card>
       )}
 
-      {activeTab === 'messages' && (
-        <Card className="p-4 md:p-6 lg:p-8 flex flex-col h-[600px]">
-          <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">SMS Conversation</h2>
-          
-          {/* Message Thread - Scrollable */}
-          <div className="flex-1 overflow-y-auto mb-4 space-y-3 pr-2">
-            {smsMessages.length === 0 ? (
-              <p className="text-sm md:text-base text-neutral-400 text-center py-8">
-                No messages yet. Start the conversation below!
-              </p>
-            ) : (
-              smsMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[85%] md:max-w-[70%] px-3 md:px-4 py-2 md:py-3 rounded-2xl ${
-                      msg.direction === 'outbound'
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-[#1F1F1F] text-neutral-300'
-                    }`}
-                  >
-                    <p className="text-sm md:text-base break-words">{msg.body}</p>
-                    <p className={`text-xs mt-1 md:mt-2 ${
-                      msg.direction === 'outbound' ? 'text-white/70' : 'text-neutral-500'
-                    }`}>
-                      {new Date(msg.created_at).toLocaleString()}
-                    </p>
+      {activeTab === 'conversation' && (
+        <div className="space-y-6">
+          {/* Conversation History */}
+          <Card className="p-4 md:p-6 lg:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg md:text-xl font-semibold flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-primary-500" />
+                Conversation History ({conversation.length})
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchConversation}
+                disabled={loadingConversation}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingConversation ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+            <ConversationThread 
+              messages={conversation} 
+              loading={loadingConversation}
+            />
+          </Card>
+
+          {/* Quick Messaging */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* SMS Composer */}
+            <Card className="p-4 md:p-6">
+              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                💬 Send SMS
+              </h3>
+              
+              {!member?.phone ? (
+                <p className="text-sm text-yellow-500">
+                  No phone number on file.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <Textarea
+                    value={messageBody}
+                    onChange={(e) => setMessageBody(e.target.value)}
+                    placeholder="Type your SMS..."
+                    rows={4}
+                    disabled={sending}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault()
+                        handleSendMessage()
+                      }
+                    }}
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-neutral-500">
+                      To: {member.phone}
+                    </span>
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={!messageBody.trim() || sending}
+                      loading={sending}
+                      variant="primary"
+                      size="sm"
+                    >
+                      Send
+                    </Button>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              )}
+            </Card>
 
-          {/* Message Composer */}
-          <div className="border-t border-[#333] pt-4">
-            {!member?.phone ? (
-              <p className="text-sm text-yellow-500 text-center py-2">
-                No phone number on file. Add phone number to send messages.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                <Textarea
-                  value={messageBody}
-                  onChange={(e) => setMessageBody(e.target.value)}
-                  placeholder="Type your message..."
-                  rows={3}
-                  className="w-full"
-                  disabled={sending}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleSendMessage()
-                    }
-                  }}
-                />
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-neutral-500">
-                    To: {member.phone}
-                  </span>
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={!messageBody.trim() || sending}
-                    loading={sending}
-                    variant="primary"
-                    size="sm"
-                  >
-                    {sending ? 'Sending...' : 'Send SMS'}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {activeTab === 'email' && (
-        <Card className="p-4 md:p-6 lg:p-8 flex flex-col h-[600px]">
-          <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Email Conversation</h2>
-          
-          {!member?.email ? (
-            <p className="text-sm text-yellow-500 text-center py-8">
-              No email on file
-            </p>
-          ) : (
-            <>
-              {/* Email Thread - Scrollable */}
-              <div className="flex-1 overflow-y-auto mb-4 space-y-4 pr-2">
-                {emailMessages.length === 0 ? (
-                  <p className="text-sm md:text-base text-neutral-400 text-center py-8">
-                    No emails yet. Start the conversation below!
-                  </p>
-                ) : (
-                  emailMessages.map((email) => (
-                    <div
-                      key={email.id}
-                      className={`border-l-4 ${
-                        email.direction === 'outbound' 
-                          ? 'border-primary-500 bg-primary-500/10' 
-                          : 'border-secondary-500 bg-secondary-500/10'
-                      } p-3 md:p-4 rounded-lg`}
+            {/* Email Composer */}
+            <Card className="p-4 md:p-6">
+              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                📧 Send Email
+              </h3>
+              
+              {!member?.email ? (
+                <p className="text-sm text-yellow-500">
+                  No email on file.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <Input
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    placeholder="Subject..."
+                    disabled={sendingEmail}
+                  />
+                  <Textarea
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    placeholder="Type your email..."
+                    rows={3}
+                    disabled={sendingEmail}
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-neutral-500">
+                      To: {member.email}
+                    </span>
+                    <Button
+                      onClick={handleSendEmail}
+                      disabled={!emailSubject.trim() || !emailBody.trim() || sendingEmail}
+                      loading={sendingEmail}
+                      variant="primary"
+                      size="sm"
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="text-xs md:text-sm font-semibold text-neutral-300">
-                            {email.direction === 'outbound' ? '→ Sent' : '← Received'}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            {email.direction === 'outbound' ? `To: ${email.to_email}` : `From: ${email.from_email}`}
-                          </p>
-                        </div>
-                        <p className="text-xs text-neutral-500">
-                          {new Date(email.sent_at || email.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                      <p className="text-sm md:text-base font-semibold mb-2">{email.subject}</p>
-                      <div 
-                        className="text-sm md:text-base text-neutral-300 prose prose-sm prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: email.body_html || email.body_text?.replace(/\n/g, '<br>') || '' }}
-                      />
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Email Composer */}
-              <div className="border-t border-[#333] pt-4 space-y-3">
-                <Input
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder="Subject..."
-                  disabled={sendingEmail}
-                />
-                <Textarea
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  placeholder="Type your message..."
-                  rows={4}
-                  disabled={sendingEmail}
-                />
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleSendEmail}
-                    disabled={!emailSubject.trim() || !emailBody.trim() || sendingEmail}
-                    loading={sendingEmail}
-                    variant="primary"
-                  >
-                    {sendingEmail ? 'Sending...' : 'Send Email'}
-                  </Button>
+                      Send
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-        </Card>
+              )}
+            </Card>
+          </div>
+        </div>
       )}
 
       {activeTab === 'support' && (
