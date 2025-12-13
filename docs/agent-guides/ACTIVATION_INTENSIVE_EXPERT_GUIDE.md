@@ -115,17 +115,19 @@ The intensive is organized into **4 phases** over **72 hours**:
 ### Phase 1: Foundation (Hours 0-24)
 
 #### Step 1: Complete Profile
-- **URL:** `/profile/edit?intensive=true`
+- **URL:** `/profile/edit`
 - **Requirement:** 70%+ profile completion
 - **Purpose:** Capture current reality baseline snapshot
 - **Tracking:** Auto-marks `profile_completed` when threshold reached
+- **Auto-Detection:** System detects intensive mode automatically
 - **Redirect:** Back to intensive dashboard
 
 #### Step 2: Take Vibration Assessment
-- **URL:** `/assessment?intensive=true`
+- **URL:** `/assessment`
 - **Assessment:** 84-question comprehensive evaluation
 - **Purpose:** Discover current vibrational frequency baseline
 - **Tracking:** Marks `assessment_completed` when finished
+- **Auto-Detection:** System detects intensive mode automatically
 - **Redirect:** Auto-redirects to intensive dashboard after 3 seconds
 
 #### Step 3: Book Calibration Call
@@ -138,10 +140,11 @@ The intensive is organized into **4 phases** over **72 hours**:
 ### Phase 2: Vision Creation (Hours 24-48)
 
 #### Step 4: Build Life Vision
-- **URL:** `/vision/build?intensive=true`
+- **URL:** `/vision/build`
 - **Tool:** VIVA (Vibrational Intelligence & Vision Activation) AI
 - **Scope:** All 12 life categories using guided prompts
 - **Tracking:** Marks `vision_built` when all categories complete
+- **Auto-Detection:** System detects intensive mode automatically
 - **Redirect:** Auto-redirects to intensive dashboard
 
 #### Step 5: Refine Vision
@@ -154,26 +157,29 @@ The intensive is organized into **4 phases** over **72 hours**:
 ### Phase 3: Activation Tools (Hours 48-72)
 
 #### Step 6: Generate Vision Audio
-- **URL:** `/life-vision?intensive=true&action=audio`
+- **URL:** `/life-vision` (audio generation section)
 - **Output:** Morning and evening audio tracks
 - **Purpose:** Daily vibrational alignment through audio
 - **Tracking:** Marks `audio_generated` when complete
+- **Auto-Detection:** System detects intensive mode automatically
 - **Tech:** ElevenLabs voice generation
 
 #### Step 7: Create Vision Board
-- **URL:** `/vision-board/new?intensive=true`
+- **URL:** `/vision-board/new`
 - **Requirement:** At least 1 image per life category (12 total)
 - **AI Support:** VIVA can assist with AI image generation
 - **Special Feature:** Category requirement tracking
 - **Visual Indicators:** ⭐ for categories still needed, green highlighting
 - **Progress Messages:** "Great! 5 more categories to go: Health, Career..."
 - **Completion Logic:** Only marks complete when ALL 12 categories have images
+- **Auto-Detection:** System detects intensive mode automatically
 - **Redirect Logic:** Auto-redirects back to add more until complete
 
 #### Step 8: First Journal Entry
-- **URL:** `/journal/new?intensive=true`
+- **URL:** `/journal/new`
 - **Purpose:** Start conscious creation practice
 - **Tracking:** Marks `first_journal_entry` when first entry created
+- **Auto-Detection:** System detects intensive mode automatically
 - **Redirect:** Auto-redirects to intensive dashboard
 - **Note:** Guide suggests 3 entries, but tracking only requires 1
 
@@ -420,14 +426,7 @@ export async function completeIntensive(
 
 ### Intensive Mode Detection
 
-**Old Way (Being Phased Out):**
-```typescript
-// Pages used to check for ?intensive=true query parameter
-const searchParams = useSearchParams()
-const isIntensiveMode = searchParams.get('intensive') === 'true'
-```
-
-**New Way (Auto-Detection):**
+**Current Implementation (Auto-Detection):**
 ```typescript
 // Server-side pages automatically detect intensive mode
 import { getActiveIntensive } from '@/lib/intensive/utils'
@@ -436,7 +435,23 @@ const intensive = await getActiveIntensive(userId)
 const isInIntensive = !!intensive
 
 // No URL parameters needed!
+// System checks database for active intensive automatically
 ```
+
+**Legacy (Deprecated):**
+```typescript
+// OLD WAY - NO LONGER USED
+// Some pages may still have ?intensive=true in URLs
+// but the system doesn't rely on it anymore
+const searchParams = useSearchParams()
+const isIntensiveMode = searchParams.get('intensive') === 'true'
+```
+
+**How It Works:**
+1. Page loads → checks `getActiveIntensive(userId)`
+2. If intensive found → shows intensive-specific UI
+3. If no intensive → shows normal UI
+4. No URL parameters or manual tracking required
 
 ---
 
@@ -876,28 +891,33 @@ export async function middleware(request: NextRequest) {
 
 **File:** `/src/app/profile/edit/page.tsx`
 
-**Integration:**
+**Integration (Auto-Detection):**
 ```typescript
-// Check if in intensive mode
+// System automatically detects intensive mode
 const intensive = await getActiveIntensive(user.id)
-const isIntensiveMode = !!intensive
 
 // After saving profile
-if (isIntensiveMode && profileCompletionPercentage >= 70) {
+if (intensive && profileCompletionPercentage >= 70) {
   await markIntensiveStep('profile_completed')
   router.push('/intensive/dashboard')
 }
 ```
 
+**No URL parameters needed!** The page automatically:
+1. Detects if user has active intensive
+2. Shows intensive-specific UI if applicable
+3. Tracks completion when threshold reached
+
 ### Assessment (Step 2)
 
 **File:** `/src/app/assessment/page.tsx`
 
-**Integration:**
+**Integration (Auto-Detection):**
 ```typescript
-// After completing all assessment questions
+// System automatically detects intensive mode
 const intensive = await getActiveIntensive(user.id)
 
+// After completing all assessment questions
 if (intensive) {
   await markIntensiveStep('assessment_completed')
   
@@ -912,12 +932,15 @@ if (intensive) {
 
 **File:** `/src/app/vision/build/page.tsx`
 
-**Integration:**
+**Integration (Auto-Detection):**
 ```typescript
+// System automatically detects intensive mode
+const intensive = await getActiveIntensive(user.id)
+
 // After saving all 12 vision categories
 const allCategoriesComplete = visionCategories.every(cat => cat.content?.length > 0)
 
-if (allCategoriesComplete && intensive) {
+if (intensive && allCategoriesComplete) {
   await markIntensiveStep('vision_built')
   router.push('/intensive/dashboard')
 }
@@ -929,24 +952,25 @@ if (allCategoriesComplete && intensive) {
 
 **Special Requirement:** Must have at least 1 image for each of 12 life categories
 
-**Integration:**
+**Integration (Auto-Detection):**
 ```typescript
-// Get all vision board items for user
-const visionBoardItems = await supabase
-  .from('vision_board_items')
-  .select('life_categories')
-  .eq('user_id', user.id)
-
-// Extract unique categories covered
-const coveredCategories = new Set()
-visionBoardItems.forEach(item => {
-  item.life_categories?.forEach(cat => coveredCategories.add(cat))
-})
-
+// System automatically detects intensive mode
 const intensive = await getActiveIntensive(user.id)
 
 if (intensive) {
-  // Show which categories still need images
+  // Get all vision board items for user
+  const visionBoardItems = await supabase
+    .from('vision_board_items')
+    .select('life_categories')
+    .eq('user_id', user.id)
+
+  // Extract unique categories covered
+  const coveredCategories = new Set()
+  visionBoardItems.forEach(item => {
+    item.life_categories?.forEach(cat => coveredCategories.add(cat))
+  })
+  
+  // Check which categories still need images
   const neededCategories = ALL_CATEGORIES.filter(
     cat => !coveredCategories.has(cat)
   )
@@ -972,16 +996,44 @@ if (intensive) {
 
 **File:** `/src/app/journal/new/page.tsx`
 
-**Integration:**
+**Integration (Auto-Detection):**
 ```typescript
-// After creating first journal entry
+// System automatically detects intensive mode
 const intensive = await getActiveIntensive(user.id)
 
+// After creating first journal entry
 if (intensive) {
   await markIntensiveStep('first_journal_entry')
   router.push('/intensive/dashboard')
 }
 ```
+
+---
+
+## Integration Pattern (Standard Approach)
+
+**Every integrated page follows this pattern:**
+
+```typescript
+// 1. Auto-detect intensive mode (server or client side)
+const intensive = await getActiveIntensive(user.id)
+
+// 2. Show intensive-specific UI if applicable
+if (intensive) {
+  // Display progress, instructions, etc.
+}
+
+// 3. After user completes the required action
+if (intensive && actionCompleted) {
+  // Mark step complete
+  await markIntensiveStep('step_name_completed')
+  
+  // Redirect back to dashboard
+  router.push('/intensive/dashboard')
+}
+```
+
+**Key Principle:** No manual URL parameter tracking. System uses database state as source of truth.
 
 ---
 
