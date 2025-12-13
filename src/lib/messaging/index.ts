@@ -82,11 +82,12 @@ export async function sendMessage(
     }
   }
 
-  // Store message in database
+  // Store message in database (use admin client to bypass RLS)
   try {
-    const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminClient = createAdminClient()
 
-    const { error: dbError } = await supabase.from('sms_messages').insert({
+    const { error: dbError } = await adminClient.from('sms_messages').insert({
       lead_id: leadId || null,
       ticket_id: ticketId || null,
       user_id: userId || null,

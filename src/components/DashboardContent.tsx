@@ -675,7 +675,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 {(storageUsed / (1024 * 1024 * 1024)).toFixed(2)} GB
               </p>
               <p className="text-sm text-neutral-400 mt-2">
-                of {profileData?.storage_quota_gb ?? 5} GB used
+                of {profileData?.storage_quota_gb ?? 5} GB total
               </p>
               <Link href="/dashboard/storage" className="mt-6">
                 <Button variant="outline" size="sm">

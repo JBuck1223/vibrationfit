@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/aws-ses'
 
 export async function POST(
@@ -49,8 +50,9 @@ export async function POST(
       replyTo: 'team@vibrationfit.com', // Route replies to Google Workspace
     })
 
-    // Log to database for conversation history
-    const { error: logError } = await supabase
+    // Log to database for conversation history (use admin client to bypass RLS)
+    const adminClient = createAdminClient()
+    const { error: logError } = await adminClient
       .from('email_messages')
       .insert({
         user_id: id,
@@ -61,11 +63,14 @@ export async function POST(
         body_html: htmlBody,
         direction: 'outbound',
         status: 'sent',
-        sent_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
       })
 
     if (logError) {
-      console.error('⚠️ Failed to log email (but email was sent):', logError)
+      console.error('❌ Failed to log email:', logError)
+      // Continue anyway - email was sent
+    } else {
+      console.log('✅ Email logged to database')
     }
 
     return NextResponse.json({
