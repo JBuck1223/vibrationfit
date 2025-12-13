@@ -190,10 +190,14 @@ export default function MemberDetailPage() {
         throw new Error(error.error || 'Failed to send message')
       }
 
-      // Clear message and refresh
+      // Clear message
       setMessageBody('')
-      await fetchMember()
-      await fetchConversation() // Refresh conversation thread
+      
+      // Refresh after a delay to allow DB commit
+      setTimeout(async () => {
+        await fetchConversation()
+        await fetchMember()
+      }, 1500)
     } catch (error: any) {
       alert(error.message || 'Failed to send message')
     } finally {
@@ -222,10 +226,15 @@ export default function MemberDetailPage() {
         throw new Error(error.error || 'Failed to send email')
       }
 
-      // Clear and refresh
+      // Clear form
       setEmailSubject('')
       setEmailBody('')
-      await fetchConversation() // Refresh conversation thread
+      
+      // Refresh after a delay to allow DB commit
+      setTimeout(async () => {
+        await fetchConversation()
+      }, 1500)
+      
       alert('Email sent successfully!')
     } catch (error: any) {
       alert(error.message || 'Failed to send email')

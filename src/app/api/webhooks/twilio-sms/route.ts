@@ -29,6 +29,8 @@ function normalizePhone(phone: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('🔔 Twilio webhook called at:', new Date().toISOString())
+  
   try {
     const formData = await request.formData()
     
@@ -40,12 +42,13 @@ export async function POST(request: NextRequest) {
     const status = formData.get('SmsStatus') as string
     const mediaUrls = formData.getAll('MediaUrl0') // For MMS
     
-    console.log('📥 Twilio webhook received:', {
+    console.log('📥 Twilio webhook data:', {
       messageId,
       from,
       to,
       body: body?.substring(0, 50),
       status,
+      timestamp: new Date().toISOString()
     })
 
     const adminClient = createAdminClient()
@@ -145,7 +148,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Return empty TwiML response (no auto-reply)
-    return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
+    console.log('📤 Returning empty TwiML (no auto-reply)')
+    const twimlResponse = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+    console.log('TwiML:', twimlResponse)
+    
+    return new NextResponse(twimlResponse, {
       status: 200,
       headers: {
         'Content-Type': 'text/xml',
