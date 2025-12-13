@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Badge, Spinner } from '@/lib/design-system/components'
+import { Card, Badge, Spinner, Button } from '@/lib/design-system/components'
 import Link from 'next/link'
+import { Zap } from 'lucide-react'
 
 interface TokenBalanceData {
   individualBalance: number
@@ -125,16 +126,21 @@ export default function HouseholdTokenBalance() {
   if (!isInHousehold) {
     // Solo account - show individual balance only
     return (
-      <Card variant="elevated">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold mb-1">Your Creation Credits</h3>
-            <p className="text-3xl font-bold text-primary-500">
-              {formatNumber(individualBalance)}
-            </p>
-            <p className="text-sm text-neutral-400 mt-1">Creation Credits available</p>
+      <Card variant="elevated" className="bg-black">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-16 h-16 bg-[#BF00FF]/20 rounded-xl flex items-center justify-center">
+            <Zap className="w-8 h-8 text-[#BF00FF]" />
           </div>
-          <div className="text-4xl">🪙</div>
+          <h3 className="text-lg font-semibold mt-4">Your Creation Tokens</h3>
+          <p className="text-3xl font-bold text-[#BF00FF] mt-4">
+            {formatNumber(individualBalance)}
+          </p>
+          <p className="text-sm text-neutral-400 mt-2">Creation Tokens available</p>
+          <Link href="/dashboard/tokens" className="mt-6">
+            <Button variant="accent" size="sm">
+              Token Dashboard
+            </Button>
+          </Link>
         </div>
       </Card>
     )
@@ -144,16 +150,18 @@ export default function HouseholdTokenBalance() {
   return (
     <div className="space-y-4">
       {/* Individual Balance Card */}
-      <Card variant="elevated">
+      <Card variant="elevated" className="bg-black">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold">Your Credits</h3>
             <Badge variant="info" className="text-xs">Individual</Badge>
           </div>
-          <div className="text-3xl">🪙</div>
+          <div className="w-12 h-12 bg-[#BF00FF]/20 rounded-xl flex items-center justify-center">
+            <Zap className="w-6 h-6 text-[#BF00FF]" />
+          </div>
         </div>
         
-        <p className="text-3xl font-bold text-primary-500 mb-2">
+        <p className="text-3xl font-bold text-[#BF00FF] mb-2">
           {formatNumber(individualBalance)}
         </p>
         
@@ -172,7 +180,7 @@ export default function HouseholdTokenBalance() {
           <div className="text-3xl">👥</div>
         </div>
         
-        <p className="text-3xl font-bold text-primary-500 mb-2">
+        <p className="text-3xl font-bold text-[#BF00FF] mb-2">
           {formatNumber(householdTotalBalance)}
         </p>
         
