@@ -31,13 +31,13 @@ export async function GET(
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     // Use admin client for database queries (bypasses RLS)
     const adminClient = createAdminClient()
-    }
 
     // Get lead
-    const { data: lead, error } = await supabase
+    const { data: lead, error } = await adminClient
       .from('leads')
       .select('*')
       .eq('id', id)
@@ -51,7 +51,7 @@ export async function GET(
     // Get campaign if associated
     let campaign = null
     if (lead.campaign_id) {
-      const { data: campaignData } = await supabase
+      const { data: campaignData } = await adminClient
         .from('marketing_campaigns')
         .select('id, name, slug, utm_campaign')
         .eq('id', lead.campaign_id)
@@ -61,7 +61,7 @@ export async function GET(
     }
 
     // Get SMS messages
-    const { data: messages } = await supabase
+    const { data: messages } = await adminClient
       .from('sms_messages')
       .select('*')
       .eq('lead_id', id)
@@ -105,8 +105,11 @@ export async function PATCH(
 
     const body = await request.json()
 
+    // Use admin client to bypass RLS
+    const adminClient = createAdminClient()
+
     // Update lead
-    const { data: lead, error } = await supabase
+    const { data: lead, error } = await adminClient
       .from('leads')
       .update(body)
       .eq('id', id)

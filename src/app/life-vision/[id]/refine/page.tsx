@@ -1206,22 +1206,28 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     )
   }
 
-  if (error || !vision) {
+  if (error) {
     return (
-      <>
-        <div className="flex items-center justify-center py-16">
-          <div className="text-center">
-            <div className="text-red-500 mb-4">
-              <Sparkles className="w-16 h-16 mx-auto" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Vision Error</h2>
-            <p className="text-neutral-400 mb-6">{error || 'Vision not found'}</p>
-            <Button onClick={() => router.back()} variant="primary">
-              Go Back
-            </Button>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <Sparkles className="w-16 h-16 mx-auto" />
           </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Vision Error</h2>
+          <p className="text-neutral-400 mb-6">{error}</p>
+          <Button onClick={() => router.back()} variant="primary">
+            Go Back
+          </Button>
         </div>
-      </>
+      </Container>
+    )
+  }
+
+  if (!vision) {
+    return (
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 

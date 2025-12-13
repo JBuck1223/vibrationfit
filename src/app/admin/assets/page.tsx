@@ -678,7 +678,7 @@ function AssetsAdminContent() {
 
       <Container size="xl">
         <Stack gap="lg">
-          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
+          <PageHero title="Media Assets" subtitle="Manage audio and visual assets" />
       <div className="mb-6 md:mb-8 lg:mb-12">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4 mb-4 md:mb-6">
           <div>

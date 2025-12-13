@@ -109,6 +109,9 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Framework & Resources
     '/framework/emotional-guidance-scale',
+    
+    // Support
+    '/support',
   ],
   
   /**
@@ -186,7 +189,6 @@ export const PAGE_CLASSIFICATIONS = {
     '/billing/success',
     
     // Public Utilities
-    '/support',
     '/vision/build',
     
     // Development/Testing (public for development)

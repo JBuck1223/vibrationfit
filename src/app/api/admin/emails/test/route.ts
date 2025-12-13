@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/aws-ses'
 import { generateHouseholdInvitationEmail } from '@/lib/email/templates/household-invitation'
+import { generateSupportTicketCreatedEmail } from '@/lib/email/templates/support-ticket-created'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // Get request body
     const body = await request.json()
-    const { to, templateData } = body
+    const { to, templateId, templateData } = body
 
     if (!to) {
       return NextResponse.json(
@@ -45,8 +46,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate email content
-    const emailContent = generateHouseholdInvitationEmail(templateData)
+    // Generate email content based on template
+    let emailContent: { subject: string; htmlBody: string; textBody: string }
+    
+    switch (templateId) {
+      case 'household-invitation':
+        emailContent = generateHouseholdInvitationEmail(templateData)
+        break
+      case 'support-ticket-created':
+        emailContent = generateSupportTicketCreatedEmail(templateData)
+        break
+      default:
+        return NextResponse.json(
+          { error: 'Unknown template ID' },
+          { status: 400 }
+        )
+    }
 
     // Send email
     await sendEmail({
@@ -54,6 +69,7 @@ export async function POST(request: NextRequest) {
       subject: `[TEST] ${emailContent.subject}`,
       htmlBody: emailContent.htmlBody,
       textBody: emailContent.textBody,
+      replyTo: 'team@vibrationfit.com',
     })
 
     return NextResponse.json({ 
