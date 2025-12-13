@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendSMS } from '@/lib/messaging/twilio'
 import { sendBulkEmail } from '@/lib/email/aws-ses'
 
@@ -146,12 +147,16 @@ export async function POST(request: NextRequest) {
           body_html: `<p>Hi ${p.first_name || 'there'},</p><p>${message.replace(/\n/g, '<br>')}</p>`,
           direction: 'outbound',
           status: 'sent',
-          sent_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
         }))
 
-        const { error: insertError } = await supabase.from('email_messages').insert(emailLogs)
+        // Use admin client to bypass RLS
+        const adminClient = createAdminClient()
+        const { error: insertError } = await adminClient.from('email_messages').insert(emailLogs)
         if (insertError) {
-          console.error('⚠️ Failed to log emails to database:', insertError)
+          console.error('❌ Failed to log emails to database:', insertError)
+        } else {
+          console.log(`✅ Logged ${emailLogs.length} bulk emails to database`)
         }
       } catch (error: any) {
         console.error('❌ Bulk email error:', error)
