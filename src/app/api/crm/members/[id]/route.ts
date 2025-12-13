@@ -45,7 +45,7 @@ export async function GET(
     const authUser = authUserData.user
 
     // Get active profile
-    const { data: profile } = await supabase
+    const { data: profile } = await adminClient
       .from('user_profiles')
       .select('*')
       .eq('user_id', id)
@@ -139,7 +139,7 @@ export async function GET(
       .in('status', ['active', 'trialing'])
 
     // Get payment history for revenue calculation
-    const { data: payments } = await supabase
+    const { data: payments } = await adminClient
       .from('payment_history')
       .select('amount, paid_at, status')
       .eq('user_id', id)
@@ -201,28 +201,28 @@ export async function GET(
     }
 
     // Get SMS messages
-    const { data: smsMessages } = await supabase
+    const { data: smsMessages } = await adminClient
       .from('sms_messages')
       .select('*')
       .eq('user_id', id)
       .order('created_at', { ascending: true })
 
     // Get email messages
-    const { data: emailMessages } = await supabase
+    const { data: emailMessages } = await adminClient
       .from('email_messages')
       .select('*')
       .eq('user_id', id)
       .order('created_at', { ascending: true })
 
     // Get support tickets
-    const { data: tickets } = await supabase
+    const { data: tickets } = await adminClient
       .from('support_tickets')
       .select('*')
       .eq('user_id', id)
       .order('created_at', { ascending: false })
 
     // Get related lead (if converted from lead)
-    const { data: lead } = await supabase
+    const { data: lead } = await adminClient
       .from('leads')
       .select('*')
       .eq('converted_to_user_id', id)

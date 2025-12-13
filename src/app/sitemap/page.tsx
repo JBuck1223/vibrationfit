@@ -199,9 +199,6 @@ export default function SitemapPage() {
         { href: '/admin/crm/members', label: 'Members', icon: UserCheck, description: 'Platform members management' },
         { href: '/admin/crm/members/board', label: 'Members Board', icon: Kanban, description: 'Kanban board for members' },
         { href: '/admin/crm/members/[id]', label: 'Member Detail', icon: Eye, description: 'Member details', isDynamic: true },
-        { href: '/admin/crm/customers', label: 'Customers', icon: UsersRound, description: 'Customer management' },
-        { href: '/admin/crm/customers/board', label: 'Customers Board', icon: Kanban, description: 'Kanban board for customers' },
-        { href: '/admin/crm/customers/[id]', label: 'Customer Detail', icon: Eye, description: 'Customer details', isDynamic: true },
         { href: '/admin/crm/support/board', label: 'Support Board', icon: Headset, description: 'Support tickets board' },
         { href: '/admin/crm/utm-builder', label: 'UTM Builder', icon: Link2, description: 'Build UTM tracking URLs' },
         

@@ -245,6 +245,9 @@ export async function POST(request: NextRequest) {
               installments_paid: 1, // First payment complete
               completion_status: 'pending',
               activation_deadline: activationDeadline.toISOString(),
+              promo_code: session.metadata.promo_code || null, // Track promo code for affiliates
+              referral_source: session.metadata.referral_source || session.metadata.source || null,
+              campaign_name: session.metadata.campaign_name || null,
             })
             .select()
             .single()

@@ -88,6 +88,43 @@ export default function HomePage() {
   const [burgerTimer, setBurgerTimer] = useState<NodeJS.Timeout | null>(null)
   const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
   const [currentHash, setCurrentHash] = useState<string>('')
+  const [promoCode, setPromoCode] = useState<string | null>(null)
+  const [referralSource, setReferralSource] = useState<string | null>(null)
+  const [campaignName, setCampaignName] = useState<string | null>(null)
+
+  // Read promo code and affiliate params from URL on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      
+      // Promo code
+      const promo = params.get('promo')
+      if (promo) {
+        setPromoCode(promo)
+        console.log('🎉 Promo code applied:', promo)
+      }
+      
+      // Affiliate/referral source
+      const ref = params.get('ref') || params.get('source') || params.get('affiliate')
+      if (ref) {
+        setReferralSource(ref)
+        console.log('📊 Referral source:', ref)
+      }
+      
+      // Campaign name
+      const campaign = params.get('campaign') || params.get('utm_campaign')
+      if (campaign) {
+        setCampaignName(campaign)
+        console.log('📊 Campaign:', campaign)
+      }
+      
+      // Pre-select continuity plan if provided
+      const continuity = params.get('continuity')
+      if (continuity && ['annual', '28day'].includes(continuity)) {
+        setBillingPeriod(continuity as 'annual' | '28day')
+      }
+    }
+  }, [])
 
   // Track hash changes
   useEffect(() => {
@@ -305,7 +342,7 @@ export default function HomePage() {
 
     setIsLoading(true)
     try {
-      // Directly create Stripe checkout session with plan type
+      // Directly create Stripe checkout session with plan type, promo code, and affiliate tracking
       const response = await fetch('/api/stripe/checkout-combined', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -313,6 +350,9 @@ export default function HomePage() {
           intensivePaymentPlan: paymentPlan,
           continuityPlan: billingPeriod,
           planType: planType, // 'solo' or 'household'
+          promoCode: promoCode || undefined, // Apply promo code if present
+          referralSource: referralSource || undefined, // Track affiliate/referral source
+          campaignName: campaignName || undefined, // Track campaign name
         })
       })
 
@@ -1827,8 +1867,16 @@ export default function HomePage() {
                         
                         {/* Order Summary */}
                         <Stack gap="sm" align="center">
+                          {promoCode && (
+                            <Badge variant="premium" className="mb-2">
+                              🎉 {promoCode.toUpperCase()} Applied - Intensive FREE
+                            </Badge>
+                          )}
                           <div className="text-white text-center text-sm md:text-base">
-                            {paymentPlan === 'full' ? (
+                            {promoCode ? (
+                              // FREE intensive with promo code
+                              <><strong>Today:</strong> <span className="text-[#39FF14] font-bold">FREE</span> 72‑Hour Intensive + 8 weeks included.</>
+                            ) : paymentPlan === 'full' ? (
                               <><strong>Today:</strong> $499 for the 72‑Hour Intensive + 8 weeks included.</>
                             ) : paymentPlan === '2pay' ? (
                               <>
@@ -1882,7 +1930,7 @@ export default function HomePage() {
                         onClick={handleIntensivePurchase}
                         disabled={isLoading || !agreedToTerms}
                       >
-                        {isLoading ? 'Processing...' : 'Start the Activation Intensive'}
+                        {isLoading ? 'Processing...' : promoCode ? 'Start FREE Activation Intensive' : 'Start the Activation Intensive'}
                       </Button>
                     </div>
                       </Stack>

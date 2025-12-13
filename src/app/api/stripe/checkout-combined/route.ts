@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { intensivePaymentPlan, continuityPlan, planType, promoCode } = await request.json()
+    const { intensivePaymentPlan, continuityPlan, planType, promoCode, referralSource, campaignName } = await request.json()
 
     // Validate inputs
     if (!intensivePaymentPlan || !continuityPlan) {
@@ -232,15 +232,17 @@ You can cancel anytime before the first billing to avoid charges.`
         payment_plan: intensivePaymentPlan,
         promo_code: promoCode || '', // Store promo code for webhook
         is_free_intensive: promoCode ? 'true' : 'false', // Flag for free intensive
+        referral_source: referralSource || '', // Affiliate/referral tracking
+        campaign_name: campaignName || '', // Campaign tracking
       },
       
       // Apply promo code if provided, otherwise allow manual entry
       ...(promoCode ? {
         discounts: [{
-          coupon: promoCode,
+          coupon: promoCode, // Apply coupon directly (coupon ID must match the promo code string)
         }],
       } : {
-        allow_promotion_codes: true,
+        allow_promotion_codes: true, // Allow customers to enter codes manually
       }),
       
       // Subscription settings (only for 2pay/3pay plans)

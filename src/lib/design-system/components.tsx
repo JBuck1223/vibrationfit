@@ -1026,15 +1026,18 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault()
-      e.stopPropagation()
+      // Only prevent default for non-submit buttons
+      if (props.type !== 'submit') {
+        e.preventDefault()
+        e.stopPropagation()
+      }
       props.onClick?.(e)
     }
 
     return (
       <button
         ref={ref}
-        type="button"
+        type={props.type || "button"}
         disabled={disabled || loading}
         className={buttonClasses}
         {...props}
