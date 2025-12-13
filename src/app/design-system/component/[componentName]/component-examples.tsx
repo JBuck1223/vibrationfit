@@ -1477,9 +1477,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 <div>
                   <h5 className="text-sm font-semibold text-white mb-3">Version Badges by Status</h5>
                   <Inline gap="md" wrap>
-                    <VersionBadge versionNumber={1} status="active">V1</VersionBadge>
-                    <VersionBadge versionNumber={2} status="draft">V2</VersionBadge>
-                    <VersionBadge versionNumber={3} status="complete">V3</VersionBadge>
+                    <VersionBadge versionNumber={1} status="active" />
+                    <VersionBadge versionNumber={2} status="draft" />
+                    <VersionBadge versionNumber={3} status="complete" />
                   </Inline>
                 </div>
 
@@ -1487,10 +1487,10 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 <div>
                   <h5 className="text-sm font-semibold text-white mb-3">Different Version Numbers</h5>
                   <Inline gap="md" wrap>
-                    <VersionBadge versionNumber={1} status="active">V1</VersionBadge>
-                    <VersionBadge versionNumber={2} status="active">V2</VersionBadge>
-                    <VersionBadge versionNumber={10} status="active">V10</VersionBadge>
-                    <VersionBadge versionNumber={99} status="active">V99</VersionBadge>
+                    <VersionBadge versionNumber={1} status="active" />
+                    <VersionBadge versionNumber={2} status="active" />
+                    <VersionBadge versionNumber={10} status="active" />
+                    <VersionBadge versionNumber={99} status="active" />
                   </Inline>
                 </div>
 
@@ -1502,15 +1502,15 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   </p>
                   <div className="space-y-3">
                     <Inline gap="sm">
-                      <VersionBadge versionNumber={2} status="active">V2</VersionBadge>
+                      <VersionBadge versionNumber={2} status="active" />
                       <StatusBadge status="active" className="uppercase tracking-[0.25em]">ACTIVE</StatusBadge>
                     </Inline>
                     <Inline gap="sm">
-                      <VersionBadge versionNumber={3} status="draft">V3</VersionBadge>
+                      <VersionBadge versionNumber={3} status="draft" />
                       <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]">DRAFT</StatusBadge>
                     </Inline>
                     <Inline gap="sm">
-                      <VersionBadge versionNumber={1} status="complete">V1</VersionBadge>
+                      <VersionBadge versionNumber={1} status="complete" />
                       <StatusBadge status="complete" subtle={true} className="uppercase tracking-[0.25em]">COMPLETE</StatusBadge>
                     </Inline>
                   </div>
