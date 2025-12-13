@@ -144,11 +144,21 @@ export async function POST(request: NextRequest) {
       console.log(`✅ Logged ${direction} SMS: ${messageId}`)
     }
 
-    // Twilio expects 200 response
-    return new NextResponse('OK', { status: 200 })
+    // Return empty TwiML response (no auto-reply)
+    return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/xml',
+      },
+    })
   } catch (error: any) {
     console.error('❌ Twilio webhook error:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
+    return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/xml',
+      },
+    })
   }
 }
 
