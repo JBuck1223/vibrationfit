@@ -49,17 +49,15 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
-  // Get version numbers for all visions
+  // Get version numbers for all visions using RPC function
   const visionDataWithVersions = visionData ? await Promise.all(
     visionData.map(async (vision) => {
       const { data: versionNumber, error: visionVersionError } = await supabase
-        .rpc('get_vision_version_number', { p_vision_version_id: vision.id })
+        .rpc('get_vision_version_number', { p_vision_id: vision.id })
       
       if (visionVersionError) {
         console.error('Error getting vision version number:', visionVersionError)
       }
-      
-      console.log('Vision version number from RPC:', versionNumber, 'for vision ID:', vision.id, 'is_active:', vision.is_active)
       
       return { ...vision, version_number: versionNumber ?? 1 }
     })
