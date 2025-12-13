@@ -315,7 +315,6 @@ export default function SupportPage() {
                   { value: 'other', label: 'Other' }
                 ]}
                 placeholder="Select a category"
-                required
               />
             </div>
 
