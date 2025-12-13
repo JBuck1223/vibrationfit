@@ -647,31 +647,7 @@ export default function MemberDetailPage() {
 
       {activeTab === 'conversation' && (
         <div className="space-y-6">
-          {/* Conversation History */}
-          <Card className="p-4 md:p-6 lg:p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg md:text-xl font-semibold flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-primary-500" />
-                Conversation History ({conversation.length})
-              </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchConversation}
-                disabled={loadingConversation}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${loadingConversation ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
-            <ConversationThread 
-              messages={conversation} 
-              loading={loadingConversation}
-            />
-          </Card>
-
-          {/* Quick Messaging */}
+          {/* Quick Messaging - Moved to Top */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* SMS Composer */}
             <Card className="p-4 md:p-6">
@@ -759,6 +735,30 @@ export default function MemberDetailPage() {
               )}
             </Card>
           </div>
+
+          {/* Conversation History - Moved Below Messaging */}
+          <Card className="p-4 md:p-6 lg:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg md:text-xl font-semibold flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-primary-500" />
+                Conversation History ({conversation.length})
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchConversation}
+                disabled={loadingConversation}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingConversation ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+            <ConversationThread 
+              messages={[...conversation].reverse()} 
+              loading={loadingConversation}
+            />
+          </Card>
         </div>
       )}
 
