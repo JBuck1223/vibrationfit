@@ -5,9 +5,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Input, Textarea, Stack, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { ConversationThread } from '@/components/crm/ConversationThread'
-import { RefreshCw, MessageSquare } from 'lucide-react'
+import { RefreshCw, MessageSquare, Target, Activity, Clock, DollarSign } from 'lucide-react'
 
 interface Member {
   user_id: string
@@ -321,12 +321,12 @@ export default function MemberDetailPage() {
               ← Back to Members
             </Button>
             {activity.engagement_status && (
-              <Badge className="bg-primary-500 text-white px-3 py-1 text-xs">
+              <Badge className="bg-primary-500/20 text-primary-500 border border-primary-500/30 px-3 py-1 text-xs font-semibold">
                 {activity.engagement_status}
               </Badge>
             )}
             {revenue.subscription_tier && (
-              <Badge className="bg-secondary-500 text-white px-3 py-1 text-xs">
+              <Badge className="bg-secondary-500/20 text-secondary-500 border border-secondary-500/30 px-3 py-1 text-xs font-semibold">
                 {revenue.subscription_tier}
               </Badge>
             )}
@@ -355,30 +355,30 @@ export default function MemberDetailPage() {
         <div className="space-y-4 md:space-y-6">
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-xl md:text-2xl font-bold text-primary-500">
-                {activity.vision_count || 0}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400">Visions</div>
-            </Card>
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-xl md:text-2xl font-bold text-secondary-500">
-                {activity.total_logins || 0}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400">Logins</div>
-            </Card>
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-xl md:text-2xl font-bold text-[#FFB701]">
-                {daysSinceLogin !== null ? `${daysSinceLogin}d` : 'N/A'}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400">Last Login</div>
-            </Card>
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-xl md:text-2xl font-bold text-[#8B5CF6]">
-                ${revenue.mrr?.toFixed(0) || '0'}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400">MRR</div>
-            </Card>
+            <TrackingMilestoneCard
+              label="Visions"
+              value={activity.vision_count || 0}
+              theme="primary"
+              icon={<Target className="w-6 h-6" />}
+            />
+            <TrackingMilestoneCard
+              label="Total Logins"
+              value={activity.total_logins || 0}
+              theme="secondary"
+              icon={<Activity className="w-6 h-6" />}
+            />
+            <TrackingMilestoneCard
+              label="Last Login"
+              value={daysSinceLogin !== null ? `${daysSinceLogin}d` : 'N/A'}
+              theme="accent"
+              icon={<Clock className="w-6 h-6" />}
+            />
+            <TrackingMilestoneCard
+              label="MRR"
+              value={`$${revenue.mrr?.toFixed(0) || '0'}`}
+              theme="accent"
+              icon={<DollarSign className="w-6 h-6" />}
+            />
           </div>
 
           {/* Manual Classification */}
@@ -423,7 +423,7 @@ export default function MemberDetailPage() {
                   {tags.map((tag) => (
                     <Badge
                       key={tag}
-                      className="bg-[#8B5CF6] text-white px-3 py-1 text-xs cursor-pointer hover:bg-[#7C3AED]"
+                      className="bg-[#8B5CF6]/20 text-[#C4B5FD] border border-[#8B5CF6]/30 px-3 py-1 text-xs cursor-pointer hover:bg-[#8B5CF6]/30 font-semibold"
                       onClick={() => removeTag(tag)}
                     >
                       {tag} ×
@@ -472,27 +472,31 @@ export default function MemberDetailPage() {
           
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div>
-                <div className="text-xs md:text-sm text-neutral-500">Total Logins</div>
-                <div className="text-lg md:text-xl font-bold text-primary-500">
+              <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
+                <div className="text-xs md:text-sm text-primary-500 uppercase tracking-wide mb-2">Total Logins</div>
+                <div className="text-lg md:text-xl font-bold text-white">
                   {activity.total_logins || 0}
                 </div>
               </div>
-              <div>
-                <div className="text-xs md:text-sm text-neutral-500">Last Login</div>
-                <div className="text-sm md:text-base font-semibold text-neutral-300">
+              <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
+                <div className="text-xs md:text-sm text-secondary-500 uppercase tracking-wide mb-2">Last Login</div>
+                <div className="text-sm md:text-base font-semibold text-white">
                   {activity.last_login_at
                     ? new Date(activity.last_login_at).toLocaleDateString()
                     : 'Never'}
                 </div>
               </div>
-              <div>
-                <div className="text-xs md:text-sm text-neutral-500">Days Since Login</div>
-                <div className={`text-lg md:text-xl font-bold ${
-                  daysSinceLogin > 14 ? 'text-[#D03739]' :
-                  daysSinceLogin > 7 ? 'text-[#FFB701]' :
+              <div className={`p-4 rounded-xl border ${
+                daysSinceLogin > 14 ? 'bg-[#D03739]/10 border-[#D03739]/25' :
+                daysSinceLogin > 7 ? 'bg-[#FFB701]/10 border-[#FFB701]/25' :
+                'bg-primary-500/10 border-primary-500/25'
+              }`}>
+                <div className={`text-xs md:text-sm uppercase tracking-wide mb-2 ${
+                  daysSinceLogin > 14 ? 'text-[#EF4444]' :
+                  daysSinceLogin > 7 ? 'text-[#FCD34D]' :
                   'text-primary-500'
-                }`}>
+                }`}>Days Since Login</div>
+                <div className="text-lg md:text-xl font-bold text-white">
                   {daysSinceLogin !== null ? `${daysSinceLogin}d` : 'N/A'}
                 </div>
               </div>
@@ -514,22 +518,22 @@ export default function MemberDetailPage() {
           <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Feature Usage</h2>
           
           <div className="space-y-4 md:space-y-6">
-            <div className="flex items-center justify-between py-3 border-b border-[#333]">
+            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
               <div>
-                <div className="text-sm md:text-base font-medium">Profile Complete</div>
-                <div className="text-xs md:text-sm text-neutral-400">
+                <div className="text-sm md:text-base font-medium text-white">Profile Complete</div>
+                <div className="text-xs md:text-sm text-primary-500">
                   {activity.profile_completion_percent || 0}% complete
                 </div>
               </div>
-              <div className="text-xl md:text-2xl">
+              <div className="text-xl md:text-2xl text-primary-500">
                 {(activity.profile_completion_percent || 0) >= 70 ? '✓' : '○'}
               </div>
             </div>
 
-            <div className="flex items-center justify-between py-3 border-b border-[#333]">
+            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
               <div>
-                <div className="text-sm md:text-base font-medium">Life Visions</div>
-                <div className="text-xs md:text-sm text-neutral-400">
+                <div className="text-sm md:text-base font-medium text-white">Life Visions</div>
+                <div className="text-xs md:text-sm text-primary-500">
                   {activity.vision_count || 0} created, {activity.vision_refinement_count || 0} refinements
                 </div>
               </div>
@@ -538,10 +542,10 @@ export default function MemberDetailPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between py-3 border-b border-[#333]">
+            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
               <div>
-                <div className="text-sm md:text-base font-medium">Vision Audio</div>
-                <div className="text-xs md:text-sm text-neutral-400">
+                <div className="text-sm md:text-base font-medium text-white">Vision Audio</div>
+                <div className="text-xs md:text-sm text-secondary-500">
                   {activity.audio_generated_count || 0} generated
                 </div>
               </div>
@@ -550,38 +554,38 @@ export default function MemberDetailPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between py-3 border-b border-[#333]">
+            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#FFB701]/10 border border-[#FFB701]/25">
               <div>
-                <div className="text-sm md:text-base font-medium">Journal Entries</div>
-                <div className="text-xs md:text-sm text-neutral-400">
+                <div className="text-sm md:text-base font-medium text-white">Journal Entries</div>
+                <div className="text-xs md:text-sm text-[#FCD34D]">
                   Total entries written
                 </div>
               </div>
-              <div className="text-lg md:text-xl font-bold text-[#FFB701]">
+              <div className="text-lg md:text-xl font-bold text-[#FCD34D]">
                 {activity.journal_entry_count || 0}
               </div>
             </div>
 
-            <div className="flex items-center justify-between py-3 border-b border-[#333]">
+            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/25">
               <div>
-                <div className="text-sm md:text-base font-medium">Vision Board Images</div>
-                <div className="text-xs md:text-sm text-neutral-400">
+                <div className="text-sm md:text-base font-medium text-white">Vision Board Images</div>
+                <div className="text-xs md:text-sm text-[#C4B5FD]">
                   Images uploaded
                 </div>
               </div>
-              <div className="text-lg md:text-xl font-bold text-[#8B5CF6]">
+              <div className="text-lg md:text-xl font-bold text-[#C4B5FD]">
                 {activity.vision_board_image_count || 0}
               </div>
             </div>
 
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-neutral-600/10 border border-neutral-600/25">
               <div>
-                <div className="text-sm md:text-base font-medium">Storage</div>
+                <div className="text-sm md:text-base font-medium text-white">Storage</div>
                 <div className="text-xs md:text-sm text-neutral-400">
                   {activity.s3_file_count || 0} files, {activity.total_storage_mb?.toFixed(1) || '0'} MB
                 </div>
               </div>
-              <div className="text-lg md:text-xl font-bold text-neutral-300">
+              <div className="text-lg md:text-xl font-bold text-neutral-400">
                 {activity.s3_file_count || 0}
               </div>
             </div>
@@ -594,39 +598,39 @@ export default function MemberDetailPage() {
           <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Revenue & Subscription</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div>
-              <div className="text-xs md:text-sm text-neutral-500 mb-1">Subscription Tier</div>
-              <div className="text-base md:text-lg font-semibold text-neutral-300">
+            <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
+              <div className="text-xs md:text-sm text-secondary-500 mb-1 uppercase tracking-wide">Subscription Tier</div>
+              <div className="text-base md:text-lg font-semibold text-white">
                 {revenue.subscription_tier || member.subscription_tier || 'Free'}
               </div>
             </div>
-            <div>
-              <div className="text-xs md:text-sm text-neutral-500 mb-1">Status</div>
-              <div className="text-base md:text-lg font-semibold text-neutral-300">
+            <div className="p-4 rounded-xl bg-neutral-600/10 border border-neutral-600/25">
+              <div className="text-xs md:text-sm text-neutral-400 mb-1 uppercase tracking-wide">Status</div>
+              <div className="text-base md:text-lg font-semibold text-white">
                 {revenue.subscription_status || 'N/A'}
               </div>
             </div>
-            <div>
-              <div className="text-xs md:text-sm text-neutral-500 mb-1">Monthly Revenue</div>
-              <div className="text-xl md:text-2xl font-bold text-primary-500">
+            <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
+              <div className="text-xs md:text-sm text-primary-500 mb-1 uppercase tracking-wide">Monthly Revenue</div>
+              <div className="text-xl md:text-2xl font-bold text-white">
                 ${revenue.mrr?.toFixed(2) || '0.00'}
               </div>
             </div>
-            <div>
-              <div className="text-xs md:text-sm text-neutral-500 mb-1">Lifetime Value</div>
-              <div className="text-xl md:text-2xl font-bold text-secondary-500">
+            <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
+              <div className="text-xs md:text-sm text-secondary-500 mb-1 uppercase tracking-wide">Lifetime Value</div>
+              <div className="text-xl md:text-2xl font-bold text-white">
                 ${revenue.ltv?.toFixed(2) || '0.00'}
               </div>
             </div>
-            <div>
-              <div className="text-xs md:text-sm text-neutral-500 mb-1">Total Spent</div>
-              <div className="text-base md:text-lg font-semibold text-neutral-300">
+            <div className="p-4 rounded-xl bg-[#FFB701]/10 border border-[#FFB701]/25">
+              <div className="text-xs md:text-sm text-[#FCD34D] mb-1 uppercase tracking-wide">Total Spent</div>
+              <div className="text-base md:text-lg font-semibold text-white">
                 ${revenue.total_spent?.toFixed(2) || '0.00'}
               </div>
             </div>
-            <div>
-              <div className="text-xs md:text-sm text-neutral-500 mb-1">Months Subscribed</div>
-              <div className="text-base md:text-lg font-semibold text-neutral-300">
+            <div className="p-4 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/25">
+              <div className="text-xs md:text-sm text-[#C4B5FD] mb-1 uppercase tracking-wide">Months Subscribed</div>
+              <div className="text-base md:text-lg font-semibold text-white">
                 {revenue.months_subscribed || 0}
               </div>
             </div>
@@ -636,15 +640,15 @@ export default function MemberDetailPage() {
             <div className="mt-6 pt-6 border-t border-[#333]">
               <h3 className="text-base md:text-lg font-semibold mb-4">Token Usage</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs md:text-sm text-neutral-500 mb-1">Tokens Used</div>
-                  <div className="text-base md:text-lg font-semibold text-neutral-300">
+                <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
+                  <div className="text-xs md:text-sm text-primary-500 mb-1 uppercase tracking-wide">Tokens Used</div>
+                  <div className="text-base md:text-lg font-semibold text-white">
                     {activity.tokens_used || 0}
                   </div>
                 </div>
-                <div>
-                  <div className="text-xs md:text-sm text-neutral-500 mb-1">Tokens Remaining</div>
-                  <div className="text-base md:text-lg font-semibold text-neutral-300">
+                <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
+                  <div className="text-xs md:text-sm text-secondary-500 mb-1 uppercase tracking-wide">Tokens Remaining</div>
+                  <div className="text-base md:text-lg font-semibold text-white">
                     {activity.tokens_remaining || 0}
                   </div>
                 </div>
