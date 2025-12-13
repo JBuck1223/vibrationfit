@@ -127,6 +127,12 @@ export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVisi
     setIsTyping(true)
     setError(null)
 
+    // Check if this is the first message
+    const isFirstMessage = messages.length === 0
+    if (isFirstMessage) {
+      setHasInitialized(true)
+    }
+
     try {
       const response = await fetch('/api/viva/chat', {
         method: 'POST',
@@ -137,7 +143,10 @@ export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVisi
             content: m.content
           })),
           visionBuildPhase,
-          context: { category: currentCategory }
+          context: { 
+            category: currentCategory,
+            isInitialGreeting: isFirstMessage // Mark first message as initial greeting
+          }
         })
       })
 
@@ -198,78 +207,7 @@ export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVisi
     })
   }, [messages])
 
-  // Initialize with VIVA's welcome message
-  useEffect(() => {
-    if (hasInitialized) return
-    
-    async function initializeChat() {
-      setHasInitialized(true)
-      setIsLoading(true)
-      setIsTyping(true)
-
-      try {
-        // Send initial context request to get personalized greeting
-        const response = await fetch('/api/viva/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [{
-              role: 'user',
-              content: 'START_SESSION' // Special flag for VIVA to introduce itself
-            }],
-            visionBuildPhase,
-            context: { category: currentCategory, isInitialGreeting: true }
-          })
-        })
-
-        if (!response.ok) {
-          console.error('Failed to initialize VIVA')
-          setIsLoading(false)
-          setIsTyping(false)
-          return
-        }
-
-        // Handle streaming response
-        const reader = response.body?.getReader()
-        const decoder = new TextDecoder()
-        let assistantMessage = ''
-        const assistantId = Date.now().toString()
-
-        setIsTyping(false)
-
-        // Add empty assistant message that we'll update
-        setMessages([{
-          id: assistantId,
-          role: 'assistant',
-          content: ''
-        }])
-
-        // Stream tokens
-        while (reader) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          const chunk = decoder.decode(value)
-          assistantMessage += chunk
-
-          // Update the assistant message as it streams
-          setMessages([{
-            id: assistantId,
-            role: 'assistant',
-            content: assistantMessage
-          }])
-        }
-
-        setIsLoading(false)
-      } catch (err) {
-        console.error('Failed to initialize chat:', err)
-        setIsLoading(false)
-        setIsTyping(false)
-      }
-    }
-
-    initializeChat()
-  }, [hasInitialized, visionBuildPhase, currentCategory])
+  // Removed auto-initialization - VIVA now only responds when user sends first message
 
 
   const handleQuickAction = async (action: string, content?: string) => {

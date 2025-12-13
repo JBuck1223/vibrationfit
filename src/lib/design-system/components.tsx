@@ -1514,14 +1514,15 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     return null
   }
 
-  // Add extra left padding when wide letter spacing is used for optical balance
+  // Add extra padding when wide letter spacing is used for optical balance
+  // Letter-spacing adds space after the last character, so we compensate with negative margin
   const hasWideTracking = className.includes('tracking-')
   
   return (
     <span 
       className={cn(
         'inline-flex items-center justify-center py-1 rounded-full text-xs md:text-sm font-semibold border',
-        hasWideTracking ? 'px-3 pl-4' : 'px-3',
+        hasWideTracking ? 'px-4 -mr-1' : 'px-3',
         className
       )}
       style={styles}
@@ -6175,6 +6176,9 @@ PageHeader.displayName = 'PageHeader'
 
 // ============================================================================
 // PAGE HERO COMPONENT
+// 🔒 LOCKED - See FEATURE_REGISTRY.md before modifying
+// Current padding: 24px mobile (p-6), 32px desktop (lg:p-8)
+// DO NOT modify internal padding - manage spacing at page level
 // ============================================================================
 
 export interface PageHeroProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
@@ -6205,7 +6209,7 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
         {/* Subtle Gradient Border */}
         <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
           {/* Modern Enhanced Layout with Card Container */}
-          <div className="relative px-4 py-6 lg:px-8 lg:py-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          <div className="relative p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             
             <div className="relative z-10">
               {/* Eyebrow */}
@@ -6226,7 +6230,7 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
               
               {/* Subtitle */}
               {subtitle && (
-                <div className={cn("text-center", children ? "mb-6" : "")}>
+                <div className={cn("text-center", children ? "mb-4" : "")}>
                   <p className="text-xs md:text-lg text-neutral-300">
                     {subtitle}
                   </p>
@@ -6235,7 +6239,7 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
 
               {/* Custom Children (video, buttons, etc.) */}
               {children && (
-                <div className="space-y-8 md:space-y-6 lg:space-y-8">
+                <div className="space-y-4 md:space-y-4 lg:space-y-6">
                   {children}
                 </div>
               )}
@@ -7547,16 +7551,22 @@ SwipeableCards.displayName = 'SwipeableCards'
 
 interface TrackingMilestoneCardProps {
   label: string
+  mobileLabel?: string
   value?: string | number
   theme?: 'primary' | 'secondary' | 'accent' | 'neutral'
   action?: React.ReactNode
+  icon?: React.ReactNode
+  className?: string
 }
 
 export const TrackingMilestoneCard: React.FC<TrackingMilestoneCardProps> = ({
   label,
+  mobileLabel,
   value,
   theme = 'primary',
-  action
+  action,
+  icon,
+  className = ''
 }) => {
   const themeColors = {
     primary: 'border-[#199D67]/25 bg-[#199D67]/10',
@@ -7573,19 +7583,37 @@ export const TrackingMilestoneCard: React.FC<TrackingMilestoneCardProps> = ({
   }
 
   return (
-    <div className={`rounded-2xl border-2 p-4 md:p-6 lg:p-8 ${themeColors[theme]}`}>
-      <div className="space-y-2">
-        <p className={`text-xs uppercase tracking-[0.2em] ${textColors[theme]}`}>
-          {label}
-        </p>
-        {value !== undefined && (
-          <p className="text-2xl md:text-3xl font-bold text-white">
-            {value}
-          </p>
-        )}
-        {action && (
-          <div className="mt-3">
-            {action}
+    <div className={`rounded-2xl border-2 p-4 md:p-6 lg:p-8 ${themeColors[theme]} ${className}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2 flex-1">
+          {mobileLabel ? (
+            <>
+              <p className={`text-xs uppercase tracking-[0.2em] ${textColors[theme]} md:hidden`}>
+                {mobileLabel}
+              </p>
+              <p className={`text-xs uppercase tracking-[0.2em] ${textColors[theme]} hidden md:block`}>
+                {label}
+              </p>
+            </>
+          ) : (
+            <p className={`text-xs uppercase tracking-[0.2em] ${textColors[theme]}`}>
+              {label}
+            </p>
+          )}
+          {value !== undefined && (
+            <p className="text-2xl md:text-3xl font-bold text-white">
+              {value}
+            </p>
+          )}
+          {action && (
+            <div className="mt-3">
+              {action}
+            </div>
+          )}
+        </div>
+        {icon && (
+          <div className={`${textColors[theme]} flex-shrink-0`}>
+            {icon}
           </div>
         )}
       </div>

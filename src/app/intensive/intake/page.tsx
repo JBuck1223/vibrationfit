@@ -11,7 +11,10 @@ import {
   Input, 
   Textarea,
   Badge,
-  Spinner
+  Spinner,
+  Container,
+  Stack,
+  PageHero
 } from '@/lib/design-system/components'
 
 interface IntakeFormData {
@@ -543,26 +546,25 @@ export default function IntensiveIntake() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6">
-      {/* Header */}
-      <div className="mb-6 md:mb-12">
-        {/* Mobile Header */}
-        <div className="md:hidden space-y-4 mb-4">
-          <div className="flex flex-col items-center gap-3">
-            {timeRemaining && (
-              <Badge variant="warning">
-                <Clock className="w-4 h-4 mr-2" />
-                {timeRemaining} remaining
-              </Badge>
-            )}
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
-              Intensive Intake Form
-            </h1>
+    <Container size="xl">
+      <Stack gap="lg">
+        <PageHero
+          title="Intensive Intake Form"
+          subtitle="Share your story so we can personalize your transformation"
+        >
+          {timeRemaining && (
+            <Badge variant="warning">
+              <Clock className="w-4 h-4 mr-2" />
+              {timeRemaining} remaining
+            </Badge>
+          )}
+        </PageHero>
+
+        <div className="hidden md:block">
             <p className="text-sm text-neutral-300 text-center px-4">
               Help us understand your current situation and vision so we can create a personalized activation plan.
             </p>
           </div>
-        </div>
 
         {/* Desktop Header */}
         <div className="hidden md:block text-center mb-4">
@@ -592,7 +594,6 @@ export default function IntensiveIntake() {
             </Badge>
           )}
         </div>
-      </div>
 
       {/* Progress Bar */}
       <div className="max-w-4xl mx-auto mb-6 md:mb-8">
@@ -675,7 +676,8 @@ export default function IntensiveIntake() {
           </div>
         </Card>
       )}
-      </div>
+      </Stack>
+    </Container>
   )
 
   function canProceed(): boolean {

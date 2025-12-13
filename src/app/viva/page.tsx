@@ -53,17 +53,7 @@ export default function VivaMasterPage() {
     loadConversations()
   }, [])
 
-  // Start conversation on mount - ensure it runs even after refresh
-  useEffect(() => {
-    if (!hasStarted && messages.length === 0) {
-      // Small delay to ensure component is fully mounted
-      const timer = setTimeout(() => {
-        startConversation()
-        setHasStarted(true)
-      }, 100)
-      return () => clearTimeout(timer)
-    }
-  }, [hasStarted, messages.length]) // Removed hasStarted from dependencies that might prevent re-run
+  // Removed auto-start conversation on mount - VIVA now only responds to user actions
 
   const loadConversations = async () => {
     try {
@@ -271,6 +261,9 @@ export default function VivaMasterPage() {
         content: msg.content
       }))
 
+      // Check if this is the first message (no messages before this one)
+      const isFirstMessage = messages.length === 0
+      
       // Call real VIVA chat API with master assistant mode
       const response = await fetch('/api/viva/chat', {
         method: 'POST',
@@ -280,7 +273,8 @@ export default function VivaMasterPage() {
           conversationId: currentConversationId,
           context: {
             masterAssistant: true,
-            mode: 'master'
+            mode: 'master',
+            isInitialGreeting: isFirstMessage // Mark first message as initial greeting
           },
           visionBuildPhase: 'master_assistant'
         })
@@ -700,11 +694,14 @@ export default function VivaMasterPage() {
           className="flex-1 overflow-y-auto space-y-6 mb-6"
         >
           {messages.length === 0 && !isTyping && (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center py-12">
               <div className="text-center space-y-4">
-                <Sparkles className="w-12 h-12 text-[#8B5CF6] mx-auto animate-pulse" />
-                <Text size="base" className="text-neutral-400">
-                  Starting your conversation with VIVA...
+                <Sparkles className="w-16 h-16 text-[#8B5CF6] mx-auto" />
+                <Text size="lg" className="text-white font-semibold">
+                  Ready to chat with VIVA?
+                </Text>
+                <Text size="base" className="text-neutral-400 max-w-md">
+                  Ask me anything about VibrationFit, show you sections of your vision, or guide you through your journey.
                 </Text>
               </div>
             </div>

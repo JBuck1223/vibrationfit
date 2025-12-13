@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Container, Card, Badge } from '@/lib/design-system/components'
+import { Container, Card, Badge , Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { Mail, Send, Eye, List, Settings } from 'lucide-react'
 
@@ -35,18 +35,15 @@ function AdminEmailsContent() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-1 md:mb-2">
-          Email Management
-        </h1>
-        <p className="text-sm md:text-base text-neutral-400">
-          Manage transactional email templates and monitor delivery
-        </p>
-      </div>
+      <Stack gap="lg">
+        <PageHero
+          eyebrow="ADMIN"
+          title="Email Management"
+          subtitle="Manage transactional email templates and monitor delivery"
+        />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <Card variant="elevated" className="p-4 md:p-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 bg-primary-500/20 rounded-xl flex items-center justify-center">
@@ -85,7 +82,7 @@ function AdminEmailsContent() {
       </div>
 
       {/* Quick Actions */}
-      <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+      <Card variant="elevated" className="p-4 md:p-6 lg:p-8">
         <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Quick Actions</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -137,6 +134,7 @@ function AdminEmailsContent() {
           </div>
         </div>
       </Card>
+      </Stack>
     </Container>
   )
 }

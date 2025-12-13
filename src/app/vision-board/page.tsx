@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard, PageHero } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard, PageHero, Container, Stack, Spinner } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -311,13 +311,12 @@ export default function VisionBoardPage() {
   }
 
   return (
-    <>
+    <Container size="xl">
+      <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Vision Board"
           subtitle="Visualize and track your conscious creations"
-          className="mb-8"
         >
           <div className="flex justify-center">
             <Button
@@ -332,8 +331,8 @@ export default function VisionBoardPage() {
           </div>
         </PageHero>
 
-          {/* Stats - Responsive Grid */}
-          <div id="stats" className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+        {/* Stats - Responsive Grid */}
+        <div id="stats" className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <TrackingMilestoneCard
               label="Total"
               value={totalItems}
@@ -357,7 +356,7 @@ export default function VisionBoardPage() {
           </div>
 
         {/* Filter Toggle Button and View Toggle */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <div className="flex-1 flex justify-start">
             <button
               onClick={() => router.push('/vision-board/new')}
@@ -406,7 +405,7 @@ export default function VisionBoardPage() {
 
         {/* Filters */}
         {showFilters && (
-          <div id="filters" className="mb-8 space-y-6 animate-in slide-in-from-top duration-300">
+          <div id="filters" className="space-y-6 animate-in slide-in-from-top duration-300">
           {/* Category Filter */}
           <Card variant="elevated" className="p-4">
             <div className="flex items-center justify-between mb-4">
@@ -518,9 +517,8 @@ export default function VisionBoardPage() {
         {/* Vision Board Content */}
         <div id="content">
         {loading ? (
-          <div className="text-center py-16">
-            <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-neutral-400">Loading your vision board...</p>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Spinner size="lg" />
           </div>
         ) : filteredItems && filteredItems.length > 0 ? (
           <>
@@ -811,6 +809,7 @@ export default function VisionBoardPage() {
           isLoading={deleting}
           loadingText="Deleting..."
         />
-    </>
+      </Stack>
+    </Container>
   )
 }

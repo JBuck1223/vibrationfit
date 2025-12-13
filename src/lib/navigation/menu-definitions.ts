@@ -59,6 +59,7 @@ import {
   UsersRound,
   BookOpen,
   Star,
+  Compass,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -153,30 +154,19 @@ export const userNavigation: NavItem[] = [
     ]
   },
   {
-    name: 'VIVA',
-    href: '/viva',
-    icon: Sparkles,
-    hasDropdown: true,
-    description: 'Vibrational Intelligence Virtual Assistant',
-    children: [
-      { name: 'Chat with VIVA', href: '/viva', icon: Sparkles },
-      { name: 'Create Life Vision', href: '/life-vision/new', icon: Target },
-    ]
-  },
-  {
     name: 'Activity',
     href: '/dashboard/activity',
     icon: BarChart3,
     description: 'Activity feed and timeline',
   },
   {
-    name: 'Token Tracking',
+    name: 'Tokens',
     href: '/dashboard/tokens',
     icon: Zap,
     hasDropdown: true,
     description: 'Manage Creation Credits',
     children: [
-      { name: 'Creation Credits', href: '/dashboard/tokens', icon: Zap },
+      { name: 'Token Dashboard', href: '/dashboard/tokens', icon: Zap },
       { name: 'Token History', href: '/dashboard/token-history', icon: BarChart3 },
       { name: 'Buy Tokens', href: '/dashboard/add-tokens', icon: ShoppingCart },
     ]

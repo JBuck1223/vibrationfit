@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero, Container, Stack, Spinner } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -812,10 +812,9 @@ export default function ProfileEditPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="text-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
-        <div className="text-neutral-400">Loading your profile...</div>
-      </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -847,107 +846,105 @@ export default function ProfileEditPage() {
   const badgeCompletionPercentage = completionPercentage
 
   return (
-    <>
-      {/* Header */}
-      <PageHero
-        eyebrow="MY PROFILE"
-        title="Edit Profile"
-        subtitle={!profileId ? "Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes." : undefined}
-      >
-        {/* Centered Version Info with Enhanced Styling */}
-        {profileId && profile && Object.keys(profile).length > 0 && badgeCreatedAt && (
-          <div className="text-center">
-            {/* Version, Status & Date Badges */}
-            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-              <VersionBadge 
-                versionNumber={badgeVersionNumber} 
-                status={displayStatus} 
-              />
-              <StatusBadge 
-                status={displayStatus} 
-                subtle={displayStatus !== 'active'} 
-                className="uppercase tracking-[0.25em]" 
-              />
-              <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                <CalendarDays className="w-4 h-4 text-neutral-500" />
-                <span className="font-medium">Created:</span>
-                <span>{new Date(badgeCreatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          title="Edit Profile"
+          subtitle={!profileId ? "Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes." : undefined}
+        >
+          {/* Centered Version Info with Enhanced Styling */}
+          {profileId && profile && Object.keys(profile).length > 0 && badgeCreatedAt && (
+            <div className="text-center">
+              {/* Version, Status & Date Badges */}
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                <VersionBadge 
+                  versionNumber={badgeVersionNumber} 
+                  status={displayStatus} 
+                />
+                <StatusBadge 
+                  status={displayStatus} 
+                  subtle={displayStatus !== 'active'} 
+                  className="uppercase tracking-[0.25em]" 
+                />
+                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                  <CalendarDays className="w-4 h-4 text-neutral-500" />
+                  <span className="font-medium">Created:</span>
+                  <span>{new Date(badgeCreatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+                {/* Profile Completion Percentage */}
+                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                  <span className="font-medium">Complete:</span>
+                  <span className="font-semibold text-[#39FF14]">{badgeCompletionPercentage}%</span>
+                </div>
               </div>
-              {/* Profile Completion Percentage */}
-              <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                <span className="font-medium">Complete:</span>
-                <span className="font-semibold text-[#39FF14]">{badgeCompletionPercentage}%</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </PageHero>
-
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              {saveStatus === 'saving' && (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                  <span className="text-sm text-primary-500">Saving...</span>
-                </>
-              )}
-              {saveStatus === 'saved' && (
-                <>
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-green-500">Saved</span>
-                </>
-              )}
-              {saveStatus === 'error' && (
-                <>
-                  <AlertCircle className="w-4 h-4 text-red-500" />
-                  <span className="text-sm text-red-500">Save failed</span>
-                </>
-              )}
-              {lastSaved && saveStatus === 'idle' && (
-                <span className="text-sm text-neutral-500">
-                  Last saved: {lastSaved.toLocaleTimeString()}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Profile Percentage Bar - Standalone */}
-          <Card className="mb-4">
-            <div className="flex flex-col items-center gap-2">
-              <span className="text-base font-semibold text-primary-500">{completionPercentage}% Complete</span>
-              <div className="w-full bg-neutral-700 rounded-full h-3 border border-neutral-600">
-                <div
-                  className="h-3 rounded-full transition-all duration-500 bg-primary-500"
-                  style={{ width: `${completionPercentage}%` }}
-                ></div>
-              </div>
-            </div>
-          </Card>
-          
-          {currentVersionId && (
-            <div className="mb-6">
-              <VersionActionToolbar
-                versionId={currentVersionId}
-                versionNumber={badgeVersionNumber}
-                isActive={profileAny?.is_active === true}
-                isDraft={profileAny?.is_draft === true}
-                onSaveAsDraft={() => saveAsVersion(true)}
-                onCommitAsActive={() => saveAsVersion(false)}
-                onCreateDraft={() => saveAsVersion(true)}
-                onSetActive={() => {
-                  // This would be handled by the toolbar
-                }}
-                onDelete={() => handleVersionDelete(currentVersionId)}
-                isLoading={isSaving}
-              />
             </div>
           )}
-        </div>
+        </PageHero>
+
+        {/* Save Status */}
+        {(saveStatus !== 'idle' || lastSaved) && (
+          <div className="flex items-center gap-3">
+            {saveStatus === 'saving' && (
+              <>
+                <Spinner size="sm" />
+                <span className="text-sm text-primary-500">Saving...</span>
+              </>
+            )}
+            {saveStatus === 'saved' && (
+              <>
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm text-green-500">Saved</span>
+              </>
+            )}
+            {saveStatus === 'error' && (
+              <>
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-sm text-red-500">Save failed</span>
+              </>
+            )}
+            {lastSaved && saveStatus === 'idle' && (
+              <span className="text-sm text-neutral-500">
+                Last saved: {lastSaved.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Profile Completion Progress */}
+        <Card>
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-base font-semibold text-primary-500">{completionPercentage}% Complete</span>
+            <div className="w-full bg-neutral-700 rounded-full h-3 border border-neutral-600">
+              <div
+                className="h-3 rounded-full transition-all duration-500 bg-primary-500"
+                style={{ width: `${completionPercentage}%` }}
+              ></div>
+            </div>
+          </div>
+        </Card>
+        
+        {/* Version Actions - Only show for non-active versions (drafts/completed) */}
+        {currentVersionId && profileAny?.is_active !== true && (
+          <VersionActionToolbar
+            versionId={currentVersionId}
+            versionNumber={badgeVersionNumber}
+            isActive={profileAny?.is_active === true}
+            isDraft={profileAny?.is_draft === true}
+            onSaveAsDraft={() => saveAsVersion(true)}
+            onCommitAsActive={() => saveAsVersion(false)}
+            onCreateDraft={() => saveAsVersion(true)}
+            onSetActive={() => {
+              // This would be handled by the toolbar
+            }}
+            onDelete={() => handleVersionDelete(currentVersionId)}
+            isLoading={isSaving}
+          />
+        )}
 
         {/* Error Display */}
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-500" />
               <span className="text-red-400">{error}</span>
@@ -963,24 +960,22 @@ export default function ProfileEditPage() {
             onVersionCreate={handleVersionCreate}
             onVersionCommit={handleVersionCommit}
             onVersionDelete={handleVersionDelete}
-            className="mb-6"
           />
         )}
 
-        {/* Select Life Areas Bar */}
-        <div className="mb-6">
-          <Card>
-            <div className="mb-4 text-center">
-              <h3 className="text-lg font-semibold text-white mb-1">Select Life Areas</h3>
-              <p className="text-sm text-neutral-400">
-                Showing {selectedCategories.length} of {profileSections.length} areas
-                {completedSections.length > 0 && (
-                  <span className="ml-2 text-[#39FF14]">
-                    • {completedSections.length} completed
-                  </span>
-                )}
-              </p>
-            </div>
+        {/* Life Areas Navigation */}
+        <Card>
+          <div className="mb-4 text-center">
+            <h3 className="text-lg font-semibold text-white mb-1">Select Life Areas</h3>
+            <p className="text-sm text-neutral-400">
+              Showing {selectedCategories.length} of {profileSections.length} areas
+              {completedSections.length > 0 && (
+                <span className="ml-2 text-[#39FF14]">
+                  • {completedSections.length} completed
+                </span>
+              )}
+            </p>
+          </div>
 
             {/* Category Grid */}
             <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
@@ -1018,36 +1013,36 @@ export default function ProfileEditPage() {
                 )
               })}
             </div>
-          </Card>
-        </div>
+        </Card>
 
         {/* Main Content - Full Width */}
         <div ref={categoryGridRef} className="w-full">
           {renderSection()}
         </div>
+      </Stack>
 
-        {/* Warning Dialogs */}
-        <WarningConfirmationDialog
-          isOpen={showDraftWarning}
-          onClose={() => setShowDraftWarning(false)}
-          onConfirm={confirmDraft}
-          title="Save as Draft?"
-          message="Only one draft at a time. This will override any other draft."
-          confirmText="Save as Draft"
-          type="draft"
-          isLoading={isSaving}
-        />
-        
-        <WarningConfirmationDialog
-          isOpen={showCommitWarning}
-          onClose={() => setShowCommitWarning(false)}
-          onConfirm={confirmCommit}
-          title="Commit as Active Version?"
-          message="This will become your active profile version."
-          confirmText="Commit as Active"
-          type="commit"
-          isLoading={isSaving}
-        />
-      </>
-    )
-  }
+      {/* Warning Dialogs - Outside Stack (modals/portals) */}
+      <WarningConfirmationDialog
+        isOpen={showDraftWarning}
+        onClose={() => setShowDraftWarning(false)}
+        onConfirm={confirmDraft}
+        title="Save as Draft?"
+        message="Only one draft at a time. This will override any other draft."
+        confirmText="Save as Draft"
+        type="draft"
+        isLoading={isSaving}
+      />
+      
+      <WarningConfirmationDialog
+        isOpen={showCommitWarning}
+        onClose={() => setShowCommitWarning(false)}
+        onConfirm={confirmCommit}
+        title="Commit as Active Version?"
+        message="This will become your active profile version."
+        confirmText="Commit as Active"
+        type="commit"
+        isLoading={isSaving}
+      />
+    </Container>
+  )
+}

@@ -298,7 +298,6 @@ export default function VoiceProfileAnalyzePage() {
     <Container size="xl">
       <Stack gap="md">
         <PageHero
-          eyebrow="MY VOICE"
           title="Voice Analyzer"
           subtitle="Feed VIVA your latest writing from anywhere — scenes, journals, visions, or your own samples. We'll analyze up to 10 pieces at a time and create a new version that keeps your voice aligned across every output."
         />

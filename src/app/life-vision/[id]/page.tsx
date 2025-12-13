@@ -630,11 +630,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   // Auto-resize textarea when content or section changes
   if (loading) {
     return (
-      <>
-        <div className="flex items-center justify-center py-16">
-          <Spinner variant="primary" size="lg" />
-        </div>
-      </>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 

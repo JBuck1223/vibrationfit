@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Input, Textarea } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Input, Textarea , Stack, PageHero, Spinner } from '@/lib/design-system/components'
+import { MessageSquare, Mail } from 'lucide-react'
 
 interface Lead {
   id: string
@@ -122,71 +123,77 @@ export default function LeadDetailPage() {
 
   if (loading) {
     return (
-      <Container className="py-12">
-        <p className="text-neutral-300">Loading lead...</p>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
 
   if (!lead) {
     return (
-      <Container className="py-12">
-        <p className="text-neutral-300">Lead not found</p>
+      <Container size="full">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Lead Not Found" subtitle="The requested lead could not be found" />
+          <Card>
+            <p className="text-sm md:text-base text-neutral-300">This lead may have been deleted or the ID is incorrect.</p>
+            <Button
+              variant="primary"
+              onClick={() => router.push('/admin/crm/leads')}
+              className="mt-4"
+            >
+              ← Back to Leads
+            </Button>
+          </Card>
+        </Stack>
       </Container>
     )
   }
 
   return (
-    <Container className="py-12">
-      <div className="mb-8">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/admin/crm/leads')}
-          className="mb-4"
+    <Container size="full">
+      <Stack gap="lg">
+        <PageHero
+          eyebrow="ADMIN"
+          title={`${lead.first_name} ${lead.last_name}`}
+          subtitle={`Lead #${lead.id.slice(0, 8)} • ${lead.email}${lead.phone ? ` • ${lead.phone}` : ''}`}
         >
-          ← Back to Leads
-        </Button>
-
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">
-              {lead.first_name} {lead.last_name}
-            </h1>
-            <p className="text-neutral-400">{lead.email}</p>
+          <div className="flex flex-wrap gap-3 mt-4">
+            <Button
+              variant="ghost"
+              onClick={() => router.push('/admin/crm/leads')}
+            >
+              ← Back to Leads
+            </Button>
             {lead.phone && (
-              <p className="text-neutral-400">{lead.phone}</p>
-            )}
-          </div>
-          <div className="flex gap-3">
-            {lead.phone && (
-              <Button variant="secondary" onClick={handleSendSMS}>
-                📱 Text
+              <Button variant="outline" onClick={handleSendSMS}>
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Text
               </Button>
             )}
             <Button
-              variant="secondary"
+              variant="outline"
               onClick={() => window.location.href = `mailto:${lead.email}`}
             >
-              ✉️ Email
+              <Mail className="w-4 h-4 mr-2" />
+              Email
             </Button>
           </div>
-        </div>
-      </div>
+        </PageHero>
 
       {/* Lead Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <Card>
-          <h2 className="text-2xl font-semibold mb-4">Lead Information</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-4">Lead Information</h2>
           <div className="space-y-3">
             <div>
-              <span className="text-neutral-500">Type:</span>{' '}
-              <Badge className="ml-2 bg-[#404040] text-white px-3 py-1">
+              <span className="text-xs md:text-sm text-neutral-500">Type:</span>{' '}
+              <Badge className="ml-2 bg-[#404040] text-white px-2 md:px-3 py-1 text-xs">
                 {lead.type}
               </Badge>
             </div>
             <div>
-              <span className="text-neutral-500">Status:</span>{' '}
-              <Badge className={`ml-2 px-3 py-1 text-white ${
+              <span className="text-xs md:text-sm text-neutral-500">Status:</span>{' '}
+              <Badge className={`ml-2 px-2 md:px-3 py-1 text-xs text-white ${
                 lead.status === 'converted' ? 'bg-primary-500' :
                 lead.status === 'qualified' ? 'bg-secondary-500' :
                 'bg-[#666666]'
@@ -196,13 +203,13 @@ export default function LeadDetailPage() {
             </div>
             {lead.company && (
               <div>
-                <span className="text-neutral-500">Company:</span>{' '}
-                <span className="text-neutral-300">{lead.company}</span>
+                <span className="text-xs md:text-sm text-neutral-500">Company:</span>{' '}
+                <span className="text-xs md:text-sm text-neutral-300">{lead.company}</span>
               </div>
             )}
             <div>
-              <span className="text-neutral-500">Submitted:</span>{' '}
-              <span className="text-neutral-300">
+              <span className="text-xs md:text-sm text-neutral-500">Submitted:</span>{' '}
+              <span className="text-xs md:text-sm text-neutral-300">
                 {new Date(lead.created_at).toLocaleString()}
               </span>
             </div>
@@ -210,14 +217,14 @@ export default function LeadDetailPage() {
         </Card>
 
         <Card>
-          <h2 className="text-2xl font-semibold mb-4">Attribution</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-4">Attribution</h2>
           <div className="space-y-3">
             {campaign && (
               <div>
-                <span className="text-neutral-500">Campaign:</span>{' '}
+                <span className="text-xs md:text-sm text-neutral-500">Campaign:</span>{' '}
                 <button
                   onClick={() => router.push(`/admin/crm/campaigns/${campaign.id}`)}
-                  className="text-primary-500 hover:underline"
+                  className="text-xs md:text-sm text-primary-500 hover:underline"
                 >
                   {campaign.name} →
                 </button>
@@ -225,38 +232,38 @@ export default function LeadDetailPage() {
             )}
             {lead.utm_source && (
               <div>
-                <span className="text-neutral-500">Source:</span>{' '}
-                <span className="text-neutral-300">{lead.utm_source}</span>
+                <span className="text-xs md:text-sm text-neutral-500">Source:</span>{' '}
+                <span className="text-xs md:text-sm text-neutral-300">{lead.utm_source}</span>
               </div>
             )}
             {lead.utm_medium && (
               <div>
-                <span className="text-neutral-500">Medium:</span>{' '}
-                <span className="text-neutral-300">{lead.utm_medium}</span>
+                <span className="text-xs md:text-sm text-neutral-500">Medium:</span>{' '}
+                <span className="text-xs md:text-sm text-neutral-300">{lead.utm_medium}</span>
               </div>
             )}
             {lead.utm_campaign && (
               <div>
-                <span className="text-neutral-500">Campaign:</span>{' '}
-                <span className="text-neutral-300">{lead.utm_campaign}</span>
+                <span className="text-xs md:text-sm text-neutral-500">Campaign:</span>{' '}
+                <span className="text-xs md:text-sm text-neutral-300">{lead.utm_campaign}</span>
               </div>
             )}
             {lead.utm_content && (
               <div>
-                <span className="text-neutral-500">Content:</span>{' '}
-                <span className="text-neutral-300">{lead.utm_content}</span>
+                <span className="text-xs md:text-sm text-neutral-500">Content:</span>{' '}
+                <span className="text-xs md:text-sm text-neutral-300">{lead.utm_content}</span>
               </div>
             )}
             {lead.utm_term && (
               <div>
-                <span className="text-neutral-500">Term:</span>{' '}
-                <span className="text-neutral-300">{lead.utm_term}</span>
+                <span className="text-xs md:text-sm text-neutral-500">Term:</span>{' '}
+                <span className="text-xs md:text-sm text-neutral-300">{lead.utm_term}</span>
               </div>
             )}
             {lead.referrer && (
               <div>
-                <span className="text-neutral-500">Referrer:</span>{' '}
-                <span className="text-neutral-300 text-sm break-all">{lead.referrer}</span>
+                <span className="text-xs md:text-sm text-neutral-500">Referrer:</span>{' '}
+                <span className="text-xs text-neutral-300 break-all">{lead.referrer}</span>
               </div>
             )}
           </div>
@@ -265,31 +272,31 @@ export default function LeadDetailPage() {
 
       {/* Message */}
       {lead.message && (
-        <Card className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Message</h2>
-          <p className="text-neutral-300 whitespace-pre-wrap">{lead.message}</p>
+        <Card>
+          <h2 className="text-xl md:text-2xl font-semibold mb-4">Message</h2>
+          <p className="text-sm md:text-base text-neutral-300 whitespace-pre-wrap">{lead.message}</p>
         </Card>
       )}
 
       {/* Engagement */}
-      <Card className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Engagement</h2>
-        <div className="grid grid-cols-3 gap-6">
+      <Card>
+        <h2 className="text-xl md:text-2xl font-semibold mb-4">Engagement</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
           <div>
-            <div className="text-neutral-500 text-sm">Landing Page</div>
-            <div className="text-neutral-300 text-sm break-all">
+            <div className="text-xs md:text-sm text-neutral-500">Landing Page</div>
+            <div className="text-xs md:text-sm text-neutral-300 break-all">
               {lead.landing_page || '—'}
             </div>
           </div>
           <div>
-            <div className="text-neutral-500 text-sm">Pages Visited</div>
-            <div className="text-neutral-300">
+            <div className="text-xs md:text-sm text-neutral-500">Pages Visited</div>
+            <div className="text-sm md:text-base text-neutral-300">
               {lead.pages_visited?.length || 0}
             </div>
           </div>
           <div>
-            <div className="text-neutral-500 text-sm">Time on Site</div>
-            <div className="text-neutral-300">
+            <div className="text-xs md:text-sm text-neutral-500">Time on Site</div>
+            <div className="text-sm md:text-base text-neutral-300">
               {lead.time_on_site ? `${Math.floor(lead.time_on_site / 60)}m ${lead.time_on_site % 60}s` : '—'}
             </div>
           </div>
@@ -297,8 +304,8 @@ export default function LeadDetailPage() {
 
         {lead.video_engagement && (
           <div className="mt-4 pt-4 border-t border-[#333]">
-            <div className="text-neutral-500 text-sm mb-2">Video Engagement</div>
-            <pre className="text-xs text-neutral-400 bg-[#1F1F1F] p-3 rounded">
+            <div className="text-xs md:text-sm text-neutral-500 mb-2">Video Engagement</div>
+            <pre className="text-xs text-neutral-400 bg-[#1F1F1F] p-3 rounded overflow-x-auto">
               {JSON.stringify(lead.video_engagement, null, 2)}
             </pre>
           </div>
@@ -307,8 +314,8 @@ export default function LeadDetailPage() {
 
       {/* SMS Messages */}
       {messages.length > 0 && (
-        <Card className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">SMS Conversation</h2>
+        <Card>
+          <h2 className="text-xl md:text-2xl font-semibold mb-4">SMS Conversation</h2>
           <div className="space-y-3">
             {messages.map((msg) => (
               <div
@@ -316,13 +323,13 @@ export default function LeadDetailPage() {
                 className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[70%] px-4 py-3 rounded-2xl ${
+                  className={`max-w-[85%] sm:max-w-[70%] px-3 md:px-4 py-2 md:py-3 rounded-2xl ${
                     msg.direction === 'outbound'
                       ? 'bg-primary-500 text-white'
                       : 'bg-[#1F1F1F] text-neutral-300'
                   }`}
                 >
-                  <p>{msg.body}</p>
+                  <p className="text-sm md:text-base">{msg.body}</p>
                   <p className={`text-xs mt-2 ${
                     msg.direction === 'outbound' ? 'text-white/70' : 'text-neutral-500'
                   }`}>
@@ -337,15 +344,15 @@ export default function LeadDetailPage() {
 
       {/* Management */}
       <Card>
-        <h2 className="text-2xl font-semibold mb-6">Lead Management</h2>
+        <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Lead Management</h2>
 
-        <div className="space-y-4 mb-6">
+        <div className="space-y-4 mb-4 md:mb-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Status</label>
+            <label className="block text-xs md:text-sm font-medium mb-2">Status</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#333] rounded-xl text-white focus:outline-none focus:border-primary-500"
+              className="w-full px-3 md:px-4 py-2 md:py-3 bg-[#1F1F1F] border border-[#333] rounded-xl text-sm md:text-base text-white focus:outline-none focus:border-primary-500"
             >
               <option value="new">New</option>
               <option value="contacted">Contacted</option>
@@ -356,7 +363,7 @@ export default function LeadDetailPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Notes</label>
+            <label className="block text-xs md:text-sm font-medium mb-2">Notes</label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -370,13 +377,17 @@ export default function LeadDetailPage() {
           variant="primary"
           onClick={handleUpdate}
           disabled={updating}
+          className="w-full sm:w-auto"
         >
           {updating ? 'Saving...' : 'Save Changes'}
         </Button>
       </Card>
+      </Stack>
     </Container>
   )
 }
+
+
 
 
 

@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner , Stack, PageHero } from '@/lib/design-system/components'
 import { Kanban, KanbanColumn } from '@/components/crm/Kanban'
 
 interface Member {
@@ -73,10 +73,23 @@ export default function MemberBoardPage() {
   }
 
   async function handleMove(memberId: string, newStatus: string) {
-    try {
-      // Determine which field to update based on grouping mode
-      const updateField = groupBy
+    // Store the old value in case we need to revert
+    const oldMember = members.find(m => m.user_id === memberId)
+    if (!oldMember) return
+    
+    const updateField = groupBy
+    const oldValue = oldMember[updateField]
 
+    // ✅ Optimistically update state immediately (prevents jump)
+    setMembers((prev) =>
+      prev.map((c) => 
+        c.user_id === memberId 
+          ? { ...c, [updateField]: newStatus }
+          : c
+      )
+    )
+
+    try {
       const response = await fetch(`/api/crm/members/${memberId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -85,14 +98,19 @@ export default function MemberBoardPage() {
         }),
       })
 
-      if (!response.ok) throw new Error('Failed to update member')
-
-      // Update local state
-      setMembers(members.map((c) => 
-        c.user_id === memberId 
-          ? { ...c, [updateField]: newStatus }
-          : c
-      ))
+      if (!response.ok) {
+        // ❌ Revert the optimistic update
+        setMembers((prev) =>
+          prev.map((c) => 
+            c.user_id === memberId 
+              ? { ...c, [updateField]: oldValue }
+              : c
+          )
+        )
+        throw new Error('Failed to update member')
+      }
+      
+      // ✅ API succeeded, optimistic update is now confirmed
     } catch (error: any) {
       console.error('Error moving member:', error)
       alert('Failed to update member')
@@ -140,45 +158,42 @@ export default function MemberBoardPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Member Board</h1>
-          <p className="text-sm md:text-base text-neutral-400">
-            {members.length} members
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button 
-            variant="secondary" 
-            size="sm"
-            onClick={() => router.push('/admin/crm/members')}
-          >
-            List View
-          </Button>
-        </div>
-      </div>
+      <Stack gap="lg">
+        <PageHero 
+          title="Member Board" 
+          subtitle={`${members.length} members`}
+        >
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.push('/admin/crm/members')}
+            >
+              List View
+            </Button>
+          </div>
+        </PageHero>
 
       {/* Group By Selector */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <span className="text-sm md:text-base font-medium text-neutral-400">Group by:</span>
         <div className="flex flex-wrap gap-2">
           <Button
-            variant={groupBy === 'engagement_status' ? 'primary' : 'ghost'}
+            variant={groupBy === 'engagement_status' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setGroupBy('engagement_status')}
           >
             Engagement Status
           </Button>
           <Button
-            variant={groupBy === 'health_status' ? 'primary' : 'ghost'}
+            variant={groupBy === 'health_status' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setGroupBy('health_status')}
           >
             Health Status
           </Button>
           <Button
-            variant={groupBy === 'subscription_tier' ? 'primary' : 'ghost'}
+            variant={groupBy === 'subscription_tier' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setGroupBy('subscription_tier')}
           >
@@ -250,6 +265,7 @@ export default function MemberBoardPage() {
           </div>
         )}
       />
+      </Stack>
     </Container>
   )
 }

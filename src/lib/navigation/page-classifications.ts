@@ -106,6 +106,12 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Billing & Payments
     '/billing',
+    
+    // Framework & Resources
+    '/framework/emotional-guidance-scale',
+    
+    // Support
+    '/support',
   ],
   
   /**
@@ -183,7 +189,6 @@ export const PAGE_CLASSIFICATIONS = {
     '/billing/success',
     
     // Public Utilities
-    '/support',
     '/vision/build',
     
     // Development/Testing (public for development)

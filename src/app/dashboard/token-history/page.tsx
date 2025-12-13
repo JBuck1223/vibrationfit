@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Button, Badge, Spinner } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 import { ArrowLeft, Activity, Brain, Calendar, Filter } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -128,8 +128,12 @@ export default function TokenHistoryPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8 md:mb-12">
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          title="Token Usage History"
+          subtitle="Track where your AI tokens are being used"
+        >
           <Button
             onClick={() => router.back()}
             variant="ghost"
@@ -139,14 +143,10 @@ export default function TokenHistoryPage() {
             <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2" />
             Back
           </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Token Usage History</h1>
-            <p className="text-sm md:text-base text-neutral-400">Track where your AI tokens are being used</p>
-          </div>
-        </div>
+        </PageHero>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-neutral-400" />
             <select
@@ -230,6 +230,7 @@ export default function TokenHistoryPage() {
             ))}
           </div>
         )}
+      </Stack>
     </Container>
   )
 }

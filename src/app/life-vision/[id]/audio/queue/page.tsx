@@ -109,10 +109,8 @@ export default function AudioQueuePage({ params }: { params: Promise<{ id: strin
 
   if (loading) {
     return (
-      <Container size="xl">
-        <div className="flex items-center justify-center py-20">
-          <Spinner size="lg" />
-        </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }

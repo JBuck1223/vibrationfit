@@ -6,6 +6,7 @@ import { categoryMetadata } from '@/lib/assessment/questions'
 
 interface AssessmentBarChartProps {
   assessment: AssessmentResult
+  compact?: boolean
 }
 
 // Green Line status colors
@@ -73,7 +74,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
-export default function AssessmentBarChart({ assessment }: AssessmentBarChartProps) {
+export default function AssessmentBarChart({ assessment, compact = false }: AssessmentBarChartProps) {
   // Transform assessment data for the bar chart
   const data = Object.entries(assessment.category_scores || {}).map(([category, score]) => {
     const maxScore = 35 // 7 questions * 5 max points each
@@ -93,38 +94,38 @@ export default function AssessmentBarChart({ assessment }: AssessmentBarChartPro
 
   if (data.length === 0) {
     return (
-      <div className="bg-neutral-800/50 rounded-lg p-6 text-center">
-        <h3 className="text-lg font-semibold text-white mb-2">Green Line Status Distribution</h3>
+      <div className="bg-neutral-800/50 rounded-lg p-4 md:p-6 lg:p-8 text-center">
+        <h3 className="text-xl font-semibold text-white mb-2">Green Line Status</h3>
         <p className="text-neutral-400">No assessment data available</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-neutral-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">Green Line Status Distribution</h3>
+    <div className={compact ? "" : "bg-neutral-800/50 rounded-lg p-4 md:p-6 lg:p-8"}>
+      {!compact && <h3 className="text-xl font-semibold text-white mb-4 text-center">Green Line Status</h3>}
       
       {/* Chart */}
-      <div className="h-[28rem] bar-chart-container">
+      <div className={compact ? "h-[14rem]" : "h-[28rem]"}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
             margin={{
               top: 0,
-              right: 0,
-              left: 40,
-              bottom: 80,
+              right: 10,
+              left: 10,
+              bottom: compact ? 40 : 60,
             }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
             <XAxis 
               dataKey="name" 
-              angle={-45}
+              angle={-65}
               textAnchor="end"
-              height={80}
-              fontSize={12}
-              fill="#9CA3AF"
-              padding={{ left: 0, right: 0 }}
+              height={compact ? 40 : 60}
+              tick={{ fill: '#FFFFFF', fontSize: 12 }}
+              tickMargin={5}
+              interval={0}
             />
             <YAxis 
               domain={[0, 35]}
@@ -177,43 +178,50 @@ export default function AssessmentBarChart({ assessment }: AssessmentBarChartPro
         </ResponsiveContainer>
       </div>
       
-      {/* Summary Stats */}
-      <div className="mt-6 grid grid-cols-3 gap-4 text-center">
-        <div className="bg-neutral-900/50 rounded-lg p-3">
-          <div className="text-lg font-bold text-green-400">
-            {data.filter(d => d.status === 'above').length}
+      {/* Summary Stats - only show when not compact */}
+      {!compact && (
+        <div className="mt-1 grid grid-cols-3 gap-4 text-center">
+          <div className="bg-neutral-900/50 rounded-lg p-3">
+            <div className="text-lg font-bold text-green-400">
+              {data.filter(d => d.status === 'above').length}
+            </div>
+            <div className="text-xs text-neutral-400">Above Green Line</div>
           </div>
-          <div className="text-xs text-neutral-400">Above Green Line</div>
-        </div>
-        <div className="bg-neutral-900/50 rounded-lg p-3">
-          <div className="text-lg font-bold text-yellow-400">
-            {data.filter(d => d.status === 'transition').length}
+          <div className="bg-neutral-900/50 rounded-lg p-3">
+            <div className="text-lg font-bold text-yellow-400">
+              {data.filter(d => d.status === 'transition').length}
+            </div>
+            <div className="text-xs text-neutral-400">Transition</div>
           </div>
-          <div className="text-xs text-neutral-400">Transition</div>
-        </div>
-        <div className="bg-neutral-900/50 rounded-lg p-3">
-          <div className="text-lg font-bold text-red-400">
-            {data.filter(d => d.status === 'below').length}
+          <div className="bg-neutral-900/50 rounded-lg p-3">
+            <div className="text-lg font-bold text-red-400">
+              {data.filter(d => d.status === 'below').length}
+            </div>
+            <div className="text-xs text-neutral-400">Below Green Line</div>
           </div>
-          <div className="text-xs text-neutral-400">Below Green Line</div>
         </div>
-      </div>
+      )}
       
-      {/* Legend */}
-      <div className="mt-4 flex justify-center gap-6 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-green-500 rounded"></div>
-          <span className="text-neutral-300">Above Green Line (≥80%)</span>
+      {/* Legend - only show when not compact */}
+      {!compact && (
+        <div className="mt-4 grid grid-cols-3 md:flex md:justify-center gap-4 md:gap-6 text-center">
+          <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2">
+            <div className="w-4 h-4 bg-green-500 rounded"></div>
+            <span className="text-xs text-neutral-300">Above Green Line</span>
+            <span className="text-xs text-neutral-400">(≥80%)</span>
+          </div>
+          <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2">
+            <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+            <span className="text-xs text-neutral-300">Transition</span>
+            <span className="text-xs text-neutral-400">(60-79%)</span>
+          </div>
+          <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2">
+            <div className="w-4 h-4 bg-red-500 rounded"></div>
+            <span className="text-xs text-neutral-300">Below Green Line</span>
+            <span className="text-xs text-neutral-400">(&lt;60%)</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-          <span className="text-neutral-300">Transition (60-79%)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-red-500 rounded"></div>
-          <span className="text-neutral-300">Below Green Line (&lt;60%)</span>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

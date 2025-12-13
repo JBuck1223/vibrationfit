@@ -12,6 +12,7 @@ import {
   Spinner,
   Stack,
   Inline,
+  PageHero,
 } from '@/lib/design-system/components'
 import type { EmotionalValence, SceneRecord } from '@/lib/types/vibration'
 

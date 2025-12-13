@@ -5,7 +5,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Input, Textarea, Container } from '@/lib/design-system/components'
+import { Button, Card, Input, Textarea, Container, Stack, PageHero } from '@/lib/design-system/components'
 
 export default function NewCampaignPage() {
   const router = useRouter()
@@ -67,23 +67,23 @@ export default function NewCampaignPage() {
 
   return (
     <Container size="md">
-      <div className="mb-8 md:mb-12">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.back()}
-          className="mb-4"
+      <Stack gap="lg">
+        <PageHero
+          eyebrow="CRM / CAMPAIGNS"
+          title="Create New Campaign"
+          subtitle="Set up a new marketing campaign with tracking"
         >
-          ← Back
-        </Button>
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Create New Campaign</h1>
-        <p className="text-sm md:text-base text-neutral-400">
-          Set up a new marketing campaign with tracking
-        </p>
-      </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+          >
+            ← Back
+          </Button>
+        </PageHero>
 
-      <form onSubmit={handleSubmit}>
-        <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <Card className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Campaign Details</h2>
 
           <div className="space-y-4 md:space-y-6">
@@ -176,7 +176,7 @@ export default function NewCampaignPage() {
           </div>
         </Card>
 
-        <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
+        <Card className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">UTM Parameters</h2>
 
           <div className="space-y-4">
@@ -245,7 +245,7 @@ export default function NewCampaignPage() {
           </div>
         </Card>
 
-        <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
+        <Card className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Additional Info</h2>
 
           <div className="space-y-4">
@@ -300,6 +300,7 @@ export default function NewCampaignPage() {
           </Button>
         </div>
       </form>
+      </Stack>
     </Container>
   )
 }

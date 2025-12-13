@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text } from '@/lib/design-system/components'
+import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { ProfileClarityCard, ProfileContrastCard, ClarityFromContrastCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, CheckCircle, ArrowLeft, ArrowRight, ChevronDown, User, TrendingUp, RefreshCw, Mic, AlertCircle, Loader2, Video } from 'lucide-react'
@@ -389,10 +389,10 @@ export default function CategoryPage() {
   }
 
   return (
-    <div className="relative">
-
-      {/* Progress Indicator */}
-      <div className="mb-6 md:mb-8">
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Progress Indicator */}
+        <div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-neutral-400">
             Category {currentIndex + 1} of {allCategories.length}
@@ -818,11 +818,12 @@ export default function CategoryPage() {
       )}
 
       {/* Error Display */}
-      {error && (
-        <Card className="mb-8 border-red-500/50 bg-red-500/10">
-          <p className="text-red-400">{error}</p>
-        </Card>
-      )}
-    </div>
+        {error && (
+          <Card className="border-red-500/50 bg-red-500/10">
+            <p className="text-red-400">{error}</p>
+          </Card>
+        )}
+      </Stack>
+    </Container>
   )
 }

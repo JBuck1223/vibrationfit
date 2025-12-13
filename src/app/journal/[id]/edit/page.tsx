@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Card, Button, Input, CategoryCard, DatePicker } from '@/lib/design-system'
+import { Card, Button, Input, CategoryCard, DatePicker, Container, Stack, PageHero, Spinner } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -263,11 +263,9 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
   if (loading) {
     return (
-      <>
-        <div className="text-center py-16">
-          <div className="text-neutral-400">Loading journal entry...</div>
-        </div>
-      </>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -282,15 +280,14 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
   }
 
   return (
-    <>
-        <div className="pb-8">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-white mb-2">
-              Edit Journal Entry
-            </h1>
-          </div>
+    <Container size="xl">
+      <Stack gap="lg">
+        <PageHero
+          title="Edit Journal Entry"
+          subtitle="Update your journal entry details"
+        />
 
-          <Card>
+        <Card>
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
           {/* Date */}
           <div>
@@ -526,7 +523,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
           </div>
         </form>
           </Card>
-        </div>
 
       {/* Delete Confirmation Dialog */}
       {deleteDialogOpen && (
@@ -556,7 +552,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
           </Card>
         </div>
       )}
-
-    </>
+      </Stack>
+    </Container>
   )
 }

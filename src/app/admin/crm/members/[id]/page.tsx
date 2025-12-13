@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner, Input, Textarea } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
 
 interface Member {
   user_id: string
@@ -193,7 +193,7 @@ export default function MemberDetailPage() {
       setEmailSubject('')
       setEmailBody('')
       setShowEmailModal(false)
-      alert('✅ Email sent successfully!')
+      alert('Email sent successfully!')
     } catch (error: any) {
       alert(error.message || 'Failed to send email')
     } finally {
@@ -242,9 +242,19 @@ export default function MemberDetailPage() {
   if (!member) {
     return (
       <Container size="xl">
+        <Stack gap="lg">
+          <PageHero title="Member Not Found" subtitle="The requested member could not be found" />
         <Card className="text-center p-8 md:p-12">
-          <p className="text-sm md:text-base text-neutral-400">Member not found</p>
+          <p className="text-sm md:text-base text-neutral-400">This member may have been deleted or the ID is incorrect.</p>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/admin/crm/members')}
+            className="mt-4"
+          >
+            ← Back to Members
+          </Button>
         </Card>
+        </Stack>
       </Container>
     )
   }
@@ -255,44 +265,34 @@ export default function MemberDetailPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-8 md:mb-12">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push('/admin/crm/members')}
-          className="mb-4"
+      <Stack gap="lg">
+        <PageHero 
+          title={member.full_name || 'Unknown Member'}
+          subtitle={`${member.email}${member.phone ? ` • ${member.phone}` : ''}`}
         >
-          ← Back to Members
-        </Button>
-
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 truncate">
-              {member.full_name || 'Unknown'}
-            </h1>
-            <p className="text-sm md:text-base text-neutral-400 break-all">{member.email}</p>
-            {member.phone && (
-              <p className="text-sm md:text-base text-neutral-400">{member.phone}</p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/admin/crm/members')}
+            >
+              ← Back to Members
+            </Button>
+            {activity.engagement_status && (
+              <Badge className="bg-primary-500 text-white px-3 py-1 text-xs">
+                {activity.engagement_status}
+              </Badge>
             )}
-            <div className="flex flex-wrap gap-2 mt-3">
-              {activity.engagement_status && (
-                <Badge className="bg-primary-500 text-white px-3 py-1 text-xs">
-                  {activity.engagement_status}
-                </Badge>
-              )}
-              {revenue.subscription_tier && (
-                <Badge className="bg-secondary-500 text-white px-3 py-1 text-xs">
-                  {revenue.subscription_tier}
-                </Badge>
-              )}
-            </div>
+            {revenue.subscription_tier && (
+              <Badge className="bg-secondary-500 text-white px-3 py-1 text-xs">
+                {revenue.subscription_tier}
+              </Badge>
+            )}
           </div>
-        </div>
-      </div>
+        </PageHero>
 
       {/* Tabs */}
-      <div className="mb-6 flex flex-wrap gap-2 border-b border-[#333] pb-4">
+      <div className="flex flex-wrap gap-2 border-b border-[#333] pb-4">
         {['overview', 'activity', 'features', 'revenue', 'messages', 'email', 'support'].map((tab) => (
           <button
             key={tab}
@@ -651,7 +651,7 @@ export default function MemberDetailPage() {
           <div className="border-t border-[#333] pt-4">
             {!member?.phone ? (
               <p className="text-sm text-yellow-500 text-center py-2">
-                ⚠️ No phone number on file. Add phone number to send messages.
+                No phone number on file. Add phone number to send messages.
               </p>
             ) : (
               <div className="space-y-3">
@@ -695,7 +695,7 @@ export default function MemberDetailPage() {
           
           {!member?.email ? (
             <p className="text-sm text-yellow-500 text-center py-8">
-              ⚠️ No email on file
+              No email on file
             </p>
           ) : (
             <>
@@ -807,6 +807,7 @@ export default function MemberDetailPage() {
           )}
         </Card>
       )}
+      </Stack>
     </Container>
   )
 }

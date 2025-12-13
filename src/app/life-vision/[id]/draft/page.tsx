@@ -15,7 +15,10 @@ import {
   VersionBadge,
   StatusBadge,
   WarningConfirmationDialog,
-  Badge
+  Badge,
+  Container,
+  Stack,
+  PageHero
 } from '@/lib/design-system/components'
 import { VisionCategoryCard } from '../../components/VisionCategoryCard'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -347,9 +350,9 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Spinner variant="primary" size="lg" />
-      </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -413,54 +416,35 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const refinedCount = refinedCategories.length
 
   return (
-    <>
-      {/* Header */}
-      <div className="mb-8">
-        {/* Subtle Gradient Background */}
-        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          {/* Modern Enhanced Layout with Card Container */}
-          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            
-            <div className="relative z-10">
-              {/* Eyebrow */}
-              <div className="text-center mb-4">
-                <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                  DRAFT VISION
-                </div>
-              </div>
-              
-              {/* Title Section */}
-              <div className="text-center mb-4">
-                <h1 className="text-xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
-                  Refine Your Life Vision
-                </h1>
-                <p className="text-sm md:text-base text-neutral-400 mt-2 max-w-3xl mx-auto">
-                  Refined categories will show in yellow. Once you are happy with your refinements, click "Commit as Active Vision".
-                </p>
-              </div>
-              
-              {/* Centered Version Info with Enhanced Styling */}
-              <div className="text-center mb-6">
-                {/* Version, Status & Date Badges */}
-                <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                  <VersionBadge 
-                    versionNumber={vision.version_number} 
-                    status="draft" 
-                  />
-                  <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
-                  <span className="text-neutral-300 text-xs md:text-sm">
-                    Created: {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-                  </span>
-                  {refinedCount > 0 && (
-                    <Badge 
-                      variant="warning" 
-                      className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
-                    >
-                      {refinedCount} of {VISION_CATEGORIES.length} Refined
-                    </Badge>
-                  )}
-                </div>
-              </div>
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="DRAFT VISION"
+          title="Refine Your Life Vision"
+          subtitle="Refined categories will show in yellow. Once you are happy with your refinements, click 'Commit as Active Vision'."
+        >
+          <div className="text-center">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+              <VersionBadge 
+                versionNumber={vision.version_number} 
+                status="draft" 
+              />
+              <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
+              <span className="text-neutral-300 text-xs md:text-sm">
+                Created: {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+              </span>
+              {refinedCount > 0 && (
+                <Badge 
+                  variant="warning" 
+                  className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
+                >
+                  {refinedCount} of {VISION_CATEGORIES.length} Refined
+                </Badge>
+              )}
+            </div>
+          </div>
+        </PageHero>
 
               {/* Action Buttons - Enhanced with Hover Effects */}
               <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
@@ -504,10 +488,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                   )}
                 </Button>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Vision Categories Grid */}
       <div className="grid grid-cols-1 gap-6 mb-8">
@@ -548,6 +528,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         type="commit"
         isLoading={isCommitting}
       />
-    </>
+      </Stack>
+    </Container>
   )
 }

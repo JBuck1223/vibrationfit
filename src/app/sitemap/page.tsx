@@ -86,8 +86,8 @@ export default function SitemapPage() {
         // Dashboard & Core
         { href: '/dashboard', label: 'Dashboard', icon: BarChart3, description: 'Main dashboard overview' },
         { href: '/dashboard/activity', label: 'Activity Feed', icon: BarChart3, description: 'User activity timeline' },
-        { href: '/dashboard/tokens', label: 'Creation Credits', icon: Zap, description: 'Manage Creation Credits' },
-        { href: '/dashboard/add-tokens', label: 'Add Credits', icon: Plus, description: 'Purchase more credits' },
+        { href: '/dashboard/tokens', label: 'Tokens', icon: Zap, description: 'Manage tokens' },
+        { href: '/dashboard/add-tokens', label: 'Add Tokens', icon: Plus, description: 'Purchase more tokens' },
         { href: '/dashboard/storage', label: 'Storage Usage', icon: HardDrive, description: 'File storage management' },
         { href: '/dashboard/token-history', label: 'Token History', icon: BarChart3, description: 'Token usage history' },
         { href: '/viva', label: 'VIVA Assistant', icon: MessageCircle, description: 'AI assistant usage' },

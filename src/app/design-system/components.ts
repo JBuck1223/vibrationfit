@@ -329,15 +329,6 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     exportName: 'Toggle',
     path: '/design-system/component/toggle'
   },
-  {
-    id: 'tracking-milestone-card',
-    name: 'Tracking Milestone Card',
-    description: 'Metric display card with themed styling for tracking stats',
-    category: 'UI',
-    icon: Activity,
-    exportName: 'TrackingMilestoneCard',
-    path: '/design-system/component/tracking-milestone-card'
-  },
 
   // Feedback Components
   {

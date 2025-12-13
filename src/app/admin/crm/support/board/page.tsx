@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 import { Kanban, KanbanColumn, KanbanItem } from '@/components/crm/Kanban'
 
 interface Ticket {
@@ -52,6 +52,19 @@ export default function SupportBoardPage() {
   }
 
   async function handleItemMove(itemId: string, newColumnId: string) {
+    // Store the old status in case we need to revert
+    const oldTicket = tickets.find(t => t.id === itemId)
+    if (!oldTicket) return
+    
+    const oldStatus = oldTicket.status
+
+    // ✅ Optimistically update state immediately (prevents jump)
+    setTickets((prev) =>
+      prev.map((ticket) =>
+        ticket.id === itemId ? { ...ticket, status: newColumnId } : ticket
+      )
+    )
+
     try {
       const response = await fetch(`/api/support/tickets/${itemId}`, {
         method: 'PATCH',
@@ -59,13 +72,26 @@ export default function SupportBoardPage() {
         body: JSON.stringify({ status: newColumnId }),
       })
 
-      if (!response.ok) throw new Error('Failed to update ticket')
-
-      setTickets((prev) =>
-        prev.map((ticket) =>
-          ticket.id === itemId ? { ...ticket, status: newColumnId } : ticket
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Failed to update ticket:', {
+          status: response.status,
+          error: errorData,
+          itemId,
+          newStatus: newColumnId
+        })
+        
+        // ❌ Revert the optimistic update
+        setTickets((prev) =>
+          prev.map((ticket) =>
+            ticket.id === itemId ? { ...ticket, status: oldStatus } : ticket
+          )
         )
-      )
+        
+        throw new Error(errorData.error || 'Failed to update ticket')
+      }
+      
+      // ✅ API succeeded, optimistic update is now confirmed
     } catch (error) {
       console.error('Error updating ticket:', error)
       alert('Failed to update ticket status')
@@ -121,10 +147,11 @@ export default function SupportBoardPage() {
 
   return (
     <Container size="full">
-      <div className="mb-8 md:mb-12">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Support Board</h1>
-        <p className="text-sm md:text-base text-neutral-400">{tickets.length} total tickets</p>
-      </div>
+      <Stack gap="lg">
+        <PageHero 
+          title="Support Board" 
+          subtitle={`${tickets.length} total tickets`}
+        />
 
       <Kanban
         columns={COLUMNS}
@@ -133,6 +160,7 @@ export default function SupportBoardPage() {
         onItemClick={handleItemClick}
         renderItem={renderTicketCard}
       />
+      </Stack>
     </Container>
   )
 }

@@ -1695,17 +1695,17 @@ export const assessmentQuestions: AssessmentCategory[] = [
 // CATEGORY METADATA
 // ============================================================================
 export const categoryMetadata: Record<AssessmentCategoryType, { title: string; description: string }> = {
-  fun: { title: 'Fun & Recreation', description: 'How you play, relax, and enjoy life' },
-  travel: { title: 'Travel & Adventure', description: 'Your relationship with exploration and new experiences' },
-  home: { title: 'Home & Environment', description: 'Your living space and sense of sanctuary' },
-  family: { title: 'Family & Parenting', description: 'Your relationships with family members' },
-  love: { title: 'Love & Romance', description: 'Your intimate relationships and love life' },
-  health: { title: 'Health & Vitality', description: 'Your physical and mental well-being' },
-  money: { title: 'Money & Wealth', description: 'Your relationship with finances and abundance' },
-  work: { title: 'Work & Career', description: 'Your work life and professional fulfillment' },
-  social: { title: 'Social & Friends', description: 'Your friendships and social connections' },
-  stuff: { title: 'Stuff & Possessions', description: 'Your relationship with material things' },
-  giving: { title: 'Giving & Legacy', description: 'How you contribute and want to be remembered' },
+  fun: { title: 'Fun', description: 'How you play, relax, and enjoy life' },
+  travel: { title: 'Travel', description: 'Your relationship with exploration and new experiences' },
+  home: { title: 'Home', description: 'Your living space and sense of sanctuary' },
+  family: { title: 'Family', description: 'Your relationships with family members' },
+  love: { title: 'Love', description: 'Your intimate relationships and love life' },
+  health: { title: 'Health', description: 'Your physical and mental well-being' },
+  money: { title: 'Money', description: 'Your relationship with finances and abundance' },
+  work: { title: 'Work', description: 'Your work life and professional fulfillment' },
+  social: { title: 'Social', description: 'Your friendships and social connections' },
+  stuff: { title: 'Stuff', description: 'Your relationship with material things' },
+  giving: { title: 'Giving', description: 'How you contribute and want to be remembered' },
   spirituality: { title: 'Spirituality', description: 'Your spiritual beliefs and connection to something greater' }
 }
 

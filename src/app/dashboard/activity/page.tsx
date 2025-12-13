@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Badge, Button } from '@/lib/design-system/components'
+import { Container, Card, Badge, Button, Stack, PageHero } from '@/lib/design-system/components'
 import { 
   Activity, 
   Target, 
@@ -84,6 +84,7 @@ export default function ActivityFeedPage() {
   const activityTypes = [
     { value: 'all', label: 'All Activity', count: activities.length },
     { value: 'vision', label: 'Life Vision', count: activities.filter(a => a.type === 'vision').length },
+    { value: 'vision-board', label: 'Vision Board', count: activities.filter(a => a.type === 'vision-board').length },
     { value: 'journal', label: 'Journal', count: activities.filter(a => a.type === 'journal').length },
     { value: 'profile', label: 'Profile', count: activities.filter(a => a.type === 'profile').length },
     { value: 'assessment', label: 'Assessment', count: activities.filter(a => a.type === 'assessment').length },
@@ -93,16 +94,12 @@ export default function ActivityFeedPage() {
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
         {/* Header */}
-        <div className="mb-8 md:mb-12">
-          <div className="flex items-center gap-3 mb-2 md:mb-4">
-            <Activity className="w-6 h-6 md:w-8 md:h-8 text-primary-500" />
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">My Activity Feed</h1>
-          </div>
-          <p className="text-sm md:text-base text-neutral-400">
-            Your transformation journey in real-time
-          </p>
-        </div>
+        <PageHero
+          title="My Activity Feed"
+          subtitle="Your transformation journey in real-time"
+        />
 
         {loading ? (
           <div className="text-center py-12">
@@ -110,16 +107,16 @@ export default function ActivityFeedPage() {
             <p className="text-neutral-400 mt-4">Loading your activity...</p>
           </div>
         ) : (
-          <div>
+          <>
             {/* Filter Tabs */}
-            <div className="flex flex-wrap gap-2 mb-8">
+            <div className="flex flex-wrap gap-2">
               {activityTypes.map((type) => (
                 <button
                   key={type.value}
                   onClick={() => setFilter(type.value)}
                   className={`px-4 py-2 rounded-full font-medium transition-all ${
                     filter === type.value
-                      ? 'bg-primary-500 text-white shadow-lg'
+                      ? 'bg-primary-500 text-black shadow-lg'
                       : 'bg-neutral-900 text-neutral-400 hover:bg-neutral-800 hover:text-white'
                   }`}
                 >
@@ -265,8 +262,9 @@ export default function ActivityFeedPage() {
                 })}
               </div>
             )}
-          </div>
+          </>
         )}
+      </Stack>
     </Container>
   )
 }

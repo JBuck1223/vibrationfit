@@ -29,101 +29,150 @@ export function generateHouseholdInvitationEmail(
     <tr>
       <td align="center" style="padding: 40px 20px;">
         <!-- Container -->
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background: linear-gradient(135deg, #199D67 0%, #14B8A6 100%); border-radius: 16px; overflow: hidden;">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px;">
           
-          <!-- Header -->
+          <!-- Brand Header -->
           <tr>
-            <td style="padding: 40px 40px 30px; text-align: center; background-color: rgba(0, 0, 0, 0.3);">
-              <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #ffffff; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);">
-                🏠 Household Invitation
-              </h1>
+            <td style="padding: 0 0 24px; text-align: center;">
+              <div style="display: inline-block; padding: 8px 24px; background-color: rgba(57, 255, 20, 0.1); border-radius: 50px; border: 2px solid #39FF14; margin-bottom: 16px;">
+                <p style="margin: 0; font-size: 12px; font-weight: 600; color: #39FF14; text-transform: uppercase; letter-spacing: 1px;">
+                  Household Invitation
+                </p>
+              </div>
             </td>
           </tr>
 
-          <!-- Body -->
+          <!-- Hero Card -->
           <tr>
-            <td style="padding: 40px; background-color: #1F1F1F;">
+            <td style="padding: 0;">
+              <div style="padding: 40px; background-color: #1F1F1F; border-radius: 16px; border: 2px solid #39FF14;">
               
-              <!-- Greeting -->
-              <p style="margin: 0 0 24px; font-size: 18px; line-height: 1.6; color: #ffffff;">
-                Hi there! 👋
-              </p>
+                <!-- Title -->
+                <h1 style="margin: 0 0 24px; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center; line-height: 1.2;">
+                  You're Invited!
+                </h1>
 
-              <!-- Main Message -->
-              <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #E5E5E5;">
-                <strong style="color: #199D67;">${inviterName}</strong> (${inviterEmail}) has invited you to join their VibrationFit Household: <strong style="color: #14B8A6;">${householdName}</strong>
-              </p>
+                <!-- Greeting -->
+                <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #E5E5E5; text-align: center;">
+                  Hi there!
+                </p>
 
-              <p style="margin: 0 0 32px; font-size: 16px; line-height: 1.6; color: #E5E5E5;">
-                By joining their household, you'll have access to:
-              </p>
+                <!-- Main Message -->
+                <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #E5E5E5; text-align: center;">
+                  <strong style="color: #39FF14;">${inviterName}</strong> (${inviterEmail}) has invited you to join their VibrationFit Household: <strong style="color: #39FF14;">${householdName}</strong>
+                </p>
 
-              <!-- Benefits List -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
-                <tr>
-                  <td style="padding: 12px 0;">
-                    <span style="color: #199D67; font-size: 20px; margin-right: 12px;">✓</span>
-                    <span style="color: #E5E5E5; font-size: 15px;">Shared Vision Pro subscription</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0;">
-                    <span style="color: #199D67; font-size: 20px; margin-right: 12px;">✓</span>
-                    <span style="color: #E5E5E5; font-size: 15px;">Shared token pool for VIVA AI</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0;">
-                    <span style="color: #199D67; font-size: 20px; margin-right: 12px;">✓</span>
-                    <span style="color: #E5E5E5; font-size: 15px;">Shared storage for vision boards, journals & media</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0;">
-                    <span style="color: #199D67; font-size: 20px; margin-right: 12px;">✓</span>
-                    <span style="color: #E5E5E5; font-size: 15px;">All Vision Pro platform features</span>
-                  </td>
-                </tr>
-              </table>
+                <!-- Benefits Card -->
+                <div style="margin: 32px 0; padding: 24px; background-color: #000000; border-radius: 12px; border: 2px solid #39FF14;">
+                  <p style="margin: 0 0 16px; font-size: 11px; color: #39FF14; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; text-align: center;">
+                    What's Included
+                  </p>
 
-              <!-- CTA Button -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
-                <tr>
-                  <td align="center">
-                    <a href="${invitationLink}" style="display: inline-block; padding: 18px 48px; background: linear-gradient(135deg, #199D67, #14B8A6); color: #ffffff; text-decoration: none; font-size: 18px; font-weight: 600; border-radius: 50px; box-shadow: 0 6px 20px rgba(25, 157, 103, 0.4); text-align: center;">
-                      Accept Invitation
-                    </a>
-                  </td>
-                </tr>
-              </table>
+                  <!-- Benefits List -->
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="padding: 10px 0;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td width="30" style="vertical-align: top;">
+                              <div style="width: 20px; height: 20px; background-color: #39FF14; border-radius: 50%; display: inline-block;"></div>
+                            </td>
+                            <td style="color: #E5E5E5; font-size: 15px; line-height: 1.5;">
+                              Shared Vision Pro subscription
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td width="30" style="vertical-align: top;">
+                              <div style="width: 20px; height: 20px; background-color: #39FF14; border-radius: 50%; display: inline-block;"></div>
+                            </td>
+                            <td style="color: #E5E5E5; font-size: 15px; line-height: 1.5;">
+                              Shared token pool for VIVA AI
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td width="30" style="vertical-align: top;">
+                              <div style="width: 20px; height: 20px; background-color: #39FF14; border-radius: 50%; display: inline-block;"></div>
+                            </td>
+                            <td style="color: #E5E5E5; font-size: 15px; line-height: 1.5;">
+                              Shared storage for vision boards, journals & media
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td width="30" style="vertical-align: top;">
+                              <div style="width: 20px; height: 20px; background-color: #39FF14; border-radius: 50%; display: inline-block;"></div>
+                            </td>
+                            <td style="color: #E5E5E5; font-size: 15px; line-height: 1.5;">
+                              All Vision Pro platform features
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
 
-              <!-- Expiration Notice -->
-              <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.6; color: #999999; text-align: center;">
-                ⏰ This invitation expires in <strong style="color: #FFB701;">${expiresInDays} days</strong>
-              </p>
+                <!-- CTA Button -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                  <tr>
+                    <td align="center">
+                      <a href="${invitationLink}" style="display: inline-block; padding: 18px 48px; background-color: #39FF14; color: #000000; text-decoration: none; font-size: 16px; font-weight: 700; border-radius: 50px; text-align: center;">
+                        Accept Invitation
+                      </a>
+                    </td>
+                  </tr>
+                </table>
 
-              <!-- Divider -->
-              <div style="height: 1px; background: linear-gradient(to right, transparent, #333333, transparent); margin: 32px 0;"></div>
+                <!-- Expiration Notice -->
+                <div style="padding: 16px; background-color: #000000; border-radius: 12px; border: 2px solid #FFB701; margin-bottom: 24px;">
+                  <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #FFB701; text-align: center; font-weight: 600;">
+                    Expires in ${expiresInDays} days
+                  </p>
+                </div>
 
-              <!-- Alternative Link -->
-              <p style="margin: 0 0 8px; font-size: 13px; line-height: 1.6; color: #999999;">
-                Button not working? Copy and paste this link into your browser:
-              </p>
-              <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #14B8A6; word-break: break-all;">
-                ${invitationLink}
-              </p>
+                <!-- Divider -->
+                <div style="height: 2px; background-color: #39FF14; margin: 32px 0;"></div>
 
+                <!-- Alternative Link -->
+                <p style="margin: 0 0 8px; font-size: 12px; line-height: 1.6; color: #999999; text-align: center;">
+                  Can't click the button? Copy this link:
+                </p>
+                <p style="margin: 0; font-size: 11px; line-height: 1.6; color: #39FF14; word-break: break-all; text-align: center;">
+                  ${invitationLink}
+                </p>
+
+              </div>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 30px 40px; background-color: rgba(0, 0, 0, 0.5); text-align: center;">
+            <td style="padding: 32px 20px 0; text-align: center;">
               <p style="margin: 0 0 12px; font-size: 13px; color: #999999;">
-                Questions? Reply to this email or visit our <a href="https://vibrationfit.com/support" style="color: #14B8A6; text-decoration: none;">support center</a>
+                Questions? Reply to this email or visit <a href="https://vibrationfit.com/support" style="color: #39FF14; text-decoration: none; font-weight: 600;">vibrationfit.com/support</a>
               </p>
-              <p style="margin: 0; font-size: 12px; color: #666666;">
-                © ${new Date().getFullYear()} VibrationFit. All rights reserved.
+              <p style="margin: 0 0 8px; font-size: 11px; color: #666666;">
+                © ${new Date().getFullYear()} VibrationFit · <span style="color: #39FF14;">Above the Green Line</span>
+              </p>
+              <p style="margin: 0; font-size: 10px; color: #555555;">
+                This invitation was sent by ${inviterName}.
               </p>
             </td>
           </tr>
@@ -137,26 +186,42 @@ export function generateHouseholdInvitationEmail(
 `
 
   const textBody = `
-You're Invited to Join ${householdName} on VibrationFit!
+YOU'RE INVITED TO JOIN ${householdName}
+
+VibrationFit Household Invitation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Hi there!
 
 ${inviterName} (${inviterEmail}) has invited you to join their VibrationFit Household: ${householdName}
 
-By joining their household, you'll have access to:
-✓ Shared Vision Pro subscription
-✓ Shared token pool for VIVA AI
-✓ Shared storage for vision boards, journals & media
-✓ All Vision Pro platform features
+WHAT'S INCLUDED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Accept your invitation by clicking this link:
+• Shared Vision Pro subscription
+• Shared token pool for VIVA AI
+• Shared storage for vision boards, journals & media
+• All Vision Pro platform features
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ACCEPT YOUR INVITATION
 ${invitationLink}
 
-⏰ This invitation expires in ${expiresInDays} days.
+EXPIRES IN ${expiresInDays} DAYS
 
-Questions? Reply to this email or visit https://vibrationfit.com/support
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-© ${new Date().getFullYear()} VibrationFit. All rights reserved.
+Questions? Reply to this email or visit:
+https://vibrationfit.com/support
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+© ${new Date().getFullYear()} VibrationFit
+Above the Green Line
+
+This invitation was sent by ${inviterName}.
 `
 
   return { subject, htmlBody, textBody }

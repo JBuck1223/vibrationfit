@@ -8,6 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/aws-ses'
+import { generateSupportTicketCreatedEmail } from '@/lib/email/templates/support-ticket-created'
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,12 +36,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create ticket
-    const { data: ticket, error } = await supabase
+    // Use admin client to bypass RLS for ticket creation
+    const adminClient = createAdminClient()
+    
+    // Create ticket - ALWAYS populate guest_email for easy replies
+    const email = user?.email || body.guest_email
+    
+    const { data: ticket, error } = await adminClient
       .from('support_tickets')
       .insert({
         user_id: user?.id || null,
-        guest_email: !user ? body.guest_email : null,
+        guest_email: email, // Always store email for easy notification
         subject: body.subject,
         description: body.description,
         priority: body.priority || 'normal',
@@ -56,53 +62,64 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Ticket created:', ticket.ticket_number)
 
-    // Send confirmation email
+    // Send confirmation email using file-based template
+    console.log('📧 Attempting to send confirmation email to:', email)
+    
     try {
-      const email = user?.email || body.guest_email
       const appUrl =
         process.env.NEXT_PUBLIC_APP_URL ||
         process.env.NEXT_PUBLIC_SITE_URL ||
         'https://vibrationfit.com'
 
-      const ticketUrl = user
-        ? `${appUrl}/dashboard/support/${ticket.id}`
-        : `${appUrl}/support/ticket/${ticket.id}`
+      const ticketUrl = `${appUrl}/dashboard/support/tickets/${ticket.id}`
+
+      // Generate email from template
+      const emailData = generateSupportTicketCreatedEmail({
+        ticketNumber: ticket.ticket_number,
+        ticketSubject: ticket.subject,
+        ticketStatus: ticket.status,
+        ticketUrl,
+      })
+
+      console.log('📧 Email config:', {
+        to: email,
+        from: 'team@vibrationfit.com',
+        region: process.env.AWS_SES_REGION,
+        hasAccessKey: !!process.env.AWS_SES_ACCESS_KEY_ID,
+        hasSecretKey: !!process.env.AWS_SES_SECRET_ACCESS_KEY,
+      })
 
       await sendEmail({
         to: email,
-        subject: `Support Ticket Created: ${ticket.ticket_number}`,
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #199D67;">Support Ticket Created</h2>
-            <p style="color: #333; line-height: 1.6;">
-              Your support ticket <strong>${ticket.ticket_number}</strong> has been created.
-            </p>
-            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p style="margin: 0; color: #666;"><strong>Subject:</strong></p>
-              <p style="margin: 5px 0 15px 0; color: #333;">${ticket.subject}</p>
-              <p style="margin: 0; color: #666;"><strong>Status:</strong></p>
-              <p style="margin: 5px 0 0 0; color: #333;">${ticket.status}</p>
-            </div>
-            <p style="color: #333; line-height: 1.6;">
-              We'll respond as soon as possible. You can view your ticket here:
-            </p>
-            <div style="margin: 30px 0;">
-              <a href="${ticketUrl}" style="background-color: #199D67; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; display: inline-block;">
-                View Ticket
-              </a>
-            </div>
-            <p style="color: #666; font-size: 14px;">
-              Best,<br>
-              VibrationFit Support Team
-            </p>
-          </div>
-        `,
-        textBody: `Support Ticket Created\n\nYour ticket ${ticket.ticket_number} has been created.\n\nSubject: ${ticket.subject}\nStatus: ${ticket.status}\n\nView your ticket: ${ticketUrl}\n\nBest,\nVibrationFit Support Team`,
+        subject: emailData.subject,
+        htmlBody: emailData.htmlBody,
+        textBody: emailData.textBody,
+        replyTo: 'team@vibrationfit.com',
       })
 
-      console.log('✅ Confirmation email sent')
-    } catch (emailError) {
-      console.error('❌ Failed to send confirmation email:', emailError)
+      console.log('✅ Confirmation email sent successfully to:', email)
+
+      // Log email to database
+      await adminClient.from('email_messages').insert({
+        user_id: user?.id || ticket.user_id,
+        from_email: 'team@vibrationfit.com',
+        to_email: email,
+        subject: emailData.subject,
+        body_text: emailData.textBody,
+        body_html: emailData.htmlBody,
+        direction: 'outbound',
+        status: 'sent',
+      })
+
+      console.log('✅ Email logged to database')
+    } catch (emailError: any) {
+      console.error('❌ Failed to send confirmation email:', {
+        error: emailError.message,
+        code: emailError.code,
+        name: emailError.name,
+        stack: emailError.stack,
+        to: email,
+      })
       // Don't fail ticket creation if email fails
     }
 

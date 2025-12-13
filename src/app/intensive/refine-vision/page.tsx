@@ -6,13 +6,14 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Wand2, Sparkles, ArrowRight } from 'lucide-react'
 
 import { 
-   
   Container, 
   Card, 
   Button,
   Badge,
   Spinner,
-  Textarea
+  Textarea,
+  Stack,
+  PageHero
 } from '@/lib/design-system/components'
 
 export default function RefineVisionPage() {
@@ -107,19 +108,23 @@ export default function RefineVisionPage() {
 
   return (
     <Container size="lg">
-        
-        <div className="mb-6 md:mb-8">
-          <Button 
-            variant="ghost" 
+      <Stack gap="lg">
+        <PageHero
+          title="Refine Your Vision"
+          subtitle="Review and enhance your vision with VIVA"
+        >
+          <Button
+            variant="ghost"
             size="sm"
             onClick={() => router.push('/intensive/dashboard')}
-            className="mb-3 md:mb-4 w-full sm:w-auto"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-          
-          <Badge variant="premium" className="mb-3 md:mb-4">
+        </PageHero>
+
+        <div>
+          <Badge variant="premium">
             <Wand2 className="w-4 h-4 inline mr-2" />
             Step 5 of 10
           </Badge>
@@ -162,6 +167,7 @@ export default function RefineVisionPage() {
             </Button>
           </div>
         </Card>
+      </Stack>
     </Container>
   )
 }

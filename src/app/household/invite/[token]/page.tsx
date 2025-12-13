@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button, Card, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Container, Stack, PageHero } from '@/lib/design-system/components'
 
 interface InvitationDetails {
   id: string
@@ -194,18 +194,23 @@ export default function AcceptInvitationPage() {
   const emailMatches = currentUserEmail.toLowerCase() === invitation.invited_email.toLowerCase()
 
   return (
-    <div className="min-h-screen bg-black text-white px-6 py-12">
-      <div className="max-w-2xl mx-auto">
-        
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="w-20 h-20 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+    <Container size="xl">
+      <Stack gap="lg">
+        <PageHero
+          title="Household Invitation"
+          subtitle="Join a household and share your transformation journey"
+        >
+          <div className="w-20 h-20 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto">
             <span className="text-4xl">👥</span>
           </div>
-          <h1 className="text-4xl font-bold mb-2">Household Invitation</h1>
-          <p className="text-neutral-300">
+        </PageHero>
+
+        <div className="max-w-2xl mx-auto w-full">
+          <Card className="p-6">
+            <p className="text-neutral-300 mb-6">
             You've been invited to join a household account
           </p>
+          </Card>
         </div>
 
         {/* Invitation Details Card */}
@@ -278,8 +283,8 @@ export default function AcceptInvitationPage() {
             Invitation sent {new Date(invitation.created_at).toLocaleDateString()}
           </p>
         </div>
-      </div>
-    </div>
+      </Stack>
+    </Container>
   )
 }
 

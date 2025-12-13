@@ -321,10 +321,8 @@ export default function ProfileDashboardPage() {
 
   if (loading) {
     return (
-      <Container size="xl">
-        <div className="flex items-center justify-center py-16">
-          <Spinner variant="primary" size="lg" />
-        </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
@@ -351,17 +349,16 @@ export default function ProfileDashboardPage() {
   }
 
   return (
-    <>
+    <Container size="xl">
+      <Stack gap="lg">
         {/* Page Hero */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title={activeProfile && activeProfile.first_name && activeProfile.last_name
             ? `${activeProfile.first_name} ${activeProfile.last_name}`
             : 'My Profile'}
           subtitle={activeProfile 
             ? 'View and manage your profile versions below.'
             : 'Create and manage your profile versions below.'}
-          className="mb-8"
         >
           {/* Centered Version Info with Enhanced Styling */}
           {activeProfile && (
@@ -413,8 +410,7 @@ export default function ProfileDashboardPage() {
 
         {/* Create Button (only when no active profile) */}
         {!activeProfile && (
-          <Container size="xl">
-          <div className="flex justify-end mb-6 md:mb-8">
+          <div className="flex justify-end">
             <Button
               onClick={() => router.push('/profile/new')}
               variant="primary"
@@ -425,14 +421,12 @@ export default function ProfileDashboardPage() {
               Create Profile
             </Button>
           </div>
-          </Container>
         )}
 
 
         {/* Stats Cards */}
         {activeProfile && (
-          <Container size="xl">
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <TrackingMilestoneCard
               label="Profiles"
               value={profileCount}
@@ -449,13 +443,11 @@ export default function ProfileDashboardPage() {
               theme="accent"
             />
           </div>
-          </Container>
         )}
 
         {/* All Versions List */}
         {activeProfile && versions.length > 0 && (
-          <Container size="xl">
-          <Card className="p-6 mb-8">
+          <Card className="p-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-white">Profile Versions</h2>
             </div>
@@ -535,12 +527,10 @@ export default function ProfileDashboardPage() {
               })}
             </div>
           </Card>
-          </Container>
         )}
 
         {/* No Profile State */}
         {!activeProfile && (
-          <Container size="xl">
           <div className="text-center py-12 md:py-16">
             <Card className="max-w-md mx-auto p-6 md:p-8">
               <Stack gap="md" align="center">
@@ -558,8 +548,8 @@ export default function ProfileDashboardPage() {
               </Stack>
             </Card>
           </div>
-          </Container>
         )}
+      </Stack>
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
@@ -641,6 +631,6 @@ export default function ProfileDashboardPage() {
           </Card>
         </div>
       )}
-    </>
+    </Container>
   )
 }

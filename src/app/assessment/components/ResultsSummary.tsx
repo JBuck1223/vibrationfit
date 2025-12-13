@@ -24,12 +24,34 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
       return newSet
     })
   }
+
+  const getResponseStatus = (responseValue: number): 'above' | 'transition' | 'below' => {
+    if (responseValue >= 4) return 'above'
+    if (responseValue === 3) return 'transition'
+    return 'below'
+  }
+
+  const getResponseStatusBadge = (responseValue: number) => {
+    const status = getResponseStatus(responseValue)
+    switch (status) {
+      case 'above':
+        return <Badge variant="success">Above</Badge>
+      case 'transition':
+        return <Badge variant="warning">Transition</Badge>
+      case 'below':
+        return <Badge variant="error">Below</Badge>
+    }
+  }
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'above':
         return <TrendingUp className="w-4 h-4 text-[#39FF14]" />
       case 'below':
         return <TrendingDown className="w-4 h-4 text-[#FF0040]" />
+      case 'transition':
+      case 'neutral':
+        return <Minus className="w-4 h-4 text-[#FFB701]" />
       default:
         return <Minus className="w-4 h-4 text-neutral-400" />
     }
@@ -41,6 +63,9 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
         return 'success'
       case 'below':
         return 'error'
+      case 'transition':
+      case 'neutral':
+        return 'warning'
       default:
         return 'info'
     }
@@ -49,11 +74,14 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
   const getCategoryLabel = (category: string) => {
     switch (category) {
       case 'above':
-        return 'Above Green Line'
+        return 'Above'
       case 'below':
-        return 'Below Green Line'
+        return 'Below'
+      case 'transition':
+      case 'neutral':
+        return 'Transition'
       default:
-        return 'Neutral'
+        return 'Transition'
     }
   }
 
@@ -83,30 +111,27 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
   return (
     <div className="space-y-6">
       {/* Overall Score */}
-      <Card className="p-6">
-        <h3 className="text-xl font-semibold text-white mb-4">Overall Assessment Score</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Card className="p-4 md:p-6 lg:p-8">
+        <h3 className="text-xl font-semibold text-white mb-6 text-center">Vibrational Score</h3>
+        
+        <div className="text-center space-y-6">
+          {/* Large Percentage */}
+          <div className="text-4xl font-bold text-primary-500">
+            {assessment.overall_percentage || 0}%
+          </div>
+          
+          {/* Progress Bar */}
           <div>
-            <div className="text-3xl font-bold text-white mb-2">
-              {assessment.total_score || 0}/{assessment.max_possible_score || 100}
-            </div>
             <ProgressBar
               value={assessment.overall_percentage || 0}
               variant="primary"
-              showLabel
             />
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-neutral-400">Overall Status:</span>
-              <Badge variant="info">
-                Assessment Complete
-              </Badge>
-            </div>
-            <div className="text-sm text-neutral-400">
-              Completed: {new Date(assessment.completed_at || assessment.created_at).toLocaleDateString()}
-            </div>
-          </div>
+          
+          {/* Score Text */}
+          <p className="text-sm text-white">
+            Scored {assessment.total_score || 0}/{assessment.max_possible_score || 420} on assessment questions.
+          </p>
         </div>
       </Card>
 
@@ -114,28 +139,40 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
       <AssessmentBarChart assessment={assessment} />
 
       {/* Category Breakdown */}
-      <Card className="p-6">
-        <h3 className="text-xl font-semibold text-white mb-4">Category Breakdown</h3>
-        <div className="space-y-4">
+      <Card className="p-4 md:p-6 lg:p-8">
+        <h3 className="text-xl font-semibold text-white mb-4 text-center">Category Breakdown</h3>
+        
+        {/* Table Header - Desktop Only */}
+        <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr] gap-4 md:gap-6 p-4 bg-neutral-900/50 rounded-lg mb-2 text-xs md:text-sm font-semibold text-neutral-400">
+          <div>Category</div>
+          <div className="text-center">Percentage Score</div>
+          <div className="text-center">Question Score</div>
+          <div className="text-center">Green Line Status</div>
+          <div className="text-center">Responses</div>
+        </div>
+
+        {/* Table Rows */}
+        <div className="space-y-2">
           {categories.map((category, index) => {
             const categoryResponses = responses.filter(r => r.category === category.category)
             const isExpanded = expandedCategories.has(category.category)
             
             return (
               <div key={index} className="bg-neutral-800/50 rounded-lg">
-                <div className="flex items-center justify-between p-4">
+                {/* Desktop Table Row */}
+                <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr] gap-4 md:gap-6 p-4 items-center">
                   <div className="flex items-center gap-3">
                     {getCategoryIcon(category.status)}
                     <span className="text-white font-medium">{category.name}</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className="text-white font-medium">{category.score}/{category.maxScore}</div>
-                      <div className="text-xs text-neutral-400">{category.percentage}%</div>
-                    </div>
+                  <div className="text-white font-medium text-center">{category.percentage}%</div>
+                  <div className="text-neutral-400 text-sm text-center">{category.score}/{category.maxScore}</div>
+                  <div className="flex justify-center">
                     <Badge variant={getCategoryColor(category.status)}>
                       {getCategoryLabel(category.status)}
                     </Badge>
+                  </div>
+                  <div className="flex justify-center">
                     {categoryResponses.length > 0 && (
                       <Button
                         variant="ghost"
@@ -152,14 +189,61 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
                     )}
                   </div>
                 </div>
+
+                {/* Mobile Stacked Layout */}
+                <div className="md:hidden p-4 space-y-3">
+                  {/* Category Name */}
+                  <div className="flex items-center gap-3">
+                    {getCategoryIcon(category.status)}
+                    <span className="text-white font-medium text-lg">{category.name}</span>
+                  </div>
+                  
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-neutral-400 mb-1">Percentage Score</span>
+                      <span className="text-white font-medium">{category.percentage}%</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-neutral-400 mb-1">Question Score</span>
+                      <span className="text-neutral-400 text-sm">{category.score}/{category.maxScore}</span>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="flex flex-col">
+                    <span className="text-xs text-neutral-400 mb-1">Green Line Status</span>
+                    <div>
+                      <Badge variant={getCategoryColor(category.status)}>
+                        {getCategoryLabel(category.status)}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Responses Button */}
+                  {categoryResponses.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => toggleCategory(category.category)}
+                      className="text-xs p-2 w-full justify-center"
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                      <span className="ml-1">{categoryResponses.length} responses</span>
+                    </Button>
+                  )}
+                </div>
                 
                 {isExpanded && categoryResponses.length > 0 && (
                   <div className="px-4 pb-4 border-t border-neutral-700">
                     <div className="space-y-2 mt-3 max-h-64 overflow-y-auto">
                       {categoryResponses.map((response, responseIndex) => (
                         <div key={responseIndex} className="p-3 bg-neutral-900/50 rounded text-sm">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
+                          <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-2">
+                            <div className="flex-1 mb-3 md:mb-0">
                               <div className="font-medium text-white mb-1">
                                 {response.question_text}
                               </div>
@@ -167,19 +251,27 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
                                 <strong>Response:</strong> {response.response_text}
                               </div>
                             </div>
-                            <div className="ml-4 text-right">
-                              <div className={`px-2 py-1 rounded text-xs font-medium ${
-                                response.is_custom_response 
-                                  ? 'bg-purple-500/20 text-purple-300' 
-                                  : 'bg-green-500/20 text-green-300'
-                              }`}>
-                                {response.is_custom_response ? 'Custom' : 'Standard'}
+                            
+                            {/* Desktop: Right side */}
+                            <div className="hidden md:block ml-4 text-right space-y-2">
+                              <div className="flex justify-end">
+                                {getResponseStatusBadge(response.response_value)}
                               </div>
-                              <div className="mt-1 text-xs text-neutral-400">
+                              <div className="text-xs text-neutral-400">
                                 <div>Response Value: {response.response_value}</div>
                                 {response.is_custom_response && (
                                   <div>Custom Score: {response.custom_response_value || 'N/A'}</div>
                                 )}
+                              </div>
+                            </div>
+                            
+                            {/* Mobile: Below content, 50/50 split */}
+                            <div className="md:hidden flex gap-2">
+                              <div className="flex-1 flex justify-center">
+                                {getResponseStatusBadge(response.response_value)}
+                              </div>
+                              <div className="flex-1 text-xs text-neutral-400 flex items-center justify-center">
+                                <div>Response Value: {response.response_value}</div>
                               </div>
                             </div>
                           </div>
@@ -196,7 +288,7 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
 
       {/* Insights */}
       <Card className="p-6">
-        <h3 className="text-xl font-semibold text-white mb-4">Key Insights</h3>
+        <h3 className="text-xl font-semibold text-white mb-4 text-center">Key Insights</h3>
         <div className="space-y-3">
           {(() => {
             const aboveCategories = categories.filter(c => c.status === 'above')
@@ -226,11 +318,6 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
                     </p>
                   </div>
                 )}
-                <div className="p-4 bg-[#14B8A6]/10 border border-[#14B8A6]/30 rounded-lg">
-                  <p className="text-sm text-white">
-                    <strong className="text-[#14B8A6]">Recommendation:</strong> Focus on one area at a time to create sustainable change and maintain vibrational alignment.
-                  </p>
-                </div>
               </>
             )
           })()}

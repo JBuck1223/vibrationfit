@@ -148,6 +148,9 @@ export async function POST(req: Request) {
     // Check if this is master assistant mode
     const isMasterAssistant = context?.masterAssistant === true || context?.mode === 'master'
     
+    // Check if this is a real first message vs START_SESSION
+    const isStartSessionMessage = messages.length === 1 && messages[0].content === 'START_SESSION'
+    
     // Detect document section queries (e.g., "show me the money section")
     const lastMessage = messages[messages.length - 1]
     const detectSectionQuery = (text: string): string | null => {
@@ -447,14 +450,15 @@ export async function POST(req: Request) {
       : messages
 
     // Filter out the START_SESSION message if present
-    // For initial greetings with prompt, don't use messages array
-    const chatMessages = isInitialGreeting 
+    // For initial greetings with START_SESSION, don't use messages array
+    // But if user sends a real first message, include it
+    const chatMessages = isStartSessionMessage 
       ? undefined 
       : allMessagesForContext
 
     // Estimate tokens and validate balance before starting stream
     const messagesText = chatMessages ? chatMessages.map((m: { content: string }) => m.content).join('\n') : ''
-    const promptText = systemPrompt + (isInitialGreeting ? `\nIntroduce yourself to ${userName}...` : messagesText)
+    const promptText = systemPrompt + (isStartSessionMessage ? `\nIntroduce yourself to ${userName}...` : messagesText)
     const estimatedTokens = estimateTokensForText(promptText, MODEL)
     const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
     
@@ -472,7 +476,8 @@ export async function POST(req: Request) {
     }
 
     // Create streaming completion using AI SDK
-    const initialPrompt = isInitialGreeting 
+    // Only use initial prompt if this is START_SESSION, not for real first user messages
+    const initialPrompt = isStartSessionMessage 
       ? (context?.refinement && context?.category 
         ? `Say hi to ${userName} and ask: "What refinements would you like to make?" Keep it brief and direct.`
         : `Introduce yourself to ${userName} and acknowledge what you see in their profile and assessment. Keep it warm, brief (2-3 sentences), and then ask one powerful opening question related to ${context?.category || 'their vision'} and the ${visionBuildPhase} phase.`)
@@ -480,6 +485,7 @@ export async function POST(req: Request) {
 
     console.log('[VIVA CHAT] Starting stream:', {
       isInitialGreeting,
+      isStartSessionMessage,
       isRefinement: context?.refinement,
       category: context?.category,
       hasPrompt: !!initialPrompt,
@@ -536,7 +542,7 @@ export async function POST(req: Request) {
           }
           
           // Update conversation session title if this is the first assistant message
-          if (currentConversationId && isInitialGreeting) {
+          if (currentConversationId && (isInitialGreeting || isStartSessionMessage)) {
             const { data: session } = await supabase
               .from('conversation_sessions')
               .select('title, preview_message')

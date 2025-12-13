@@ -9,6 +9,7 @@ import {
   Inline,
   Text,
   Video,
+  PageHero,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowLeft, Download, Heart, Target, Sparkles, Plus } from 'lucide-react'
@@ -24,30 +25,33 @@ export default function DailyPaperResourcesPage() {
   return (
     <Container size="xl">
       <Stack gap="xl">
+        <PageHero
+          title="Daily Paper Resources"
+          subtitle="Learn the daily practice that keeps you vibrationally aligned"
+        >
+          <Inline gap="sm" justify="center" className="flex-wrap">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/daily-paper">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to archive
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" className="flex items-center gap-2" asChild>
+              <Link href="/daily-paper/new">
+                <Plus className="w-4 h-4" />
+                Add entry
+              </Link>
+            </Button>
+          </Inline>
+        </PageHero>
+
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="lg" className="text-center">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white">
-              Daily Paper resources
-            </h1>
             <OptimizedVideo
               url={DAILY_PAPER_VIDEO}
               context="single"
               className="mx-auto w-full max-w-3xl"
             />
-            <Inline gap="sm" justify="center" className="flex-wrap">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/daily-paper">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to archive
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" className="flex items-center gap-2" asChild>
-                <Link href="/daily-paper/new">
-                  <Plus className="w-4 h-4" />
-                  Add entry
-                </Link>
-              </Button>
-            </Inline>
           </Stack>
         </Card>
 

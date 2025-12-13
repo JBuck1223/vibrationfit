@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
-import { Card, Button, Spinner, Badge } from '@/lib/design-system/components'
+import { Card, Button, Spinner, Badge, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { Sparkles, CheckCircle, Download, ArrowRight, BarChart3 } from 'lucide-react'
 
 function VIVAActionCard({ stage, className = '' }: { stage: string, className?: string }) {
@@ -262,35 +262,31 @@ export default function AssemblyPage() {
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="text-center mb-10 md:mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-3xl mb-6">
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Your Life Vision is Ready"
+          subtitle="VIVA has synthesized your reflections across all life areas into a unified, activation-ready vision."
+        >
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-3xl">
             <Sparkles className="w-10 h-10 text-white" />
           </div>
-          
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Your Life Vision is Ready
-          </h1>
-          
-          <p className="text-base md:text-xl text-neutral-300 max-w-2xl mx-auto mb-6">
-            VIVA has synthesized your reflections across all life areas into a unified, activation-ready vision.
-          </p>
-
-          <Badge variant="success" className="mb-6">
+          <Badge variant="success">
             <CheckCircle className="w-4 h-4 mr-2" />
             12 of 12 Categories Complete
           </Badge>
-        </div>
+        </PageHero>
 
         {/* Processing State */}
         {isProcessing && (
-          <VIVAActionCard stage={vivaStage} className="mb-8" />
+          <VIVAActionCard stage={vivaStage} />
         )}
 
         {/* Ready to Assemble */}
         {!masterVision && !isProcessing && !isLoading && (
-          <Card className="mb-8">
+          <Card>
             <div>
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-white mb-3">
@@ -432,10 +428,11 @@ export default function AssemblyPage() {
 
         {/* Error Display */}
         {error && (
-          <Card className="mb-8 border-red-500/50 bg-red-500/10">
+          <Card className="border-red-500/50 bg-red-500/10">
             <p className="text-red-400">{error}</p>
           </Card>
         )}
-    </div>
+      </Stack>
+    </Container>
   )
 }

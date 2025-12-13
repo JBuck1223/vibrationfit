@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner, Input, Textarea } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
+import { MessageSquare, Mail } from 'lucide-react'
 
 interface Customer {
   user_id: string
@@ -167,9 +168,19 @@ export default function CustomerDetailPage() {
   if (!customer) {
     return (
       <Container size="xl">
+        <Stack gap="lg">
+          <PageHero title="Customer Not Found" subtitle="The requested customer could not be found" />
         <Card className="text-center p-8 md:p-12">
-          <p className="text-sm md:text-base text-neutral-400">Customer not found</p>
+          <p className="text-sm md:text-base text-neutral-400">This customer may have been deleted or the ID is incorrect.</p>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/admin/crm/customers')}
+            className="mt-4"
+          >
+            ← Back to Customers
+          </Button>
         </Card>
+        </Stack>
       </Container>
     )
   }
@@ -180,58 +191,48 @@ export default function CustomerDetailPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-8 md:mb-12">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push('/admin/crm/customers')}
-          className="mb-4"
+      <Stack gap="lg">
+        <PageHero 
+          title={customer.full_name || 'Unknown Customer'}
+          subtitle={`${customer.email}${customer.phone ? ` • ${customer.phone}` : ''}`}
         >
-          ← Back to Customers
-        </Button>
-
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 truncate">
-              {customer.full_name || 'Unknown'}
-            </h1>
-            <p className="text-sm md:text-base text-neutral-400 break-all">{customer.email}</p>
-            {customer.phone && (
-              <p className="text-sm md:text-base text-neutral-400">{customer.phone}</p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/admin/crm/customers')}
+            >
+              ← Back to Customers
+            </Button>
+            {activity.engagement_status && (
+              <Badge className="bg-primary-500 text-white px-3 py-1 text-xs">
+                {activity.engagement_status}
+              </Badge>
             )}
-            <div className="flex flex-wrap gap-2 mt-3">
-              {activity.engagement_status && (
-                <Badge className="bg-primary-500 text-white px-3 py-1 text-xs">
-                  {activity.engagement_status}
-                </Badge>
-              )}
               {revenue.subscription_tier && (
                 <Badge className="bg-secondary-500 text-white px-3 py-1 text-xs">
                   {revenue.subscription_tier}
                 </Badge>
               )}
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2">
             {customer.phone && (
-              <Button variant="secondary" size="sm" onClick={handleSendSMS}>
-                📱 Text
+              <Button variant="outline" size="sm" onClick={handleSendSMS}>
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Text
               </Button>
             )}
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={() => window.location.href = `mailto:${customer.email}`}
             >
-              ✉️ Email
+              <Mail className="w-4 h-4 mr-2" />
+              Email
             </Button>
           </div>
-        </div>
-      </div>
+        </PageHero>
 
       {/* Tabs */}
-      <div className="mb-6 flex flex-wrap gap-2 border-b border-[#333] pb-4">
+      <div className="flex flex-wrap gap-2 border-b border-[#333] pb-4">
         {['overview', 'activity', 'features', 'revenue', 'messages', 'support'].map((tab) => (
           <button
             key={tab}
@@ -625,9 +626,12 @@ export default function CustomerDetailPage() {
           )}
         </Card>
       )}
+      </Stack>
     </Container>
   )
 }
+
+
 
 
 

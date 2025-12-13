@@ -9,3 +9,5 @@ CREATE POLICY "Users can delete own audio generation batches"
 COMMENT ON POLICY "Users can delete own audio generation batches" ON public.audio_generation_batches IS 
   'Allows users to delete their own audio generation batch records';
 
+
+
