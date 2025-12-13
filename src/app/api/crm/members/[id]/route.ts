@@ -107,7 +107,6 @@ export async function GET(
       journal_entry_count: journalCount || 0,
       vision_board_image_count: visionBoardCount || 0,
       last_login_at: authUser.last_sign_in_at,
-      total_logins: 0, // Not tracked in current schema
       days_since_last_login: authUser.last_sign_in_at 
         ? Math.floor((Date.now() - new Date(authUser.last_sign_in_at).getTime()) / (1000 * 60 * 60 * 24))
         : null,

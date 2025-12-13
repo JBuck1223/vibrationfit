@@ -24,7 +24,6 @@ interface Member {
     journal_entry_count: number
     vision_board_image_count: number
     last_login_at: string
-    total_logins: number
     days_since_last_login: number
     s3_file_count: number
     total_storage_mb: number
@@ -354,7 +353,7 @@ export default function MemberDetailPage() {
       {activeTab === 'overview' && (
         <div className="space-y-4 md:space-y-6">
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
             <TrackingMilestoneCard
               label="Visions"
               value={activity.vision_count || 0}
@@ -362,15 +361,9 @@ export default function MemberDetailPage() {
               icon={<Target className="w-6 h-6" />}
             />
             <TrackingMilestoneCard
-              label="Total Logins"
-              value={activity.total_logins || 0}
-              theme="secondary"
-              icon={<Activity className="w-6 h-6" />}
-            />
-            <TrackingMilestoneCard
               label="Last Login"
-              value={daysSinceLogin !== null ? `${daysSinceLogin}d` : 'N/A'}
-              theme="accent"
+              value={daysSinceLogin !== null ? `${daysSinceLogin}d ago` : 'Never'}
+              theme="secondary"
               icon={<Clock className="w-6 h-6" />}
             />
             <TrackingMilestoneCard
@@ -471,13 +464,7 @@ export default function MemberDetailPage() {
           <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Activity Metrics</h2>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
-                <div className="text-xs md:text-sm text-primary-500 uppercase tracking-wide mb-2">Total Logins</div>
-                <div className="text-lg md:text-xl font-bold text-white">
-                  {activity.total_logins || 0}
-                </div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
                 <div className="text-xs md:text-sm text-secondary-500 uppercase tracking-wide mb-2">Last Login</div>
                 <div className="text-sm md:text-base font-semibold text-white">
