@@ -4,6 +4,30 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
+// Helper function to normalize phone numbers for comparison
+function normalizePhone(phone: string): string {
+  // Strip all non-numeric characters
+  const digits = phone.replace(/\D/g, '')
+  
+  // If it's 10 digits, assume US and add +1
+  if (digits.length === 10) {
+    return `+1${digits}`
+  }
+  
+  // If it's 11 digits starting with 1, add +
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return `+${digits}`
+  }
+  
+  // If it already starts with +, return as is
+  if (phone.startsWith('+')) {
+    return digits.startsWith('1') ? `+${digits}` : phone
+  }
+  
+  // Otherwise just return cleaned digits with +
+  return `+${digits}`
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -35,27 +59,48 @@ export async function POST(request: NextRequest) {
     let leadId: string | null = null
     
     const userPhone = direction === 'inbound' ? from : to
+    const normalizedUserPhone = normalizePhone(userPhone)
     
-    // Try to find user in user_profiles
-    const { data: profile } = await adminClient
+    console.log('🔍 Looking for user with phone:', { original: userPhone, normalized: normalizedUserPhone })
+    
+    // Try to find user in user_profiles by normalizing all phone numbers
+    const { data: profiles } = await adminClient
       .from('user_profiles')
-      .select('user_id')
-      .eq('phone', userPhone)
-      .single()
+      .select('user_id, phone')
+      .not('phone', 'is', null)
     
-    if (profile) {
-      userId = profile.user_id
-    } else {
-      // Try to find lead
-      const { data: lead } = await adminClient
-        .from('leads')
-        .select('id')
-        .eq('phone', userPhone)
-        .single()
+    if (profiles) {
+      const matchedProfile = profiles.find(p => 
+        normalizePhone(p.phone || '') === normalizedUserPhone
+      )
       
-      if (lead) {
-        leadId = lead.id
+      if (matchedProfile) {
+        userId = matchedProfile.user_id
+        console.log('✅ Found user:', userId)
       }
+    }
+    
+    // If no user found, try to find lead
+    if (!userId) {
+      const { data: leads } = await adminClient
+        .from('leads')
+        .select('id, phone')
+        .not('phone', 'is', null)
+      
+      if (leads) {
+        const matchedLead = leads.find(l => 
+          normalizePhone(l.phone || '') === normalizedUserPhone
+        )
+        
+        if (matchedLead) {
+          leadId = matchedLead.id
+          console.log('✅ Found lead:', leadId)
+        }
+      }
+    }
+    
+    if (!userId && !leadId) {
+      console.log('⚠️ No user or lead found for phone:', normalizedUserPhone)
     }
 
     // Check if message already exists
