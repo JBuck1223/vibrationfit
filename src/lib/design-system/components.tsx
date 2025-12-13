@@ -1514,14 +1514,15 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     return null
   }
 
-  // Add extra left padding when wide letter spacing is used for optical balance
+  // Add extra padding when wide letter spacing is used for optical balance
+  // Letter-spacing adds space after the last character, so we compensate with negative margin
   const hasWideTracking = className.includes('tracking-')
   
   return (
     <span 
       className={cn(
         'inline-flex items-center justify-center py-1 rounded-full text-xs md:text-sm font-semibold border',
-        hasWideTracking ? 'px-3 pl-4' : 'px-3',
+        hasWideTracking ? 'px-4 -mr-1' : 'px-3',
         className
       )}
       style={styles}
