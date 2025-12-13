@@ -21,17 +21,17 @@ export default function SetupPasswordPage() {
     const checkUser = async () => {
       const supabase = createClient()
       
-      // Wait a moment for session to fully establish
+      // Wait a moment for auth to fully establish
       await new Promise(resolve => setTimeout(resolve, 500))
       
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { user } } = await supabase.auth.getUser()
       
-      console.log('Password setup page - Session check:', !!session)
-      console.log('Password setup page - User:', session?.user?.email)
+      console.log('Password setup page - User check:', !!user)
+      console.log('Password setup page - User:', user?.email)
       
-      if (!session) {
-        console.error('No session found on password setup page')
-        // Don't show error immediately - session might still be loading
+      if (!user) {
+        console.error('No user found on password setup page')
+        // Don't show error immediately - auth might still be loading
       }
     }
     

@@ -50,7 +50,11 @@ export default function MembersPage() {
       }
 
       const response = await fetch(`/api/crm/members?${params.toString()}`)
-      if (!response.ok) throw new Error('Failed to fetch members')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ Members API error:', response.status, errorData)
+        throw new Error('Failed to fetch members')
+      }
 
       const data = await response.json()
       setMembers(data.members)
@@ -100,7 +104,14 @@ export default function MembersPage() {
       }
 
       const data = await response.json()
-      alert(`Sent to ${data.results.success} members\nFailed: ${data.results.failed}`)
+      
+      // Show detailed results
+      if (data.results.failed > 0) {
+        const errorSummary = data.results.errors.slice(0, 5).join('\n')
+        alert(`✅ Sent to ${data.results.success} members\n❌ Failed: ${data.results.failed}\n\nReasons:\n${errorSummary}${data.results.errors.length > 5 ? '\n...and more' : ''}`)
+      } else {
+        alert(`✅ Successfully sent to ${data.results.success} members!`)
+      }
 
       // Clear
       setBulkSubject('')

@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { Container, Card, Badge, Button, Spinner, Stack, PageHero } from '@/lib/design-system/components'
-import { Mail, Send, Calendar, User, ArrowRight, ArrowDown, ArrowUp } from 'lucide-react'
+import { Mail, Send, Calendar, User, ArrowRight, ArrowDown, ArrowUp, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface EmailLog {
@@ -24,6 +24,7 @@ export default function SentEmailsPage() {
   const router = useRouter()
   const [emails, setEmails] = useState<EmailLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
   const [filter, setFilter] = useState<'all' | 'outbound' | 'inbound'>('all')
 
   useEffect(() => {
@@ -41,6 +42,25 @@ export default function SentEmailsPage() {
       console.error('Error fetching emails:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function syncEmails() {
+    setSyncing(true)
+    try {
+      const response = await fetch('/api/messaging/sync-emails', { method: 'POST' })
+      if (!response.ok) throw new Error('Failed to sync emails')
+      
+      const data = await response.json()
+      console.log('✅ Email sync complete:', data)
+      
+      // Refresh the email list
+      await fetchEmails()
+    } catch (error) {
+      console.error('❌ Error syncing emails:', error)
+      alert('Failed to sync emails. Check console for details.')
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -91,12 +111,23 @@ export default function SentEmailsPage() {
             title="Email Log"
             subtitle="View all sent and received emails"
           />
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/admin/emails/list')}
-          >
-            Email Templates
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={syncEmails}
+              disabled={syncing}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Check for New Emails'}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => router.push('/admin/emails/list')}
+            >
+              Email Templates
+            </Button>
+          </div>
         </div>
 
         {/* Filter Buttons */}

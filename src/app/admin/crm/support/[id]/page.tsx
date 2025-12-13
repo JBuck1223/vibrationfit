@@ -15,7 +15,8 @@ import {
   Textarea,
   Select,
 } from '@/lib/design-system/components'
-import { ArrowLeft, Send, Mail, MessageSquare, User, Calendar, Hash } from 'lucide-react'
+import { ArrowLeft, Send, Mail, MessageSquare, User, Calendar, Hash, RefreshCw } from 'lucide-react'
+import { ConversationThread } from '@/components/crm/ConversationThread'
 
 interface Ticket {
   id: string
@@ -51,6 +52,8 @@ export default function SupportTicketDetailPage() {
   const [loading, setLoading] = useState(true)
   const [ticket, setTicket] = useState<Ticket | null>(null)
   const [replies, setReplies] = useState<Reply[]>([])
+  const [conversation, setConversation] = useState<any[]>([])
+  const [loadingConversation, setLoadingConversation] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [isInternal, setIsInternal] = useState(false)
   const [sending, setSending] = useState(false)
@@ -60,6 +63,7 @@ export default function SupportTicketDetailPage() {
     if (ticketId) {
       fetchTicket()
       fetchReplies()
+      fetchConversation()
     }
   }, [ticketId])
 
@@ -90,6 +94,21 @@ export default function SupportTicketDetailPage() {
     }
   }
 
+  async function fetchConversation() {
+    setLoadingConversation(true)
+    try {
+      const response = await fetch(`/api/support/tickets/${ticketId}/conversation`)
+      if (!response.ok) throw new Error('Failed to fetch conversation')
+
+      const data = await response.json()
+      setConversation(data.conversation || [])
+    } catch (error) {
+      console.error('Error fetching conversation:', error)
+    } finally {
+      setLoadingConversation(false)
+    }
+  }
+
   async function handleSendReply() {
     if (!replyText.trim()) return
 
@@ -109,6 +128,7 @@ export default function SupportTicketDetailPage() {
       setReplyText('')
       setIsInternal(false)
       await fetchReplies()
+      await fetchConversation() // Refresh conversation
     } catch (error) {
       console.error('Error sending reply:', error)
       alert('Failed to send reply')
@@ -322,41 +342,29 @@ export default function SupportTicketDetailPage() {
           </div>
         </Card>
 
-        {/* Replies */}
-        {replies.length > 0 && (
-          <Card className="p-6">
-            <h2 className="text-lg font-bold text-white mb-4">Replies ({replies.length})</h2>
-            <Stack gap="md">
-              {replies.map((reply) => (
-                <div
-                  key={reply.id}
-                  className={`p-4 rounded-xl ${
-                    reply.is_internal
-                      ? 'bg-[#FFB701]/10 border border-[#FFB701]/30'
-                      : 'bg-neutral-900'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {reply.is_internal && (
-                        <Badge className="bg-[#FFB701] text-black px-2 py-1 text-xs">
-                          Internal Note
-                        </Badge>
-                      )}
-                      <span className="text-sm text-neutral-400">
-                        {reply.admin?.email || 'Admin'}
-                      </span>
-                    </div>
-                    <span className="text-xs text-neutral-500">
-                      {formatDate(reply.created_at)}
-                    </span>
-                  </div>
-                  <p className="text-neutral-300 whitespace-pre-wrap">{reply.reply}</p>
-                </div>
-              ))}
-            </Stack>
-          </Card>
-        )}
+        {/* Conversation Thread (Email + SMS + Replies) */}
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary-500" />
+              Conversation ({conversation.length})
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={fetchConversation}
+              disabled={loadingConversation}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingConversation ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+          <ConversationThread 
+            messages={conversation} 
+            loading={loadingConversation}
+          />
+        </Card>
 
         {/* Reply Box */}
         <Card className="p-6">
