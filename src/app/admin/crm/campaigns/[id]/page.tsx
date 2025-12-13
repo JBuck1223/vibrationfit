@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
 
 interface Campaign {
   id: string
@@ -73,16 +73,21 @@ export default function CampaignDetailPage() {
 
   if (loading) {
     return (
-      <Container className="py-12">
-        <p className="text-neutral-300">Loading campaign...</p>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
 
   if (!campaign) {
     return (
-      <Container className="py-12">
-        <p className="text-neutral-300">Campaign not found</p>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <div className="text-center">
+          <p className="text-xl text-neutral-300 mb-2">Campaign not found</p>
+          <Button variant="ghost" onClick={() => router.push('/admin/crm/campaigns')}>
+            ← Back to Campaigns
+          </Button>
+        </div>
       </Container>
     )
   }
@@ -93,26 +98,28 @@ export default function CampaignDetailPage() {
 
   return (
     <Container className="py-12">
-      <div className="mb-8">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/admin/crm/campaigns')}
-          className="mb-4"
+      <Stack gap="lg">
+        <PageHero 
+          eyebrow="CRM / CAMPAIGNS" 
+          title={campaign.name} 
+          subtitle="Campaign details and performance metrics"
         >
-          ← Back to Campaigns
-        </Button>
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/admin/crm/campaigns')}
+          >
+            ← Back to Campaigns
+          </Button>
+        </PageHero>
 
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-4xl font-bold">{campaign.name}</h1>
-              <Badge className={`px-3 py-1 ${
-                campaign.status === 'active' ? 'bg-primary-500' : 'bg-[#666666]'
-              } text-white`}>
-                {campaign.status}
-              </Badge>
-            </div>
-            <p className="text-neutral-400">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Badge className={`px-3 py-1 ${
+              campaign.status === 'active' ? 'bg-primary-500' : 'bg-[#666666]'
+            } text-white`}>
+              {campaign.status}
+            </Badge>
+            <p className="text-neutral-400 text-sm">
               {campaign.utm_campaign || campaign.slug}
             </p>
           </div>
@@ -123,10 +130,9 @@ export default function CampaignDetailPage() {
             Edit Campaign
           </Button>
         </div>
-      </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="text-center">
           <div className="text-3xl font-bold text-primary-500 mb-2">
             {campaign.total_leads || 0}
@@ -165,7 +171,7 @@ export default function CampaignDetailPage() {
       </div>
 
       {/* Campaign Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <h2 className="text-2xl font-semibold mb-4">Campaign Details</h2>
           <div className="space-y-3">
@@ -264,7 +270,7 @@ export default function CampaignDetailPage() {
 
       {/* Notes */}
       {campaign.notes && (
-        <Card className="mb-8">
+        <Card>
           <h2 className="text-2xl font-semibold mb-4">Notes</h2>
           <p className="text-neutral-300 whitespace-pre-wrap">{campaign.notes}</p>
         </Card>
@@ -307,9 +313,11 @@ export default function CampaignDetailPage() {
           </div>
         )}
       </Card>
+      </Stack>
     </Container>
   )
 }
+
 
 
 

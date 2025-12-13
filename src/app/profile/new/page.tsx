@@ -23,7 +23,6 @@ export default function ProfileNewPage() {
       <Stack gap="xl">
         {/* Centered Hero Title */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
           title="Welcome to Your Profile"
           subtitle="Your profile is the foundation of your journey with VibrationFit."
         >

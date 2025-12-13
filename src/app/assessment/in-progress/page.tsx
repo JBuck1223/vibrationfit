@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
-import { Button, Spinner, Card } from '@/lib/design-system/components'
+import { Button, Spinner, Card, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
 import { AssessmentQuestion, AssessmentOption, AssessmentCategory } from '@/types/assessment'
@@ -599,15 +599,13 @@ export default function AssessmentPage() {
   const selectedValue = responses.get(currentQuestion.id)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-      <div className="container mx-auto px-4 py-8">
+    <Container size="xl">
+      <Stack gap="lg">
         {/* Page Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-white mb-2">Vibrational Assessment</h1>
-          <p className="text-lg text-neutral-400">
-            Discover your current state across all 12 life categories
-          </p>
-        </div>
+        <PageHero
+          title="Vibrational Assessment"
+          subtitle="Discover your current state across all 12 life categories"
+        />
 
         {/* Overall Progress Bar - Full Width */}
         {progress && (
@@ -946,8 +944,8 @@ export default function AssessmentPage() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </Stack>
+    </Container>
   )
 }
 

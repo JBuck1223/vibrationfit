@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Spinner } from '@/lib/design-system/components'
+import { Spinner, Container } from '@/lib/design-system/components'
 
 /**
  * Redirect page that fetches the active vision and redirects to it
@@ -43,12 +43,9 @@ export default function ActiveVisionRedirectPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="text-center">
-        <Spinner variant="primary" size="lg" />
-        <p className="text-neutral-400 mt-4">Loading your active vision...</p>
-      </div>
-    </div>
+    <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+      <Spinner size="lg" />
+    </Container>
   )
 }
 

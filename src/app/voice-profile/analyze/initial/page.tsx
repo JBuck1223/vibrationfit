@@ -57,7 +57,6 @@ export default function InitialVoiceAnalyzerPage() {
     <Container size="xl">
       <Stack gap="md">
         <PageHero
-          eyebrow="MY VOICE"
           title="Initial Voice Analyzer"
           subtitle="Generate your first voice profile based on your clarity statements from your active profile. This gives VIVA a starting point to write in your voice before you have scenes, journals, or vision paragraphs."
         />

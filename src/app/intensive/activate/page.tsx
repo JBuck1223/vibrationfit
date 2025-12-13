@@ -22,7 +22,10 @@ import {
   Button, 
   Badge,
   ProgressBar,
-  Spinner
+  Spinner,
+  Container,
+  Stack,
+  PageHero
 } from '@/lib/design-system/components'
 
 interface ActivationProtocol {
@@ -386,15 +389,16 @@ export default function IntensiveActivation() {
   const progress = getProtocolProgress()
 
   return (
-    <>
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Header */}
-        <div className="mb-6 md:mb-12">
-          <div className="flex items-center justify-center mb-4">
+    <Container size="xl">
+      <Stack gap="lg">
+        <PageHero
+          title="7-Day Activation Protocol"
+          subtitle="Start living your vision today. Complete daily activities to activate your transformation."
+        >
+          <div className="flex items-center justify-center gap-4">
             <Button 
               variant="ghost" 
               onClick={() => router.push('/intensive/dashboard')}
-              className="mr-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
@@ -406,17 +410,10 @@ export default function IntensiveActivation() {
               </Badge>
             )}
           </div>
-          
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
-            7-Day Activation Protocol
-          </h1>
-          <p className="text-xl text-neutral-300 max-w-3xl mx-auto">
-            Start living your vision today. Complete daily activities to activate your transformation.
-          </p>
-        </div>
+        </PageHero>
 
         {/* Protocol Status */}
-        <Card className="max-w-4xl mx-auto p-8 mb-8">
+        <Card className="max-w-4xl mx-auto p-8">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-white mb-4">Protocol Progress</h2>
             <div className="flex items-center justify-center gap-8 mb-6">
@@ -617,7 +614,7 @@ export default function IntensiveActivation() {
             </div>
           </div>
         </Card>
-      </div>
-    </>
+      </Stack>
+    </Container>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Button } from '@/lib/design-system/components'
+import { Card, Button, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { Sparkles, Mic, Brain, Zap, CheckCircle } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -17,30 +17,26 @@ export default function VIVALifeVisionLandingPage() {
   }
 
   return (
-    <div>
-      {/* Hero Section */}
-      <div className="text-center mb-12 md:mb-16">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 bg-gradient-to-br from-[#8B5CF6]/20 to-[#B629D4]/20 border-2 border-[#8B5CF6]/50 backdrop-blur-sm">
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Hero Section */}
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Create Your Life Vision with VIVA"
+          subtitle="Your Vibrational Intelligence Virtual Assistant is here to help you articulate and activate the life you choose. We'll guide you through 12 key life areas, capturing your voice and energy to create a unified vision."
+        >
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#8B5CF6]/20 to-[#B629D4]/20 border-2 border-[#8B5CF6]/50 backdrop-blur-sm">
             <Sparkles className="w-10 h-10 text-[#8B5CF6]" />
           </div>
-          
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-            Create Your Life Vision with VIVA
-          </h1>
-          
-          <p className="text-base md:text-xl text-neutral-300 max-w-2xl mx-auto mb-6 md:mb-8">
-            Your Vibrational Intelligence Virtual Assistant is here to help you articulate and activate the life you choose. 
-            We'll guide you through 12 key life areas, capturing your voice and energy to create a unified vision.
-          </p>
           
           <div className="flex items-center justify-center gap-2 text-primary-500 font-semibold text-sm md:text-base">
             <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />
             <span>12 Life Categories</span>
           </div>
-        </div>
+        </PageHero>
 
         {/* How It Works */}
-        <Card className="mb-12">
+        <Card>
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-white mb-6 text-center">How It Works</h2>
             
@@ -88,7 +84,7 @@ export default function VIVALifeVisionLandingPage() {
         </Card>
 
         {/* What You'll Cover */}
-        <Card className="mb-12">
+        <Card>
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-white mb-6 text-center">What You'll Explore</h2>
             
@@ -134,6 +130,7 @@ export default function VIVALifeVisionLandingPage() {
           You can pause and resume anytime.
           </p>
         </div>
-    </div>
+      </Stack>
+    </Container>
   )
 }

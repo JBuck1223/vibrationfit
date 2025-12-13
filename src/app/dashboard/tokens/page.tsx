@@ -1,10 +1,10 @@
 // /src/app/dashboard/tokens/page.tsx
-// Creation Credits usage history and balance management - Shows transactions, usage, and accurate balance
+// Token usage history and balance management - Shows transactions, usage, and accurate balance
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Button, Badge, TrackingMilestoneCard } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, TrackingMilestoneCard, Stack, PageHero } from '@/lib/design-system/components'
 import { Zap, TrendingUp, Activity, Plus, ArrowRight, History } from 'lucide-react'
 import Link from 'next/link'
 
@@ -118,30 +118,29 @@ export default function TokensPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-8 md:mb-12">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">Creation Credits</h1>
-        <p className="text-sm md:text-base text-neutral-400">
-          Track your Creation Credits: transactions, usage, and balance
-        </p>
-      </div>
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          title="Tokens"
+          subtitle="Track your tokens: transactions, usage, and balance"
+        />
 
-      {loading ? (
+        {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto" />
-          <p className="text-neutral-400 mt-4">Loading your Creation Credits data...</p>
+          <p className="text-neutral-400 mt-4">Loading your token data...</p>
         </div>
-      ) : (
-        <div>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+        ) : (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <TrackingMilestoneCard
-              label="Available Credits"
+              label="Available Tokens"
               value={formatCredits(balance, true)}
               theme="primary"
             />
             <TrackingMilestoneCard
-              label="Credits Used"
+              label="Tokens Used"
               value={formatCredits(stats?.totalUsed || 0, true)}
               theme="secondary"
             />
@@ -152,9 +151,9 @@ export default function TokensPage() {
             />
           </div>
 
-          {/* Usage Breakdown */}
-          {stats?.actionBreakdown && Object.keys(stats.actionBreakdown).length > 0 && (
-            <Card className="p-4 md:p-6 mb-6 md:mb-8">
+            {/* Usage Breakdown */}
+            {stats?.actionBreakdown && Object.keys(stats.actionBreakdown).length > 0 && (
+              <Card className="p-4 md:p-6">
               <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">Usage by Feature</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.entries(stats.actionBreakdown).map(([action, data]: [string, any]) => (
@@ -182,20 +181,20 @@ export default function TokensPage() {
             </Card>
           )}
 
-          {/* Add Credits CTA */}
-          {balance < 1_000_000 && (
-            <Card className="p-4 md:p-6 mb-6 md:mb-8 bg-gradient-to-br from-energy-500/10 to-accent-500/10 border-2 border-energy-500/30">
+            {/* Add Tokens CTA */}
+            {balance < 1_000_000 && (
+              <Card className="p-4 md:p-6 bg-gradient-to-br from-energy-500/10 to-accent-500/10 border-2 border-energy-500/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg md:text-xl font-bold text-white mb-2">Running Low on Credits?</h3>
+                  <h3 className="text-lg md:text-xl font-bold text-white mb-2">Need More Tokens?</h3>
                   <p className="text-neutral-300 mb-4">
-                    Add more Creation Credits to keep transforming without limits
+                    Purchase additional tokens to continue creating
                   </p>
                 </div>
                 <Button asChild variant="primary" size="sm">
                   <Link href="/dashboard/add-tokens">
                     <Plus className="w-5 h-5 mr-2" />
-                    Add Credits
+                    Purchase Tokens
                   </Link>
                 </Button>
               </div>
@@ -249,10 +248,10 @@ export default function TokensPage() {
                 <p className="text-neutral-400">No activity yet</p>
                 <p className="text-sm text-neutral-500 mt-2">
                   {activeTab === 'transactions' 
-                    ? 'No transactions yet. Purchase credits or receive grants to see them here.'
+                    ? 'No transactions yet. Purchase tokens or receive grants to see activity here.'
                     : activeTab === 'usage'
                     ? 'No AI usage yet. Start creating to see your usage here!'
-                    : 'Start creating to see your Creation Credits activity here!'}
+                    : 'Start creating to see your token activity here!'}
                 </p>
               </div>
             ) : (
@@ -336,8 +335,9 @@ export default function TokensPage() {
               </div>
             )}
           </Card>
-        </div>
-      )}
+          </>
+        )}
+      </Stack>
     </Container>
   )
 }

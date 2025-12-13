@@ -4,7 +4,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Button, Card, Input, Container } from '@/lib/design-system/components'
+import { Button, Card, Input, Container, Stack, PageHero } from '@/lib/design-system/components'
+import { Check, ArrowRight } from 'lucide-react'
 
 export default function UTMBuilderPage() {
   const [baseUrl, setBaseUrl] = useState('https://vibrationfit.com')
@@ -100,6 +101,8 @@ export default function UTMBuilderPage() {
 
   return (
     <Container size="lg">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       <div className="mb-8 md:mb-12">
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">UTM Builder</h1>
         <p className="text-sm md:text-base text-neutral-400">
@@ -222,7 +225,14 @@ export default function UTMBuilderPage() {
 
         <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
           <Button variant="primary" size="sm" onClick={copyToClipboard} className="flex-1 sm:flex-none">
-            {copied ? '✓ Copied!' : 'Copy URL'}
+            {copied ? (
+              <>
+                <Check className="w-4 h-4 mr-1" />
+                Copied!
+              </>
+            ) : (
+              'Copy URL'
+            )}
           </Button>
           <Button
             variant="secondary"
@@ -230,7 +240,8 @@ export default function UTMBuilderPage() {
             onClick={() => window.open(finalURL, '_blank')}
             className="flex-1 sm:flex-none"
           >
-            Test URL →
+            <ArrowRight className="w-4 h-4 inline mr-1" />
+            Test URL
           </Button>
         </div>
       </Card>
@@ -258,6 +269,7 @@ export default function UTMBuilderPage() {
           </li>
         </ul>
       </Card>
+      </Stack>
     </Container>
   )
 }

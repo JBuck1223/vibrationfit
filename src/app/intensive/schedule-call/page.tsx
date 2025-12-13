@@ -6,13 +6,14 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Calendar, Clock, CheckCircle, Video } from 'lucide-react'
 
 import { 
-   
   Container, 
   Card, 
   Button, 
   Input,
   Badge,
-  Spinner
+  Spinner,
+  Stack,
+  PageHero
 } from '@/lib/design-system/components'
 
 interface TimeSlot {
@@ -309,30 +310,30 @@ export default function ScheduleCallPage() {
 
   return (
     <Container size="lg">
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <Button 
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push('/intensive/dashboard')}
-          className="mb-3 md:mb-4"
+      <Stack gap="lg">
+        <PageHero
+          title="Schedule Your Calibration Call"
+          subtitle="Book your personalized 1-on-1 session to activate your transformation"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          <span className="text-xs md:text-sm">Back to Dashboard</span>
-        </Button>
-        
-        <Badge variant="premium" className="mb-3 md:mb-4 text-xs md:text-sm">
-          <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-          Step 3 of 10
-        </Badge>
-        
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4">
-          Schedule Your Calibration Call
-        </h1>
-        <p className="text-base md:text-lg lg:text-xl text-neutral-400">
-          Book your 1-on-1 vision calibration session with your coach
-        </p>
-      </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/intensive/dashboard')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            <span className="text-xs md:text-sm">Back to Dashboard</span>
+          </Button>
+          <Badge variant="premium" className="text-xs md:text-sm">
+            <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+            Step 3 of 10
+          </Badge>
+        </PageHero>
+
+        <div className="hidden md:block">
+          <p className="text-base md:text-lg lg:text-xl text-neutral-400">
+            Book your 1-on-1 vision calibration session with your coach
+          </p>
+        </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
         
@@ -526,8 +527,8 @@ export default function ScheduleCallPage() {
               </p>
             </Card>
           </div>
-
-      </div>
+        </div>
+      </Stack>
     </Container>
   )
 }

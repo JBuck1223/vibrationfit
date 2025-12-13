@@ -11,7 +11,10 @@ import {
   Spinner,
   AutoResizeTextarea,
   WarningConfirmationDialog,
-  Icon
+  Icon,
+  Container,
+  Stack,
+  PageHero
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import {
@@ -366,10 +369,9 @@ export default function ManualLifeVisionPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
-        <div className="text-neutral-400">Loading your vision...</div>
-      </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -378,9 +380,30 @@ export default function ManualLifeVisionPage() {
   const completionPercentage = visionData.completion_percent
 
   return (
-    <>
-      {/* Header */}
-      <div className="mb-8">
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Manual Life Vision"
+          subtitle="Create your life vision from scratch"
+        >
+          {visionData.id && (
+            <div className="text-center">
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                <StatusBadge 
+                  status={visionData.is_draft ? 'draft' : 'active'}
+                  subtle={!visionData.is_active}
+                />
+                <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
+                  {completionPercentage}%
+                </span>
+              </div>
+            </div>
+          )}
+        </PageHero>
+
+        <div>
         {/* Mobile Header */}
         <div className="md:hidden space-y-4 mb-4">
           <div className="text-center">
@@ -406,34 +429,7 @@ export default function ManualLifeVisionPage() {
           </div>
         </div>
 
-        {/* Desktop Header */}
-        <div className="hidden md:flex items-center gap-4 mb-4">
-          <div className="flex-1 text-center">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-white">Manual Life Vision</h1>
-            </div>
-            {visionData.id && (
-              <div className="text-center mb-2">
-                <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                  <StatusBadge 
-                    status={visionData.is_draft ? 'draft' : 'active'}
-                    subtle={!visionData.is_active}
-                  />
-                  <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
-                    {completionPercentage}%
-                  </span>
-                </div>
-              </div>
-            )}
-            <p className="text-neutral-400 text-center">
-              Create your life vision from scratch
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Save Status */}
-      <div className="mb-4">
+        {/* Save Status */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             {saveStatus === 'saving' && (
@@ -476,18 +472,18 @@ export default function ManualLifeVisionPage() {
         </Card>
       </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+        {/* Error Display */}
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-red-500" />
             <span className="text-red-400">{error}</span>
           </div>
         </div>
-      )}
+        )}
 
-      {/* Select Life Areas Bar */}
-      <div className="mb-6">
+        {/* Select Life Areas Bar */}
+        <div>
         <Card>
           <div className="mb-4 text-center">
             <h3 className="text-lg font-semibold text-white mb-1">Select Life Areas</h3>
@@ -540,10 +536,10 @@ export default function ManualLifeVisionPage() {
             })}
           </div>
         </Card>
-      </div>
+        </div>
 
-      {/* Main Content - Full Width */}
-      <div className="w-full">
+        {/* Main Content - Full Width */}
+        <div>
         <div className="space-y-6">
           {/* Text Editor Section */}
           <Card className="p-6 md:p-8">
@@ -627,7 +623,8 @@ export default function ManualLifeVisionPage() {
             )}
           </div>
         </div>
-      </div>
+        </div>
+      </Stack>
 
       {/* Commit Confirmation Dialog */}
       <WarningConfirmationDialog
@@ -640,7 +637,7 @@ export default function ManualLifeVisionPage() {
         type="commit"
         isLoading={saving}
       />
-    </>
+    </Container>
   )
 }
 

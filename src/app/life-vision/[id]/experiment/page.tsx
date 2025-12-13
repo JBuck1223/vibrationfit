@@ -14,7 +14,12 @@ import {
   Input,
   Textarea,
   CategoryCard,
-  Icon
+  Icon,
+  Container,
+  Stack,
+  PageHero,
+  VersionBadge,
+  StatusBadge
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { generateVisionPDF } from '@/lib/pdf'
@@ -377,9 +382,9 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Spinner variant="primary" size="lg" />
-      </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -396,47 +401,23 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
   }
 
   return (
-    <>
-      {/* Header */}
-      <div className="mb-8">
-        {/* Title Section */}
-        <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold text-white">
-            Life Vision Experiment
-          </h1>
-          <p className="text-neutral-400 mt-2">
-            Version {vision.version_number} • {completionPercentage}% Complete
-          </p>
-        </div>
-        
-        {/* Version Info */}
-        <div className="text-center mb-6">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
-              V{vision.version_number}
-            </span>
-            {!vision.is_draft ? (
-              vision.is_active ? (
-                <Badge variant="success">
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Active
-                </Badge>
-              ) : (
-                <Badge variant="info">
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Complete
-                </Badge>
-              )
-            ) : (
-              <Badge variant="warning">
-                <Circle className="w-4 h-4 mr-1" />
-                Draft
-              </Badge>
-            )}
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Life Vision Experiment"
+          subtitle={`Version ${vision.version_number} • ${completionPercentage}% Complete`}
+        >
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <VersionBadge versionNumber={vision.version_number} status={vision.is_active ? 'active' : vision.is_draft ? 'draft' : 'complete'} />
+              <StatusBadge status={vision.is_active ? 'active' : vision.is_draft ? 'draft' : 'complete'} />
+            </div>
           </div>
           
           {/* Action Buttons */}
-          <div className="flex flex-wrap justify-center gap-3 mb-6">
+          <div className="flex flex-wrap justify-center gap-3">
             <Button
               onClick={() => router.push(`/life-vision/${vision.id}`)}
               variant="outline"
@@ -470,8 +451,7 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
               Download PDF
             </Button>
           </div>
-        </div>
-      </div>
+        </PageHero>
 
       {/* Category Selection */}
       <div className="mb-8">
@@ -550,6 +530,7 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
           ← Back to Life Visions
         </Link>
       </div>
-    </>
+      </Stack>
+    </Container>
   )
 }

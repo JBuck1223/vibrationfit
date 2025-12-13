@@ -6,12 +6,14 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, ArrowRight, Sparkles, Wand2, Save, Eye, Clock } from 'lucide-react'
 
 import { 
-   
   Card, 
-  Button, 
+  Button,
   Textarea,
   Badge,
-  Spinner
+  Spinner,
+  Container,
+  Stack,
+  PageHero
 } from '@/lib/design-system/components'
 
 interface VisionDraft {
@@ -383,26 +385,25 @@ My daily routines support my vision and values. I wake up with purpose and energ
   const currentContent = getCurrentSectionContent()
 
   return (
-    <>
-      {/* Header */}
-      <div className="mb-6 md:mb-12">
-        {/* Mobile Header */}
-        <div className="md:hidden space-y-4 mb-4">
-          <div className="flex flex-col items-center gap-3">
-            {timeRemaining && (
-              <Badge variant="warning">
-                <Clock className="w-4 h-4 mr-2" />
-                {timeRemaining} remaining
-              </Badge>
-            )}
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
-              Vision Builder
-            </h1>
+    <Container size="xl">
+      <Stack gap="lg">
+        <PageHero
+          title="Vision Builder"
+          subtitle="Build your comprehensive life vision step by step"
+        >
+          {timeRemaining && (
+            <Badge variant="warning">
+              <Clock className="w-4 h-4 mr-2" />
+              {timeRemaining} remaining
+            </Badge>
+          )}
+        </PageHero>
+
+        <div className="hidden md:block">
             <p className="text-sm text-neutral-300 text-center px-4">
               Refine and personalize your AI-generated vision. Make it uniquely yours.
             </p>
           </div>
-        </div>
 
         {/* Desktop Header */}
         <div className="hidden md:block text-center mb-4">
@@ -432,7 +433,6 @@ My daily routines support my vision and values. I wake up with purpose and energ
             </Badge>
           )}
         </div>
-      </div>
 
       {/* Progress */}
       <div className="max-w-4xl mx-auto mb-6 md:mb-8">
@@ -554,6 +554,7 @@ My daily routines support my vision and values. I wake up with purpose and energ
           </pre>
         </div>
       </Card>
-    </>
+      </Stack>
+    </Container>
   )
 }

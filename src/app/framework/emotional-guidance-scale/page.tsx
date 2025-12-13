@@ -62,7 +62,6 @@ export default function EmotionalGuidanceScalePage() {
       <Stack gap="xl">
         {/* Hero Section */}
         <PageHero
-          eyebrow="VIBRATIONAL FRAMEWORK"
           title="Emotional Guidance Scale"
           subtitle="Your roadmap to staying above the green line and living in alignment"
         />
@@ -244,3 +243,4 @@ export default function EmotionalGuidanceScalePage() {
     </Container>
   )
 }
+

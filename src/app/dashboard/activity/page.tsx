@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Badge, Button } from '@/lib/design-system/components'
+import { Container, Card, Badge, Button, Stack, PageHero } from '@/lib/design-system/components'
 import { 
   Activity, 
   Target, 
@@ -94,16 +94,12 @@ export default function ActivityFeedPage() {
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
         {/* Header */}
-        <div className="mb-8 md:mb-12">
-          <div className="flex items-center gap-3 mb-2 md:mb-4">
-            <Activity className="w-6 h-6 md:w-8 md:h-8 text-primary-500" />
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">My Activity Feed</h1>
-          </div>
-          <p className="text-sm md:text-base text-neutral-400">
-            Your transformation journey in real-time
-          </p>
-        </div>
+        <PageHero
+          title="My Activity Feed"
+          subtitle="Your transformation journey in real-time"
+        />
 
         {loading ? (
           <div className="text-center py-12">
@@ -111,9 +107,9 @@ export default function ActivityFeedPage() {
             <p className="text-neutral-400 mt-4">Loading your activity...</p>
           </div>
         ) : (
-          <div>
+          <>
             {/* Filter Tabs */}
-            <div className="flex flex-wrap gap-2 mb-8">
+            <div className="flex flex-wrap gap-2">
               {activityTypes.map((type) => (
                 <button
                   key={type.value}
@@ -266,8 +262,9 @@ export default function ActivityFeedPage() {
                 })}
               </div>
             )}
-          </div>
+          </>
         )}
+      </Stack>
     </Container>
   )
 }

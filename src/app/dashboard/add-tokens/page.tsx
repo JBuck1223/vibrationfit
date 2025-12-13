@@ -4,7 +4,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Container, Card, Button, Badge } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, Stack, PageHero } from '@/lib/design-system/components'
 import { Zap, Check, Sparkles, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -91,22 +91,20 @@ export default function AddTokensPage() {
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
         {/* Header */}
-        <div className="text-center mb-8 md:mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500/10 border border-primary-500/30 rounded-full mb-4">
+        <PageHero
+          title="Add More Creation Tokens"
+          subtitle="Never expires • Use anytime • Full creative freedom"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500/10 border border-primary-500/30 rounded-full">
             <Zap className="w-4 h-4 text-primary-500" />
             <span className="text-sm font-semibold text-primary-500">Token Packs</span>
           </div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-2 md:mb-4">
-            Add More Creation Tokens
-          </h1>
-          <p className="text-sm md:text-base lg:text-lg text-neutral-400 max-w-2xl mx-auto">
-            Never expires • Use anytime • Full creative freedom
-          </p>
-        </div>
+        </PageHero>
 
         {/* Token Packs */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {TOKEN_PACKS.map((pack) => (
             <Card
               key={pack.id}
@@ -216,6 +214,7 @@ export default function AddTokensPage() {
             </div>
           </div>
         </Card>
+      </Stack>
     </Container>
   )
 }

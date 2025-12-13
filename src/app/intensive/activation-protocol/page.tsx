@@ -6,12 +6,13 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Rocket, CheckCircle, Music, ImageIcon, BookOpen, Calendar } from 'lucide-react'
 
 import { 
-   
   Container, 
   Card, 
   Button,
   Badge,
-  Spinner
+  Spinner,
+  Stack,
+  PageHero
 } from '@/lib/design-system/components'
 
 export default function ActivationProtocolPage() {
@@ -97,32 +98,26 @@ export default function ActivationProtocolPage() {
 
   return (
     <Container size="lg">
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <Button 
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push('/intensive/dashboard')}
-          className="mb-3 md:mb-4"
+      <Stack gap="lg">
+        <PageHero
+          title="Your Activation Protocol"
+          subtitle="Daily rituals to bring your vision to life"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          <span className="text-xs md:text-sm">Back to Dashboard</span>
-        </Button>
-        
-        <Badge variant="premium" className="mb-3 md:mb-4 text-xs md:text-sm">
-          <Rocket className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-          Step 10 of 10 - Final Step!
-        </Badge>
-        
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4">
-          Your Activation Protocol
-        </h1>
-        <p className="text-base md:text-lg lg:text-xl text-neutral-400">
-          Daily rituals to bring your vision to life
-        </p>
-      </div>
+          <Button 
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/intensive/dashboard')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            <span className="text-xs md:text-sm">Back to Dashboard</span>
+          </Button>
+          <Badge variant="premium" className="text-xs md:text-sm">
+            <Rocket className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+            Step 10 of 10 - Final Step!
+          </Badge>
+        </PageHero>
 
-      {/* Hero Card */}
+        {/* Hero Card */}
       <Card variant="elevated" className="mb-6 md:mb-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
         <div className="text-center">
           <Rocket className="w-12 h-12 md:w-16 md:h-16 text-primary-500 mx-auto mb-3 md:mb-4" />
@@ -269,6 +264,7 @@ export default function ActivationProtocolPage() {
           </Button>
         </div>
       </Card>
+      </Stack>
     </Container>
   )
 }

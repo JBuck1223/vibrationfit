@@ -13,3 +13,4 @@ COMMENT ON COLUMN user_profiles.refined_fields
 IS 'Array of field keys that have been refined in this draft (e.g. clarity_health, partner_name, email)';
 
 
+

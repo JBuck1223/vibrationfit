@@ -387,10 +387,8 @@ export default function ProfileRefinePage() {
 
   if (loading) {
     return (
-      <Container size="xl">
-        <div className="flex items-center justify-center py-16">
-          <Spinner variant="primary" size="lg" />
-        </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }
@@ -415,7 +413,6 @@ export default function ProfileRefinePage() {
     <div>
       {/* Header */}
       <PageHero
-        eyebrow="PROFILE COMPARISON"
         title="Review Profile Changes"
         subtitle="Compare active and draft profiles side-by-side by section"
       >

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Button, Badge, Input } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2 } from 'lucide-react'
 
@@ -314,7 +314,7 @@ function AssetsAdminContent() {
       // Show results
       if (errors.length === 0) {
         setSuccessMessage({
-          title: `✨ ${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully!`,
+          title: `${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully!`,
         })
         // Reset form after successful upload
         setSelectedFiles([])
@@ -325,7 +325,7 @@ function AssetsAdminContent() {
         setTimeout(() => setSuccessMessage(null), 4000)
       } else if (uploadedFiles.length > 0) {
         setSuccessMessage({
-          title: `✨ ${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully!`,
+          title: `${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully!`,
           details: [`${errors.length} file${errors.length > 1 ? 's' : ''} failed to upload`, ...errors],
         })
       } else {
@@ -463,12 +463,12 @@ function AssetsAdminContent() {
       // Show results
       if (errors.length === 0) {
         setSuccessMessage({
-          title: `✨ ${deletedFiles.length} file${deletedFiles.length > 1 ? 's' : ''} deleted successfully!`,
+          title: `${deletedFiles.length} file${deletedFiles.length > 1 ? 's' : ''} deleted successfully!`,
         })
         setTimeout(() => setSuccessMessage(null), 4000)
       } else if (deletedFiles.length > 0) {
         setSuccessMessage({
-          title: `✨ ${deletedFiles.length} file${deletedFiles.length > 1 ? 's' : ''} deleted successfully!`,
+          title: `${deletedFiles.length} file${deletedFiles.length > 1 ? 's' : ''} deleted successfully!`,
           details: [`${errors.length} file${errors.length > 1 ? 's' : ''} failed to delete`, ...errors],
         })
       } else {
@@ -677,6 +677,8 @@ function AssetsAdminContent() {
       )}
 
       <Container size="xl">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       <div className="mb-6 md:mb-8 lg:mb-12">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4 mb-4 md:mb-6">
           <div>
@@ -996,7 +998,7 @@ function AssetsAdminContent() {
                           
                           // Show success message
                           setSuccessMessage({
-                            title: `✨ Folder "${folderName}" created successfully!`,
+                            title: `Folder "${folderName}" created successfully!`,
                           })
                           setTimeout(() => setSuccessMessage(null), 3000)
                         } catch (error) {
@@ -1223,6 +1225,7 @@ function AssetsAdminContent() {
           )}
         </div>
       </div>
+      </Stack>
     </Container>
     </>
   )

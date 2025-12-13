@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import {  Container, Card, Button, Badge, Stack, Icon } from '@/lib/design-system'
+import {  Container, Card, Button, Badge, Stack, Icon, PageHero, Spinner } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { Image as ImageIcon, ArrowLeft, Trash2, Plus } from 'lucide-react'
 import Link from 'next/link'
@@ -40,25 +40,21 @@ export default function GeneratedGalleryPage() {
   }
 
   return (
-    <>
-      <Container size="xl" className="py-8">
+    <Container size="xl">
+      <Stack gap="lg">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <Link href="/vision-board" className="text-neutral-400 hover:text-white flex items-center gap-2 transition-colors">
-              <ArrowLeft className="w-4 h-4" /> 
-              Back to Vision Board
-            </Link>
-            <Badge variant="info">VIVA Gallery</Badge>
-          </div>
+        <PageHero
+          title="My Vision Board Library"
+          subtitle="Browse and manage your generated and uploaded images"
+        >
+          <Link href="/vision-board" className="text-neutral-400 hover:text-white flex items-center gap-2 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> 
+            Back to Vision Board
+          </Link>
+        </PageHero>
 
-          <div className="text-center mb-6">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">My Vision Board Library</h1>
-            <p className="text-neutral-400">Browse and manage your generated and uploaded images</p>
-          </div>
-
-          {/* Tab Navigation */}
-          <div className="flex justify-center gap-2 mb-8">
+        {/* Tab Navigation */}
+        <div className="flex justify-center gap-2">
             <Button 
               variant={tab === 'generated' ? 'primary' : 'secondary'} 
               onClick={() => setTab('generated')}
@@ -76,14 +72,12 @@ export default function GeneratedGalleryPage() {
               Uploaded
             </Button>
           </div>
-        </div>
 
         {/* Content */}
         {loading ? (
-          <Card className="p-8 text-center">
-            <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-neutral-400">Loading your gallery...</p>
-          </Card>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Spinner size="lg" />
+          </div>
         ) : images.length === 0 ? (
           <Card className="p-8 text-center">
             <Icon icon={ImageIcon} size="xl" color="#666" className="mx-auto mb-4" />
@@ -167,8 +161,8 @@ export default function GeneratedGalleryPage() {
             ))}
           </div>
         )}
-      </Container>
-    </>
+      </Stack>
+    </Container>
   )
 }
 

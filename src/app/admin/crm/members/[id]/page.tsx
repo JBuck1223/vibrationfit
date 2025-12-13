@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner, Input, Textarea } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
 
 interface Member {
   user_id: string
@@ -193,7 +193,7 @@ export default function MemberDetailPage() {
       setEmailSubject('')
       setEmailBody('')
       setShowEmailModal(false)
-      alert('✅ Email sent successfully!')
+      alert('Email sent successfully!')
     } catch (error: any) {
       alert(error.message || 'Failed to send email')
     } finally {
@@ -242,9 +242,12 @@ export default function MemberDetailPage() {
   if (!member) {
     return (
       <Container size="xl">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <Card className="text-center p-8 md:p-12">
           <p className="text-sm md:text-base text-neutral-400">Member not found</p>
         </Card>
+        </Stack>
       </Container>
     )
   }
@@ -255,6 +258,8 @@ export default function MemberDetailPage() {
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       {/* Header */}
       <div className="mb-8 md:mb-12">
         <Button
@@ -651,7 +656,7 @@ export default function MemberDetailPage() {
           <div className="border-t border-[#333] pt-4">
             {!member?.phone ? (
               <p className="text-sm text-yellow-500 text-center py-2">
-                ⚠️ No phone number on file. Add phone number to send messages.
+                No phone number on file. Add phone number to send messages.
               </p>
             ) : (
               <div className="space-y-3">
@@ -695,7 +700,7 @@ export default function MemberDetailPage() {
           
           {!member?.email ? (
             <p className="text-sm text-yellow-500 text-center py-8">
-              ⚠️ No email on file
+              No email on file
             </p>
           ) : (
             <>
@@ -807,6 +812,7 @@ export default function MemberDetailPage() {
           )}
         </Card>
       )}
+      </Stack>
     </Container>
   )
 }

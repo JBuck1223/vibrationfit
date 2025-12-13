@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { Button, Card, Container, Stack, Badge, Input, Modal, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, Badge, Input, Modal, Spinner, PageHero } from '@/lib/design-system/components'
 import { Plus, Trash2, Music, Settings } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -129,14 +129,13 @@ export default function AudioMixerAdminPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Audio Mixer Admin</h1>
-            <p className="text-xs md:text-sm lg:text-base text-neutral-400">Manage background tracks and audio variants</p>
-          </div>
+        <PageHero
+          eyebrow="ADMIN"
+          title="Audio Mixer Admin"
+          subtitle="Manage background tracks and audio variants"
+        >
           <Button 
             size="sm"
-            className="w-full sm:w-auto"
             onClick={() => {
               setFormData({ id: '', name: '', voiceVolume: 50, bgVolume: 50, backgroundTrack: '' })
               setEditingVariant(null)
@@ -146,7 +145,7 @@ export default function AudioMixerAdminPage() {
             <Plus className="w-4 h-4 mr-2" />
             Add Variant
           </Button>
-        </div>
+        </PageHero>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           {variants.map((variant) => (

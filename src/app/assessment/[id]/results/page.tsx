@@ -11,6 +11,7 @@ import {
   Inline,
   Text,
   PageHero,
+  Spinner,
   DeleteConfirmationDialog,
 } from '@/lib/design-system/components'
 import { BarChart3, Eye, ArrowLeft, RefreshCw, Trash2, CalendarDays } from 'lucide-react'
@@ -149,11 +150,8 @@ export default function AssessmentResultsPage() {
 
   if (loading) {
     return (
-      <Container size="xl" className="py-12">
-        <Stack gap="sm" className="items-center text-center text-neutral-400">
-          <RefreshCw className="h-8 w-8 animate-spin text-primary-500" />
-          <p>Loading assessment results...</p>
-        </Stack>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
       </Container>
     )
   }

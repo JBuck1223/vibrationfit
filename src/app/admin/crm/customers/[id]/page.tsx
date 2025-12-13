@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner, Input, Textarea } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
+import { MessageSquare, Mail } from 'lucide-react'
 
 interface Customer {
   user_id: string
@@ -167,9 +168,12 @@ export default function CustomerDetailPage() {
   if (!customer) {
     return (
       <Container size="xl">
+        <Stack gap="lg">
+          <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
         <Card className="text-center p-8 md:p-12">
           <p className="text-sm md:text-base text-neutral-400">Customer not found</p>
         </Card>
+        </Stack>
       </Container>
     )
   }
@@ -180,6 +184,8 @@ export default function CustomerDetailPage() {
 
   return (
     <Container size="xl">
+      <Stack gap="lg">
+        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
       {/* Header */}
       <div className="mb-8 md:mb-12">
         <Button
@@ -216,7 +222,8 @@ export default function CustomerDetailPage() {
           <div className="flex flex-col sm:flex-row gap-2">
             {customer.phone && (
               <Button variant="secondary" size="sm" onClick={handleSendSMS}>
-                📱 Text
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Text
               </Button>
             )}
             <Button
@@ -224,7 +231,8 @@ export default function CustomerDetailPage() {
               size="sm"
               onClick={() => window.location.href = `mailto:${customer.email}`}
             >
-              ✉️ Email
+              <Mail className="w-4 h-4 mr-2" />
+              Email
             </Button>
           </div>
         </div>
@@ -625,9 +633,11 @@ export default function CustomerDetailPage() {
           )}
         </Card>
       )}
+      </Stack>
     </Container>
   )
 }
+
 
 
 

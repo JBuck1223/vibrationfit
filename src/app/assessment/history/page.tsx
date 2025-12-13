@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
 import { fetchAssessments } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import { RefreshCw, BarChart3, PlayCircle } from 'lucide-react'
@@ -54,41 +54,32 @@ export default function AssessmentHistoryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-        <div className="container mx-auto px-4 py-12">
-          <div className="flex flex-col items-center justify-center gap-4 text-neutral-400">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary-500" />
-            <p>Loading your assessment history...</p>
-          </div>
-        </div>
-      </div>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-        <div className="container mx-auto px-4 py-12">
-          <Card className="mx-auto max-w-xl p-8 text-center">
-            <p className="mb-4 text-red-400">{error}</p>
-            <Button onClick={() => router.refresh()} variant="primary">
-              Try Again
-            </Button>
-          </Card>
-        </div>
-      </div>
+      <Container size="xl">
+        <Card className="mx-auto max-w-xl p-8 text-center">
+          <p className="mb-4 text-red-400">{error}</p>
+          <Button onClick={() => router.refresh()} variant="primary">
+            Try Again
+          </Button>
+        </Card>
+      </Container>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-      <div className="container mx-auto px-4 py-12">
-        <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold text-white mb-3">Assessment History</h1>
-          <p className="text-neutral-400">
-            Review every Vibrational Assessment you&apos;ve completed and resume drafts in progress.
-          </p>
-        </div>
+    <Container size="xl">
+      <Stack gap="lg">
+        <PageHero
+          title="Assessment History"
+          subtitle="Review every Vibrational Assessment you've completed and resume drafts in progress."
+        />
 
         {sortedAssessments.length === 0 ? (
           <Card className="p-12 text-center">
@@ -167,8 +158,8 @@ export default function AssessmentHistoryPage() {
             })}
           </div>
         )}
-      </div>
-    </div>
+      </Stack>
+    </Container>
   )
 }
 

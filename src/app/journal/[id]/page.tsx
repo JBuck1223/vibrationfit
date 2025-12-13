@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import {  Card, Button, DeleteConfirmationDialog } from '@/lib/design-system'
+import {  Card, Button, DeleteConfirmationDialog, Container, Stack, PageHero, Spinner } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -350,11 +350,9 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <>
-        <div className="text-center py-16">
-          <div className="text-neutral-400">Loading journal entry...</div>
-        </div>
-      </>
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 
@@ -369,10 +367,12 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <>
-      {/* Back Button */}
-      <div className="mb-6 md:mb-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+    <Container size="xl">
+      <Stack gap="lg">
+        <PageHero
+          title={entry?.title || 'Journal Entry'}
+          subtitle="View your journal entry"
+        >
           <Button 
             variant="ghost" 
             size="sm" 
@@ -387,10 +387,9 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-        </div>
-      </div>
+        </PageHero>
 
-      <Card className="p-4 md:p-6 lg:p-8">
+        <Card className="p-4 md:p-6 lg:p-8">
         <div className="space-y-6">
           {/* Media - Videos Full Width, Images 2x2 Grid */}
           {entry.image_urls && entry.image_urls.length > 0 && (
@@ -689,6 +688,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
         isLoading={deleting}
         loadingText="Deleting..."
       />
-    </>
+      </Stack>
+    </Container>
   )
 }

@@ -1,26 +1,23 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { Card, Container, Button } from '@/lib/design-system/components'
+import { Card, Container, Button, Stack, PageHero } from '@/lib/design-system/components'
 
 export default function CheckEmailPage() {
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
 
   return (
-    <>
-      <Container size="sm">
-        <div className="text-center mb-6 md:mb-8">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+    <Container size="sm">
+      <Stack gap="lg">
+        <PageHero
+          title="Check Your Email!"
+          subtitle="Your payment was successful! 🎉"
+        >
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-primary-500 rounded-full flex items-center justify-center mx-auto">
             <span className="text-white text-3xl md:text-4xl">📧</span>
           </div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
-            Check Your Email!
-          </h1>
-          <p className="text-base md:text-lg lg:text-xl text-neutral-300">
-            Your payment was successful! 🎉
-          </p>
-        </div>
+        </PageHero>
 
         <Card variant="elevated" className="max-w-md mx-auto p-4 md:p-6 lg:p-8">
           <div className="space-y-4 md:space-y-6">
@@ -115,8 +112,8 @@ export default function CheckEmailPage() {
             </a>
           </p>
         </div>
-      </Container>
-    </>
+      </Stack>
+    </Container>
   )
 }
 

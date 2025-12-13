@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, Button, Badge, ProgressBar, Container, AIButton, TrackingMilestoneCard } from '@/lib/design-system'
+import { Card, Button, Badge, ProgressBar, Container, Stack, PageHero, AIButton, TrackingMilestoneCard } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import Link from 'next/link'
 import AITokenUsage from '@/components/AITokenUsage'
@@ -120,28 +120,22 @@ export default function DashboardContent({ user, profileData, visionData, vision
   const profileCompletePercentage = completionPercentage
 
   return (
-    <>
-      {/* Hero Welcome Section */}
-      <div className="mb-12">
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-[#39FF14] to-[#00FFFF] bg-clip-text text-transparent">
-            Welcome to Your Conscious Creation Hub
-          </h1>
-          <p className="text-xl text-neutral-300 max-w-3xl mx-auto">
-            Transform your vision into reality with VibrationFit's complete conscious creation system. 
-            Build your Life I Choose™, align daily, and capture evidence of actualization.
-          </p>
-        </div>
-
-      </div>
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* PageHero */}
+        <PageHero
+          eyebrow="THE LIFE I CHOOSE"
+          title="Welcome to Your Conscious Creation Hub"
+          subtitle="Transform your vision into reality with VibrationFit's complete conscious creation system. Build your Life I Choose™, align daily, and capture evidence of actualization."
+        />
 
         {/* Creation Credits Section */}
-        <div className="mb-12 max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           <HouseholdTokenBalance />
         </div>
 
         {/* Key Metrics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="p-6 text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-[#39FF14] to-[#00FF88] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <User className="w-8 h-8 text-white" />
@@ -176,7 +170,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
         </div>
 
         {/* Your Complete Conscious Creation Toolkit */}
-        <div className="mb-12">
+        <div>
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-white mb-4">Your Complete Conscious Creation Toolkit</h2>
             <p className="text-neutral-400 max-w-2xl mx-auto">
@@ -280,7 +274,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
         </div>
 
         {/* Recent Activity */}
-        <Card className="p-6 mb-12">
+        <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white">Recent Activity</h2>
             <Link href="/dashboard/activity">
@@ -661,6 +655,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
             </div>
           </Card>
         </div>
-    </>
+      </Stack>
+    </Container>
   )
 }

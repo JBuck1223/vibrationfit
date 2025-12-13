@@ -12,6 +12,7 @@ import {
   Spinner,
   Inline,
   Stack,
+  PageHero
 } from '@/lib/design-system/components'
 import { RefreshCcw, Plus, Trash2, Save, ToggleLeft, ToggleRight } from 'lucide-react'
 
@@ -274,17 +275,12 @@ export default function VibrationalEventSourcesAdminPage() {
   return (
     <AdminWrapper>
       <Container size="xl">
-        <div>
-          <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3">
-              Vibrational Event Sources
-            </h1>
-            <p className="text-neutral-400 text-sm md:text-base lg:text-lg max-w-3xl">
-              Control which systems feed the vibrational events log. Toggle sources, manage default categories, and map raw payload fields into the unified event schema.
-            </p>
-          </div>
-
-          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <Stack gap="lg">
+          <PageHero 
+            eyebrow="ADMIN" 
+            title="Vibrational Event Sources" 
+            subtitle="Control which systems feed the vibrational events log. Toggle sources, manage default categories, and map raw payload fields."
+          >
             <div className="flex items-center gap-3">
               <Button variant="primary" size="sm" onClick={handleCreateNew}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -295,7 +291,9 @@ export default function VibrationalEventSourcesAdminPage() {
                 Refresh
               </Button>
             </div>
+          </PageHero>
 
+          <div className="flex justify-between items-center">
             <div className="text-sm text-neutral-500">
               {sources.length} total sources ({sources.filter((s) => s.origin === 'database').length} customized)
             </div>
@@ -512,7 +510,7 @@ export default function VibrationalEventSourcesAdminPage() {
               </div>
             </Card>
           </div>
-        </div>
+        </Stack>
       </Container>
     </AdminWrapper>
   )

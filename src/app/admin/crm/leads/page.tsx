@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner , Stack, PageHero } from '@/lib/design-system/components'
 
 interface Lead {
   id: string
@@ -90,25 +90,24 @@ export default function LeadsPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Leads</h1>
-          <p className="text-sm md:text-base text-neutral-400">
-            {leads.length} total leads
-          </p>
-        </div>
-        <Button 
-          variant="secondary" 
-          size="sm"
-          onClick={() => router.push('/admin/crm/leads/board')}
+      <Stack gap="lg">
+        {/* Header */}
+        <PageHero
+          eyebrow="CRM"
+          title="Leads"
+          subtitle={`${leads.length} total leads`}
         >
-          Kanban View
-        </Button>
-      </div>
+          <Button 
+            variant="secondary" 
+            size="sm"
+            onClick={() => router.push('/admin/crm/leads/board')}
+          >
+            Kanban View
+          </Button>
+        </PageHero>
 
-      {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-2">
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2">
         {['all', 'new', 'contacted', 'qualified', 'converted', 'lost'].map((status) => (
           <Button
             key={status}
@@ -184,6 +183,7 @@ export default function LeadsPage() {
           </div>
         </Card>
       )}
+      </Stack>
     </Container>
   )
 }

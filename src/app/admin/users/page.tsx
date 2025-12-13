@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Button, Badge, Input } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { createClient } from '@/lib/supabase/client'
 import { Search, UserPlus, Shield, Mail, Calendar } from 'lucide-react'
@@ -144,15 +144,15 @@ function UsersAdminContent() {
 
   return (
     <Container size="xl">
-        <div className="mb-8 md:mb-12">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">User Management</h1>
-        <p className="text-sm md:text-base lg:text-lg text-neutral-400">
-          Manage users and admin permissions
-        </p>
-      </div>
+      <Stack gap="lg">
+        <PageHero
+          eyebrow="ADMIN"
+          title="User Management"
+          subtitle="Manage users and admin permissions"
+        />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
         <Card className="p-4 md:p-6">
           <div className="text-center">
             <div className="text-xl md:text-2xl lg:text-3xl font-bold text-primary-500 mb-2">
@@ -182,7 +182,7 @@ function UsersAdminContent() {
       </div>
 
       {/* Search and Add Admin */}
-      <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-6 md:mb-8">
+      <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
@@ -264,7 +264,7 @@ function UsersAdminContent() {
 
       {/* Admin Users */}
       {adminUsers.length > 0 && (
-        <Card className="p-4 md:p-6 mb-6 md:mb-8">
+        <Card className="p-4 md:p-6">
           <div className="flex items-center gap-2 mb-6">
             <Shield className="w-5 h-5 text-primary-500" />
             <h2 className="text-xl font-semibold text-white">Admin Users</h2>
@@ -646,6 +646,7 @@ function UsersAdminContent() {
           </div>
         )}
       </Card>
+      </Stack>
     </Container>
   )
 }
