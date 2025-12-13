@@ -120,8 +120,8 @@ export async function GET(
       admin_notes: manualMetrics?.admin_notes || null,
     }
 
-    // Get subscription with tier info (for revenue calculation)
-    const { data: subscription } = await supabase
+    // Get ALL subscriptions with tier info (supports multiple simultaneous subscriptions)
+    const { data: subscriptions } = await adminClient
       .from('customer_subscriptions')
       .select(`
         *,
@@ -130,12 +130,13 @@ export async function GET(
           tier_type,
           price_monthly,
           price_yearly,
-          billing_interval
+          billing_interval,
+          viva_tokens_monthly,
+          storage_quota_gb
         )
       `)
       .eq('user_id', id)
       .in('status', ['active', 'trialing'])
-      .single()
 
     // Get payment history for revenue calculation
     const { data: payments } = await supabase
@@ -145,17 +146,37 @@ export async function GET(
       .eq('status', 'succeeded')
       .order('paid_at', { ascending: true })
 
-    // Calculate revenue metrics
+    // Calculate revenue metrics (aggregate ALL active subscriptions)
     const totalSpent = payments?.reduce((sum, p) => sum + (p.amount / 100), 0) || 0
     const ltv = totalSpent
-    const tier = subscription?.membership_tiers
-    let mrr = 0
-    if (tier) {
-      if (tier.billing_interval === 'month') {
-        mrr = (tier.price_monthly || 0) / 100
-      } else if (tier.billing_interval === 'year') {
-        mrr = (tier.price_yearly || 0) / 12 / 100
-      }
+    
+    // Sum MRR from all active subscriptions
+    let totalMrr = 0
+    let totalTokens = 0
+    let maxStorage = 0
+    const tierNames: string[] = []
+    
+    if (subscriptions && subscriptions.length > 0) {
+      subscriptions.forEach(sub => {
+        const tier = sub.membership_tiers
+        if (tier) {
+          // Add tier name
+          tierNames.push(tier.name)
+          
+          // Sum MRR
+          if (tier.billing_interval === 'month') {
+            totalMrr += (tier.price_monthly || 0) / 100
+          } else if (tier.billing_interval === 'year') {
+            totalMrr += (tier.price_yearly || 0) / 12 / 100
+          }
+          
+          // Sum tokens
+          totalTokens += tier.viva_tokens_monthly || 0
+          
+          // Take max storage
+          maxStorage = Math.max(maxStorage, tier.storage_quota_gb || 0)
+        }
+      })
     }
     
     const firstPayment = payments && payments.length > 0 ? new Date(payments[0].paid_at) : null
@@ -164,14 +185,18 @@ export async function GET(
       : 0
 
     const revenueMetrics = {
-      subscription_tier: subscription?.membership_tiers?.name || 'Free',
-      subscription_status: subscription?.status || null,
-      stripe_customer_id: subscription?.stripe_customer_id || null,
-      stripe_subscription_id: subscription?.stripe_subscription_id || null,
-      mrr,
+      subscription_tiers: tierNames.length > 0 ? tierNames : ['Free'], // Array of tier names
+      subscription_tier: tierNames.length > 0 ? tierNames.join(' + ') : 'Free', // Combined display name
+      subscription_count: subscriptions?.length || 0,
+      subscription_status: subscriptions && subscriptions.length > 0 ? subscriptions[0].status : null,
+      stripe_customer_id: subscriptions && subscriptions.length > 0 ? subscriptions[0].stripe_customer_id : null,
+      stripe_subscription_id: subscriptions && subscriptions.length > 0 ? subscriptions[0].stripe_subscription_id : null,
+      mrr: totalMrr,
+      monthly_tokens: totalTokens,
+      storage_gb: maxStorage,
       ltv,
       total_spent: totalSpent,
-      subscription_start_date: subscription?.created_at || null,
+      subscription_start_date: subscriptions && subscriptions.length > 0 ? subscriptions[0].created_at : null,
       days_as_customer: daysAsCustomer,
     }
 

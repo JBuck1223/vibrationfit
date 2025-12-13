@@ -36,8 +36,12 @@ interface Member {
   }
   revenue_metrics: {
     subscription_tier: string
+    subscription_tiers: string[]
+    subscription_count: number
     subscription_status: string
     mrr: number
+    monthly_tokens: number
+    storage_gb: number
     ltv: number
     total_spent: number
     subscription_start_date: string
@@ -324,11 +328,14 @@ export default function MemberDetailPage() {
                 {activity.engagement_status}
               </Badge>
             )}
-            {revenue.subscription_tier && (
-              <Badge className="bg-secondary-500/20 text-secondary-500 border border-secondary-500/30 px-3 py-1 text-xs font-semibold">
-                {revenue.subscription_tier}
+            {revenue.subscription_tiers && revenue.subscription_tiers.length > 0 && revenue.subscription_tiers.map((tier, index) => (
+              <Badge 
+                key={index}
+                className="bg-secondary-500/20 text-secondary-500 border border-secondary-500/30 px-3 py-1 text-xs font-semibold"
+              >
+                {tier}
               </Badge>
-            )}
+            ))}
           </div>
         </PageHero>
 
@@ -616,11 +623,27 @@ export default function MemberDetailPage() {
               </div>
             </div>
             <div className="p-4 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/25">
-              <div className="text-xs md:text-sm text-[#C4B5FD] mb-1 uppercase tracking-wide">Months Subscribed</div>
+              <div className="text-xs md:text-sm text-[#C4B5FD] mb-1 uppercase tracking-wide">Active Subscriptions</div>
               <div className="text-base md:text-lg font-semibold text-white">
-                {revenue.months_subscribed || 0}
+                {revenue.subscription_count || 0}
               </div>
             </div>
+            {revenue.monthly_tokens > 0 && (
+              <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
+                <div className="text-xs md:text-sm text-primary-500 mb-1 uppercase tracking-wide">Monthly Tokens</div>
+                <div className="text-base md:text-lg font-semibold text-white">
+                  {(revenue.monthly_tokens / 1000).toFixed(0)}k
+                </div>
+              </div>
+            )}
+            {revenue.storage_gb > 0 && (
+              <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
+                <div className="text-xs md:text-sm text-secondary-500 mb-1 uppercase tracking-wide">Storage Quota</div>
+                <div className="text-base md:text-lg font-semibold text-white">
+                  {revenue.storage_gb} GB
+                </div>
+              </div>
+            )}
           </div>
 
           {activity.tokens_used !== undefined && (
