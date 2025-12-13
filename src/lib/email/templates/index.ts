@@ -11,7 +11,7 @@ export interface EmailTemplateMetadata {
   status: 'active' | 'planned'
   lastSent?: string | null
   totalSent?: number
-  templateFile: string
+  templateFile: string | null
 }
 
 export const EMAIL_TEMPLATES: EmailTemplateMetadata[] = [
