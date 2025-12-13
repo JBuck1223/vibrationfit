@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import twilio from 'twilio'
 
@@ -27,7 +28,7 @@ function normalizePhone(phone: string): string {
 export async function POST(request: NextRequest) {
   try {
     // Auth check
-    const supabase = await import('@/lib/supabase/server').then(m => m.createClient())
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -173,4 +174,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
