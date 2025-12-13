@@ -339,10 +339,10 @@ export default function MemberDetailPage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors ${
+            className={`px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors border-2 ${
               activeTab === tab
-                ? 'bg-primary-500 text-white'
-                : 'text-neutral-400 hover:text-white hover:bg-[#1F1F1F]'
+                ? 'border-primary-500 text-primary-500 bg-primary-500/10'
+                : 'border-[#333] text-neutral-400 hover:text-white hover:border-[#666] hover:bg-[#1F1F1F]'
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}

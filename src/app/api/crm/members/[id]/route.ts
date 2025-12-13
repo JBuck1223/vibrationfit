@@ -53,12 +53,73 @@ export async function GET(
       .eq('is_draft', false)
       .single()
 
-    // Get activity metrics
-    const { data: activityMetrics } = await supabase
+    // Calculate activity metrics from source tables (not user_activity_metrics)
+    
+    // Count visions
+    const { count: visionCount } = await adminClient
+      .from('vision_versions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', id)
+    
+    // Count journal entries
+    const { count: journalCount } = await adminClient
+      .from('journal_entries')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', id)
+    
+    // Count vision board items
+    const { count: visionBoardCount } = await adminClient
+      .from('vision_board_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', id)
+    
+    // Count audio sets
+    const { count: audioCount } = await adminClient
+      .from('audio_sets')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', id)
+    
+    // Get profile completion
+    let profileCompletion = 0
+    if (profile) {
+      const fields = [
+        'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender',
+        'relationship_status', 'number_of_children', 'city', 'state', 'postal_code',
+        'employment_type', 'occupation', 'household_income'
+      ]
+      const completed = fields.filter(f => profile[f] !== null && profile[f] !== undefined && profile[f] !== '').length
+      profileCompletion = Math.round((completed / fields.length) * 100)
+    }
+    
+    // Get manual classification from user_activity_metrics (if exists)
+    const { data: manualMetrics } = await adminClient
       .from('user_activity_metrics')
-      .select('*')
+      .select('engagement_status, health_status, custom_tags, admin_notes')
       .eq('user_id', id)
       .single()
+    
+    const activityMetrics = {
+      user_id: id,
+      profile_completion_percent: profileCompletion,
+      vision_count: visionCount || 0,
+      vision_refinement_count: 0, // TODO: Calculate from version history
+      audio_generated_count: audioCount || 0,
+      journal_entry_count: journalCount || 0,
+      vision_board_image_count: visionBoardCount || 0,
+      last_login_at: authUser.last_sign_in_at,
+      total_logins: 0, // Not tracked in current schema
+      days_since_last_login: authUser.last_sign_in_at 
+        ? Math.floor((Date.now() - new Date(authUser.last_sign_in_at).getTime()) / (1000 * 60 * 60 * 24))
+        : null,
+      s3_file_count: 0, // TODO: Calculate from S3
+      total_storage_mb: 0, // TODO: Calculate from S3
+      tokens_used: profile?.vibe_assistant_tokens_used || 0,
+      tokens_remaining: profile?.vibe_assistant_tokens_remaining || 100,
+      engagement_status: manualMetrics?.engagement_status || null,
+      health_status: manualMetrics?.health_status || null,
+      custom_tags: manualMetrics?.custom_tags || [],
+      admin_notes: manualMetrics?.admin_notes || null,
+    }
 
     // Get subscription with tier info (for revenue calculation)
     const { data: subscription } = await supabase
