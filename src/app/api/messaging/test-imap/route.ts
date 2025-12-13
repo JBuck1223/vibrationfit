@@ -4,8 +4,8 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import Imap from 'imap'
 
-export async function GET() {
-  return new Promise((resolve) => {
+export async function GET(): Promise<Response> {
+  return new Promise<Response>((resolve) => {
     console.log('🔍 Testing IMAP connection...')
     console.log('IMAP_HOST:', process.env.IMAP_HOST)
     console.log('IMAP_PORT:', process.env.IMAP_PORT)
