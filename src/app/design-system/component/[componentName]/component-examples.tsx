@@ -22,6 +22,8 @@ import {
   Container,
   Icon,
   Badge,
+  StatusBadge,
+  VersionBadge,
   Input,
   DatePicker,
   Radio,
@@ -1357,6 +1359,176 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 <Badge variant="premium">Premium</Badge>
                 <Badge variant="neutral">Neutral</Badge>
               </Inline>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
+    case 'status-badge':
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">StatusBadge - Uppercase Letter-Spaced Status Badges</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Specialized badge component for displaying status with consistent uppercase letter-spacing styling. 
+                Used across Life Vision, Profiles, and Assessments. Supports Active, Draft, and Complete statuses, 
+                with the ability to override text via <code className="bg-neutral-800 px-1 py-0.5 rounded text-primary-500">label</code> prop.
+              </p>
+              
+              <div className="space-y-6">
+                {/* Status Badges */}
+                <div>
+                  <h5 className="text-sm font-semibold text-white mb-3">Default Status Badges</h5>
+                  <Inline gap="md" wrap>
+                    <StatusBadge status="active" subtle={false} className="uppercase tracking-[0.25em]">ACTIVE</StatusBadge>
+                    <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]">DRAFT</StatusBadge>
+                    <StatusBadge status="complete" subtle={true} className="uppercase tracking-[0.25em]">COMPLETE</StatusBadge>
+                  </Inline>
+                </div>
+
+                {/* Label Override Example */}
+                <div>
+                  <h5 className="text-sm font-semibold text-white mb-3">Using Custom Label</h5>
+                  <p className="text-xs text-neutral-400 mb-3">
+                    Use the <code className="bg-neutral-800 px-1 py-0.5 rounded text-primary-500">label</code> prop to override display text while keeping status styling.
+                  </p>
+                  <Inline gap="md" wrap>
+                    <StatusBadge status="draft" label="IN PROGRESS" subtle={true} className="uppercase tracking-[0.25em]" />
+                  </Inline>
+                </div>
+
+                {/* Usage Examples */}
+                <div className="bg-neutral-900 rounded-lg p-4 border border-neutral-700">
+                  <h5 className="text-sm font-semibold text-white mb-3">Usage Examples</h5>
+                  <p className="text-xs text-neutral-400 mb-4">
+                    Always use with <code className="bg-neutral-800 px-1 py-0.5 rounded text-primary-500">uppercase tracking-[0.25em]</code> className 
+                    for consistent wide letter-spacing across the site.
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-xs text-neutral-500 mb-2">Standard usage (on /life-vision):</p>
+                      <div className="bg-[#0A0A0A] p-3 rounded border border-neutral-800 font-mono text-xs text-neutral-300 overflow-x-auto">
+                        <pre>{`<StatusBadge 
+  status={vision.is_active ? 'active' : 'draft'} 
+  subtle={!vision.is_active}
+  className="uppercase tracking-[0.25em]"
+/>`}</pre>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500 mb-2">With custom label (use "IN PROGRESS" instead of "DRAFT"):</p>
+                      <div className="bg-[#0A0A0A] p-3 rounded border border-neutral-800 font-mono text-xs text-neutral-300 overflow-x-auto">
+                        <pre>{`<StatusBadge 
+  status="draft"
+  label="IN PROGRESS"
+  subtle={true}
+  className="uppercase tracking-[0.25em]"
+/>`}</pre>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Color Reference */}
+                <div className="bg-neutral-900 rounded-lg p-4 border border-neutral-700">
+                  <h5 className="text-sm font-semibold text-white mb-3">Status Colors & Styling</h5>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-[#39FF14]"></div>
+                      <span className="text-neutral-300"><strong>active:</strong> #39FF14 (Electric Green) - Bold, solid background with black text</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-[#FFFF00]/20 border border-[#FFFF00]/30"></div>
+                      <span className="text-neutral-300"><strong>draft:</strong> #FFFF00 (Yellow) - Subtle, transparent background with yellow text</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-[#60A5FA]/20 border border-[#60A5FA]/30"></div>
+                      <span className="text-neutral-300"><strong>complete:</strong> #60A5FA (Blue) - Subtle, transparent background with blue text</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-neutral-700">
+                    <p className="text-xs text-neutral-400">
+                      <strong className="text-white">Note:</strong> Use <code className="bg-neutral-800 px-1 py-0.5 rounded text-primary-500">label="IN PROGRESS"</code> with 
+                      <code className="bg-neutral-800 px-1 py-0.5 rounded text-primary-500 ml-1">status="draft"</code> to display 
+                      "IN PROGRESS" instead of "DRAFT" while maintaining the same yellow styling.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
+    case 'version-badge':
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">VersionBadge - Version Number Display</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Badge component for displaying version numbers (V1, V2, V3, etc.) with status-aware styling. 
+                Automatically inherits color from associated status badge.
+              </p>
+              
+              <div className="space-y-6">
+                {/* Version Badges with Different Statuses */}
+                <div>
+                  <h5 className="text-sm font-semibold text-white mb-3">Version Badges by Status</h5>
+                  <Inline gap="md" wrap>
+                    <VersionBadge versionNumber={1} status="active">V1</VersionBadge>
+                    <VersionBadge versionNumber={2} status="draft">V2</VersionBadge>
+                    <VersionBadge versionNumber={3} status="complete">V3</VersionBadge>
+                  </Inline>
+                </div>
+
+                {/* Version Number Examples */}
+                <div>
+                  <h5 className="text-sm font-semibold text-white mb-3">Different Version Numbers</h5>
+                  <Inline gap="md" wrap>
+                    <VersionBadge versionNumber={1} status="active">V1</VersionBadge>
+                    <VersionBadge versionNumber={2} status="active">V2</VersionBadge>
+                    <VersionBadge versionNumber={10} status="active">V10</VersionBadge>
+                    <VersionBadge versionNumber={99} status="active">V99</VersionBadge>
+                  </Inline>
+                </div>
+
+                {/* Combined with StatusBadge Example */}
+                <div className="bg-neutral-900 rounded-lg p-4 border border-neutral-700">
+                  <h5 className="text-sm font-semibold text-white mb-3">Combined with StatusBadge</h5>
+                  <p className="text-xs text-neutral-400 mb-4">
+                    Typically used together in headers for Life Visions and Profiles.
+                  </p>
+                  <div className="space-y-3">
+                    <Inline gap="sm">
+                      <VersionBadge versionNumber={2} status="active">V2</VersionBadge>
+                      <StatusBadge status="active" className="uppercase tracking-[0.25em]">ACTIVE</StatusBadge>
+                    </Inline>
+                    <Inline gap="sm">
+                      <VersionBadge versionNumber={3} status="draft">V3</VersionBadge>
+                      <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]">DRAFT</StatusBadge>
+                    </Inline>
+                    <Inline gap="sm">
+                      <VersionBadge versionNumber={1} status="complete">V1</VersionBadge>
+                      <StatusBadge status="complete" subtle={true} className="uppercase tracking-[0.25em]">COMPLETE</StatusBadge>
+                    </Inline>
+                  </div>
+                </div>
+
+                {/* Usage Example */}
+                <div className="bg-neutral-900 rounded-lg p-4 border border-neutral-700">
+                  <h5 className="text-sm font-semibold text-white mb-3">Usage Example</h5>
+                  <div className="bg-[#0A0A0A] p-3 rounded border border-neutral-800 font-mono text-xs text-neutral-300 overflow-x-auto">
+                    <pre>{`<VersionBadge 
+  versionNumber={visionData.version_number ?? 1} 
+  status="active"
+>
+  V{visionData.version_number ?? 1}
+</VersionBadge>`}</pre>
+                  </div>
+                </div>
+              </div>
             </Stack>
           </Card>
         </Stack>

@@ -308,35 +308,35 @@ export default function AssessmentHub() {
                 return (
                 <div 
                   key={assessment.id}
-                  className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 rounded-lg transition-all ${
+                  className={`flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 p-3 md:p-4 rounded-lg transition-all ${
                     isActive
                       ? 'border border-primary-500 hover:border-primary-400'
                       : 'border border-neutral-700 hover:border-neutral-600'
                   }`}
                 >
-                  <div className="flex-1 min-w-0 w-full sm:w-auto text-center sm:text-left">
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 md:gap-3 mb-2">
+                  <div className="flex-1 min-w-0 w-full lg:w-auto text-center lg:text-left">
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 md:gap-3 mb-2">
                       <Badge variant={isActive ? 'primary' : 'success'}>
                         {isActive ? 'Active' : 'Complete'}
                       </Badge>
                     </div>
-                    <div className="flex items-center justify-center sm:justify-start gap-1.5 text-neutral-300 text-xs md:text-sm mb-1">
+                    <div className="flex items-center justify-center lg:justify-start gap-1.5 text-neutral-300 text-xs md:text-sm mb-1">
                       <CalendarDays className="w-4 h-4 text-neutral-500" />
                       <span className="font-medium">Started:</span>
                       <span>{formatStartDate(assessment.started_at || assessment.created_at)}</span>
                     </div>
-                    <div className="flex items-center justify-center sm:justify-start gap-1.5 text-neutral-300 text-xs md:text-sm">
+                    <div className="flex items-center justify-center lg:justify-start gap-1.5 text-neutral-300 text-xs md:text-sm">
                       <CalendarDays className="w-4 h-4 text-neutral-500" />
                       <span className="font-medium">Completed:</span>
                       <span>{assessment.completed_at ? formatStartDate(assessment.completed_at) : 'Not completed'}</span>
                     </div>
                   </div>
-                  <div className="flex flex-row gap-2 w-full sm:w-auto">
+                  <div className="flex flex-row gap-2 w-full lg:w-auto">
                     <Button 
                       onClick={() => handleDeleteClick(assessment.id)}
                       variant="danger"
                       size="sm"
-                      className="flex-1 sm:flex-initial"
+                      className="flex-1 lg:flex-initial"
                       disabled={deletingId === assessment.id}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
@@ -346,7 +346,7 @@ export default function AssessmentHub() {
                       onClick={() => router.push(`/assessment/${assessment.id}`)}
                       variant="ghost"
                       size="sm"
-                      className="flex-1 sm:flex-initial"
+                      className="flex-1 lg:flex-initial"
                     >
                       <BarChart3 className="w-4 h-4 mr-2" />
                       See Results
@@ -380,7 +380,7 @@ export default function AssessmentHub() {
             </div>
             <h3 className="text-lg md:text-xl font-semibold mb-2">No Assessments Yet</h3>
             <p className="text-sm md:text-base text-neutral-400 mb-4 md:mb-6">
-              Start your first assessment to begin tracking your progress across 12 life areas.
+              Start your first assessment to see how you vibrate across 12 life areas.
             </p>
             <Button 
               onClick={handleStartNew}
