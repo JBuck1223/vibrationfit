@@ -12,8 +12,9 @@ import {
   Text,
   PageHero,
   Spinner,
+  DeleteConfirmationDialog,
 } from '@/lib/design-system/components'
-import { BarChart3, Eye, Plus, ArrowLeft, History, RefreshCw } from 'lucide-react'
+import { BarChart3, Eye, ArrowLeft, RefreshCw, Trash2, CalendarDays } from 'lucide-react'
 import { fetchAssessments, fetchAssessment } from '@/lib/services/assessmentService'
 import { AssessmentResult, AssessmentResponse } from '@/types/assessment'
 import ResultsSummary from '../../components/ResultsSummary'
@@ -31,6 +32,9 @@ export default function AssessmentResultsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [assessmentToDelete, setAssessmentToDelete] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -90,6 +94,46 @@ export default function AssessmentResultsPage() {
     })
   }
 
+  const formatStartDate = (date: Date | string) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const handleDeleteClick = (assessmentId: string) => {
+    setAssessmentToDelete(assessmentId)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!assessmentToDelete) return
+
+    setDeletingId(assessmentToDelete)
+    try {
+      const response = await fetch(`/api/assessment/${assessmentToDelete}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete assessment')
+      }
+
+      // Redirect to assessment hub after deleting the current assessment
+      router.push('/assessment')
+    } catch (err) {
+      console.error('Failed to delete assessment:', err)
+      alert('Failed to delete assessment. Please try again.')
+    } finally {
+      setDeletingId(null)
+      setShowDeleteDialog(false)
+      setAssessmentToDelete(null)
+    }
+  }
+
   const sortAssessments = (items: AssessmentResult[]) => {
     const toTimestamp = (value?: Date | string | null) => {
       if (!value) return 0
@@ -143,103 +187,48 @@ export default function AssessmentResultsPage() {
         subtitle="Review your vibrational alignment scores and insights."
         className="mb-6 md:mb-8"
       >
-        <div className="flex flex-wrap items-center gap-3 mt-4">
-          <button
-            onClick={() => router.push('/assessment')}
-            className="inline-flex items-center gap-2 text-xs text-neutral-400 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Assessment Hub
-          </button>
-          {otherAssessments.length > 0 && (
-            <Button
-              variant={showHistory ? 'primary' : 'ghost'}
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={() => setShowHistory((prev) => !prev)}
-            >
-              <History className="h-4 w-4" />
-              {showHistory ? 'Hide History' : 'Show History'}
-            </Button>
-          )}
+        {/* Badge Row */}
+        <div className="text-center mb-4">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+            <Badge variant={selectedAssessment.is_active ? 'primary' : 'success'} className="uppercase tracking-[0.25em]">
+              {selectedAssessment.is_active ? 'Active' : 'Complete'}
+            </Badge>
+            <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+              <CalendarDays className="w-4 h-4 text-neutral-500" />
+              <span className="font-medium">Started:</span>
+              <span>{formatStartDate(selectedAssessment.started_at || selectedAssessment.created_at)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+              <CalendarDays className="w-4 h-4 text-neutral-500" />
+              <span className="font-medium">Completed:</span>
+              <span>{selectedAssessment.completed_at ? formatStartDate(selectedAssessment.completed_at) : 'Not completed'}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs md:text-sm font-semibold">
+              <BarChart3 className="w-4 h-4 text-primary-500" />
+              <span className="text-primary-500">{selectedAssessment.overall_percentage || 0}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <Button
-            variant="primary"
-            size="sm"
+            variant="outline"
+            size="md"
             onClick={() => router.push('/assessment')}
             className="flex items-center gap-2"
           >
-            <Plus className="h-4 w-4" />
-            Start New Assessment
+            <ArrowLeft className="h-5 w-5" />
+            Assessment Hub
           </Button>
         </div>
       </PageHero>
 
-      <Stack gap="lg">
-          <Card className="p-6 md:p-8">
-            <Stack gap="md">
-              <Stack gap="sm">
-                <Inline gap="sm" className="flex-wrap items-center">
-                  <Text size="lg" className="text-white font-semibold">
-                    Assessment #{selectedAssessment.id.slice(-6)}
-                  </Text>
-                  {selectedAssessment.is_draft && <Badge variant="warning">Draft</Badge>}
-                  {selectedAssessment.is_active && !selectedAssessment.is_draft && (
-                    <Badge variant="primary">Most Recent</Badge>
-                  )}
-                  {!selectedAssessment.is_draft && !selectedAssessment.is_active && (
-                    <Badge variant="success">Completed</Badge>
-                  )}
-                </Inline>
-                <div className="grid gap-3 text-sm text-neutral-400 sm:grid-cols-2">
-                  <div>
-                    Started:{' '}
-                    <span className="text-neutral-200">{formatDate(selectedAssessment.started_at)}</span>
-                  </div>
-                  <div>
-                    Updated:{' '}
-                    <span className="text-neutral-200">{formatDate(selectedAssessment.updated_at)}</span>
-                  </div>
-                  <div>
-                    Status:{' '}
-                    <span className="text-neutral-200 capitalize">
-                      {selectedAssessment.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div>
-                    Completed:{' '}
-                    <span className="text-neutral-200">
-                      {selectedAssessment.completed_at ? formatDate(selectedAssessment.completed_at) : 'Not yet'}
-                    </span>
-                  </div>
-                </div>
-              </Stack>
-
-              <Inline gap="sm" className="flex-wrap justify-start">
-                {selectedAssessment.status === 'in_progress' ? (
-                  <Button
-                    variant="primary"
-                    className="flex items-center gap-2"
-                    onClick={() => router.push(`/assessment/${selectedAssessment.id}/in-progress`)}
-                  >
-                    <Eye className="h-4 w-4" />
-                    Continue Assessment
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2"
-                    onClick={() => router.push(`/assessment/${selectedAssessment.id}/in-progress`)}
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    Review Questions
-                  </Button>
-                )}
-              </Inline>
-            </Stack>
-          </Card>
-
-          {selectedAssessment.status === 'completed' ? (
-            <ResultsSummary assessment={selectedAssessment} responses={responses} />
+      {selectedAssessment.status === 'completed' ? (
+            <ResultsSummary 
+              assessment={selectedAssessment} 
+              responses={responses}
+            />
           ) : (
             <Card className="p-8 text-center">
               <BarChart3 className="mx-auto mb-4 h-12 w-12 text-neutral-400" />
@@ -251,7 +240,6 @@ export default function AssessmentResultsPage() {
               </p>
             </Card>
           )}
-        </Stack>
 
         {showHistory && (
           <Card className="p-6 mt-6 md:mt-8">
@@ -301,6 +289,19 @@ export default function AssessmentResultsPage() {
             </Stack>
           </Card>
         )}
+
+      <DeleteConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false)
+          setAssessmentToDelete(null)
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName="assessment"
+        itemType="assessment"
+        isLoading={deletingId !== null}
+        loadingText="Deleting assessment..."
+      />
     </Container>
   )
 }
