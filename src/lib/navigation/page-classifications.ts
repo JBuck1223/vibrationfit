@@ -142,14 +142,20 @@ export const PAGE_CLASSIFICATIONS = {
     '/admin/crm/customers/board',
     '/admin/crm/customers/[id]',
     '/admin/crm/support/board',
+    '/admin/crm/support/[id]',
     '/admin/crm/utm-builder',
+    
+    // Email Management
+    '/admin/emails',
+    '/admin/emails/list',
+    '/admin/emails/sent',
+    '/admin/emails/test',
+    '/admin/emails/templates/[id]',
+    '/admin/emails/[id]',
+    '/admin/emails/[id]/edit',
     
     // Content Management
     '/admin/assets',
-    '/admin/emails',
-    '/admin/emails/list',
-    '/admin/emails/[id]',
-    '/admin/emails/[id]/edit',
     '/admin/vibrational-event/sources',
     
     // AI & Models

@@ -253,8 +253,28 @@ export const adminNavigation: NavItem[] = [
       { name: 'Leads Board', href: '/admin/crm/leads/board', icon: Kanban, description: 'Kanban board for leads' },
       { name: 'Members', href: '/admin/crm/members', icon: UserCheck, description: 'Platform members management' },
       { name: 'Members Board', href: '/admin/crm/members/board', icon: Kanban, description: 'Kanban board for members' },
+      { name: 'Customers', href: '/admin/crm/customers', icon: UsersRound, description: 'Customer management' },
+      { name: 'Customers Board', href: '/admin/crm/customers/board', icon: Kanban, description: 'Kanban board for customers' },
       { name: 'Support Board', href: '/admin/crm/support/board', icon: Headset, description: 'Support tickets board' },
       { name: 'UTM Builder', href: '/admin/crm/utm-builder', icon: Link2, description: 'Build UTM tracking URLs' },
+    ]
+  },
+  
+  // ============================================================================
+  // EMAIL MANAGEMENT
+  // ============================================================================
+  {
+    name: 'Email System',
+    href: '/admin/emails',
+    icon: Mail,
+    requiresAdmin: true,
+    hasDropdown: true,
+    description: 'Email templates and delivery',
+    children: [
+      { name: 'Email Dashboard', href: '/admin/emails', icon: Mail, description: 'Email management overview' },
+      { name: 'All Emails', href: '/admin/emails/list', icon: FileText, description: 'View all sent emails' },
+      { name: 'Sent Emails', href: '/admin/emails/sent', icon: FileText, description: 'Email delivery history' },
+      { name: 'Test Email', href: '/admin/emails/test', icon: Wand2, description: 'Send test emails' },
     ]
   },
   
@@ -270,8 +290,6 @@ export const adminNavigation: NavItem[] = [
     description: 'Manage site content and assets',
     children: [
       { name: 'Site Assets', href: '/admin/assets', icon: Upload, description: 'Upload and manage media assets' },
-      { name: 'Email Templates', href: '/admin/emails', icon: Mail, description: 'Manage email templates' },
-      { name: 'Email List', href: '/admin/emails/list', icon: FileText, description: 'View all emails' },
       { name: 'Vibrational Sources', href: '/admin/vibrational-event/sources', icon: Activity, description: 'Manage vibrational data sources' },
     ]
   },
