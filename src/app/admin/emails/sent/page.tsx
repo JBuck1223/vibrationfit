@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { Container, Card, Badge, Button, Spinner, Stack, PageHero } from '@/lib/design-system/components'
-import { Mail, Send, Calendar, User, ArrowRight } from 'lucide-react'
+import { Mail, Send, Calendar, User, ArrowRight, ArrowDown, ArrowUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface EmailLog {
@@ -24,7 +24,7 @@ export default function SentEmailsPage() {
   const router = useRouter()
   const [emails, setEmails] = useState<EmailLog[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'sent' | 'delivered' | 'failed'>('all')
+  const [filter, setFilter] = useState<'all' | 'outbound' | 'inbound'>('all')
 
   useEffect(() => {
     fetchEmails()
@@ -71,7 +71,7 @@ export default function SentEmailsPage() {
 
   const filteredEmails = filter === 'all' 
     ? emails 
-    : emails.filter(e => e.status === filter)
+    : emails.filter(e => e.direction === filter)
 
   if (loading) {
     return (
@@ -112,25 +112,18 @@ export default function SentEmailsPage() {
                 All ({emails.length})
               </Button>
               <Button
-                variant={filter === 'sent' ? 'primary' : 'ghost'}
+                variant={filter === 'outbound' ? 'primary' : 'ghost'}
                 size="sm"
-                onClick={() => setFilter('sent')}
+                onClick={() => setFilter('outbound')}
               >
-                Sent ({emails.filter(e => e.status === 'sent').length})
+                Sent ({emails.filter(e => e.direction === 'outbound').length})
               </Button>
               <Button
-                variant={filter === 'delivered' ? 'primary' : 'ghost'}
+                variant={filter === 'inbound' ? 'primary' : 'ghost'}
                 size="sm"
-                onClick={() => setFilter('delivered')}
+                onClick={() => setFilter('inbound')}
               >
-                Delivered ({emails.filter(e => e.status === 'delivered').length})
-              </Button>
-              <Button
-                variant={filter === 'failed' ? 'primary' : 'ghost'}
-                size="sm"
-                onClick={() => setFilter('failed')}
-              >
-                Failed ({emails.filter(e => e.status === 'failed').length})
+                Received ({emails.filter(e => e.direction === 'inbound').length})
               </Button>
             </div>
           </div>
@@ -160,8 +153,12 @@ export default function SentEmailsPage() {
                       <Badge className={`${getStatusColor(email.status)} text-white px-2 py-1 text-xs`}>
                         {email.status}
                       </Badge>
-                      <Badge className="bg-[#1F1F1F] text-neutral-400 px-2 py-1 text-xs">
-                        {email.direction}
+                      <Badge className="bg-[#1F1F1F] text-neutral-400 px-2 py-1 text-xs flex items-center gap-1">
+                        {email.direction === 'inbound' ? (
+                          <><ArrowDown className="w-3 h-3" /> Received</>
+                        ) : (
+                          <><ArrowUp className="w-3 h-3" /> Sent</>
+                        )}
                       </Badge>
                     </div>
 

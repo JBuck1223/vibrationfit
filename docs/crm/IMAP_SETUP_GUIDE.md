@@ -1,7 +1,9 @@
 # IMAP Setup Guide - Receive Customer Email Replies
 
 **Last Updated:** December 13, 2025  
-**Status:** Active
+**Status:** ⚠️ DEPRECATED - Use AWS SES Inbound instead (see: AWS_SES_INBOUND_SETUP.md)
+
+> ⚠️ **Note:** This guide is for IMAP polling (5-minute delay). For instant email notifications with AWS SES Inbound, see `AWS_SES_INBOUND_SETUP.md` instead!
 
 ## 📧 Overview
 
