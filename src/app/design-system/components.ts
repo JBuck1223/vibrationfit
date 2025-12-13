@@ -195,6 +195,24 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     path: '/design-system/component/badge'
   },
   {
+    id: 'status-badge',
+    name: 'Status Badge',
+    description: 'Specialized badge for Active, Draft, and Complete statuses with uppercase letter-spacing. Supports label override to display "IN PROGRESS" instead of "DRAFT"',
+    category: 'UI',
+    icon: Tag,
+    exportName: 'StatusBadge',
+    path: '/design-system/component/status-badge'
+  },
+  {
+    id: 'version-badge',
+    name: 'Version Badge',
+    description: 'Badge for displaying version numbers (V1, V2, etc.) with status-aware styling',
+    category: 'UI',
+    icon: Tag,
+    exportName: 'VersionBadge',
+    path: '/design-system/component/version-badge'
+  },
+  {
     id: 'input',
     name: 'Input',
     description: 'Text input field with label, error states, and helper text',

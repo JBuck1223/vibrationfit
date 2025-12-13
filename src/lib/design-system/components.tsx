@@ -1425,6 +1425,7 @@ export const STATUS_COLORS = {
   },
   draft: {
     // Neon Yellow - Work in Progress / Celebration
+    // Use label="IN PROGRESS" prop to display "IN PROGRESS" instead of "DRAFT"
     bg: tokens.colors.semantic.warning,     // #FFFF00
     text: tokens.colors.neutral[0],         // Black
     border: tokens.colors.semantic.warning,
@@ -1469,13 +1470,17 @@ interface StatusBadgeProps {
   className?: string
   subtle?: boolean // Use subtle styling (transparent background)
   showIcon?: boolean // Show status icon (checkmark for active, etc.)
+  label?: string // Override display text (e.g., use "IN PROGRESS" instead of "DRAFT")
+  children?: React.ReactNode // Override display text via children
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ 
   status, 
   className = '',
   subtle = true,
-  showIcon = true 
+  showIcon = true,
+  label,
+  children
 }) => {
   // Normalize status to lowercase for matching
   const normalizedStatus = status.toLowerCase() as StatusType
@@ -1490,8 +1495,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     borderSubtle: 'rgba(75, 85, 99, 0.3)',
   }
   
-  // Capitalize first letter for display
-  const displayText = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+  // Determine display text: children > label > capitalize status
+  const displayText = children || label || (status.charAt(0).toUpperCase() + status.slice(1).toLowerCase())
 
   const styles = subtle ? {
     backgroundColor: statusColors.bgSubtle,
@@ -1525,7 +1530,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     <span 
       className={cn(
         'inline-flex items-center justify-center py-1 rounded-full text-xs md:text-sm font-semibold border',
-        hasWideTracking ? 'px-4 -mr-1' : 'px-3',
+        hasWideTracking ? 'pl-4 pr-3' : 'px-3',
         className
       )}
       style={styles}
