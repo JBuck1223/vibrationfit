@@ -106,25 +106,26 @@ export default function CRMDashboardPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="ADMIN"
           title="CRM Dashboard"
           subtitle="Overview of your business metrics"
         >
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleUpdateMetrics}
-            disabled={updating}
-          >
-            {updating ? (
-              'Updating...'
-            ) : (
-              <>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh Metrics
-              </>
-            )}
-          </Button>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleUpdateMetrics}
+              disabled={updating}
+            >
+              {updating ? (
+                'Updating...'
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh Metrics
+                </>
+              )}
+            </Button>
+          </div>
         </PageHero>
 
         {/* Quick Actions */}
@@ -132,13 +133,13 @@ export default function CRMDashboardPage() {
         <Button variant="primary" size="sm" onClick={() => router.push('/admin/crm/members')}>
           Members
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => router.push('/admin/crm/leads')}>
+        <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/leads')}>
           Leads
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => router.push('/admin/crm/campaigns')}>
+        <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/campaigns')}>
           Campaigns
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => router.push('/admin/crm/support/board')}>
+        <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/support/board')}>
           Support
         </Button>
       </div>
@@ -146,9 +147,7 @@ export default function CRMDashboardPage() {
       {/* Stats Grid */}
       {stats && (
         <>
-          <div>
-            <h2 className="text-xl md:text-2xl font-semibold mb-4">Member Metrics</h2>
-          </div>
+          <h2 className="text-xl md:text-2xl font-semibold">Member Metrics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <Card className="text-center p-4 md:p-6">
               <div className="text-2xl md:text-3xl font-bold text-primary-500">
@@ -179,9 +178,7 @@ export default function CRMDashboardPage() {
             </Card>
           </div>
 
-          <div>
-            <h2 className="text-xl md:text-2xl font-semibold mb-4">Revenue & Pipeline</h2>
-          </div>
+          <h2 className="text-xl md:text-2xl font-semibold">Revenue & Pipeline</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <Card className="text-center p-4 md:p-6">
               <div className="text-2xl md:text-3xl font-bold text-[#8B5CF6]">

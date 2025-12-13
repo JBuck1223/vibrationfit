@@ -19,8 +19,11 @@ export async function GET(
       data: { user },
     } = await supabase.auth.getUser()
 
+    // Use admin client for database queries (bypasses RLS)
+    const adminClient = createAdminClient()
+
     // Get ticket
-    const { data: ticket, error } = await supabase
+    const { data: ticket, error } = await adminClient
       .from('support_tickets')
       .select('*')
       .eq('id', id)
@@ -44,9 +47,9 @@ export async function GET(
     }
 
     // Get replies
-    const { data: replies } = await supabase
+    const { data: replies } = await adminClient
       .from('support_ticket_replies')
-      .select('*')
+      .select('*, admin:admin_id(email)')
       .eq('ticket_id', id)
       .order('created_at', { ascending: true })
 
@@ -83,15 +86,15 @@ export async function PATCH(
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     // Use admin client for database queries (bypasses RLS)
     const adminClient = createAdminClient()
-    }
 
     const body = await request.json()
 
     // Update ticket
-    const { data: ticket, error } = await supabase
+    const { data: ticket, error } = await adminClient
       .from('support_tickets')
       .update(body)
       .eq('id', id)

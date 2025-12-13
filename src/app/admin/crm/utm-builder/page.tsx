@@ -102,7 +102,7 @@ export default function UTMBuilderPage() {
   return (
     <Container size="lg">
       <Stack gap="lg">
-        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
+        <PageHero title="UTM Builder" subtitle="Build custom campaign URLs with UTM tracking parameters" />
       <div className="mb-8 md:mb-12">
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">UTM Builder</h1>
         <p className="text-sm md:text-base text-neutral-400">

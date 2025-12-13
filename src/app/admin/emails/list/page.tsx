@@ -1,235 +1,174 @@
+// /src/app/admin/emails/list/page.tsx
+// Email templates library - view and manage all email templates
+
 'use client'
 
 import { useState } from 'react'
-import { Container, Card, Badge, Button , Stack, PageHero } from '@/lib/design-system/components'
+import { Container, Card, Badge, Button, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Mail, Send, Eye, Settings } from 'lucide-react'
+import { Mail, Eye, Settings, Send, Code } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { EMAIL_TEMPLATES } from '@/lib/email/templates'
 
-// Email template metadata
-const EMAIL_TEMPLATES = [
-  {
-    id: 'household-invitation',
-    name: 'Household Invitation',
-    description: 'Invite family members to join your household account',
-    category: 'Household',
-    triggers: [
-      'Admin clicks "Send Invitation" in Household Settings',
-      'API: POST /api/household/invite',
-    ],
-    variables: ['inviterName', 'inviterEmail', 'householdName', 'invitationLink', 'expiresInDays'],
-    status: 'active',
-    lastSent: '2025-11-14',
-    totalSent: 12,
-  },
-  {
-    id: 'welcome',
-    name: 'Welcome Email',
-    description: 'Welcome new users to VibrationFit',
-    category: 'Onboarding',
-    triggers: [
-      'User completes signup',
-      'Auth: Email verification success',
-    ],
-    variables: ['userName', 'verificationLink'],
-    status: 'planned',
-    lastSent: null,
-    totalSent: 0,
-  },
-  {
-    id: 'intensive-welcome',
-    name: 'Intensive Program Welcome',
-    description: 'Onboarding email for Intensive program purchasers',
-    category: 'Intensive',
-    triggers: [
-      'Stripe webhook: intensive purchase complete',
-      'Subscription status: active',
-    ],
-    variables: ['userName', 'dashboardLink', 'callScheduleLink'],
-    status: 'planned',
-    lastSent: null,
-    totalSent: 0,
-  },
-  {
-    id: 'token-purchase-confirmation',
-    name: 'Token Pack Purchase',
-    description: 'Confirmation email when user buys token packs',
-    category: 'Billing',
-    triggers: [
-      'Stripe webhook: token pack purchase complete',
-      'Payment status: succeeded',
-    ],
-    variables: ['userName', 'tokenAmount', 'receiptLink'],
-    status: 'planned',
-    lastSent: null,
-    totalSent: 0,
-  },
-  {
-    id: 'subscription-renewal',
-    name: 'Subscription Renewal',
-    description: 'Notification of upcoming subscription renewal',
-    category: 'Billing',
-    triggers: [
-      'Scheduled: 7 days before renewal',
-      'Stripe: subscription active',
-    ],
-    variables: ['userName', 'renewalDate', 'amount', 'planName'],
-    status: 'planned',
-    lastSent: null,
-    totalSent: 0,
-  },
-  {
-    id: 'password-reset',
-    name: 'Password Reset',
-    description: 'Password reset link for account recovery',
-    category: 'Authentication',
-    triggers: [
-      'User clicks "Forgot Password"',
-      'API: POST /auth/reset-password',
-    ],
-    variables: ['userName', 'resetLink', 'expiresIn'],
-    status: 'planned',
-    lastSent: null,
-    totalSent: 0,
-  },
-]
-
-const CATEGORIES = ['All', 'Household', 'Onboarding', 'Intensive', 'Billing', 'Authentication']
-
-function EmailsPageContent() {
+export default function EmailTemplatesListPage() {
   const router = useRouter()
-  const [selectedCategory, setSelectedCategory] = useState('All')
+  const [filter, setFilter] = useState<'all' | 'active' | 'planned'>('all')
 
-  const filteredEmails = selectedCategory === 'All'
-    ? EMAIL_TEMPLATES
-    : EMAIL_TEMPLATES.filter(email => email.category === selectedCategory)
+  const filteredTemplates = filter === 'all' 
+    ? EMAIL_TEMPLATES 
+    : EMAIL_TEMPLATES.filter(t => t.status === filter)
 
-  return (
-    <Container size="xl">
-      <Stack gap="lg">
-        {/* Header */}
-        <PageHero
-          eyebrow="ADMIN"
-          title="Transactional Emails"
-          subtitle="Manage and monitor automated email templates"
-        />
+  function getStatusColor(status: string) {
+    switch (status) {
+      case 'active':
+        return 'bg-primary-500'
+      case 'planned':
+        return 'bg-secondary-500'
+      default:
+        return 'bg-neutral-600'
+    }
+  }
 
-        {/* Category Filter */}
-        <div className="flex flex-wrap gap-2">
-        {CATEGORIES.map(category => (
-          <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${
-              selectedCategory === category
-                ? 'bg-primary-500 text-white'
-                : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-            }`}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
-
-      {/* Email Template Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {filteredEmails.map(email => (
-          <Card
-            key={email.id}
-            variant="elevated"
-            className="p-4 md:p-6 hover:border-primary-500 transition-colors cursor-pointer"
-            onClick={() => router.push(`/admin/emails/${email.id}`)}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base md:text-lg font-semibold">{email.name}</h3>
-              <Badge variant={email.status === 'active' ? 'success' : 'neutral'}>
-                {email.category}
-              </Badge>
-            </div>
-
-            {/* Description */}
-            <p className="text-xs md:text-sm text-neutral-400 mb-3 md: line-clamp-2">
-              {email.description}
-            </p>
-
-            {/* Stats */}
-            <div className="flex items-center gap-4 mb-3 md: text-xs text-neutral-500">
-              <div>
-                <Send className="w-3 h-3 md:w-4 md:h-4 inline mr-1" />
-                {email.totalSent} sent
-              </div>
-              {email.lastSent && (
-                <div>
-                  Last: {new Date(email.lastSent).toLocaleDateString()}
-                </div>
-              )}
-            </div>
-
-            {/* Triggers Preview */}
-            <div className="pt-3 md:pt-4 border-t border-neutral-800">
-              <p className="text-xs font-medium text-neutral-400 ">Triggers:</p>
-              <div className="space-y-1">
-                {email.triggers.slice(0, 2).map((trigger, idx) => (
-                  <p key={idx} className="text-xs text-neutral-500 truncate">
-                    • {trigger}
-                  </p>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 mt-3 md:mt-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex-1 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  router.push(`/admin/emails/${email.id}`)
-                }}
-              >
-                <Eye className="w-3 h-3 mr-1" />
-                View
-              </Button>
-              {email.status === 'active' && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    router.push(`/admin/emails/${email.id}`)
-                  }}
-                >
-                  <Send className="w-3 h-3 mr-1" />
-                  Test
-                </Button>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Coming Soon Notice */}
-        <Card variant="elevated" className="text-center">
-          <h3 className="text-lg md:text-xl font-semibold">More Templates Coming Soon</h3>
-          <p className="text-xs md:text-sm text-neutral-400">
-            We're building a comprehensive email system. Check back for updates!
-          </p>
-          <Button size="sm" variant="secondary">
-            Request New Template
-          </Button>
-        </Card>
-      </Stack>
-    </Container>
-  )
-}
-
-export default function EmailsPage() {
   return (
     <AdminWrapper>
-      <EmailsPageContent />
+      <Container size="xl">
+        <Stack gap="lg">
+          {/* Hero */}
+          <PageHero 
+            eyebrow="ADMIN CRM"
+            title="Email Templates" 
+            subtitle={`${EMAIL_TEMPLATES.length} templates • ${EMAIL_TEMPLATES.filter(t => t.status === 'active').length} active`}
+          >
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button onClick={() => router.push('/admin/emails/sent')} variant="secondary" size="sm">
+                <Mail className="w-4 h-4 mr-2" />
+                Sent Emails
+              </Button>
+              <Button onClick={() => router.push('/admin/emails')} variant="ghost" size="sm">
+                Back to Dashboard
+              </Button>
+            </div>
+          </PageHero>
+
+          {/* Filter Tabs */}
+          <div className="flex flex-col sm:flex-row gap-2 border-b border-neutral-800 pb-4">
+            <Button
+              variant={filter === 'all' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setFilter('all')}
+              className="justify-start sm:justify-center"
+            >
+              All Templates ({EMAIL_TEMPLATES.length})
+            </Button>
+            <Button
+              variant={filter === 'active' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setFilter('active')}
+              className="justify-start sm:justify-center"
+            >
+              Active ({EMAIL_TEMPLATES.filter(t => t.status === 'active').length})
+            </Button>
+            <Button
+              variant={filter === 'planned' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setFilter('planned')}
+              className="justify-start sm:justify-center"
+            >
+              Planned ({EMAIL_TEMPLATES.filter(t => t.status === 'planned').length})
+            </Button>
+          </div>
+
+          {/* Template Cards */}
+          <div className="grid gap-4">
+            {filteredTemplates.map((template) => (
+              <Card
+                key={template.id}
+                className="p-4 md:p-6 lg:p-8 hover:border-primary-500 transition-colors cursor-pointer"
+                onClick={() => router.push(`/admin/emails/templates/${template.id}`)}
+              >
+                <div className="flex flex-col sm:flex-row items-start justify-between mb-4 gap-3">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <h3 className="text-base md:text-lg font-semibold text-white">{template.name}</h3>
+                      <Badge className={`${getStatusColor(template.status)} text-white px-2 md:px-3 py-1 text-xs`}>
+                        {template.status}
+                      </Badge>
+                      <Badge className="bg-[#1F1F1F] text-neutral-400 px-2 md:px-3 py-1 text-xs">
+                        {template.category}
+                      </Badge>
+                      {template.status === 'planned' && (
+                        <Badge className="bg-[#FFB701] text-black px-2 md:px-3 py-1 text-xs">
+                          Coming Soon
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-neutral-400 text-xs md:text-sm">{template.description}</p>
+                  </div>
+                </div>
+
+                {/* Triggers */}
+                <div className="mb-4">
+                  <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">
+                    Triggered By
+                  </h4>
+                  <div className="space-y-1">
+                    {template.triggers.map((trigger, idx) => (
+                      <div
+                        key={idx}
+                        className="text-sm text-neutral-400 flex items-start gap-2"
+                      >
+                        <span className="text-primary-500 mt-1">→</span>
+                        <span>{trigger}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Variables */}
+                <div className="mb-4">
+                  <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">
+                    Available Variables ({template.variables.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {template.variables.map((variable) => (
+                      <code
+                        key={variable}
+                        className="px-2 py-1 bg-neutral-900 rounded text-xs text-secondary-500 font-mono"
+                      >
+                        {`{{${variable}}}`}
+                      </code>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Stats & File */}
+                <div className="flex items-center justify-between pt-4 border-t border-neutral-800">
+                  <div className="flex items-center gap-4 text-xs text-neutral-500">
+                    {template.status === 'active' && (
+                      <>
+                        <div>
+                          <span>Last Sent: </span>
+                          <span className="text-white">{template.lastSent || 'Never'}</span>
+                        </div>
+                        <div>
+                          <span>Total Sent: </span>
+                          <span className="text-white">{template.totalSent || 0}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {template.templateFile && (
+                    <div className="flex items-center gap-2 text-xs text-neutral-500">
+                      <Code className="w-3 h-3" />
+                      <code className="text-secondary-500">{template.templateFile}</code>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </Stack>
+      </Container>
     </AdminWrapper>
   )
 }

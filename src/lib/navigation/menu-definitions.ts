@@ -160,7 +160,7 @@ export const userNavigation: NavItem[] = [
     description: 'Activity feed and timeline',
   },
   {
-    name: 'Token Tracking',
+    name: 'Tokens',
     href: '/dashboard/tokens',
     icon: Zap,
     hasDropdown: true,

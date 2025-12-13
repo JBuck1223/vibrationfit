@@ -73,10 +73,23 @@ export default function CustomerBoardPage() {
   }
 
   async function handleMove(customerId: string, newStatus: string) {
-    try {
-      // Determine which field to update based on grouping mode
-      const updateField = groupBy
+    // Store the old value in case we need to revert
+    const oldCustomer = customers.find(c => c.user_id === customerId)
+    if (!oldCustomer) return
+    
+    const updateField = groupBy
+    const oldValue = oldCustomer[updateField]
 
+    // ✅ Optimistically update state immediately (prevents jump)
+    setCustomers((prev) =>
+      prev.map((c) => 
+        c.user_id === customerId 
+          ? { ...c, [updateField]: newStatus }
+          : c
+      )
+    )
+
+    try {
       const response = await fetch(`/api/crm/customers/${customerId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -85,14 +98,19 @@ export default function CustomerBoardPage() {
         }),
       })
 
-      if (!response.ok) throw new Error('Failed to update customer')
-
-      // Update local state
-      setCustomers(customers.map((c) => 
-        c.user_id === customerId 
-          ? { ...c, [updateField]: newStatus }
-          : c
-      ))
+      if (!response.ok) {
+        // ❌ Revert the optimistic update
+        setCustomers((prev) =>
+          prev.map((c) => 
+            c.user_id === customerId 
+              ? { ...c, [updateField]: oldValue }
+              : c
+          )
+        )
+        throw new Error('Failed to update customer')
+      }
+      
+      // ✅ API succeeded, optimistic update is now confirmed
     } catch (error: any) {
       console.error('Error moving customer:', error)
       alert('Failed to update customer')
@@ -141,46 +159,41 @@ export default function CustomerBoardPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
-      {/* Header */}
-      <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Customer Board</h1>
-          <p className="text-sm md:text-base text-neutral-400">
-            {customers.length} customers
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button 
-            variant="secondary" 
-            size="sm"
-            onClick={() => router.push('/admin/crm/customers')}
-          >
-            List View
-          </Button>
-        </div>
-      </div>
+        <PageHero 
+          title="Customer Board" 
+          subtitle={`${customers.length} customers`}
+        >
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.push('/admin/crm/customers')}
+            >
+              List View
+            </Button>
+          </div>
+        </PageHero>
 
       {/* Group By Selector */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <span className="text-sm md:text-base font-medium text-neutral-400">Group by:</span>
         <div className="flex flex-wrap gap-2">
           <Button
-            variant={groupBy === 'engagement_status' ? 'primary' : 'ghost'}
+            variant={groupBy === 'engagement_status' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setGroupBy('engagement_status')}
           >
             Engagement Status
           </Button>
           <Button
-            variant={groupBy === 'health_status' ? 'primary' : 'ghost'}
+            variant={groupBy === 'health_status' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setGroupBy('health_status')}
           >
             Health Status
           </Button>
           <Button
-            variant={groupBy === 'subscription_tier' ? 'primary' : 'ghost'}
+            variant={groupBy === 'subscription_tier' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setGroupBy('subscription_tier')}
           >

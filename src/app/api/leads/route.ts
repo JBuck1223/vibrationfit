@@ -2,7 +2,7 @@
 // Public lead capture API endpoint
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/aws-ses'
 
 export async function POST(request: NextRequest) {
@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Lead type is required' }, { status: 400 })
     }
 
-    const supabase = await createClient()
+    // Use admin client to bypass RLS for public lead capture
+    const supabase = createAdminClient()
 
     // Create lead record
     const { data: lead, error } = await supabase

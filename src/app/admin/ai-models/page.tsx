@@ -184,7 +184,7 @@ function AIModelsAdminContent() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
+        <PageHero title="AI Models" subtitle="Manage AI voice models and generation settings" />
       <div className="mb-8 md:mb-12">
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">AI Models & Configuration</h1>
         <p className="text-sm md:text-base lg:text-lg text-neutral-400">

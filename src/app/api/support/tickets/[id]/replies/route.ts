@@ -1,19 +1,77 @@
-// /src/app/api/support/tickets/[id]/replies/route.ts
-
-// Force dynamic rendering (no caching)
+// API route for support ticket replies
 export const dynamic = 'force-dynamic'
-// Ticket replies API
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/aws-ses'
+import { generatePersonalMessageEmail } from '@/lib/email/templates/personal-message'
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: ticketId } = await params
+    console.log('🔍 Fetching replies for ticket:', ticketId)
+
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      console.log('❌ No user authenticated')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    console.log('✅ User authenticated:', user.email)
+
+    const adminClient = createAdminClient()
+
+    const { data: replies, error } = await adminClient
+      .from('support_ticket_replies')
+      .select('*')
+      .eq('ticket_id', ticketId)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('❌ Database error fetching replies:', error)
+      return NextResponse.json({ 
+        error: 'Failed to fetch replies', 
+        details: error.message 
+      }, { status: 500 })
+    }
+
+    console.log('✅ Found replies:', replies?.length || 0)
+
+    // Map to frontend format
+    const formattedReplies = (replies || []).map(reply => ({
+      id: reply.id,
+      ticket_id: reply.ticket_id,
+      admin_id: reply.user_id,
+      reply: reply.message,
+      is_internal: reply.is_staff,
+      created_at: reply.created_at,
+      admin: { email: 'Admin' }, // Will show as "Admin" for now
+    }))
+
+    return NextResponse.json({ replies: formattedReplies })
+  } catch (error: any) {
+    console.error('❌ Error in replies GET API:', error)
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error.message 
+    }, { status: 500 })
+  }
+}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id: ticketId } = await params
     const supabase = await createClient()
     const {
       data: { user },
@@ -23,104 +81,114 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-
-    if (!body.message) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
-    }
-
-    // Check permissions
+    // Check if admin
     const isAdmin =
       user.email === 'buckinghambliss@gmail.com' ||
       user.email === 'admin@vibrationfit.com' ||
       user.user_metadata?.is_admin === true
 
-    // Get ticket
-    const { data: ticket } = await supabase
-      .from('support_tickets')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (!ticket) {
-      return NextResponse.json({ error: 'Ticket not found' }, { status: 404 })
-    }
-
-    const isOwner = user.id === ticket.user_id
-
-    if (!isAdmin && !isOwner) {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Create reply
-    const { data: reply, error } = await supabase
+    const adminClient = createAdminClient()
+    const body = await request.json()
+    const { reply, is_internal } = body
+
+    if (!reply || !reply.trim()) {
+      return NextResponse.json({ error: 'Reply cannot be empty' }, { status: 400 })
+    }
+
+    // Get ticket details
+    const { data: ticket, error: ticketError } = await adminClient
+      .from('support_tickets')
+      .select('*')
+      .eq('id', ticketId)
+      .single()
+
+    if (ticketError || !ticket) {
+      console.error('❌ Error fetching ticket:', ticketError)
+      return NextResponse.json({ error: 'Ticket not found' }, { status: 404 })
+    }
+
+    // Insert reply
+    const { data: newReply, error: replyError } = await adminClient
       .from('support_ticket_replies')
       .insert({
-        ticket_id: id,
+        ticket_id: ticketId,
         user_id: user.id,
-        is_staff: isAdmin,
-        message: body.message,
+        message: reply,
+        is_staff: is_internal || false,
       })
       .select()
       .single()
 
-    if (error) {
-      console.error('❌ Error creating reply:', error)
+    if (replyError) {
+      console.error('❌ Error inserting reply:', replyError)
       return NextResponse.json({ error: 'Failed to create reply' }, { status: 500 })
     }
 
-    // Update ticket status if needed
-    if (ticket.status === 'waiting_reply' && !isAdmin) {
-      await supabase
-        .from('support_tickets')
-        .update({ status: 'in_progress' })
-        .eq('id', id)
-    }
+    // Send email notification to customer (only if not internal)
+    if (!is_internal) {
+      try {
+        const customerEmail = ticket.guest_email
 
-    // Send email notification
-    try {
-      const recipientEmail = isAdmin
-        ? ticket.user_id
-          ? (await supabase.auth.admin.getUserById(ticket.user_id)).data.user?.email
-          : ticket.guest_email
-        : 'buckinghambliss@gmail.com' // Notify admin
+        if (customerEmail) {
+          console.log('📤 Sending reply notification to:', customerEmail)
 
-      if (recipientEmail) {
-        const appUrl =
-          process.env.NEXT_PUBLIC_APP_URL ||
-          process.env.NEXT_PUBLIC_SITE_URL ||
-          'https://vibrationfit.com'
+          const emailContent = generatePersonalMessageEmail({
+            recipientName: undefined,
+            senderName: 'VibrationFit Support Team',
+            messageBody: `Thank you for contacting us. We've added a response to your support ticket ${ticket.ticket_number}:\n\n${reply}\n\nYou can view your ticket and reply at: ${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/dashboard/support/tickets/${ticketId}`,
+            closingLine: 'Best regards,',
+          })
 
-        await sendEmail({
-          to: recipientEmail,
-          subject: `New Reply on Ticket ${ticket.ticket_number}`,
-          htmlBody: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #199D67;">New Reply on Your Ticket</h2>
-              <p style="color: #333;">
-                Ticket: <strong>${ticket.ticket_number}</strong> - ${ticket.subject}
-              </p>
-              <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0; color: #333;">${body.message}</p>
-              </div>
-              <div style="margin: 30px 0;">
-                <a href="${appUrl}/dashboard/support/${ticket.id}" style="background-color: #199D67; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; display: inline-block;">
-                  View Ticket
-                </a>
-              </div>
-            </div>
-          `,
-          textBody: `New reply on ticket ${ticket.ticket_number}\n\n${body.message}\n\nView ticket: ${appUrl}/dashboard/support/${ticket.id}`,
-        })
+          await sendEmail({
+            to: customerEmail,
+            subject: `Re: ${ticket.subject} [${ticket.ticket_number}]`,
+            htmlBody: emailContent.htmlBody,
+            textBody: emailContent.textBody,
+            replyTo: 'team@vibrationfit.com',
+          })
+
+          // Log sent email
+          await adminClient.from('email_messages').insert({
+            user_id: ticket.user_id,
+            from_email: process.env.AWS_SES_FROM_EMAIL || 'team@vibrationfit.com',
+            to_email: customerEmail,
+            subject: `Re: ${ticket.subject} [${ticket.ticket_number}]`,
+            body_text: emailContent.textBody,
+            body_html: emailContent.htmlBody,
+            direction: 'outbound',
+            status: 'sent',
+          })
+
+          console.log('✅ Reply notification email sent to:', customerEmail)
+        } else {
+          console.log('⚠️ No email address found for ticket - skipping email notification')
+        }
+      } catch (emailError) {
+        console.error('❌ Error sending reply notification email:', emailError)
+        // Don't fail the request if email fails
       }
-    } catch (emailError) {
-      console.error('❌ Failed to send email notification:', emailError)
+    } else {
+      console.log('📝 Internal note - no email sent')
     }
 
-    return NextResponse.json({ reply }, { status: 201 })
+    // Format response to match frontend expectations
+    const formattedReply = {
+      id: newReply.id,
+      ticket_id: newReply.ticket_id,
+      admin_id: newReply.user_id,
+      reply: newReply.message,
+      is_internal: newReply.is_staff,
+      created_at: newReply.created_at,
+      admin: { email: user.email },
+    }
+
+    return NextResponse.json({ reply: formattedReply })
   } catch (error: any) {
-    console.error('❌ Error in create reply API:', error)
+    console.error('❌ Error in replies POST API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

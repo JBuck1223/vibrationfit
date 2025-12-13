@@ -9,10 +9,13 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  DragOverEvent,
   closestCenter,
+  pointerWithin,
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -50,11 +53,12 @@ export function Kanban({
   renderItem,
 }: KanbanProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5, // Reduced for quicker activation
       },
     })
   )
@@ -63,25 +67,63 @@ export function Kanban({
     setActiveId(event.active.id as string)
   }
 
+  function handleDragOver(event: DragOverEvent) {
+    const { over } = event
+    
+    if (!over) {
+      setOverId(null)
+      return
+    }
+
+    // Determine which column we're over
+    let columnId = over.id as string
+    
+    // If hovering over an item, get its column
+    const overItem = items.find((i) => i.id === over.id)
+    if (overItem) {
+      columnId = overItem.columnId
+    }
+
+    setOverId(columnId)
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
 
     if (!over) {
       setActiveId(null)
+      setOverId(null)
       return
     }
 
     const itemId = active.id as string
-    const newColumnId = over.id as string
+    
+    // If over.id is a column ID, use it directly
+    // Otherwise, find the column that contains the item we're hovering over
+    let newColumnId = over.id as string
+    
+    // Check if over.id is an item ID (not a column ID)
+    const overItem = items.find((i) => i.id === over.id)
+    if (overItem) {
+      // We're hovering over an item, use its column
+      newColumnId = overItem.columnId
+    }
 
     // Find current item
     const item = items.find((i) => i.id === itemId)
 
     if (item && item.columnId !== newColumnId) {
+      // Clear drag state immediately
+      setActiveId(null)
+      setOverId(null)
+      
+      // Parent will handle optimistic update
       await onItemMove(itemId, newColumnId)
+    } else {
+      // No move needed, just clear drag state
+      setActiveId(null)
+      setOverId(null)
     }
-
-    setActiveId(null)
   }
 
   const activeItem = activeId ? items.find((i) => i.id === activeId) : null
@@ -89,8 +131,9 @@ export function Kanban({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="flex gap-6 overflow-x-auto pb-4">
@@ -101,13 +144,16 @@ export function Kanban({
             items={items.filter((item) => item.columnId === column.id)}
             onItemClick={onItemClick}
             renderItem={renderItem}
+            isOver={overId === column.id}
           />
         ))}
       </div>
 
       <DragOverlay>
         {activeItem ? (
-          <div className="opacity-80">{renderItem(activeItem)}</div>
+          <div className="opacity-90 scale-105 shadow-2xl">
+            {renderItem(activeItem)}
+          </div>
         ) : null}
       </DragOverlay>
     </DndContext>
@@ -119,6 +165,7 @@ interface KanbanColumnComponentProps {
   items: KanbanItem[]
   onItemClick: (item: KanbanItem) => void
   renderItem: (item: KanbanItem) => React.ReactNode
+  isOver: boolean
 }
 
 function KanbanColumnComponent({
@@ -126,7 +173,12 @@ function KanbanColumnComponent({
   items,
   onItemClick,
   renderItem,
+  isOver,
 }: KanbanColumnComponentProps) {
+  const { setNodeRef } = useDroppable({
+    id: column.id,
+  })
+
   return (
     <SortableContext
       id={column.id}
@@ -142,7 +194,12 @@ function KanbanColumnComponent({
         </div>
 
         <div
-          className="bg-[#1F1F1F] rounded-xl p-4 min-h-[500px] border-2 border-[#333]"
+          ref={setNodeRef}
+          className={`bg-[#1F1F1F] rounded-xl p-4 min-h-[500px] border-2 transition-all duration-200 ${
+            isOver 
+              ? 'border-primary-500 bg-primary-500/10 scale-[1.02] shadow-[0_0_20px_rgba(25,157,103,0.3)]' 
+              : 'border-[#333]'
+          }`}
           style={{
             minHeight: '500px',
           }}
@@ -183,12 +240,15 @@ function SortableKanbanCard({ item, onClick, renderItem }: SortableKanbanCardPro
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id })
+  } = useSortable({ 
+    id: item.id,
+    animateLayoutChanges: () => false, // Disable all layout animations
+  })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+  const style: React.CSSProperties = {
+    transform: transform ? CSS.Transform.toString(transform) : undefined,
+    transition: 'none', // No transitions at all
+    opacity: isDragging ? 0.4 : 1,
   }
 
   return (
@@ -198,7 +258,7 @@ function SortableKanbanCard({ item, onClick, renderItem }: SortableKanbanCardPro
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className="cursor-pointer"
+      className={`cursor-grab active:cursor-grabbing ${isDragging ? 'z-50' : ''}`}
     >
       {renderItem(item)}
     </div>

@@ -52,6 +52,19 @@ export default function LeadsBoardPage() {
   }
 
   async function handleItemMove(itemId: string, newColumnId: string) {
+    // Store the old status in case we need to revert
+    const oldLead = leads.find(l => l.id === itemId)
+    if (!oldLead) return
+    
+    const oldStatus = oldLead.status
+
+    // ✅ Optimistically update state immediately (prevents jump)
+    setLeads((prev) =>
+      prev.map((lead) =>
+        lead.id === itemId ? { ...lead, status: newColumnId } : lead
+      )
+    )
+
     try {
       const response = await fetch(`/api/crm/leads/${itemId}`, {
         method: 'PATCH',
@@ -59,14 +72,17 @@ export default function LeadsBoardPage() {
         body: JSON.stringify({ status: newColumnId }),
       })
 
-      if (!response.ok) throw new Error('Failed to update lead')
-
-      // Update local state
-      setLeads((prev) =>
-        prev.map((lead) =>
-          lead.id === itemId ? { ...lead, status: newColumnId } : lead
+      if (!response.ok) {
+        // ❌ Revert the optimistic update
+        setLeads((prev) =>
+          prev.map((lead) =>
+            lead.id === itemId ? { ...lead, status: oldStatus } : lead
+          )
         )
-      )
+        throw new Error('Failed to update lead')
+      }
+      
+      // ✅ API succeeded, optimistic update is now confirmed
     } catch (error) {
       console.error('Error updating lead:', error)
       alert('Failed to update lead status')
@@ -127,16 +143,16 @@ export default function LeadsBoardPage() {
   return (
     <Container size="full">
       <Stack gap="lg">
-        <PageHero eyebrow="ADMIN" title="Admin Page" subtitle="" />
-      <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Leads Board</h1>
-          <p className="text-sm md:text-base text-neutral-400">{leads.length} total leads</p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={() => router.push('/admin/crm/leads')}>
-          Table View
-        </Button>
-      </div>
+        <PageHero 
+          title="Leads Board" 
+          subtitle={`${leads.length} total leads`}
+        >
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/leads')}>
+              Table View
+            </Button>
+          </div>
+        </PageHero>
 
       <Kanban
         columns={COLUMNS}
