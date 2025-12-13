@@ -330,11 +330,10 @@ export default function ScheduleCallPage() {
         </PageHero>
 
         <div className="hidden md:block">
-        </h1>
-        <p className="text-base md:text-lg lg:text-xl text-neutral-400">
-          Book your 1-on-1 vision calibration session with your coach
-        </p>
-      </div>
+          <p className="text-base md:text-lg lg:text-xl text-neutral-400">
+            Book your 1-on-1 vision calibration session with your coach
+          </p>
+        </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
         
@@ -528,6 +527,7 @@ export default function ScheduleCallPage() {
               </p>
             </Card>
           </div>
+        </div>
       </Stack>
     </Container>
   )

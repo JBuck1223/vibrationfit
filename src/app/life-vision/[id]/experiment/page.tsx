@@ -446,8 +446,7 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
               Download PDF
             </Button>
           </div>
-        </div>
-      </div>
+        </PageHero>
 
       {/* Category Selection */}
       <div className="mb-8">

@@ -523,7 +523,6 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
           </div>
         </form>
           </Card>
-        </div>
 
       {/* Delete Confirmation Dialog */}
       {deleteDialogOpen && (

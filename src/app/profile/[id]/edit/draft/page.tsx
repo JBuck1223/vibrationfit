@@ -742,7 +742,6 @@ export default function ProfileEditPage() {
             </p>
           </div>
         </div>
-      </div>
 
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">

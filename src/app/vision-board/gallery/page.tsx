@@ -72,7 +72,6 @@ export default function GeneratedGalleryPage() {
               Uploaded
             </Button>
           </div>
-        </div>
 
         {/* Content */}
         {loading ? (

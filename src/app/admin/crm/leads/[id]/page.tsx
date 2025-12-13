@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Input, Textarea , Stack, PageHero, Spinner } from '@/lib/design-system/components'
 import { MessageSquare, Mail } from 'lucide-react'
 
 interface Lead {

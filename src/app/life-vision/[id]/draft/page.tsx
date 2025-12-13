@@ -488,10 +488,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                   )}
                 </Button>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Vision Categories Grid */}
       <div className="grid grid-cols-1 gap-6 mb-8">

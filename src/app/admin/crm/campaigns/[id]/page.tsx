@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Stack, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
 
 interface Campaign {
   id: string
@@ -102,7 +102,7 @@ export default function CampaignDetailPage() {
         <PageHero 
           eyebrow="CRM / CAMPAIGNS" 
           title={campaign.name} 
-          subtitle={campaign.description || 'Campaign details and performance metrics'}
+          subtitle="Campaign details and performance metrics"
         >
           <Button
             variant="ghost"

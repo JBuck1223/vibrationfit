@@ -510,7 +510,6 @@ export default function VibrationalEventSourcesAdminPage() {
               </div>
             </Card>
           </div>
-        </div>
         </Stack>
       </Container>
     </AdminWrapper>

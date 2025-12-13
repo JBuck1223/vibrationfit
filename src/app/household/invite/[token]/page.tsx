@@ -210,6 +210,7 @@ export default function AcceptInvitationPage() {
             <p className="text-neutral-300 mb-6">
             You've been invited to join a household account
           </p>
+          </Card>
         </div>
 
         {/* Invitation Details Card */}
@@ -282,8 +283,8 @@ export default function AcceptInvitationPage() {
             Invitation sent {new Date(invitation.created_at).toLocaleDateString()}
           </p>
         </div>
-      </div>
-    </div>
+      </Stack>
+    </Container>
   )
 }
 

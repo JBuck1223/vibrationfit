@@ -562,7 +562,6 @@ export default function IntensiveIntake() {
               Help us understand your current situation and vision so we can create a personalized activation plan.
             </p>
           </div>
-        </div>
 
         {/* Desktop Header */}
         <div className="hidden md:block text-center mb-4">
@@ -592,7 +591,6 @@ export default function IntensiveIntake() {
             </Badge>
           )}
         </div>
-      </div>
 
       {/* Progress Bar */}
       <div className="max-w-4xl mx-auto mb-6 md:mb-8">
@@ -675,7 +673,8 @@ export default function IntensiveIntake() {
           </div>
         </Card>
       )}
-      </div>
+      </Stack>
+    </Container>
   )
 
   function canProceed(): boolean {

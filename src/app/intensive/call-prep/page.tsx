@@ -232,7 +232,6 @@ export default function CallPrepPage() {
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </Card>
-      </Stack>
     </Container>
   )
 }

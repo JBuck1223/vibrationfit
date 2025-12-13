@@ -404,7 +404,6 @@ My daily routines support my vision and values. I wake up with purpose and energ
               Refine and personalize your AI-generated vision. Make it uniquely yours.
             </p>
           </div>
-        </div>
 
         {/* Desktop Header */}
         <div className="hidden md:block text-center mb-4">
@@ -434,7 +433,6 @@ My daily routines support my vision and values. I wake up with purpose and energ
             </Badge>
           )}
         </div>
-      </div>
 
       {/* Progress */}
       <div className="max-w-4xl mx-auto mb-6 md:mb-8">
