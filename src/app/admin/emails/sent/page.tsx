@@ -25,6 +25,7 @@ export default function SentEmailsPage() {
   const [emails, setEmails] = useState<EmailLog[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [syncingSMS, setSyncingSMS] = useState(false)
   const [filter, setFilter] = useState<'all' | 'outbound' | 'inbound'>('all')
 
   useEffect(() => {
@@ -61,6 +62,27 @@ export default function SentEmailsPage() {
       alert('Failed to sync emails. Check console for details.')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  async function syncSMSHistory() {
+    if (!confirm('This will sync ALL historical SMS messages from Twilio. This may take a minute. Continue?')) {
+      return
+    }
+
+    setSyncingSMS(true)
+    try {
+      const response = await fetch('/api/messaging/sync-sms-history', { method: 'POST' })
+      if (!response.ok) throw new Error('Failed to sync SMS history')
+      
+      const data = await response.json()
+      console.log('✅ SMS sync complete:', data)
+      alert(`SMS Sync Complete!\nSynced: ${data.synced}\nSkipped: ${data.skipped}\nErrors: ${data.errors}`)
+    } catch (error) {
+      console.error('❌ Error syncing SMS:', error)
+      alert('Failed to sync SMS history. Check console for details.')
+    } finally {
+      setSyncingSMS(false)
     }
   }
 
@@ -114,18 +136,30 @@ export default function SentEmailsPage() {
           <div className="flex gap-2">
             <Button
               variant="secondary"
+              size="sm"
               onClick={syncEmails}
               disabled={syncing}
               className="flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Check for New Emails'}
+              {syncing ? 'Syncing...' : 'Sync Emails'}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={syncSMSHistory}
+              disabled={syncingSMS}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncingSMS ? 'animate-spin' : ''}`} />
+              {syncingSMS ? 'Syncing...' : 'Sync SMS History'}
             </Button>
             <Button
               variant="ghost"
+              size="sm"
               onClick={() => router.push('/admin/emails/list')}
             >
-              Email Templates
+              Templates
             </Button>
           </div>
         </div>
