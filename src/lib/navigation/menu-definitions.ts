@@ -253,8 +253,6 @@ export const adminNavigation: NavItem[] = [
       { name: 'Leads Board', href: '/admin/crm/leads/board', icon: Kanban, description: 'Kanban board for leads' },
       { name: 'Members', href: '/admin/crm/members', icon: UserCheck, description: 'Platform members management' },
       { name: 'Members Board', href: '/admin/crm/members/board', icon: Kanban, description: 'Kanban board for members' },
-      { name: 'Customers', href: '/admin/crm/customers', icon: UsersRound, description: 'Customer management' },
-      { name: 'Customers Board', href: '/admin/crm/customers/board', icon: Kanban, description: 'Kanban board for customers' },
       { name: 'Support Board', href: '/admin/crm/support/board', icon: Headset, description: 'Support tickets board' },
       { name: 'UTM Builder', href: '/admin/crm/utm-builder', icon: Link2, description: 'Build UTM tracking URLs' },
     ]

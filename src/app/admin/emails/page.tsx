@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Container, Card, Badge , Stack, PageHero } from '@/lib/design-system/components'
+import { Container, Card, Badge, Stack, PageHero, Button } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { Mail, Send, Eye, List, Settings } from 'lucide-react'
 
@@ -37,7 +37,6 @@ function AdminEmailsContent() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="ADMIN"
           title="Email Management"
           subtitle="Manage transactional email templates and monitor delivery"
         />
