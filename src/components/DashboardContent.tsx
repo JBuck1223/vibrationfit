@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, Button, Badge, ProgressBar, Container, Stack, PageHero, AIButton, TrackingMilestoneCard, VersionBadge, StatusBadge } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import Link from 'next/link'
@@ -58,6 +59,22 @@ interface DashboardContentProps {
 }
 
 export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount }: DashboardContentProps) {
+  const [storageUsed, setStorageUsed] = useState(0)
+
+  useEffect(() => {
+    async function fetchStorageUsage() {
+      try {
+        const response = await fetch('/api/storage/usage')
+        if (response.ok) {
+          const data = await response.json()
+          setStorageUsed(data.totalSize || 0)
+        }
+      } catch (error) {
+        console.error('Error fetching storage usage:', error)
+      }
+    }
+    fetchStorageUsage()
+  }, [])
   // Calculate completion percentage manually (same logic as profile API)
   const calculateCompletionManually = (profileData: any): number => {
     if (!profileData) return 0
@@ -655,13 +672,13 @@ export default function DashboardContent({ user, profileData, visionData, vision
               </div>
               <h3 className="text-lg font-semibold mt-4">Storage Usage</h3>
               <p className="text-3xl font-bold text-secondary-500 mt-4">
-                0 GB
+                {(storageUsed / (1024 * 1024 * 1024)).toFixed(2)} GB
               </p>
               <p className="text-sm text-neutral-400 mt-2">
                 of {profileData?.storage_quota_gb ?? 5} GB used
               </p>
               <Link href="/dashboard/storage" className="mt-6">
-                <Button variant="secondary" size="sm">
+                <Button variant="outline" size="sm">
                   Storage Dashboard
                 </Button>
               </Link>

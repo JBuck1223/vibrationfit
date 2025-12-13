@@ -39,17 +39,15 @@ export async function proxy(req: NextRequest) {
     }
   )
 
-  // Get session once (used for both intensive and admin checks)
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+  // Get user (authenticated by Supabase, not just from cookies)
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
 
   // Handle admin route protection
   if (isAdminRoute(pathname)) {
     try {
-      if (sessionError || !session?.user) {
+      if (userError || !user) {
         return createAdminResponse(req)
       }
-
-      const user = session.user
 
       // Check if user is admin (email check + metadata check)
       const adminEmails = ['buckinghambliss@gmail.com', 'admin@vibrationfit.com']

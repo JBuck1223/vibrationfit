@@ -212,8 +212,6 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
   // Handle category selection
   const handleCategorySelect = (categoryKey: string) => {
     setSelectedCategory(categoryKey)
-    const currentPath = window.location.pathname
-    router.replace(`${currentPath}?section=${categoryKey}`, { scroll: false })
   }
 
   // Track field changes locally

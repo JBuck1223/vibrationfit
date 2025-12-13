@@ -39,10 +39,21 @@ export async function POST(request: NextRequest) {
       })
 
       // Parse email details
-      const from = message.mail?.source || 'unknown@sender.com'
+      let from = message.mail?.source || 'unknown@sender.com'
       const to = message.mail?.destination?.[0] || 'team@vibrationfit.com'
       const subject = message.mail?.commonHeaders?.subject || '(No Subject)'
       const messageId = message.mail?.messageId
+      
+      // Handle forwarded emails from Gmail
+      // Gmail forwards have the forwarding address as "from", but we want the original sender
+      if (from.includes('vibrationfit.com') && message.mail?.commonHeaders?.from?.[0]) {
+        // Extract original sender from "From" header
+        const originalFrom = message.mail.commonHeaders.from[0]
+        const emailMatch = originalFrom.match(/<(.+?)>/) || originalFrom.match(/([^\s]+@[^\s]+)/)
+        if (emailMatch) {
+          from = emailMatch[1] || from
+        }
+      }
       
       // Get email content (SES provides it in S3 or directly)
       let bodyText = ''

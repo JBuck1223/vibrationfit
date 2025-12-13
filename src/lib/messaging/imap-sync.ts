@@ -102,22 +102,14 @@ export async function syncInboundEmails(): Promise<EmailSyncResult> {
                     return
                   }
 
-                  // Find matching user by email
-                  const { data: authUser } = await supabase.auth.admin.getUserById(fromEmail)
-                  
-                  let userId = authUser?.user?.id
+                  // Find matching user by email in user_profiles
+                  const { data: profile } = await supabase
+                    .from('user_profiles')
+                    .select('user_id')
+                    .eq('email', fromEmail)
+                    .single()
 
-                  if (!userId) {
-                    // Try to find by email in user_profiles
-                    const { data: profile } = await supabase
-                      .from('user_profiles')
-                      .select('user_id')
-                      .eq('email', fromEmail)
-                      .eq('is_active', true)
-                      .single()
-
-                    userId = profile?.user_id
-                  }
+                  const userId = profile?.user_id
 
                   // Save to database
                   const { error: insertError } = await supabase

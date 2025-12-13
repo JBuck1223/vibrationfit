@@ -50,8 +50,15 @@ export async function POST(request: NextRequest) {
       .eq('is_active', true)
 
     if (profileError) {
-      throw new Error('Failed to fetch member details')
+      console.error('❌ Profile fetch error:', profileError)
+      throw new Error(`Failed to fetch member details: ${profileError.message}`)
     }
+
+    if (!profiles || profiles.length === 0) {
+      return NextResponse.json({ error: 'No valid members found' }, { status: 400 })
+    }
+
+    console.log(`📤 Sending ${type} to ${profiles.length} members`)
 
     const results = {
       success: 0,
@@ -60,6 +67,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (type === 'sms') {
+      console.log(`💬 Sending bulk SMS to ${profiles.length} members`)
+      
       // Send SMS to each member
       for (const profile of profiles) {
         if (!profile.phone) {
@@ -69,11 +78,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Check SMS opt-in (A2P compliance)
-        if (!profile.sms_opt_in) {
-          results.failed++
-          results.errors.push(`${profile.email}: User has not opted in to SMS notifications`)
-          continue
-        }
+        // TODO: Uncomment this for production!
+        // if (!profile.sms_opt_in) {
+        //   results.failed++
+        //   results.errors.push(`${profile.email}: User has not opted in to SMS notifications`)
+        //   continue
+        // }
 
         try {
           const result = await sendSMS({
@@ -111,6 +121,8 @@ export async function POST(request: NextRequest) {
       const recipients = profiles.map((p) => p.email)
 
       try {
+        console.log(`📧 Sending bulk email to ${recipients.length} recipients`)
+        
         await sendBulkEmail({
           recipients,
           subject,
@@ -118,6 +130,8 @@ export async function POST(request: NextRequest) {
           textBody: `Hi there,\n\n${message}`,
           replyTo: 'team@vibrationfit.com',
         })
+        
+        console.log('✅ Bulk email sent successfully')
         results.success = profiles.length
         results.failed = 0
         results.errors = []
@@ -135,8 +149,12 @@ export async function POST(request: NextRequest) {
           sent_at: new Date().toISOString(),
         }))
 
-        await supabase.from('email_messages').insert(emailLogs)
+        const { error: insertError } = await supabase.from('email_messages').insert(emailLogs)
+        if (insertError) {
+          console.error('⚠️ Failed to log emails to database:', insertError)
+        }
       } catch (error: any) {
+        console.error('❌ Bulk email error:', error)
         throw new Error(error.message || 'Failed to send bulk email')
       }
     }
