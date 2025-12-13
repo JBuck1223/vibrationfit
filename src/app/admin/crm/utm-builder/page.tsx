@@ -15,6 +15,8 @@ export default function UTMBuilderPage() {
     campaign: '',
     content: '',
     term: '',
+    promo: '',
+    referral: '',
   })
   const [copied, setCopied] = useState(false)
 
@@ -30,6 +32,8 @@ export default function UTMBuilderPage() {
     if (utmParams.campaign) params.append('utm_campaign', utmParams.campaign)
     if (utmParams.content) params.append('utm_content', utmParams.content)
     if (utmParams.term) params.append('utm_term', utmParams.term)
+    if (utmParams.promo) params.append('promo_code', utmParams.promo)
+    if (utmParams.referral) params.append('referral_source', utmParams.referral)
 
     const queryString = params.toString()
     return queryString ? `${baseUrl}?${queryString}` : baseUrl
@@ -53,11 +57,46 @@ export default function UTMBuilderPage() {
       campaign: '',
       content: '',
       term: '',
+      promo: '',
+      referral: '',
     })
   }
 
   function loadExample(example: string) {
     switch (example) {
+      case 'visionpro':
+        setUtmParams({
+          source: 'partner_john',
+          medium: 'affiliate',
+          campaign: 'vision-pro-launch',
+          content: 'hero-banner',
+          term: '',
+          promo: 'VISIONPRO50',
+          referral: 'partner_john',
+        })
+        break
+      case 'intensive':
+        setUtmParams({
+          source: 'instagram',
+          medium: 'social',
+          campaign: 'free-intensive',
+          content: 'story-link',
+          term: '',
+          promo: 'FREEINTENSIVE',
+          referral: 'instagram_organic',
+        })
+        break
+      case 'affiliate':
+        setUtmParams({
+          source: 'affiliate_network',
+          medium: 'referral',
+          campaign: 'q1-2025',
+          content: 'email-signature',
+          term: '',
+          promo: 'PARTNER25',
+          referral: 'affiliate_jane_smith',
+        })
+        break
       case 'facebook':
         setUtmParams({
           source: 'facebook',
@@ -65,15 +104,8 @@ export default function UTMBuilderPage() {
           campaign: 'summer-2025',
           content: 'ad-variant-a',
           term: 'life-vision',
-        })
-        break
-      case 'google':
-        setUtmParams({
-          source: 'google',
-          medium: 'cpc',
-          campaign: 'brand-search',
-          content: 'text-ad',
-          term: 'vibration-fit',
+          promo: '',
+          referral: '',
         })
         break
       case 'email':
@@ -83,15 +115,8 @@ export default function UTMBuilderPage() {
           campaign: 'weekly-tips',
           content: 'cta-button',
           term: '',
-        })
-        break
-      case 'instagram':
-        setUtmParams({
-          source: 'instagram',
-          medium: 'social',
-          campaign: 'summer-2025',
-          content: 'story',
-          term: '',
+          promo: '',
+          referral: '',
         })
         break
     }
@@ -112,22 +137,35 @@ export default function UTMBuilderPage() {
 
       <Card className="p-4 md:p-6 mb-4 md:mb-6">
         <h2 className="text-lg md:text-xl font-semibold mb-4">Quick Examples</h2>
-        <div className="flex flex-wrap gap-2 md:gap-3">
-          <Button variant="ghost" size="sm" onClick={() => loadExample('facebook')}>
-            Facebook Ad
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => loadExample('google')}>
-            Google Ad
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => loadExample('email')}>
-            Email Campaign
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => loadExample('instagram')}>
-            Instagram
-          </Button>
-          <Button variant="outline" size="sm" onClick={clearAll}>
-            Clear All
-          </Button>
+        <div className="space-y-3">
+          <div>
+            <p className="text-xs text-neutral-500 mb-2 uppercase tracking-wider">VibrationFit Products</p>
+            <div className="flex flex-wrap gap-2 md:gap-3">
+              <Button variant="primary" size="sm" onClick={() => loadExample('visionpro')}>
+                Vision Pro Affiliate
+              </Button>
+              <Button variant="accent" size="sm" onClick={() => loadExample('intensive')}>
+                Free Intensive
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => loadExample('affiliate')}>
+                Affiliate Partner
+              </Button>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-neutral-500 mb-2 uppercase tracking-wider">Marketing Channels</p>
+            <div className="flex flex-wrap gap-2 md:gap-3">
+              <Button variant="ghost" size="sm" onClick={() => loadExample('facebook')}>
+                Facebook Ad
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => loadExample('email')}>
+                Email Campaign
+              </Button>
+              <Button variant="outline" size="sm" onClick={clearAll}>
+                Clear All
+              </Button>
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -213,6 +251,43 @@ export default function UTMBuilderPage() {
               Identify paid search keywords (e.g., life-vision, personal-growth)
             </p>
           </div>
+
+          <div className="pt-4 border-t border-[#333]">
+            <h3 className="text-base font-semibold mb-4 text-primary-500">
+              🎯 VibrationFit Tracking Parameters
+            </h3>
+            <p className="text-xs text-neutral-400 mb-4">
+              These parameters track promo codes and affiliate sources for Vision Pro & Intensive purchases
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Promo Code <span className="text-neutral-500">(promo_code)</span>
+            </label>
+            <Input
+              value={utmParams.promo}
+              onChange={(e) => handleParamChange('promo', e.target.value)}
+              placeholder="VISIONPRO50, FREEINTENSIVE, PARTNER25"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              Coupon/promo code for tracking discounts and offers (e.g., VISIONPRO50, FREEINTENSIVE)
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Referral Source <span className="text-neutral-500">(referral_source)</span>
+            </label>
+            <Input
+              value={utmParams.referral}
+              onChange={(e) => handleParamChange('referral', e.target.value)}
+              placeholder="partner_john, affiliate_jane, instagram_organic"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              Specific affiliate or partner identifier (e.g., partner_john, affiliate_jane_smith)
+            </p>
+          </div>
         </div>
       </Card>
 
@@ -248,26 +323,51 @@ export default function UTMBuilderPage() {
 
       <Card className="p-4 md:p-6">
         <h2 className="text-lg md:text-xl font-semibold mb-4">Best Practices</h2>
-        <ul className="space-y-2 text-sm md:text-base text-neutral-300">
-          <li>
-            • <strong>Always use lowercase:</strong> UTM parameters are case-sensitive
-          </li>
-          <li>
-            • <strong>Use hyphens:</strong> Separate words with hyphens (e.g., summer-2025)
-          </li>
-          <li>
-            • <strong>Be consistent:</strong> Use the same naming conventions across campaigns
-          </li>
-          <li>
-            • <strong>Required fields:</strong> Source, Medium, and Campaign are essential
-          </li>
-          <li>
-            • <strong>Content for A/B testing:</strong> Use utm_content to differentiate ad variants
-          </li>
-          <li>
-            • <strong>Term for paid search:</strong> Track specific keywords with utm_term
-          </li>
-        </ul>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-primary-500 mb-2">General UTM Guidelines</h3>
+            <ul className="space-y-2 text-sm text-neutral-300">
+              <li>
+                • <strong>Always use lowercase:</strong> UTM parameters are case-sensitive
+              </li>
+              <li>
+                • <strong>Use hyphens or underscores:</strong> Separate words (e.g., summer-2025, partner_john)
+              </li>
+              <li>
+                • <strong>Be consistent:</strong> Use the same naming conventions across campaigns
+              </li>
+              <li>
+                • <strong>Required fields:</strong> Source, Medium, and Campaign are essential
+              </li>
+              <li>
+                • <strong>Content for A/B testing:</strong> Use utm_content to differentiate ad variants
+              </li>
+              <li>
+                • <strong>Term for paid search:</strong> Track specific keywords with utm_term
+              </li>
+            </ul>
+          </div>
+          <div className="pt-3 border-t border-[#333]">
+            <h3 className="text-sm font-semibold text-accent-500 mb-2">VibrationFit Affiliate Tracking</h3>
+            <ul className="space-y-2 text-sm text-neutral-300">
+              <li>
+                • <strong>Promo Code:</strong> Use ALL CAPS for consistency (e.g., VISIONPRO50, FREEINTENSIVE)
+              </li>
+              <li>
+                • <strong>Referral Source:</strong> Use lowercase with underscores (e.g., partner_john, affiliate_jane_smith)
+              </li>
+              <li>
+                • <strong>Campaign Name:</strong> Descriptive campaign identifier (e.g., vision-pro-launch, free-intensive)
+              </li>
+              <li>
+                • <strong>Database Tracking:</strong> These parameters are saved to customer_subscriptions and intensive_purchases
+              </li>
+              <li>
+                • <strong>Affiliate Reports:</strong> Use referral_source to identify top-performing partners
+              </li>
+            </ul>
+          </div>
+        </div>
       </Card>
       </Stack>
     </Container>
