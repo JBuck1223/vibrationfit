@@ -678,7 +678,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 of {profileData?.storage_quota_gb ?? 5} GB total
               </p>
               <Link href="/dashboard/storage" className="mt-6">
-                <Button variant="outline" size="sm">
+                <Button variant="secondary" size="sm">
                   Storage Dashboard
                 </Button>
               </Link>
