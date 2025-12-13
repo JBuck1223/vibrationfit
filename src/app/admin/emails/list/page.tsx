@@ -143,7 +143,7 @@ function EmailsPageContent() {
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base md:text-lg font-semibold">{email.name}</h3>
-              <Badge variant={email.status === 'active' ? 'success' : 'default'}>
+              <Badge variant={email.status === 'active' ? 'success' : 'neutral'}>
                 {email.category}
               </Badge>
             </div>

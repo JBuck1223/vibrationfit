@@ -701,7 +701,7 @@ export default function AdminScheduleCallPage() {
                     >
                       {eventTypes.map(type => (
                         <option key={type.value} value={type.value}>
-                          {type.icon} {type.label}
+                          {type.label}
                         </option>
                       ))}
                     </select>
@@ -981,7 +981,7 @@ export default function AdminScheduleCallPage() {
                         <option value="all">All Event Types</option>
                         {eventTypes.map(type => (
                           <option key={type.value} value={type.value}>
-                            {type.icon} {type.label}
+                            {type.label}
                           </option>
                         ))}
                       </select>

@@ -14,7 +14,12 @@ import {
   Input,
   Textarea,
   CategoryCard,
-  Icon
+  Icon,
+  Container,
+  Stack,
+  PageHero,
+  VersionBadge,
+  StatusBadge
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { generateVisionPDF } from '@/lib/pdf'
