@@ -489,6 +489,16 @@ export function isNavItemActive(
     return true
   }
   
+  // Don't highlight "All Profiles" when on /profile/active (redirect page)
+  if (item.href === '/profile' && pathname === '/profile/active') {
+    return false
+  }
+  
+  // Don't highlight "All Visions" when on /life-vision/active (redirect page)
+  if (item.href === '/life-vision' && pathname === '/life-vision/active') {
+    return false
+  }
+  
   // Special handling for /life-vision/{id} paths - should match "My Active Vision"
   // Check if we're on a specific vision detail page
   if (pathname.match(/^\/life-vision\/[^\/]+$/) && !pathname.includes('/active') && !pathname.includes('/audio') && !pathname.includes('/new')) {

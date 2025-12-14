@@ -9,6 +9,7 @@ import type { User } from '@supabase/supabase-js'
  * Note: Token balances are fetched separately via token_balances table
  */
 export interface ActiveProfileFields {
+  id?: string
   first_name?: string | null
   profile_picture_url?: string | null
 }
@@ -85,7 +86,7 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
     // If that fails, fallback to most recent profile
     const queryPromise = supabase
       .from('user_profiles')
-      .select('first_name, profile_picture_url')
+      .select('id, first_name, profile_picture_url')
       .eq('user_id', userId)
       .eq('is_active', true)
       .eq('is_draft', false)
@@ -96,7 +97,7 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
           console.log(`No active profile for user ${userId}, trying fallback...`)
           const fallbackResult = await supabase
             .from('user_profiles')
-            .select('first_name, profile_picture_url, is_active, is_draft')
+            .select('id, first_name, profile_picture_url, is_active, is_draft')
             .eq('user_id', userId)
             .order('updated_at', { ascending: false })
             .limit(1)
