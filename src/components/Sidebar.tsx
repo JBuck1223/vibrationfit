@@ -169,6 +169,24 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
           const isActive = isNavItemActive(item, pathname, profile?.id)
           const isExpanded = expandedItems.includes(item.name)
           const Icon = item.icon
+          
+          // Check if any child is active (don't highlight parent if child is active)
+          const hasActiveChild = item.children?.some(child => 
+            isNavItemActive(child, pathname, profile?.id)
+          )
+          const shouldHighlightParent = isActive && !hasActiveChild
+          
+          // Comprehensive debug logging
+          if (pathname.includes('/new') || pathname.includes('/vision-board') || pathname.includes('/journal')) {
+            console.log(`🔍 ${item.name}:`, {
+              pathname,
+              itemHref: item.href,
+              isActive,
+              hasActiveChild,
+              shouldHighlightParent,
+              hasDropdown: item.hasDropdown
+            })
+          }
 
           return (
             <div key={item.name}>
@@ -178,7 +196,7 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
                     onClick={() => toggleExpanded(item.name)}
                     className={cn(
                       'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full text-left',
-                      isActive
+                      shouldHighlightParent
                         ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
                         : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
                     )}
@@ -197,6 +215,9 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
                         const ChildIcon = child.icon
                         const isChildActive = isNavItemActive(child, pathname, profile?.id)
                         
+                        // Add extra indent for "New Item" and "New Entry" items
+                        const isNestedItem = child.name === 'New Item' || child.name === 'New Entry'
+                        
                         return (
                           <Link
                             key={child.name}
@@ -205,7 +226,8 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
                               'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
                               isChildActive
                                 ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
-                                : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                                : 'text-neutral-400 hover:text-white hover:bg-neutral-800',
+                              isNestedItem ? 'ml-6' : ''
                             )}
                           >
                             <ChildIcon className="w-4 h-4 flex-shrink-0" />
