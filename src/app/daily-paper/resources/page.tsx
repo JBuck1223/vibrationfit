@@ -12,7 +12,7 @@ import {
   PageHero,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowLeft, Download, Heart, Target, Sparkles, Plus } from 'lucide-react'
+import { Download, Heart, Target, Sparkles, Plus } from 'lucide-react'
 
 const HALF_PAGE_PDF =
   'https://media.vibrationfit.com/site-assets/processes/daily-paper/daily-paper-for-print.pdf'
@@ -29,31 +29,28 @@ export default function DailyPaperResourcesPage() {
           title="Daily Paper Resources"
           subtitle="Learn the daily practice that keeps you vibrationally aligned"
         >
-          <Inline gap="sm" justify="center" className="flex-wrap">
-            <Button variant="ghost" size="sm" asChild>
+          <div className="mx-auto w-full max-w-3xl mb-6">
+            <OptimizedVideo
+              url={DAILY_PAPER_VIDEO}
+              context="single"
+              className="w-full"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
+            <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
               <Link href="/daily-paper">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to archive
+                See All
               </Link>
             </Button>
-            <Button variant="outline" size="sm" className="flex items-center gap-2" asChild>
+            <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
               <Link href="/daily-paper/new">
                 <Plus className="w-4 h-4" />
                 Add entry
               </Link>
             </Button>
-          </Inline>
+          </div>
         </PageHero>
-
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="lg" className="text-center">
-            <OptimizedVideo
-              url={DAILY_PAPER_VIDEO}
-              context="single"
-              className="mx-auto w-full max-w-3xl"
-            />
-          </Stack>
-        </Card>
 
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
@@ -145,13 +142,13 @@ export default function DailyPaperResourcesPage() {
               Choose the layout that fits your flow and keep your notebook aligned with the digital archive.
             </p>
             <Inline gap="sm" justify="center" className="flex-wrap">
-              <Button variant="secondary" size="sm" className="w-full md:w-auto justify-center" asChild>
+              <Button variant="secondary" size="sm" className="justify-center" asChild>
                 <Link href={HALF_PAGE_PDF} target="_blank">
                   <Download className="mr-2 h-4 w-4" />
                   Half-page PDF
                 </Link>
               </Button>
-              <Button variant="secondary" size="sm" className="w-full md:w-auto justify-center" asChild>
+              <Button variant="secondary" size="sm" className="justify-center" asChild>
                 <Link href={FULL_PAGE_PDF} target="_blank">
                   <Download className="mr-2 h-4 w-4" />
                   Full-page PDF

@@ -1733,7 +1733,7 @@ export default function ProfileDetailPage() {
           )}
 
           {/* Action Buttons - Enhanced with Hover Effects */}
-          <div className="flex flex-row flex-wrap md:flex-nowrap justify-center gap-2 md:gap-4 max-w-2xl mx-auto">
+          <div className="flex flex-row flex-wrap lg:flex-nowrap justify-center gap-2 md:gap-4 max-w-2xl mx-auto">
             <Button
               onClick={() => router.push('/profile/edit')}
               variant="outline"

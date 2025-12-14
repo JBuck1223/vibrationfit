@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, Button, Container, Stack, PageHero } from '@/lib/design-system/components'
-import { Sparkles, Mic, Brain, Zap, CheckCircle } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 export default function VIVALifeVisionLandingPage() {
@@ -24,16 +24,8 @@ export default function VIVALifeVisionLandingPage() {
           eyebrow="THE LIFE I CHOOSE"
           title="Create Your Life Vision with VIVA"
           subtitle="Your Vibrational Intelligence Virtual Assistant is here to help you articulate and activate the life you choose. We'll guide you through 12 key life areas, capturing your voice and energy to create a unified vision."
-        >
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#8B5CF6]/20 to-[#B629D4]/20 border-2 border-[#8B5CF6]/50 backdrop-blur-sm">
-            <Sparkles className="w-10 h-10 text-[#8B5CF6]" />
-          </div>
-          
-          <div className="flex items-center justify-center gap-2 text-primary-500 font-semibold text-sm md:text-base">
-            <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />
-            <span>12 Life Categories</span>
-          </div>
-        </PageHero>
+        />
+
 
         {/* How It Works */}
         <Card>
@@ -45,9 +37,9 @@ export default function VIVALifeVisionLandingPage() {
               <Card variant="elevated" hover className="border-2 border-neutral-700 hover:border-primary-500 transition-all duration-300">
                 <div className="flex flex-col items-center text-center">
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-primary-500/20 rounded-xl flex items-center justify-center mb-4">
-                    <Mic className="w-6 h-6 md:w-8 md:h-8 text-primary-500" />
+                    <span className="text-2xl md:text-3xl font-bold text-primary-500">1</span>
                   </div>
-                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">1. Record Your Reflections</h3>
+                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">Record Your Reflections</h3>
                   <p className="text-xs md:text-sm text-neutral-400">
                     Speak naturally about each life area. Your authentic voice is transcribed and preserved.
                   </p>
@@ -58,9 +50,9 @@ export default function VIVALifeVisionLandingPage() {
               <Card variant="elevated" hover className="border-2 border-neutral-700 hover:border-secondary-500 transition-all duration-300">
                 <div className="flex flex-col items-center text-center">
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-secondary-500/20 rounded-xl flex items-center justify-center mb-4">
-                    <Brain className="w-6 h-6 md:w-8 md:h-8 text-secondary-500" />
+                    <span className="text-2xl md:text-3xl font-bold text-secondary-500">2</span>
                   </div>
-                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">2. AI Synthesis</h3>
+                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">AI Synthesis</h3>
                   <p className="text-xs md:text-sm text-neutral-400">
                     VIVA analyzes your profile, assessment, and recordings to craft emotionally intelligent summaries.
                   </p>
@@ -71,9 +63,9 @@ export default function VIVALifeVisionLandingPage() {
               <Card variant="elevated" hover className="border-2 border-neutral-700 hover:border-accent-500 transition-all duration-300">
                 <div className="flex flex-col items-center text-center">
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-accent-500/20 rounded-xl flex items-center justify-center mb-4">
-                    <Zap className="w-6 h-6 md:w-8 md:h-8 text-accent-500" />
+                    <span className="text-2xl md:text-3xl font-bold text-accent-500">3</span>
                   </div>
-                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">3. Your Vision Unfolds</h3>
+                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">Your Vision Unfolds</h3>
                   <p className="text-xs md:text-sm text-neutral-400">
                     Receive a beautifully written, vibrationally congruent Life Vision in your own words.
                   </p>
@@ -100,8 +92,8 @@ export default function VIVALifeVisionLandingPage() {
                     className="!px-2 !py-4 border-2 border-neutral-700 hover:border-[#00FFFF] transition-all duration-300"
                   >
                     <div className="flex flex-col items-center text-center">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-neutral-800/50 border border-[#00FFFF]/30">
-                        <IconComponent className="w-6 h-6 text-[#00FFFF]" />
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-neutral-800/50">
+                        <IconComponent className="w-6 h-6 text-white" />
                       </div>
                       <h4 className="font-semibold text-white text-sm mb-1">{category.label}</h4>
                       <p className="text-xs text-neutral-400">{category.description}</p>

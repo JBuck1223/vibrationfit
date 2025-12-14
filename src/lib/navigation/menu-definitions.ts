@@ -128,7 +128,7 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Visual vision board',
     children: [
-      { name: 'My Vision Board', href: '/vision-board', icon: Zap },
+      { name: 'My Vision Board', href: '/vision-board', icon: Image },
       { name: 'New Item', href: '/vision-board/new', icon: Plus },
     ]
   },
@@ -484,13 +484,25 @@ export function isNavItemActive(
   pathname: string,
   activeProfileId?: string | null
 ): boolean {
+  // For parent dropdown items, don't match when on child routes
+  // This prevents "Vision Board" from highlighting when on "/vision-board/new"
+  if (item.hasDropdown && item.children) {
+    // Check if we're on a child route of this parent
+    const isOnChildRoute = item.children.some(child => 
+      pathname === child.href || pathname.startsWith(child.href + '/')
+    )
+    if (isOnChildRoute) {
+      return false
+    }
+  }
+  
   // Exact match
   if (item.href === pathname) {
     return true
   }
   
-  // Don't highlight "All Profiles" when on /profile/active (redirect page)
-  if (item.href === '/profile' && pathname === '/profile/active') {
+  // Don't highlight "All Profiles" when on /profile/active or /profile/edit (redirect pages)
+  if (item.href === '/profile' && (pathname === '/profile/active' || pathname === '/profile/edit')) {
     return false
   }
   
@@ -509,6 +521,18 @@ export function isNavItemActive(
     // Don't mark "All Visions" as active for individual vision pages
     if (item.href === '/life-vision') {
       return false
+    }
+  }
+  
+  // Special handling for /profile/edit and /profile/{id}/edit paths
+  if (pathname === '/profile/edit' || pathname.match(/^\/profile\/[^\/]+\/edit$/)) {
+    // Don't highlight "All Profiles" when editing
+    if (item.href === '/profile') {
+      return false
+    }
+    // Highlight "Edit Profile" when on any edit page (including redirect)
+    if (item.href === '/profile/edit') {
+      return true
     }
   }
   
@@ -555,10 +579,8 @@ export function isNavItemActive(
     return true
   }
   
-  // Check children
-  if (item.children) {
-    return item.children.some(child => isNavItemActive(child, pathname, activeProfileId))
-  }
+  // Don't check children for parent highlighting - this is handled in Sidebar component
+  // We only return true for direct item matches, not when children are active
   
   return false
 }

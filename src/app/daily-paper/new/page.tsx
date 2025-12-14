@@ -179,7 +179,26 @@ export default function NewDailyPaperPage() {
         <PageHero
           title="Daily Paper Entry"
           subtitle="Your daily practice for vibrational alignment"
-        />
+        >
+          <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/daily-paper')}
+              className="w-full md:w-auto md:flex-none"
+            >
+              See All
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/daily-paper/resources')}
+              className="w-full md:w-auto md:flex-none"
+            >
+              Resources
+            </Button>
+          </div>
+        </PageHero>
 
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <form onSubmit={handleSubmit}>
@@ -198,11 +217,11 @@ export default function NewDailyPaperPage() {
                       }).format(new Date(`${entryDate}T00:00:00`))}
                     </p>
                   </div>
-                  <div className="ml-auto">
+                  <div className="ml-auto w-full md:w-auto">
                     <DatePicker
                       value={entryDate}
                       onChange={(dateString) => setEntryDate(dateString)}
-                      className="w-auto"
+                      className="w-full md:w-auto"
                     />
                   </div>
                 </Inline>
@@ -312,7 +331,7 @@ export default function NewDailyPaperPage() {
               <div className="flex justify-end">
                 <Button type="submit" size="md" loading={isSubmitting || isSaving} className="flex items-center gap-2">
                   <Save className="w-4 h-4" />
-                  Save Daily Paper
+                  Save
                 </Button>
               </div>
             </Stack>
