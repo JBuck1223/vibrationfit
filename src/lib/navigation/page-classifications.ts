@@ -75,6 +75,7 @@ export const PAGE_CLASSIFICATIONS = {
     // Household Management
     '/household/settings',
     '/household/invite/[token]',
+    '/life-vision/household',
     
     // Vibration Assessment
     '/assessment',

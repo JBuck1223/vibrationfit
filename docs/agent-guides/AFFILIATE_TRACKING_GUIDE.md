@@ -18,28 +18,44 @@ The system now tracks promo codes, referral sources, and campaigns for every int
 
 ## 🔗 URL Parameters
 
-### Basic Promo Code
+### Basic Promo Code (Solo)
 ```
-https://vibrationfit.com/?promo=FREEINTENSIVE#pricing
-```
-
-### With Affiliate Tracking
-```
-https://vibrationfit.com/?promo=BETA2024&ref=partner_john#pricing
+https://vibrationfit.com/?promo=INTENSIVE2025#pricing
 ```
 
-### Full Tracking (Recommended)
+### Basic Promo Code (Household)
 ```
-https://vibrationfit.com/?promo=LAUNCH100&ref=partner_sarah&campaign=holiday_2024#pricing
+https://vibrationfit.com/?plan=household&promo=INTENSIVE2025-HOUSEHOLD#pricing
+```
+
+### With Affiliate Tracking (Solo)
+```
+https://vibrationfit.com/?promo=INTENSIVE2025&ref=partner_john#pricing
+```
+
+### With Affiliate Tracking (Household)
+```
+https://vibrationfit.com/?plan=household&promo=INTENSIVE2025-HOUSEHOLD&ref=partner_john#pricing
+```
+
+### Full Tracking - Recommended (Solo)
+```
+https://vibrationfit.com/?promo=INTENSIVE2025&ref=partner_sarah&campaign=jan_2025#pricing
+```
+
+### Full Tracking - Recommended (Household)
+```
+https://vibrationfit.com/?plan=household&promo=INTENSIVE2025-HOUSEHOLD&ref=couples_coach&campaign=jan_2025#pricing
 ```
 
 ### All Supported Parameters
 
 | Parameter | Aliases | Purpose | Example |
 |-----------|---------|---------|---------|
-| `promo` | - | Promo/coupon code | `FREEINTENSIVE` |
+| `promo` | - | Promo/coupon code | `INTENSIVE2025` or `INTENSIVE2025-HOUSEHOLD` |
 | `ref` | `source`, `affiliate` | Affiliate/partner ID | `partner_john` |
-| `campaign` | `utm_campaign` | Campaign name | `holiday_2024` |
+| `campaign` | `utm_campaign` | Campaign name | `jan_2025` |
+| `plan` | `type`, `planType` | Plan type | `solo` or `household` |
 | `continuity` | - | Pre-select plan | `annual` or `28day` |
 
 ---
@@ -90,8 +106,8 @@ SELECT
   COUNT(*) as total_uses,
   SUM(amount) as total_revenue,
   AVG(amount) as avg_order_value,
-  COUNT(CASE WHEN amount = 0 THEN 1 END) as free_uses,
-  COUNT(CASE WHEN amount > 0 THEN 1 END) as paid_uses
+  COUNT(CASE WHEN amount <= 100 THEN 1 END) as promo_uses,
+  COUNT(CASE WHEN amount > 100 THEN 1 END) as paid_uses
 FROM intensive_purchases
 WHERE promo_code IS NOT NULL
 GROUP BY promo_code
@@ -100,11 +116,11 @@ ORDER BY total_uses DESC;
 
 **Example Output:**
 ```
-promo_code      | total_uses | total_revenue | avg_order_value | free_uses | paid_uses
-----------------|------------|---------------|-----------------|-----------|----------
-FREEINTENSIVE   | 47         | $0            | $0              | 47        | 0
-BETA2024        | 32         | $0            | $0              | 32        | 0
-LAUNCH50        | 18         | $4,491        | $249.50         | 0         | 18
+promo_code      | total_uses | total_revenue | avg_order_value | promo_uses | paid_uses
+----------------|------------|---------------|-----------------|------------|----------
+INTENSIVE2025   | 47         | $47           | $1.00           | 47         | 0
+BETA2024        | 32         | $32           | $1.00           | 32         | 0
+LAUNCH50        | 18         | $4,491        | $249.50         | 0          | 18
 ```
 
 ### 2. Affiliate Performance
@@ -204,9 +220,28 @@ https://vibrationfit.com/?promo=PARTNER_SARAH&ref=partner_sarah&campaign=partner
 
 ```
 Stripe Dashboard → Coupons:
-- PARTNER_JOHN: 50% off (or 100% for beta)
-- PARTNER_SARAH: 50% off (or 100% for beta)
+
+Solo Intensive ($499 → $1):
+- INTENSIVE2025: $498 off
+- PARTNER_JOHN: $498 off
+- PARTNER_SARAH: $498 off
+
+Household Intensive ($699 → $1):
+- INTENSIVE2025-HOUSEHOLD: $698 off
+- PARTNER_JOHN-HOUSEHOLD: $698 off
+- PARTNER_SARAH-HOUSEHOLD: $698 off
+
+Other:
+- LAUNCH50: 50% off ($249.50 payment)
 ```
+
+**⚠️ Important:** Don't use 100% off coupons! Use amount-off coupons instead.
+- **Why:** $0 checkouts don't collect payment methods
+- **Problem:** Can't create Vision Pro subscription (no card on file)
+- **Solution:** Charge $1 for payment verification
+  - Solo: $498 off ($499 → $1)
+  - Household: $698 off ($699 → $1)
+- **Result:** Card collected, webhook works, subscription created successfully ✅
 
 **3. Track Performance:**
 
@@ -288,16 +323,16 @@ LIMIT 10;
 
 ## 🎯 Use Cases
 
-### 1. Beta Program Tracking
+### 1. Launch Program Tracking
 
 ```
-Link: ?promo=BETA2024&ref=beta_list&campaign=beta_launch
+Link: ?promo=INTENSIVE2025&ref=launch_list&campaign=jan_2025_launch
 ```
 
 Track:
-- How many beta users signed up
-- Which beta users converted to paid
-- Beta program ROI
+- How many launch users signed up
+- Conversion rate from promo to paid
+- Campaign ROI
 
 ### 2. Influencer Partnerships
 
@@ -341,11 +376,11 @@ Track:
 ### 1. Naming Conventions
 
 **Promo Codes:**
-- `FREEINTENSIVE` - General free access
+- `INTENSIVE2025` - General $1 verification (2025 launch)
 - `BETA2024` - Beta program
 - `PARTNER_NAME` - Partner-specific
-- `LAUNCH50` - Campaign-specific
-- `Q1SALE` - Time-based
+- `LAUNCH50` - Campaign-specific (50% off)
+- `Q1SALE` - Time-based promotions
 
 **Referral Sources:**
 - `partner_firstname` - Partner/affiliate

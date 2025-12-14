@@ -1,0 +1,7 @@
+request_id,timestamp,model,prompt_tokens,completion_tokens,total_tokens,cost_usd
+chatcmpl-abc123xyz,2024-12-01 10:30:45,gpt-4o-mini,150,75,225,0.0012
+chatcmpl-def456xyz,2024-12-01 10:31:12,gpt-4o,200,100,300,0.0450
+chatcmpl-ghi789xyz,2024-12-01 10:32:05,gpt-4o-mini,180,90,270,0.0015
+chatcmpl-jkl012xyz,2024-12-01 11:15:30,gpt-4o,250,150,400,0.0625
+chatcmpl-mno345xyz,2024-12-01 11:20:15,gpt-4o-mini,120,60,180,0.0009
+

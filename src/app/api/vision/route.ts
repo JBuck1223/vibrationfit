@@ -108,6 +108,7 @@ export async function GET(request: NextRequest) {
             .from('vision_versions')
             .select('*')
             .eq('user_id', user.id)
+            .is('household_id', null)  // Only personal visions (exclude household)
             .eq('is_draft', false)  // Exclude drafts from main query (will add separately)
             .order('created_at', { ascending: false })
           
@@ -133,6 +134,7 @@ export async function GET(request: NextRequest) {
             .from('vision_versions')
             .select('*')
             .eq('user_id', user.id)
+            .is('household_id', null)  // Only personal visions
             .eq('is_draft', true)
             .eq('is_active', false)
             .maybeSingle()
@@ -170,6 +172,7 @@ export async function GET(request: NextRequest) {
         .from('vision_versions')
         .select('*')
         .eq('user_id', user.id)
+        .is('household_id', null)  // Only personal visions
         .eq('is_active', true)
         .maybeSingle()
 
@@ -181,6 +184,7 @@ export async function GET(request: NextRequest) {
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
+          .is('household_id', null)  // Only personal visions
           .eq('is_draft', false)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -194,6 +198,7 @@ export async function GET(request: NextRequest) {
             .from('vision_versions')
             .select('*')
             .eq('user_id', user.id)
+            .is('household_id', null)  // Only personal visions
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()
@@ -229,6 +234,7 @@ export async function GET(request: NextRequest) {
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
+          .is('household_id', null)  // Only personal visions
           .eq('is_draft', false)  // Exclude drafts from main query (will add separately)
           .order('created_at', { ascending: false })
         
@@ -263,6 +269,7 @@ export async function GET(request: NextRequest) {
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
+          .is('household_id', null)  // Only personal visions
           .eq('is_draft', true)
           .eq('is_active', false)
           .maybeSingle()

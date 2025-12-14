@@ -19,6 +19,8 @@ import {
   Briefcase, 
   DollarSign,
   Edit3,
+  Edit,
+  Palette,
   FileText,
   ArrowLeft,
   Calendar,
@@ -1731,12 +1733,30 @@ export default function ProfileDetailPage() {
           )}
 
           {/* Action Buttons - Enhanced with Hover Effects */}
-          <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+          <div className="flex flex-row flex-wrap md:flex-nowrap justify-center gap-2 md:gap-4 max-w-2xl mx-auto">
+            <Button
+              onClick={() => router.push('/profile/edit')}
+              variant="outline"
+              size="sm"
+              className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Edit className="w-4 h-4 shrink-0" />
+              <span>Edit Profile</span>
+            </Button>
+            <Button
+              onClick={() => router.push('/voice-profile')}
+              variant="outline"
+              size="sm"
+              className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Palette className="w-4 h-4 shrink-0" />
+              <span>Voice Profile</span>
+            </Button>
             <Button
               onClick={() => router.push('/profile')}
               variant="outline"
               size="sm"
-              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+              className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
             >
               <Eye className="w-4 h-4 shrink-0" />
               <span>See All Profiles</span>

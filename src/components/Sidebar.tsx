@@ -75,6 +75,34 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
     return () => subscription.unsubscribe()
   }, [supabase])
 
+  // Auto-expand parent items when their children are active
+  useEffect(() => {
+    const itemsToExpand: string[] = []
+    
+    navigation.forEach((item) => {
+      if (item.children) {
+        const hasActiveChild = item.children.some(child => 
+          isNavItemActive(child, pathname, profile?.id)
+        )
+        if (hasActiveChild) {
+          itemsToExpand.push(item.name)
+        }
+      }
+    })
+    
+    if (itemsToExpand.length > 0) {
+      setExpandedItems(prev => {
+        const newExpanded = [...prev]
+        itemsToExpand.forEach(name => {
+          if (!newExpanded.includes(name)) {
+            newExpanded.push(name)
+          }
+        })
+        return newExpanded
+      })
+    }
+  }, [pathname, navigation, profile?.id])
+
   const toggleExpanded = (itemName: string) => {
     setExpandedItems(prev => 
       prev.includes(itemName) 

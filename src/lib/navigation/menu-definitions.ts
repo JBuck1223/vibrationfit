@@ -111,6 +111,7 @@ export const userNavigation: NavItem[] = [
     children: [
       { name: 'My Active Vision', href: '/life-vision/active', icon: CheckCircle },
       { name: 'All Visions', href: '/life-vision', icon: Eye },
+      { name: 'Household Visions', href: '/life-vision/household', icon: Users, description: 'Shared household visions' },
       { name: 'All Vision Audios', href: '/life-vision/audio', icon: Headphones },
     ]
   },
@@ -486,6 +487,16 @@ export function isNavItemActive(
   // Exact match
   if (item.href === pathname) {
     return true
+  }
+  
+  // Don't highlight "All Profiles" when on /profile/active (redirect page)
+  if (item.href === '/profile' && pathname === '/profile/active') {
+    return false
+  }
+  
+  // Don't highlight "All Visions" when on /life-vision/active (redirect page)
+  if (item.href === '/life-vision' && pathname === '/life-vision/active') {
+    return false
   }
   
   // Special handling for /life-vision/{id} paths - should match "My Active Vision"

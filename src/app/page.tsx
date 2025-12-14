@@ -118,6 +118,13 @@ export default function HomePage() {
         console.log('📊 Campaign:', campaign)
       }
       
+      // Pre-select plan type (solo or household)
+      const type = params.get('plan') || params.get('type') || params.get('planType')
+      if (type && ['solo', 'household'].includes(type)) {
+        setPlanType(type as 'solo' | 'household')
+        console.log('👥 Plan type:', type)
+      }
+      
       // Pre-select continuity plan if provided
       const continuity = params.get('continuity')
       if (continuity && ['annual', '28day'].includes(continuity)) {
@@ -1453,14 +1460,15 @@ export default function HomePage() {
                 
                 <Grid responsiveCols={{mobile: 1, desktop: 2}} gap="lg" className="w-full items-stretch">
                 {/* 72-Hour Activation Guarantee */}
-                <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
-                  <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
+                <div className="relative mt-28 md:mt-32">
+                  <div className="absolute -top-20 md:-top-24 left-1/2 -translate-x-1/2 w-40 h-40 md:w-48 md:h-48 z-10">
                     <img 
                       src="https://media.vibrationfit.com/site-assets/brand/guarantees/72-hour-activation-guarantee.png" 
                       alt="72 Hour Activation Guarantee"
                       className="w-full h-full object-contain"
                     />
                   </div>
+                  <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 pt-24 md:pt-28">
                     <Stack gap="md" align="center" className="pb-4 md:pb-6">
                       <Heading level={3} className="text-base md:text-lg lg:text-xl text-white text-center">
                       72‑Hour Activation Guarantee
@@ -1478,17 +1486,19 @@ export default function HomePage() {
                       Completion = 70%+ Profile, 84‑Q Assessment, 12‑category Vision (with VIVA), AM/PM Vision Audio, Vision Board (12 images), 3 journal entries, Calibration call booked.
                     </Text>
                   </Stack>
-                </Card>
+                  </Card>
+                </div>
 
                 {/* Membership Guarantee */}
-                <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30 relative pt-28 md:pt-32 mt-24 md:mt-28">
-                  <div className="absolute -top-[88px] md:-top-[104px] left-1/2 -translate-x-1/2 w-44 h-44 md:w-52 md:h-52 z-10">
+                <div className="relative mt-28 md:mt-32">
+                  <div className="absolute -top-20 md:-top-24 left-1/2 -translate-x-1/2 w-40 h-40 md:w-48 md:h-48 z-10">
                     <img 
                       src="https://media.vibrationfit.com/site-assets/brand/guarantees/membership-guarantee.png"
                       alt="Membership Guarantee"
                       className="w-full h-full object-contain"
                     />
                   </div>
+                  <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30 pt-24 md:pt-28">
                     <Stack gap="md" align="center" className="pb-4 md:pb-6">
                       <Heading level={3} className="text-base md:text-lg lg:text-xl text-white text-center">
                       Membership Guarantee
@@ -1509,7 +1519,8 @@ export default function HomePage() {
                       Not satisfied within your window? We'll refund the plan and cancel future renewals.
                     </Text>
                 </Stack>
-              </Card>
+                  </Card>
+                </div>
                 </Grid>
               </Stack>
           </div>
@@ -1577,11 +1588,25 @@ export default function HomePage() {
                     
                     {/* DYNAMIC PRICE */}
                     <div className="text-center">
-                      <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-[#39FF14] mb-4">
-                        ${getPaymentAmount()}
-                              </div>
+                      {promoCode ? (
+                        <div className="flex flex-col items-center gap-2 mb-4">
+                          <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-neutral-500 line-through opacity-50">
+                            $499
+                          </div>
+                          <div className="text-5xl md:text-7xl lg:text-9xl font-bold text-[#39FF14]">
+                            $1
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-[#39FF14] mb-4">
+                          ${getPaymentAmount()}
+                        </div>
+                      )}
                       <div className="text-xl text-white mb-2 text-center">
-                        {paymentPlan === 'full' ? 'Today' : paymentPlan === '2pay' ? `× 2 Payments = $${getIntensiveTotal()}` : `× 3 Payments = $${getIntensiveTotal()}`}
+                        {promoCode 
+                          ? '$498 Off - Pay $1 to Verify Payment Method' 
+                          : paymentPlan === 'full' ? 'Today' : paymentPlan === '2pay' ? `× 2 Payments = $${getIntensiveTotal()}` : `× 3 Payments = $${getIntensiveTotal()}`
+                        }
                       </div>
                       <div className="text-lg text-neutral-300 text-center">
                         Includes 8 weeks of Vision Pro access
@@ -1869,13 +1894,13 @@ export default function HomePage() {
                         <Stack gap="sm" align="center">
                           {promoCode && (
                             <Badge variant="premium" className="mb-2">
-                              🎉 {promoCode.toUpperCase()} Applied - Intensive FREE
+                              🎉 {promoCode.toUpperCase()} Applied - $498 Off!
                             </Badge>
                           )}
                           <div className="text-white text-center text-sm md:text-base">
                             {promoCode ? (
-                              // FREE intensive with promo code
-                              <><strong>Today:</strong> <span className="text-[#39FF14] font-bold">FREE</span> 72‑Hour Intensive + 8 weeks included.</>
+                              // $1 payment verification with promo code
+                              <><strong>Today:</strong> <span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE 72‑Hour Intensive + 8 weeks included.</>
                             ) : paymentPlan === 'full' ? (
                               <><strong>Today:</strong> $499 for the 72‑Hour Intensive + 8 weeks included.</>
                             ) : paymentPlan === '2pay' ? (
@@ -1930,7 +1955,7 @@ export default function HomePage() {
                         onClick={handleIntensivePurchase}
                         disabled={isLoading || !agreedToTerms}
                       >
-                        {isLoading ? 'Processing...' : promoCode ? 'Start FREE Activation Intensive' : 'Start the Activation Intensive'}
+                        {isLoading ? 'Processing...' : promoCode ? 'Pay $1 & Start Activation Intensive' : 'Start the Activation Intensive'}
                       </Button>
                     </div>
                       </Stack>

@@ -316,9 +316,11 @@ export default function AssessmentHub() {
                 >
                   <div className="flex-1 min-w-0 w-full lg:w-auto text-center lg:text-left">
                     <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 md:gap-3 mb-2">
-                      <Badge variant={isActive ? 'primary' : 'success'}>
-                        {isActive ? 'Active' : 'Complete'}
-                      </Badge>
+                      <StatusBadge 
+                        status={isActive ? 'active' : 'complete'} 
+                        subtle={!isActive}
+                        className="uppercase tracking-[0.25em]"
+                      />
                     </div>
                     <div className="flex items-center justify-center lg:justify-start gap-1.5 text-neutral-300 text-xs md:text-sm mb-1">
                       <CalendarDays className="w-4 h-4 text-neutral-500" />

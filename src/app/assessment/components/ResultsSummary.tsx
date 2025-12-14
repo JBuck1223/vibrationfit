@@ -143,7 +143,7 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
         <h3 className="text-xl font-semibold text-white mb-4 text-center">Category Breakdown</h3>
         
         {/* Table Header - Desktop Only */}
-        <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr] gap-4 md:gap-6 p-4 bg-neutral-900/50 rounded-lg mb-2 text-xs md:text-sm font-semibold text-neutral-400">
+        <div className="hidden xl:grid grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr] gap-4 md:gap-6 p-4 bg-neutral-900/50 rounded-lg mb-2 text-xs md:text-sm font-semibold text-neutral-400">
           <div>Category</div>
           <div className="text-center">Percentage Score</div>
           <div className="text-center">Question Score</div>
@@ -160,7 +160,7 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
             return (
               <div key={index} className="bg-neutral-800/50 rounded-lg">
                 {/* Desktop Table Row */}
-                <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr] gap-4 md:gap-6 p-4 items-center">
+                <div className="hidden xl:grid grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr] gap-4 md:gap-6 p-4 items-center">
                   <div className="flex items-center gap-3">
                     {getCategoryIcon(category.status)}
                     <span className="text-white font-medium">{category.name}</span>
@@ -191,7 +191,7 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
                 </div>
 
                 {/* Mobile Stacked Layout */}
-                <div className="md:hidden p-4 space-y-3">
+                <div className="xl:hidden p-4 space-y-3">
                   {/* Category Name */}
                   <div className="flex items-center gap-3">
                     {getCategoryIcon(category.status)}
