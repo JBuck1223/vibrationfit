@@ -13,8 +13,8 @@ import { MergeVisionsTool } from './components/MergeVisionsTool'
 
 const VISION_SECTIONS = getVisionCategoryKeys()
 
-function calculateCompletionPercentage(vision: Record<string, unknown>) {
-  const sections = VISION_SECTIONS.map(section => vision[section] as string)
+function calculateCompletionPercentage(vision: VisionData | Record<string, unknown>) {
+  const sections = VISION_SECTIONS.map(section => (vision as any)[section] as string)
   const filledSections = sections.filter(section => String(section || '').trim().length > 0).length
   const totalSections = VISION_SECTIONS.length
   return Math.round((filledSections / totalSections) * 100)
@@ -122,9 +122,7 @@ export default function HouseholdVisionsPage() {
 
       // Add calculated version numbers
       const visionsWithVersions = await addCalculatedVersionNumbers(
-        visionData || [],
-        user.id,
-        householdData.household.id
+        visionData || []
       )
 
       setVisions(visionsWithVersions)
@@ -187,17 +185,17 @@ export default function HouseholdVisionsPage() {
             <Button 
               variant="outline"
               size="sm"
-              icon={<Plus className="w-5 h-5" />}
               onClick={() => router.push('/life-vision/household/new')}
             >
+              <Plus className="w-4 h-4 mr-2" />
               Create Household Vision
             </Button>
             <Button 
               variant="outline"
               size="sm"
-              icon={<Copy className="w-5 h-5" />}
               onClick={() => setShowMergeTool(true)}
             >
+              <Copy className="w-4 h-4 mr-2" />
               Merge Personal Visions
             </Button>
           </div>
@@ -255,16 +253,16 @@ export default function HouseholdVisionsPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 variant="outline"
-                icon={<Plus className="w-5 h-5" />}
                 onClick={() => router.push('/life-vision/household/new')}
               >
+                <Plus className="w-4 h-4 mr-2" />
                 Create Household Vision
               </Button>
               <Button 
                 variant="outline"
-                icon={<Copy className="w-5 h-5" />}
                 onClick={() => setShowMergeTool(true)}
               >
+                <Copy className="w-4 h-4 mr-2" />
                 Merge Personal Visions
               </Button>
             </div>
@@ -297,7 +295,7 @@ export default function HouseholdVisionsPage() {
                             Household Vision
                           </Badge>
                           {isDraft && (
-                            <Badge variant="default">Draft</Badge>
+                            <Badge variant="neutral">Draft</Badge>
                           )}
                           {isActive && (
                             <Badge variant="success">Active</Badge>
@@ -332,7 +330,6 @@ export default function HouseholdVisionsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        icon={isDraft ? <Edit3 className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         onClick={() => {
                           if (isDraft) {
                             router.push(`/life-vision/${vision.id}/draft`)
@@ -341,16 +338,16 @@ export default function HouseholdVisionsPage() {
                           }
                         }}
                       >
-                        {isDraft ? 'Continue Editing' : 'View'}
+                        {isDraft ? <><Edit3 className="w-4 h-4 mr-2" />Continue Editing</> : <><Eye className="w-4 h-4 mr-2" />View</>}
                       </Button>
 
                       {!isDraft && (
                         <Button
                           variant="outline"
                           size="sm"
-                          icon={<Sparkles className="w-4 h-4" />}
                           onClick={() => router.push(`/life-vision/${vision.id}/refine`)}
                         >
+                          <Sparkles className="w-4 h-4 mr-2" />
                           Refine
                         </Button>
                       )}
@@ -359,7 +356,6 @@ export default function HouseholdVisionsPage() {
                         <Button
                           variant="danger"
                           size="sm"
-                          icon={<Trash2 className="w-4 h-4" />}
                           onClick={async () => {
                             if (confirm('Delete this household vision? This cannot be undone.')) {
                               const supabase = createClient()
@@ -371,6 +367,7 @@ export default function HouseholdVisionsPage() {
                             }
                           }}
                         >
+                          <Trash2 className="w-4 h-4 mr-2" />
                           Delete
                         </Button>
                       )}

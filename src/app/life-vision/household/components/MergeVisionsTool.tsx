@@ -198,7 +198,7 @@ export function MergeVisionsTool({
                         <h3 className="font-semibold text-white">
                           {vision.title || 'Untitled Vision'}
                         </h3>
-                        <Badge variant="default" className="text-xs">
+                        <Badge variant="neutral" className="text-xs">
                           {getOwnerName(vision.user_id)}
                         </Badge>
                       </div>

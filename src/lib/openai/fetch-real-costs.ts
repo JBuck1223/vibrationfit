@@ -172,7 +172,7 @@ export async function updateRealCosts(
     }
 
     // Calculate total estimated cost for these records
-    const totalEstimatedCents = pendingRecords.reduce((sum, r) => sum + (r.calculated_cost_cents || 0), 0)
+    const totalEstimatedCents = pendingRecords.reduce((sum: number, r: any) => sum + (r.calculated_cost_cents || 0), 0)
 
     // Calculate scaling factor (actual / estimated)
     const scalingFactor = totalEstimatedCents > 0 
