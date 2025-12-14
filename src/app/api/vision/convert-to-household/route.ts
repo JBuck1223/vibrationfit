@@ -55,22 +55,31 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Verify user is a member of the target household
-    const { data: membership, error: memberError } = await supabase
-      .from('household_members')
-      .select('*')
-      .eq('household_id', householdId)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single()
+    // Use SECURITY DEFINER function to bypass RLS on household_members
+    const { data: isMember, error: memberError } = await supabase
+      .rpc('is_active_household_member', { 
+        h: householdId, 
+        u: user.id 
+      })
 
-    if (memberError || !membership) {
+    if (memberError || !isMember) {
       return NextResponse.json(
         { error: 'You are not a member of this household' },
         { status: 403 }
       )
     }
 
-    // 5. Clone the vision as a household draft
+    // 5. Check if household has an active vision
+    const { data: existingActive } = await supabase
+      .from('vision_versions')
+      .select('id')
+      .eq('household_id', householdId)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    const shouldBeActive = !existingActive  // If no active, make this active
+
+    // 6. Clone the vision as a household vision
     const { data: householdVision, error: cloneError } = await supabase
       .from('vision_versions')
       .insert({
@@ -101,9 +110,9 @@ export async function POST(request: NextRequest) {
         spirituality: sourceVision.spirituality,
         conclusion: sourceVision.conclusion,
         
-        // State
-        is_draft: true,                         // Always create as draft
-        is_active: false,
+        // State: Auto-activate if first household vision
+        is_draft: !shouldBeActive,              // Draft only if already have active
+        is_active: shouldBeActive,              // Active if first household vision
         
         // Copy metadata if present
         richness_metadata: sourceVision.richness_metadata,
@@ -119,20 +128,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 6. TODO: Call VIVA to pluralize each category
-    // For now, we'll return the draft and let user refine manually
+    // 7. TODO: Call VIVA to pluralize each category
+    // For now, we'll return the vision and let user refine manually
     // In Phase 2, we'll add automatic VIVA pluralization here
 
     console.log('✅ Converted personal vision to household:', {
       sourceVisionId,
       householdVisionId: householdVision.id,
-      householdId
+      householdId,
+      isActive: shouldBeActive
     })
 
     return NextResponse.json({
       success: true,
       visionId: householdVision.id,
-      message: 'Personal vision converted to household draft'
+      isActive: shouldBeActive,
+      isDraft: !shouldBeActive,
+      message: shouldBeActive 
+        ? 'Household vision created and activated!' 
+        : 'Household vision created as draft'
     })
 
   } catch (error) {

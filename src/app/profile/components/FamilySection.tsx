@@ -227,7 +227,6 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           onChange={(value) => handleInputChange('clarity_family', value)}
           placeholder="Share what's going well with your family journey, parenting experiences, family goals... Or record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('family')}
@@ -248,7 +247,6 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           onChange={(value) => handleInputChange('contrast_family', value)}
           placeholder="Share what's not going well with your family or parenting, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('family')}
           instanceId="contrast"

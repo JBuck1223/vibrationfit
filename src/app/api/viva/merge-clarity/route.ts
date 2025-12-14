@@ -83,7 +83,7 @@ Return only the merged clarity statement, no explanation or commentary.`
     const response = await openai.chat.completions.create({
       model,
       temperature,
-      max_tokens: maxTokens,
+      max_completion_tokens: maxTokens,
       messages: [
         { role: 'system', content: SHARED_SYSTEM_PROMPT },
         { role: 'user', content: mergePrompt }

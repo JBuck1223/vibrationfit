@@ -219,7 +219,6 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           onChange={(value) => handleInputChange('clarity_spirituality', value)}
           placeholder="Share what's going well with your spiritual journey, personal growth practices, what you're learning... Or record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('spirituality')}
@@ -237,7 +236,6 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           onChange={(value) => handleInputChange('contrast_spirituality', value)}
           placeholder="Share what's not going well with your spiritual or growth journey, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('spirituality')}
           instanceId="contrast"

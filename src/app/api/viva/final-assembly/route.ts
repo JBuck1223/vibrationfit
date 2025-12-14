@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         }
       ],
       temperature: aiConfig.temperature,
-      max_tokens: aiConfig.maxTokens,
+      max_completion_tokens: aiConfig.maxTokens,
       response_format: { type: 'json_object' }
     })
 
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         }
       ],
       temperature: aiConfig.temperature,
-      max_tokens: 1000,
+      max_completion_tokens: 1000,
       response_format: { type: 'json_object' }
     })
 

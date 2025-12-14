@@ -403,7 +403,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         { role: "user", content: prompt },
       ],
       temperature: aiConfig.temperature,
-      max_tokens: Math.min(maxTokens, aiConfig.maxTokens),
+      max_completion_tokens: Math.min(maxTokens, aiConfig.maxTokens),
     });
 
     const refinedText = completion.choices[0]?.message?.content?.trim();

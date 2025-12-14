@@ -101,9 +101,15 @@ export function MergeVisionsTool({
         throw new Error(data.error || 'Failed to merge visions')
       }
 
-      // Success! Navigate to the new draft
+      // Success! Navigate to the new vision (draft or active)
       onSuccess?.()
-      router.push(`/life-vision/${data.visionId}/draft`)
+      if (data.isActive) {
+        // Active vision - go to detail page
+        router.push(`/life-vision/${data.visionId}`)
+      } else {
+        // Draft vision - go to draft page
+        router.push(`/life-vision/${data.visionId}/draft`)
+      }
     } catch (err: any) {
       console.error('Error merging visions:', err)
       setError(err.message || 'Failed to merge visions')

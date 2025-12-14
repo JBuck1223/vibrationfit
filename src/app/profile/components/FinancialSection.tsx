@@ -436,7 +436,6 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
           onChange={(value) => handleInputChange('clarity_money', value)}
           placeholder="Share what's going well with your financial journey, wealth goals, money mindset... Or record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('money')}
@@ -454,7 +453,6 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
           onChange={(value) => handleInputChange('contrast_money', value)}
           placeholder="Share what's not going well with your finances or wealth, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('money')}
           instanceId="contrast"

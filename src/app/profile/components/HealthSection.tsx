@@ -320,7 +320,6 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           onChange={(value) => handleInputChange('clarity_health', value)}
           placeholder="Share what's going well with your health journey, fitness goals, wellness practices... Or click the microphone to record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('health')}
@@ -342,7 +341,6 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           onChange={(value) => handleInputChange('contrast_health', value)}
           placeholder="Share what's not going well with your health, fitness, or wellness, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('health')}
           instanceId="contrast"

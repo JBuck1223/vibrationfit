@@ -274,7 +274,6 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
           onChange={(value) => handleInputChange('clarity_love', value)}
           placeholder="Share what's going well with your relationship journey, love story, partnership goals... Or click the microphone to record!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('love')}
@@ -295,7 +294,6 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
           onChange={(value) => handleInputChange('contrast_love', value)}
           placeholder="Share what's not going well with your relationship or romantic life, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('love')}
           instanceId="contrast"

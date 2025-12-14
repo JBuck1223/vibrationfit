@@ -218,7 +218,6 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           onChange={(value) => handleInputChange('clarity_giving', value)}
           placeholder="Share what's going well with your giving practices, what causes matter to you, how you're contributing... Or record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('giving')}
@@ -236,7 +235,6 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           onChange={(value) => handleInputChange('contrast_giving', value)}
           placeholder="Share what's not going well with your giving or legacy goals, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('giving')}
           instanceId="contrast"

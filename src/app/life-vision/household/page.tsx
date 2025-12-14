@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Users, Heart, Sparkles, Copy, Eye, Edit3, Trash2 } from 'lucide-react'
+import { Plus, Users, Heart, Copy, Eye, Sparkles, Edit3, Trash2 } from 'lucide-react'
 import { Card, Button, Badge, Spinner, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { VisionVersionCard } from '../components/VisionVersionCard'
 import { getVisionCategoryKeys } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 import { addCalculatedVersionNumbers } from '@/lib/life-vision/version-helpers'
 import { MergeVisionsTool } from './components/MergeVisionsTool'
+import { ConvertVisionTool } from './components/ConvertVisionTool'
 
 const VISION_SECTIONS = getVisionCategoryKeys()
 
@@ -46,6 +47,8 @@ interface VisionData {
   updated_at: string
   parent_id?: string | null
   source_visions?: string[] | null
+  version_number: number                   // Calculated by addCalculatedVersionNumbers
+  completion_percent: number               // Calculated by calculateCompletionPercentage
 }
 
 interface HouseholdData {
@@ -75,6 +78,8 @@ export default function HouseholdVisionsPage() {
   const [household, setHousehold] = useState<HouseholdData | null>(null)
   const [visions, setVisions] = useState<VisionData[]>([])
   const [showMergeTool, setShowMergeTool] = useState(false)
+  const [showConvertTool, setShowConvertTool] = useState(false)
+  const [isCloning, setIsCloning] = useState(false)
 
   useEffect(() => {
     loadHouseholdVisions()
@@ -125,12 +130,90 @@ export default function HouseholdVisionsPage() {
         visionData || []
       )
 
-      setVisions(visionsWithVersions)
+      // Add completion percentages
+      const visionsWithCompletion = visionsWithVersions.map(vision => ({
+        ...vision,
+        completion_percent: calculateCompletionPercentage(vision)
+      }))
+
+      setVisions(visionsWithCompletion)
     } catch (err) {
       console.error('Error loading household visions:', err)
       setError('Failed to load household visions')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCloneVersion = async (visionId: string) => {
+    setIsCloning(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Fetch the version to clone
+      const { data: sourceVersion, error: fetchError } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('id', visionId)
+        .single()
+
+      if (fetchError || !sourceVersion) {
+        alert('Failed to fetch version to clone')
+        return
+      }
+
+      // Delete existing draft if any
+      await supabase
+        .from('vision_versions')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('household_id', household?.household.id)
+        .eq('is_draft', true)
+        .eq('is_active', false)
+
+      // Create new draft with copied data
+      const { data: newVersion, error: insertError } = await supabase
+        .from('vision_versions')
+        .insert({
+          user_id: user.id,
+          household_id: household?.household.id,
+          parent_id: sourceVersion.id,
+          title: sourceVersion.title || 'Vision Draft',
+          perspective: sourceVersion.perspective || 'plural',
+          forward: sourceVersion.forward,
+          fun: sourceVersion.fun,
+          travel: sourceVersion.travel,
+          home: sourceVersion.home,
+          family: sourceVersion.family,
+          love: sourceVersion.love,
+          health: sourceVersion.health,
+          money: sourceVersion.money,
+          work: sourceVersion.work,
+          social: sourceVersion.social,
+          stuff: sourceVersion.stuff,
+          giving: sourceVersion.giving,
+          spirituality: sourceVersion.spirituality,
+          conclusion: sourceVersion.conclusion,
+          is_draft: true,
+          is_active: false
+        })
+        .select()
+        .single()
+
+      if (insertError || !newVersion) {
+        alert('Failed to clone version')
+        return
+      }
+
+      // Navigate to draft page
+      router.push(`/life-vision/${newVersion.id}/draft`)
+    } catch (error) {
+      console.error('Error cloning version:', error)
+      alert('Failed to clone version. Please try again.')
+    } finally {
+      setIsCloning(false)
     }
   }
 
@@ -185,10 +268,10 @@ export default function HouseholdVisionsPage() {
             <Button 
               variant="outline"
               size="sm"
-              onClick={() => router.push('/life-vision/household/new')}
+              onClick={() => setShowConvertTool(true)}
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Household Vision
+              <Sparkles className="w-4 h-4 mr-2" />
+              Convert Personal Vision
             </Button>
             <Button 
               variant="outline"
@@ -196,7 +279,7 @@ export default function HouseholdVisionsPage() {
               onClick={() => setShowMergeTool(true)}
             >
               <Copy className="w-4 h-4 mr-2" />
-              Merge Personal Visions
+              Merge Two Visions
             </Button>
           </div>
         </PageHero>
@@ -253,130 +336,114 @@ export default function HouseholdVisionsPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 variant="outline"
-                onClick={() => router.push('/life-vision/household/new')}
+                onClick={() => setShowConvertTool(true)}
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Household Vision
+                <Sparkles className="w-4 h-4 mr-2" />
+                Convert Personal Vision
               </Button>
               <Button 
-                variant="outline"
+                variant="primary"
                 onClick={() => setShowMergeTool(true)}
               >
                 <Copy className="w-4 h-4 mr-2" />
-                Merge Personal Visions
+                Merge Two Visions
               </Button>
             </div>
           </Card>
         ) : (
-          <div className="grid gap-6">
-            {visions.map((vision) => {
-              const completionPercent = calculateCompletionPercentage(vision)
-              const isDraft = vision.is_draft
-              const isActive = vision.is_active
+          <Card className="p-6">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-white">Household Vision Versions</h3>
+            </div>
+            <div className="space-y-4">
+              {visions.map((vision) => {
+                const isDraft = vision.is_draft
+                const isActive = vision.is_active
 
-              return (
-                <Card 
-                  key={vision.id} 
-                  variant="elevated"
-                  className="p-6 hover:-translate-y-1 transition-all duration-300"
-                >
-                  <div className="flex flex-col gap-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Users className="w-5 h-5 text-secondary-500" />
-                          <h3 className="text-2xl font-bold">
-                            {vision.title || 'Untitled Household Vision'}
-                          </h3>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-400">
-                          <Badge variant="secondary" className="!bg-secondary-500/20 !text-secondary-500">
-                            Household Vision
-                          </Badge>
-                          {isDraft && (
-                            <Badge variant="neutral">Draft</Badge>
-                          )}
-                          {isActive && (
-                            <Badge variant="success">Active</Badge>
-                          )}
-                          <span>•</span>
-                          <span>{completionPercent}% Complete</span>
-                          <span>•</span>
-                          <span>{new Date(vision.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
+                return (
+                  <VisionVersionCard
+                    key={vision.id}
+                    version={vision}
+                    isActive={isActive}
+                    actions={
+                      <>
+                        {isDraft ? (
+                          // Draft version - only View button with yellow ghost
+                          <Button
+                            asChild
+                            variant="ghost-yellow"
+                            size="sm"
+                            className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
+                          >
+                            <Link href={`/life-vision/${vision.id}/draft`}>
+                              <Eye className="w-4 h-4" />
+                              <span className="ml-1 truncate">View</span>
+                            </Link>
+                          </Button>
+                        ) : isActive ? (
+                          // Active version - Clone + View buttons
+                          <>
+                            <Button
+                              onClick={() => handleCloneVersion(vision.id)}
+                              variant="ghost"
+                              size="sm"
+                              disabled={isCloning}
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                            >
+                              <Copy className="w-4 h-4" />
+                              Clone
+                            </Button>
+                            <Button
+                              onClick={() => router.push(`/life-vision/${vision.id}`)}
+                              variant="primary"
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Button>
+                          </>
+                        ) : (
+                          // Complete version - Clone + View buttons
+                          <>
+                            <Button
+                              onClick={() => handleCloneVersion(vision.id)}
+                              variant="ghost"
+                              size="sm"
+                              disabled={isCloning}
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                            >
+                              <Copy className="w-4 h-4" />
+                              Clone
+                            </Button>
+                            <Button
+                              onClick={() => router.push(`/life-vision/${vision.id}`)}
+                              variant="ghost-blue"
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Button>
+                          </>
+                        )}
+                      </>
+                    }
+                  />
+                )
+              })}
+            </div>
+          </Card>
+        )}
 
-                    {/* Progress Bar */}
-                    <div className="w-full">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-neutral-400">
-                          {VISION_SECTIONS.filter(section => 
-                            String(vision[section as keyof VisionData] || '').trim().length > 0
-                          ).length} of {VISION_SECTIONS.length} categories
-                        </span>
-                      </div>
-                      <div className="w-full bg-neutral-800 rounded-full h-2 overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 transition-all duration-500"
-                          style={{ width: `${completionPercent}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (isDraft) {
-                            router.push(`/life-vision/${vision.id}/draft`)
-                          } else {
-                            router.push(`/life-vision/${vision.id}`)
-                          }
-                        }}
-                      >
-                        {isDraft ? <><Edit3 className="w-4 h-4 mr-2" />Continue Editing</> : <><Eye className="w-4 h-4 mr-2" />View</>}
-                      </Button>
-
-                      {!isDraft && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/life-vision/${vision.id}/refine`)}
-                        >
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Refine
-                        </Button>
-                      )}
-
-                      {household.isAdmin && (
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={async () => {
-                            if (confirm('Delete this household vision? This cannot be undone.')) {
-                              const supabase = createClient()
-                              await supabase
-                                .from('vision_versions')
-                                .delete()
-                                .eq('id', vision.id)
-                              loadHouseholdVisions()
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              )
-            })}
-          </div>
+        {/* Convert Tool */}
+        {showConvertTool && household && (
+          <ConvertVisionTool 
+            onClose={() => setShowConvertTool(false)}
+            householdId={household.household.id}
+            householdMembers={household.members}
+            onSuccess={loadHouseholdVisions}
+          />
         )}
 
         {/* Merge Tool */}
