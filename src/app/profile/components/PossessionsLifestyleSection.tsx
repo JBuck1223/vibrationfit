@@ -554,7 +554,6 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           onChange={(value) => handleInputChange('clarity_stuff', value)}
           placeholder="Share what's going well with your lifestyle, what possessions matter to you, how you live... Or record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('stuff')}
@@ -572,7 +571,6 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           onChange={(value) => handleInputChange('contrast_stuff', value)}
           placeholder="Share what's not going well with your lifestyle or possessions, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('stuff')}
           instanceId="contrast"

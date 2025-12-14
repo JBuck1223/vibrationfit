@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, Eye, Gem, Download, VolumeX, Edit3 } from 'lucide-react'
+import { CheckCircle, Eye, Gem, Download, VolumeX, Edit3, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getDraftVision, commitDraft, getDraftCategories } from '@/lib/life-vision/draft-helpers'
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
@@ -84,6 +84,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [editContent, setEditContent] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [deletingDraft, setDeletingDraft] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   // Show commit confirmation dialog
   const handleCommitAsActive = () => {
@@ -117,6 +119,58 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       alert('Failed to commit draft as active vision')
     } finally {
       setIsCommitting(false)
+    }
+  }
+
+  // Show delete confirmation dialog
+  const handleDeleteDraft = () => {
+    if (!draftVision) {
+      alert('No draft vision to delete')
+      return
+    }
+    setShowDeleteDialog(true)
+  }
+
+  // Confirm delete
+  const confirmDelete = async () => {
+    if (!draftVision) return
+
+    setShowDeleteDialog(false)
+    setDeletingDraft(true)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert('You must be logged in to delete a draft')
+        setDeletingDraft(false)
+        return
+      }
+
+      console.log('Attempting to delete draft:', draftVision.id, 'for user:', user.id)
+
+      // Use API route to delete (bypasses RLS recursion issues)
+      const response = await fetch(`/api/vision?id=${draftVision.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        alert(`Failed to delete draft: ${errorData.error || 'Unknown error'}`)
+        setDeletingDraft(false)
+        return
+      }
+
+      console.log('Draft deleted successfully')
+      // Navigate back to appropriate page (household or personal)
+      if (draftVision.household_id) {
+        router.push('/life-vision/household')
+      } else {
+        router.push('/life-vision')
+      }
+    } catch (err) {
+      console.error('Error deleting draft:', err)
+      alert('Failed to delete draft. Please try again.')
+      setDeletingDraft(false)
     }
   }
 
@@ -516,6 +570,41 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
           )
         })}
       </div>
+
+              {/* Delete Button */}
+              <div className="text-center pt-8 border-t border-neutral-800">
+                <Button
+                  onClick={handleDeleteDraft}
+                  variant="danger"
+                  size="sm"
+                  className="flex items-center gap-2 mx-auto"
+                  disabled={deletingDraft || isCommitting}
+                >
+                  {deletingDraft ? (
+                    <>
+                      <Spinner variant="primary" size="sm" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Delete Draft
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Delete Confirmation Dialog */}
+              <WarningConfirmationDialog
+                isOpen={showDeleteDialog}
+                onClose={() => setShowDeleteDialog(false)}
+                onConfirm={confirmDelete}
+                title="Delete Draft Vision?"
+                message="Are you sure you want to delete this draft? This action cannot be undone and all your refinements will be lost."
+                confirmText={deletingDraft ? 'Deleting...' : 'Delete Draft'}
+                type="delete"
+                isLoading={deletingDraft}
+              />
 
       {/* Commit Confirmation Dialog */}
       <WarningConfirmationDialog

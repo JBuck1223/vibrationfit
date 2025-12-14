@@ -56,15 +56,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Verify user is a member of the target household
-    const { data: membership, error: memberError } = await supabase
-      .from('household_members')
-      .select('household_id, user_id')
-      .eq('household_id', householdId)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single()
+    // Use SECURITY DEFINER function to bypass RLS on household_members
+    const { data: isMember, error: memberError } = await supabase
+      .rpc('is_active_household_member', { 
+        h: householdId, 
+        u: user.id 
+      })
 
-    if (memberError || !membership) {
+    if (memberError || !isMember) {
       return NextResponse.json(
         { error: 'You are not a member of this household' },
         { status: 403 }
@@ -94,7 +93,17 @@ export async function POST(request: NextRequest) {
 
     const ownerNames = owners?.map(o => o.first_name || 'Unknown').join(' & ') || 'Unknown'
 
-    // 6. Create merged household vision (with placeholder content)
+    // 6. Check if household has an active vision
+    const { data: existingActive } = await supabase
+      .from('vision_versions')
+      .select('id')
+      .eq('household_id', householdId)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    const shouldBeActive = !existingActive  // If no active, make this active
+
+    // 7. Create merged household vision (with placeholder content)
     // TODO: In Phase 2, we'll add VIVA synthesis here
     // For now, we'll take the longer content from each category
     const mergedContent: Record<string, string> = {}
@@ -131,9 +140,9 @@ export async function POST(request: NextRequest) {
         title: `Our Merged Vision (${ownerNames})`,
         ...mergedContent,
         
-        // State
-        is_draft: true,
-        is_active: false,
+        // State: Auto-activate if first household vision
+        is_draft: !shouldBeActive,              // Draft only if already have active
+        is_active: shouldBeActive,              // Active if first household vision
       })
       .select()
       .single()
@@ -150,14 +159,21 @@ export async function POST(request: NextRequest) {
       visionId1,
       visionId2,
       householdVisionId: householdVision.id,
-      householdId
+      householdId,
+      isActive: shouldBeActive
     })
 
     return NextResponse.json({
       success: true,
       visionId: householdVision.id,
-      message: `Merged visions from ${ownerNames}`,
-      note: 'Draft created with placeholder content. Refine together to synthesize with VIVA.'
+      isActive: shouldBeActive,
+      isDraft: !shouldBeActive,
+      message: shouldBeActive
+        ? `Merged visions from ${ownerNames} - now your active household vision!`
+        : `Merged visions from ${ownerNames}`,
+      note: shouldBeActive 
+        ? 'Vision is active! Refine together to improve with VIVA.'
+        : 'Draft created. Refine together to synthesize with VIVA.'
     })
 
   } catch (error) {

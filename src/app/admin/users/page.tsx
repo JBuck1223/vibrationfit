@@ -146,7 +146,6 @@ function UsersAdminContent() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          eyebrow="ADMIN"
           title="User Management"
           subtitle="Manage users and admin permissions"
         />

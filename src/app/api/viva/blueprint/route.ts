@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
         }
       ],
       temperature: aiConfig.temperature,
-      max_tokens: aiConfig.maxTokens,
+      max_completion_tokens: aiConfig.maxTokens,  // Updated parameter name for newer OpenAI models
       response_format: { type: 'json_object' }
     })
 

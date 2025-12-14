@@ -325,7 +325,6 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
           onChange={(value) => handleInputChange('clarity_home', value)}
           placeholder="Share what's going well with your home story, living environment, space goals... Or record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('home')}
@@ -343,7 +342,6 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
           onChange={(value) => handleInputChange('contrast_home', value)}
           placeholder="Share what's not going well with your home or living environment, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('home')}
           instanceId="contrast"

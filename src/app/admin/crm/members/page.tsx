@@ -158,17 +158,18 @@ export default function MembersPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="CRM"
           title="Members"
           subtitle={`${members.length} total members`}
         >
-          <Button 
-            variant="secondary" 
-            size="sm"
-            onClick={() => router.push('/admin/crm/members/board')}
-          >
-            Kanban View
-          </Button>
+          <div className="flex justify-center mt-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.push('/admin/crm/members/board')}
+            >
+              Kanban View
+            </Button>
+          </div>
         </PageHero>
 
         {/* Filters */}
@@ -176,7 +177,7 @@ export default function MembersPage() {
         {['all', 'active', 'at_risk', 'champion', 'inactive'].map((status) => (
           <Button
             key={status}
-            variant={filter === status ? 'primary' : 'ghost'}
+            variant={filter === status ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilter(status)}
           >

@@ -318,7 +318,6 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           onChange={(value) => handleInputChange('clarity_travel', value)}
           placeholder="Share what's going well with your travel experiences, where you've been, how you like to travel... Or record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('travel')}
@@ -336,7 +335,6 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           onChange={(value) => handleInputChange('contrast_travel', value)}
           placeholder="Share what's not going well with your travel or adventures, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('travel')}
           instanceId="contrast"

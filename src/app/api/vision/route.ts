@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 export async function GET(request: NextRequest) {
@@ -385,6 +386,58 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Vision API POST error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  console.log('🗑️ VISION API DELETE REQUEST STARTED')
+  try {
+    const supabase = await createClient()
+    
+    // Get the current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const visionId = searchParams.get('id')
+
+    if (!visionId) {
+      return NextResponse.json({ error: 'Missing vision ID' }, { status: 400 })
+    }
+
+    // Verify the vision belongs to the user before deleting
+    const { data: vision, error: fetchError } = await supabase
+      .from('vision_versions')
+      .select('id, user_id, is_draft')
+      .eq('id', visionId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError || !vision) {
+      return NextResponse.json({ error: 'Vision not found or access denied' }, { status: 404 })
+    }
+
+    // Use admin client to bypass RLS recursion issues
+    const adminClient = createAdminClient()
+    const { error: deleteError } = await adminClient
+      .from('vision_versions')
+      .delete()
+      .eq('id', visionId)
+      .eq('user_id', user.id)
+
+    if (deleteError) {
+      console.error('Vision delete error:', deleteError)
+      return NextResponse.json({ error: 'Failed to delete vision' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+
+  } catch (error) {
+    console.error('Vision API DELETE error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

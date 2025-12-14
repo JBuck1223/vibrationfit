@@ -83,17 +83,18 @@ export default function CampaignsPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="CRM"
           title="Marketing Campaigns"
           subtitle="Manage campaigns and track ROI"
         >
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => router.push('/admin/crm/campaigns/new')}
-          >
-            + New Campaign
-          </Button>
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/admin/crm/campaigns/new')}
+            >
+              + New Campaign
+            </Button>
+          </div>
         </PageHero>
 
         {/* Filters */}
@@ -101,7 +102,7 @@ export default function CampaignsPage() {
         {['all', 'active', 'draft', 'paused', 'completed'].map((status) => (
           <Button
             key={status}
-            variant={filter === status ? 'primary' : 'ghost'}
+            variant={filter === status ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilter(status)}
           >

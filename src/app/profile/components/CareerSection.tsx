@@ -329,7 +329,6 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           onChange={(value) => handleInputChange('clarity_work', value)}
           placeholder="Share what's going well with your career journey, professional goals, work experiences... Or record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('work')}
@@ -347,7 +346,6 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           onChange={(value) => handleInputChange('contrast_work', value)}
           placeholder="Share what's not going well with your career or work, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('work')}
           instanceId="contrast"

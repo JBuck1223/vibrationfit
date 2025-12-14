@@ -97,7 +97,6 @@ export const userNavigation: NavItem[] = [
     description: 'Manage your profile',
     children: [
       { name: 'My Active Profile', href: '/profile/active', icon: CheckCircle },
-      { name: 'Edit Profile', href: '/profile/edit', icon: Edit },
       { name: 'All Profiles', href: '/profile', icon: Eye },
       { name: 'Voice Profile', href: '/voice-profile', icon: Palette },
     ]

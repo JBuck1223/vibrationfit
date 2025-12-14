@@ -26,7 +26,8 @@ import {
   Text,
   PageTitles,
   CategoryGrid,
-  PageHero
+  PageHero,
+  WarningConfirmationDialog
 } from '@/lib/design-system/components'
 import { VersionCard } from '@/app/profile/components/VersionCard'
 import { VisionVersionCard } from '../components/VisionVersionCard'
@@ -39,6 +40,7 @@ import { generateVisionPDF } from '@/lib/pdf'
 interface VisionData {
   id: string
   user_id: string
+  household_id?: string | null
   version_number: number
   forward: string
   fun: string
@@ -89,6 +91,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [audioTracks, setAudioTracks] = useState<Record<string, { url: string; title: string }>>({})
   const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
   const [isCommitting, setIsCommitting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   // Card-based view functions
   const handleCategoryToggle = (categoryKey: string) => {
@@ -376,62 +379,46 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   }
 
   // Delete version
-  const deleteVersion = async (versionId: string) => {
-    if (!confirm('Are you sure you want to delete this version? This action cannot be undone.')) {
+  // Show delete confirmation dialog
+  const handleDeleteVision = () => {
+    if (!vision) {
+      alert('No vision to delete')
       return
     }
+    setShowDeleteDialog(true)
+  }
 
-    setDeletingVersion(versionId)
+  // Confirm delete
+  const confirmDelete = async () => {
+    if (!vision) return
+
+    setShowDeleteDialog(false)
+    setDeletingVersion(vision.id)
+
     try {
-      const { error } = await supabase
-        .from('vision_versions')
-        .delete()
-        .eq('id', versionId)
+      // Use API route to delete (bypasses RLS recursion issues)
+      const response = await fetch(`/api/vision?id=${vision.id}`, {
+        method: 'DELETE',
+      })
 
-      if (error) throw error
-
-      // Refresh versions list
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: versionsData } = await supabase
-          .from('vision_versions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-        
-        // Calculate version numbers for all versions
-        if (versionsData) {
-          const versionsWithCalculatedNumbers = await Promise.all(
-            versionsData.map(async (v: VisionData) => {
-              const { data: calculatedVersionNumber } = await supabase
-                .rpc('get_vision_version_number', { p_vision_id: v.id })
-              
-              const versionNumber = calculatedVersionNumber || v.version_number || 1
-              
-              return {
-                ...v,
-                version_number: versionNumber
-              }
-            })
-          )
-          
-          setVersions(versionsWithCalculatedNumbers)
-        } else {
-          setVersions([])
-        }
+      if (!response.ok) {
+        const errorData = await response.json()
+        alert(`Failed to delete vision: ${errorData.error || 'Unknown error'}`)
+        setDeletingVersion(null)
+        return
       }
 
-      // If we deleted the current version, go back to main vision
-      if (currentVersionId === versionId) {
-        setCurrentVersionId(null)
-        setIsViewingVersion(false)
-        // Reload main vision data
-        window.location.reload()
+      console.log('Vision deleted successfully')
+
+      // Navigate back to appropriate page (household or personal)
+      if (vision.household_id) {
+        router.push('/life-vision/household')
+      } else {
+        router.push('/life-vision')
       }
-    } catch (error) {
-      console.error('Error deleting version:', error)
-      alert('Failed to delete version')
-    } finally {
+    } catch (err) {
+      console.error('Error deleting vision:', err)
+      alert('Failed to delete vision. Please try again.')
       setDeletingVersion(null)
     }
   }
@@ -983,11 +970,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           {/* Delete Button */}
           <div>
             <Button
-              onClick={() => {
-                if (confirm('Are you sure you want to delete this vision? This action cannot be undone.')) {
-                  deleteVersion(vision.id)
-                }
-              }}
+              onClick={handleDeleteVision}
               variant="danger"
               size="sm"
               className="flex items-center gap-2 mx-auto"
@@ -1007,6 +990,18 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             </Button>
           </div>
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <WarningConfirmationDialog
+          isOpen={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          onConfirm={confirmDelete}
+          title="Delete Vision?"
+          message="Are you sure you want to delete this vision? This action cannot be undone and all your content will be lost."
+          confirmText={deletingVersion ? 'Deleting...' : 'Delete Vision'}
+          type="delete"
+          isLoading={!!deletingVersion}
+        />
       </Stack>
     </Container>
   )

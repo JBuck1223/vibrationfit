@@ -278,7 +278,6 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           onChange={(value) => handleInputChange('clarity_fun', value)}
           placeholder="Share what's going well with your recreational activities, leisure time, what brings you joy... Or record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('fun')}
@@ -298,7 +297,6 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           onChange={(value) => handleInputChange('contrast_fun', value)}
           placeholder="Share what's not going well with your recreational activities, leisure time, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('fun')}
           instanceId="contrast"

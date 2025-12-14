@@ -93,17 +93,18 @@ export default function LeadsPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="CRM"
           title="Leads"
           subtitle={`${leads.length} total leads`}
         >
-          <Button 
-            variant="secondary" 
-            size="sm"
-            onClick={() => router.push('/admin/crm/leads/board')}
-          >
-            Kanban View
-          </Button>
+          <div className="flex justify-center mt-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.push('/admin/crm/leads/board')}
+            >
+              Kanban View
+            </Button>
+          </div>
         </PageHero>
 
         {/* Filters */}
@@ -111,7 +112,7 @@ export default function LeadsPage() {
         {['all', 'new', 'contacted', 'qualified', 'converted', 'lost'].map((status) => (
           <Button
             key={status}
-            variant={filter === status ? 'primary' : 'ghost'}
+            variant={filter === status ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilter(status)}
           >

@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         { role: 'user', content: prompt }
       ],
       temperature: aiConfig.temperature,
-      max_tokens: aiConfig.maxTokens,
+      max_completion_tokens: aiConfig.maxTokens,
     })
 
     const fullOutput = completion.choices[0]?.message?.content

@@ -109,7 +109,7 @@ export default function CRMDashboardPage() {
           title="CRM Dashboard"
           subtitle="Overview of your business metrics"
         >
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 justify-center mt-4">
             <Button
               variant="outline"
               size="sm"
@@ -130,7 +130,7 @@ export default function CRMDashboardPage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <Button variant="primary" size="sm" onClick={() => router.push('/admin/crm/members')}>
+        <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/members')}>
           Members
         </Button>
         <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/leads')}>

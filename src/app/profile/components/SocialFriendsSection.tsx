@@ -206,7 +206,6 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           onChange={(value) => handleInputChange('clarity_social', value)}
           placeholder="Share what's going well with your social life, friendships, how you connect with others... Or record your story!"
           rows={6}
-          allowVideo={true}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           category={visionToRecordingKey('social')}
@@ -224,7 +223,6 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           onChange={(value) => handleInputChange('contrast_social', value)}
           placeholder="Share what's not going well with your social life or friendships, or what you'd like to improve..."
           rows={6}
-          allowVideo={true}
           storageFolder="profile"
           category={visionToRecordingKey('social')}
           instanceId="contrast"

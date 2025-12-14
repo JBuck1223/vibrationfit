@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         { role: 'user', content: prompt }
       ],
       temperature: aiConfig.temperature,
-      max_tokens: aiConfig.maxTokens,
+      max_completion_tokens: aiConfig.maxTokens,
       response_format: { type: 'json_object' }
     })
 
