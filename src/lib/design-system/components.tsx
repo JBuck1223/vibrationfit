@@ -4775,7 +4775,7 @@ interface WarningConfirmationDialogProps {
   title: string
   message: string
   confirmText: string
-  type: 'save' | 'commit' | 'draft'
+  type: 'save' | 'commit' | 'draft' | 'delete'
   isLoading?: boolean
 }
 
@@ -4799,6 +4799,8 @@ export const WarningConfirmationDialog = ({
         return <CheckCircle2 className="w-6 h-6 text-green-500" />
       case 'draft':
         return <FileText className="w-6 h-6 text-yellow-500" />
+      case 'delete':
+        return <AlertTriangle className="w-6 h-6 text-red-500" />
       default:
         return <AlertTriangle className="w-6 h-6 text-yellow-500" />
     }
@@ -4812,6 +4814,8 @@ export const WarningConfirmationDialog = ({
         return 'primary'
       case 'draft':
         return 'secondary'
+      case 'delete':
+        return 'danger'
       default:
         return 'primary'
     }

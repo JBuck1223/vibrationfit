@@ -33,6 +33,7 @@ const NEON_YELLOW = colors.energy.yellow[500]
 interface VisionData {
   id: string
   user_id: string
+  household_id?: string | null
   version_number: number
   forward: string
   conclusion: string

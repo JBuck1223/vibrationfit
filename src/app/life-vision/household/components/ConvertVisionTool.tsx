@@ -231,9 +231,9 @@ export function ConvertVisionTool({
                 onClick={handleConvert}
                 disabled={!selectedVision || converting}
                 loading={converting}
-                icon={<ArrowRight className="w-5 h-5" />}
                 className="flex-1"
               >
+                {!converting && <ArrowRight className="w-4 h-4 mr-2" />}
                 {converting ? 'Converting...' : 'Convert to Household'}
               </Button>
             </div>
