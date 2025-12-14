@@ -111,6 +111,7 @@ export const userNavigation: NavItem[] = [
     children: [
       { name: 'My Active Vision', href: '/life-vision/active', icon: CheckCircle },
       { name: 'All Visions', href: '/life-vision', icon: Eye },
+      { name: 'Household Visions', href: '/life-vision/household', icon: Users, description: 'Shared household visions' },
       { name: 'All Vision Audios', href: '/life-vision/audio', icon: Headphones },
     ]
   },

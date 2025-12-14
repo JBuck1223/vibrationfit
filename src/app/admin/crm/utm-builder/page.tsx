@@ -29,14 +29,20 @@ export default function UTMBuilderPage() {
 
     if (utmParams.source) params.append('utm_source', utmParams.source)
     if (utmParams.medium) params.append('utm_medium', utmParams.medium)
-    if (utmParams.campaign) params.append('utm_campaign', utmParams.campaign)
+    if (utmParams.campaign) {
+      params.append('utm_campaign', utmParams.campaign)
+      params.append('campaign', utmParams.campaign) // Also add campaign= for internal tracking
+    }
     if (utmParams.content) params.append('utm_content', utmParams.content)
     if (utmParams.term) params.append('utm_term', utmParams.term)
-    if (utmParams.promo) params.append('promo_code', utmParams.promo)
-    if (utmParams.referral) params.append('referral_source', utmParams.referral)
+    if (utmParams.promo) params.append('promo', utmParams.promo)
+    if (utmParams.referral) params.append('ref', utmParams.referral)
 
     const queryString = params.toString()
-    return queryString ? `${baseUrl}?${queryString}` : baseUrl
+    // Add #pricing anchor for intensive/promo links
+    const needsPricingAnchor = utmParams.promo || utmParams.referral
+    const anchor = needsPricingAnchor ? '#pricing' : ''
+    return queryString ? `${baseUrl}?${queryString}${anchor}` : baseUrl
   }
 
   async function copyToClipboard() {
@@ -74,17 +80,31 @@ export default function UTMBuilderPage() {
           promo: 'VISIONPRO50',
           referral: 'partner_john',
         })
+        setBaseUrl('https://vibrationfit.com')
         break
       case 'intensive':
         setUtmParams({
           source: 'instagram',
           medium: 'social',
-          campaign: 'free-intensive',
+          campaign: 'intensive-launch',
           content: 'story-link',
           term: '',
-          promo: 'FREEINTENSIVE',
+          promo: 'INTENSIVE2025',
           referral: 'instagram_organic',
         })
+        setBaseUrl('https://vibrationfit.com')
+        break
+      case 'household':
+        setUtmParams({
+          source: 'couples_workshop',
+          medium: 'referral',
+          campaign: 'household-intensive',
+          content: 'workshop-link',
+          term: '',
+          promo: 'INTENSIVE2025-HOUSEHOLD',
+          referral: 'couples_coach',
+        })
+        setBaseUrl('https://vibrationfit.com?plan=household')
         break
       case 'affiliate':
         setUtmParams({
@@ -96,6 +116,7 @@ export default function UTMBuilderPage() {
           promo: 'PARTNER25',
           referral: 'affiliate_jane_smith',
         })
+        setBaseUrl('https://vibrationfit.com')
         break
       case 'facebook':
         setUtmParams({
@@ -107,6 +128,7 @@ export default function UTMBuilderPage() {
           promo: '',
           referral: '',
         })
+        setBaseUrl('https://vibrationfit.com')
         break
       case 'email':
         setUtmParams({
@@ -118,6 +140,7 @@ export default function UTMBuilderPage() {
           promo: '',
           referral: '',
         })
+        setBaseUrl('https://vibrationfit.com')
         break
     }
   }
@@ -145,7 +168,10 @@ export default function UTMBuilderPage() {
                 Vision Pro Affiliate
               </Button>
               <Button variant="accent" size="sm" onClick={() => loadExample('intensive')}>
-                Free Intensive
+                Solo Intensive
+              </Button>
+              <Button variant="accent" size="sm" onClick={() => loadExample('household')}>
+                Household Intensive
               </Button>
               <Button variant="secondary" size="sm" onClick={() => loadExample('affiliate')}>
                 Affiliate Partner
@@ -176,6 +202,9 @@ export default function UTMBuilderPage() {
           onChange={(e) => setBaseUrl(e.target.value)}
           placeholder="https://vibrationfit.com"
         />
+        <p className="text-xs text-neutral-500 mt-2">
+          💡 Tip: Add <code className="text-primary-500">?plan=household</code> to pre-select Household plan, or <code className="text-primary-500">?plan=solo</code> for Solo
+        </p>
       </Card>
 
       <Card className="p-4 md:p-6 mb-4 md:mb-6">
@@ -257,27 +286,28 @@ export default function UTMBuilderPage() {
               🎯 VibrationFit Tracking Parameters
             </h3>
             <p className="text-xs text-neutral-400 mb-4">
-              These parameters track promo codes and affiliate sources for Vision Pro & Intensive purchases
+              <strong>Important:</strong> Use <code className="text-primary-500">promo=</code> (not promo_code) and <code className="text-primary-500">ref=</code> (not referral_source) for proper tracking!<br/>
+              <strong>Note:</strong> "Free" intensive coupons should be <strong>$498 off</strong> (leaves $1 for payment verification), not 100% off.
             </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-2">
-              Promo Code <span className="text-neutral-500">(promo_code)</span>
+              Promo Code <span className="text-neutral-500">(promo)</span>
             </label>
             <Input
               value={utmParams.promo}
               onChange={(e) => handleParamChange('promo', e.target.value)}
-              placeholder="VISIONPRO50, FREEINTENSIVE, PARTNER25"
+              placeholder="INTENSIVE2025, BETA2024, PARTNER25"
             />
             <p className="text-xs text-neutral-500 mt-1">
-              Coupon/promo code for tracking discounts and offers (e.g., VISIONPRO50, FREEINTENSIVE)
+              Coupon/promo code for discounts - will auto-apply at checkout (e.g., INTENSIVE2025, VIPACCESS)
             </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-2">
-              Referral Source <span className="text-neutral-500">(referral_source)</span>
+              Referral Source <span className="text-neutral-500">(ref)</span>
             </label>
             <Input
               value={utmParams.referral}
@@ -285,7 +315,7 @@ export default function UTMBuilderPage() {
               placeholder="partner_john, affiliate_jane, instagram_organic"
             />
             <p className="text-xs text-neutral-500 mt-1">
-              Specific affiliate or partner identifier (e.g., partner_john, affiliate_jane_smith)
+              Affiliate or partner identifier for commission tracking (e.g., partner_john, Jordan)
             </p>
           </div>
         </div>
@@ -351,19 +381,22 @@ export default function UTMBuilderPage() {
             <h3 className="text-sm font-semibold text-accent-500 mb-2">VibrationFit Affiliate Tracking</h3>
             <ul className="space-y-2 text-sm text-neutral-300">
               <li>
-                • <strong>Promo Code:</strong> Use ALL CAPS for consistency (e.g., VISIONPRO50, FREEINTENSIVE)
+                • <strong>Promo Code (promo=):</strong> Use ALL CAPS for consistency (e.g., INTENSIVE2025, BETA2024)
               </li>
               <li>
-                • <strong>Referral Source:</strong> Use lowercase with underscores (e.g., partner_john, affiliate_jane_smith)
+                • <strong>Referral Source (ref=):</strong> Use lowercase with underscores (e.g., partner_john, Jordan)
               </li>
               <li>
-                • <strong>Campaign Name:</strong> Descriptive campaign identifier (e.g., vision-pro-launch, free-intensive)
+                • <strong>Campaign Name (campaign=):</strong> Descriptive identifier (e.g., webinar_2024, beta_launch)
               </li>
               <li>
-                • <strong>Database Tracking:</strong> These parameters are saved to customer_subscriptions and intensive_purchases
+                • <strong>Auto-Apply:</strong> Promo codes are automatically applied at checkout (user sees FREE badge)
               </li>
               <li>
-                • <strong>Affiliate Reports:</strong> Use referral_source to identify top-performing partners
+                • <strong>Database Tracking:</strong> All params saved to intensive_purchases and customer_subscriptions tables
+              </li>
+              <li>
+                • <strong>Affiliate Reports:</strong> Use ref= parameter to calculate commissions and track performance
               </li>
             </ul>
           </div>

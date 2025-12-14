@@ -13,7 +13,9 @@
     "docs:api": "ts-node scripts/docs/generate-api-docs.ts",
     "docs:constants": "ts-node scripts/docs/generate-constants-docs.ts",
     "audio:generate-previews": "ts-node scripts/audio/generate-elevenlabs-previews.ts",
-    "audio:reset-stuck": "ts-node scripts/audio/reset-stuck-batches.ts"
+    "audio:reset-stuck": "ts-node scripts/audio/reset-stuck-batches.ts",
+    "reconcile:openai": "npx tsx scripts/database/reconcile-openai-costs.ts",
+    "fetch:real-costs": "npx tsx scripts/database/fetch-real-openai-costs.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.59",
