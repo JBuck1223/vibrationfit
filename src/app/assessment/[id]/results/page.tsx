@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   Badge,
+  StatusBadge,
   Container,
   Stack,
   Inline,
@@ -190,9 +191,11 @@ export default function AssessmentResultsPage() {
         {/* Badge Row */}
         <div className="text-center mb-4">
           <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-            <Badge variant={selectedAssessment.is_active ? 'primary' : 'success'} className="uppercase tracking-[0.25em]">
-              {selectedAssessment.is_active ? 'Active' : 'Complete'}
-            </Badge>
+            <StatusBadge 
+              status={selectedAssessment.is_active ? 'active' : 'complete'} 
+              subtle={!selectedAssessment.is_active}
+              className="uppercase tracking-[0.25em]"
+            />
             <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
               <CalendarDays className="w-4 h-4 text-neutral-500" />
               <span className="font-medium">Started:</span>

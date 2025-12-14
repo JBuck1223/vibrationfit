@@ -882,35 +882,6 @@ export default function ProfileEditPage() {
           )}
         </PageHero>
 
-        {/* Save Status */}
-        {(saveStatus !== 'idle' || lastSaved) && (
-          <div className="flex items-center gap-3">
-            {saveStatus === 'saving' && (
-              <>
-                <Spinner size="sm" />
-                <span className="text-sm text-primary-500">Saving...</span>
-              </>
-            )}
-            {saveStatus === 'saved' && (
-              <>
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-green-500">Saved</span>
-              </>
-            )}
-            {saveStatus === 'error' && (
-              <>
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <span className="text-sm text-red-500">Save failed</span>
-              </>
-            )}
-            {lastSaved && saveStatus === 'idle' && (
-              <span className="text-sm text-neutral-500">
-                Last saved: {lastSaved.toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-        )}
-
         {/* Profile Completion Progress */}
         <Card>
           <div className="flex flex-col items-center gap-2">

@@ -3,10 +3,10 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
-import { Button, Spinner, Card, Container, Stack, PageHero } from '@/lib/design-system/components'
-import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
+import { Button, Spinner, Card, Container, Stack, PageHero, StatusBadge, CategoryCard } from '@/lib/design-system/components'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle, CalendarDays, Check } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
 import { AssessmentQuestion, AssessmentOption, AssessmentCategory } from '@/types/assessment'
 import { VISION_CATEGORIES, visionToAssessmentKey } from '@/lib/design-system/vision-categories'
@@ -30,6 +30,7 @@ export default function AssessmentPage() {
   
   // State
   const [assessmentId, setAssessmentId] = useState<string | null>(null)
+  const [assessmentData, setAssessmentData] = useState<any>(null)
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [responses, setResponses] = useState<Map<string, number>>(new Map())
@@ -47,6 +48,9 @@ export default function AssessmentPage() {
   const [customResponseSubmitted, setCustomResponseSubmitted] = useState(false)
   const [customResponseScore, setCustomResponseScore] = useState<number | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+
+  // Ref for scrolling to question card on mobile
+  const questionCardRef = useRef<HTMLDivElement>(null)
 
   // Get assessment categories in the correct order (all categories, including empty ones)
   const assessmentCategoriesOrder = VISION_CATEGORIES
@@ -159,6 +163,7 @@ export default function AssessmentPage() {
           setIsComplete(true)
         }
 
+        setAssessmentData(assessment)
         setAssessmentId(routeAssessmentId)
 
         // Load progress metrics
@@ -301,13 +306,16 @@ export default function AssessmentPage() {
 
   // Handle option selection
   const handleSelect = async (option: AssessmentOption) => {
-    if (!assessmentId || isSaving) return
-
-    console.log('Option selected:', option.text, 'isCustom:', option.isCustom)
+    if (!assessmentId) return
+    
+    // Prevent clicking the same option while it's already being saved
+    const currentlySelected = responses.get(currentQuestion.id)
+    if (isSaving && currentlySelected === option.value) {
+      return
+    }
 
     // Handle custom response option
     if (option.isCustom) {
-      console.log('Custom option selected, showing input')
       // Optimistically highlight the custom option (value 0) while showing input
       setResponses(prev => new Map(prev).set(currentQuestion.id, 0))
       setShowCustomInput(true)
@@ -316,10 +324,20 @@ export default function AssessmentPage() {
       return
     }
 
+    // Hide custom input if switching to a standard option
+    if (showCustomInput) {
+      setShowCustomInput(false)
+      setCustomResponse('')
+      setCustomResponseSubmitted(false)
+      setCustomResponseScore(null)
+    }
+
     setIsSaving(true)
+    
+    // Update local state immediately for better UX
+    setResponses(prev => new Map(prev).set(currentQuestion.id, option.value))
+    
     try {
-      // Update local state immediately for better UX
-      setResponses(prev => new Map(prev).set(currentQuestion.id, option.value))
 
       // Use 1-5 scale directly for database storage
       // No conversion needed - database now accepts 1-5 values
@@ -327,15 +345,6 @@ export default function AssessmentPage() {
       
       // For custom responses, we'll use custom_response_value for the actual calculation
       const customScore = option.value === 0 ? 0 : undefined
-      
-      // Debug logging
-      console.log('🔍 Saving response with data:', {
-        assessment_id: assessmentId,
-        question_id: currentQuestion.id,
-        response_value: dbValue,
-        response_text: option.text,
-        category: currentQuestion.category
-      })
 
       // Save response to database
       await saveResponse({
@@ -405,15 +414,7 @@ export default function AssessmentPage() {
         custom_green_line: greenLine as 'above' | 'neutral' | 'below'
       }
       
-      console.log('Saving response data:', saveData)
-      
-      try {
-        const saveResult = await saveResponse(saveData)
-        console.log('Save result:', saveResult)
-      } catch (saveError) {
-        console.error('Save error details:', saveError)
-        throw saveError
-      }
+      await saveResponse(saveData)
 
       // Update local state - keep 0 to show "None of these specifically resonate" is selected
       setResponses(prev => new Map(prev).set(currentQuestion.id, 0))
@@ -445,8 +446,11 @@ export default function AssessmentPage() {
       // Next question in current category
       setCurrentQuestionIndex(prev => {
         const newIndex = prev + 1
-        // Save position after state update
-        setTimeout(() => saveCurrentPosition(), 0)
+        // Save position and scroll to top of card
+        setTimeout(() => {
+          saveCurrentPosition()
+          questionCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 0)
         return newIndex
       })
     } else if (currentCategoryIndex < orderedAssessmentQuestions.length - 1) {
@@ -454,8 +458,11 @@ export default function AssessmentPage() {
       setCurrentCategoryIndex(prev => {
         const newIndex = prev + 1
         setCurrentQuestionIndex(0)
-        // Save position after state update
-        setTimeout(() => saveCurrentPosition(), 0)
+        // Save position and scroll to top of card
+        setTimeout(() => {
+          saveCurrentPosition()
+          questionCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 0)
         return newIndex
       })
     } else {
@@ -470,8 +477,11 @@ export default function AssessmentPage() {
       // Previous question in current category
       setCurrentQuestionIndex(prev => {
         const newIndex = prev - 1
-        // Save position after state update
-        setTimeout(() => saveCurrentPosition(), 0)
+        // Save position and scroll to top of card
+        setTimeout(() => {
+          saveCurrentPosition()
+          questionCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 0)
         return newIndex
       })
     } else if (currentCategoryIndex > 0) {
@@ -484,8 +494,11 @@ export default function AssessmentPage() {
       
       setCurrentCategoryIndex(prevCategoryIndex)
       setCurrentQuestionIndex(prevQuestions.length - 1)
-      // Save position after state update
-      setTimeout(() => saveCurrentPosition(), 0)
+      // Save position and scroll to top of card
+      setTimeout(() => {
+        saveCurrentPosition()
+        questionCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 0)
     }
   }
 
@@ -584,342 +597,334 @@ export default function AssessmentPage() {
         <PageHero
           title="Vibrational Assessment"
           subtitle="Discover your current state across all 12 life categories"
-        />
-
-        {/* Overall Progress Bar - Full Width */}
-        {progress && (
-          <div className="mb-6">
-            <div className="bg-neutral-800 rounded-2xl p-6 border-2 border-neutral-700">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-neutral-300">
-                  Overall Progress
-                </span>
-                <span className="text-2xl font-bold text-[#39FF14]">
-                  {progress.overall.percentage}%
-                </span>
-              </div>
-              
-              <div className="relative w-full h-3 bg-neutral-700 rounded-full overflow-hidden">
-                <div
-                  className="absolute left-0 top-0 h-full bg-[#39FF14] transition-all duration-500"
-                  style={{ width: `${progress.overall.percentage}%` }}
+        >
+          {/* Badge Row */}
+          {assessmentData && (
+            <div className="text-center">
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                <StatusBadge 
+                  status="draft"
+                  label="IN PROGRESS"
+                  subtle={true} 
+                  className="uppercase tracking-[0.25em]" 
                 />
-              </div>
-              
-              <div className="mt-2 text-xs text-neutral-400 text-center">
-                {progress.overall.answered} of {progress.overall.total} questions answered
+                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                  <CalendarDays className="w-4 h-4 text-neutral-500" />
+                  <span className="font-medium">Started:</span>
+                  <span>{new Date(assessmentData.started_at || assessmentData.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+                {progress && (
+                  <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                    <span className="font-medium">Completion:</span>
+                    <span className="font-semibold text-[#39FF14]">{progress.overall.percentage}%</span>
+                  </div>
+                )}
               </div>
             </div>
+          )}
+        </PageHero>
 
-            {/* VIVA Tip */}
-            <div className="mt-4 bg-secondary-500/10 border border-secondary-500/30 rounded-xl p-4">
-              <p className="text-xs text-neutral-300 leading-relaxed text-center">
-                <span className="font-semibold text-secondary-500">VIVA's Tip:</span> Answer honestly based on your current reality, not where you want to be. This helps VIVA create your most aligned life vision.
-              </p>
+        {/* Assessment Completion Progress */}
+        {progress && (
+          <Card>
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-base font-semibold text-primary-500">{progress.overall.percentage}% Complete</span>
+              <div className="w-full bg-neutral-700 rounded-full h-3 border border-neutral-600">
+                <div
+                  className="h-3 rounded-full transition-all duration-500 bg-primary-500"
+                  style={{ width: `${progress.overall.percentage}%` }}
+                ></div>
+              </div>
+              <span className="text-xs text-neutral-400 mt-1">
+                {progress.overall.answered} of {progress.overall.total} questions answered
+              </span>
             </div>
-          </div>
+          </Card>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Sidebar - Categories */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-24">
-              <div className="bg-neutral-800 rounded-2xl p-6 border-2 border-neutral-700">
-                <h3 className="text-sm font-semibold text-neutral-300 mb-4">
-                  Categories
-                </h3>
-                
-                <div className="space-y-2">
-                  {assessmentCategoriesOrder.map((categoryKey, index) => {
-                    const cat = assessmentQuestions.find(c => c.category === categoryKey)
-                    const visionCat = VISION_CATEGORIES.find(v => v.key === categoryKey)
-                    const Icon = visionCat?.icon
-                    const categoryProgress = progress?.categories[categoryKey]
-                    const isComplete = categoryProgress && categoryProgress.percentage === 100
-                    const isCurrent = currentCategoryIndex === index
-                    const hasQuestions = cat && cat.questions && cat.questions.length > 0
-                    
+        {/* VIVA Tip */}
+        <div className="bg-secondary-500/10 border border-secondary-500/30 rounded-xl p-4">
+          <p className="text-xs text-neutral-300 leading-relaxed text-center">
+            <span className="font-semibold text-secondary-500">VIVA's Tip:</span> Answer honestly based on your current reality, not where you want to be. This helps VIVA create your most aligned life vision.
+          </p>
+        </div>
 
-                    return (
-                      <button
-                        key={categoryKey}
-                        onClick={() => {
-                          if (hasQuestions) {
-                            setCurrentCategoryIndex(index)
-                            setCurrentQuestionIndex(0)
-                            // Save position after state update
-                            setTimeout(() => saveCurrentPosition(), 0)
-                          }
-                        }}
-                        disabled={!hasQuestions}
-                        className={`
-                          w-full flex items-center gap-3 p-3 rounded-lg transition-all
-                          ${!hasQuestions 
-                            ? 'bg-neutral-800 border-2 border-neutral-700 opacity-50 cursor-not-allowed'
-                            : isCurrent 
-                            ? 'bg-primary-500/20 border-2 border-primary-500' 
-                            : isComplete
-                            ? 'bg-green-500/20 border-2 border-green-500'
-                            : 'bg-neutral-700 border-2 border-neutral-600 hover:border-neutral-500'
-                          }
-                        `}
-                      >
-                        {/* Icon */}
-                        <div className={`
-                          flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center
-                          ${!hasQuestions
-                            ? 'bg-neutral-800 text-neutral-600'
-                            : isComplete 
-                            ? 'bg-neutral-700/50 border border-[#39FF14] text-[#39FF14] hover:bg-neutral-600/50 hover:border-[#39FF14]/80' 
-                            : isCurrent
-                              ? 'bg-[#39FF14]/30 text-[#39FF14]'
-                              : 'bg-neutral-700 text-neutral-400'
-                          }
-                        `}>
-                          {isComplete ? (
-                            <CheckCircle className="w-4 h-4" />
-                          ) : Icon ? (
-                            <Icon className="w-4 h-4" />
-                          ) : null}
-                        </div>
-
-                        {/* Category Name */}
-                        <div className="flex-1 text-left min-w-0">
-                          <div className={`
-                            text-sm font-medium truncate
-                            ${!hasQuestions 
-                              ? 'text-neutral-500'
-                              : isCurrent ? 'text-[#39FF14]' : isComplete ? 'text-white' : 'text-neutral-300'}
-                          `}>
-                            {visionCat?.label || categoryKey}
-                          </div>
-                          <div className="text-xs text-neutral-400">
-                            {!hasQuestions 
-                              ? 'Coming Soon'
-                              : categoryProgress 
-                                ? `${categoryProgress.answered}/${categoryProgress.total}`
-                                : 'Not started'
-                            }
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
+        {/* Category Selection Grid */}
+        <Card>
+          <div className="mb-4 text-center">
+            <h3 className="text-lg font-semibold text-white mb-1">Select Life Category</h3>
+            <p className="text-sm text-neutral-400">
+              {progress && `${progress.overall.answered} of ${progress.overall.total} questions answered`}
+              {progress && progress.overall.answered > 0 && (() => {
+                const completedCount = Object.values(progress.categories).filter(cat => cat.percentage === 100).length
+                return (
+                  <span className="ml-2 text-[#39FF14]">
+                    • {completedCount} complete
+                  </span>
+                )
+              })()}
+            </p>
           </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Question Card with Category Header Inside */}
-            <Card variant="elevated" className="p-8">
-              {/* Category Header */}
-              <div className="flex items-center gap-4 mb-6 pb-6 border-b border-neutral-700">
-                {currentCategoryWithMetadata && (() => {
-                  const visionCat = VISION_CATEGORIES.find(v => v.key === currentCategoryWithMetadata.category)
-                  const Icon = visionCat?.icon
-                  return (
-                    <>
-                      <div className="w-12 h-12 rounded-xl bg-neutral-700 flex items-center justify-center">
-                        {Icon && <Icon className="w-6 h-6 text-neutral-400" />}
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-white">
-                          {currentCategoryWithMetadata.title}
-                        </h2>
-                        <p className="text-sm text-neutral-400">
-                          {currentCategoryWithMetadata.description}
-                        </p>
-                      </div>
-                    </>
-                  )
-                })()}
-              </div>
+          {/* Category Grid */}
+          <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-12 gap-1">
+            {assessmentCategoriesOrder.map((categoryKey, index) => {
+              const cat = assessmentQuestions.find(c => c.category === categoryKey)
+              const visionCat = VISION_CATEGORIES.find(v => v.key === categoryKey)
+              const categoryProgress = progress?.categories[categoryKey]
+              const isComplete = categoryProgress && categoryProgress.percentage === 100
+              const isCurrent = currentCategoryIndex === index
+              const hasQuestions = cat && cat.questions && cat.questions.length > 0
+              
+              // Create category object for CategoryCard
+              const category = {
+                key: categoryKey,
+                label: visionCat?.label || categoryKey,
+                icon: visionCat?.icon
+              }
 
-              {/* Question Content */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm font-semibold text-[#39FF14]">
-                    Question {totalQuestionNumber} of {totalQuestions}
-                  </span>
-                </div>
-                
-                <h3 className="text-2xl font-semibold text-white mb-2">
-                  {currentQuestion.text}
-                </h3>
-                
-                <p className="text-sm text-neutral-400">
-                  Choose the response that most honestly describes your current state
-                </p>
-              </div>
-
-              {/* Options */}
-              <div className="space-y-3">
-                {currentQuestion.options.map((option, index) => {
-                  const isSelected = selectedValue === option.value
-                  
-                  let borderColor = 'border-neutral-600'
-                  let hoverBorderColor = 'hover:border-neutral-500'
-                  
-                  if (isSelected) {
-                    borderColor = 'border-[#39FF14]'
-                  }
-
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleSelect(option)}
-                      className={`
-                        w-full p-4 rounded-xl border-2 transition-all duration-200
-                        ${borderColor} ${hoverBorderColor}
-                        ${isSelected 
-                          ? 'bg-neutral-700/50 scale-[1.02]' 
-                          : 'bg-neutral-800/30 hover:bg-neutral-700/30'
-                        }
-                        text-left relative group
-                      `}
-                    >
-
-                      <div className="flex items-center gap-4">
-                        {/* Option Text */}
-                        <span className={`
-                          flex-1 text-base
-                          ${isSelected ? 'text-white font-medium' : 'text-neutral-300'}
-                        `}>
-                          {option.text}
-                        </span>
-
-                        {/* Check Icon */}
-                        {isSelected && (
-                          <CheckCircle className="flex-shrink-0 w-5 h-5 text-[#39FF14]" />
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
-
-              </div>
-
-              {/* Custom Response Input */}
-              {showCustomInput && (
-                <div className="mt-6 p-6 bg-neutral-800/50 border-2 border-primary-500/30 rounded-xl">
-                  <h4 className="text-lg font-semibold text-white mb-4">
-                    Share your own response:
-                  </h4>
-                  
-                  {customResponseSubmitted ? (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle className="w-5 h-5 text-[#39FF14]" />
-                          <span className="text-[#39FF14] font-semibold">Response Submitted Successfully!</span>
-                        </div>
-                        <p className="text-sm text-neutral-300">
-                          Your custom response has been saved with a score of {customResponseScore}/5. You can continue to the next question.
-                        </p>
-                      </div>
-                      
-                      <div className="p-4 bg-neutral-900 border border-neutral-600 rounded-lg">
-                        <p className="text-white text-sm leading-relaxed">
-                          {customResponse}
-                        </p>
-                      </div>
+              return (
+                <div key={categoryKey} className="relative">
+                  {isComplete && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#39FF14] flex items-center justify-center z-10">
+                      <Check className="w-3 h-3 text-[#39FF14]" strokeWidth={3} />
                     </div>
-                  ) : (
-                    <>
-                      <textarea
-                        value={customResponse}
-                        onChange={(e) => setCustomResponse(e.target.value)}
-                        placeholder="Type response here..."
-                        className="w-full p-4 bg-neutral-900 border border-neutral-600 rounded-lg text-white placeholder-neutral-400 resize-none"
-                        rows={4}
-                        disabled={isSaving}
-                      />
-                      
-                      {/* 1-5 Score Selector */}
-                      <div className="mt-4">
-                        <h5 className="text-sm font-semibold text-white mb-3">
-                          How do you feel about this? (Select 1-5)
-                        </h5>
-                        <div className="flex gap-2 mb-2">
-                          {[1, 2, 3, 4, 5].map((score) => (
-                            <button
-                              key={score}
-                              onClick={() => setCustomResponseScore(score)}
-                              className={`w-12 h-12 rounded-lg border-2 transition-all ${
-                                customResponseScore === score
-                                  ? 'border-[#39FF14] bg-[#39FF14]/20 text-[#39FF14]'
-                                  : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-neutral-500'
-                              }`}
-                              disabled={isSaving}
-                            >
-                              {score}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="flex justify-between text-xs text-neutral-400">
-                          <span>1 - I feel terrible</span>
-                          <span>5 - I feel amazing</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between mt-4">
+                  )}
+                  <CategoryCard 
+                    category={category}
+                    selected={isCurrent}
+                    onClick={() => {
+                      if (hasQuestions) {
+                        setCurrentCategoryIndex(index)
+                        setCurrentQuestionIndex(0)
+                        setTimeout(() => saveCurrentPosition(), 0)
+                      }
+                    }}
+                    variant="outlined"
+                    selectionStyle="border"
+                    iconColor={isCurrent ? "#39FF14" : "#FFFFFF"}
+                    selectedIconColor="#39FF14"
+                    className={isCurrent ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+
+        {/* Main Question Content - Full Width */}
+        <Card ref={questionCardRef} variant="elevated" className="p-8">
+          {/* Category Header */}
+          <div className="flex items-center justify-center gap-3 mb-6">
+            {currentCategoryWithMetadata && (() => {
+              const visionCat = VISION_CATEGORIES.find(v => v.key === currentCategoryWithMetadata.category)
+              const Icon = visionCat?.icon
+              return (
+                <>
+                  {Icon && <Icon className="w-6 h-6 text-white" />}
+                  <h2 className="text-xl font-bold text-white">
+                    {currentCategoryWithMetadata.title}
+                  </h2>
+                </>
+              )
+            })()}
+          </div>
+
+          {/* Question Content */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-semibold text-[#39FF14]">
+                Question {totalQuestionNumber} of {totalQuestions}
+              </span>
+            </div>
+            
+            <h3 className="text-2xl font-semibold text-white mb-2">
+              {currentQuestion.text}
+            </h3>
+            
+            <p className="text-sm text-neutral-400">
+              Choose the response that most honestly describes your current state
+            </p>
+          </div>
+
+          {/* Options */}
+          <div className="space-y-3">
+            {currentQuestion.options.map((option, index) => {
+              const isSelected = selectedValue === option.value
+              
+              let borderColor = 'border-neutral-600'
+              let hoverBorderColor = 'hover:border-neutral-500'
+              
+              if (isSelected) {
+                borderColor = 'border-[#39FF14]'
+              }
+
+              return (
+                <button
+                  key={index}
+                  onClick={() => handleSelect(option)}
+                  className={`
+                    w-full p-4 rounded-xl border-2 transition-all duration-200
+                    ${borderColor} ${hoverBorderColor}
+                    ${isSelected 
+                      ? 'bg-neutral-700/50' 
+                      : 'bg-neutral-800/30 hover:bg-neutral-700/30'
+                    }
+                    text-left relative group
+                  `}
+                >
+
+                  <div className="flex items-center gap-4">
+                    {/* Option Text */}
+                    <span className={`
+                      flex-1 text-base
+                      ${isSelected ? 'text-white font-medium' : 'text-neutral-300'}
+                    `}>
+                      {option.text}
+                    </span>
+
+                    {/* Check Icon */}
+                    {isSelected && (
+                      <CheckCircle className="flex-shrink-0 w-5 h-5 text-[#39FF14]" />
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+
+          </div>
+
+          {/* Custom Response Input */}
+          {showCustomInput && (
+            <div className="mt-6 p-6 bg-neutral-800/50 border-2 border-primary-500/30 rounded-xl">
+              <h4 className="text-lg font-semibold text-white mb-4">
+                Share your own response:
+              </h4>
+              
+              {customResponseSubmitted ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-[#39FF14]" />
+                      <span className="text-[#39FF14] font-semibold">Response Submitted Successfully!</span>
+                    </div>
+                    <p className="text-sm text-neutral-300">
+                      Your custom response has been saved with a score of {customResponseScore}/5. You can continue to the next question.
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 bg-neutral-900 border border-neutral-600 rounded-lg">
+                    <p className="text-white text-sm leading-relaxed">
+                      {customResponse}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    value={customResponse}
+                    onChange={(e) => setCustomResponse(e.target.value)}
+                    placeholder="Type response here..."
+                    className="w-full p-4 bg-neutral-900 border border-neutral-600 rounded-lg text-white placeholder-neutral-400 resize-none"
+                    rows={4}
+                    disabled={isSaving}
+                  />
+                  
+                  {/* 1-5 Score Selector */}
+                  <div className="mt-4">
+                    <h5 className="text-sm font-semibold text-white mb-3">
+                      How do you feel about this? (Select 1-5)
+                    </h5>
+                    <div className="flex gap-2 mb-2">
+                      {[1, 2, 3, 4, 5].map((score) => (
                         <button
-                          onClick={() => {
-                            setShowCustomInput(false)
-                            setCustomResponse('')
-                            setCustomResponseSubmitted(false)
-                            setCustomResponseScore(null)
-                          }}
-                          className="text-sm text-neutral-400 hover:text-neutral-300 transition-colors"
+                          key={score}
+                          onClick={() => setCustomResponseScore(score)}
+                          className={`w-12 h-12 rounded-lg border-2 transition-all ${
+                            customResponseScore === score
+                              ? 'border-[#39FF14] bg-[#39FF14]/20 text-[#39FF14]'
+                              : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-neutral-500'
+                          }`}
                           disabled={isSaving}
                         >
-                          Cancel
+                          {score}
                         </button>
-                        
-                        <Button
-                          onClick={handleCustomResponse}
-                          loading={isSaving}
-                          disabled={!customResponse.trim() || !customResponseScore || isSaving}
-                          className="px-6"
-                        >
-                          {isSaving ? 'Saving...' : 'Submit Response'}
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between text-xs text-neutral-400">
+                      <span>1 - I feel terrible</span>
+                      <span>5 - I feel amazing</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-4">
+                    <button
+                      onClick={() => {
+                        setShowCustomInput(false)
+                        setCustomResponse('')
+                        setCustomResponseSubmitted(false)
+                        setCustomResponseScore(null)
+                      }}
+                      className="text-sm text-neutral-400 hover:text-neutral-300 transition-colors"
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </button>
+                    
+                    <Button
+                      onClick={handleCustomResponse}
+                      loading={isSaving}
+                      disabled={!customResponse.trim() || !customResponseScore || isSaving}
+                      className="px-6"
+                    >
+                      {isSaving ? 'Saving...' : 'Submit Response'}
+                    </Button>
+                  </div>
+                </>
               )}
-            </Card>
+            </div>
+          )}
+        </Card>
 
-            {/* Navigation */}
-            <div className="flex items-center justify-between">
-              <Button
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={isFirstQuestion || isSaving}
-              >
-                <ChevronLeft className="w-4 h-4 mr-2" />
-                Previous
-              </Button>
+        {/* Navigation */}
+        <div className="flex items-center justify-between">
+          <div className="flex-1 flex justify-start">
+            <Button
+              onClick={handlePrevious}
+              disabled={isFirstQuestion || isSaving}
+              variant="outline"
+              size="sm"
+              className="w-24 md:w-auto"
+            >
+              <ChevronsLeft className="w-4 h-4 flex-shrink-0 md:hidden" />
+              <ChevronLeft className="w-4 h-4 flex-shrink-0 hidden md:block" />
+              <span className="hidden md:inline">Previous</span>
+            </Button>
+          </div>
 
-              <div className="text-sm text-neutral-400">
-                Question {currentQuestionIndex + 1} of {filteredQuestions.length} in this category
-              </div>
+          <div className="flex flex-col md:flex-row md:items-center md:gap-2 text-sm text-neutral-400 text-center">
+            <span className="md:hidden">{currentCategoryWithMetadata?.title || 'Category'}</span>
+            <span className="md:hidden">Question {currentQuestionIndex + 1} of {filteredQuestions.length}</span>
+            <span className="hidden md:inline">{currentCategoryWithMetadata?.title || 'Category'} • Question {currentQuestionIndex + 1} of {filteredQuestions.length}</span>
+          </div>
 
-              <Button
-                variant="primary"
-                onClick={handleNext}
-                disabled={selectedValue === undefined || selectedValue === null}
-              >
+          <div className="flex-1 flex justify-end">
+            <Button
+              onClick={handleNext}
+              disabled={selectedValue === undefined || selectedValue === null}
+              variant="outline"
+              size="sm"
+              className="w-24 md:w-auto"
+            >
+              <span className="hidden md:inline">
                 {currentCategoryIndex === orderedAssessmentQuestions.length - 1 &&
                 currentQuestionIndex === filteredQuestions.length - 1
-                  ? 'Complete Assessment'
+                  ? 'Complete'
                   : 'Next'}
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
+              </span>
+              <ChevronsRight className="w-4 h-4 flex-shrink-0 md:hidden" />
+              <ChevronRight className="w-4 h-4 flex-shrink-0 hidden md:block" />
+            </Button>
           </div>
         </div>
       </Stack>
