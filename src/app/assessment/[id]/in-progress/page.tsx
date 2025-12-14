@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import { Button, Spinner, Card, Container, Stack, PageHero, StatusBadge, CategoryCard } from '@/lib/design-system/components'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle, CalendarDays, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle, CalendarDays, Check, Circle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
 import { AssessmentQuestion, AssessmentOption, AssessmentCategory } from '@/types/assessment'
 import { VISION_CATEGORIES, visionToAssessmentKey } from '@/lib/design-system/vision-categories'
@@ -680,7 +680,7 @@ export default function AssessmentPage() {
               const category = {
                 key: categoryKey,
                 label: visionCat?.label || categoryKey,
-                icon: visionCat?.icon
+                icon: visionCat?.icon || Circle
               }
 
               return (
