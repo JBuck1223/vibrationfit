@@ -377,7 +377,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const prompt = await buildRefinementPrompt(bodyWithRefinement, user.id);
 
     // Estimate tokens
-    const tokenEstimate = estimateTokensForText(prompt, toolConfig.model);
+    const tokenEstimate = estimateTokensForText(prompt, toolConfig.model_name);
     const maxTokens = Math.ceil(tokenEstimate * 1.5);
 
     // Check token balance
@@ -420,7 +420,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await trackTokenUsage({
         user_id: user.id,
         action_type: "vision_refinement",
-        model_used: toolConfig.model,
+        model_used: toolConfig.model_name,
         tokens_used: usage.total_tokens,
         actual_cost_cents: 0, // Will be calculated
         input_tokens: usage.prompt_tokens,

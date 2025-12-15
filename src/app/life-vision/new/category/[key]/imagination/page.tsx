@@ -126,10 +126,10 @@ export default function ImaginationPage() {
       <div className="mb-8">
         <Button
           variant="ghost"
-          icon={<ArrowLeft className="w-4 h-4" />}
           onClick={() => router.push(`/life-vision/new/category/${categoryKey}`)}
           className="mb-4"
         >
+          <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Clarity
         </Button>
 
@@ -195,10 +195,10 @@ export default function ImaginationPage() {
         </label>
         <RecordingTextarea
           value={freeFlowText}
-          onChange={(e) => setFreeFlowText(e.target.value)}
+          onChange={(value) => setFreeFlowText(value)}
           placeholder={`Describe your dream ${category?.label.toLowerCase()} life...\n\nWhat does it look like? How does it feel? What are you doing? Who are you with?`}
           className="min-h-[300px] w-full"
-          minRows={12}
+          rows={12}
         />
         <p className="text-xs text-neutral-500 mt-2">
           {freeFlowText.trim().split(/\s+/).filter(Boolean).length} words

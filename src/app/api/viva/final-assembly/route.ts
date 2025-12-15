@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     const messages = [
       {
         role: 'system' as const,
-        content: toolConfig.systemPrompt || 'You are VIVA, creating the final polish for a complete Life Vision.'
+        content: toolConfig.system_prompt || 'You are VIVA, creating the final polish for a complete Life Vision.'
       },
       {
         role: 'user' as const,
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     await trackTokenUsage({
       user_id: user.id,
       action_type: 'vision_generation',  // TODO: Add 'final_assembly' type if needed
-      model_used: toolConfig.model,
+      model_used: toolConfig.model_name,
       tokens_used: completion.usage?.total_tokens || 0,
       input_tokens: completion.usage?.prompt_tokens || 0,
       output_tokens: completion.usage?.completion_tokens || 0,
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     await trackTokenUsage({
       user_id: user.id,
       action_type: 'vision_generation',  // TODO: Add 'activation_message' type if needed
-      model_used: toolConfig.model,
+      model_used: toolConfig.model_name,
       tokens_used: activationCompletion.usage?.total_tokens || 0,
       input_tokens: activationCompletion.usage?.prompt_tokens || 0,
       output_tokens: activationCompletion.usage?.completion_tokens || 0,

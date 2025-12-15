@@ -67,7 +67,7 @@ Return only the merged clarity statement, no explanation or commentary.`
 
     // Estimate tokens
     const inputText = `${mergePrompt}`
-    const estimatedTokens = estimateTokensForText(inputText, toolConfig.model)
+    const estimatedTokens = estimateTokensForText(inputText, toolConfig.model_name)
 
     // Validate token balance
     const tokenCheck = await validateTokenBalance(user.id, estimatedTokens, supabase)
@@ -77,7 +77,7 @@ Return only the merged clarity statement, no explanation or commentary.`
 
     // Build OpenAI params using database config
     const messages = [
-      { role: 'system' as const, content: toolConfig.systemPrompt || SHARED_SYSTEM_PROMPT },
+      { role: 'system' as const, content: toolConfig.system_prompt || SHARED_SYSTEM_PROMPT },
       { role: 'user' as const, content: mergePrompt }
     ]
     const openaiParams = buildOpenAIParams(toolConfig, messages)
@@ -97,7 +97,7 @@ Return only the merged clarity statement, no explanation or commentary.`
     await trackTokenUsage({
       user_id: user.id,
       action_type: 'life_vision_category_summary',
-      model_used: toolConfig.model,
+      model_used: toolConfig.model_name,
       tokens_used: totalTokens,
       input_tokens: inputTokens,
       output_tokens: outputTokens,

@@ -112,16 +112,16 @@ export async function POST(request: NextRequest) {
 
     if (!result) {
       console.error('[Blueprint] Empty response from AI:', {
-        model: aiConfig.model,
+        model: aiConfig.model_name,
         message: message,
         finishReason: completion.choices[0]?.finish_reason,
         usage: completion.usage
       })
-      throw new Error(`No response from AI (model: ${aiConfig.model}, finish_reason: ${completion.choices[0]?.finish_reason || 'unknown'})`)
+      throw new Error(`No response from AI (model: ${aiConfig.model_name}, finish_reason: ${completion.choices[0]?.finish_reason || 'unknown'})`)
     }
 
     console.log('[Blueprint] Received response:', {
-      model: aiConfig.model,
+      model: aiConfig.model_name,
       responseLength: result.length,
       responseTimeMs: responseTime,
       finishReason: completion.choices[0]?.finish_reason

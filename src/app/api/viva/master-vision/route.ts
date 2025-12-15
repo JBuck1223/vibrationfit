@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const toolConfig = await getAIToolConfig('master_vision_assembly')
 
     // Estimate tokens and validate balance
-    const estimatedTokens = estimateTokensForText(prompt, toolConfig.model)
+    const estimatedTokens = estimateTokensForText(prompt, toolConfig.model_name)
     const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
 
     if (tokenValidation) {
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Build OpenAI params using database config
     const messages = [
-      { role: 'system' as const, content: toolConfig.systemPrompt || MASTER_VISION_SHARED_SYSTEM_PROMPT },
+      { role: 'system' as const, content: toolConfig.system_prompt || MASTER_VISION_SHARED_SYSTEM_PROMPT },
       { role: 'user' as const, content: prompt }
     ]
     const openaiParams = buildOpenAIParams(toolConfig, messages)
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         await trackTokenUsage({
           user_id: user.id,
           action_type: 'life_vision_master_assembly',
-          model_used: toolConfig.model,
+          model_used: toolConfig.model_name,
           tokens_used: completion.usage.total_tokens || 0,
           input_tokens: completion.usage.prompt_tokens || 0,
           output_tokens: completion.usage.completion_tokens || 0,
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       markdown,
       json,
-      model: toolConfig.model,
+      model: toolConfig.model_name,
       // ENHANCED V3: Include richness metadata in response
       richnessMetadata
     })
