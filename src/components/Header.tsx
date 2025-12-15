@@ -96,7 +96,6 @@ export function Header() {
               width={200}
               height={40}
               style={{ width: 'auto', height: '2rem' }}
-              className="h-8"
               priority
             />
           </Link>
