@@ -226,7 +226,7 @@ export default function IntensiveDashboard() {
         phase: 'Foundation',
         completed: checklist.profile_completed,
         completedAt: checklist.profile_completed_at,
-        href: '/profile/edit',
+        href: '/profile/active/edit',
         locked: false
       },
       {

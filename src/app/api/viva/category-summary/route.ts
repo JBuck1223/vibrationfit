@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getAIModelConfig } from '@/lib/ai/config'
+import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
 import OpenAI from 'openai'
 import { analyzeProfile, analyzeAssessment } from '@/lib/viva/profile-analyzer'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
@@ -142,11 +142,11 @@ export async function POST(request: NextRequest) {
         // Build prompt with context
         const prompt = buildCategorySummaryPrompt(category, transcript, categoryName, profile, assessment)
 
-        // Get admin-approved AI model config
-        const aiConfig = getAIModelConfig('LIFE_VISION_CATEGORY_SUMMARY')
+        // Get admin-configured AI tool config from database
+        const toolConfig = await getAIToolConfig('life_vision_category_summary')
 
         // Estimate tokens and validate balance
-        const estimatedTokens = estimateTokensForText(prompt, aiConfig.model)
+        const estimatedTokens = estimateTokensForText(prompt, toolConfig.model)
         const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
         
         if (tokenValidation) {
@@ -163,16 +163,15 @@ export async function POST(request: NextRequest) {
         // Stage 5: Creating summary
         sendProgress(controller, 'creating', 'Creating your summary...')
 
+        // Build OpenAI params using database config
+        const messages = [
+          { role: 'system' as const, content: toolConfig.systemPrompt || CATEGORY_SUMMARY_SYSTEM_PROMPT },
+          { role: 'user' as const, content: prompt }
+        ]
+        const openaiParams = buildOpenAIParams(toolConfig, messages)
+
         // Call OpenAI
-        const completion = await openai.chat.completions.create({
-          model: aiConfig.model,
-          messages: [
-            { role: 'system', content: aiConfig.systemPrompt || CATEGORY_SUMMARY_SYSTEM_PROMPT },
-            { role: 'user', content: prompt }
-          ],
-          temperature: aiConfig.temperature,
-          max_completion_tokens: aiConfig.maxTokens,
-        })
+        const completion = await openai.chat.completions.create(openaiParams)
 
         const summary = completion.choices[0]?.message?.content
 
@@ -186,7 +185,7 @@ export async function POST(request: NextRequest) {
             await trackTokenUsage({
               user_id: user.id,
               action_type: 'life_vision_category_summary',
-              model_used: aiConfig.model,
+              model_used: toolConfig.model,
               tokens_used: completion.usage.total_tokens || 0,
               input_tokens: completion.usage.prompt_tokens || 0,
               output_tokens: completion.usage.completion_tokens || 0,
@@ -214,7 +213,7 @@ export async function POST(request: NextRequest) {
         const result = JSON.stringify({ 
           type: 'complete',
           summary,
-          model: aiConfig.model,
+          model: toolConfig.model,
           category 
         })
         controller.enqueue(new TextEncoder().encode(`data: ${result}\n\n`))

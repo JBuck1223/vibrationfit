@@ -1,0 +1,51 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Spinner, Container } from '@/lib/design-system/components'
+
+/**
+ * Redirect page that fetches the active profile and redirects to its edit page
+ * Used for navigation menu items that need to link directly to editing the active profile
+ */
+export default function ActiveProfileEditRedirectPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const fetchAndRedirect = async () => {
+      try {
+        // Fetch active profile from API
+        const response = await fetch('/api/profile')
+        
+        if (!response.ok) {
+          // If no profile found or error, redirect to profile list page
+          router.push('/profile')
+          return
+        }
+
+        const data = await response.json()
+        
+        if (data.profile?.id) {
+          // Redirect to the active profile edit page
+          router.push(`/profile/${data.profile.id}/edit`)
+        } else {
+          // No active profile found, redirect to list page
+          router.push('/profile')
+        }
+      } catch (error) {
+        console.error('Error fetching active profile:', error)
+        // On error, redirect to list page
+        router.push('/profile')
+      }
+    }
+
+    fetchAndRedirect()
+  }, [router])
+
+  return (
+    <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+      <Spinner size="lg" />
+    </Container>
+  )
+}
+

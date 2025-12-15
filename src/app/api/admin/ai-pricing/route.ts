@@ -30,7 +30,22 @@ export async function PUT(request: Request) {
     const supabase = await createClient()
     const body = await request.json()
     
-    const { model_name, input_price_per_1k, output_price_per_1k, price_per_unit, notes } = body
+    const { 
+      model_name, 
+      input_price_per_1k, 
+      output_price_per_1k, 
+      price_per_unit, 
+      notes,
+      // New capability fields
+      supports_temperature,
+      supports_json_mode,
+      supports_streaming,
+      is_reasoning_model,
+      max_tokens_param,
+      token_multiplier,
+      context_window,
+      capabilities_notes
+    } = body
 
     if (!model_name) {
       return NextResponse.json(
@@ -39,15 +54,29 @@ export async function PUT(request: Request) {
       )
     }
 
+    const updateData: any = {
+      effective_date: new Date().toISOString()
+    }
+
+    // Only update fields that are provided
+    if (input_price_per_1k !== undefined) updateData.input_price_per_1k = input_price_per_1k
+    if (output_price_per_1k !== undefined) updateData.output_price_per_1k = output_price_per_1k
+    if (price_per_unit !== undefined) updateData.price_per_unit = price_per_unit
+    if (notes !== undefined) updateData.notes = notes
+    
+    // Capability fields
+    if (supports_temperature !== undefined) updateData.supports_temperature = supports_temperature
+    if (supports_json_mode !== undefined) updateData.supports_json_mode = supports_json_mode
+    if (supports_streaming !== undefined) updateData.supports_streaming = supports_streaming
+    if (is_reasoning_model !== undefined) updateData.is_reasoning_model = is_reasoning_model
+    if (max_tokens_param !== undefined) updateData.max_tokens_param = max_tokens_param
+    if (token_multiplier !== undefined) updateData.token_multiplier = token_multiplier
+    if (context_window !== undefined) updateData.context_window = context_window
+    if (capabilities_notes !== undefined) updateData.capabilities_notes = capabilities_notes
+
     const { data, error } = await supabase
       .from('ai_model_pricing')
-      .update({
-        input_price_per_1k,
-        output_price_per_1k,
-        price_per_unit,
-        notes,
-        effective_date: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('model_name', model_name)
       .select()
       .single()

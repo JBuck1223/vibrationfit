@@ -1,7 +1,7 @@
 // app/api/life-vision/master/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getAIModelConfig } from '@/lib/ai/config'
+import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
 import OpenAI from 'openai'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildMasterVisionPrompt, MASTER_VISION_SHARED_SYSTEM_PROMPT } from '@/lib/viva/prompts'
@@ -42,11 +42,11 @@ export async function POST(request: NextRequest) {
       activeVision || null
     )
 
-    // Get admin-approved AI model config
-    const aiConfig = getAIModelConfig('LIFE_VISION_MASTER_ASSEMBLY')
+    // Get admin-configured AI tool config from database
+    const toolConfig = await getAIToolConfig('master_vision_assembly')
 
     // Estimate tokens and validate balance
-    const estimatedTokens = estimateTokensForText(prompt, aiConfig.model)
+    const estimatedTokens = estimateTokensForText(prompt, toolConfig.model)
     const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
 
     if (tokenValidation) {
@@ -59,16 +59,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Build OpenAI params using database config
+    const messages = [
+      { role: 'system' as const, content: toolConfig.systemPrompt || MASTER_VISION_SHARED_SYSTEM_PROMPT },
+      { role: 'user' as const, content: prompt }
+    ]
+    const openaiParams = buildOpenAIParams(toolConfig, messages)
+
     // Call OpenAI
-    const completion = await openai.chat.completions.create({
-      model: aiConfig.model,
-      messages: [
-        { role: 'system', content: aiConfig.systemPrompt || MASTER_VISION_SHARED_SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
-      ],
-      temperature: aiConfig.temperature,
-      max_completion_tokens: aiConfig.maxTokens,
-    })
+    const completion = await openai.chat.completions.create(openaiParams)
 
     const fullOutput = completion.choices[0]?.message?.content
 
@@ -134,7 +133,7 @@ export async function POST(request: NextRequest) {
         await trackTokenUsage({
           user_id: user.id,
           action_type: 'life_vision_master_assembly',
-          model_used: aiConfig.model,
+          model_used: toolConfig.model,
           tokens_used: completion.usage.total_tokens || 0,
           input_tokens: completion.usage.prompt_tokens || 0,
           output_tokens: completion.usage.completion_tokens || 0,
@@ -161,7 +160,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       markdown,
       json,
-      model: aiConfig.model,
+      model: toolConfig.model,
       // ENHANCED V3: Include richness metadata in response
       richnessMetadata
     })
@@ -207,13 +206,10 @@ function extractCategoriesFromMarkdown(markdown: string): any {
     }
   })
 
-  // prefer the configured model label for meta
-  const aiConfig = getAIModelConfig('LIFE_VISION_MASTER_ASSEMBLY')
-
   return {
     ...categories,
     meta: {
-      model: aiConfig.model,
+      model: 'unknown',
       created_at_iso: new Date().toISOString(),
       summary_style: 'present-tense vibrational activation',
       notes: 'extracted from markdown'

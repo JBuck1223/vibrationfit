@@ -128,7 +128,7 @@ export default function SitemapPage() {
         // Profile & Account
         { href: '/profile', label: 'All Profiles', icon: Eye, description: 'All user profiles' },
         { href: '/profile/active', label: 'Active Profile', icon: CheckCircle, description: 'Current active profile' },
-        { href: '/profile/edit', label: 'Edit Profile', icon: Settings, description: 'Edit active profile' },
+        { href: '/profile/active/edit', label: 'Edit Profile', icon: Settings, description: 'Edit active profile' },
         { href: '/profile/new', label: 'Create Profile', icon: Plus, description: 'Create new profile version' },
         { href: '/profile/compare', label: 'Compare Profiles', icon: BarChart3, description: 'Compare profile versions' },
         { href: '/profile/[id]', label: 'Profile Detail', icon: Eye, description: 'Individual profile view', isDynamic: true },

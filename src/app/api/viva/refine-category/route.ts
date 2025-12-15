@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAIModelConfig } from "@/lib/ai/config";
+import { getAIToolConfig, buildOpenAIParams } from "@/lib/ai/database-config";
 import OpenAI from "openai";
 import {
   trackTokenUsage,
@@ -66,9 +66,6 @@ async function buildRefinementPrompt(
 ): Promise<string> {
   const { category, currentRefinement, conversationHistory, instructions } =
     request;
-
-  // Get AI model config (use existing VISION_REFINEMENT config)
-  const aiConfig = getAIModelConfig("VISION_REFINEMENT");
 
   // Get user data
   const supabase = await createClient();
@@ -369,8 +366,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Get AI config
-    const aiConfig = getAIModelConfig("VISION_REFINEMENT");
+    // Get AI tool config from database
+    const toolConfig = await getAIToolConfig("vision_refinement");
 
     // Build prompt with the proper refinement text
     const bodyWithRefinement = {
@@ -380,7 +377,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const prompt = await buildRefinementPrompt(bodyWithRefinement, user.id);
 
     // Estimate tokens
-    const tokenEstimate = estimateTokensForText(prompt, aiConfig.model);
+    const tokenEstimate = estimateTokensForText(prompt, toolConfig.model);
     const maxTokens = Math.ceil(tokenEstimate * 1.5);
 
     // Check token balance
@@ -395,16 +392,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Build OpenAI params using database config
+    const messages = [
+      { role: "system" as const, content: MASTER_VISION_SHARED_SYSTEM_PROMPT },
+      { role: "user" as const, content: prompt },
+    ]
+    const openaiParams = buildOpenAIParams(toolConfig, messages)
+
     // Call OpenAI
-    const completion = await openai.chat.completions.create({
-      model: aiConfig.model,
-      messages: [
-        { role: "system", content: MASTER_VISION_SHARED_SYSTEM_PROMPT },
-        { role: "user", content: prompt },
-      ],
-      temperature: aiConfig.temperature,
-      max_completion_tokens: Math.min(maxTokens, aiConfig.maxTokens),
-    });
+    const completion = await openai.chat.completions.create(openaiParams);
 
     const refinedText = completion.choices[0]?.message?.content?.trim();
 
@@ -424,7 +420,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await trackTokenUsage({
         user_id: user.id,
         action_type: "vision_refinement",
-        model_used: aiConfig.model,
+        model_used: toolConfig.model,
         tokens_used: usage.total_tokens,
         actual_cost_cents: 0, // Will be calculated
         input_tokens: usage.prompt_tokens,

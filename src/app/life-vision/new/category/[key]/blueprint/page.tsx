@@ -151,11 +151,11 @@ export default function BlueprintPage() {
         })
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to generate blueprint')
-      }
-
       const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate blueprint')
+      }
 
       if (data.blueprint?.loops) {
         setLoops(data.blueprint.loops)

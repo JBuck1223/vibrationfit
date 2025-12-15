@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getAIModelConfig } from '@/lib/ai/config'
+import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
 import OpenAI from 'openai'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 
@@ -62,15 +62,12 @@ Merge these into a single, unified clarity statement that:
 
 Return only the merged clarity statement, no explanation or commentary.`
 
-    // Get AI model config
-    const modelConfig = await getAIModelConfig('LIFE_VISION_CATEGORY_SUMMARY')
-    const model = modelConfig.model || 'gpt-4o'
-    const temperature = modelConfig.temperature ?? 0.7
-    const maxTokens = modelConfig.maxTokens ?? 1500
+    // Get AI tool config from database
+    const toolConfig = await getAIToolConfig('merge_clarity')
 
     // Estimate tokens
     const inputText = `${mergePrompt}`
-    const estimatedTokens = estimateTokensForText(inputText, model)
+    const estimatedTokens = estimateTokensForText(inputText, toolConfig.model)
 
     // Validate token balance
     const tokenCheck = await validateTokenBalance(user.id, estimatedTokens, supabase)
@@ -78,18 +75,16 @@ Return only the merged clarity statement, no explanation or commentary.`
       return NextResponse.json(tokenCheck, { status: 402 })
     }
 
+    // Build OpenAI params using database config
+    const messages = [
+      { role: 'system' as const, content: toolConfig.systemPrompt || SHARED_SYSTEM_PROMPT },
+      { role: 'user' as const, content: mergePrompt }
+    ]
+    const openaiParams = buildOpenAIParams(toolConfig, messages)
+
     // Make API call
     const startTime = Date.now()
-    const response = await openai.chat.completions.create({
-      model,
-      temperature,
-      max_completion_tokens: maxTokens,
-      messages: [
-        { role: 'system', content: SHARED_SYSTEM_PROMPT },
-        { role: 'user', content: mergePrompt }
-      ],
-      stream: false
-    })
+    const response = await openai.chat.completions.create(openaiParams)
 
     const duration = Date.now() - startTime
     const mergedClarity = response.choices[0]?.message?.content?.trim() || ''
@@ -102,7 +97,7 @@ Return only the merged clarity statement, no explanation or commentary.`
     await trackTokenUsage({
       user_id: user.id,
       action_type: 'life_vision_category_summary',
-      model_used: model,
+      model_used: toolConfig.model,
       tokens_used: totalTokens,
       input_tokens: inputTokens,
       output_tokens: outputTokens,

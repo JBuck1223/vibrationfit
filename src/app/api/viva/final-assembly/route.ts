@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
 import { buildFinalAssemblyPrompt, buildActivationReflectionPrompt } from '@/lib/viva/prompts'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
-import { getAIModelConfig } from '@/lib/ai/config'
+import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!
@@ -63,9 +63,8 @@ export async function POST(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
 
-    // Get AI config
-    // TODO: Add 'LIFE_VISION_FINAL_ASSEMBLY' config in admin panel, using VISION_GENERATION for now
-    const aiConfig = getAIModelConfig('VISION_GENERATION')
+    // Get AI config from database
+    const toolConfig = await getAIToolConfig('final_assembly')
 
     // Build the final assembly prompt
     const prompt = buildFinalAssemblyPrompt(
@@ -76,24 +75,22 @@ export async function POST(request: NextRequest) {
 
     console.log('[Final Assembly] Generating forward/conclusion for vision:', visionId)
 
+    // Build OpenAI params using database config
+    const messages = [
+      {
+        role: 'system' as const,
+        content: toolConfig.systemPrompt || 'You are VIVA, creating the final polish for a complete Life Vision.'
+      },
+      {
+        role: 'user' as const,
+        content: prompt
+      }
+    ]
+    const openaiParams = buildOpenAIParams(toolConfig, messages)
+
     // Call OpenAI for Forward/Conclusion generation
     const startTime = Date.now()
-    const completion = await openai.chat.completions.create({
-      model: aiConfig.model,
-      messages: [
-        {
-          role: 'system',
-          content: aiConfig.systemPrompt || 'You are VIVA, creating the final polish for a complete Life Vision.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: aiConfig.temperature,
-      max_completion_tokens: aiConfig.maxTokens,
-      response_format: { type: 'json_object' }
-    })
+    const completion = await openai.chat.completions.create(openaiParams)
 
     const responseTime = Date.now() - startTime
     const result = completion.choices[0]?.message?.content
@@ -115,7 +112,7 @@ export async function POST(request: NextRequest) {
     await trackTokenUsage({
       user_id: user.id,
       action_type: 'vision_generation',  // TODO: Add 'final_assembly' type if needed
-      model_used: aiConfig.model,
+      model_used: toolConfig.model,
       tokens_used: completion.usage?.total_tokens || 0,
       input_tokens: completion.usage?.prompt_tokens || 0,
       output_tokens: completion.usage?.completion_tokens || 0,
@@ -141,23 +138,21 @@ export async function POST(request: NextRequest) {
       12 // All 12 categories
     )
 
+    // Build OpenAI params for activation (using same tool config)
+    const activationMessages = [
+      {
+        role: 'system' as const,
+        content: 'You are VIVA, celebrating a member\'s completion of their Life Vision.'
+      },
+      {
+        role: 'user' as const,
+        content: activationPrompt
+      }
+    ]
+    const activationParams = buildOpenAIParams(toolConfig, activationMessages)
+
     const activationStartTime = Date.now()
-    const activationCompletion = await openai.chat.completions.create({
-      model: aiConfig.model,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are VIVA, celebrating a member\'s completion of their Life Vision.'
-        },
-        {
-          role: 'user',
-          content: activationPrompt
-        }
-      ],
-      temperature: aiConfig.temperature,
-      max_completion_tokens: 1000,
-      response_format: { type: 'json_object' }
-    })
+    const activationCompletion = await openai.chat.completions.create(activationParams)
 
     const activationResponseTime = Date.now() - activationStartTime
     const activationResult = activationCompletion.choices[0]?.message?.content
@@ -179,7 +174,7 @@ export async function POST(request: NextRequest) {
     await trackTokenUsage({
       user_id: user.id,
       action_type: 'vision_generation',  // TODO: Add 'activation_message' type if needed
-      model_used: aiConfig.model,
+      model_used: toolConfig.model,
       tokens_used: activationCompletion.usage?.total_tokens || 0,
       input_tokens: activationCompletion.usage?.prompt_tokens || 0,
       output_tokens: activationCompletion.usage?.completion_tokens || 0,

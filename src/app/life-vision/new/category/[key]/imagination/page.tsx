@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Container, Card, Button, Spinner, Badge } from '@/lib/design-system/components'
-import { CheckCircle, ArrowRight, ArrowLeft, AlertCircle, Sparkles } from 'lucide-react'
+import { Container, Card, Button, Spinner } from '@/lib/design-system/components'
+import { ArrowRight, ArrowLeft, Sparkles, Lightbulb } from 'lucide-react'
 import { getVisionCategory } from '@/lib/design-system/vision-categories'
+import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
-import { getFilteredQuestionsForCategory, type IdealStateQuestion } from '@/lib/life-vision/ideal-state-questions'
 
 export default function ImaginationPage() {
   const router = useRouter()
@@ -17,9 +17,8 @@ export default function ImaginationPage() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [questions, setQuestions] = useState<IdealStateQuestion[]>([])
-  const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [existingIdealState, setExistingIdealState] = useState('')
+  const [freeFlowText, setFreeFlowText] = useState('')
+  const [inspirationQuestions, setInspirationQuestions] = useState<string[]>([])
 
   const category = getVisionCategory(categoryKey)
   const IconComponent = category?.icon
@@ -46,18 +45,11 @@ export default function ImaginationPage() {
         .eq('is_draft', false)
         .maybeSingle()
 
-      // Get filtered questions based on profile
+      // Get filtered questions for inspiration
       const filteredQuestions = getFilteredQuestionsForCategory(categoryKey, profile || {})
-      setQuestions(filteredQuestions)
+      setInspirationQuestions(filteredQuestions.map(q => q.text))
 
-      // Initialize answers with empty strings
-      const initialAnswers: Record<string, string> = {}
-      filteredQuestions.forEach((q) => {
-        initialAnswers[q.id] = ''
-      })
-      setAnswers(initialAnswers)
-
-      // Load existing ideal_state answers if any
+      // Load existing ideal_state text if any
       const { data: categoryState } = await supabase
         .from('life_vision_category_state')
         .select('ideal_state')
@@ -66,8 +58,19 @@ export default function ImaginationPage() {
         .maybeSingle()
 
       if (categoryState?.ideal_state) {
-        setExistingIdealState(categoryState.ideal_state)
-        // Could potentially parse and pre-fill individual answers here if needed
+        // Try to parse as old JSON format first
+        try {
+          const parsed = JSON.parse(categoryState.ideal_state)
+          if (typeof parsed === 'object' && parsed !== null) {
+            // Convert old individual answers to free-flow text
+            setFreeFlowText(Object.values(parsed).filter(Boolean).join('\n\n'))
+          } else {
+            setFreeFlowText(categoryState.ideal_state)
+          }
+        } catch {
+          // Not JSON, use as-is (new text format)
+          setFreeFlowText(categoryState.ideal_state)
+        }
       }
 
       setLoading(false)
@@ -79,13 +82,8 @@ export default function ImaginationPage() {
   }
 
   const handleSaveAndContinue = async () => {
-    // Combine all answers
-    const combinedAnswers = Object.values(answers)
-      .filter(a => a.trim().length > 0)
-      .join('\n\n')
-
-    if (!combinedAnswers) {
-      setError('Please answer at least one question before continuing')
+    if (!freeFlowText.trim()) {
+      setError('Please describe your ideal state before continuing')
       return
     }
 
@@ -93,13 +91,13 @@ export default function ImaginationPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Unauthorized')
 
-      // Save to database
+      // Save to database as plain text
       const { error: updateError } = await supabase
         .from('life_vision_category_state')
         .upsert({
           user_id: user.id,
           category: categoryKey,
-          ideal_state: combinedAnswers
+          ideal_state: freeFlowText.trim()
         }, {
           onConflict: 'user_id,category'
         })
@@ -110,7 +108,7 @@ export default function ImaginationPage() {
       router.push(`/life-vision/new/category/${categoryKey}/blueprint`)
     } catch (err) {
       console.error('Error saving ideal state:', err)
-      setError('Failed to save your answers')
+      setError('Failed to save your vision')
     }
   }
 
@@ -123,128 +121,114 @@ export default function ImaginationPage() {
   }
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="py-8">
       {/* Header */}
-      <div className="mb-6 md:mb-8">
+      <div className="mb-8">
         <Button
           variant="ghost"
-          size="sm"
-          onClick={() => router.back()}
+          icon={<ArrowLeft className="w-4 h-4" />}
+          onClick={() => router.push(`/life-vision/new/category/${categoryKey}`)}
           className="mb-4"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
+          Back to Clarity
         </Button>
 
-        <div className="flex items-center gap-3 md:gap-4 mb-4">
-          {category && IconComponent && (
-            <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center border-2 border-[#FFB701]">
-              <IconComponent className="w-6 h-6 md:w-8 md:h-8 text-[#FFB701]" />
+        <div className="flex items-center gap-4 mb-4">
+          {IconComponent && (
+            <div className="w-12 h-12 bg-primary-500/10 rounded-xl flex items-center justify-center">
+              <IconComponent className="w-6 h-6 text-primary-500" />
             </div>
           )}
           <div>
-            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white">
-              Unleash Your Imagination
-            </h1>
-            <p className="text-xs md:text-sm text-neutral-400">{category?.label} - Step 2</p>
+            <h1 className="text-3xl font-bold text-white">{category?.label}</h1>
+            <p className="text-neutral-400">Step 2: Unleash Your Imagination</p>
           </div>
         </div>
 
-        <div className="p-3 md:p-4 bg-[#FFB701]/10 border border-[#FFB701]/30 rounded-lg">
-          <p className="text-xs md:text-sm text-neutral-300 leading-relaxed">
-            <strong className="text-[#FFB701]">Step 2: Imagination</strong> - Now that we have clarity on where you are, let's explore where you want to be. Answer the prompts below to paint your ideal state in this area.
-          </p>
-        </div>
+        <Card variant="outlined" className="border-secondary-500/30 bg-secondary-500/5 p-4">
+          <div className="flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-secondary-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-secondary-300">
+              Imagine your dream life in <strong>{category?.label.toLowerCase()}</strong>. 
+              Let your imagination run wild! What would it look like if everything was exactly as you wanted?
+            </p>
+          </div>
+        </Card>
       </div>
 
-      {/* Error */}
       {error && (
-        <Card className="mb-6 md:mb-8 p-4 md:p-6 border-2 border-red-500/30 bg-red-500/5">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-base font-semibold text-red-500 mb-1">Error</h3>
-              <p className="text-sm text-neutral-300">{error}</p>
-            </div>
-          </div>
+        <Card variant="elevated" className="bg-red-500/10 border border-red-500/30 p-4 mb-6">
+          <p className="text-red-400 text-sm">{error}</p>
         </Card>
       )}
 
-      {/* Questions & Answers */}
-      {questions.length > 0 && (
-        <>
-          <div className="mb-4 md:mb-6">
-            <Badge variant="success" className="text-xs md:text-sm">
-              <CheckCircle className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-              {questions.length} Question{questions.length !== 1 ? 's' : ''}
-            </Badge>
+      {/* Inspiration Questions */}
+      {inspirationQuestions.length > 0 && (
+        <Card variant="elevated" className="mb-6 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Lightbulb className="w-5 h-5 text-primary-500" />
+            <h2 className="text-xl font-semibold text-white">Questions to Inspire You</h2>
           </div>
-
-          <div className="space-y-6 md:space-y-8 mb-6 md:mb-8">
-            {questions.map((question, index) => (
-              <Card key={question.id} className="p-4 md:p-6 border-2 border-[#FFB701]/30 bg-[#FFB701]/5">
-                <div className="space-y-4">
-                  {/* Question Header */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="neutral" className="text-xs bg-[#FFB701]/20 text-[#FFB701]">
-                        Question {index + 1}
-                      </Badge>
-                    </div>
-                    <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-                      {question.text}
-                    </p>
-                  </div>
-
-                  {/* Answer Input */}
-                  <div>
-                    <RecordingTextarea
-                      value={answers[question.id] || ''}
-                      onChange={(value) => setAnswers({ ...answers, [question.id]: value })}
-                      placeholder="Type or speak your answer... Be as imaginative and detailed as you like!"
-                      category={categoryKey}
-                      storageFolder="lifeVision"
-                      recordingPurpose="transcriptOnly"
-                      className="w-full bg-neutral-800 border-2 border-[#FFB701]/30 text-white text-sm md:text-base min-h-[120px]"
-                    />
-                  </div>
-                </div>
-              </Card>
+          <p className="text-sm text-neutral-400 mb-4">
+            Use these questions as inspiration, but feel free to write about anything that excites you!
+          </p>
+          <ul className="space-y-2">
+            {inspirationQuestions.map((question, index) => (
+              <li key={index} className="flex items-start gap-2 text-neutral-300">
+                <span className="text-primary-500 mt-1">•</span>
+                <span className="text-sm">{question}</span>
+              </li>
             ))}
-          </div>
-
-          {/* Info Card */}
-          <Card className="mb-6 md:mb-8 p-4 md:p-6 border-2 border-primary-500/30 bg-primary-500/5">
-            <div className="flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="text-sm md:text-base font-semibold text-white mb-2">
-                  General But Juicy
-                </h4>
-                <p className="text-xs md:text-sm text-neutral-300 leading-relaxed">
-                  Think <strong className="text-primary-500">big picture</strong> rather than specific details. 
-                  What does your ideal {category?.label.toLowerCase()} <em>feel</em> like? What's the essence of what you want? 
-                  You'll get specific in the next steps - for now, let your imagination flow freely.
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Action Buttons */}
-          <Card className="p-4 md:p-6">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={handleSaveAndContinue}
-              className="w-full"
-            >
-              Continue to Blueprint
-              <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
-            </Button>
-          </Card>
-        </>
+          </ul>
+        </Card>
       )}
+
+      {/* Free Flow Textarea */}
+      <Card variant="elevated" className="p-6 mb-6">
+        <label className="block mb-3">
+          <span className="text-lg font-semibold text-white mb-2 block">
+            Your Dream Life in {category?.label}
+          </span>
+          <span className="text-sm text-neutral-400 block mb-4">
+            Write freely about your ideal state. No structure required—just let it flow!
+          </span>
+        </label>
+        <RecordingTextarea
+          value={freeFlowText}
+          onChange={(e) => setFreeFlowText(e.target.value)}
+          placeholder={`Describe your dream ${category?.label.toLowerCase()} life...\n\nWhat does it look like? How does it feel? What are you doing? Who are you with?`}
+          className="min-h-[300px] w-full"
+          minRows={12}
+        />
+        <p className="text-xs text-neutral-500 mt-2">
+          {freeFlowText.trim().split(/\s+/).filter(Boolean).length} words
+        </p>
+      </Card>
+
+      {/* Actions */}
+      <Card variant="elevated" className="p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => router.push(`/life-vision/new/category/${categoryKey}`)}
+            className="flex-1"
+          >
+            <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+            Back to Clarity
+          </Button>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={handleSaveAndContinue}
+            disabled={!freeFlowText.trim()}
+            className="flex-1"
+          >
+            Continue to Blueprint
+            <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
+          </Button>
+        </div>
+      </Card>
     </Container>
   )
 }
-

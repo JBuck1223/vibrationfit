@@ -476,110 +476,80 @@ export function findNavItemByHref(
 }
 
 /**
- * Check if a pathname matches any navigation item (including children)
+ * Check if a pathname matches a specific navigation item.
+ * 
+ * PRINCIPLE: Only ONE item should be highlighted at a time.
+ * - Exact matches win
+ * - Parent dropdowns are NEVER highlighted (only their children)
+ * - Child items use EXACT matching only (no startsWith)
+ * - Only top-level non-dropdown items can match via startsWith
  */
 export function isNavItemActive(
   item: NavItem,
   pathname: string,
-  activeProfileId?: string | null
+  activeProfileId?: string | null,
+  isChildOfDropdown: boolean = false
 ): boolean {
-  // For parent dropdown items, don't match when on child routes
-  // This prevents "Vision Board" from highlighting when on "/vision-board/new"
+  // RULE 1: Parent dropdown items are NEVER highlighted
+  // The sidebar will show them as "expanded" but not "active"
   if (item.hasDropdown && item.children) {
-    // Check if we're on a child route of this parent
-    const isOnChildRoute = item.children.some(child => 
-      pathname === child.href || pathname.startsWith(child.href + '/')
-    )
-    if (isOnChildRoute) {
-      return false
-    }
+    return false
   }
   
-  // Exact match
+  // RULE 2: Exact match - highest priority (always works)
   if (item.href === pathname) {
     return true
   }
   
-  // Don't highlight "All Profiles" when on /profile/active or /profile/edit (redirect pages)
-  if (item.href === '/profile' && (pathname === '/profile/active' || pathname === '/profile/edit')) {
-    return false
-  }
-  
-  // Don't highlight "All Visions" when on /life-vision/active (redirect page)
-  if (item.href === '/life-vision' && pathname === '/life-vision/active') {
-    return false
-  }
-  
-  // Special handling for /life-vision/{id} paths - should match "My Active Vision"
-  // Check if we're on a specific vision detail page
-  if (pathname.match(/^\/life-vision\/[^\/]+$/) && !pathname.includes('/active') && !pathname.includes('/audio') && !pathname.includes('/new')) {
-    // If this is the "My Active Vision" menu item, mark it as active for vision detail pages
+  // RULE 3: For children of dropdowns, ONLY exact matches count
+  // This prevents "/life-vision" from matching when on "/life-vision/household"
+  if (isChildOfDropdown) {
+    // Special case: /life-vision/active should match /life-vision/[uuid]
     if (item.href === '/life-vision/active') {
-      return true
+      if (pathname.match(/^\/life-vision\/[a-f0-9-]{36}(\/|$)/)) {
+        return true
+      }
     }
-    // Don't mark "All Visions" as active for individual vision pages
-    if (item.href === '/life-vision') {
-      return false
-    }
-  }
-  
-  // Special handling for /profile/edit and /profile/{id}/edit paths
-  if (pathname === '/profile/edit' || pathname.match(/^\/profile\/[^\/]+\/edit$/)) {
-    // Don't highlight "All Profiles" when editing
-    if (item.href === '/profile') {
-      return false
-    }
-    // Highlight "Edit Profile" when on any edit page (including redirect)
-    if (item.href === '/profile/edit') {
-      return true
-    }
-  }
-  
-  // Special handling for /profile/{id} paths - check if it's the active profile
-  // Check if we're on a specific profile detail page
-  if (pathname.match(/^\/profile\/[^\/]+$/) && !pathname.includes('/edit') && !pathname.includes('/active') && !pathname.includes('/compare') && !pathname.includes('/new')) {
-    // Extract profile ID from pathname
-    const profileIdMatch = pathname.match(/^\/profile\/([^\/]+)$/)
-    const currentProfileId = profileIdMatch ? profileIdMatch[1] : null
     
-    // If this is the "My Active Profile" menu item, only mark it as active if viewing the active profile
+    // Special case: /profile/active should match /profile/[uuid] if it's the active profile
     if (item.href === '/profile/active') {
-      return currentProfileId === activeProfileId
-    }
-    // Don't mark "All Profiles" list page as active when viewing individual profile
-    if (item.href === '/profile') {
-      return false
-    }
-  }
-  
-  // Special handling for other detail pages - don't match parent list pages
-  // Match pattern: /parent/[uuid-like-id] but NOT /parent/specific-route-name
-  const isDetailPage = pathname.match(/^\/([^\/]+)\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/)
-  if (isDetailPage) {
-    const parentPath = '/' + isDetailPage[1]
-    // Don't mark parent list page as active when on detail page
-    if (item.href === parentPath) {
-      return false
-    }
-  }
-  
-  // Check if pathname starts with item href (for nested routes)
-  // But exclude parent items that have children (dropdowns) - let children match instead
-  if (pathname.startsWith(item.href + '/')) {
-    // Special case: Don't match "/life-vision" for "/life-vision/audio" paths
-    if (item.href === '/life-vision' && pathname.startsWith('/life-vision/audio')) {
-      return false
+      const uuidMatch = pathname.match(/^\/profile\/([a-f0-9-]{36})(\/|$)/)
+      if (uuidMatch) {
+        return uuidMatch[1] === activeProfileId
+      }
     }
     
-    // Don't match parent dropdown items, let their children match
-    if (item.hasDropdown && item.children) {
-      return false
-    }
-    return true
+    // For all other dropdown children, ONLY exact match
+    return false
   }
   
-  // Don't check children for parent highlighting - this is handled in Sidebar component
-  // We only return true for direct item matches, not when children are active
+  // RULE 4: Top-level items without dropdowns can match nested routes
+  // e.g., Dashboard matching /dashboard/anything
+  if (!item.hasDropdown && !item.children) {
+    // Special handling for specific items
+    if (item.href === '/journal') {
+      if (pathname.match(/^\/journal\/[a-f0-9-]{36}(\/|$)/) || pathname === '/journal/new' || pathname.startsWith('/journal/daily-paper')) {
+        return true
+      }
+    }
+    
+    if (item.href === '/vision-board') {
+      if (pathname.match(/^\/vision-board\/[a-f0-9-]{36}(\/|$)/) || pathname === '/vision-board/new') {
+        return true
+      }
+    }
+    
+    if (item.href === '/assessment') {
+      if (pathname.startsWith('/assessment/')) {
+        return true
+      }
+    }
+    
+    if (item.href === '/dashboard') {
+      // Dashboard is exact match only, don't match /dashboard/tokens etc.
+      return false
+    }
+  }
   
   return false
 }

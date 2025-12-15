@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getAIModelConfig } from '@/lib/ai/config'
+import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
 import OpenAI from 'openai'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { ellipsize, flattenAssessmentResponsesNumbered } from '@/lib/viva/prompt-flatteners'
@@ -119,8 +119,11 @@ export async function POST(request: NextRequest) {
 
     const prompt = buildPromptSuggestionsPrompt(categoryLabel, context)
 
+    // Get admin-configured AI tool config from database
+    const toolConfig = await getAIToolConfig('prompt_suggestions')
+
     // Estimate tokens and validate balance
-    const estimatedTokens = estimateTokensForText(prompt, aiConfig.model)
+    const estimatedTokens = estimateTokensForText(prompt, toolConfig.model)
     const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
     
     if (tokenValidation) {
@@ -133,16 +136,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const completion = await openai.chat.completions.create({
-      model: aiConfig.model,
-      messages: [
-        { role: 'system', content: aiConfig.systemPrompt || 'You are a helpful assistant that generates personalized prompts in JSON format only. Return ONLY valid JSON, no other text.' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: aiConfig.temperature,
-      max_completion_tokens: aiConfig.maxTokens,
-      response_format: { type: 'json_object' }
-    })
+    // Build OpenAI params using database config
+    const messages = [
+      { role: 'system' as const, content: toolConfig.systemPrompt || 'You are a helpful assistant that generates personalized prompts in JSON format only. Return ONLY valid JSON, no other text.' },
+      { role: 'user' as const, content: prompt }
+    ]
+    const openaiParams = buildOpenAIParams(toolConfig, messages)
+
+    const completion = await openai.chat.completions.create(openaiParams)
 
     const responseText = completion.choices[0]?.message?.content
     if (!responseText) {
@@ -168,7 +169,7 @@ export async function POST(request: NextRequest) {
         await trackTokenUsage({
           user_id: user.id,
           action_type: 'prompt_suggestions',
-          model_used: aiConfig.model,
+          model_used: toolConfig.model,
           tokens_used: completion.usage.total_tokens || 0,
           input_tokens: completion.usage.prompt_tokens || 0,
           output_tokens: completion.usage.completion_tokens || 0,

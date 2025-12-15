@@ -74,7 +74,7 @@ export function IntensiveSidebar() {
         { 
           id: 'profile', 
           title: 'Complete Profile', 
-          href: '/profile/edit', 
+          href: '/profile/active/edit', 
           icon: User,
           completed: !!checklist.profile_completed,
           locked: false 

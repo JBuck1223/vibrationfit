@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
 import { buildBlueprintPrompt } from '@/lib/viva/prompts'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
-import { getAIModelConfig } from '@/lib/ai/config'
+import { getAIToolConfigLegacy, buildOpenAIParams } from '@/lib/ai/database-config'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!
@@ -47,46 +47,85 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get AI configuration
-    // TODO: Add 'LIFE_VISION_BLUEPRINT' config in admin panel, using BLUEPRINT_GENERATION for now
-    const aiConfig = getAIModelConfig('BLUEPRINT_GENERATION')
+    // Get AI configuration from database (admin-configured)
+    const aiConfig = await getAIToolConfigLegacy('BLUEPRINT_GENERATION')
+    
+    console.log('[Blueprint] Using model:', {
+      model: aiConfig.model_name,
+      maxTokens: aiConfig.max_tokens,
+      temperature: aiConfig.temperature,
+      isReasoningModel: aiConfig.is_reasoning_model,
+      tokenMultiplier: aiConfig.token_multiplier
+    })
+
+    // Parse idealState if it's JSON (legacy format from old imagination flow)
+    let idealStateText = idealState || ''
+    if (idealState) {
+      try {
+        const parsed = JSON.parse(idealState)
+        if (typeof parsed === 'object' && parsed !== null) {
+          // Convert JSON answers object to text (legacy format)
+          idealStateText = Object.values(parsed)
+            .filter((a: any) => a && String(a).trim())
+            .join('\n\n')
+        }
+      } catch {
+        // Not JSON, use as-is (current free-flow text format)
+        idealStateText = idealState
+      }
+    }
 
     // Build the blueprint prompt
     const prompt = buildBlueprintPrompt(
       category,
       categoryName,
       currentClarity || '',
-      idealState || '',
+      idealStateText,
       flippedContrast || ''
     )
 
     console.log('[Blueprint] Generating Being/Doing/Receiving loops for category:', category)
 
-    // Call OpenAI
+    // Call OpenAI with database-driven config
     const startTime = Date.now()
-    const completion = await openai.chat.completions.create({
-      model: aiConfig.model,
-      messages: [
+    const openaiParams = buildOpenAIParams(
+      aiConfig,
+      [
         {
           role: 'system',
-          content: aiConfig.systemPrompt || 'You are VIVA, helping members create their Being/Doing/Receiving blueprint.'
+          content: aiConfig.system_prompt || 'You are VIVA, helping members create their Being/Doing/Receiving blueprint.'
         },
         {
           role: 'user',
           content: prompt
         }
-      ],
-      temperature: aiConfig.temperature,
-      max_completion_tokens: aiConfig.maxTokens,  // Updated parameter name for newer OpenAI models
-      response_format: { type: 'json_object' }
-    })
+      ]
+    )
+    
+    const completion = await openai.chat.completions.create(openaiParams)
 
     const responseTime = Date.now() - startTime
-    const result = completion.choices[0]?.message?.content
+    const message = completion.choices[0]?.message
+    
+    // For o1 models, content might be in a different field
+    const result = message?.content || (message as any)?.reasoning_content
 
     if (!result) {
-      throw new Error('No response from AI')
+      console.error('[Blueprint] Empty response from AI:', {
+        model: aiConfig.model,
+        message: message,
+        finishReason: completion.choices[0]?.finish_reason,
+        usage: completion.usage
+      })
+      throw new Error(`No response from AI (model: ${aiConfig.model}, finish_reason: ${completion.choices[0]?.finish_reason || 'unknown'})`)
     }
+
+    console.log('[Blueprint] Received response:', {
+      model: aiConfig.model,
+      responseLength: result.length,
+      responseTimeMs: responseTime,
+      finishReason: completion.choices[0]?.finish_reason
+    })
 
     // Parse JSON response
     let parsedResponse
@@ -100,8 +139,8 @@ export async function POST(request: NextRequest) {
     // Track token usage
     await trackTokenUsage({
       user_id: user.id,
-      action_type: 'blueprint_generation',  // Already exists!
-      model_used: aiConfig.model,
+      action_type: 'blueprint_generation',
+      model_used: aiConfig.model_name,
       tokens_used: completion.usage?.total_tokens || 0,
       input_tokens: completion.usage?.prompt_tokens || 0,
       output_tokens: completion.usage?.completion_tokens || 0,
@@ -112,10 +151,12 @@ export async function POST(request: NextRequest) {
       system_fingerprint: completion.system_fingerprint,
       success: true,
       metadata: {
+        tool_key: 'blueprint_generation',
         category,
         categoryName,
         loopCount: parsedResponse.loops?.length || 0,
-        responseTimeMs: responseTime
+        responseTimeMs: responseTime,
+        reasoningModel: aiConfig.is_reasoning_model
       }
     })
 
