@@ -82,7 +82,7 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
     navigation.forEach((item) => {
       if (item.children) {
         const hasActiveChild = item.children.some(child => 
-          isNavItemActive(child, pathname, profile?.id)
+          isNavItemActive(child, pathname, profile?.id, true) // true = isChildOfDropdown
         )
         if (hasActiveChild) {
           itemsToExpand.push(item.name)
@@ -172,21 +172,9 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
           
           // Check if any child is active (don't highlight parent if child is active)
           const hasActiveChild = item.children?.some(child => 
-            isNavItemActive(child, pathname, profile?.id)
+            isNavItemActive(child, pathname, profile?.id, true) // true = isChildOfDropdown
           )
           const shouldHighlightParent = isActive && !hasActiveChild
-          
-          // Comprehensive debug logging
-          if (pathname.includes('/new') || pathname.includes('/vision-board') || pathname.includes('/journal')) {
-            console.log(`🔍 ${item.name}:`, {
-              pathname,
-              itemHref: item.href,
-              isActive,
-              hasActiveChild,
-              shouldHighlightParent,
-              hasDropdown: item.hasDropdown
-            })
-          }
 
           return (
             <div key={item.name}>
@@ -213,7 +201,7 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
                     <div className="ml-6 mt-2 space-y-1">
                       {item.children.map((child) => {
                         const ChildIcon = child.icon
-                        const isChildActive = isNavItemActive(child, pathname, profile?.id)
+                        const isChildActive = isNavItemActive(child, pathname, profile?.id, true) // true = isChildOfDropdown
                         
                         // Add extra indent for "New Item" and "New Entry" items
                         const isNestedItem = child.name === 'New Item' || child.name === 'New Entry'

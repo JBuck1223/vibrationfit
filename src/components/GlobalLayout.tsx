@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { PageLayout } from '@/lib/design-system'
+import { Spinner } from '@/lib/design-system/components'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { SidebarLayout } from '@/components/Sidebar'
@@ -58,7 +59,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       if (loadingIntensive) {
         return (
           <div className="min-h-screen bg-black flex items-center justify-center">
-            <div className="text-neutral-500">Loading...</div>
+            <Spinner size="lg" />
           </div>
         )
       }

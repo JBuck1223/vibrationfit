@@ -70,7 +70,7 @@ export function IntensiveMobileNav() {
         { 
           id: 'profile', 
           title: 'Profile', 
-          href: '/profile/edit', 
+          href: '/profile/active/edit', 
           icon: User,
           completed: !!checklist.profile_completed,
           locked: false 

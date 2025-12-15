@@ -124,7 +124,7 @@ Stores comprehensive user information across 12 life categories.
 
 ## Paths
 - View: /profile
-- Edit: /profile/edit
+- Edit: /profile/active/edit
 - New: /profile/new
 
 ## Database

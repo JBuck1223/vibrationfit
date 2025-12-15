@@ -396,7 +396,7 @@ export default function ProfileDashboardPage() {
                 <span>View Profile</span>
               </Button>
               <Button
-                onClick={() => router.push('/profile/edit')}
+                onClick={() => router.push(`/profile/${activeProfile.id}/edit`)}
                 variant="outline"
                 size="sm"
                 className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"

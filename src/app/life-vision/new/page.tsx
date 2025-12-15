@@ -1,19 +1,93 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Button, Container, Stack, PageHero } from '@/lib/design-system/components'
-import { Sparkles } from 'lucide-react'
+import { Card, Button, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
+import { Sparkles, CheckCircle, Circle, Clock } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { createClient } from '@/lib/supabase/client'
+
+interface CategoryProgress {
+  [key: string]: {
+    hasClarity: boolean
+    hasImagination: boolean
+    hasBlueprint: boolean
+  }
+}
 
 export default function VIVALifeVisionLandingPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [progress, setProgress] = useState<CategoryProgress>({})
+
+  useEffect(() => {
+    loadProgress()
+  }, [])
+
+  async function loadProgress() {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      // Get all category states
+      const { data: categoryStates } = await supabase
+        .from('life_vision_category_state')
+        .select('category, ai_summary, ideal_state, blueprint_data')
+        .eq('user_id', user.id)
+
+      const progressMap: CategoryProgress = {}
+      categoryStates?.forEach(state => {
+        progressMap[state.category] = {
+          hasClarity: !!state.ai_summary,
+          hasImagination: !!state.ideal_state,
+          hasBlueprint: !!state.blueprint_data
+        }
+      })
+
+      setProgress(progressMap)
+      setLoading(false)
+    } catch (err) {
+      console.error('Error loading progress:', err)
+      setLoading(false)
+    }
+  }
+
+  const handleCategoryClick = (categoryKey: string) => {
+    router.push(`/life-vision/new/category/${categoryKey}`)
+  }
 
   const handleGetStarted = async () => {
-    setLoading(true)
-    // Navigate to the first category page (fun, skipping forward)
-    router.push('/life-vision/new/category/fun')
+    // Find first incomplete category
+    const categories = VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13)
+    const firstIncomplete = categories.find(cat => !isCompleted(cat.key))
+    
+    if (firstIncomplete) {
+      router.push(`/life-vision/new/category/${firstIncomplete.key}`)
+    } else {
+      // All complete, go to assembly
+      router.push('/life-vision/new/assembly')
+    }
+  }
+
+  const isCompleted = (categoryKey: string) => {
+    const prog = progress[categoryKey]
+    return prog?.hasClarity && prog?.hasImagination && prog?.hasBlueprint
+  }
+
+  const isInProgress = (categoryKey: string) => {
+    const prog = progress[categoryKey]
+    return prog && (prog.hasClarity || prog.hasImagination || prog.hasBlueprint) && !isCompleted(categoryKey)
+  }
+
+  const getCompletionPercentage = () => {
+    const categories = VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13)
+    const completed = categories.filter(cat => isCompleted(cat.key)).length
+    return Math.round((completed / categories.length) * 100)
   }
 
   return (
@@ -26,6 +100,111 @@ export default function VIVALifeVisionLandingPage() {
           subtitle="Your Vibrational Intelligence Virtual Assistant is here to help you articulate and activate the life you choose. We'll guide you through 12 key life areas, capturing your voice and energy to create a unified vision."
         />
 
+        {/* Progress Overview */}
+        {!loading && Object.keys(progress).length > 0 && (
+          <Card variant="elevated" className="border-2 border-primary-500/30 bg-primary-500/5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">Your Progress</h3>
+                <p className="text-sm text-neutral-400">
+                  {getCompletionPercentage()}% Complete • {VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13).filter(cat => isCompleted(cat.key)).length} of 12 categories
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleGetStarted}
+              >
+                Continue
+              </Button>
+            </div>
+            <div className="mt-4 w-full bg-neutral-800 rounded-full h-2 overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 transition-all duration-500"
+                style={{ width: `${getCompletionPercentage()}%` }}
+              />
+            </div>
+          </Card>
+        )}
+
+        {/* Category Grid */}
+        <Card>
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-6 text-center">
+              Life Areas to Explore
+            </h2>
+            
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Spinner size="lg" variant="primary" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13).map((category) => {
+                  const IconComponent = category.icon
+                  const completed = isCompleted(category.key)
+                  const inProgress = isInProgress(category.key)
+                  
+                  return (
+                    <button
+                      key={category.key}
+                      onClick={() => handleCategoryClick(category.key)}
+                      className={`
+                        relative rounded-2xl p-4 border-2 transition-all duration-300
+                        ${completed 
+                          ? 'border-primary-500 bg-primary-500/10 hover:bg-primary-500/20' 
+                          : inProgress
+                            ? 'border-secondary-500 bg-secondary-500/10 hover:bg-secondary-500/20'
+                            : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600'
+                        }
+                        hover:-translate-y-1 hover:shadow-lg
+                      `}
+                    >
+                      {/* Status Icon */}
+                      <div className="absolute top-2 right-2">
+                        {completed ? (
+                          <CheckCircle className="w-5 h-5 text-primary-500" />
+                        ) : inProgress ? (
+                          <Clock className="w-5 h-5 text-secondary-500" />
+                        ) : (
+                          <Circle className="w-5 h-5 text-neutral-600" />
+                        )}
+                      </div>
+
+                      <div className="flex flex-col items-center text-center">
+                        <div className={`
+                          w-12 h-12 rounded-xl flex items-center justify-center mb-3
+                          ${completed 
+                            ? 'bg-primary-500/20' 
+                            : inProgress
+                              ? 'bg-secondary-500/20'
+                              : 'bg-neutral-800/50'
+                          }
+                        `}>
+                          <IconComponent className={`
+                            w-6 h-6
+                            ${completed 
+                              ? 'text-primary-500' 
+                              : inProgress
+                                ? 'text-secondary-500'
+                                : 'text-white'
+                            }
+                          `} />
+                        </div>
+                        <h4 className="font-semibold text-white text-sm mb-1">
+                          {category.label}
+                        </h4>
+                        <p className="text-xs text-neutral-400 line-clamp-2">
+                          {category.description}
+                        </p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </Card>
 
         {/* How It Works */}
         <Card>
@@ -39,9 +218,9 @@ export default function VIVALifeVisionLandingPage() {
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-primary-500/20 rounded-xl flex items-center justify-center mb-4">
                     <span className="text-2xl md:text-3xl font-bold text-primary-500">1</span>
                   </div>
-                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">Record Your Reflections</h3>
+                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">Express Your Clarity</h3>
                   <p className="text-xs md:text-sm text-neutral-400">
-                    Speak naturally about each life area. Your authentic voice is transcribed and preserved.
+                    Speak or write about what's clear to you in each life area.
                   </p>
                 </div>
               </Card>
@@ -52,9 +231,9 @@ export default function VIVALifeVisionLandingPage() {
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-secondary-500/20 rounded-xl flex items-center justify-center mb-4">
                     <span className="text-2xl md:text-3xl font-bold text-secondary-500">2</span>
                   </div>
-                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">AI Synthesis</h3>
+                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">Unleash Your Imagination</h3>
                   <p className="text-xs md:text-sm text-neutral-400">
-                    VIVA analyzes your profile, assessment, and recordings to craft emotionally intelligent summaries.
+                    Dream freely about your ideal life in each category.
                   </p>
                 </div>
               </Card>
@@ -65,43 +244,12 @@ export default function VIVALifeVisionLandingPage() {
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-accent-500/20 rounded-xl flex items-center justify-center mb-4">
                     <span className="text-2xl md:text-3xl font-bold text-accent-500">3</span>
                   </div>
-                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">Your Vision Unfolds</h3>
+                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">VIVA Creates Your Blueprint</h3>
                   <p className="text-xs md:text-sm text-neutral-400">
-                    Receive a beautifully written, vibrationally congruent Life Vision in your own words.
+                    AI synthesizes your vision with Being/Doing/Receiving loops.
                   </p>
                 </div>
               </Card>
-            </div>
-          </div>
-        </Card>
-
-        {/* What You'll Cover */}
-        <Card>
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-6 text-center">What You'll Explore</h2>
-            
-            {/* Pattern 2.5: Four Column Layout - 2x2 on mobile, 4x1 on desktop */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13).map((category) => {
-                const IconComponent = category.icon
-                return (
-                  <Card 
-                    key={category.key}
-                    variant="elevated" 
-                    hover 
-                    className="!px-2 !py-4 border-2 border-neutral-700 hover:border-[#00FFFF] transition-all duration-300"
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-neutral-800/50">
-                        <IconComponent className="w-6 h-6 text-white" />
-                      </div>
-                      <h4 className="font-semibold text-white text-sm mb-1">{category.label}</h4>
-                      <p className="text-xs text-neutral-400">{category.description}</p>
-                    </div>
-                  </Card>
-                )
-              })}
-              
             </div>
           </div>
         </Card>
@@ -113,13 +261,14 @@ export default function VIVALifeVisionLandingPage() {
             size="lg"
             onClick={handleGetStarted}
             loading={loading}
+            disabled={loading}
             className="w-full sm:w-auto"
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            Get Started
+            {Object.keys(progress).length > 0 ? 'Continue Your Vision' : 'Get Started'}
           </Button>
           <p className="text-xs md:text-sm text-neutral-400 mt-4">
-          You can pause and resume anytime.
+            You can pause and resume anytime. Your progress is automatically saved.
           </p>
         </div>
       </Stack>

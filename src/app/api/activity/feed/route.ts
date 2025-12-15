@@ -338,7 +338,7 @@ export async function GET(request: NextRequest) {
               desc: fileName,
               icon: 'User',
               color: 'text-primary-500',
-              link: '/profile/edit'
+              link: '/profile/active/edit'
             },
             'vision-board': { 
               title: 'Added to Vision Board',
@@ -366,7 +366,7 @@ export async function GET(request: NextRequest) {
               desc: fileName,
               icon: 'Upload',
               color: 'text-neutral-400',
-              link: '/profile/edit'
+              link: '/profile/active/edit'
             },
           }
 

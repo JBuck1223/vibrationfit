@@ -42,7 +42,7 @@ export function IntensiveLockedOverlay() {
 
       // Determine next step
       const steps = [
-        { id: 'profile', title: 'Complete Your Profile', href: '/profile/edit', completed: !!checklist.profile_completed },
+        { id: 'profile', title: 'Complete Your Profile', href: '/profile/active/edit', completed: !!checklist.profile_completed },
         { id: 'assessment', title: 'Take Assessment', href: '/assessment', completed: !!checklist.assessment_completed },
         { id: 'call', title: 'Schedule Call', href: '/intensive/schedule-call', completed: !!checklist.call_scheduled },
         { id: 'vision', title: 'Build Your Vision', href: '/vision/build', completed: !!checklist.vision_built },

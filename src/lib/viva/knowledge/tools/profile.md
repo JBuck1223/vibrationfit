@@ -32,7 +32,7 @@ The Profile System stores comprehensive user information across all 12 life cate
 ### Access Points
 
 - View Profile: `/profile`
-- Edit Profile: `/profile/edit`
+- Edit Profile: `/profile/active/edit`
 - Create New: `/profile/new`
 - View Specific Version: `/profile/[id]`
 

@@ -3480,7 +3480,7 @@ const defaultNavigation: NavItem[] = [
     hasDropdown: true,
     children: [
       { name: 'See Profile', href: '/profile', icon: Eye },
-      { name: 'Edit Profile', href: '/profile/edit', icon: Edit },
+      { name: 'Edit Profile', href: '/profile/active/edit', icon: Edit },
       { name: 'New Profile', href: '/profile/new', icon: Plus },
     ]
   },

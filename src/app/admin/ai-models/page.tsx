@@ -20,10 +20,33 @@ interface ModelPricing {
   is_active: boolean
   effective_date: string
   notes: string | null
+  // New capability fields
+  supports_temperature?: boolean
+  supports_json_mode?: boolean
+  supports_streaming?: boolean
+  is_reasoning_model?: boolean
+  max_tokens_param?: string
+  token_multiplier?: number
+  context_window?: number
+  capabilities_notes?: string
+}
+
+interface AITool {
+  id: string
+  tool_key: string
+  tool_name: string
+  description: string | null
+  model_name: string
+  temperature: number
+  max_tokens: number
+  system_prompt: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 function AIModelsAdminContent() {
-  const [activeTab, setActiveTab] = useState<'routes' | 'pricing'>('routes')
+  const [activeTab, setActiveTab] = useState<'routes' | 'pricing' | 'tools'>('tools')
   const [models, setModels] = useState<typeof AI_MODELS>(AI_MODELS)
   const [overrides, setOverrides] = useState<Array<{ action_type: string; token_value: number }>>([])
   const [newOverride, setNewOverride] = useState<{ action_type: string; token_value: number }>({ action_type: '', token_value: 0 })
@@ -35,6 +58,11 @@ function AIModelsAdminContent() {
   const [pricing, setPricing] = useState<ModelPricing[]>([])
   const [selectedPricing, setSelectedPricing] = useState<ModelPricing | null>(null)
   const [editPricing, setEditPricing] = useState<Partial<ModelPricing>>({})
+  
+  // AI Tools management
+  const [tools, setTools] = useState<AITool[]>([])
+  const [selectedTool, setSelectedTool] = useState<AITool | null>(null)
+  const [editTool, setEditTool] = useState<Partial<AITool>>({})
 
   // Available models for selection
   const availableModels = [
@@ -113,10 +141,13 @@ function AIModelsAdminContent() {
     setEditConfig({})
   }
 
-  // Fetch pricing data
+  // Fetch pricing data (needed for tools tab too)
   useEffect(() => {
     if (activeTab === 'pricing') {
       fetchPricing()
+    } else if (activeTab === 'tools') {
+      fetchTools()
+      fetchPricing() // Need pricing for model info in tools tab
     }
   }, [activeTab])
 
@@ -169,6 +200,62 @@ function AIModelsAdminContent() {
     }
   }
 
+  // Fetch AI tools
+  const fetchTools = async () => {
+    try {
+      const res = await fetch('/api/admin/ai-tools')
+      if (res.ok) {
+        const data = await res.json()
+        setTools(data.tools || [])
+      } else {
+        const data = await res.json()
+        console.error('Error fetching tools:', data)
+        alert(`Failed to load tools: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error fetching tools:', error)
+      alert('Failed to load tools')
+    }
+  }
+
+  const handleEditTool = (tool: AITool) => {
+    setSelectedTool(tool)
+    setEditTool({
+      model_name: tool.model_name,
+      temperature: tool.temperature,
+      max_tokens: tool.max_tokens,
+      system_prompt: tool.system_prompt,
+      is_active: tool.is_active
+    })
+  }
+
+  const handleSaveTool = async () => {
+    if (!selectedTool) return
+
+    try {
+      const res = await fetch('/api/admin/ai-tools', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool_key: selectedTool.tool_key,
+          ...editTool
+        })
+      })
+
+      if (res.ok) {
+        await fetchTools()
+        setSelectedTool(null)
+        setEditTool({})
+      } else {
+        const error = await res.json()
+        alert(`Error: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error saving tool:', error)
+      alert('Failed to save tool')
+    }
+  }
+
   useEffect(() => {
     (async () => {
       try {
@@ -184,25 +271,22 @@ function AIModelsAdminContent() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero title="AI Models" subtitle="Manage AI voice models and generation settings" />
-      <div className="mb-8 md:mb-12">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4">AI Models & Configuration</h1>
-        <p className="text-sm md:text-base lg:text-lg text-neutral-400">
-          Configure AI models, pricing, token overrides, and API routes
-        </p>
-      </div>
+        <PageHero 
+          title="AI Models & Configuration" 
+          subtitle="Configure AI models, pricing, and tool settings" 
+        />
 
       {/* Tabs */}
-      <div className="flex gap-2 md:gap-4 mb-6 md:mb-8 border-b border-neutral-700 overflow-x-auto">
+      <div className="flex gap-2 md:gap-4 mb-6 border-b border-neutral-700 overflow-x-auto">
         <button
-          onClick={() => setActiveTab('routes')}
+          onClick={() => setActiveTab('tools')}
           className={`pb-3 md:pb-4 px-3 md:px-4 font-medium text-sm md:text-base transition-colors whitespace-nowrap ${
-            activeTab === 'routes'
+            activeTab === 'tools'
               ? 'text-primary-500 border-b-2 border-primary-500'
               : 'text-neutral-400 hover:text-neutral-200'
           }`}
         >
-          API Routes & Models
+          AI Tools
         </button>
         <button
           onClick={() => setActiveTab('pricing')}
@@ -212,9 +296,447 @@ function AIModelsAdminContent() {
               : 'text-neutral-400 hover:text-neutral-200'
           }`}
         >
-          Model Pricing
+          Model Pricing & Capabilities
+        </button>
+        <button
+          onClick={() => setActiveTab('routes')}
+          className={`pb-3 md:pb-4 px-3 md:px-4 font-medium text-sm md:text-base transition-colors whitespace-nowrap ${
+            activeTab === 'routes'
+              ? 'text-primary-500 border-b-2 border-primary-500'
+              : 'text-neutral-400 hover:text-neutral-200'
+          }`}
+        >
+          Legacy Routes (Deprecated)
         </button>
       </div>
+
+      {/* AI Tools Tab */}
+      {activeTab === 'tools' && (
+        <>
+          {/* Stats Overview */}
+          {tools.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+              <Card className="p-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary-500 mb-1">{tools.length}</div>
+                  <div className="text-sm text-neutral-400">Total AI Tools</div>
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary-500 mb-1">
+                    {tools.filter(t => t.is_active).length}
+                  </div>
+                  <div className="text-sm text-neutral-400">Active Tools</div>
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-secondary-500 mb-1">
+                    {tools.filter(t => !t.model_name.includes('whisper') && !t.model_name.includes('tts') && !t.model_name.includes('dall-e')).length}
+                  </div>
+                  <div className="text-sm text-neutral-400">Chat Tools</div>
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-accent-500 mb-1">
+                    {tools.filter(t => t.model_name.includes('whisper') || t.model_name.includes('tts')).length}
+                  </div>
+                  <div className="text-sm text-neutral-400">Audio Tools</div>
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-[#FFB701] mb-1">
+                    {tools.filter(t => t.model_name.includes('dall-e')).length}
+                  </div>
+                  <div className="text-sm text-neutral-400">Image Tools</div>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {tools.length === 0 ? (
+            <Card className="p-8 text-center">
+              <p className="text-neutral-400 mb-4">
+                {pricing.length === 0 ? 'Loading...' : 'No AI tools found in database'}
+              </p>
+              {pricing.length > 0 && (
+                <Button onClick={fetchTools} variant="primary">
+                  Refresh
+                </Button>
+              )}
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {tools.map((tool) => {
+              const modelInfo = pricing.find(p => p.model_name === tool.model_name)
+              
+              // Map tools to their API endpoints and usage
+              const toolUsage: Record<string, { endpoint: string; filePath: string; usedBy: string[] }> = {
+                'life_vision_category_summary': {
+                  endpoint: '/api/viva/category-summary',
+                  filePath: 'src/app/api/viva/category-summary/route.ts',
+                  usedBy: ['/life-vision/new/category/[key]', 'Step 1: Clarity']
+                },
+                'blueprint_generation': {
+                  endpoint: '/api/viva/blueprint',
+                  filePath: 'src/app/api/viva/blueprint/route.ts',
+                  usedBy: ['/life-vision/new/category/[key]/blueprint', 'Step 3: Blueprint']
+                },
+                'vision_refinement': {
+                  endpoint: '/api/viva/refine-category',
+                  filePath: 'src/app/api/viva/refine-category/route.ts',
+                  usedBy: ['/life-vision/[id]/refine', 'Vision Refinement']
+                },
+                'master_vision_assembly': {
+                  endpoint: '/api/viva/master-vision',
+                  filePath: 'src/app/api/viva/master-vision/route.ts',
+                  usedBy: ['/life-vision/new/assembly', 'Step 5: Assembly']
+                },
+                'prompt_suggestions': {
+                  endpoint: '/api/viva/prompt-suggestions',
+                  filePath: 'src/app/api/viva/prompt-suggestions/route.ts',
+                  usedBy: ['/life-vision/new/category/[key]', 'Personalized Prompts']
+                },
+                'scene_generation': {
+                  endpoint: '/api/viva/scene-generation',
+                  filePath: 'src/app/api/viva/scene-generation/route.ts',
+                  usedBy: ['/scenes/builder', 'Visualization Scenes']
+                },
+                'final_assembly': {
+                  endpoint: '/api/viva/final-assembly',
+                  filePath: 'src/app/api/viva/final-assembly/route.ts',
+                  usedBy: ['/life-vision/new/final', 'Step 6: Final Assembly']
+                },
+                'merge_clarity': {
+                  endpoint: '/api/viva/merge-clarity',
+                  filePath: 'src/app/api/viva/merge-clarity/route.ts',
+                  usedBy: ['/life-vision/new/category/[key]', 'Contrast Flip']
+                },
+                'north_star_reflection': {
+                  endpoint: '/api/vibration/dashboard/category',
+                  filePath: 'src/app/api/vibration/dashboard/category/route.ts',
+                  usedBy: ['/dashboard/north-star', 'North Star Dashboard']
+                },
+                'voice_analyzer': {
+                  endpoint: '/api/voice-profile/analyze',
+                  filePath: 'src/app/api/voice-profile/analyze/route.ts',
+                  usedBy: ['/voice-profile', 'Voice Profile Analysis']
+                },
+                'vibrational_analyzer': {
+                  endpoint: '/api/vibration/analyze',
+                  filePath: 'src/app/api/vibration/analyze/route.ts',
+                  usedBy: ['/life-vision/new', 'Emotional State Analysis']
+                },
+                'audio_transcription': {
+                  endpoint: '/api/transcribe',
+                  filePath: 'src/app/api/transcribe/route.ts',
+                  usedBy: ['/life-vision/new/category/[key]', '/voice-profile', 'Audio Recording Transcription']
+                },
+                'audio_generation': {
+                  endpoint: '/api/audio/generate',
+                  filePath: 'src/app/api/audio/generate/route.ts',
+                  usedBy: ['/life-vision/[id]', 'Vision Audio Generation']
+                },
+                'audio_generation_hd': {
+                  endpoint: '/api/audio/generate',
+                  filePath: 'src/app/api/audio/generate/route.ts',
+                  usedBy: ['/life-vision/[id]', 'High-Quality Vision Audio']
+                },
+                'image_generation_dalle3': {
+                  endpoint: '/api/images/generate',
+                  filePath: 'src/app/api/images/generate/route.ts',
+                  usedBy: ['/vision-board', 'Vision Board Image Generation']
+                },
+                'image_generation_dalle2': {
+                  endpoint: '/api/images/generate',
+                  filePath: 'src/app/api/images/generate/route.ts',
+                  usedBy: ['/vision-board', 'Vision Board Image Generation (Legacy)']
+                }
+              }
+              
+              const usage = toolUsage[tool.tool_key]
+              
+              return (
+                <Card key={tool.id} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <h3 className="text-xl font-semibold text-white">{tool.tool_name}</h3>
+                        <Badge variant={tool.is_active ? 'success' : 'warning'}>
+                          {tool.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <Badge variant="info" className="text-xs font-mono">
+                          {tool.tool_key}
+                        </Badge>
+                        {/* Tool Type Badge */}
+                        {tool.model_name.includes('whisper') && (
+                          <Badge variant="accent" className="text-xs">Audio → Text</Badge>
+                        )}
+                        {tool.model_name.includes('tts') && (
+                          <Badge variant="accent" className="text-xs">Text → Audio</Badge>
+                        )}
+                        {tool.model_name.includes('dall-e') && (
+                          <Badge variant="accent" className="text-xs">Text → Image</Badge>
+                        )}
+                        {!tool.model_name.includes('whisper') && !tool.model_name.includes('tts') && !tool.model_name.includes('dall-e') && (
+                          <Badge variant="neutral" className="text-xs">Chat Completion</Badge>
+                        )}
+                      </div>
+                      
+                      {tool.description && (
+                        <p className="text-sm text-neutral-400 mb-3">{tool.description}</p>
+                      )}
+
+                      {/* Configuration Grid */}
+                      <div className="mt-4 pt-4 border-t border-neutral-700">
+                        <h4 className="text-sm font-medium text-neutral-300 mb-3">Configuration</h4>
+                        {(tool.model_name.includes('whisper') || tool.model_name.includes('tts') || tool.model_name.includes('dall-e')) && (
+                          <div className="mb-3 p-2 bg-neutral-800 rounded text-xs text-neutral-400">
+                            Note: Temperature and max tokens don't apply to {tool.model_name.includes('whisper') ? 'audio transcription' : tool.model_name.includes('tts') ? 'text-to-speech' : 'image generation'} models
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <span className="text-neutral-400 text-sm">Model</span>
+                            <div className="text-white font-mono">{tool.model_name}</div>
+                            {modelInfo?.is_reasoning_model && (
+                              <Badge variant="accent" className="text-xs mt-1">Reasoning Model</Badge>
+                            )}
+                          </div>
+
+                          <div>
+                            <span className="text-neutral-400 text-sm">Temperature</span>
+                            <div className="text-white">{tool.temperature || 'N/A'}</div>
+                            {modelInfo && !modelInfo.supports_temperature && tool.temperature > 0 && (
+                              <div className="text-xs text-yellow-500 mt-1">Model doesn't support custom temp</div>
+                            )}
+                          </div>
+
+                          <div>
+                            <span className="text-neutral-400 text-sm">Max Tokens</span>
+                            <div className="text-white">{tool.max_tokens || 'N/A'}</div>
+                            {modelInfo?.token_multiplier && modelInfo.token_multiplier > 1 && (
+                              <div className="text-xs text-accent-400 mt-1">×{modelInfo.token_multiplier} (reasoning)</div>
+                            )}
+                          </div>
+
+                          <div>
+                            <span className="text-neutral-400 text-sm">Last Updated</span>
+                            <div className="text-white text-sm">
+                              {new Date(tool.updated_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Model Capabilities & Pricing */}
+                        {modelInfo && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {modelInfo.supports_json_mode && (
+                              <Badge variant="success" className="text-xs">JSON Mode</Badge>
+                            )}
+                            {modelInfo.supports_streaming && (
+                              <Badge variant="success" className="text-xs">Streaming</Badge>
+                            )}
+                            {modelInfo.context_window && (
+                              <Badge variant="neutral" className="text-xs">
+                                Context: {modelInfo.context_window.toLocaleString()} tokens
+                              </Badge>
+                            )}
+                            {modelInfo.price_per_unit && modelInfo.unit_type && (
+                              <Badge variant="info" className="text-xs">
+                                ${modelInfo.price_per_unit.toFixed(3)} per {modelInfo.unit_type}
+                              </Badge>
+                            )}
+                            {modelInfo.input_price_per_1k > 0 && (
+                              <Badge variant="info" className="text-xs">
+                                ${modelInfo.input_price_per_1k.toFixed(5)} / 1K tokens
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Usage Details */}
+                      {usage && (
+                        <div className="mt-4 pt-4 border-t border-neutral-700">
+                          <h4 className="text-sm font-medium text-neutral-300 mb-3">Usage & Integration</h4>
+                          
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-2">
+                              <Code className="w-4 h-4 text-primary-500 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <div className="text-xs text-neutral-400 mb-1">API Endpoint</div>
+                                <code className="text-sm text-primary-400 font-mono">{usage.endpoint}</code>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                              <Target className="w-4 h-4 text-secondary-500 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <div className="text-xs text-neutral-400 mb-1">File Path</div>
+                                <code className="text-xs text-neutral-300 font-mono break-all">{usage.filePath}</code>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                              <ExternalLink className="w-4 h-4 text-accent-500 mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="text-xs text-neutral-400 mb-2">Used By</div>
+                                <div className="flex flex-wrap gap-2">
+                                  {usage.usedBy.map((page, idx) => (
+                                    <Badge key={idx} variant="info" className="text-xs">
+                                      {page}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {tool.system_prompt && (
+                        <div className="mt-4 pt-4 border-t border-neutral-700">
+                          <span className="text-neutral-400 text-sm">System Prompt:</span>
+                          <div className="mt-2 p-3 bg-neutral-800 rounded-lg text-sm text-neutral-300 max-h-32 overflow-y-auto">
+                            {tool.system_prompt}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditTool(tool)}
+                      className="ml-4"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </Card>
+              )
+            })}
+            </div>
+          )}
+
+          {/* Tool Edit Modal */}
+          {selectedTool && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-white mb-4">
+                    Edit {selectedTool.tool_name}
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-200 mb-2">
+                        Tool Key (Read-only)
+                      </label>
+                      <div className="p-3 bg-neutral-800 rounded-lg text-sm text-neutral-300 font-mono">
+                        {selectedTool.tool_key}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-200 mb-2">
+                        Model
+                      </label>
+                      <select
+                        value={editTool.model_name || selectedTool.model_name}
+                        onChange={(e) => setEditTool(prev => ({ ...prev, model_name: e.target.value }))}
+                        className="w-full p-3 bg-neutral-800 border border-neutral-600 rounded-lg text-white"
+                      >
+                        {pricing.map(model => (
+                          <option key={model.model_name} value={model.model_name}>
+                            {model.model_name}
+                            {model.is_reasoning_model ? ' (Reasoning)' : ''}
+                            {!model.is_active ? ' (Inactive)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-200 mb-2">
+                          Temperature
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="2"
+                          step="0.1"
+                          value={editTool.temperature ?? selectedTool.temperature}
+                          onChange={(e) => setEditTool(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                        />
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Note: Some models (like o1) don't support custom temperature
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-200 mb-2">
+                          Max Tokens
+                        </label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="50000"
+                          value={editTool.max_tokens ?? selectedTool.max_tokens}
+                          onChange={(e) => setEditTool(prev => ({ ...prev, max_tokens: parseInt(e.target.value) }))}
+                        />
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Base limit (multiplied automatically for reasoning models)
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-200 mb-2">
+                        System Prompt
+                      </label>
+                      <Textarea
+                        value={editTool.system_prompt ?? selectedTool.system_prompt ?? ''}
+                        onChange={(e) => setEditTool(prev => ({ ...prev, system_prompt: e.target.value }))}
+                        rows={8}
+                        className="w-full p-3 bg-neutral-800 border border-neutral-600 rounded-lg text-white font-mono text-sm"
+                        placeholder="System prompt for this tool..."
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="is_active"
+                        checked={editTool.is_active ?? selectedTool.is_active}
+                        onChange={(e) => setEditTool(prev => ({ ...prev, is_active: e.target.checked }))}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="is_active" className="text-sm text-neutral-200">
+                        Tool is active (disable to prevent use)
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-6">
+                    <Button variant="outline" onClick={() => { setSelectedTool(null); setEditTool({}) }}>
+                      Cancel
+                    </Button>
+                    <Button variant="primary" onClick={handleSaveTool}>
+                      Save Tool Configuration
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+        </>
+      )}
 
       {activeTab === 'routes' && (
         <>
@@ -725,6 +1247,59 @@ function AIModelsAdminContent() {
                         {model.notes}
                       </div>
                     )}
+
+                    {/* Model Capabilities */}
+                    <div className="mt-4 pt-4 border-t border-neutral-700">
+                      <h4 className="text-sm font-medium text-neutral-300 mb-3">Model Capabilities</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="flex items-center gap-2">
+                          {model.supports_temperature ? (
+                            <CheckCircle className="w-4 h-4 text-primary-500" />
+                          ) : (
+                            <AlertCircle className="w-4 h-4 text-neutral-600" />
+                          )}
+                          <span className="text-sm text-neutral-400">Custom Temperature</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {model.supports_json_mode ? (
+                            <CheckCircle className="w-4 h-4 text-primary-500" />
+                          ) : (
+                            <AlertCircle className="w-4 h-4 text-neutral-600" />
+                          )}
+                          <span className="text-sm text-neutral-400">JSON Mode</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {model.supports_streaming ? (
+                            <CheckCircle className="w-4 h-4 text-primary-500" />
+                          ) : (
+                            <AlertCircle className="w-4 h-4 text-neutral-600" />
+                          )}
+                          <span className="text-sm text-neutral-400">Streaming</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {model.is_reasoning_model ? (
+                            <Badge variant="accent" className="text-xs">Reasoning Model</Badge>
+                          ) : (
+                            <span className="text-sm text-neutral-600">Standard Model</span>
+                          )}
+                        </div>
+                      </div>
+                      {model.token_multiplier && model.token_multiplier > 1 && (
+                        <div className="mt-2 text-sm text-accent-400">
+                          Token Multiplier: ×{model.token_multiplier} (for reasoning overhead)
+                        </div>
+                      )}
+                      {model.context_window && (
+                        <div className="mt-2 text-sm text-neutral-400">
+                          Context Window: {model.context_window.toLocaleString()} tokens
+                        </div>
+                      )}
+                      {model.capabilities_notes && (
+                        <div className="mt-2 p-2 bg-neutral-900 rounded text-xs text-neutral-400">
+                          {model.capabilities_notes}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <Button
@@ -800,6 +1375,129 @@ function AIModelsAdminContent() {
                         rows={3}
                         placeholder="Optional notes about this pricing"
                       />
+                    </div>
+
+                    {/* Model Capabilities */}
+                    <div className="border-t border-neutral-700 pt-4">
+                      <h4 className="text-sm font-medium text-neutral-200 mb-3">Model Capabilities</h4>
+                      
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="supports_temperature"
+                            checked={editPricing.supports_temperature ?? selectedPricing.supports_temperature ?? true}
+                            onChange={(e) => setEditPricing(prev => ({ ...prev, supports_temperature: e.target.checked }))}
+                            className="w-4 h-4"
+                          />
+                          <label htmlFor="supports_temperature" className="text-sm text-neutral-200">
+                            Supports Custom Temperature
+                          </label>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="supports_json_mode"
+                            checked={editPricing.supports_json_mode ?? selectedPricing.supports_json_mode ?? true}
+                            onChange={(e) => setEditPricing(prev => ({ ...prev, supports_json_mode: e.target.checked }))}
+                            className="w-4 h-4"
+                          />
+                          <label htmlFor="supports_json_mode" className="text-sm text-neutral-200">
+                            Supports JSON Mode
+                          </label>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="supports_streaming"
+                            checked={editPricing.supports_streaming ?? selectedPricing.supports_streaming ?? true}
+                            onChange={(e) => setEditPricing(prev => ({ ...prev, supports_streaming: e.target.checked }))}
+                            className="w-4 h-4"
+                          />
+                          <label htmlFor="supports_streaming" className="text-sm text-neutral-200">
+                            Supports Streaming
+                          </label>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="is_reasoning_model"
+                            checked={editPricing.is_reasoning_model ?? selectedPricing.is_reasoning_model ?? false}
+                            onChange={(e) => setEditPricing(prev => ({ ...prev, is_reasoning_model: e.target.checked }))}
+                            className="w-4 h-4"
+                          />
+                          <label htmlFor="is_reasoning_model" className="text-sm text-neutral-200">
+                            Is Reasoning Model (o1, etc.)
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-neutral-200 mb-2">
+                            Token Multiplier
+                          </label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={editPricing.token_multiplier ?? selectedPricing.token_multiplier ?? 1}
+                            onChange={(e) => setEditPricing(prev => ({ ...prev, token_multiplier: parseInt(e.target.value) }))}
+                          />
+                          <p className="text-xs text-neutral-500 mt-1">
+                            Reasoning models typically need 10x (for thinking tokens)
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-neutral-200 mb-2">
+                            Context Window
+                          </label>
+                          <Input
+                            type="number"
+                            min="1000"
+                            max="1000000"
+                            step="1000"
+                            value={editPricing.context_window ?? selectedPricing.context_window ?? 128000}
+                            onChange={(e) => setEditPricing(prev => ({ ...prev, context_window: parseInt(e.target.value) }))}
+                          />
+                          <p className="text-xs text-neutral-500 mt-1">
+                            Maximum context size in tokens
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-neutral-200 mb-2">
+                          Max Tokens Parameter Name
+                        </label>
+                        <select
+                          value={editPricing.max_tokens_param ?? selectedPricing.max_tokens_param ?? 'max_completion_tokens'}
+                          onChange={(e) => setEditPricing(prev => ({ ...prev, max_tokens_param: e.target.value }))}
+                          className="w-full p-3 bg-neutral-800 border border-neutral-600 rounded-lg text-white"
+                        >
+                          <option value="max_tokens">max_tokens (legacy)</option>
+                          <option value="max_completion_tokens">max_completion_tokens (current)</option>
+                        </select>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          OpenAI parameter name for token limits
+                        </p>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-neutral-200 mb-2">
+                          Capabilities Notes
+                        </label>
+                        <Textarea
+                          value={editPricing.capabilities_notes ?? selectedPricing.capabilities_notes ?? ''}
+                          onChange={(e) => setEditPricing(prev => ({ ...prev, capabilities_notes: e.target.value }))}
+                          rows={2}
+                          placeholder="Optional notes about model capabilities"
+                        />
+                      </div>
                     </div>
                   </div>
 
