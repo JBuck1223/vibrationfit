@@ -489,24 +489,36 @@ export default function HomePage() {
                   <div className="flex flex-col gap-4 items-start mx-auto text-left md:text-left">
                     <div className="flex items-center gap-3">
                       <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">Profile 70%+ complete</Text>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">84‑question Vibration Assessment submitted</Text>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
                       <Text size="sm" className="text-neutral-200 text-left">12‑category Life Vision completed (with VIVA)</Text>
-                </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">First refinement pass saved</Text>
+                    </div>
                     <div className="flex items-center gap-3">
                       <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
                       <Text size="sm" className="text-neutral-200 text-left">AM/PM Vision Audios generated</Text>
-                  </div>
+                    </div>
                     <div className="flex items-center gap-3">
                       <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
                       <Text size="sm" className="text-neutral-200 text-left">Vision Board built (12 images, 1 per category)</Text>
                     </div>
                     <div className="flex items-center gap-3">
                       <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
-                      <Text size="sm" className="text-neutral-200 text-left">3 journal entries logged (Gratitude, Connect‑the‑Dots, Progress)</Text>
-                  </div>
+                      <Text size="sm" className="text-neutral-200 text-left">3 journal entries logged (one written, one voice, one video)</Text>
+                    </div>
                     <div className="flex items-center gap-3">
                       <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
-                      <Text size="sm" className="text-neutral-200 text-left">Calibration call booked</Text>
-                  </div>
+                      <Text size="sm" className="text-neutral-200 text-left">Calibration Call booked</Text>
+                    </div>
                     <div className="flex items-center gap-3">
                       <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
                       <Text size="sm" className="text-neutral-200 text-left">Activation Protocol scheduled</Text>
@@ -518,20 +530,20 @@ export default function HomePage() {
                 <FlowCards
                   items={[
                     {
-                      label: 'Train',
-                      description: 'Complete profile (70%+) + 84‑Q assessment; finish first Life Vision (with VIVA)',
+                      label: 'Train (0–72h)',
+                      description: 'Complete your 72‑Hour Activation Intensive: profile + 84‑Q assessment + 12‑category Life Vision with VIVA, plus your first audios, board, journals, protocol, and call booked.',
                       icon: Brain,
                       iconColor: '#39FF14'
                     },
                     {
                       label: 'Tune',
-                      description: 'Refine your vision; generate AM/PM Vision Audios; build your 12‑image Vision Board; start the Activation Protocol',
+                      description: 'Keep your signal aligned as life evolves: refine your vision, regenerate AM/PM audios, and follow your daily Activation Protocol.',
                       icon: Target,
                       iconColor: '#14B8A6'
                     },
                     {
                       label: 'Track',
-                      description: 'Journal daily (Gratitude, Dots, Progress), log iterations, and watch streaks and wins grow',
+                      description: 'Build visible momentum: journal, log iterations and wins, update your Vision Board, and watch your streaks grow in the dashboard & Vibe Tribe.',
                       icon: TrendingUp,
                       iconColor: '#8B5CF6'
                     }
@@ -562,7 +574,10 @@ export default function HomePage() {
                       <div className="flex items-start gap-4">
                         <div className="w-5 h-5 border-2 border-[#39FF14] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                         <div>
-                          <Text size="base" className="font-semibold text-white">Phase 1 — Foundation (0–24h)</Text>
+                          <div className="font-semibold text-white text-base">
+                            <div>Phase 1</div>
+                            <div>Foundation (0–24h)</div>
+                          </div>
                           <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
@@ -583,7 +598,10 @@ export default function HomePage() {
                       <div className="flex items-start gap-4">
                         <div className="w-5 h-5 border-2 border-[#00FFFF] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                         <div>
-                          <Text size="base" className="font-semibold text-white">Phase 2 — Vision Creation (24–48h)</Text>
+                          <div className="font-semibold text-white text-base">
+                            <div>Phase 2</div>
+                            <div>Vision Creation (24–48h)</div>
+                          </div>
                           <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
@@ -600,7 +618,10 @@ export default function HomePage() {
                       <div className="flex items-start gap-4">
                         <div className="w-5 h-5 border-2 border-[#BF00FF] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                         <div>
-                          <Text size="base" className="font-semibold text-white">Phase 3 — Activation Tools (48–72h)</Text>
+                          <div className="font-semibold text-white text-base">
+                            <div>Phase 3</div>
+                            <div>Activation Tools (48–72h)</div>
+                          </div>
                           <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
@@ -612,7 +633,7 @@ export default function HomePage() {
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Journal x3 — Gratitude, Dots, Progress</Text>
+                              <Text size="sm" className="text-neutral-400">Journal x3 — written, voice & video entries logged</Text>
                             </div>
                           </div>
                         </div>
@@ -621,7 +642,10 @@ export default function HomePage() {
                       <div className="flex items-start gap-4">
                         <div className="w-5 h-5 border-2 border-[#FFFF00] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                         <div>
-                          <Text size="base" className="font-semibold text-white">Phase 4 — Calibration & Launch</Text>
+                          <div className="font-semibold text-white text-base">
+                            <div>Phase 4</div>
+                            <div>Calibration & Launch (by/after 72h)</div>
+                          </div>
                           <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
@@ -629,7 +653,7 @@ export default function HomePage() {
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Activation Protocol — Execute custom Activation Plan</Text>
+                              <Text size="sm" className="text-neutral-400">Activation Protocol — daily rituals scheduled & ready to run</Text>
                             </div>
                           </div>
                         </div>
@@ -650,19 +674,19 @@ export default function HomePage() {
                         <div className="flex items-start gap-4">
                           <div className="w-5 h-5 border-2 border-[#39FF14] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                           <div>
-                            <Text size="base" className="font-semibold text-white">Phase 1 — Foundation (Hours 0–24)</Text>
+                            <Text size="base" className="font-semibold text-white">Phase 1 — Foundation (0–24h)</Text>
                             <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Complete Profile — 70%+ completion</Text>
+                              <Text size="sm" className="text-neutral-400">Profile — 70%+ complete</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Vibration Assessment — 84 questions submitted</Text>
+                              <Text size="sm" className="text-neutral-400">Assessment — 84 Qs submitted</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Book Calibration — 1:1 call scheduled</Text>
+                              <Text size="sm" className="text-neutral-400">Calibration — 1:1 call scheduled</Text>
                             </div>
                             </div>
                           </div>
@@ -671,15 +695,15 @@ export default function HomePage() {
                         <div className="flex items-start gap-4">
                           <div className="w-5 h-5 border-2 border-[#00FFFF] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                           <div>
-                            <Text size="base" className="font-semibold text-white">Phase 2 — Vision Creation (Hours 24–48)</Text>
+                            <Text size="base" className="font-semibold text-white">Phase 2 — Vision Creation (24–48h)</Text>
                             <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Build Life Vision — All 12 categories drafted with VIVA</Text>
+                              <Text size="sm" className="text-neutral-400">Life Vision — 12 categories drafted (with VIVA)</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Refine Vision — Polished with VIVA + refinement tool</Text>
+                              <Text size="sm" className="text-neutral-400">Refine — polished with VIVA + tool</Text>
                             </div>
                             </div>
                           </div>
@@ -688,19 +712,19 @@ export default function HomePage() {
                         <div className="flex items-start gap-4">
                           <div className="w-5 h-5 border-2 border-[#BF00FF] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                           <div>
-                            <Text size="base" className="font-semibold text-white">Phase 3 — Activation Tools (Hours 48–72)</Text>
+                            <Text size="base" className="font-semibold text-white">Phase 3 — Activation Tools (48–72h)</Text>
                             <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Generate Vision Audio — AM + PM tracks created</Text>
+                              <Text size="sm" className="text-neutral-400">Vision Audio — AM + PM tracks created</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Create Vision Board — 12 images (1 per category) added</Text>
+                              <Text size="sm" className="text-neutral-400">Vision Board — 12 images added</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Journal x3 — Gratitude, Connect‑the‑Dots, Progress entries logged</Text>
+                              <Text size="sm" className="text-neutral-400">Journal x3 — written, voice & video entries logged</Text>
                             </div>
                             </div>
                           </div>
@@ -709,15 +733,15 @@ export default function HomePage() {
                         <div className="flex items-start gap-4">
                           <div className="w-5 h-5 border-2 border-[#FFFF00] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                           <div>
-                            <Text size="base" className="font-semibold text-white">Phase 4 — Calibration & Launch</Text>
+                            <Text size="base" className="font-semibold text-white">Phase 4 — Calibration & Launch (by/after 72h)</Text>
                             <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Attend Calibration — Live 30‑minute session</Text>
+                              <Text size="sm" className="text-neutral-400">Attend Calibration — 30‑min live call</Text>
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Execute Activation Protocol — Your custom Activation Plan in place</Text>
+                              <Text size="sm" className="text-neutral-400">Activation Protocol — daily rituals scheduled & ready to run</Text>
                             </div>
                             </div>
                           </div>
@@ -1282,9 +1306,14 @@ export default function HomePage() {
                   <Heading level={2} className="text-white mb-4">
                     Exactly What You Get Today
                   </Heading>
-                  <Text size="lg" className="text-neutral-400 max-w-2xl mx-auto">
-                    72‑Hour Activation Intensive + 8 weeks of Vision Pro included (auto‑starts Day 56 at your plan)
-                  </Text>
+                  <div className="max-w-2xl mx-auto text-center">
+                    <Text size="lg" className="text-neutral-400">
+                      72‑Hour Activation Intensive + 8 weeks of Vision Pro included
+                    </Text>
+                    <Text size="sm" className="text-neutral-500 mt-1">
+                      (your plan auto‑starts Day 56)
+                    </Text>
+                  </div>
                 </div>
                 
                 <OfferStack
@@ -1292,21 +1321,29 @@ export default function HomePage() {
                     {
                       id: 'profile-baseline',
                       title: 'Profile & Baseline',
-                      description: '• Give VIVA the signal it needs to guide you\n• Outcome: personalized prompts and next steps (no guesswork)\n• Done when: 70%+ profile complete + assessment saved',
+                      description: 'What it is: Your personal snapshot so VIVA can guide you.\nOutcome: Personalized prompts and next steps (no guesswork).\nDone when: Profile is 70%+ complete and your 84‑Q assessment is submitted.',
                       icon: User,
                       included: true
                     },
                     {
                       id: 'vibration-assessment',
                       title: 'Vibration Assessment (84‑Q)',
-                      description: '• Baseline your vibe to personalize your path\n• Outcome: map your current point of attraction for tailored guidance\n• Done when: 84 questions submitted and score recorded',
+                      description: 'What it is: Deep dive on your current vibration.\nOutcome: Map your point of attraction for tailored guidance.\nDone when: All 84 questions are submitted and your score is recorded.',
                       icon: Brain,
                       included: true
                     },
                     {
+                      id: 'unlock-message',
+                      title: 'The tools below unlock after you complete Profile & Assessment.',
+                      description: '',
+                      icon: null,
+                      included: true,
+                      isMessage: true
+                    },
+                    {
                       id: 'viva-vision',
                       title: 'VIVA Vision (Life I Choose)',
-                      description: '• Draft your 12‑category Life Vision—even if you don\'t know what you want\n• Outcome: VIVA turns contrast into clarity across all life categories\n• Done when: first Life Vision draft completed (12/12) with VIVA',
+                      description: 'What it is: 12‑category Life Vision builder with VIVA.\nOutcome: Turn "I don\'t know what I want" into a vivid Life I Choose™.\nDone when: First Life Vision draft is completed across all 12 categories with VIVA.',
                       icon: Sparkles,
                       included: true,
                       locked: true
@@ -1314,7 +1351,7 @@ export default function HomePage() {
                     {
                       id: 'vision-refinement',
                       title: 'Vision Refinement',
-                      description: '• Make your vision specific, believable, and exciting\n• Outcome: tighter language, clear targets, aligned next steps\n• Done when: refinement pass saved and version 2 published',
+                      description: 'What it is: Polishing pass for clarity and believability.\nOutcome: Tighter language, clear targets, aligned next steps.\nDone when: Your first refinement pass is saved (version 2 live).',
                       icon: Target,
                       included: true,
                       locked: true
@@ -1322,7 +1359,7 @@ export default function HomePage() {
                     {
                       id: 'vision-audio',
                       title: 'Vision Audio (AM/PM)',
-                      description: '• Generate personalized tracks to imprint your vision daily\n• Outcome: morning/evening audios synced to your Life Vision\n• Done when: AM + PM audio files generated and saved',
+                      description: 'What it is: Personalized morning and evening tracks.\nOutcome: Daily embodiment of your Life Vision.\nDone when: AM and PM audio files are generated and saved.',
                       icon: Headphones,
                       included: true,
                       locked: true
@@ -1330,7 +1367,7 @@ export default function HomePage() {
                     {
                       id: 'vision-board',
                       title: 'Vision Board',
-                      description: '• Build visual proof (one image per category)\n• Outcome: Desire → In Progress → Actualized pipeline for your goals\n• Done when: 12 images added (1 per category), board saved',
+                      description: 'What it is: Visual proof, one image per category.\nOutcome: Desire → In Progress → Actualized pipeline for your goals.\nDone when: 12 images are added (1 per category) and your board is saved.',
                       icon: Image,
                       included: true,
                       locked: true
@@ -1338,7 +1375,7 @@ export default function HomePage() {
                     {
                       id: 'journal',
                       title: 'Conscious Creation Journal',
-                      description: '• Log wins and calibrate your vibe\n• Outcome: track shifts; connect thoughts to manifestations\n• Done when: 3 entries logged (Gratitude, Connect‑the‑Dots, Progress)',
+                      description: 'What it is: Multi‑format journal (written, voice, video).\nOutcome: See your progress and patterns as you reflect.\nDone when: 3 entries are logged—one written, one voice, one video—so you know your preferred mode.',
                       icon: BookOpen,
                       included: true,
                       locked: true
@@ -1346,7 +1383,7 @@ export default function HomePage() {
                     {
                       id: 'calibration-call',
                       title: '30‑Minute Calibration Call',
-                      description: '• Align your plan and remove blockers\n• Outcome: coach reviews assets and sets your Activation Protocol\n• Done when: 30‑min session completed and next steps documented',
+                      description: 'What it is: 1:1 alignment call with a coach.\nOutcome: Review your assets and finalize your Activation Protocol.\nDone when: Your call is booked within the 72‑Hour Intensive, and completed when you attend the 30‑minute session.',
                       icon: CalendarDays,
                       included: true,
                       locked: true
@@ -1354,7 +1391,7 @@ export default function HomePage() {
                     {
                       id: 'activation-protocol',
                       title: 'Activation Protocol',
-                      description: '• Daily rituals that keep you in harmony\n• Outcome: simple cadence to sustain momentum with less guesswork\n• Done when: AM/PM audio scheduled + 7‑day checklist started',
+                      description: 'What it is: Your simple daily ritual plan.\nOutcome: Stay in harmony with your vision without guesswork.\nDone when: Your daily rituals are scheduled and your custom Activation Plan is ready to run.',
                       icon: Zap,
                       included: true,
                       locked: true
@@ -1362,7 +1399,7 @@ export default function HomePage() {
                     {
                       id: '8-weeks-included',
                       title: '8 Weeks of Vision Pro Included',
-                      description: '• Full access to VIVA, storage, and community\n• Outcome: continue compounding after activation\n• Starts Day 56: auto‑continue at your selected plan (annual default or every 28 days)',
+                      description: 'What it is: Full access to VIVA, storage, and the Vibe Tribe community.\nOutcome: Keep compounding after activation before your plan starts.\nDone when: Your access is live now, and your selected plan is scheduled to begin automatically on Day 56 (Annual or Every 28 Days).',
                       icon: Crown,
                       included: true
                     }
@@ -1386,53 +1423,53 @@ export default function HomePage() {
         {/* Meet the Mechanism */}
         <section>
           <Container size="xl">
-            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#333] border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="sm" className="md:gap-6" align="center">
-                <Heading level={2} className="text-white text-center">
-                  Meet the Engine Behind VIVA Vision
-                </Heading>
-                <Card variant="outlined" className="w-full border-2 !border-[#39FF14]/30 !bg-[#39FF14]/20 flex items-center justify-center pb-4 md:pb-3">
-                  <Heading level={3} className="text-white text-center">
-                    The 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA)
+                <div className="text-center space-y-4">
+                  <Heading level={2} className="text-white !mb-0">
+                    Meet the Engine Behind VIVA Vision
                   </Heading>
-                </Card>
-                <Text size="base" className="text-neutral-300 text-center w-full">
-                  In 2011, Jordan wrote his first Life I Choose™. In 2014, he did it again—and the same pattern showed up. When Vanessa joined, structure met soul. We realized our writing always followed a hidden creation rhythm—then we taught VIVA to guide anyone through it.
-                </Text>
+                  <Text size="lg" className="text-neutral-400 font-semibold !mt-4">
+                    The 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA)
+                  </Text>
+                  <Text size="base" className="text-neutral-300 w-full !mt-4">
+                    In 2011, Jordan wrote his first Life I Choose™. In 2014, he did it again—and the same pattern showed up. When Vanessa joined, structure met soul. We realized our writing always followed a hidden creation rhythm—then we taught VIVA to guide anyone through it.
+                  </Text>
+                </div>
                 <Grid responsiveCols={{ mobile: 1, desktop: 4 }} minWidth="200px" gap="sm">
                   <FeatureCard 
                     icon={Sparkles} 
-                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 1:</span><br /><span>5‑Phase Flow</span></>}
+                    title={<><span>Layer 1</span><br /><span className="text-[#39FF14]">5‑Phase Flow</span></>}
                     iconColor="#39FF14"
                     variant="outlined"
-                    number={1}
+                    className="!bg-[#39FF14]/10 !border-[#39FF14]/30"
                   >
-                    Gratitude → Sensory → Embodiment → Essence → Surrender.
+                    Gratitude → Sensory → Embodiment → Essence → Surrender. This is the emotional arc each vision paragraph follows.
                   </FeatureCard>
                   <FeatureCard 
                     icon={Image} 
-                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 2:</span><br /><span>Scene Builder</span></>}
-                    iconColor="#39FF14"
+                    title={<><span>Layer 2</span><br /><span className="text-[#14B8A6]">Scene Builder</span></>}
+                    iconColor="#14B8A6"
                     variant="outlined"
-                    number={2}
+                    className="!bg-[#14B8A6]/10 !border-[#14B8A6]/30"
                   >
-                    Turn vague goals into vivid scenes. VIVA prompts for characters, action, setting, and meaning.
+                    Turn vague goals into vivid scenes. VIVA prompts for characters, action, setting, and meaning so your vision feels like a real experience.
                   </FeatureCard>
                   <FeatureCard 
                     icon={RefreshCw} 
-                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 3:</span><br /><span>Flow Loops</span></>}
-                    iconColor="#39FF14"
+                    title={<><span>Layer 3</span><br /><span className="text-[#BF00FF]">Flow Loops</span></>}
+                    iconColor="#BF00FF"
                     variant="outlined"
-                    number={3}
+                    className="!bg-[#BF00FF]/10 !border-[#BF00FF]/30"
                   >
-                    Balance identity, action, and allowing so momentum compounds instead of stalls.
+                    Balance identity, action, and allowing so momentum compounds instead of stalling out.
                   </FeatureCard>
                   <FeatureCard 
                     icon={Maximize2} 
-                    title={<><span className="underline pb-1" style={{ textDecorationColor: '#39FF14' }}>Layer 4:</span><br /><span>Breathing Pace</span></>}
-                    iconColor="#39FF14"
+                    title={<><span>Layer 4</span><br /><span className="text-[#FFB701]">Breathing Pace</span></>}
+                    iconColor="#FFB701"
                     variant="outlined"
-                    number={4}
+                    className="!bg-[#FFB701]/10 !border-[#FFB701]/30"
                   >
                     Zoom into sensory detail, zoom out to meaning—writing that feels alive (and sticks).
                   </FeatureCard>
@@ -1456,68 +1493,70 @@ export default function HomePage() {
                 <div className="w-16 h-16 bg-[#FFFF00] rounded-full flex items-center justify-center mb-2">
                   <Shield className="w-8 h-8 text-black" />
                 </div>
-                <Heading level={2} className="text-center mb-0">Our Guarantees</Heading>
+                <Heading level={2} className="text-center mb-0 md:mb-8">Our Guarantees</Heading>
                 
-                <Grid responsiveCols={{mobile: 1, desktop: 2}} gap="lg" className="w-full items-stretch">
+                <Grid responsiveCols={{mobile: 1, desktop: 2}} gap="lg" className="w-full md:items-stretch">
                 {/* 72-Hour Activation Guarantee */}
-                <div className="relative mt-28 md:mt-32">
+                <div className="relative mt-28 md:mt-28 md:flex md:flex-col">
                   <div className="absolute -top-20 md:-top-24 left-1/2 -translate-x-1/2 w-40 h-40 md:w-48 md:h-48 z-10">
                     <img 
                       src="https://media.vibrationfit.com/site-assets/brand/guarantees/72-hour-activation-guarantee.png" 
                       alt="72 Hour Activation Guarantee"
-                      className="w-full h-full object-contain"
+                      className="w-full h-auto object-contain"
+                      style={{ maxHeight: '100%' }}
                     />
                   </div>
-                  <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 pt-24 md:pt-28">
-                    <Stack gap="md" align="center" className="pb-4 md:pb-6">
-                      <Heading level={3} className="text-base md:text-lg lg:text-xl text-white text-center">
+                  <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 !pt-20 md:!pt-24 lg:!pt-24 md:flex-1 md:flex md:flex-col">
+                    <Stack gap="md" align="center" className="pb-4 md:pb-0 md:flex-1">
+                      <Heading level={3} className="text-base md:text-lg lg:text-xl text-white text-center !mb-0">
                       72‑Hour Activation Guarantee
                     </Heading>
-                    <div className="text-center mb-2">
+                    <div className="text-center">
                         <p className="text-sm md:text-base text-[#39FF14] font-semibold flex items-center justify-center gap-2">
                         <Clock className="w-4 h-4" />
                         Clock starts today
                       </p>
                     </div>
                       <Text size="sm" className="md:text-base text-white text-center">
-                      Complete all 10 steps in 72 hours. Not satisfied? Full refund—no questions.
+                      Complete your Activation Checklist in 72 hours. Not satisfied? Full refund of your $499 Intensive fee. No questions asked.
                     </Text>
                       <Text size="xs" className="md:text-sm text-neutral-300 text-center">
-                      Completion = 70%+ Profile, 84‑Q Assessment, 12‑category Vision (with VIVA), AM/PM Vision Audio, Vision Board (12 images), 3 journal entries, Calibration call booked.
+                      Completion = all of this done within 72 hours:<br />Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, Activation Protocol scheduled
                     </Text>
                   </Stack>
                   </Card>
                 </div>
 
                 {/* Membership Guarantee */}
-                <div className="relative mt-28 md:mt-32">
+                <div className="relative mt-28 md:mt-28 md:flex md:flex-col">
                   <div className="absolute -top-20 md:-top-24 left-1/2 -translate-x-1/2 w-40 h-40 md:w-48 md:h-48 z-10">
                     <img 
                       src="https://media.vibrationfit.com/site-assets/brand/guarantees/membership-guarantee.png"
                       alt="Membership Guarantee"
-                      className="w-full h-full object-contain"
+                      className="w-full h-auto object-contain"
+                      style={{ maxHeight: '100%' }}
                     />
                   </div>
-                  <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30 pt-24 md:pt-28">
-                    <Stack gap="md" align="center" className="pb-4 md:pb-6">
-                      <Heading level={3} className="text-base md:text-lg lg:text-xl text-white text-center">
+                  <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30 !pt-20 md:!pt-24 lg:!pt-24 md:flex-1 md:flex md:flex-col">
+                    <Stack gap="md" align="center" className="pb-4 md:pb-0 md:flex-1">
+                      <Heading level={3} className="text-base md:text-lg lg:text-xl text-white text-center !mb-0">
                       Membership Guarantee
                     </Heading>
-                    <div className="text-center mb-2">
+                    <div className="text-center">
                         <p className="text-sm md:text-base text-[#8B5CF6] font-semibold flex items-center justify-center gap-2">
                         <Clock className="w-4 h-4" />
                         Clock starts today
                       </p>
                     </div>
-                      <Text size="sm" className="md:text-base text-white text-center">
-                      28‑Day Plan: 12‑week satisfaction guarantee from today.
-                    </Text>
-                      <Text size="sm" className="md:text-base text-white text-center">
-                      Annual Plan: 16‑week satisfaction guarantee from today.
-                    </Text>
-                      <Text size="sm" className="md:text-base text-white text-center">
-                      Not satisfied within your window? We'll refund the plan and cancel future renewals.
-                    </Text>
+                      <div className="text-sm md:text-base text-white text-center space-y-1">
+                        <p><span className="font-semibold">28‑Day Plan:</span> 12‑week satisfaction guarantee from today.</p>
+                        <p><span className="font-semibold">Annual Plan:</span> 16‑week satisfaction guarantee from today.</p>
+                      </div>
+                      <div className="text-xs md:text-sm text-neutral-300 text-center space-y-2">
+                        <p className="font-semibold">Not satisfied within your window?</p>
+                        <p>If your plan <strong className="font-semibold">hasn't billed yet</strong> (first charge is Day 56), we cancel the upcoming charge.</p>
+                        <p>If it <strong className="font-semibold">has billed</strong> inside your window, we refund that plan charge and cancel future renewals.</p>
+                      </div>
                 </Stack>
                   </Card>
                 </div>
@@ -1535,31 +1574,41 @@ export default function HomePage() {
                 
                 {/* PLAN TYPE TOGGLE */}
                 <div className="flex justify-center">
-                  <div className="inline-flex items-center gap-2 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
+                  <div className="flex md:inline-flex w-full md:w-auto items-center gap-2 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
                     <button
                       onClick={() => setPlanType('solo')}
-                      className={`px-6 py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                      className={`flex-1 md:flex-none px-6 py-3.5 rounded-full font-semibold transition-all duration-300 ${
                         planType === 'solo'
                           ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30 scale-105'
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
                       }`}
                     >
-                      <span className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        Solo (1 Seat)
+                      <span className="flex flex-col items-center gap-0">
+                        <span className="flex items-center gap-1.5 md:gap-2">
+                          <User className="w-4 h-4" />
+                          <span>Solo</span>
+                          <span className="hidden md:inline">·</span>
+                          <span className="hidden md:inline">1 Login</span>
+                        </span>
+                        <span className="text-xs md:hidden">1 Login</span>
                       </span>
                     </button>
                     <button
                       onClick={() => setPlanType('household')}
-                      className={`px-6 py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                      className={`flex-1 md:flex-none px-6 py-3.5 rounded-full font-semibold transition-all duration-300 ${
                         planType === 'household'
                           ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/30 scale-105'
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
                       }`}
                     >
-                      <span className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Household (2 Seats)
+                      <span className="flex flex-col items-center gap-0">
+                        <span className="flex items-center gap-1.5 md:gap-2">
+                          <Users className="w-4 h-4" />
+                          <span>Household</span>
+                          <span className="hidden md:inline">·</span>
+                          <span className="hidden md:inline">2 Logins</span>
+                        </span>
+                        <span className="text-xs md:hidden">2 Logins</span>
                       </span>
                     </button>
                   </div>
@@ -1929,8 +1978,8 @@ export default function HomePage() {
                           <div className="flex items-center justify-center gap-2 text-neutral-400 text-xs">
                             <Shield className="w-3 h-3 text-[#FFFF00]" />
                             <span>{billingPeriod === 'annual' 
-                              ? '16-week money-back Membership Guarantee'
-                              : '12-week money-back Membership Guarantee'
+                              ? '16‑week Membership Satisfaction Guarantee from today.'
+                              : '12‑week Membership Satisfaction Guarantee from today.'
                             }</span>
                           </div>
                           <div className="text-white text-center text-sm md:text-base">
@@ -2237,7 +2286,7 @@ export default function HomePage() {
                     Structure beats "trying." Follow a simple path—Train → Tune → Track—to go from no idea to an activated Life Vision in 72 hours.
                   </Text>
                   <Text size="sm" className="text-neutral-300 uppercase tracking-wide max-w-3xl mx-auto">
-                    Vibrational fitness = training your inner state to match your chosen life through structure, not guesswork.
+                    Vibrational fitness = training your vibration to attract the life you choose through structure, not guesswork.
                   </Text>
                 </div>
 
@@ -2248,10 +2297,10 @@ export default function HomePage() {
                         <Icon icon={Dumbbell} size="lg" color="#39FF14" />
                       </div>
                       <Stack gap="sm" className="text-left items-center">
-                        <Heading level={3} className="text-white text-center uppercase tracking-wide">
+                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
                           Train
                         </Heading>
-                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center">(0–72h)</Text>
+                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(0–72h)</Text>
                         <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Your activation checklist</Text>
                         <BulletedList className="space-y-1 text-neutral-100">
                           <ListItem variant="success" icon={Check}>Profile 70%+ complete</ListItem>
@@ -2260,7 +2309,7 @@ export default function HomePage() {
                           <ListItem variant="success" icon={Check}>First refinement done</ListItem>
                           <ListItem variant="success" icon={Check}>AM/PM Vision Audios generated</ListItem>
                           <ListItem variant="success" icon={Check}>Vision Board built (12 images)</ListItem>
-                          <ListItem variant="success" icon={Check}>3 journal entries logged (Gratitude, Dots, Progress)</ListItem>
+                          <ListItem variant="success" icon={Check}>3 journal entries logged (written, voice, and video so you find your preferred mode)</ListItem>
                           <ListItem variant="success" icon={Check}>Calibration Call booked</ListItem>
                           <ListItem variant="success" icon={Check}>Activation Protocol scheduled</ListItem>
                         </BulletedList>
@@ -2277,17 +2326,17 @@ export default function HomePage() {
                         <Icon icon={Brain} size="lg" color="#00FFFF" />
                       </div>
                       <Stack gap="sm" className="text-left items-center">
-                        <Heading level={3} className="text-white text-center uppercase tracking-wide">
+                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
                           Tune
                         </Heading>
-                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center">(ongoing)</Text>
+                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(ongoing)</Text>
                         <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Keep your signal aligned as life evolves</Text>
-                        <BulletedList className="space-y-1 text-neutral-100">
-                          <ListItem variant="accent" icon={Check}>Refine your Life Vision when clarity increases (weekly pass)</ListItem>
-                          <ListItem variant="accent" icon={Check}>Regenerate AM/PM Vision Audios to match updates</ListItem>
-                          <ListItem variant="accent" icon={Check}>Follow your Activation Protocol daily (no skipped reps)</ListItem>
-                          <ListItem variant="accent" icon={Check}>Update profile & assessment when major life changes occur (check-in quarterly)</ListItem>
-                          <ListItem variant="accent" icon={Check}>Use VIVA prompts whenever contrast appears</ListItem>
+                        <BulletedList className="space-y-1">
+                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Refine your Life Vision when clarity increases (weekly pass)</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Regenerate AM/PM Vision Audios to match updates</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Follow your Activation Protocol daily (no skipped reps)</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Update profile & assessment when major life changes occur (check-in quarterly)</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Use VIVA prompts whenever contrast appears</ListItem>
                         </BulletedList>
                         <Text size="sm" className="text-neutral-200 text-center">
                           <strong className="text-[#00FFFF]">Done when:</strong> weekly refinement logged + protocol streak active (7+ days).
@@ -2302,17 +2351,17 @@ export default function HomePage() {
                         <Icon icon={TrendingUp} size="lg" color="#BF00FF" />
                       </div>
                       <Stack gap="sm" className="text-left items-center">
-                        <Heading level={3} className="text-white text-center uppercase tracking-wide">
+                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
                           Track
                         </Heading>
-                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center">(ongoing)</Text>
+                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(ongoing)</Text>
                         <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Build visible momentum and proof</Text>
-                        <BulletedList className="space-y-1 text-neutral-100">
-                          <ListItem variant="accent" icon={Check}>Log iterations and wins; watch streaks grow</ListItem>
-                          <ListItem variant="accent" icon={Check}>Journal daily to see vibrational progress</ListItem>
-                          <ListItem variant="accent" icon={Check}>Keep your Vision Board current with on‑signal images and actualization stories</ListItem>
-                          <ListItem variant="accent" icon={Check}>Review your progress weekly (dashboard metrics)</ListItem>
-                          <ListItem variant="accent" icon={Check}>Share a win in the Vibe Tribe for accountability</ListItem>
+                        <BulletedList className="space-y-1">
+                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Log iterations and wins; watch streaks grow</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Journal regularly in whatever format you prefer (written, voice, or video) to see your progress and spot patterns</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Keep your Vision Board current with on‑signal images and actualization stories</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Review your progress weekly (dashboard metrics)</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Share a win in the Vibe Tribe for accountability</ListItem>
                         </BulletedList>
                         <Text size="sm" className="text-neutral-200 text-center">
                           <strong className="text-[#BF00FF]">Done when:</strong> 1 weekly review complete + 1 shared win.

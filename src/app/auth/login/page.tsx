@@ -161,7 +161,8 @@ export default function LoginPage() {
             alt="VibrationFit"
             width={200}
             height={40}
-            className="h-10 w-auto mx-auto mb-4"
+            className="mx-auto mb-4"
+            style={{ width: 'auto', height: '2.5rem' }}
             priority
           />
           <p className="text-secondary-500">Login to awesomeness!</p>
