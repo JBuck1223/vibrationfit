@@ -3299,6 +3299,10 @@ export const ListItem = React.forwardRef<HTMLLIElement, ListItemProps>(
       error: 'text-[#D03739]'
     }
     
+    // Extract custom color from className if present
+    const customColorMatch = className.match(/!text-\[#[A-Fa-f0-9]{6}\]/)
+    const iconColor = customColorMatch ? customColorMatch[0] : bulletClasses[variant]
+    
     return (
       <li
         ref={ref}
@@ -3312,7 +3316,7 @@ export const ListItem = React.forwardRef<HTMLLIElement, ListItemProps>(
         {...props}
       >
         {Icon ? (
-          <Icon className={cn('w-4 h-4 mt-0.5 flex-shrink-0', bulletClasses[variant])} />
+          <Icon className={cn('w-4 h-4 mt-0.5 flex-shrink-0', iconColor)} />
         ) : (
           <span className={cn('w-2 h-2 rounded-full mt-2 flex-shrink-0', bulletClasses[variant])} />
         )}
@@ -4092,9 +4096,10 @@ interface OfferStackItem {
   id: string
   title: string
   description?: string | React.ReactNode
-  icon?: React.ElementType
+  icon?: React.ElementType | null
   included?: boolean
   locked?: boolean
+  isMessage?: boolean
 }
 
 interface OfferStackProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -4157,6 +4162,17 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
             const isExpanded = expandedItems.includes(item.id)
             const IconComponent = item.icon
 
+            // Render message items differently
+            if (item.isMessage) {
+              return (
+                <div key={item.id} className="py-4 px-2 md:px-6">
+                  <p className="text-sm md:text-base text-neutral-400 text-center">
+                    {item.title}
+                  </p>
+                </div>
+              )
+            }
+
             return (
               <div
                 key={item.id}
@@ -4194,23 +4210,17 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                       </div>
                     </div>
 
-                    {/* Chevron */}
-                    <ChevronDown className={cn(
-                      'w-5 h-5 transition-transform duration-200 text-neutral-400',
-                      isExpanded && 'rotate-180'
-                    )} />
-                  </div>
-
-                  {/* Lock Status - Under the main content */}
-                  {item.locked && (
-                    <div className="flex items-center gap-2 mt-2 ml-0">
-                      <Lock className="w-3 h-3 text-neutral-500" />
-                      <span className="text-xs text-neutral-500">
-                        <span className="md:hidden">Locked until Profile & Assessment complete</span>
-                        <span className="hidden md:inline">Locked until you complete Profile & Assessment</span>
-                      </span>
+                    {/* Lock Icon and Chevron */}
+                    <div className="flex items-center gap-2">
+                      {item.locked && (
+                        <Lock className="w-4 h-4 text-neutral-500" />
+                      )}
+                      <ChevronDown className={cn(
+                        'w-5 h-5 transition-transform duration-200 text-neutral-400',
+                        isExpanded && 'rotate-180'
+                      )} />
                     </div>
-                  )}
+                  </div>
                 </button>
 
                 {/* Item Content - Expandable */}
@@ -4218,14 +4228,27 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                   <div className="px-2 md:px-6 pb-2 md:pb-4 border-t border-[#333]">
                     <div className="pt-4 space-y-2 text-neutral-300 text-sm leading-relaxed">
                       {typeof item.description === 'string' ? (
-                        item.description.split('\n').map((line, index) => (
-                          <div key={index} className="flex items-start gap-2 mb-2 last:mb-0">
-                            <span className="text-[#39FF14] text-sm mt-0.5 flex-shrink-0">•</span>
-                            <span>
-                              {line.replace(/^•\s*/, '')}
-                            </span>
-                          </div>
-                        ))
+                        item.description.split('\n').map((line, index) => {
+                          const cleanLine = line.replace(/^•\s*/, '')
+                          // Check if line starts with a label to bold
+                          const labelMatch = cleanLine.match(/^(What it is:|Outcome:|Done when:)(.*)/)
+                          
+                          return (
+                            <div key={index} className="flex items-start gap-2 mb-2 last:mb-0">
+                              <span className="text-[#39FF14] text-sm mt-0.5 flex-shrink-0">•</span>
+                              <span>
+                                {labelMatch ? (
+                                  <>
+                                    <strong className="font-semibold">{labelMatch[1]}</strong>
+                                    {labelMatch[2]}
+                                  </>
+                                ) : (
+                                  cleanLine
+                                )}
+                              </span>
+                            </div>
+                          )
+                        })
                       ) : (
                         item.description
                       )}

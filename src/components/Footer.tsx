@@ -21,7 +21,6 @@ export function Footer({ className = '' }: FooterProps) {
               width={120}
               height={24}
               style={{ width: 'auto', height: '1.5rem' }}
-              className="h-6"
             />
           </Link>
           

@@ -1,17 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Container, Card, Button, Spinner } from '@/lib/design-system/components'
-import { ArrowRight, ArrowLeft, Sparkles, Lightbulb } from 'lucide-react'
-import { getVisionCategory } from '@/lib/design-system/vision-categories'
+import { Container, Card, Button, Spinner, Stack, PageHero, CategoryGrid, Badge } from '@/lib/design-system/components'
+import { ArrowRight, ArrowLeft, Sparkles, Lightbulb, CheckCircle } from 'lucide-react'
+import { getVisionCategory, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 
 export default function ImaginationPage() {
   const router = useRouter()
   const params = useParams()
+  const pathname = usePathname()
   const categoryKey = params.key as string
   const supabase = createClient()
 
@@ -19,9 +20,32 @@ export default function ImaginationPage() {
   const [error, setError] = useState<string | null>(null)
   const [freeFlowText, setFreeFlowText] = useState('')
   const [inspirationQuestions, setInspirationQuestions] = useState<string[]>([])
+  const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
 
   const category = getVisionCategory(categoryKey)
   const IconComponent = category?.icon
+  
+  // Get all categories and navigation
+  const allCategories = VISION_CATEGORIES.filter(c => c.order > 0 && c.order < 13)
+  const currentIndex = allCategories.findIndex(c => c.key === categoryKey)
+  const nextCategory = currentIndex < allCategories.length - 1 ? allCategories[currentIndex + 1] : null
+  const prevCategory = currentIndex > 0 ? allCategories[currentIndex - 1] : null
+  
+  // Categories for grid
+  const categoriesWithout = VISION_CATEGORIES.filter(
+    c => c.key !== 'forward' && c.key !== 'conclusion'
+  )
+  
+  // Define the 4 steps for each category
+  const categorySteps = [
+    { key: 'clarity', label: 'Clarity', path: `/life-vision/new/category/${categoryKey}` },
+    { key: 'imagination', label: 'Imagination', path: `/life-vision/new/category/${categoryKey}/imagination` },
+    { key: 'blueprint', label: 'Blueprint', path: `/life-vision/new/category/${categoryKey}/blueprint` },
+    { key: 'scenes', label: 'Scenes', path: `/life-vision/new/category/${categoryKey}/scenes` }
+  ]
+  
+  // Determine current step (this is imagination, so step 1)
+  const currentStepIndex = 1
 
   useEffect(() => {
     loadData()
@@ -72,6 +96,18 @@ export default function ImaginationPage() {
           setFreeFlowText(categoryState.ideal_state)
         }
       }
+      
+      // Load completion status for all categories for the grid
+      const { data: allCategoryStates } = await supabase
+        .from('life_vision_category_state')
+        .select('category, ai_summary')
+        .eq('user_id', user.id)
+      
+      const completed = allCategoryStates
+        ?.filter(state => state.ai_summary && state.ai_summary.trim().length > 0)
+        .map(state => state.category) || []
+      
+      setCompletedCategoryKeys(completed)
 
       setLoading(false)
     } catch (err) {
@@ -121,40 +157,118 @@ export default function ImaginationPage() {
   }
 
   return (
-    <Container size="xl" className="py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <Button
-          variant="ghost"
-          onClick={() => router.push(`/life-vision/new/category/${categoryKey}`)}
-          className="mb-4"
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Unified Header with PageHero */}
+        <PageHero
+          eyebrow={`Category ${currentIndex + 1} of ${allCategories.length}`}
+          title={category?.label || ''}
+          subtitle={category?.description || ''}
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Clarity
-        </Button>
+          {/* Category Grid */}
+          <div className="mb-6">
+            <CategoryGrid
+              categories={categoriesWithout}
+              selectedCategories={[categoryKey]}
+              completedCategories={completedCategoryKeys}
+              onCategoryClick={(key) => router.push(`/life-vision/new/category/${key}`)}
+              mode="completion"
+              layout="12-column"
+              withCard={true}
+              className="!bg-black/40 backdrop-blur-sm"
+            />
+          </div>
 
-        <div className="flex items-center gap-4 mb-4">
-          {IconComponent && (
-            <div className="w-12 h-12 bg-primary-500/10 rounded-xl flex items-center justify-center">
-              <IconComponent className="w-6 h-6 text-primary-500" />
+          {/* Step Progress Indicator */}
+          <div className="space-y-4">
+            {/* 4-Step Flow Indicator */}
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Steps */}
+              {categorySteps.map((step, index) => {
+                const isCompleted = index < currentStepIndex
+                const isCurrent = index === currentStepIndex
+                const isClickable = index <= currentStepIndex
+
+                return (
+                  <button
+                    key={step.key}
+                    onClick={() => isClickable && router.push(step.path)}
+                    disabled={!isClickable}
+                    className={`
+                      flex-1 relative group
+                      ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed'}
+                    `}
+                  >
+                    <div className={`
+                      relative rounded-xl p-3 md:p-4 border-2 transition-all duration-300
+                      ${isCurrent 
+                        ? 'border-primary-500 bg-primary-500/10 shadow-lg shadow-primary-500/20' 
+                        : isCompleted
+                        ? 'border-primary-500/50 bg-primary-500/5'
+                        : 'border-neutral-700 bg-neutral-800/30'
+                      }
+                      ${isClickable ? 'hover:border-primary-500/70 hover:bg-primary-500/5' : ''}
+                    `}>
+                      <div className="flex items-center justify-center mb-1 md:mb-2">
+                        <div className={`
+                          w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center
+                          transition-all duration-300
+                          ${isCurrent 
+                            ? 'bg-primary-500 text-black' 
+                            : isCompleted
+                            ? 'bg-primary-500 text-black'
+                            : 'bg-neutral-700 text-neutral-400'
+                          }
+                        `}>
+                          {isCompleted ? (
+                            <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />
+                          ) : (
+                            <span className="text-xs md:text-sm font-bold">{index + 1}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`
+                        text-xs md:text-sm font-semibold text-center transition-colors
+                        ${isCurrent 
+                          ? 'text-white' 
+                          : isCompleted
+                          ? 'text-primary-500/70'
+                          : 'text-neutral-500'
+                        }
+                      `}>
+                        {step.label}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
-          )}
-          <div>
-            <h1 className="text-3xl font-bold text-white">{category?.label}</h1>
-            <p className="text-neutral-400">Step 2: Unleash Your Imagination</p>
-          </div>
-        </div>
 
-        <Card variant="outlined" className="border-secondary-500/30 bg-secondary-500/5 p-4">
-          <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-secondary-500 shrink-0 mt-0.5" />
-            <p className="text-sm text-secondary-300">
-              Imagine your dream life in <strong>{category?.label.toLowerCase()}</strong>. 
-              Let your imagination run wild! What would it look like if everything was exactly as you wanted?
-            </p>
+            {/* Mobile Navigation Buttons */}
+            <div className="flex md:hidden gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => prevCategory && router.push(`/life-vision/new/category/${prevCategory.key}`)}
+                disabled={!prevCategory}
+                className="flex-1"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Prev Category
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => nextCategory && router.push(`/life-vision/new/category/${nextCategory.key}`)}
+                disabled={!nextCategory}
+                className="flex-1"
+              >
+                Next Category
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           </div>
-        </Card>
-      </div>
+        </PageHero>
 
       {error && (
         <Card variant="elevated" className="bg-red-500/10 border border-red-500/30 p-4 mb-6">
@@ -229,6 +343,7 @@ export default function ImaginationPage() {
           </Button>
         </div>
       </Card>
+      </Stack>
     </Container>
   )
 }

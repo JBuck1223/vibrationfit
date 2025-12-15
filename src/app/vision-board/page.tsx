@@ -7,7 +7,7 @@ import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButt
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, CheckSquare, Square } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, CheckSquare, Square, Lightbulb } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 
 const STATUS_OPTIONS = [
@@ -318,7 +318,16 @@ export default function VisionBoardPage() {
           title="Vision Board"
           subtitle="Visualize and track your conscious creations"
         >
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-3">
+            <Button
+              onClick={() => router.push('/vision-board/ideas')}
+              variant="primary"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Lightbulb className="w-4 h-4 shrink-0" />
+              <span>Get VIVA Ideas</span>
+            </Button>
             <Button
               onClick={() => router.push('/vision-board/new')}
               variant="outline"
