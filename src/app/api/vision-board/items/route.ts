@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         const imageResult = await generateImage({
           userId: user.id,
           prompt: imagePrompt,
-          size: '1600x1200',
+          size: '1792x1024',
           quality: 'standard',
           style: 'vivid',
           context: 'vision_board',

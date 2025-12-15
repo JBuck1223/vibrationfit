@@ -244,7 +244,13 @@ export default function VisionBoardIdeasPage() {
     }
 
     // Collect selected suggestions
-    const itemsToCreate = []
+    const itemsToCreate: Array<{
+      name: string
+      description: string
+      category: string
+      categoryLabel: string
+      ideaId?: string
+    }> = []
     visionSuggestions.forEach((categoryData) => {
       categoryData.suggestions.forEach((suggestion, index) => {
         const key = `${categoryData.category}-${index}`

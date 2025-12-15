@@ -87,11 +87,6 @@ export default function ScenesPage() {
   // Determine current step (this is scenes, so step 3)
   const currentStepIndex = 3
 
-  // Get next category for navigation
-  const allCategories = VISION_CATEGORIES.filter(c => c.order > 0 && c.order < 13)
-  const currentIndex = allCategories.findIndex(c => c.key === categoryKey)
-  const nextCategory = currentIndex < allCategories.length - 1 ? allCategories[currentIndex + 1] : null
-
   useEffect(() => {
     loadScenes()
   }, [categoryKey])

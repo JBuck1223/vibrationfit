@@ -135,6 +135,7 @@ export default function VisionBoardQueuePage() {
         throw new Error('Failed to create vision board item')
       }
 
+      const data = await response.json()
       const createdItemId = data.item?.id
 
       // Update status to complete and store created item ID
