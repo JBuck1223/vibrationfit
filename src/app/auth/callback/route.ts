@@ -14,6 +14,22 @@ export async function GET(request: Request) {
   // Handle PKCE code exchange (standard flow)
   if (code) {
     await supabase.auth.exchangeCodeForSession(code)
+    
+    // Check if user has active intensive
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: intensive } = await supabase
+        .from('intensive_checklist')
+        .select('id')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+      
+      if (intensive) {
+        return NextResponse.redirect(`${origin}/intensive/dashboard`)
+      }
+    }
+    
     return NextResponse.redirect(`${origin}/dashboard`)
   }
 

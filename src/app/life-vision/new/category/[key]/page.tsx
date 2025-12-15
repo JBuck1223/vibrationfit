@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text, Container, Stack, PageHero } from '@/lib/design-system/components'
+import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text, Container, Stack, PageHero, CategoryGrid } from '@/lib/design-system/components'
 import { ProfileClarityCard, ProfileContrastCard, ClarityFromContrastCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, CheckCircle, ArrowLeft, ArrowRight, ChevronDown, User, TrendingUp, RefreshCw, Mic, AlertCircle, Loader2, Video } from 'lucide-react'
@@ -66,6 +66,7 @@ function VIVAActionCard({ stage, message, className = '' }: VIVAActionCardProps 
 export default function CategoryPage() {
   const router = useRouter()
   const params = useParams()
+  const pathname = usePathname()
   const categoryKey = params.key as string
   const supabase = createClient()
 
@@ -101,6 +102,9 @@ export default function CategoryPage() {
   } | null>(null)
   const [savedRecordings, setSavedRecordings] = useState<any[]>([])
   const [transcribingRecordingId, setTranscribingRecordingId] = useState<string | null>(null)
+  
+  // Track completion across all categories for the grid
+  const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
 
   // No longer needed - using getCategoryFields() from vision-categories
 
@@ -210,6 +214,18 @@ export default function CategoryPage() {
       if (categoryState?.ai_summary) {
         setAiSummary(categoryState.ai_summary)
       }
+      
+      // Load completion status for all categories for the grid
+      const { data: allCategoryStates } = await supabase
+        .from('life_vision_category_state')
+        .select('category, ai_summary')
+        .eq('user_id', user.id)
+      
+      const completed = allCategoryStates
+        ?.filter(state => state.ai_summary && state.ai_summary.trim().length > 0)
+        .map(state => state.category) || []
+      
+      setCompletedCategoryKeys(completed)
 
       // Load previously flipped contrast from frequency_flip table
       const { data: existingFlip } = await supabase
@@ -229,11 +245,8 @@ export default function CategoryPage() {
           setContrastFromProfile(existingFlip.input_text)
           setShowContrastToggle(true)
         }
-      } else if (contrastValue.trim().length > 0) {
-        // No existing flip found - auto-flip contrast if it exists
-        console.log('[Exploration] No existing flip found - generating new frequency flip for', categoryKey)
-        await flipContrastToClarity(contrastValue)
       }
+      // NOTE: Removed automatic frequency flip - user must click button to initiate
 
       setLoading(false)
     } catch (err) {
@@ -388,57 +401,142 @@ export default function CategoryPage() {
     )
   }
 
+  // Categories without forward and conclusion for the grid
+  const categoriesWithout = VISION_CATEGORIES.filter(
+    c => c.key !== 'forward' && c.key !== 'conclusion'
+  )
+
+  // Define the 4 steps for each category
+  const categorySteps = [
+    { key: 'clarity', label: 'Clarity', path: `/life-vision/new/category/${categoryKey}` },
+    { key: 'imagination', label: 'Imagination', path: `/life-vision/new/category/${categoryKey}/imagination` },
+    { key: 'blueprint', label: 'Blueprint', path: `/life-vision/new/category/${categoryKey}/blueprint` },
+    { key: 'scenes', label: 'Scenes', path: `/life-vision/new/category/${categoryKey}/scenes` }
+  ]
+
+  // Determine current step based on URL
+  const currentStepIndex = pathname?.includes('/imagination') ? 1 
+    : pathname?.includes('/blueprint') ? 2 
+    : pathname?.includes('/scenes') ? 3 
+    : 0
+
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Progress Indicator */}
-        <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-neutral-400">
-            Category {currentIndex + 1} of {allCategories.length}
-          </span>
-          <Badge variant="info">{Math.round(((currentIndex + 1) / allCategories.length) * 100)}%</Badge>
-        </div>
-        <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 transition-all duration-500"
-            style={{ width: `${((currentIndex + 1) / allCategories.length) * 100}%` }}
-          />
-        </div>
-      </div>
+        {/* Page Hero with Integrated Category Navigation */}
+        <PageHero
+          eyebrow={`Category ${currentIndex + 1} of ${allCategories.length}`}
+          title={category.label}
+          subtitle={category.description}
+        >
+          {/* Category Grid */}
+          <div className="mb-6">
+            <CategoryGrid
+              categories={categoriesWithout}
+              selectedCategories={[categoryKey]}
+              completedCategories={completedCategoryKeys}
+              onCategoryClick={(key) => router.push(`/life-vision/new/category/${key}`)}
+              mode="completion"
+              layout="12-column"
+              withCard={true}
+              className="!bg-black/40 backdrop-blur-sm"
+            />
+          </div>
 
-      {/* Category Header */}
-      <div className="mb-6 md:mb-8">
-        <div className="flex items-center gap-4 mb-4">
-          {prevCategory && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push(`/life-vision/new/category/${prevCategory.key}`)}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          )}
-          <div className="flex items-center gap-4 flex-1">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center border-2 border-[#00FFFF]">
-              <IconComponent className="w-8 h-8 text-[#00FFFF]" />
+          {/* Step Progress Indicator */}
+          <div className="space-y-4">
+            {/* 4-Step Flow Indicator */}
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Steps */}
+              {categorySteps.map((step, index) => {
+                const isCompleted = index < currentStepIndex
+                const isCurrent = index === currentStepIndex
+                const isClickable = index <= currentStepIndex
+
+                return (
+                  <button
+                    key={step.key}
+                    onClick={() => isClickable && router.push(step.path)}
+                    disabled={!isClickable}
+                    className={`
+                      flex-1 relative group
+                      ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed'}
+                    `}
+                  >
+                    {/* Step Container */}
+                    <div className={`
+                      relative rounded-xl p-3 md:p-4 border-2 transition-all duration-300
+                      ${isCurrent 
+                        ? 'border-primary-500 bg-primary-500/10 shadow-lg shadow-primary-500/20' 
+                        : isCompleted
+                        ? 'border-primary-500/50 bg-primary-500/5'
+                        : 'border-neutral-700 bg-neutral-800/30'
+                      }
+                      ${isClickable ? 'hover:border-primary-500/70 hover:bg-primary-500/5' : ''}
+                    `}>
+                      {/* Step Number & Check */}
+                      <div className="flex items-center justify-center mb-1 md:mb-2">
+                        <div className={`
+                          w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center
+                          transition-all duration-300
+                          ${isCurrent 
+                            ? 'bg-primary-500 text-black' 
+                            : isCompleted
+                            ? 'bg-primary-500 text-black'
+                            : 'bg-neutral-700 text-neutral-400'
+                          }
+                        `}>
+                          {isCompleted ? (
+                            <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />
+                          ) : (
+                            <span className="text-xs md:text-sm font-bold">{index + 1}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Step Label */}
+                      <div className={`
+                        text-xs md:text-sm font-semibold text-center transition-colors
+                        ${isCurrent 
+                          ? 'text-white' 
+                          : isCompleted
+                          ? 'text-primary-500/70'
+                          : 'text-neutral-500'
+                        }
+                      `}>
+                        {step.label}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white">{category.label}</h1>
-              <p className="text-neutral-400">{category.description}</p>
+
+            {/* Mobile Navigation Buttons */}
+            <div className="flex md:hidden gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => prevCategory && router.push(`/life-vision/new/category/${prevCategory.key}`)}
+                disabled={!prevCategory}
+                className="flex-1"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Prev Category
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => nextCategory && router.push(`/life-vision/new/category/${nextCategory.key}`)}
+                disabled={!nextCategory}
+                className="flex-1"
+              >
+                Next Category
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
           </div>
-          {nextCategory && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push(`/life-vision/new/category/${nextCategory.key}`)}
-            >
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      </div>
+        </PageHero>
 
       {/* Profile & Assessment Data Display - Side-by-side Toggle Dropdowns */}
       {!aiSummary && (fullProfile || fullAssessment) && (
@@ -813,6 +911,43 @@ export default function CategoryPage() {
                 </div>
               </>
             )}
+          </div>
+        </Card>
+      )}
+
+      {/* Action Buttons - Generate Summary */}
+      {!aiSummary && !isProcessing && (currentClarity || contrastFromProfile || clarityFromContrast) && (
+        <Card className="border-2 border-primary-500/30 bg-primary-500/5">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary-500/20 rounded-xl flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-primary-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Ready to Create Your Summary?</h3>
+                <p className="text-sm text-neutral-400">VIVA will craft a unified vision statement from your clarity</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-3">
+              <Button
+                variant="primary"
+                onClick={handleProcessWithVIVA}
+                disabled={isProcessing}
+                className="w-full md:flex-1"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate Summary
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => router.push(`/life-vision/new/category/${categoryKey}/imagination`)}
+                className="w-full md:flex-1"
+              >
+                Skip to Imagination
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           </div>
         </Card>
       )}
