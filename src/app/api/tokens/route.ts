@@ -121,6 +121,8 @@ export async function GET(request: NextRequest) {
         created_at: usage.created_at,
         metadata: usage.metadata || {},
         actual_cost_cents: usage.actual_cost_cents,
+        input_tokens: usage.input_tokens || 0,
+        output_tokens: usage.output_tokens || 0,
       }))
     ]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
