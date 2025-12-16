@@ -80,7 +80,9 @@ Return only the merged clarity statement, no explanation or commentary.`
       { role: 'system' as const, content: toolConfig.system_prompt || SHARED_SYSTEM_PROMPT },
       { role: 'user' as const, content: mergePrompt }
     ]
-    const openaiParams = buildOpenAIParams(toolConfig, messages)
+    const openaiParams = buildOpenAIParams(toolConfig, messages, {
+      forceNoJsonMode: true // We want plain text output, not JSON
+    })
 
     // Make API call
     const startTime = Date.now()

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Container, Card, Button, Spinner, Stack, PageHero, CategoryGrid, Badge } from '@/lib/design-system/components'
+import { Container, Card, Button, Spinner, Stack, PageHero, CategoryGrid, Badge, IconList } from '@/lib/design-system/components'
 import { ArrowRight, ArrowLeft, Sparkles, Lightbulb, CheckCircle } from 'lucide-react'
 import { getVisionCategory, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
@@ -286,14 +286,7 @@ export default function ImaginationPage() {
           <p className="text-sm text-neutral-400 mb-4">
             Use these questions as inspiration, but feel free to write about anything that excites you!
           </p>
-          <ul className="space-y-2">
-            {inspirationQuestions.map((question, index) => (
-              <li key={index} className="flex items-start gap-2 text-neutral-300">
-                <span className="text-primary-500 mt-1">•</span>
-                <span className="text-sm">{question}</span>
-              </li>
-            ))}
-          </ul>
+          <IconList items={inspirationQuestions} />
         </Card>
       )}
 

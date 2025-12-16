@@ -87,6 +87,7 @@ export default function CategoryPage() {
   const [fullAssessment, setFullAssessment] = useState<any>(null)
   const [showProfileDetails, setShowProfileDetails] = useState(false)
   const [showAssessmentDetails, setShowAssessmentDetails] = useState(false)
+  const [showClarityCards, setShowClarityCards] = useState(true) // Control visibility of clarity/contrast cards section
   const [profileData, setProfileData] = useState<{
     story: string
     hasStory: boolean
@@ -208,11 +209,14 @@ export default function CategoryPage() {
       const { data: categoryState } = await supabase
         .from('life_vision_category_state')
         .select('ai_summary')
+        .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
 
       if (categoryState?.ai_summary) {
         setAiSummary(categoryState.ai_summary)
+        // Start sections collapsed when loading with existing summary
+        setShowClarityCards(false)
       }
       
       // Load completion status for all categories for the grid
@@ -335,6 +339,8 @@ export default function CategoryPage() {
         setAiSummary(data.mergedClarity)
         setVivaStage('')
         setVivaMessage('')
+        // Collapse clarity cards when summary is generated
+        setShowClarityCards(false)
       }
     } catch (err) {
       console.error('Error processing with VIVA:', err)
@@ -538,15 +544,41 @@ export default function CategoryPage() {
           </div>
         </PageHero>
 
-      {/* Profile & Assessment Data Display - Side-by-side Toggle Dropdowns */}
-      {!aiSummary && (fullProfile || fullAssessment) && (
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+      {/* Combined Context Card with Profile, Assessment, and Clarity/Contrast */}
+      {(profileData || fullProfile || fullAssessment) && (
+        <div>
+          <Card className="border-2 border-neutral-700 bg-neutral-800/30">
+            <button
+              onClick={() => setShowClarityCards(!showClarityCards)}
+              className={`w-full flex items-center justify-between gap-3 ${showClarityCards ? 'pb-4 border-b border-neutral-700' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-5 h-5 text-primary-500" />
+                </div>
+                <div className="text-left">
+                  <h2 className="text-xl font-bold text-white">Your {category.label} Context</h2>
+                  <p className="text-xs text-neutral-400 mt-0.5">All source data used to build your summary</p>
+                </div>
+              </div>
+              <ChevronDown 
+                className={`w-5 h-5 text-neutral-400 transition-transform duration-300 ${
+                  showClarityCards ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+            
+            {showClarityCards && (
+              <div className="pt-6 space-y-6">
+                {/* Profile & Assessment Cards - Stack on mobile, side-by-side on desktop */}
+                {(fullProfile || fullAssessment) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           {/* Profile Details Toggle */}
           {fullProfile && (
             <Card className="border-2 border-[#00FFFF]/30 bg-[#00FFFF]/5 overflow-visible">
               <button
                 onClick={() => setShowProfileDetails(!showProfileDetails)}
-                className="w-full flex items-center justify-between gap-3 pb-4 border-b border-[#00FFFF]/20"
+                className={`w-full flex items-center justify-between gap-3 ${showProfileDetails ? 'pb-4 border-b border-[#00FFFF]/20' : ''}`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-[#00FFFF]/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -651,7 +683,7 @@ export default function CategoryPage() {
 
                     if (validFields.length > 0) {
                       return (
-                        <div className="space-y-3 pt-3 border-t border-[#00FFFF]/10">
+                        <div className="space-y-3 pt-3">
                           <h4 className="text-sm font-semibold text-[#00FFFF] uppercase tracking-wide">{category.label} Details</h4>
                           <div className="grid grid-cols-2 gap-3 text-sm">
                             {validFields.map((field, idx) => {
@@ -684,7 +716,7 @@ export default function CategoryPage() {
             <Card className="border-2 border-[#14B8A6]/30 bg-[#14B8A6]/5 overflow-visible">
               <button
                 onClick={() => setShowAssessmentDetails(!showAssessmentDetails)}
-                className="w-full flex items-center justify-between gap-3 pb-4 border-b border-[#14B8A6]/20"
+                className={`w-full flex items-center justify-between gap-3 ${showAssessmentDetails ? 'pb-4 border-b border-[#14B8A6]/20' : ''}`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-[#14B8A6]/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -740,7 +772,7 @@ export default function CategoryPage() {
 
                   {/* Category-Specific Q&A */}
                   {assessmentData?.responses && assessmentData.responses.length > 0 && (
-                    <div className="space-y-4 pt-3 border-t border-[#14B8A6]/10">
+                    <div className="space-y-4 pt-3">
                       <h4 className="text-sm font-semibold text-[#14B8A6] uppercase tracking-wide">
                         {category.label} Questions & Answers ({assessmentData.responses.length})
                       </h4>
@@ -787,13 +819,12 @@ export default function CategoryPage() {
               )}
             </Card>
           )}
-        </div>
-      )}
+                  </div>
+                )}
 
-      {/* New Profile Fields Cards - Clarity, Contrast, Clarity from Contrast */}
-      {!aiSummary && profileData && (
-        <div className="mb-8 space-y-4">
-          <h2 className="text-xl font-bold text-white mb-4">Your {category.label} Context</h2>
+                {/* Clarity, Contrast, and Clarity from Contrast Cards */}
+                {profileData && (
+                  <div className="space-y-4">
           
           {/* Clarity From Profile (Cyan) */}
           <ProfileClarityCard
@@ -815,6 +846,11 @@ export default function CategoryPage() {
             onGenerateClarity={() => flipContrastToClarity(profileData.contrast)}
             isGenerating={isFlippingContrast}
           />
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
         </div>
       )}
 
@@ -822,7 +858,7 @@ export default function CategoryPage() {
 
       {/* Error Message */}
       {error && !aiSummary && (
-        <Card className="mb-8 border-2 border-[#D03739]/30 bg-[#D03739]/10">
+        <Card className="border-2 border-[#D03739]/30 bg-[#D03739]/10">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-[#D03739] flex-shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -835,12 +871,12 @@ export default function CategoryPage() {
 
       {/* VIVA Processing State */}
       {isProcessing && vivaStage && (
-        <VIVAActionCard stage={vivaStage} message={vivaMessage} className="mb-8" />
+        <VIVAActionCard stage={vivaStage} message={vivaMessage} />
       )}
 
       {/* AI Summary Display */}
       {aiSummary && !isProcessing && (
-        <Card className="mb-8">
+        <Card>
           <div>
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 bg-primary-500 rounded-xl flex items-center justify-center">

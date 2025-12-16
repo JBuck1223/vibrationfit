@@ -452,6 +452,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     exportName: 'ListItem',
     path: '/design-system/component/list-item'
   },
+  {
+    id: 'icon-list',
+    name: 'Icon List',
+    description: 'Perfect bullet-aligned list with consistent line heights and customizable colors',
+    category: 'Typography',
+    icon: List,
+    exportName: 'IconList',
+    path: '/design-system/component/icon-list'
+  },
 
   // Navigation
   {

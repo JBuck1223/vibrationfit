@@ -28,6 +28,8 @@ export function IntensiveWelcomeScreen({ onStart }: IntensiveWelcomeScreenProps)
       await onStart()
     } catch (error) {
       console.error('Error starting intensive:', error)
+      alert('Failed to start intensive. Please try again.')
+    } finally {
       setStarting(false)
     }
   }
