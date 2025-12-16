@@ -52,6 +52,20 @@ export default function AudioMixerAdminPage() {
       return
     }
 
+    // Validate background track URL if provided
+    if (formData.backgroundTrack && formData.backgroundTrack.trim()) {
+      try {
+        new URL(formData.backgroundTrack)
+        if (!formData.backgroundTrack.startsWith('http://') && !formData.backgroundTrack.startsWith('https://')) {
+          alert('Background track must be a valid HTTP/HTTPS URL')
+          return
+        }
+      } catch (e) {
+        alert('Background track must be a valid URL (e.g., https://media.vibrationfit.com/...)')
+        return
+      }
+    }
+
     setLoading(true)
     const supabase = createClient()
     
@@ -175,9 +189,16 @@ export default function AudioMixerAdminPage() {
                   <span className="text-white font-semibold">{variant.bg_volume}%</span>
                 </div>
                 {variant.background_track && (
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs md:text-sm">
-                    <span className="text-neutral-400">Track:</span>
-                    <span className="text-primary-500 font-mono text-xs break-all">{variant.background_track}</span>
+                  <div className="space-y-1">
+                    <span className="text-neutral-400 text-xs md:text-sm">Background Track:</span>
+                    <a 
+                      href={variant.background_track} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block text-primary-500 hover:text-primary-400 font-mono text-xs break-all underline transition-colors"
+                    >
+                      {variant.background_track}
+                    </a>
                   </div>
                 )}
               </div>
@@ -210,14 +231,26 @@ export default function AudioMixerAdminPage() {
 
         <Card variant="glass" className="p-4 md:p-6">
           <h3 className="text-base md:text-lg font-semibold text-white mb-3">How to use</h3>
-          <div className="space-y-2 text-xs md:text-sm text-neutral-400">
-            <p className="break-all">• Upload background tracks to: <code className="text-primary-500 text-xs">s3://vibration-fit-client-storage/site-assets/audio/mixing-tracks/</code></p>
-            <p>• After adding variants, update these files:</p>
-            <ul className="list-disc list-inside ml-4 space-y-1">
-              <li className="break-all"><code className="text-primary-500 text-xs">src/lib/audio/backgroundMixing.ts</code> - Background track URLs</li>
-              <li className="break-all"><code className="text-primary-500 text-xs">src/app/api/audio/mix/route.ts</code> - Volume percentages</li>
-              <li className="break-all"><code className="text-primary-500 text-xs">src/app/life-vision/[id]/audio/page.tsx</code> - Variant selection UI</li>
-            </ul>
+          <div className="space-y-3 text-xs md:text-sm text-neutral-400">
+            <div>
+              <p className="font-semibold text-white mb-1">1. Upload Background Track</p>
+              <p className="break-all">Upload your audio file to S3: <code className="text-primary-500 text-xs">s3://vibration-fit-client-storage/site-assets/audio/mixing-tracks/</code></p>
+              <p className="text-xs text-neutral-500 mt-1">Example: Upload "Ocean-Waves-1.mp3" → becomes publicly accessible at <code className="text-primary-500 text-xs">https://media.vibrationfit.com/site-assets/audio/mixing-tracks/Ocean-Waves-1.mp3</code></p>
+            </div>
+            
+            <div>
+              <p className="font-semibold text-white mb-1">2. Create/Edit Variant</p>
+              <p>• Set Voice/Background volume percentages (must add to 100%)</p>
+              <p>• Paste the full public URL to your background track</p>
+              <p>• New variants automatically appear on the <code className="text-primary-500 text-xs">/audio/generate</code> page</p>
+            </div>
+            
+            <div>
+              <p className="font-semibold text-white mb-1">3. No Code Changes Needed!</p>
+              <p>✅ All settings are stored in the database</p>
+              <p>✅ Audio service automatically uses your URLs and volumes</p>
+              <p>✅ Users see new variants immediately</p>
+            </div>
           </div>
         </Card>
       </Stack>
@@ -289,13 +322,17 @@ export default function AudioMixerAdminPage() {
 
           <div>
             <label className="block text-sm font-medium text-white mb-2">
-              Background Track Filename (optional)
+              Background Track URL
             </label>
             <Input
               value={formData.backgroundTrack}
               onChange={(e) => setFormData({ ...formData, backgroundTrack: e.target.value })}
-              placeholder="e.g., ocean-waves-1.mp3"
+              placeholder="https://media.vibrationfit.com/site-assets/audio/mixing-tracks/Ocean-Waves-1.mp3"
+              className="font-mono text-sm"
             />
+            <p className="text-xs text-neutral-500 mt-1">
+              Full URL to the background music file (required for mixing variants, leave empty for voice-only)
+            </p>
           </div>
 
           <div className="flex gap-3 pt-4">

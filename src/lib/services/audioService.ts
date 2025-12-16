@@ -56,28 +56,30 @@ async function triggerBackgroundMixing(params: {
     },
   })
 
-  const bgUrl = getBackgroundTrackForVariant(params.variant)
-  
-  // Get volume levels from database (single source of truth)
+  // Get volume levels AND background track from database (single source of truth)
   const supabase = await createClient()
   const { data: variantData } = await supabase
     .from('audio_variants')
-    .select('voice_volume, bg_volume')
+    .select('voice_volume, bg_volume, background_track')
     .eq('id', params.variant)
     .single()
   
-  // Fallback to hardcoded defaults if database query fails
+  // Use database values for volume levels and background track
   let voiceVolume = 0.7
   let bgVolume = 0.3
+  let bgUrl = null
   
   if (variantData) {
     // Convert percentages (0-100) to decimal (0-1)
     voiceVolume = variantData.voice_volume / 100
     bgVolume = variantData.bg_volume / 100
+    bgUrl = variantData.background_track
   } else {
-    // Fallback values
+    // Fallback values if database query fails
     voiceVolume = params.variant === 'sleep' ? 0.3 : params.variant === 'meditation' ? 0.5 : 0.8
     bgVolume = params.variant === 'sleep' ? 0.7 : params.variant === 'meditation' ? 0.5 : 0.2
+    // Fallback to hardcoded background track
+    bgUrl = getBackgroundTrackForVariant(params.variant)
   }
 
   const command = new InvokeCommand({
@@ -130,6 +132,14 @@ async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', 
     // TTS pricing: $0.015 per 1K characters
     const costInCents = Math.round((text.length / 1000) * 0.015 * 100) // Convert to cents
     
+    // Estimate audio duration: ~150 words per minute, ~5 chars per word = 750 chars/min
+    const estimatedSeconds = Math.round((text.length / 750) * 60)
+    const formatDuration = (seconds: number): string => {
+      const mins = Math.floor(seconds / 60)
+      const secs = Math.floor(seconds % 60)
+      return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+    
     await trackTokenUsage({
       user_id: userId,
       action_type: 'audio_generation',
@@ -137,13 +147,16 @@ async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', 
       tokens_used: text.length, // Character count as tokens
       input_tokens: text.length,
       output_tokens: 0, // TTS doesn't have output tokens
+      audio_seconds: estimatedSeconds,
+      audio_duration_formatted: formatDuration(estimatedSeconds),
       actual_cost_cents: costInCents,
       success: true,
       metadata: {
         voice: voice,
         format: format,
         text_length: text.length,
-        audio_size_bytes: buffer.length
+        audio_size_bytes: buffer.length,
+        estimated_duration_seconds: estimatedSeconds
       }
     })
   }
@@ -194,12 +207,17 @@ function getS3Client() {
 }
 
 // Background track URLs for different variants
+/**
+ * Get background track URL for a variant (FALLBACK ONLY)
+ * @deprecated Background tracks are now stored in the audio_variants database table
+ * This function is only used as a fallback if the database query fails
+ */
 export function getBackgroundTrackForVariant(variant?: string): string | null {
   switch (variant) {
     case 'sleep':
     case 'meditation':
     case 'energy':
-      // Using ocean waves for all variants (until other tracks are available)
+      // Fallback: Using ocean waves for all variants
       return 'https://media.vibrationfit.com/site-assets/audio/mixing-tracks/Ocean-Waves-1.mp3'
     default:
       return null
