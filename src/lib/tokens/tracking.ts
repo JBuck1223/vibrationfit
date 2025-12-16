@@ -16,6 +16,9 @@ export interface TokenUsage {
   input_tokens?: number
   output_tokens?: number
   calculated_cost_cents?: number // Accurate cost from ai_model_pricing
+  // Audio-specific fields
+  audio_seconds?: number
+  audio_duration_formatted?: string
   // OpenAI Reconciliation Fields (added Nov 16, 2025)
   openai_request_id?: string
   openai_created?: number
@@ -303,6 +306,9 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
         calculated_cost_cents: accurateCostCents, // Accurate cost from ai_model_pricing
         input_tokens: usage.input_tokens || 0,
         output_tokens: usage.output_tokens || 0,
+        // Audio-specific fields
+        audio_seconds: usage.audio_seconds || null,
+        audio_duration_formatted: usage.audio_duration_formatted || null,
         // OpenAI reconciliation fields
         openai_request_id: usage.openai_request_id,
         openai_created: usage.openai_created,

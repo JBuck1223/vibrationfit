@@ -60,6 +60,13 @@ export async function POST(request: NextRequest) {
     // Whisper pricing: $0.006 per minute of audio
     const costInCents = Math.round(transcription.duration * 0.006 * 100) // Convert to cents
     
+    // Format duration as MM:SS
+    const formatDuration = (seconds: number): string => {
+      const mins = Math.floor(seconds / 60)
+      const secs = Math.floor(seconds % 60)
+      return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+    
     await trackTokenUsage({
       user_id: user.id,
       action_type: 'transcription',
@@ -67,6 +74,8 @@ export async function POST(request: NextRequest) {
       tokens_used: Math.ceil(transcription.duration * 60), // Estimate tokens based on duration
       input_tokens: Math.ceil(transcription.duration * 60),
       output_tokens: transcription.text.split(' ').length, // Word count as output tokens
+      audio_seconds: transcription.duration,
+      audio_duration_formatted: formatDuration(transcription.duration),
       actual_cost_cents: costInCents, // Changed from cost_estimate to actual_cost_cents
       // OpenAI reconciliation fields (if available - Whisper API may not include these)
       openai_request_id: (transcription as any).id,
