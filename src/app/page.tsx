@@ -2074,7 +2074,7 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">What qualifies for the 72‑Hour Activation Guarantee?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">Complete all 10 steps in 72 hours (profile 70%+, 84‑Q assessment, 12‑category vision with VIVA, AM/PM audio, 12‑image board, 3 journals, calibration call booked).</p>
+                              <p className="text-neutral-300 text-sm">Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, Activation Protocol scheduled.</p>
                             </div>
                           </div>
                           <div>
@@ -2442,14 +2442,14 @@ export default function HomePage() {
                   <Text size="xs" className="text-neutral-400 text-center mt-2">
                     $499 today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
                   </Text>
-                  <div className="flex flex-col items-center justify-center gap-2 text-xs uppercase tracking-wide text-neutral-400 mt-4">
+                  <div className="flex flex-col items-center justify-center gap-3 text-xs uppercase tracking-wide text-neutral-400 mt-4">
                     <div className="flex items-center gap-2">
-                      <Icon icon={Shield} size="sm" className="text-[#39FF14]" />
-                      Covered by the 72‑Hour Activation Guarantee
+                      <Icon icon={Shield} size="sm" className="text-[#39FF14] flex-shrink-0" />
+                      <span className="leading-tight">Covered by the 72‑Hour Activation Guarantee</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Icon icon={Award} size="sm" className="text-[#00FFFF]" />
-                      Membership Guarantee: 16 weeks (Annual) • 12 weeks (Every 28 Days)
+                      <Icon icon={Award} size="sm" className="text-[#00FFFF] flex-shrink-0" />
+                      <span className="leading-tight">Membership Guarantee: 16 weeks (Annual) • 12 weeks (Every 28 Days)</span>
                     </div>
                   </div>
                 </div>
@@ -2476,7 +2476,7 @@ export default function HomePage() {
                 {
                   id: 'skeptical',
                   title: 'What if I\'m skeptical?',
-                  description: 'Good. That\'s why we stack raw proof, a structured mechanism, and guarantees. See the vision transformations (including $0.43 → $1M screenshots), the Conscious Creation System: Train → Tune → Track, and our 72‑Hour Activation + Membership Guarantees.'
+                  description: 'Good. That\'s why we stack raw proof, a structured mechanism, and guarantees. See the vision transformations (including $0.74 → $1M screenshots), the Conscious Creation System: Train → Tune → Track, and our 72‑Hour Activation + Membership Guarantees.'
                 },
                 {
                   id: 'religious',
@@ -2486,7 +2486,7 @@ export default function HomePage() {
                 {
                   id: 'how-fast',
                   title: 'How fast is "fast"?',
-                  description: '"Active" in 72 hours: 12‑category Life Vision completed (with VIVA), AM/PM Vision Audios generated, Vision Board built (12 images, 1 per category), 3 journal entries logged (Gratitude, Connect-the-Dots, Progress), Calibration call booked, Activation Protocol scheduled.'
+                  description: '"Active" in 72 hours: Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, Activation Protocol scheduled'
                 },
                 {
                   id: 'tried-loa',
@@ -2496,12 +2496,12 @@ export default function HomePage() {
                 {
                   id: 'dont-know',
                   title: 'What if I don\'t know what I want?',
-                  description: 'VIVA AI turns contrast into clarity and drafts your 12‑category life vision for you using our 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA). You\'ll have a concrete first draft to refine within 72 hours of starting—something that used to take Jordan and Vanessa months to do on their own without VIVA\'s help.'
+                  description: 'VIVA AI turns contrast into clarity and drafts your 12‑category life vision with you using our 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA). You\'ll have a concrete first draft to refine within 72 hours of starting—something that used to take Jordan and Vanessa months to do on their own without VIVA\'s help.'
                 },
                 {
                   id: 'doesnt-work',
                   title: 'What if it doesn\'t work for me?',
-                  description: 'Two layers of protection: 72‑Hour Activation Guarantee (complete all 10 steps; not satisfied—full refund) and Membership Satisfaction Guarantee (16 weeks Annual, 12 weeks 28‑Day) from checkout.'
+                  description: 'Two layers of protection: 72‑Hour Activation Guarantee (complete your Activation Checklist in 72 hours; not satisfied—full refund) and Membership Satisfaction Guarantee (16 weeks Annual, 12 weeks 28‑Day) from checkout.'
                 },
                 {
                   id: 'guarantee-start',
@@ -2522,7 +2522,7 @@ export default function HomePage() {
                 {
                   id: 'guarantee-qualify',
                   title: 'What qualifies for the 72‑Hour Activation Guarantee?',
-                  description: 'Complete all 10 steps in 72 hours. Completion = 70%+ Profile, 84‑Q Assessment, Calibration call booked, 12‑category Life Vision drafted (with VIVA), first Vision Refinement complete, AM/PM Vision Audios generated, Vision Board created (12 images — one per category), 3 journal entries logged, Calibration call attended, Activation Plan in place.'
+                  description: 'Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, Activation Protocol scheduled. If you complete your Activation Checklist in 72 hours and are not satisfied, you\'ll get a full refund of your $499 Intensive fee. No questions asked.'
                 },
                 {
                   id: 'refunds',
@@ -2533,7 +2533,7 @@ export default function HomePage() {
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What's covered</p>
                         <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1 text-sm text-neutral-300">
                           <li>
-                            72‑Hour Activation Guarantee: if you complete all 10 steps in 72 hours and aren't satisfied, we refund the $499 Intensive. (Completion = 70%+ Profile, 84‑Q Assessment, Calibration call booked, 12‑category Life Vision drafted (with VIVA), first Vision Refinement complete, AM/PM Vision Audios generated, Vision Board created (with 12 images — 1 per life category), 3 journal entries logged, Calibration call attended, Activation Plan in place.)
+                            72‑Hour Activation Guarantee: if you complete your Activation Checklist in 72 hours and aren't satisfied, we refund the $499 Intensive fee. (Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, Activation Protocol scheduled.)
                           </li>
                           <li>
                             Membership Satisfaction Guarantee: from checkout date—16 weeks (Annual) or 12 weeks (28‑Day). If your plan hasn't billed yet (first charge is Day 56), we cancel the upcoming charge. If a plan charge occurred within your window, we refund that charge in full.
@@ -2543,7 +2543,7 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to request</p>
                         <p className="text-sm text-neutral-300">
-                          In-app "Request a refund" or email <a href="mailto:support@vibrationfit.com" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">support@vibrationfit.com</a> with the email you used to buy. Choose Activation or Membership guarantee. We reply within 1 business day.
+                          When logged in, go to the Support tab (left sidebar on desktop/ under "More" on mobile). If you are logged in, you can click here: <a href="/support" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">Support</a>. We reply within 1 business day.
                         </p>
                       </div>
                       <div>
@@ -2575,7 +2575,7 @@ export default function HomePage() {
                 {
                   id: 'what-is-vibrational-fitness',
                   title: 'What is Vibrational Fitness?',
-                  description: 'The skill of aligning your state with your selected outcomes using a repeatable system—Train → Tune → Track—so progress is visible (checklists, artifacts, streaks), not hypothetical.'
+                  description: 'The skill of training your vibration to attract the life you choose using a repeatable system—Train → Tune → Track—so progress is visible (checklists, artifacts, streaks), not hypothetical.'
                 },
                 {
                   id: 'switch-cancel',
@@ -2627,14 +2627,14 @@ export default function HomePage() {
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Why we do it this way</p>
-                        <p>
-                          Pairing continuity with the upfront purchase raises retention and keeps terms explicit; offering Annual as the default increases prepaid uptake without forcing it. Letting you switch at renewal gives flexibility without creating billing confusion.
+                        <p className="text-sm text-neutral-300">
+                          Letting you switch at renewal gives flexibility without creating billing confusion.
                         </p>
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to switch</p>
-                        <p>
-                          In your Billing settings, choose "Change plan." If you're pre-Day 56, your first charge will run on Day 56 at the selected plan. If you're mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
+                        <p className="text-sm text-neutral-300">
+                          When logged in, under "Settings" &gt; <a href="/billing" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">"Billing & Subscription"</a>, choose "Manage Billing." If you're pre-Day 56, your first charge will run on Day 56 at the selected plan. If you're mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
                         </p>
                       </div>
                       <div className="space-y-1">

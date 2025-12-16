@@ -21,6 +21,8 @@ interface TokenTransaction {
   amount_paid_cents?: number
   token_pack_id?: string
   calculated_cost_cents?: number
+  input_tokens?: number
+  output_tokens?: number
 }
 
 // Helper function to format credits
@@ -293,8 +295,14 @@ export default function TokensPage() {
                             </Badge>
                           )}
                         </div>
-                        <div className="text-xs text-neutral-500">
-                          {new Date(tx.created_at).toLocaleString()}
+                        <div className="flex items-center gap-3 text-xs text-neutral-500">
+                          <span>{new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                          {tx.input_tokens && tx.input_tokens > 0 && (
+                            <span>Input: {tx.input_tokens.toLocaleString()}</span>
+                          )}
+                          {tx.output_tokens && tx.output_tokens > 0 && (
+                            <span>Output: {tx.output_tokens.toLocaleString()}</span>
+                          )}
                         </div>
                         {tx.metadata?.category && (
                           <div className="text-xs text-neutral-600 mt-1">
@@ -314,7 +322,7 @@ export default function TokensPage() {
                             ? 'text-green-400' 
                             : isDeduction
                             ? 'text-red-400'
-                            : 'text-red-400'
+                            : 'text-white'
                         }`}>
                           {isGrant ? '+' : ''}{formatCredits(Math.abs(tx.tokens_used), true)}
                         </div>

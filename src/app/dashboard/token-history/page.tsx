@@ -2,8 +2,41 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Spinner, Stack, PageHero } from '@/lib/design-system/components'
-import { ArrowLeft, Activity, Brain, Calendar, Filter } from 'lucide-react'
+import { 
+  ArrowLeft, Brain, Calendar, Filter,
+  Target, Sparkles, FileText, FileEdit, Book, Palette, Merge,
+  MessageSquare, Lightbulb, BarChart3, Mic, Star, RefreshCw,
+  Music, Image, Video, Mic2, Pin, Plus, Minus, Gift, Zap, CreditCard, Cpu
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
+
+// Icon component mapping
+const ICON_COMPONENTS: Record<string, any> = {
+  'Target': Target,
+  'Sparkles': Sparkles,
+  'FileText': FileText,
+  'FileEdit': FileEdit,
+  'Book': Book,
+  'Palette': Palette,
+  'Merge': Merge,
+  'MessageSquare': MessageSquare,
+  'Lightbulb': Lightbulb,
+  'BarChart3': BarChart3,
+  'Mic': Mic,
+  'Star': Star,
+  'RefreshCw': RefreshCw,
+  'Music': Music,
+  'Image': Image,
+  'Video': Video,
+  'Mic2': Mic2,
+  'Pin': Pin,
+  'Plus': Plus,
+  'Minus': Minus,
+  'Gift': Gift,
+  'Zap': Zap,
+  'CreditCard': CreditCard,
+  'Cpu': Cpu,
+}
 
 interface TokenUsageRecord {
   id: string
@@ -67,38 +100,84 @@ export default function TokenHistoryPage() {
 
   const getActionLabel = (actionType: string) => {
     const labels: Record<string, string> = {
-      'assessment_scoring': 'VIVA Scoring',
-      'vision_generation': 'VIVA Vision Generation',
-      'vision_refinement': 'VIVA Vision Refinement',
-      'blueprint_generation': 'VIVA Blueprint Generation',
-      'chat_conversation': 'VIVA Conversation',
-      'audio_generation': 'VIVA Audio Generation',
-      'image_generation': 'VIVA Image Generation',
-      'life_vision_category_summary': 'Life Vision Category Summary',
-      'life_vision_master_assembly': 'Life Vision Master Assembly',
+      // Life Vision Generation
+      'vision_generation': 'Vision Generation',
+      'vision_refinement': 'Vision Refinement',
+      'blueprint_generation': 'Blueprint Generation',
+      'life_vision_category_summary': 'Category Summary',
+      'life_vision_master_assembly': 'Master Vision Assembly',
+      'final_assembly': 'Final Assembly',
+      'merge_clarity': 'Merge Clarity Statements',
+      
+      // VIVA Chat & Prompts
+      'chat_conversation': 'VIVA Chat',
       'prompt_suggestions': 'Prompt Suggestions',
-      'admin_grant': 'Admin Grant',
-      'admin_deduct': 'Admin Deduction'
+      
+      // Analysis & Insights
+      'vibrational_analysis': 'Vibrational Analysis',
+      'voice_profile_analysis': 'Voice Profile Analysis',
+      'north_star_reflection': 'North Star Reflection',
+      'frequency_flip': 'Frequency Flip',
+      
+      // Media Generation
+      'audio_generation': 'Audio Generation',
+      'image_generation': 'Image Generation',
+      'viva_scene_generation': 'Scene Generation',
+      'transcription': 'Audio Transcription',
+      'vision_board_ideas': 'Vision Board Ideas',
+      
+      // Admin Actions
+      'admin_grant': 'Admin Token Grant',
+      'admin_deduct': 'Admin Token Deduction',
+      'subscription_grant': 'Subscription Grant',
+      'trial_grant': 'Trial Grant',
+      'token_pack_purchase': 'Token Pack Purchase',
+      
+      // Legacy
+      'assessment_scoring': 'Assessment Scoring',
     }
     return labels[actionType] || actionType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
-  const getActionIcon = (actionType: string) => {
+  const getActionIcon = (actionType: string): string => {
     const icons: Record<string, string> = {
-      'assessment_scoring': '📊',
-      'vision_generation': '🎯',
-      'vision_refinement': '✨',
-      'blueprint_generation': '📋',
-      'chat_conversation': '💬',
-      'audio_generation': '🎵',
-      'image_generation': '🖼️',
-      'life_vision_category_summary': '📝',
-      'life_vision_master_assembly': '📖',
-      'prompt_suggestions': '💡',
-      'admin_grant': '➕',
-      'admin_deduct': '➖'
+      // Life Vision Generation
+      'vision_generation': 'Target',
+      'vision_refinement': 'Sparkles',
+      'blueprint_generation': 'FileText',
+      'life_vision_category_summary': 'FileEdit',
+      'life_vision_master_assembly': 'Book',
+      'final_assembly': 'Palette',
+      'merge_clarity': 'Merge',
+      
+      // VIVA Chat & Prompts
+      'chat_conversation': 'MessageSquare',
+      'prompt_suggestions': 'Lightbulb',
+      
+      // Analysis & Insights
+      'vibrational_analysis': 'BarChart3',
+      'voice_profile_analysis': 'Mic',
+      'north_star_reflection': 'Star',
+      'frequency_flip': 'RefreshCw',
+      
+      // Media Generation
+      'audio_generation': 'Music',
+      'image_generation': 'Image',
+      'viva_scene_generation': 'Video',
+      'transcription': 'Mic2',
+      'vision_board_ideas': 'Pin',
+      
+      // Admin Actions
+      'admin_grant': 'Plus',
+      'admin_deduct': 'Minus',
+      'subscription_grant': 'Gift',
+      'trial_grant': 'Zap',
+      'token_pack_purchase': 'CreditCard',
+      
+      // Legacy
+      'assessment_scoring': 'BarChart3',
     }
-    return icons[actionType] || '🤖'
+    return icons[actionType] || 'Cpu'
   }
 
   const uniqueActionTypes = Array.from(new Set(usage.map(r => r.action_type)))
@@ -188,11 +267,15 @@ export default function TokenHistoryPage() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {usage.map((record) => (
+            {usage.map((record) => {
+              const IconComponent = ICON_COMPONENTS[getActionIcon(record.action_type)] || Cpu
+              return (
               <Card key={record.id} className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="text-2xl">{getActionIcon(record.action_type)}</div>
+                    <div className="flex-shrink-0">
+                      <IconComponent className="w-6 h-6 text-primary-500" />
+                    </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium text-white">
@@ -227,7 +310,7 @@ export default function TokenHistoryPage() {
                   </div>
                 )}
               </Card>
-            ))}
+            )})}
           </div>
         )}
       </Stack>
