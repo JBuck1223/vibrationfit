@@ -13,8 +13,8 @@ interface ModelPricing {
   model_name: string
   provider: string
   model_family: string | null
-  input_price_per_1k: number
-  output_price_per_1k: number
+  input_price_per_1m: number
+  output_price_per_1m: number
   price_per_unit: number | null
   unit_type: string | null
   is_active: boolean
@@ -166,8 +166,8 @@ function AIModelsAdminContent() {
   const handleEditPricing = (model: ModelPricing) => {
     setSelectedPricing(model)
     setEditPricing({
-      input_price_per_1k: model.input_price_per_1k,
-      output_price_per_1k: model.output_price_per_1k,
+      input_price_per_1m: model.input_price_per_1m,
+      output_price_per_1m: model.output_price_per_1m,
       price_per_unit: model.price_per_unit,
       notes: model.notes
     })
@@ -550,9 +550,9 @@ function AIModelsAdminContent() {
                                 ${modelInfo.price_per_unit.toFixed(3)} per {modelInfo.unit_type}
                               </Badge>
                             )}
-                            {modelInfo.input_price_per_1k > 0 && (
+                            {modelInfo.input_price_per_1m > 0 && (
                               <Badge variant="info" className="text-xs">
-                                ${modelInfo.input_price_per_1k.toFixed(5)} / 1K tokens
+                                ${modelInfo.input_price_per_1m.toFixed(2)} / 1M tokens
                               </Badge>
                             )}
                           </div>
@@ -1211,17 +1211,17 @@ function AIModelsAdminContent() {
                       <div>
                         <span className="text-neutral-400 text-sm">Input Price</span>
                         <div className="text-white font-mono text-lg">
-                          ${model.input_price_per_1k.toFixed(6)}
+                          ${model.input_price_per_1m.toFixed(2)}
                         </div>
-                        <div className="text-neutral-500 text-xs">per 1K tokens</div>
+                        <div className="text-neutral-500 text-xs">per 1M tokens</div>
                       </div>
 
                       <div>
                         <span className="text-neutral-400 text-sm">Output Price</span>
                         <div className="text-white font-mono text-lg">
-                          ${model.output_price_per_1k.toFixed(6)}
+                          ${model.output_price_per_1m.toFixed(2)}
                         </div>
-                        <div className="text-neutral-500 text-xs">per 1K tokens</div>
+                        <div className="text-neutral-500 text-xs">per 1M tokens</div>
                       </div>
 
                       {model.price_per_unit !== null && (
@@ -1328,25 +1328,25 @@ function AIModelsAdminContent() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-neutral-200 mb-2">
-                          Input Price (per 1K tokens)
+                          Input Price (per 1M tokens)
                         </label>
                         <Input
                           type="number"
-                          step="0.000001"
-                          value={editPricing.input_price_per_1k ?? selectedPricing.input_price_per_1k}
-                          onChange={(e) => setEditPricing(prev => ({ ...prev, input_price_per_1k: parseFloat(e.target.value) }))}
+                          step="0.01"
+                          value={editPricing.input_price_per_1m ?? selectedPricing.input_price_per_1m}
+                          onChange={(e) => setEditPricing(prev => ({ ...prev, input_price_per_1m: parseFloat(e.target.value) }))}
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-neutral-200 mb-2">
-                          Output Price (per 1K tokens)
+                          Output Price (per 1M tokens)
                         </label>
                         <Input
                           type="number"
-                          step="0.000001"
-                          value={editPricing.output_price_per_1k ?? selectedPricing.output_price_per_1k}
-                          onChange={(e) => setEditPricing(prev => ({ ...prev, output_price_per_1k: parseFloat(e.target.value) }))}
+                          step="0.01"
+                          value={editPricing.output_price_per_1m ?? selectedPricing.output_price_per_1m}
+                          onChange={(e) => setEditPricing(prev => ({ ...prev, output_price_per_1m: parseFloat(e.target.value) }))}
                         />
                       </div>
                     </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors, Save } from 'lucide-react'
+import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors, Save, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button, Checkbox } from '@/lib/design-system/components'
 import {
   saveRecordingChunks,
@@ -77,6 +77,7 @@ export function MediaRecorderComponent({
   const [isMicDropdownOpen, setIsMicDropdownOpen] = useState(false) // Microphone dropdown state
   const micDropdownRef = useRef<HTMLDivElement>(null) // Ref for microphone dropdown
   const [showEditor, setShowEditor] = useState(false) // Show audio editor
+  const [showInstructions, setShowInstructions] = useState(false) // Show recording complete instructions
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -1192,16 +1193,49 @@ export function MediaRecorderComponent({
         <div className="bg-neutral-900 border-2 border-[#FFB701] rounded-2xl p-6 space-y-4">
           <h3 className="text-lg font-semibold text-white mb-2">Recording Complete</h3>
 
-          {/* Instructions */}
-          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
-            <ol className="space-y-2 text-sm text-neutral-300 list-decimal list-inside">
-              <li>Listen to your recording using the player below</li>
-              {mode === 'audio' && enableEditor && <li>If needed, click "Edit" to trim or remove sections</li>}
-              {recordingPurpose !== 'audioOnly' && <li>Click "Transcribe" to convert speech to text (required for saving)</li>}
-              {recordingPurpose !== 'audioOnly' && <li>Review the transcript, then click "Save" to keep your recording</li>}
-              {recordingPurpose === 'audioOnly' && <li>Click "Save" when you're satisfied with your recording</li>}
-            </ol>
-          </div>
+          {/* Instructions - Collapsible toggle for transcriptOnly mode */}
+          {recordingPurpose === 'transcriptOnly' ? (
+            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowInstructions(!showInstructions)}
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-800/70 transition-colors"
+              >
+                <span className="text-sm font-semibold text-white">How to use</span>
+                {showInstructions ? (
+                  <ChevronUp className="w-5 h-5 text-neutral-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-neutral-400" />
+                )}
+              </button>
+              {showInstructions && (
+                <div className="px-4 pb-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="text-primary-500 font-bold mt-0.5">1.</span>
+                    <p className="text-sm text-neutral-300">Click Transcribe to convert speech to text</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-primary-500 font-bold mt-0.5">2.</span>
+                    <p className="text-sm text-neutral-300">Your text will appear in the text field above</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-primary-500 font-bold mt-0.5">3.</span>
+                    <p className="text-sm text-neutral-300">Use the page's Save button to save your changes</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
+              <ol className="space-y-2 text-sm text-neutral-300 list-decimal list-inside">
+                <li>Listen to your recording using the player below</li>
+                {mode === 'audio' && enableEditor && <li>If needed, click "Edit" to trim or remove sections</li>}
+                {recordingPurpose !== 'audioOnly' && <li>Click "Transcribe" to convert speech to text (required for saving)</li>}
+                {recordingPurpose !== 'audioOnly' && <li>Review the transcript, then click "Save" to keep your recording</li>}
+                {recordingPurpose === 'audioOnly' && <li>Click "Save" when you're satisfied with your recording</li>}
+              </ol>
+            </div>
+          )}
 
           {/* Media Player */}
           {mode === 'video' ? (
@@ -1270,8 +1304,8 @@ export function MediaRecorderComponent({
             </div>
           )}
 
-          {/* Save Recording Option - Only show for non-withFile and non-audioOnly modes */}
-          {showSaveOption && recordingPurpose !== 'withFile' && recordingPurpose !== 'audioOnly' && (
+          {/* Save Recording Option - Only show for non-withFile, non-audioOnly, and non-transcriptOnly modes */}
+          {showSaveOption && recordingPurpose !== 'withFile' && recordingPurpose !== 'audioOnly' && recordingPurpose !== 'transcriptOnly' && (
             <div className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg">
               <Checkbox
                 id="saveRecording"
@@ -1287,123 +1321,193 @@ export function MediaRecorderComponent({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
-            {/* Transcribe Button (only if not transcribed yet and not audioOnly) */}
-            {recordingPurpose !== 'audioOnly' && !transcript && !isTranscribing && (
-              <Button
-                onClick={async () => {
-                  if (!recordedBlob) {
-                    setError('No recording available to transcribe')
-                    return
-                  }
-                  
-                  if (recordedBlob.size === 0) {
-                    setError('Recording is empty or invalid. Please record again.')
-                    return
-                  }
-                  
-                  console.log('🎙️ Starting transcription:', {
-                    blobSize: recordedBlob.size,
-                    blobType: recordedBlob.type
-                  })
-                  
-                  const transcriptResult = await transcribeAudio(recordedBlob)
-                  
-                  // Update IndexedDB with transcript if we have a recording ID
-                  if (recordingIdRef.current && transcriptResult) {
-                    await saveRecordingChunks(
-                      recordingIdRef.current,
-                      category,
-                      chunksRef.current,
-                      duration,
-                      mode,
-                      recordedBlob,
-                      transcriptResult
-                    )
-                  }
-                }}
-                variant="primary"
-                size="sm"
-                className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0"
-                disabled={!recordedBlob || recordedBlob.size === 0 || isUploading}
-              >
-                <Mic className="w-4 h-4" />
-                Transcribe
-              </Button>
-            )}
+            {/* transcriptOnly mode: Simplified flow - Transcribe then Done */}
+            {recordingPurpose === 'transcriptOnly' ? (
+              <>
+                {!transcript && !isTranscribing && (
+                  <Button
+                    onClick={async () => {
+                      if (!recordedBlob) {
+                        setError('No recording available to transcribe')
+                        return
+                      }
+                      
+                      if (recordedBlob.size === 0) {
+                        setError('Recording is empty or invalid. Please record again.')
+                        return
+                      }
+                      
+                      console.log('🎙️ Starting transcription:', {
+                        blobSize: recordedBlob.size,
+                        blobType: recordedBlob.type
+                      })
+                      
+                      const transcriptResult = await transcribeAudio(recordedBlob)
+                      
+                      // For transcriptOnly, the transcript goes to textarea via onTranscriptComplete
+                      // Just close the recorder after transcription
+                      if (transcriptResult) {
+                        console.log('✅ Transcription complete, closing recorder')
+                        
+                        // Clean up IndexedDB
+                        if (recordingIdRef.current) {
+                          await deleteSavedRecording(recordingIdRef.current)
+                        }
+                        
+                        // Reset state to close recorder
+                        setRecordedBlob(null)
+                        setRecordedUrl(null)
+                        setS3Url(null)
+                        setTranscript('')
+                        setDuration(0)
+                        chunksRef.current = []
+                        durationRef.current = 0
+                        transcriptRef.current = ''
+                      }
+                    }}
+                    variant="primary"
+                    size="sm"
+                    className="gap-2 flex-1"
+                    disabled={!recordedBlob || recordedBlob.size === 0 || isUploading}
+                  >
+                    <Mic className="w-4 h-4" />
+                    Transcribe
+                  </Button>
+                )}
+                
+                <Button
+                  onClick={discardRecording}
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 flex-1 bg-[rgba(255,0,64,0.1)] text-[#FF0040] border-2 border-[rgba(255,0,64,0.2)] hover:bg-[rgba(255,0,64,0.2)] active:opacity-80"
+                  disabled={isUploading}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Discard
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* Transcribe Button (only if not transcribed yet and not audioOnly) */}
+                {recordingPurpose !== 'audioOnly' && !transcript && !isTranscribing && (
+                  <Button
+                    onClick={async () => {
+                      if (!recordedBlob) {
+                        setError('No recording available to transcribe')
+                        return
+                      }
+                      
+                      if (recordedBlob.size === 0) {
+                        setError('Recording is empty or invalid. Please record again.')
+                        return
+                      }
+                      
+                      console.log('🎙️ Starting transcription:', {
+                        blobSize: recordedBlob.size,
+                        blobType: recordedBlob.type
+                      })
+                      
+                      const transcriptResult = await transcribeAudio(recordedBlob)
+                      
+                      // Update IndexedDB with transcript
+                      if (recordingIdRef.current && transcriptResult) {
+                        await saveRecordingChunks(
+                          recordingIdRef.current,
+                          category,
+                          chunksRef.current,
+                          duration,
+                          mode,
+                          recordedBlob,
+                          transcriptResult
+                        )
+                      }
+                    }}
+                    variant="primary"
+                    size="sm"
+                    className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0"
+                    disabled={!recordedBlob || recordedBlob.size === 0 || isUploading}
+                  >
+                    <Mic className="w-4 h-4" />
+                    Transcribe
+                  </Button>
+                )}
 
-            {/* Edit Recording Button (audio only, enabled) */}
-            {mode === 'audio' && enableEditor && !showEditor && (
-              <Button
-                onClick={() => setShowEditor(true)}
-                variant="primary"
-                size="sm"
-                className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0"
-                disabled={isUploading}
-              >
-                <Scissors className="w-4 h-4" />
-                Edit
-              </Button>
-            )}
-            
-            <Button
-              onClick={async () => {
-                // For audioOnly mode, upload to S3 first, then call onRecordingComplete
-                if (recordingPurpose === 'audioOnly' && recordedBlob && !s3Url) {
-                  setIsUploading(true)
-                  setError(null)
-                  const folder = storageFolder || 'journalAudioRecordings'
-                  const fileName = `recording-${Date.now()}.webm`
-                  
-                  console.log('📤 audioOnly mode: Uploading to S3...')
-                  
-                  try {
-                    const uploadResult = await uploadRecording(recordedBlob, folder, fileName)
-                    setS3Url(uploadResult.url)
-                    console.log('✅ Recording uploaded to S3:', uploadResult.url)
-                    
-                    if (onRecordingComplete) {
-                      onRecordingComplete(recordedBlob, transcript || undefined, saveRecording, uploadResult.url)
+                {/* Edit Recording Button (audio only, enabled) */}
+                {mode === 'audio' && enableEditor && !showEditor && (
+                  <Button
+                    onClick={() => setShowEditor(true)}
+                    variant="primary"
+                    size="sm"
+                    className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0"
+                    disabled={isUploading}
+                  >
+                    <Scissors className="w-4 h-4" />
+                    Edit
+                  </Button>
+                )}
+                
+                {/* Save Button (for non-transcriptOnly modes) */}
+                <Button
+                  onClick={async () => {
+                    // For audioOnly mode, upload to S3 first, then call onRecordingComplete
+                    if (recordingPurpose === 'audioOnly' && recordedBlob && !s3Url) {
+                      setIsUploading(true)
+                      setError(null)
+                      const folder = storageFolder || 'journalAudioRecordings'
+                      const fileName = `recording-${Date.now()}.webm`
+                      
+                      console.log('📤 audioOnly mode: Uploading to S3...')
+                      
+                      try {
+                        const uploadResult = await uploadRecording(recordedBlob, folder, fileName)
+                        setS3Url(uploadResult.url)
+                        console.log('✅ Recording uploaded to S3:', uploadResult.url)
+                        
+                        if (onRecordingComplete) {
+                          onRecordingComplete(recordedBlob, transcript || undefined, saveRecording, uploadResult.url)
+                        }
+                      } catch (uploadErr) {
+                        console.error('❌ S3 upload failed:', uploadErr)
+                        setError('Failed to upload recording. Please try again.')
+                      } finally {
+                        setIsUploading(false)
+                      }
+                    } else {
+                      // For other modes, S3 URL already exists or not needed
+                      if (onRecordingComplete) {
+                        onRecordingComplete(recordedBlob, transcript || undefined, saveRecording, s3Url || undefined)
+                      }
                     }
-                  } catch (uploadErr) {
-                    console.error('❌ S3 upload failed:', uploadErr)
-                    setError('Failed to upload recording. Please try again.')
-                  } finally {
-                    setIsUploading(false)
-                  }
-                } else {
-                  // For other modes, S3 URL already exists or not needed
-                  if (onRecordingComplete) {
-                    onRecordingComplete(recordedBlob, transcript || undefined, saveRecording, s3Url || undefined)
-                  }
-                }
-              }}
-              variant="primary"
-              size="sm"
-              className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0"
-              disabled={(recordingPurpose === 'audioOnly' ? false : !transcript) || isUploading}
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  Save
-                </>
-              )}
-            </Button>
-            <Button
-              onClick={discardRecording}
-              variant="ghost"
-              size="sm"
-              className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0 bg-[rgba(255,0,64,0.1)] text-[#FF0040] border-2 border-[rgba(255,0,64,0.2)] hover:bg-[rgba(255,0,64,0.2)] active:opacity-80"
-              disabled={isUploading}
-            >
-              <Trash2 className="w-4 h-4" />
-              Discard
-            </Button>
+                  }}
+                  variant="primary"
+                  size="sm"
+                  className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0"
+                  disabled={(recordingPurpose === 'audioOnly' ? false : !transcript) || isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Save
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={discardRecording}
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 basis-[calc(50%-0.375rem)] sm:basis-auto min-w-0 bg-[rgba(255,0,64,0.1)] text-[#FF0040] border-2 border-[rgba(255,0,64,0.2)] hover:bg-[rgba(255,0,64,0.2)] active:opacity-80"
+                  disabled={isUploading}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Discard
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}

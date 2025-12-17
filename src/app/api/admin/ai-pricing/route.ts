@@ -32,8 +32,8 @@ export async function PUT(request: Request) {
     
     const { 
       model_name, 
-      input_price_per_1k, 
-      output_price_per_1k, 
+      input_price_per_1m, 
+      output_price_per_1m, 
       price_per_unit, 
       notes,
       // New capability fields
@@ -59,8 +59,8 @@ export async function PUT(request: Request) {
     }
 
     // Only update fields that are provided
-    if (input_price_per_1k !== undefined) updateData.input_price_per_1k = input_price_per_1k
-    if (output_price_per_1k !== undefined) updateData.output_price_per_1k = output_price_per_1k
+    if (input_price_per_1m !== undefined) updateData.input_price_per_1m = input_price_per_1m
+    if (output_price_per_1m !== undefined) updateData.output_price_per_1m = output_price_per_1m
     if (price_per_unit !== undefined) updateData.price_per_unit = price_per_unit
     if (notes !== undefined) updateData.notes = notes
     
@@ -103,8 +103,8 @@ export async function POST(request: Request) {
       model_name, 
       provider, 
       model_family,
-      input_price_per_1k, 
-      output_price_per_1k,
+      input_price_per_1m, 
+      output_price_per_1m,
       price_per_unit,
       unit_type,
       notes 
@@ -123,8 +123,8 @@ export async function POST(request: Request) {
         model_name,
         provider,
         model_family,
-        input_price_per_1k: input_price_per_1k || 0,
-        output_price_per_1k: output_price_per_1k || 0,
+        input_price_per_1m: input_price_per_1m || 0,
+        output_price_per_1m: output_price_per_1m || 0,
         price_per_unit,
         unit_type,
         notes,

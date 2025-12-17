@@ -42,7 +42,7 @@ export function RecordingTextarea({
   instanceId, // Unique identifier for this field
   onUploadProgress,
   transcriptOnly = false, // Deprecated
-  recordingPurpose = transcriptOnly ? 'transcriptOnly' : 'withFile' // Default based on transcriptOnly for backward compat
+  recordingPurpose = transcriptOnly ? 'transcriptOnly' : 'transcriptOnly' // Default to transcriptOnly for better UX
 }: RecordingTextareaProps) {
   const [showRecorder, setShowRecorder] = useState(false)
   const [recordingMode, setRecordingMode] = useState<'audio' | 'video'>('audio')

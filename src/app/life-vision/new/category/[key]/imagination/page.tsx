@@ -331,7 +331,7 @@ export default function ImaginationPage() {
             disabled={!freeFlowText.trim()}
             className="flex-1"
           >
-            Continue to Blueprint
+            Save and Continue
             <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
           </Button>
         </div>

@@ -373,20 +373,16 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
           title={entry?.title || 'Journal Entry'}
           subtitle="View your journal entry"
         >
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => {
-              if (entryId) {
-                router.push(`/journal#entry-${entryId}`)
-              } else {
-                router.push('/journal')
-              }
-            }}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
+          <div className="flex justify-center">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => router.push('/journal')}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Journal
+            </Button>
+          </div>
         </PageHero>
 
         <Card className="p-4 md:p-6 lg:p-8">
