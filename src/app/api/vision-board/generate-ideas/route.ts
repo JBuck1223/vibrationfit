@@ -9,30 +9,39 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-const VISION_BOARD_IDEAS_SYSTEM_PROMPT = `You are VIVA. Generate vision board items in EXACT JSON format.
+const VISION_BOARD_IDEAS_SYSTEM_PROMPT = `You are VIVA, the VibrationFit AI assistant. Generate exactly 3 vision board items per category based on the user's Life Vision.
 
-CRITICAL: Each item MUST have BOTH "name" AND "description" fields.
+CRITICAL RULES:
+1. Each item MUST be a JSON object with "name" and "description" fields
+2. Name: 2-5 words, natural and descriptive (like "Beach Sunset Scene" or "Mountain Lake View")
+3. Description: 1-2 sentences describing the visual scene or object (like "A serene beach at sunset with crystal blue water and white sand.")
+4. NO PEOPLE in any suggestions - AI image generation struggles with people. Focus on places, objects, nature, symbols, architecture, and abstract concepts.
+5. Use second person ("you", "your") when referencing the user's vision
+6. Be specific and visual - describe what they would SEE on the vision board
+7. Return flat JSON structure with category names as keys
 
-Required format:
+CORRECT FORMAT:
 {
   "Fun": [
-    { "name": "World Travel Map", "description": "A colorful map with pins marking destinations you've visited and dream of exploring next." },
-    { "name": "Concert Ticket Collection", "description": "Display tickets from amazing shows you've seen and events you want to attend." },
-    { "name": "Culinary Adventure Photo", "description": "Images of exotic dishes and restaurants representing your love for unique food experiences." }
+    {"name": "Beach Sunset Scene", "description": "A beautiful tropical beach at sunset with turquoise water, white sand, and palm trees swaying in the breeze."},
+    {"name": "Dance Studio Space", "description": "A bright, modern dance studio with wooden floors, mirrors, and colorful lights, empty and ready for movement."},
+    {"name": "Gourmet Charcuterie Board", "description": "An elaborate spread of artisanal cheeses, exotic fruits, and gourmet crackers arranged beautifully on a wooden board."}
   ],
   "Health": [
-    { "name": "Fit Body Vision", "description": "Photos of your ideal physique showing toned muscles, six-pack abs, and vibrant energy." },
-    { "name": "Weekly Dance Class", "description": "Schedule for regular dance or movement classes that keep you active and joyful." },
-    { "name": "Healthy Meal Plan", "description": "A colorful plan of nutritious meals that fuel your workouts and maintain your energy." }
+    {"name": "Greek Statue Physique", "description": "A classical marble statue showing athletic muscle definition and strong, capable form."},
+    {"name": "Sunrise Yoga Pose", "description": "A peaceful yoga mat positioned on a mountain overlook at sunrise, with meditation cushions nearby."},
+    {"name": "Fresh Green Smoothie", "description": "A vibrant green smoothie in a clear glass, garnished with mint and fresh berries, glowing with health."}
   ]
 }
 
-Rules:
-- EVERY object MUST have "name" (string, 2-6 words)
-- EVERY object MUST have "description" (string, 15-30 words)
-- NO objects with only description
-- Use second person ("your")
-- Be specific and actionable`
+INCORRECT (too verbose, includes people):
+{
+  "Fun": [
+    {"name": "Capture the essence of freedom", "description": "Capture the essence of freedom and adventure by adding an image of a beautiful, sandy beach where you imagine yourself enjoying beach activities."}
+  ]
+}
+
+Focus on objects, places, nature, symbols, and abstract visuals that represent their vision WITHOUT people in the scene.`
 
 function buildVisionBoardIdeasPrompt(vision: any, selectedCategories: string[]): string {
   // Vision content is stored in individual columns, not a vision JSONB column
@@ -56,12 +65,23 @@ Generate 3 vision board item suggestions for ${cat.label.toLowerCase()}.`
 
 ${sections}
 
-Remember:
+CRITICAL FORMAT REQUIREMENTS:
+Each suggestion MUST be a JSON object with BOTH "name" AND "description" fields.
+
+Example of CORRECT format:
+{
+  "Fun": [
+    {"name": "Beach Sunset Scene", "description": "A beautiful tropical beach at sunset with turquoise water, white sand, and palm trees swaying in the breeze."},
+    {"name": "Dance Studio Space", "description": "A bright, modern dance studio with wooden floors, mirrors, and colorful lights, empty and ready for movement."}
+  ]
+}
+
+Rules:
+- Name: 2-5 words, natural and descriptive
+- Description: 1-2 sentences describing the visual scene
+- NO PEOPLE in any scenes (focus on places, objects, nature, symbols)
 - 3 suggestions per category
-- Concrete and specific items
-- Aligned with their written vision
-- Diverse types (experiences, objects, states)
-- Inspiring and actionable
+- Concrete, specific, and visual items aligned with their vision
 
 Return your response as JSON in the specified format.`
 }
@@ -202,32 +222,26 @@ export async function POST(request: NextRequest) {
             itemKeys: items[0] ? Object.keys(items[0]) : []
           })
           
-          // Expect proper {name, description} objects from VIVA
-          const transformedItems = items.map((item: any) => {
-            console.log('Transforming item:', item)
+          // Validate that VIVA returned proper {name, description} objects
+          const transformedItems = items.map((item: any, index: number) => {
+            console.log(`Transforming ${categoryLabel} item ${index + 1}:`, JSON.stringify(item))
             
-            // If name is missing, extract from description
-            let name = item.name
-            if (!name && item.description) {
-              // Extract first 5-7 words or until 'to', 'for', 'featuring'
-              const words = item.description.split(' ')
-              let nameWords = []
-              for (let i = 0; i < Math.min(7, words.length); i++) {
-                const word = words[i]
-                if (word.toLowerCase() === 'to' || word.toLowerCase() === 'for' || word.toLowerCase() === 'featuring' || word.includes('.')) {
-                  break
-                }
-                nameWords.push(word)
-              }
-              name = nameWords.join(' ')
-                .replace(/^(A|An|The|Images of|Photos of|A photo of|A collection of)\s+/i, '')
-                .replace(/[,.]$/, '')
-              name = name.charAt(0).toUpperCase() + name.slice(1)
+            // CRITICAL: Both name and description must be present
+            if (!item.name || !item.description) {
+              console.error(`❌ INVALID ITEM in ${categoryLabel}:`, JSON.stringify(item))
+              console.error('❌ Full VIVA response:', responseText)
+              throw new Error(`VIVA returned incomplete data for ${categoryLabel}. Item ${index + 1} is missing ${!item.name ? 'name' : 'description'}. This is a VIVA formatting error - please try again.`)
+            }
+            
+            // Validate that description is not just empty or the same as name
+            if (item.description.trim().length < 10) {
+              console.error(`❌ INVALID DESCRIPTION in ${categoryLabel}:`, JSON.stringify(item))
+              throw new Error(`VIVA returned incomplete description for ${categoryLabel}. Please try again.`)
             }
             
             return {
-              name: name || 'Vision Board Item',
-              description: item.description
+              name: item.name.trim(),
+              description: item.description.trim()
             }
           })
           

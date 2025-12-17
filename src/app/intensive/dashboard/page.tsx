@@ -124,35 +124,39 @@ export default function IntensiveDashboard() {
         return
       }
 
-      // Get active intensive purchase
-      const { data: intensiveData, error: intensiveError } = await supabase
-        .from('intensive_purchases')
+      console.log('👤 User ID:', user.id)
+
+      // Get active intensive checklist (source of truth)
+      const { data: checklistData, error: checklistError } = await supabase
+        .from('intensive_checklist')
         .select('*')
         .eq('user_id', user.id)
-        .in('completion_status', ['pending', 'in_progress'])
+        .in('status', ['pending', 'in_progress'])
         .order('created_at', { ascending: false })
         .limit(1)
         .single()
 
-      if (intensiveError || !intensiveData) {
-        console.error('No active intensive found:', intensiveError)
+      console.log('📋 Checklist data:', checklistData, 'Error:', checklistError)
+
+      if (checklistError || !checklistData) {
+        console.error('No active intensive found:', checklistError)
         router.push('/#pricing')
         return
       }
 
-      setIntensive(intensiveData)
+      setChecklist(checklistData)
 
-      // Get or create checklist
-      const { data: checklistData, error: checklistError } = await supabase
-        .from('intensive_checklist')
+      // Get intensive purchase for reference
+      const { data: intensiveData } = await supabase
+        .from('intensive_purchases')
         .select('*')
-        .eq('intensive_id', intensiveData.id)
+        .eq('id', checklistData.intensive_id)
         .single()
 
-      if (checklistError) {
-        console.error('Error loading checklist:', checklistError)
-      } else {
-        setChecklist(checklistData)
+      console.log('💳 Purchase data:', intensiveData)
+
+      if (intensiveData) {
+        setIntensive(intensiveData)
       }
 
       updateTimeRemaining(intensiveData.activation_deadline)
@@ -190,13 +194,22 @@ export default function IntensiveDashboard() {
   }
 
   const handleStart = async () => {
-    if (!intensive) return
+    console.log('🎯 handleStart called')
+    if (!checklist) {
+      console.error('❌ No checklist found')
+      return
+    }
     
-    const result = await startIntensive(intensive.id)
+    console.log('📋 Checklist ID:', checklist.id)
+    const result = await startIntensive(checklist.id)
+    console.log('📊 Start result:', result)
+    
     if (result.success) {
+      console.log('✅ Success! Reloading data...')
       // Reload data to get updated intensive with started_at and deadline
       await loadIntensiveData()
     } else {
+      console.error('❌ Failed:', result.error)
       alert('Failed to start intensive: ' + result.error)
     }
   }
@@ -390,7 +403,7 @@ export default function IntensiveDashboard() {
   }
 
   // STATE 1: Not Started Yet
-  if (!intensive.started_at) {
+  if (!checklist.started_at) {
     return <IntensiveWelcomeScreen onStart={handleStart} />
   }
 

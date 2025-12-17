@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       .upsert({
         user_id: user.id,
         category,
-        blueprint_data: parsedResponse.loops
+        blueprint_data: parsedResponse
       }, {
         onConflict: 'user_id,category'
       })
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: parsedResponse
+      blueprint: parsedResponse
     })
 
   } catch (error: any) {
@@ -234,10 +234,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: {
-        loops: data?.blueprint_data || [],
-        hasBlueprint: !!data?.blueprint_data
-      }
+      blueprint: data?.blueprint_data || { loops: [], summary: '' }
     })
 
   } catch (error: any) {

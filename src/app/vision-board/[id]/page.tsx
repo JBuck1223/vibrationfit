@@ -358,10 +358,12 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             title={item?.name || 'Vision Board Item'}
             subtitle="View and manage your creation"
           >
-            <Button variant="ghost" size="sm" onClick={() => router.back()}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
+            <div className="flex justify-center">
+              <Button variant="ghost" size="sm" onClick={() => router.push('/vision-board')}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Vision Board
+              </Button>
+            </div>
           </PageHero>
         )}
 

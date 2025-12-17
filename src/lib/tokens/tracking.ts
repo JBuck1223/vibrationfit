@@ -55,6 +55,15 @@ const TOKEN_COSTS_LEGACY: Record<string, { input: number; output: number }> = {
 }
 
 /**
+ * Normalize OpenAI model names by removing date suffixes
+ * Example: gpt-4o-2024-08-06 → gpt-4o
+ */
+function normalizeModelName(model: string): string {
+  // Remove date patterns like -YYYY-MM-DD or -YYYY-MM
+  return model.replace(/-\d{4}-\d{2}(-\d{2})?$/, '')
+}
+
+/**
  * Calculate accurate token cost from ai_model_pricing table
  * Falls back to legacy hardcoded costs if model not found
  */
@@ -65,11 +74,14 @@ async function calculateAccurateTokenCost(
   outputTokens: number,
   audioSeconds?: number
 ): Promise<number> {
+  // Normalize model name (strip date suffixes from OpenAI responses)
+  const normalizedModel = normalizeModelName(model)
+  
   // Query ai_model_pricing for accurate costs
   const { data: pricing } = await supabase
     .from('ai_model_pricing')
     .select('*')
-    .eq('model_name', model)
+    .eq('model_name', normalizedModel)
     .eq('is_active', true)
     .single()
 
@@ -89,15 +101,19 @@ async function calculateAccurateTokenCost(
       return Math.round((inputTokens / 1000) * pricing.price_per_unit * 100)
     }
     
-    // Text models (GPT)
-    const inputCost = (inputTokens / 1000) * pricing.input_price_per_1k
-    const outputCost = (outputTokens / 1000) * pricing.output_price_per_1k
+    // Text models (GPT) - pricing is per 1M tokens
+    const inputCost = (inputTokens / 1000000) * pricing.input_price_per_1m
+    const outputCost = (outputTokens / 1000000) * pricing.output_price_per_1m
     return Math.round((inputCost + outputCost) * 100)
   }
 
   // Fallback to legacy costs if model not in pricing table
-  console.warn(`Model ${model} not found in ai_model_pricing, using legacy costs`)
-  return calculateTokenCostLegacy(model, inputTokens, outputTokens)
+  if (normalizedModel !== model) {
+    console.warn(`Model ${model} (normalized to ${normalizedModel}) not found in ai_model_pricing, using legacy costs`)
+  } else {
+    console.warn(`Model ${model} not found in ai_model_pricing, using legacy costs`)
+  }
+  return calculateTokenCostLegacy(normalizedModel, inputTokens, outputTokens)
 }
 
 /**
@@ -268,9 +284,12 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
     const supabase = supabaseClient || await createServerClient()
     
     // Calculate accurate cost from ai_model_pricing table
+    // Normalize model name before storing and calculating costs
+    const normalizedModel = normalizeModelName(usage.model_used)
+    
     const accurateCostCents = await calculateAccurateTokenCost(
       supabase,
-      usage.model_used, 
+      normalizedModel, 
       usage.input_tokens || 0, 
       usage.output_tokens || 0,
       usage.metadata?.audio_seconds
@@ -301,7 +320,7 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
       .insert({
         user_id: usage.user_id,
         action_type: usage.action_type,
-        model_used: usage.model_used,
+        model_used: normalizedModel,
         tokens_used: effectiveTokens,
         calculated_cost_cents: accurateCostCents, // Accurate cost from ai_model_pricing
         input_tokens: usage.input_tokens || 0,

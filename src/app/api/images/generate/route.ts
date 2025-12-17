@@ -53,10 +53,19 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           )
         }
+        // Enhance prompt to explicitly exclude people and text
+        const enhancedPrompt = `${prompt}
+
+CRITICAL REQUIREMENTS:
+- NO people, faces, or human figures in the image
+- NO text, words, or letters in the image
+- Focus on objects, places, nature, symbols, and abstract visuals
+- Pure visual representation without any textual elements`
+        
         result = await generateImage({
           userId: user.id,
-          prompt,
-          size: size || '1600x1200',
+          prompt: enhancedPrompt,
+          size: size || '1792x1024', // Landscape format for vision boards
           quality: quality || 'standard',
           style: style || 'vivid',
           context: 'vision_board',

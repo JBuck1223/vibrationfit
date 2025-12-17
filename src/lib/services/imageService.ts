@@ -196,13 +196,19 @@ export async function generateVisionBoardImage({
 Category: ${category}
 Vision: ${visionText.substring(0, 500)}
 
-Style: Modern, aspirational, emotionally uplifting. Use vibrant colors and clear imagery that captures the essence of this vision. The image should feel like a beacon of possibility and achievement.`
+Style: Modern, aspirational, emotionally uplifting. Use vibrant colors and clear imagery that captures the essence of this vision. The image should feel like a beacon of possibility and achievement.
+
+CRITICAL REQUIREMENTS:
+- NO people, faces, or human figures in the image
+- NO text, words, or letters in the image
+- Focus on objects, places, nature, symbols, and abstract visuals
+- Pure visual representation without any textual elements`
 
   return generateImage({
     userId,
     prompt,
-    size: '1024x1024',
-    quality: 'standard', // HD for vision boards
+    size: '1792x1024', // Landscape format for vision boards
+    quality: 'standard',
     style,
     context: 'vision_board',
   })

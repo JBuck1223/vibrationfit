@@ -20,9 +20,9 @@ export interface AIToolConfig {
   max_tokens_param: 'max_tokens' | 'max_completion_tokens'
   token_multiplier: number
   context_window: number
-  // Pricing
-  input_price_per_1k: number
-  output_price_per_1k: number
+  // Pricing (per 1M tokens)
+  input_price_per_1m: number
+  output_price_per_1m: number
 }
 
 /**
@@ -103,8 +103,8 @@ export function estimateCost(
   estimatedInputTokens: number,
   estimatedOutputTokens: number
 ): number {
-  const inputCost = (estimatedInputTokens / 1000) * config.input_price_per_1k
-  const outputCost = (estimatedOutputTokens / 1000) * config.output_price_per_1k
+  const inputCost = (estimatedInputTokens / 1000000) * config.input_price_per_1m
+  const outputCost = (estimatedOutputTokens / 1000000) * config.output_price_per_1m
   return Math.round((inputCost + outputCost) * 100) // Return cents
 }
 

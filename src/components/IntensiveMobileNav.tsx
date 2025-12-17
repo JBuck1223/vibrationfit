@@ -9,7 +9,6 @@ import {
   ClipboardCheck,
   Sparkles,
   CheckCircle2,
-  Circle,
   Lock
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -39,21 +38,13 @@ export function IntensiveMobileNav() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: intensive } = await supabase
-        .from('intensive_purchases')
-        .select('*')
-        .eq('user_id', user.id)
-        .in('completion_status', ['pending', 'in_progress'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!intensive) return
-
       const { data: checklist } = await supabase
         .from('intensive_checklist')
         .select('*')
-        .eq('intensive_id', intensive.id)
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
 
       if (!checklist) return

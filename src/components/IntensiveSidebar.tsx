@@ -9,6 +9,12 @@ import {
   User,
   ClipboardCheck,
   Sparkles,
+  Wand2,
+  Music,
+  ImageIcon,
+  BookOpen,
+  Calendar,
+  Rocket,
   Menu,
   X,
   ChevronRight,
@@ -43,21 +49,13 @@ export function IntensiveSidebar() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: intensive } = await supabase
-        .from('intensive_purchases')
-        .select('*')
-        .eq('user_id', user.id)
-        .in('completion_status', ['pending', 'in_progress'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!intensive) return
-
       const { data: checklist } = await supabase
         .from('intensive_checklist')
         .select('*')
-        .eq('intensive_id', intensive.id)
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
 
       if (!checklist) return
@@ -73,7 +71,7 @@ export function IntensiveSidebar() {
         },
         { 
           id: 'profile', 
-          title: 'Complete Profile', 
+          title: 'Profile (70%+)', 
           href: '/profile/active/edit', 
           icon: User,
           completed: !!checklist.profile_completed,
@@ -81,7 +79,7 @@ export function IntensiveSidebar() {
         },
         { 
           id: 'assessment', 
-          title: 'Take Assessment', 
+          title: 'Assessment', 
           href: '/assessment', 
           icon: ClipboardCheck,
           completed: !!checklist.assessment_completed,
@@ -89,11 +87,59 @@ export function IntensiveSidebar() {
         },
         { 
           id: 'vision', 
-          title: 'Build Vision', 
+          title: 'Life Vision', 
           href: '/vision/build', 
           icon: Sparkles,
           completed: !!checklist.vision_built,
           locked: !checklist.assessment_completed 
+        },
+        { 
+          id: 'refine', 
+          title: 'Refinement', 
+          href: '/life-vision', 
+          icon: Wand2,
+          completed: !!checklist.vision_refined,
+          locked: !checklist.vision_built 
+        },
+        { 
+          id: 'audio', 
+          title: 'Vision Audios', 
+          href: '/life-vision', 
+          icon: Music,
+          completed: !!checklist.audio_generated,
+          locked: !checklist.vision_refined 
+        },
+        { 
+          id: 'vision_board', 
+          title: 'Vision Board', 
+          href: '/vision-board', 
+          icon: ImageIcon,
+          completed: !!checklist.vision_board_completed,
+          locked: !checklist.audio_generated 
+        },
+        { 
+          id: 'journal', 
+          title: 'Journal Entries', 
+          href: '/journal', 
+          icon: BookOpen,
+          completed: !!checklist.first_journal_entry,
+          locked: !checklist.vision_board_completed 
+        },
+        { 
+          id: 'call', 
+          title: 'Calibration Call', 
+          href: '/intensive/schedule-call', 
+          icon: Calendar,
+          completed: !!checklist.call_scheduled,
+          locked: !checklist.first_journal_entry 
+        },
+        { 
+          id: 'activation', 
+          title: 'Activation Protocol', 
+          href: '/intensive/activation-protocol', 
+          icon: Rocket,
+          completed: !!checklist.activation_protocol_completed,
+          locked: !checklist.calibration_call_completed 
         },
       ]
 

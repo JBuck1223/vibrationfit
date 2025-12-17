@@ -22,9 +22,12 @@ interface VisionSuggestion {
   suggestions: {
     name: string
     description: string
+    wasAdded?: boolean // Track if this specific suggestion was added to board
   }[]
   generatedAt?: string
   ideaId?: string
+  itemsCreated?: number // Total items created from this idea generation
+  createdItemIds?: string[] // IDs of created items
 }
 
 export default function VisionBoardIdeasPage() {
@@ -74,41 +77,84 @@ export default function VisionBoardIdeasPage() {
       }
 
       if (existingIdeas && existingIdeas.length > 0) {
+        // Fetch created items to check which suggestions were already added
+        const { data: createdItems } = await supabase
+          .from('vision_board_items')
+          .select('id, name, description')
+          .eq('user_id', user.id)
+
         // Convert DB format to component format
         const suggestions: VisionSuggestion[] = []
         const categoriesWithSuggestions = new Set<string>()
+        const categoryMap = new Map<string, VisionSuggestion>() // Track latest per category
 
         existingIdeas.forEach((idea) => {
+          const createdIds = idea.created_item_ids || []
+          const itemsCreated = idea.items_created || 0
+
           if (idea.category === 'all') {
             // Full generation - parse all categories from suggestions
             const suggestionsArray = idea.suggestions as any[]
             suggestionsArray.forEach((catSuggestion: any) => {
-              suggestions.push({
-                category: catSuggestion.category,
-                categoryLabel: catSuggestion.categoryLabel,
-                suggestions: catSuggestion.suggestions || [],
-                generatedAt: idea.generated_at,
-                ideaId: idea.id,
-              })
-              categoriesWithSuggestions.add(catSuggestion.category)
+              const categoryKey = catSuggestion.category
+              const existing = categoryMap.get(categoryKey)
+              
+              // Only keep this if it's newer than existing, or if no existing
+              if (!existing || new Date(idea.generated_at) > new Date(existing.generatedAt || '')) {
+                // Mark suggestions that were already added
+                const enhancedSuggestions = catSuggestion.suggestions.map((sugg: any) => ({
+                  ...sugg,
+                  wasAdded: createdItems?.some(item => 
+                    item.name === sugg.name && item.description === sugg.description
+                  ) || false
+                }))
+
+                categoryMap.set(categoryKey, {
+                  category: catSuggestion.category,
+                  categoryLabel: catSuggestion.categoryLabel,
+                  suggestions: enhancedSuggestions || [],
+                  generatedAt: idea.generated_at,
+                  ideaId: idea.id,
+                  itemsCreated,
+                  createdItemIds: createdIds,
+                })
+              }
+              categoriesWithSuggestions.add(categoryKey)
             })
           } else {
             // Single category generation
             const category = VISION_CATEGORIES.find(c => c.key === idea.category)
             if (category) {
-              suggestions.push({
-                category: idea.category,
-                categoryLabel: category.label,
-                suggestions: idea.suggestions as any[] || [],
-                generatedAt: idea.generated_at,
-                ideaId: idea.id,
-              })
-              categoriesWithSuggestions.add(idea.category)
+              const categoryKey = idea.category
+              const existing = categoryMap.get(categoryKey)
+              
+              // Only keep this if it's newer than existing, or if no existing
+              if (!existing || new Date(idea.generated_at) > new Date(existing.generatedAt || '')) {
+                // Mark suggestions that were already added
+                const enhancedSuggestions = (idea.suggestions as any[] || []).map((sugg: any) => ({
+                  ...sugg,
+                  wasAdded: createdItems?.some(item => 
+                    item.name === sugg.name && item.description === sugg.description
+                  ) || false
+                }))
+
+                categoryMap.set(categoryKey, {
+                  category: idea.category,
+                  categoryLabel: category.label,
+                  suggestions: enhancedSuggestions || [],
+                  generatedAt: idea.generated_at,
+                  ideaId: idea.id,
+                  itemsCreated,
+                  createdItemIds: createdIds,
+                })
+              }
+              categoriesWithSuggestions.add(categoryKey)
             }
           }
         })
 
-        setVisionSuggestions(suggestions)
+        // Convert map to array
+        setVisionSuggestions(Array.from(categoryMap.values()))
         setExistingCategorySuggestions(categoriesWithSuggestions)
         setHasGenerated(true)
       }
@@ -224,7 +270,10 @@ export default function VisionBoardIdeasPage() {
     )
   }
 
-  const toggleSelection = (category: string, index: number) => {
+  const toggleSelection = (category: string, index: number, wasAdded: boolean = false) => {
+    // Don't allow selecting items that were already added
+    if (wasAdded) return
+
     const key = `${category}-${index}`
     const newSelected = new Set(selectedItems)
     
@@ -243,7 +292,7 @@ export default function VisionBoardIdeasPage() {
       return
     }
 
-    // Collect selected suggestions
+    // Collect selected suggestions (skip already added items)
     const itemsToCreate: Array<{
       name: string
       description: string
@@ -254,7 +303,8 @@ export default function VisionBoardIdeasPage() {
     visionSuggestions.forEach((categoryData) => {
       categoryData.suggestions.forEach((suggestion, index) => {
         const key = `${categoryData.category}-${index}`
-        if (selectedItems.has(key)) {
+        // Only include if selected and not already added
+        if (selectedItems.has(key) && !suggestion.wasAdded) {
           itemsToCreate.push({
             name: suggestion.name,
             description: suggestion.description,
@@ -310,13 +360,18 @@ export default function VisionBoardIdeasPage() {
         {visionSuggestions.map((categoryData) => (
           <Card key={categoryData.category} className="p-6">
             <Stack gap="md">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <h3 className="text-xl font-semibold text-white">
                   {categoryData.categoryLabel}
                 </h3>
                 <Badge variant="info">
                   {categoryData.suggestions.length} ideas
                 </Badge>
+                {categoryData.itemsCreated && categoryData.itemsCreated > 0 && (
+                  <Badge variant="success">
+                    {categoryData.itemsCreated} added to board
+                  </Badge>
+                )}
                 {categoryData.generatedAt && (
                   <Badge variant="neutral" className="text-xs">
                     {new Date(categoryData.generatedAt).toLocaleDateString()}
@@ -328,33 +383,49 @@ export default function VisionBoardIdeasPage() {
                 {categoryData.suggestions.map((suggestion, index) => {
                   const key = `${categoryData.category}-${index}`
                   const isSelected = selectedItems.has(key)
+                  const wasAdded = suggestion.wasAdded || false
 
                   return (
                     <div
                       key={key}
-                      onClick={() => toggleSelection(categoryData.category, index)}
+                      onClick={() => toggleSelection(categoryData.category, index, wasAdded)}
                       className={`
-                        p-4 rounded-lg border-2 cursor-pointer transition-all
-                        ${isSelected 
-                          ? 'border-primary-500 bg-primary-500/10' 
-                          : 'border-neutral-700 hover:border-neutral-600 bg-neutral-800/50'
+                        p-4 rounded-lg border-2 transition-all
+                        ${wasAdded 
+                          ? 'border-neutral-700 bg-neutral-800/30 opacity-60 cursor-not-allowed' 
+                          : isSelected 
+                            ? 'border-primary-500 bg-primary-500/10 cursor-pointer' 
+                            : 'border-neutral-700 hover:border-neutral-600 bg-neutral-800/50 cursor-pointer'
                         }
                       `}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`
-                          w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5
-                          ${isSelected 
-                            ? 'border-primary-500 bg-primary-500' 
-                            : 'border-neutral-600'
-                          }
-                        `}>
-                          {isSelected && <Check className="w-4 h-4 text-white" />}
-                        </div>
+                        {wasAdded ? (
+                          <div className="w-6 h-6 rounded-md border-2 border-primary-500 bg-primary-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        ) : (
+                          <div className={`
+                            w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5
+                            ${isSelected 
+                              ? 'border-primary-500 bg-primary-500' 
+                              : 'border-neutral-600'
+                            }
+                          `}>
+                            {isSelected && <Check className="w-4 h-4 text-white" />}
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-base font-semibold text-white mb-1">
-                            {suggestion.name}
-                          </h4>
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h4 className="text-base font-semibold text-white">
+                              {suggestion.name}
+                            </h4>
+                            {wasAdded && (
+                              <Badge variant="success" className="text-xs flex-shrink-0">
+                                ✓ Added
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-neutral-300 leading-relaxed">
                             {suggestion.description}
                           </p>
