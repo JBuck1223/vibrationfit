@@ -403,7 +403,7 @@ export default function IntensiveDashboard() {
   }
 
   // STATE 1: Not Started Yet
-  if (!checklist.started_at) {
+  if (!intensive.started_at) {
     return <IntensiveWelcomeScreen onStart={handleStart} />
   }
 
