@@ -28,3 +28,6 @@ CHECK (
 
 COMMENT ON COLUMN public.audio_variants.background_track IS 'Full URL to the background music track (e.g., https://media.vibrationfit.com/site-assets/audio/mixing-tracks/Ocean-Waves-1.mp3)';
 
+
+
+

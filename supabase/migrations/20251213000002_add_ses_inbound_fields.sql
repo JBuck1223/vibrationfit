@@ -16,3 +16,6 @@ COMMENT ON COLUMN email_messages.ses_message_id IS 'AWS SES Message ID for track
 COMMENT ON COLUMN email_messages.guest_email IS 'Email address for non-registered users (for guest support tickets)';
 COMMENT ON COLUMN email_messages.is_reply IS 'Whether this email is a reply to a support ticket';
 
+
+
+

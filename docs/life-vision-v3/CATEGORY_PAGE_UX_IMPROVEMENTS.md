@@ -215,3 +215,6 @@ Both requested improvements have been successfully implemented:
 
 The changes improve user control and progress visibility while maintaining the existing design system and functionality.
 
+
+
+

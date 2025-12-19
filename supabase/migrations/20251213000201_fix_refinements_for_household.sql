@@ -65,3 +65,6 @@ $$;
 COMMENT ON FUNCTION public.get_user_total_refinements(p_user_id uuid) IS 
   'Returns the total sum of all category refinements across personal AND household vision versions for a user. Each refined category in each version counts separately.';
 
+
+
+

@@ -232,3 +232,6 @@ const initialPrompt = isStartSessionMessage
 ---
 
 **All VIVA interactions now require explicit user action! 🎉**
+
+
+

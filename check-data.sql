@@ -24,3 +24,6 @@ FROM vision_versions
 WHERE household_id IS NULL  -- Personal visions
 ORDER BY created_at DESC;
 
+
+
+

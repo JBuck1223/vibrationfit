@@ -195,6 +195,19 @@ export default function VibrationalEventSourcesAdminPage() {
       return
     }
 
+    // Check for duplicate source_key when creating a new source
+    // Allow customizing default sources (which creates a database entry with the same key)
+    if (form.origin === 'new') {
+      const existingDatabaseSource = sources.find(
+        s => s.source_key === payload.source_key && s.origin === 'database'
+      )
+      if (existingDatabaseSource) {
+        setError(`A custom source with key "${payload.source_key}" already exists. Please use a unique source_key or edit the existing one.`)
+        setSaving(false)
+        return
+      }
+    }
+
     try {
       let response: Response
 
@@ -391,12 +404,18 @@ export default function VibrationalEventSourcesAdminPage() {
 
               <div className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Source Key"
-                    placeholder="scene"
-                    value={form.source_key}
-                    onChange={(event) => setForm((prev) => ({ ...prev, source_key: event.target.value }))}
-                  />
+                  <div>
+                    <Input
+                      label="Source Key"
+                      placeholder="scene"
+                      value={form.source_key}
+                      onChange={(event) => setForm((prev) => ({ ...prev, source_key: event.target.value }))}
+                      disabled={form.origin === 'database' && !form.id?.startsWith('default-')}
+                    />
+                    <p className="text-xs text-neutral-500 mt-2">
+                      Unique identifier for this source. Check the list on the left to avoid duplicates.
+                    </p>
+                  </div>
                   <Input
                     label="Label"
                     placeholder="Scene Builder"

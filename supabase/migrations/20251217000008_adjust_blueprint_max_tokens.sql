@@ -22,3 +22,6 @@ END $$;
 COMMENT ON TABLE ai_tools IS 
   'Blueprint generation now uses 8000 max_tokens (safe for gpt-4o which has 16384 limit). With token_multiplier=1.25, actual request will be 10000 tokens.';
 
+
+
+

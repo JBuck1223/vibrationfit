@@ -35,3 +35,6 @@ ALTER TABLE token_usage ADD CONSTRAINT token_usage_action_type_check CHECK (
 COMMENT ON CONSTRAINT token_usage_action_type_check ON token_usage IS 
   'Ensures action_type matches one of the supported AI action types';
 
+
+
+

@@ -134,6 +134,16 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
     { name: 'label', type: 'string', required: false, description: 'Custom label text' },
   ],
 
+  'viva-loading-overlay': [
+    { name: 'isVisible', type: 'boolean', required: true, description: 'Controls overlay visibility' },
+    { name: 'messages', type: 'string[]', required: false, defaultValue: '["VIVA is bringing your vision to life...", ...]', description: 'Array of messages to cycle through' },
+    { name: 'cycleDuration', type: 'number', required: false, defaultValue: '3000', description: 'Milliseconds between message changes' },
+    { name: 'estimatedTime', type: 'string', required: false, defaultValue: '"This usually takes 15-30 seconds"', description: 'Time estimate shown to user' },
+    { name: 'showProgressBar', type: 'boolean', required: false, defaultValue: 'true', description: 'Whether to show the gradient progress bar' },
+    { name: 'size', type: "'sm' | 'md' | 'lg'", required: false, defaultValue: "'lg'", description: 'Size of spinner and text' },
+    { name: 'className', type: 'string', required: false, description: 'Additional CSS classes' },
+  ],
+
   'modal': [
     { name: 'isOpen', type: 'boolean', required: true, description: 'Control modal visibility' },
     { name: 'onClose', type: '() => void', required: true, description: 'Function to close modal' },

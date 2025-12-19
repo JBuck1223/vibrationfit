@@ -37,3 +37,6 @@ INCORRECT (too verbose, includes people):
 Focus on objects, places, nature, symbols, and abstract visuals that represent their vision WITHOUT people in the scene.'
 WHERE tool_key = 'vision_board_ideas';
 
+
+
+

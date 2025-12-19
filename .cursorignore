@@ -1,0 +1,53 @@
+# Cursor Cost Optimization - Exclude large/unnecessary files from indexing
+
+# Large generated documentation
+docs/generated/
+docs/archived/
+
+# Archive folders
+supabase/archive/
+scripts/archive/
+
+# Temporary files
+temp/
+*.dump
+backup_*.sql
+check-*.sql
+grant-*.sql
+rollback-*.sql
+
+# Large node_modules documentation (already gitignored, but ensure Cursor ignores)
+node_modules/**/*.md
+node_modules/**/CHANGELOG.md
+node_modules/**/README.md
+
+# Lambda artifacts (large binary files)
+lambda-layers/
+lambda-video-processor/
+
+# Build artifacts
+.next/
+out/
+build/
+coverage/
+
+# Database dumps
+*.dump
+backup_*.sql
+
+# Status/complete docs in root (should be moved or deleted)
+*_COMPLETE.md
+*_FIX.md
+*_FIXES.md
+*_STATUS.md
+*_SUMMARY.md
+*_TRACKING_COMPLETE.md
+
+# Large implementation docs (should be in docs/features/)
+*_IMPLEMENTATION.md
+*_GUIDE.md
+
+# Test files
+TEST_*.md
+test-*.md
+

@@ -21,6 +21,19 @@ export default function ImaginationPage() {
   const [freeFlowText, setFreeFlowText] = useState('')
   const [inspirationQuestions, setInspirationQuestions] = useState<string[]>([])
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
+  
+  // Track completion of individual steps
+  const [completedSteps, setCompletedSteps] = useState<{
+    clarity: boolean
+    imagination: boolean
+    blueprint: boolean
+    scenes: boolean
+  }>({
+    clarity: false,
+    imagination: false,
+    blueprint: false,
+    scenes: false
+  })
 
   const category = getVisionCategory(categoryKey)
   const IconComponent = category?.icon
@@ -73,10 +86,10 @@ export default function ImaginationPage() {
       const filteredQuestions = getFilteredQuestionsForCategory(categoryKey, profile || {})
       setInspirationQuestions(filteredQuestions.map(q => q.text))
 
-      // Load existing ideal_state text if any
+      // Load existing data for all steps from life_vision_category_state table
       const { data: categoryState } = await supabase
         .from('life_vision_category_state')
-        .select('ideal_state')
+        .select('ai_summary, ideal_state, blueprint_data')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
@@ -96,6 +109,22 @@ export default function ImaginationPage() {
           setFreeFlowText(categoryState.ideal_state)
         }
       }
+      
+      // Check for existing scenes for this category
+      const { data: existingScenes } = await supabase
+        .from('scenes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('category', categoryKey)
+        .limit(1)
+      
+      // Set step completion status based on actual data
+      setCompletedSteps({
+        clarity: !!(categoryState?.ai_summary && categoryState.ai_summary.trim().length > 0),
+        imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0),
+        blueprint: !!(categoryState?.blueprint_data && Object.keys(categoryState.blueprint_data).length > 0),
+        scenes: !!(existingScenes && existingScenes.length > 0)
+      })
       
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
@@ -185,9 +214,12 @@ export default function ImaginationPage() {
             <div className="flex items-center gap-2 md:gap-3">
               {/* Steps */}
               {categorySteps.map((step, index) => {
-                const isCompleted = index < currentStepIndex
+                // Check actual completion status from database
+                const stepKey = step.key as keyof typeof completedSteps
+                const isCompleted = completedSteps[stepKey]
                 const isCurrent = index === currentStepIndex
-                const isClickable = index <= currentStepIndex
+                // Step is clickable if it's completed, current, or the next step after last completed
+                const isClickable = isCompleted || isCurrent || index <= currentStepIndex
 
                 return (
                   <button

@@ -3,46 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
-import { Card, Button, Spinner, Badge, Container, Stack, PageHero } from '@/lib/design-system/components'
-import { Sparkles, CheckCircle, Download, ArrowRight, BarChart3 } from 'lucide-react'
-
-function VIVAActionCard({ stage, className = '' }: { stage: string, className?: string }) {
-  const stageData = {
-    'assembling': {
-      title: 'Assembling your master vision',
-      description: 'VIVA is weaving together all 12 categories...',
-      icon: Sparkles
-    },
-    'synthesizing': {
-      title: 'Synthesizing vibrational alignment',
-      description: 'Creating a unified life vision in your voice...',
-      icon: Sparkles
-    },
-    'crafting': {
-      title: 'Crafting final document',
-      description: 'Polishing your complete Life Vision Document...',
-      icon: Sparkles
-    }
-  }
-
-  const data = stageData[stage as keyof typeof stageData] || stageData.assembling
-  const Icon = data.icon
-
-  return (
-    <Card className={`${className} border-2 border-primary-500/50 bg-primary-500/10`}>
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center">
-          <Icon className="w-6 h-6 text-primary-500 animate-pulse" />
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-1">{data.title}</h3>
-          <p className="text-sm text-neutral-400">{data.description}</p>
-        </div>
-      </div>
-    </Card>
-  )
-}
+import { Card, Button, Spinner, Badge, Container, Stack, PageHero, VIVALoadingOverlay } from '@/lib/design-system/components'
+import { Sparkles, CheckCircle, ArrowRight } from 'lucide-react'
 
 export default function AssemblyPage() {
   const router = useRouter()
@@ -51,10 +13,10 @@ export default function AssemblyPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [vivaStage, setVivaStage] = useState('')
+  const [vivaProgress, setVivaProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [masterVision, setMasterVision] = useState<{ markdown: string, json: any, richnessMetadata?: any } | null>(null)
+  const [masterVision, setMasterVision] = useState<{ markdown: string, json: any } | null>(null)
   const [visionId, setVisionId] = useState<string | null>(null)
-  const [showRichnessStats, setShowRichnessStats] = useState(true)
 
   useEffect(() => {
     checkComplete()
@@ -87,6 +49,7 @@ export default function AssemblyPage() {
 
   const handleAssembleVision = async () => {
     setIsProcessing(true)
+    setVivaProgress(0)
     setVivaStage('assembling')
     setError(null)
 
@@ -100,15 +63,55 @@ export default function AssemblyPage() {
         .select('*')
         .eq('user_id', user.id)
 
+      // Extract all rich data from the new flow
       const categorySummaries: Record<string, string> = {}
+      const categoryIdealStates: Record<string, string> = {}
+      const categoryBlueprints: Record<string, any> = {}
       const categoryTranscripts: Record<string, string> = {}
+      
       categoryStates?.forEach(cs => {
+        // Step 1: Clarity (AI summary)
         if (cs.ai_summary) {
           categorySummaries[cs.category] = cs.ai_summary
         }
+        // Step 2: Imagination (USER'S OWN WORDS - PRIMARY SOURCE!)
+        if (cs.ideal_state && cs.ideal_state.trim().length > 0) {
+          categoryIdealStates[cs.category] = cs.ideal_state
+        }
+        // Step 3: Blueprint (Being/Doing/Receiving loops)
+        if (cs.blueprint_data) {
+          try {
+            categoryBlueprints[cs.category] = typeof cs.blueprint_data === 'string' 
+              ? JSON.parse(cs.blueprint_data) 
+              : cs.blueprint_data
+          } catch (e) {
+            console.error(`Failed to parse blueprint for ${cs.category}:`, e)
+          }
+        }
+        // Legacy: Original transcripts (if available)
         if (cs.transcript && cs.transcript.trim().length > 0) {
           categoryTranscripts[cs.category] = cs.transcript
         }
+      })
+
+      // Step 4: Get Scenes for each category
+      const { data: allScenes } = await supabase
+        .from('scenes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('category', { ascending: true })
+        .order('created_at', { ascending: true })
+
+      const categoryScenes: Record<string, any[]> = {}
+      allScenes?.forEach(scene => {
+        if (!categoryScenes[scene.category]) {
+          categoryScenes[scene.category] = []
+        }
+        categoryScenes[scene.category].push({
+          title: scene.title,
+          text: scene.text,
+          essence_word: scene.essence_word
+        })
       })
 
       // Cycle through stages
@@ -175,15 +178,28 @@ export default function AssemblyPage() {
         console.log('No active vision available')
       }
 
+      // DEBUG: Log what data we're sending
+      console.log('=== ASSEMBLY DATA DEBUG ===')
+      console.log('categorySummaries:', Object.keys(categorySummaries))
+      console.log('categoryIdealStates:', Object.keys(categoryIdealStates))
+      console.log('categoryBlueprints:', Object.keys(categoryBlueprints))
+      console.log('categoryScenes:', Object.keys(categoryScenes))
+      console.log('Sample idealState (fun):', categoryIdealStates['fun']?.substring(0, 100))
+      console.log('Sample blueprint (fun):', categoryBlueprints['fun'])
+      console.log('Sample scenes (fun):', categoryScenes['fun'])
+      
       const response = await fetch('/api/viva/master-vision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          categorySummaries,
-          categoryTranscripts,
+          categorySummaries,      // Step 1: Clarity (AI summary)
+          categoryIdealStates,    // Step 2: Imagination (USER'S WORDS - PRIMARY!)
+          categoryBlueprints,     // Step 3: Being/Doing/Receiving loops
+          categoryScenes,         // Step 4: Visualization scenes
+          categoryTranscripts,    // Legacy: Original transcripts
           profile: profileData,
           assessment: assessmentData,
-          activeVision: activeVision // Pass active vision to API
+          activeVision: activeVision
         })
       })
 
@@ -193,45 +209,28 @@ export default function AssemblyPage() {
 
       const data = await response.json()
 
-      if (data.markdown && data.json) {
+      // V5: Check for visionId (vision is created server-side) - this is the key indicator of success
+      if (data.visionId && data.json) {
+        // Slide progress to 100%
+        setVivaProgress(100)
+        
         setMasterVision({ 
-          markdown: data.markdown, 
-          json: data.json,
-          richnessMetadata: data.richnessMetadata // V3: Store richness metadata
+          markdown: data.markdown || '', // May be empty if AI returned pure JSON
+          json: data.json
         })
         
-        // Save to vision_versions
-        // Map API response fields to database columns (API may still use old names for backwards compat)
-        const { data: insertedVision } = await supabase
-          .from('vision_versions')
-          .insert({
-            user_id: user.id,
-            title: 'Life Vision Draft',
-            forward: data.json.forward || '',
-            fun: data.json.fun || '',
-            travel: data.json.travel || '',
-            home: data.json.home || '',
-            family: data.json.family || '',
-            love: data.json.love || data.json[assessmentToVisionKey('romance')] || '', // Support both old and new
-            health: data.json.health || '',
-            money: data.json.money || '',
-            work: data.json.work || data.json[assessmentToVisionKey('business')] || '', // Support both old and new
-            social: data.json.social || '',
-            stuff: data.json.stuff || data.json[assessmentToVisionKey('possessions')] || '', // Support both old and new
-            giving: data.json.giving || '',
-            spirituality: data.json.spirituality || '',
-            conclusion: '',
-            is_draft: true,  // V3: Mark as draft until final sections are added
-            is_active: false, // V3: Not active until finalized
-            richness_metadata: data.richnessMetadata || {}, // V3: Save richness metadata
-            perspective: 'singular'
-          })
-          .select()
-          .single()
-
-        if (insertedVision) {
-          setVisionId(insertedVision.id)
-        }
+        setVisionId(data.visionId)
+        console.log('[Assembly] Vision created by API:', data.visionId)
+        
+        // Wait briefly to show 100% completion, then hide overlay
+        await new Promise(resolve => setTimeout(resolve, 600))
+      } else {
+        console.error('[Assembly] Missing required data:', { 
+          hasVisionId: !!data.visionId, 
+          hasJson: !!data.json,
+          error: data.error 
+        })
+        throw new Error(data.error || 'Failed to create vision - missing visionId or json')
       }
 
       setVivaStage('')
@@ -240,24 +239,13 @@ export default function AssemblyPage() {
       setError(err instanceof Error ? err.message : 'Failed to assemble vision')
     } finally {
       setIsProcessing(false)
+      setVivaProgress(0)
     }
   }
 
   const handleViewVision = () => {
     if (visionId) {
       router.push(`/life-vision/${visionId}`)
-    }
-  }
-
-  const handleDownload = () => {
-    if (masterVision?.markdown) {
-      const element = document.createElement('a')
-      const file = new Blob([masterVision.markdown], { type: 'text/markdown' })
-      element.href = URL.createObjectURL(file)
-      element.download = 'my-life-vision.md'
-      document.body.appendChild(element)
-      element.click()
-      document.body.removeChild(element)
     }
   }
 
@@ -270,19 +258,28 @@ export default function AssemblyPage() {
           title="Your Life Vision is Ready"
           subtitle="VIVA has synthesized your reflections across all life areas into a unified, activation-ready vision."
         >
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-3xl">
-            <Sparkles className="w-10 h-10 text-white" />
+          <div className="flex justify-center">
+            <Badge variant="success">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              12 of 12 Categories Complete
+            </Badge>
           </div>
-          <Badge variant="success">
-            <CheckCircle className="w-4 h-4 mr-2" />
-            12 of 12 Categories Complete
-          </Badge>
         </PageHero>
 
-        {/* Processing State */}
-        {isProcessing && (
-          <VIVAActionCard stage={vivaStage} />
-        )}
+        {/* VIVA Processing Overlay */}
+        <VIVALoadingOverlay
+          isVisible={isProcessing}
+          messages={[
+            "VIVA is assembling your complete vision...",
+            "Weaving together all 12 life categories...",
+            "Creating unified vibrational alignment...",
+            "Polishing your master vision document..."
+          ]}
+          cycleDuration={4000}
+          estimatedTime="Usually takes 30-45 seconds"
+          estimatedDuration={37500}
+          progress={vivaProgress}
+        />
 
         {/* Ready to Assemble */}
         {!masterVision && !isProcessing && !isLoading && (
@@ -297,129 +294,49 @@ export default function AssemblyPage() {
                 </p>
               </div>
 
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={handleAssembleVision}
-                className="w-full"
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
-                Assemble Master Vision
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Richness Stats (V3) */}
-        {masterVision && masterVision.richnessMetadata && showRichnessStats && (
-          <Card className="mb-6 md:mb-8 p-4 md:p-6 border-2 border-primary-500/30 bg-primary-500/5">
-            <div className="flex items-center justify-between mb-4 md:mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-primary-500" />
-                </div>
-                <div>
-                  <h3 className="text-base md:text-lg font-bold text-white">Input Richness Analysis</h3>
-                  <p className="text-xs md:text-sm text-neutral-400">How your vision scales with your input</p>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setShowRichnessStats(false)}>
-                Hide
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-              {Object.entries(masterVision.richnessMetadata).map(([category, data]: [string, any]) => {
-                const densityColor = 
-                  data.density === 'rich' ? 'text-primary-500' :
-                  data.density === 'moderate' ? 'text-[#FFB701]' :
-                  'text-neutral-500'
-                
-                const densityBg = 
-                  data.density === 'rich' ? 'bg-primary-500/10 border-primary-500/30' :
-                  data.density === 'moderate' ? 'bg-[#FFB701]/10 border-[#FFB701]/30' :
-                  'bg-neutral-800/50 border-neutral-700/30'
-
-                return (
-                  <Card key={category} className={`p-3 md:p-4 border ${densityBg}`}>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm md:text-base font-semibold text-white capitalize">{category}</h4>
-                        <Badge variant="neutral" className={`text-xs ${densityColor}`}>
-                          {data.density}
-                        </Badge>
-                      </div>
-                      <div className="space-y-1 text-xs md:text-sm">
-                        <div className="flex justify-between text-neutral-400">
-                          <span>Input:</span>
-                          <span className="text-white">{data.inputChars} chars</span>
-                        </div>
-                        <div className="flex justify-between text-neutral-400">
-                          <span>Ideas:</span>
-                          <span className="text-white">{data.distinctIdeas}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                )
-              })}
-            </div>
-
-            <div className="mt-4 md:mt-6 p-3 md:p-4 bg-black/30 rounded-lg border border-primary-500/20">
-              <p className="text-xs md:text-sm text-neutral-300 leading-relaxed">
-                <strong className="text-primary-500">V3 Intelligence:</strong> Your vision sections automatically scale to match your input richness. 
-                Rich input = longer, detailed sections. Sparse input = concise, focused sections. No compression, no fluff.
-              </p>
-            </div>
-          </Card>
-        )}
-
-        {/* Master Vision Display */}
-        {masterVision && !isProcessing && (
-          <Card className="mb-6 md:mb-8 p-4 md:p-6 lg:p-8">
-            <div>
-              <div className="flex items-center justify-between mb-4 md:mb-6">
-                <div className="flex items-center gap-3 md:gap-4">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg md:text-2xl font-bold text-white">Your Master Vision</h2>
-                    <p className="text-xs md:text-sm text-neutral-400">A unified Life Vision Document</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="prose prose-invert max-w-none mb-6 md:mb-8 bg-neutral-800 rounded-lg p-4 md:p-6 max-h-96 overflow-y-auto">
-                <div className="text-sm md:text-base" dangerouslySetInnerHTML={{ __html: masterVision.markdown }} />
-              </div>
-
-              <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDownload}
-                  className="flex-1"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleViewVision}
-                  className="flex-1"
-                >
-                  View Full Vision
-                </Button>
+              <div className="flex justify-center">
                 <Button
                   variant="primary"
-                  size="sm"
-                  onClick={() => router.push('/life-vision/new/final')}
-                  className="flex-1"
+                  size="lg"
+                  onClick={handleAssembleVision}
                 >
-                  Continue to Final
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Assemble Master Vision
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+
+        {/* Success Confirmation */}
+        {masterVision && visionId && !isProcessing && (
+          <Card className="mb-6 md:mb-8 p-6 md:p-8 lg:p-10 border-2 border-primary-500/30 bg-gradient-to-br from-primary-500/10 to-secondary-500/5">
+            <div className="text-center">
+              <div className="flex justify-center mb-6">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-primary-500 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                </div>
+              </div>
+              
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+                Your Life Vision is Complete!
+              </h2>
+              
+              <p className="text-base md:text-lg text-neutral-300 mb-8 max-w-2xl mx-auto">
+                VIVA has assembled your complete Life Vision Document with all 12 categories, 
+                personalized bookends, and activation guidance. Your vision is now active and ready to use.
+              </p>
+
+              <div className="flex justify-center">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={handleViewVision}
+                  className="min-w-[200px]"
+                >
+                  See My Vision
+                  <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </div>
             </div>

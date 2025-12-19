@@ -125,3 +125,6 @@ COMMENT ON FUNCTION public.get_user_total_refinements(p_user_id uuid) IS
 COMMENT ON COLUMN vision_versions.household_id IS 
   'NULL = personal vision. Set = household vision (all household members can access).';
 
+
+
+

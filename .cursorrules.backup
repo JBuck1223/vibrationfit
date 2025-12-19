@@ -1,0 +1,597 @@
+# VibrationFit Project Rules
+
+## 🔒 FEATURE REGISTRY (READ THIS FIRST!)
+
+**CRITICAL:** Before modifying ANY feature, check `FEATURE_REGISTRY.md` in the project root.
+
+| Status | Your Action |
+|--------|-------------|
+| 🔒 **LOCKED** | **DO NOT MODIFY** without explicit user permission. Feature is working in production. |
+| ✅ **STABLE** | Modify with extreme caution. Test thoroughly after any changes. |
+| 🚧 **IN PROGRESS** | Safe to modify. |
+| ⚠️ **NEEDS REVIEW** | Verify it works before relying on it. |
+
+**Before touching Life Vision, Token System, Design System, or Database Schema:**
+1. Read `FEATURE_REGISTRY.md` 
+2. Check feature status
+3. If 🔒 LOCKED, ask user for permission
+4. Document current behavior
+5. Create test plan
+6. Make changes incrementally
+7. Test ENTIRE feature (not just your change)
+8. Update version in registry
+
+---
+
+## 📁 File Organization (CRITICAL - READ FIRST)
+
+### Documentation Files
+**NEVER create documentation files in project root!** Always use the appropriate folder:
+
+| File Type | Location | Examples |
+|-----------|----------|----------|
+| **Database docs** | `supabase/` | Schema dumps, migration guides |
+| **Feature docs** | `docs/` | Implementation guides, expert guides |
+| **API docs** | `docs/api/` | API endpoint documentation |
+| **Design docs** | `docs/design/` | Design system, brand guidelines |
+| **Deployment docs** | `docs/deployment/` | Deployment checklists, strategies |
+| **Architecture docs** | `docs/architecture/` | System architecture, data flow |
+| **Project planning** | `docs/planning/` | Feature plans, roadmaps |
+
+### Database Files
+**ALL database-related files go in `supabase/`:**
+
+```
+supabase/
+├── COMPLETE_SCHEMA_DUMP.sql    ← Production schema dump (source of truth)
+├── CURRENT_SCHEMA.md           ← Human-readable schema docs
+├── MIGRATION_STRATEGY.md       ← Migration workflow guide
+├── migrations/                 ← Active migration files
+│   └── YYYYMMDDHHMMSS_description.sql
+└── archive/                    ← Archived/old files
+```
+
+**Reference for schema questions:**
+- ✅ `supabase/CURRENT_SCHEMA.md` (human-readable)
+- ✅ `supabase/COMPLETE_SCHEMA_DUMP.sql` (exact definitions)
+- ❌ DO NOT reference files in `supabase/archive/` (outdated)
+
+### Source Code Files
+**Application code structure:**
+
+```
+src/
+├── app/                        ← Next.js pages & API routes
+│   ├── api/                    ← API endpoints
+│   ├── (auth)/                 ← Auth-related pages
+│   ├── dashboard/              ← Dashboard pages
+│   └── life-vision/            ← Life vision features
+├── components/                 ← React components
+├── lib/                        ← Utility libraries
+│   ├── design-system/          ← Design system components
+│   ├── viva/                   ← VIVA AI system
+│   │   ├── prompts/            ← Centralized AI prompts
+│   │   └── ...
+│   ├── supabase/               ← Supabase client utilities
+│   └── ...
+└── hooks/                      ← React hooks
+```
+
+### Rules for Creating New Files
+
+**Documentation:**
+1. ❌ NEVER create `.md` files in project root
+2. ✅ ALWAYS place in appropriate `docs/` subfolder
+3. ✅ Update `docs/README.md` if creating new category
+4. ✅ ALWAYS add date header to guide docs (Last Updated: Month Day, Year)
+
+**Migrations:**
+1. ❌ NEVER create migration files outside `supabase/migrations/`
+2. ✅ Use timestamp format: `YYYYMMDDHHMMSS_description.sql`
+3. ✅ Create the migration file, then STOP - user will run it manually
+4. ⚠️ NEVER update `supabase/COMPLETE_SCHEMA_DUMP.sql` or `supabase/CURRENT_SCHEMA.md` automatically
+5. ℹ️ User will update schema docs after manually running the migration
+
+**AI Prompts:**
+1. ❌ NEVER embed prompts directly in API routes
+2. ✅ Centralize in `src/lib/viva/prompts/`
+3. ✅ Export through `src/lib/viva/prompts/index.ts`
+
+**Temporary/Debug Files:**
+1. ❌ NEVER commit debug files to root
+2. ✅ Use `temp/` folder (gitignored)
+3. ✅ One-off scripts go in `scripts/[category]/`
+4. ✅ Clean up after debugging
+
+**Utility Scripts:**
+1. ✅ Place in `scripts/database/`, `scripts/lambda/`, `scripts/video/`, etc.
+2. ✅ After running successfully, move to `scripts/archive/`
+3. ❌ NEVER commit large zip files (add to .gitignore)
+
+**AWS Deployment:**
+1. ❌ NEVER commit Lambda layers to git (use AWS deployment)
+2. ❌ NEVER commit Lambda functions (functions/) - deploy to AWS
+3. ❌ NEVER commit production data dumps (production-*.json)
+4. ✅ Place AWS configs in `scripts/aws/`
+5. ✅ Keep AWS scripts for deployment automation
+
+### Before Creating Any File, Ask:
+1. **Is this documentation?** → `docs/[category]/`
+2. **Is this database-related?** → `supabase/`
+3. **Is this a component?** → `src/components/`
+4. **Is this a utility?** → `src/lib/`
+5. **Is this a page?** → `src/app/`
+6. **Is this an API?** → `src/app/api/`
+
+### File Naming Conventions
+- **Components:** PascalCase (`UserProfile.tsx`)
+- **Utilities:** kebab-case (`text-metrics.ts`)
+- **API routes:** kebab-case (`route.ts` in folder)
+- **Docs:** SCREAMING_SNAKE_CASE or kebab-case (`MIGRATION_STRATEGY.md`)
+- **Migrations:** `YYYYMMDDHHMMSS_description.sql`
+
+---
+
+## 🎨 VibrationFit Design System Rules
+
+### Core Principle
+Always reference `vibrationfit-brand-kit.html` for design patterns and visual style. This is the single source of truth for VibrationFit's brand aesthetic.
+
+## Component Usage
+
+### Buttons
+**Import from:** `@/lib/design-system/components`
+
+#### Standard Buttons
+```tsx
+import { Button } from '@/lib/design-system/components'
+
+<Button variant="primary">Start Workout</Button>
+<Button variant="secondary">Learn More</Button>
+<Button variant="accent">Premium Feature</Button>
+<Button variant="ghost">Cancel</Button>
+<Button variant="outline">Skip</Button>
+<Button variant="danger">Delete</Button>
+```
+
+**Sizes:** `sm`, `md` (default), `lg`, `xl`
+
+**When to use each variant:**
+- `primary` - Main CTAs, "Start", "Save", "Create", success actions
+- `secondary` - Supporting actions, info buttons, "Learn More", "View Details"
+- `accent` - Premium features, special actions, celebrations
+- `ghost` - Subtle actions within cards, inline options
+- `outline` - Tertiary actions, cancel buttons
+- `danger` - Delete, remove, destructive actions
+
+#### Gradient Buttons (for hero sections and special moments)
+```tsx
+import { GradientButton } from '@/lib/design-system/components'
+
+<GradientButton gradient="brand">Start Your Journey</GradientButton>
+<GradientButton gradient="green">Complete Vision</GradientButton>
+<GradientButton gradient="teal">View Progress</GradientButton>
+<GradientButton gradient="purple">Upgrade Now</GradientButton>
+<GradientButton gradient="cosmic">Transform</GradientButton>
+```
+
+#### AI Button (for AI Assistant features)
+```tsx
+import { AIButton } from '@/lib/design-system/components'
+
+<AIButton>Ask AI Assistant</AIButton>
+<AIButton>Generate Vision</AIButton>
+<AIButton>Get Guidance</AIButton>
+```
+
+### Cards
+```tsx
+import { Card } from '@/lib/design-system/components'
+
+<Card variant="default">...</Card>
+<Card variant="elevated">...</Card>
+<Card variant="outlined">...</Card>
+```
+
+**Card features:**
+- 2rem (32px) padding by default
+- 2px borders (#333)
+- Hovers lift -4px with border color change to primary green
+- Rounded corners (rounded-2xl = 16px)
+
+### Other Components
+```tsx
+import { 
+  Input, 
+  Textarea, 
+  Badge, 
+  ProgressBar, 
+  Spinner,
+  Container,
+  PageLayout,
+  Footer 
+} from '@/lib/design-system/components'
+```
+
+## Color System
+
+### Brand Colors (use these exact hex values)
+```css
+Primary Green: #199D67    /* Growth, alignment, "above the Green Line" */
+Secondary Teal: #14B8A6   /* Clarity, flow, calm energy */
+Accent Purple: #8B5CF6    /* Premium, AI, mystical moments */
+Energy Yellow: #FFB701    /* Celebration, wins, actualization */
+Contrast Red: #D03739     /* Alerts, "below Green Line", warnings */
+```
+
+### Color Variants
+```css
+/* Primary Green Family */
+#199D67 - Primary Green (main brand color)
+#5EC49A - Green Light (hover states)
+#A8E5CE - Green Lighter (backgrounds)
+
+/* Teal Family */
+#14B8A6 - Teal (secondary color)
+#2DD4BF - Teal Light (hover)
+#0D9488 - Teal Dark (active states)
+
+/* Purple Family */
+#601B9F - Primary Purple (premium base)
+#8B5CF6 - Accent Purple (bright, main accent)
+#7C3AED - Button Purple (active states)
+#B629D4 - Violet (special accents)
+#C4B5FD - Purple Lighter (backgrounds)
+
+/* Energy Colors */
+#D03739 - Vibrant Red (alerts)
+#EF4444 - Red Light (warnings)
+#FFB701 - Energy Yellow (celebrations)
+#FCD34D - Yellow Light (highlights)
+
+/* Neutrals */
+#000000 - Pure Black (primary background)
+#1F1F1F - Dark Gray (cards, elevated surfaces)
+#404040 - Medium Gray (borders, dividers)
+#666666 - Light Gray (disabled states)
+#F9F9F9 - Very Light Gray (light mode if needed)
+#FFFFFF - Pure White (text on dark backgrounds)
+```
+
+### Gradients
+```css
+/* Use these gradient combinations */
+Green Energy: linear-gradient(135deg, #199D67, #5EC49A)
+Clarity Flow: linear-gradient(135deg, #14B8A6, #2DD4BF)
+Purple Power: linear-gradient(135deg, #601B9F, #8B5CF6)
+Brand Harmony: linear-gradient(135deg, #199D67, #14B8A6)
+Cosmic Journey: linear-gradient(135deg, #601B9F, #B629D4, #2DD4BF)
+Dark Elevation: linear-gradient(180deg, #1F1F1F, #000000)
+```
+
+## Design Principles
+
+### Button Design
+- **Shape:** Always pill-shaped (`rounded-full` / 50px border-radius)
+- **Hover:** Lift up 2px (`-translate-y-0.5`) with enhanced shadow
+- **Active:** Press down to 0 (`translate-y-0`) with reduced shadow
+- **Transition:** 300ms for smooth interactions (`duration-300`)
+- **Shadow:** Start with `shadow-[0_4px_14px_rgba(0,0,0,0.25)]`
+- **Hover Shadow:** Increase to `shadow-[0_6px_20px_rgba(color,0.4)]`
+- **Padding:** Comfortable click targets (md: `py-3.5 px-7`)
+
+### Card Design
+- **Corners:** Large radius (`rounded-2xl` / 16px)
+- **Padding:** Generous space (`p-8` / 32px)
+- **Borders:** 2px solid borders (`border-2 border-[#333]`)
+- **Hover:** Lift up 4px (`hover:-translate-y-1`) + border color to primary
+- **Background:** Dark gray (`bg-[#1F1F1F]`) on black
+
+### Spacing
+- **Container padding:** `px-6` (24px horizontal)
+- **Section spacing:** `mb-12` to `mb-16` (48-64px between sections)
+- **Card gaps:** `gap-6` to `gap-8` (24-32px between cards)
+- **Element spacing:** `space-y-4` (16px vertical rhythm)
+
+### Typography
+```tsx
+// Headings
+<h1 className="text-4xl font-bold">Page Title</h1>
+<h2 className="text-3xl font-bold text-primary-500">Section Header</h2>
+<h3 className="text-2xl font-semibold text-secondary-500">Subsection</h3>
+
+// Body text
+<p className="text-base text-neutral-300">Standard text</p>
+<p className="text-sm text-neutral-400">Secondary text</p>
+<p className="text-xs text-neutral-500">Caption text</p>
+```
+
+## Status & Feedback
+
+### Status Indicators
+```tsx
+// Use Badge component or status dots
+<Badge variant="success">Above Green Line</Badge>
+<Badge variant="info">In Progress</Badge>
+<Badge variant="warning">Below Green Line</Badge>
+<Badge variant="error">Alert</Badge>
+<Badge variant="premium">Premium</Badge>
+```
+
+### Loading States
+```tsx
+<Button loading>Saving...</Button>
+<Spinner variant="primary" size="md" />
+```
+
+### Progress Tracking
+```tsx
+<ProgressBar 
+  value={75} 
+  variant="primary" 
+  label="Vision Completion"
+  showLabel 
+/>
+```
+
+## Layout Patterns
+
+### Page Structure
+```tsx
+import { PageLayout, Container, Footer } from '@/lib/design-system/components'
+
+export default function Page() {
+  return (
+    <PageLayout>
+      <Container size="xl" className="py-12">
+        {/* Your content */}
+      </Container>
+      <Footer />
+    </PageLayout>
+  )
+}
+```
+
+### Dashboard Grid
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <Card>...</Card>
+  <Card>...</Card>
+  <Card>...</Card>
+</div>
+```
+
+## Accessibility
+
+- Maintain high contrast ratios (WCAG AA minimum)
+- Use semantic HTML elements
+- Provide focus states (all interactive elements have focus rings)
+- Include aria labels for icon-only buttons
+- Test keyboard navigation
+
+## Brand Voice
+
+### Color Meanings (use these contextually)
+- **Green:** Growth, alignment, "above the Green Line", success
+- **Teal:** Clarity, flow, calm energy, information
+- **Purple:** Premium, AI features, mystical, transformation
+- **Yellow:** Celebration, wins, actualization, energy
+- **Red:** Contrast, "below Green Line", alerts (not failure, but awareness)
+
+### Terminology
+- Use "Above the Green Line" for aligned/success states
+- Use "Below the Green Line" for contrast/awareness moments
+- Say "Actualize" not "Complete" or "Finish"
+- Say "Vision" not "Goal" or "Plan"
+- Say "Alignment" not "Progress"
+
+## Common Patterns
+
+### Hero Section
+```tsx
+<div className="text-center py-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-3xl">
+  <h1 className="text-5xl font-bold mb-4">Hero Title</h1>
+  <p className="text-xl text-white/90 mb-6">Subtitle</p>
+  <GradientButton gradient="brand" size="lg">
+    Get Started
+  </GradientButton>
+</div>
+```
+
+### Feature Card
+```tsx
+<Card variant="elevated">
+  <div className="flex items-center gap-4 mb-4">
+    <div className="w-12 h-12 bg-primary-500 rounded-xl" />
+    <h3 className="text-xl font-semibold">Feature Title</h3>
+  </div>
+  <p className="text-neutral-300">Feature description...</p>
+  <Button variant="ghost" className="mt-4">Learn More →</Button>
+</Card>
+```
+
+### Status Alert
+```tsx
+<div className="bg-primary-500/10 p-6 rounded-xl border-l-4 border-primary-500">
+  <div className="flex items-center gap-3 mb-2">
+    <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+      <span className="text-white text-sm">✓</span>
+    </div>
+    <span className="text-primary-500 font-semibold">Success!</span>
+  </div>
+  <p className="text-neutral-300 text-sm">Your vision has been saved.</p>
+</div>
+```
+
+## Don'ts ❌
+
+- Don't use squared corners on buttons (always use `rounded-full`)
+- Don't use flat buttons without shadows
+- Don't use colors outside the palette
+- Don't use red for positive actions
+- Don't overuse gradients (save for special moments)
+- Don't ignore hover states
+- Don't use low contrast combinations
+- Don't use emojis in production UI (only in content)
+- Don't use multiple button styles on the same page level
+
+## Do's ✅
+
+- Use pill-shaped buttons everywhere
+- Apply consistent hover/active states
+- Use gradients for hero sections and celebrations
+- Keep borders at 2px for consistency
+- Use the AI button for AI-related features only
+- Stack buttons vertically on mobile
+- Test all interactive states
+- Use semantic color meanings
+- Reference `vibrationfit-brand-kit.html` when unsure
+
+## File References
+
+- **Brand Kit:** `vibrationfit-brand-kit.html` (visual reference)
+- **Components:** `/src/lib/design-system/components.tsx`
+- **Tokens:** `/src/lib/design-system/tokens.ts`
+- **Product Brief:** `PRODUCT_BRIEF.md`
+- **Design Guide:** `VibrationFit Design System Guide.md`
+
+## Questions to Ask Before Building
+
+1. Is this a primary, secondary, or accent action? (determines button variant)
+2. Does this feature involve AI? (use AIButton)
+3. Is this a celebration moment? (use yellow/gradient)
+4. Should this element lift on hover? (most interactive elements do)
+5. What's the user's emotional state here? (determines color choice)
+6. Is this "above" or "below" the Green Line? (determines green vs red)
+
+---
+
+**Remember:** The HTML brand kit (`vibrationfit-brand-kit.html`) is your visual north star. When in doubt, check how it looks there and replicate that exact style using these components and patterns.
+
+---
+
+## 📝 Documentation Guidelines
+
+**IMPORTANT:** Only create docs when they provide lasting value. Avoid doc debt!
+
+### ⚡ AUTO-GENERATED DOCS (NEW!)
+
+**We now generate docs FROM code, not manually:**
+
+| Doc Type | How to Update | DO NOT |
+|----------|---------------|---------|
+| **Database Schema** | Run `npm run docs:schema` | ❌ Edit `docs/generated/SCHEMA.md` manually |
+| **API Endpoints** | Run `npm run docs:api` | ❌ Edit `docs/generated/API_ENDPOINTS.md` manually |
+| **Constants** | Run `npm run docs:constants` | ❌ Edit `docs/generated/CONSTANTS.md` manually |
+
+**To regenerate all:** `npm run docs:generate`
+
+**When to regenerate:**
+- After running database migrations → `npm run docs:schema`
+- After adding/modifying API routes → `npm run docs:api`
+- After changing vision categories → `npm run docs:constants`
+
+**Files in `docs/generated/` are gitignored** - they're built from source, not committed.
+
+### ❌ NEVER Create These Docs
+
+- **Status docs** ("COMPLETE", "SUCCESS", "STATUS", "FIXED") - use git commits instead
+- **Duplicate docs** - update existing doc instead of creating new one
+- **Temporary notes** - use comments in code or delete after task
+- **Docs in project root** - always use appropriate `/docs/` subfolder
+- **Dated docs** (e.g., "VIDEO_FIXES_2024-11-10.md") - use descriptive names instead
+
+### ✅ When to Create Docs
+
+- **Architecture decisions** that affect multiple features
+- **Feature implementation guides** for complex systems
+- **API documentation** for new endpoints
+- **Expert guides** for agents to understand major systems
+- **Technical decisions** that need explanation (like audits)
+
+### 📂 Where to Put Docs
+
+| Doc Type | Location | Examples |
+|----------|----------|----------|
+| **Architecture** | `docs/architecture/` | System design, data flow |
+| **Features** | `docs/features/[feature-name]/` | Implementation guides |
+| **Database** | `docs/database/` or `supabase/` | Schema, migrations |
+| **VIVA/AI** | `docs/viva/` | Prompts, AI systems |
+| **Design System** | `docs/design-system/` | UI components, patterns |
+| **Technical Decisions** | `docs/technical/` | Audits, analyses |
+| **Video/Storage** | `docs/video-system/`, `docs/storage/` | AWS, S3, processing |
+| **Historical** | `docs/archived/YYYY-MM/` | Old docs with historical value |
+
+### 📝 Doc Naming Conventions
+
+✅ **Good Names:**
+- `TOKEN_SYSTEM_ARCHITECTURE.md` - Describes what it is
+- `LIFE_VISION_EXPERT_GUIDE.md` - Clear purpose
+- `CATEGORY_KEY_HARDCODING_AUDIT.md` - Specific topic
+
+❌ **Bad Names:**
+- `TOKEN_COMPLETE.md` - Status doc
+- `VIDEO_FIXES_2024-11-10.md` - Has date
+- `VIVA_RESTRUCTURE_COMPLETE.md` - Status doc
+- `IMPLEMENTATION_SUCCESS.md` - Status doc
+
+### 🔄 Update vs Create
+
+**Before creating a new doc, check if one exists:**
+
+```bash
+# Search for existing docs on topic
+find docs -name "*token*" -o -name "*viva*"
+```
+
+**Update existing doc** if:
+- Topic already has documentation
+- You're improving/correcting information
+- You're adding to existing feature
+
+**Create new doc** only if:
+- No existing doc covers this topic
+- Starting completely new system/feature
+- Topic deserves its own dedicated guide
+
+### 🗄️ When to Archive
+
+Move to `docs/archived/YYYY-MM/` when:
+- Feature completely replaced
+- Doc is outdated but has historical value
+- System has moved on, but doc shows evolution
+
+### 🗑️ When to Delete
+
+Delete immediately if:
+- Temporary build notes
+- Status updates ("X is complete")
+- Duplicate/redundant information
+- Incorrect/misleading information
+
+### 📋 Doc Headers
+
+Every doc should have:
+
+```markdown
+# Document Title
+
+**Last Updated:** Month Day, Year  
+**Status:** Active | Archived | Deprecated  
+**Replaces:** [Previous doc name if applicable]
+
+[Brief description of what this doc covers]
+```
+
+### 🔍 Before Committing Docs
+
+Ask yourself:
+1. Will this doc still be useful in 3 months?
+2. Is there already a doc on this topic I should update?
+3. Is this in the right folder?
+4. Does the filename describe WHAT it is, not its STATUS?
+5. Am I creating this because it's truly needed, or just habit?
+
+---
+
+**Goal:** Keep docs lean, organized, and current. Every doc should earn its place.

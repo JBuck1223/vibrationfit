@@ -23,12 +23,10 @@ export {
 export { buildPromptSuggestionsPrompt } from './prompt-suggestions-prompt'
 
 // Master Vision Assembly (imported by refine-category as well)
+// GPT-5 Optimized: Simplified exports
 export {
   MASTER_VISION_SHARED_SYSTEM_PROMPT,
-  FIVE_PHASE_INSTRUCTIONS,
-  FLOW_FLEXIBILITY_NOTE,
-  STYLE_GUARDRAILS,
-  MICRO_REWRITE_RULE,
+  MASTER_VISION_EXECUTION_RULES,
   buildMasterVisionPrompt,
 } from './master-vision-prompts'
 

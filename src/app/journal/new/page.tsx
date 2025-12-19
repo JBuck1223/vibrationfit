@@ -35,7 +35,7 @@ export default function NewJournalEntryPage() {
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [audioRecordings, setAudioRecordings] = useState<any[]>([])
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format in local timezone
     title: '',
     content: '',
     categories: [] as string[]
@@ -54,7 +54,7 @@ export default function NewJournalEntryPage() {
     // Reset form to create another entry
     setShowSuccess(false)
     setFormData({
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format in local timezone
       title: '',
       content: '',
       categories: []

@@ -24,6 +24,8 @@ const openai = new OpenAI({
  */
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now() // Track timing for the entire request
+  
   try {
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -49,7 +51,6 @@ export async function POST(request: NextRequest) {
 
     // Get admin-configured AI tool config from database
     const toolConfig = await getAIToolConfig('master_vision_assembly')
-    const startTime = Date.now()
     
     console.log('[Master Vision] Starting assembly with config:', {
       model: toolConfig.model_name,

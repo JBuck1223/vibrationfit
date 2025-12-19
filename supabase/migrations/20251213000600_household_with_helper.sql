@@ -96,3 +96,6 @@ END $$;
 COMMENT ON TABLE vision_versions IS 
   'Life visions. Personal visions have household_id = NULL. Household visions have household_id set and are accessible to all active household members.';
 
+
+
+

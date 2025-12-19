@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Container, Card, Button, Spinner, Badge, Stack, PageHero, CategoryGrid } from '@/lib/design-system/components'
-import { Sparkles, CheckCircle, ArrowRight, ArrowLeft, Eye, RefreshCw, AlertCircle, Video } from 'lucide-react'
+import { Container, Card, Button, Spinner, Badge, Stack, PageHero, CategoryGrid, VIVALoadingOverlay, Textarea, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { Sparkles, CheckCircle, ArrowRight, ArrowLeft, RefreshCw, AlertCircle, Video, Edit2, Save, X, Trash2, Check } from 'lucide-react'
 import { getVisionCategory, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 interface Scene {
@@ -13,38 +13,7 @@ interface Scene {
   text: string
   essence_word: string | null
   created_at: string
-}
-
-function VIVAActionCard({ stage, className = '' }: { stage: string; className?: string }) {
-  const stageData = {
-    'generating': {
-      title: 'Generating visualization scenes',
-      description: 'Creating cinematic moments with Micro-Macro breathing...',
-      icon: Video
-    },
-    'analyzing': {
-      title: 'Analyzing your vision data',
-      description: 'Understanding your desires and richness...',
-      icon: Sparkles
-    }
-  }
-
-  const data = stageData[stage as keyof typeof stageData] || stageData.generating
-  const Icon = data.icon
-
-  return (
-    <Card className={`${className} border-2 border-primary-500/50 bg-primary-500/10 p-4 md:p-6`}>
-      <div className="flex items-center gap-3 md:gap-4">
-        <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-          <Icon className="w-5 h-5 md:w-6 md:h-6 text-primary-500 animate-pulse" />
-        </div>
-        <div>
-          <h3 className="text-base md:text-lg font-semibold text-white mb-1">{data.title}</h3>
-          <p className="text-xs md:text-sm text-neutral-400">{data.description}</p>
-        </div>
-      </div>
-    </Card>
-  )
+  is_selected?: boolean
 }
 
 export default function ScenesPage() {
@@ -57,10 +26,30 @@ export default function ScenesPage() {
   const [loading, setLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   const [vivaStage, setVivaStage] = useState('')
+  const [vivaProgress, setVivaProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [scenes, setScenes] = useState<Scene[]>([])
-  const [expandedScene, setExpandedScene] = useState<string | null>(null)
+  const [editingScene, setEditingScene] = useState<string | null>(null)
+  const [editedTitle, setEditedTitle] = useState('')
+  const [editedText, setEditedText] = useState('')
+  const [selectedScenes, setSelectedScenes] = useState<Set<string>>(new Set())
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [sceneToDelete, setSceneToDelete] = useState<Scene | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
+  
+  // Track completion of individual steps
+  const [completedSteps, setCompletedSteps] = useState<{
+    clarity: boolean
+    imagination: boolean
+    blueprint: boolean
+    scenes: boolean
+  }>({
+    clarity: false,
+    imagination: false,
+    blueprint: false,
+    scenes: false
+  })
 
   const category = getVisionCategory(categoryKey)
   const IconComponent = category?.icon
@@ -110,7 +99,25 @@ export default function ScenesPage() {
 
       if (existingScenes && existingScenes.length > 0) {
         setScenes(existingScenes)
+        // Auto-select all scenes by default
+        setSelectedScenes(new Set(existingScenes.map(s => s.id)))
       }
+      
+      // Load existing data for all steps from life_vision_category_state table
+      const { data: categoryState } = await supabase
+        .from('life_vision_category_state')
+        .select('ai_summary, ideal_state, blueprint_data')
+        .eq('user_id', user.id)
+        .eq('category', categoryKey)
+        .maybeSingle()
+      
+      // Set step completion status based on actual data
+      setCompletedSteps({
+        clarity: !!(categoryState?.ai_summary && categoryState.ai_summary.trim().length > 0),
+        imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0),
+        blueprint: !!(categoryState?.blueprint_data && Object.keys(categoryState.blueprint_data).length > 0),
+        scenes: !!(existingScenes && existingScenes.length > 0)
+      })
       
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
@@ -132,8 +139,9 @@ export default function ScenesPage() {
     }
   }
 
-  const handleGenerateScenes = async () => {
+  const handleGenerateScenes = async (numToGenerate?: number) => {
     setIsProcessing(true)
+    setVivaProgress(0)
     setVivaStage('analyzing')
     setError(null)
 
@@ -185,7 +193,8 @@ export default function ScenesPage() {
           profileNotWellTextFlipped: '', // Flipped contrast is in frequency_flip table
           assessmentSnippets: categoryResponses.map((r: any) => r.response_text),
           existingVisionParagraph: categoryState?.ai_summary || '',
-          dataRichnessTier: 'B' // Will be calculated by API
+          dataRichnessTier: 'B', // Will be calculated by API
+          numScenesToGenerate: numToGenerate // Pass the specific count if provided
         })
       })
 
@@ -195,8 +204,14 @@ export default function ScenesPage() {
 
       const data = await response.json()
 
+      // Slide progress to 100%
+      setVivaProgress(100)
+      
       // Reload scenes from database
       await loadScenes()
+      
+      // Wait briefly to show 100% completion, then hide overlay
+      await new Promise(resolve => setTimeout(resolve, 600))
 
       setVivaStage('')
     } catch (err) {
@@ -205,6 +220,7 @@ export default function ScenesPage() {
       setVivaStage('')
     } finally {
       setIsProcessing(false)
+      setVivaProgress(0)
     }
   }
 
@@ -217,9 +233,139 @@ export default function ScenesPage() {
     }
   }
 
+  const handleEditScene = (scene: Scene) => {
+    setEditingScene(scene.id)
+    setEditedTitle(scene.title)
+    setEditedText(scene.text)
+  }
+
+  const handleSaveEdit = async (sceneId: string) => {
+    try {
+      const { error } = await supabase
+        .from('scenes')
+        .update({
+          title: editedTitle,
+          text: editedText,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sceneId)
+
+      if (error) throw error
+
+      // Update local state
+      setScenes(scenes.map(s => 
+        s.id === sceneId 
+          ? { ...s, title: editedTitle, text: editedText }
+          : s
+      ))
+      
+      setEditingScene(null)
+    } catch (err) {
+      console.error('Error saving scene:', err)
+      setError('Failed to save scene edits')
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingScene(null)
+    setEditedTitle('')
+    setEditedText('')
+  }
+
+  const initiateDeleteScene = (scene: Scene) => {
+    setSceneToDelete(scene)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteScene = async () => {
+    if (!sceneToDelete) return
+
+    setIsDeleting(true)
+    try {
+      const { error } = await supabase
+        .from('scenes')
+        .delete()
+        .eq('id', sceneToDelete.id)
+
+      if (error) throw error
+
+      // Update local state
+      setScenes(scenes.filter(s => s.id !== sceneToDelete.id))
+      setSelectedScenes(prev => {
+        const next = new Set(prev)
+        next.delete(sceneToDelete.id)
+        return next
+      })
+      
+      setShowDeleteConfirm(false)
+      setSceneToDelete(null)
+    } catch (err) {
+      console.error('Error deleting scene:', err)
+      setError('Failed to delete scene')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const cancelDeleteScene = () => {
+    setShowDeleteConfirm(false)
+    setSceneToDelete(null)
+  }
+
+  const handleToggleSelection = (sceneId: string) => {
+    setSelectedScenes(prev => {
+      const next = new Set(prev)
+      if (next.has(sceneId)) {
+        next.delete(sceneId)
+      } else {
+        next.add(sceneId)
+      }
+      return next
+    })
+  }
+
+  const handleRegenerateAll = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Unauthorized')
+
+      // Get deselected scenes (the ones to regenerate)
+      const deselectedScenes = scenes.filter(s => !selectedScenes.has(s.id))
+      const deselectedIds = deselectedScenes.map(s => s.id)
+      
+      if (deselectedIds.length === 0) {
+        return // Nothing to regenerate
+      }
+
+      // Delete only the deselected scenes from database
+      const { error: deleteError } = await supabase
+        .from('scenes')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('category', categoryKey)
+        .in('id', deselectedIds)
+      
+      if (deleteError) {
+        throw deleteError
+      }
+
+      // Update local state immediately to remove deleted scenes
+      setScenes(scenes.filter(s => selectedScenes.has(s.id)))
+      
+      // Generate that many new scenes
+      await handleGenerateScenes(deselectedIds.length)
+    } catch (err) {
+      console.error('Error regenerating scenes:', err)
+      setError('Failed to regenerating scenes')
+    }
+  }
+
   const getWordCount = (text: string) => {
     return text.trim().split(/\s+/).length
   }
+
+  const selectedCount = selectedScenes.size
+  const deselectedCount = scenes.length - selectedCount
 
   if (loading) {
     return (
@@ -258,9 +404,12 @@ export default function ScenesPage() {
             <div className="flex items-center gap-2 md:gap-3">
               {/* Steps */}
               {categorySteps.map((step, index) => {
-                const isCompleted = index < currentStepIndex
+                // Check actual completion status from database
+                const stepKey = step.key as keyof typeof completedSteps
+                const isCompleted = completedSteps[stepKey]
                 const isCurrent = index === currentStepIndex
-                const isClickable = index <= currentStepIndex
+                // Step is clickable if it's completed, current, or the next step after last completed
+                const isClickable = isCompleted || isCurrent || index <= currentStepIndex
 
                 return (
                   <button
@@ -357,9 +506,20 @@ export default function ScenesPage() {
       )}
 
       {/* Processing State */}
-      {isProcessing && vivaStage && (
-        <VIVAActionCard stage={vivaStage} className="mb-6 md:mb-8" />
-      )}
+      {/* VIVA Processing Overlay */}
+      <VIVALoadingOverlay
+        isVisible={isProcessing}
+        messages={[
+          "VIVA is analyzing your vision richness...",
+          "Creating cinematic visualization scenes...",
+          "Crafting Micro-Macro breathing moments...",
+          "Generating your personalized scenes..."
+        ]}
+        cycleDuration={4000}
+        estimatedTime="Usually takes 15-25 seconds"
+        estimatedDuration={20000}
+        progress={vivaProgress}
+      />
 
       {/* Generate Scenes (if none exist) */}
       {scenes.length === 0 && !isProcessing && (
@@ -377,7 +537,7 @@ export default function ScenesPage() {
             <Button
               variant="primary"
               size="lg"
-              onClick={handleGenerateScenes}
+              onClick={() => handleGenerateScenes()}
               className="w-full md:w-auto"
             >
               <Video className="w-4 h-4 md:w-5 md:h-5 mr-2" />
@@ -390,30 +550,58 @@ export default function ScenesPage() {
       {/* Scenes Display */}
       {scenes.length > 0 && !isProcessing && (
         <>
-          <div className="mb-4 md:mb-6 flex items-center justify-between">
-            <Badge variant="success" className="text-xs md:text-sm">
-              <CheckCircle className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-              {scenes.length} Scene{scenes.length !== 1 ? 's' : ''} Created
-            </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleGenerateScenes}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Regenerate
-            </Button>
+          <div className="mb-4 md:mb-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <Badge variant="success" className="text-xs md:text-sm">
+                <CheckCircle className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                {scenes.length} Scene{scenes.length !== 1 ? 's' : ''} Created
+              </Badge>
+              <Badge variant="primary" className="text-xs md:text-sm">
+                <Check className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                {selectedCount} Selected
+              </Badge>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedScenes(new Set(scenes.map(s => s.id)))}
+              >
+                Select All
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedScenes(new Set())}
+              >
+                Clear Selection
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRegenerateAll}
+                disabled={deselectedCount === 0}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Regenerate {deselectedCount > 0 ? deselectedCount : 'All'}
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
             {scenes.map((scene, index) => {
               const wordCount = getWordCount(scene.text)
-              const isExpanded = expandedScene === scene.id
+              const isEditing = editingScene === scene.id
+              const isSelected = selectedScenes.has(scene.id)
 
               return (
                 <Card 
                   key={scene.id} 
-                  className="p-4 md:p-6 border-2 border-accent-purple/30 bg-accent-purple/5 hover:border-accent-purple/50 transition-colors"
+                  className={`p-4 md:p-6 border-2 transition-all bg-accent-purple/5 ${
+                    isSelected 
+                      ? 'border-primary-500' 
+                      : 'border-accent-purple/30 hover:border-accent-purple/50'
+                  }`}
                 >
                   <div className="space-y-3 md:space-y-4">
                     {/* Header */}
@@ -426,20 +614,46 @@ export default function ScenesPage() {
                           <Badge variant="neutral" className="text-xs text-neutral-400">
                             {wordCount} words
                           </Badge>
+                          {isSelected && (
+                            <Badge variant="success" className="text-xs">
+                              <Check className="w-3 h-3 mr-1" />
+                              Selected
+                            </Badge>
+                          )}
                         </div>
-                        <h3 className="text-base md:text-lg font-bold text-white">
-                          {scene.title}
-                        </h3>
+                        {!isEditing ? (
+                          <h3 className="text-base md:text-lg font-bold text-white">
+                            {scene.title}
+                          </h3>
+                        ) : (
+                          <input
+                            type="text"
+                            value={editedTitle}
+                            onChange={(e) => setEditedTitle(e.target.value)}
+                            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-base md:text-lg font-bold focus:outline-none focus:border-primary-500"
+                            placeholder="Scene title"
+                          />
+                        )}
                       </div>
                     </div>
 
                     {/* Scene Text */}
-                    <div className={`text-sm md:text-base text-neutral-200 leading-relaxed ${isExpanded ? '' : 'line-clamp-4'}`}>
-                      {scene.text}
-                    </div>
+                    {!isEditing ? (
+                      <div className="text-sm md:text-base text-neutral-200 leading-relaxed whitespace-pre-wrap">
+                        {scene.text}
+                      </div>
+                    ) : (
+                      <Textarea
+                        value={editedText}
+                        onChange={(e) => setEditedText(e.target.value)}
+                        rows={10}
+                        className="w-full text-sm md:text-base"
+                        placeholder="Scene text"
+                      />
+                    )}
 
                     {/* Essence Word */}
-                    {scene.essence_word && (
+                    {!isEditing && scene.essence_word && (
                       <div className="flex items-center gap-2 pt-2 border-t border-accent-purple/20">
                         <span className="text-xs md:text-sm text-neutral-400">Essence:</span>
                         <Badge variant="neutral" className="bg-accent-purple/20 text-accent-purple text-xs md:text-sm">
@@ -448,34 +662,75 @@ export default function ScenesPage() {
                       </div>
                     )}
 
-                    {/* Expand/Collapse */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setExpandedScene(isExpanded ? null : scene.id)}
-                      className="w-full text-xs md:text-sm"
-                    >
-                      <Eye className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-                      {isExpanded ? 'Show Less' : 'Read Full Scene'}
-                    </Button>
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-neutral-700">
+                      {!isEditing ? (
+                        <>
+                          <Button
+                            variant={isSelected ? "primary" : "outline"}
+                            size="sm"
+                            onClick={() => handleToggleSelection(scene.id)}
+                            className="flex-1"
+                          >
+                            <Check className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                            {isSelected ? 'Selected' : 'Select'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditScene(scene)}
+                          >
+                            <Edit2 className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => initiateDeleteScene(scene)}
+                            className="text-red-500 hover:text-red-400"
+                          >
+                            <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleSaveEdit(scene.id)}
+                            className="flex-1"
+                          >
+                            <Save className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                            Save
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCancelEdit}
+                          >
+                            <X className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                            Cancel
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </Card>
               )
             })}
           </div>
 
-          {/* Info Card about Scene Count */}
+          {/* Info Card about Scene Selection */}
           <Card className="mb-6 md:mb-8 p-4 md:p-6 border-2 border-primary-500/30 bg-primary-500/5">
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h4 className="text-sm md:text-base font-semibold text-white mb-2">
-                  Dynamic Scene Count
+                  Scene Selection
                 </h4>
                 <p className="text-xs md:text-sm text-neutral-300 leading-relaxed">
-                  You have <strong className="text-primary-500">{scenes.length} scenes</strong> because VIVA detected{' '}
-                  <strong>{scenes.length === 1 ? '1 distinct desire' : `${scenes.length} distinct desires`}</strong> in your input for this category. 
-                  More detail = more scenes (1-8). Each scene is 140-220 words with Micro-Macro breathing.
+                  You have <strong className="text-primary-500">{scenes.length} scenes</strong> and <strong className="text-primary-500">{selectedCount} selected</strong> to use in your vision. 
+                  Edit, regenerate individual scenes, or discard ones that don't match your vibe. Each scene is 140-220 words with Micro-Macro breathing.
                 </p>
               </div>
             </div>
@@ -483,11 +738,18 @@ export default function ScenesPage() {
 
           {/* Continue Button */}
           <Card className="p-4 md:p-6">
+            {selectedCount === 0 ? (
+              <div className="text-center mb-4">
+                <p className="text-sm text-neutral-400 mb-3">
+                  Please select at least one scene to continue
+                </p>
+              </div>
+            ) : null}
             <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-              <Button
+               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleGenerateScenes}
+                onClick={() => handleGenerateScenes()}
                 className="flex-1"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -497,6 +759,7 @@ export default function ScenesPage() {
                 variant="primary"
                 size="lg"
                 onClick={handleCompleteCategory}
+                disabled={selectedCount === 0}
                 className="flex-1"
               >
                 {nextCategory ? `Continue to ${nextCategory.label}` : 'Complete All Categories'}
@@ -506,6 +769,17 @@ export default function ScenesPage() {
           </Card>
         </>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={cancelDeleteScene}
+        onConfirm={confirmDeleteScene}
+        itemName={sceneToDelete?.title || ''}
+        itemType="Scene"
+        isLoading={isDeleting}
+        loadingText="Deleting scene..."
+      />
       </Stack>
     </Container>
   )
