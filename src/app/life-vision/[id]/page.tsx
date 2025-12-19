@@ -243,7 +243,17 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
   // Load vision data
   useEffect(() => {
+    let isMounted = true
+    let hasLoaded = false
+    
     const loadData = async () => {
+      // Prevent duplicate calls
+      if (hasLoaded) {
+        console.log('[Vision Detail] Skipping duplicate load')
+        return
+      }
+      hasLoaded = true
+      
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
@@ -253,6 +263,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         }
 
         const resolvedParams = await params
+        if (!isMounted) return
+        
         console.log('Loading vision with ID:', resolvedParams.id)
         console.log('User ID:', user.id)
         
@@ -339,16 +351,23 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         }
         
         // Set error state but don't crash the app
-        setError(error instanceof Error ? error.message : 'Failed to load vision')
-        setLoading(false)
-        
-        router.push('/life-vision')
+        if (isMounted) {
+          setError(error instanceof Error ? error.message : 'Failed to load vision')
+          setLoading(false)
+          router.push('/life-vision')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     loadData()
+    
+    return () => {
+      isMounted = false
+    }
   }, [params, router, supabase, calculateCompletion, getCompletedSections])
 
   // Fetch specific version (kept for backwards compatibility, but versions now navigate directly)

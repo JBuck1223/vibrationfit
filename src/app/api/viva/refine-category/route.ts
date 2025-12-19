@@ -18,10 +18,7 @@ import {
 } from "@/lib/viva/prompt-flatteners";
 import {
   MASTER_VISION_SHARED_SYSTEM_PROMPT,
-  FIVE_PHASE_INSTRUCTIONS,
-  FLOW_FLEXIBILITY_NOTE,
-  STYLE_GUARDRAILS,
-  MICRO_REWRITE_RULE,
+  MASTER_VISION_EXECUTION_RULES,
 } from "@/lib/viva/prompts/master-vision-prompts";
 
 const openai = new OpenAI({
@@ -170,9 +167,7 @@ ${instructions}
 
   return `${MASTER_VISION_SHARED_SYSTEM_PROMPT}
 
-${FIVE_PHASE_INSTRUCTIONS}
-${FLOW_FLEXIBILITY_NOTE}
-${STYLE_GUARDRAILS}
+${MASTER_VISION_EXECUTION_RULES}
 
 BACKGROUND CONTEXT (draw voice & specifics from here; current vision > conversation > profile > assessment):
 
@@ -220,8 +215,6 @@ FOUNDATIONAL PRINCIPLES - THE CORE PURPOSE:
 
 **CRITICAL: LIFE IS INTERCONNECTED — WEAVE CATEGORIES TOGETHER**
 This category doesn't exist in isolation. Use cross-category details naturally from their complete vision above (family ↔ work ↔ money ↔ home ↔ travel ↔ fun ↔ health, etc.).
-
-${MICRO_REWRITE_RULE}
 
 **YOUR TASK:**
 Refine the **${categoryLabel}** vision section using:

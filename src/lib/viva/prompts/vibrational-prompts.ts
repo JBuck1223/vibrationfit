@@ -114,6 +114,7 @@ Instructions:
   - MACRO (Zoom-Out): Then zoom out to what this moment represents or why it matters
   - Naturally touch on who I'm with (if relevant), what I'm doing, where I am
   - Include the emotional tone throughout
+  - DO NOT include the words "MICRO" or "MACRO" in the actual scene text - these are instructions for you
 - CRITICAL: If the member mentions many distinct desires or situations, spread them across multiple scenes instead of compressing them into one.
 - Use only details that are consistent with the context. Do NOT invent specific names, cities, companies, brands, or numbers unless clearly implied.
 - Language rules:
@@ -129,8 +130,8 @@ Instructions:
   - Tier B: Use moderate specificity, staying close to what's given. Generate 2-4 scenes.
   - Tier C: Keep scenes more general but still vivid and emotionally rich. Generate 1-3 scenes.
 
-EXAMPLE OF MICRO-MACRO BREATHING (140-220 words):
-"I wake in my sun-lit bedroom, feeling the soft sheets and hearing birds outside (MICRO). This peaceful morning reminds me that I've created a home that nourishes me (MACRO). I move slowly to my kitchen, making coffee in my favorite mug (MICRO), noticing how different this feels from the rushed mornings I used to have (reflection - careful with comparison!). Now, I have space to breathe (MACRO). My mornings set the tone for days that feel aligned (MACRO).
+EXAMPLE (140-220 words) - Notice: NO "(MICRO)" or "(MACRO)" labels in the actual text:
+"I wake in my sun-lit bedroom, feeling the soft sheets and hearing birds outside. This peaceful morning reminds me that I've created a home that nourishes me. I move slowly to my kitchen, making coffee in my favorite mug. I have space to breathe. My mornings set the tone for days that feel aligned with who I am.
 
 Essence: Peace"
 

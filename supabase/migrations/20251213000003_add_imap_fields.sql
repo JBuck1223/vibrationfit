@@ -15,3 +15,6 @@ COMMENT ON COLUMN email_messages.imap_message_id IS 'IMAP Message-ID header for 
 COMMENT ON COLUMN email_messages.imap_uid IS 'IMAP UID for tracking';
 COMMENT ON COLUMN email_messages.sent_at IS 'Original sent date from email headers';
 
+
+
+

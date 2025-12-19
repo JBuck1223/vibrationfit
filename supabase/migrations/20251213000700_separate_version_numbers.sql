@@ -52,3 +52,6 @@ $$;
 COMMENT ON FUNCTION public.calculate_vision_version_number(p_vision_id uuid, p_user_id uuid) IS 
   'Calculates version number with separate sequences: Personal visions (household_id IS NULL) count only personal. Household visions count only household visions for that household.';
 
+
+
+

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Container, Card, Button, Spinner, Badge, AutoResizeTextarea, Stack, PageHero, CategoryGrid } from '@/lib/design-system/components'
+import { Container, Card, Button, Spinner, Badge, AutoResizeTextarea, Stack, PageHero, CategoryGrid, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { Sparkles, CheckCircle, ArrowRight, ArrowLeft, Edit2, Save, X, RefreshCw, AlertCircle } from 'lucide-react'
 import { getVisionCategory, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -12,38 +12,6 @@ interface BeingDoingReceivingLoop {
   doing: string
   receiving: string
   essence?: string
-}
-
-function VIVAActionCard({ stage, className = '' }: { stage: string; className?: string }) {
-  const stageData = {
-    'generating': {
-      title: 'Generating Being/Doing/Receiving loops',
-      description: 'Creating your identity, action, and manifestation cycles...',
-      icon: Sparkles
-    },
-    'analyzing': {
-      title: 'Analyzing your ideal state',
-      description: 'Understanding your vision patterns...',
-      icon: Sparkles
-    }
-  }
-
-  const data = stageData[stage as keyof typeof stageData] || stageData.generating
-  const Icon = data.icon
-
-  return (
-    <Card className={`${className} border-2 border-primary-500/50 bg-primary-500/10 p-4 md:p-6`}>
-      <div className="flex items-center gap-3 md:gap-4">
-        <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-          <Icon className="w-5 h-5 md:w-6 md:h-6 text-primary-500 animate-pulse" />
-        </div>
-        <div>
-          <h3 className="text-base md:text-lg font-semibold text-white mb-1">{data.title}</h3>
-          <p className="text-xs md:text-sm text-neutral-400">{data.description}</p>
-        </div>
-      </div>
-    </Card>
-  )
 }
 
 export default function BlueprintPage() {
@@ -56,11 +24,25 @@ export default function BlueprintPage() {
   const [loading, setLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   const [vivaStage, setVivaStage] = useState('')
+  const [vivaProgress, setVivaProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [loops, setLoops] = useState<BeingDoingReceivingLoop[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editedLoop, setEditedLoop] = useState<BeingDoingReceivingLoop | null>(null)
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
+  
+  // Track completion of individual steps
+  const [completedSteps, setCompletedSteps] = useState<{
+    clarity: boolean
+    imagination: boolean
+    blueprint: boolean
+    scenes: boolean
+  }>({
+    clarity: false,
+    imagination: false,
+    blueprint: false,
+    scenes: false
+  })
 
   const category = getVisionCategory(categoryKey)
   const IconComponent = category?.icon
@@ -100,10 +82,10 @@ export default function BlueprintPage() {
         return
       }
 
-      // Try to load existing blueprint
+      // Load existing data for all steps from life_vision_category_state table
       const { data: categoryState } = await supabase
         .from('life_vision_category_state')
-        .select('blueprint_data')
+        .select('ai_summary, ideal_state, blueprint_data')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
@@ -111,6 +93,22 @@ export default function BlueprintPage() {
       if (categoryState?.blueprint_data?.loops) {
         setLoops(categoryState.blueprint_data.loops)
       }
+      
+      // Check for existing scenes for this category
+      const { data: existingScenes } = await supabase
+        .from('scenes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('category', categoryKey)
+        .limit(1)
+      
+      // Set step completion status based on actual data
+      setCompletedSteps({
+        clarity: !!(categoryState?.ai_summary && categoryState.ai_summary.trim().length > 0),
+        imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0),
+        blueprint: !!(categoryState?.blueprint_data && Object.keys(categoryState.blueprint_data).length > 0),
+        scenes: !!(existingScenes && existingScenes.length > 0)
+      })
       
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
@@ -134,6 +132,7 @@ export default function BlueprintPage() {
 
   const handleGenerateBlueprint = async () => {
     setIsProcessing(true)
+    setVivaProgress(0)
     setVivaStage('analyzing')
     setError(null)
 
@@ -194,7 +193,12 @@ export default function BlueprintPage() {
       }
 
       if (data.blueprint?.loops) {
+        // Slide progress to 100%
+        setVivaProgress(100)
         setLoops(data.blueprint.loops)
+        
+        // Wait briefly to show 100% completion, then hide overlay
+        await new Promise(resolve => setTimeout(resolve, 600))
       }
 
       setVivaStage('')
@@ -204,6 +208,7 @@ export default function BlueprintPage() {
       setVivaStage('')
     } finally {
       setIsProcessing(false)
+      setVivaProgress(0)
     }
   }
 
@@ -290,9 +295,12 @@ export default function BlueprintPage() {
             <div className="flex items-center gap-2 md:gap-3">
               {/* Steps */}
               {categorySteps.map((step, index) => {
-                const isCompleted = index < currentStepIndex
+                // Check actual completion status from database
+                const stepKey = step.key as keyof typeof completedSteps
+                const isCompleted = completedSteps[stepKey]
                 const isCurrent = index === currentStepIndex
-                const isClickable = index <= currentStepIndex
+                // Step is clickable if it's completed, current, or the next step after last completed
+                const isClickable = isCompleted || isCurrent || index <= currentStepIndex
 
                 return (
                   <button
@@ -389,9 +397,20 @@ export default function BlueprintPage() {
       )}
 
       {/* Processing State */}
-      {isProcessing && vivaStage && (
-        <VIVAActionCard stage={vivaStage} className="mb-6 md:mb-8" />
-      )}
+      {/* VIVA Processing Overlay */}
+      <VIVALoadingOverlay
+        isVisible={isProcessing}
+        messages={[
+          "VIVA is analyzing your ideal state...",
+          "Generating Being/Doing/Receiving loops...",
+          "Crafting your identity and action cycles...",
+          "Creating your personalized blueprint..."
+        ]}
+        cycleDuration={4000}
+        estimatedTime="Usually takes 15-25 seconds"
+        estimatedDuration={20000}
+        progress={vivaProgress}
+      />
 
       {/* Generate Blueprint (if none exists) */}
       {loops.length === 0 && !isProcessing && (

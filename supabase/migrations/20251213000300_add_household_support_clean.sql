@@ -130,3 +130,6 @@ $$;
 COMMENT ON FUNCTION public.get_user_total_refinements(p_user_id uuid) IS 
   'Returns refinements from personal visions created by user AND household visions they can access.';
 
+
+
+

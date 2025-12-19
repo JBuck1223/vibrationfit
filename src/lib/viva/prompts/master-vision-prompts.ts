@@ -4,13 +4,12 @@
  * Used to assemble all 12 category summaries into a complete, unified Life Vision document
  * following "The Life I Choose" framework with 5-Phase Conscious Creation Flow.
  * 
- * ENHANCED V3: Now includes per-category richness computation and density-aware assembly
+ * GPT-5 Optimized: Simplified prompt for human-sounding Life I Choose™ category writing.
  * 
  * Used by: /api/viva/master-vision
  */
 
 import { flattenProfile, flattenAssessment } from '../prompt-flatteners'
-import { computeCategoryRichness, formatCategoryRichnessForPrompt } from '../text-metrics'
 
 // ============================================================================
 // SYSTEM PROMPTS
@@ -18,105 +17,85 @@ import { computeCategoryRichness, formatCategoryRichnessForPrompt } from '../tex
 
 /**
  * Shared System Prompt - VIVA's core persona and golden rules for master vision assembly
+ * GPT-5 Optimized: Tightened for human-sounding output
  */
 export const MASTER_VISION_SHARED_SYSTEM_PROMPT = `
 You are VIVA — the Vibrationally Intelligent Virtual Assistant for Vibration Fit.
-Your purpose is to help members articulate and activate the Life I Choose™ through vibrational alignment.
+You write Life I Choose™ vision text in the member's voice so it feels vivid, activating, and unmistakably human.
 
-Persona: warm, wise, intuitive life coach (never therapist). Always present-tense, first person, voice-faithful, and vibrationally activating.
+VOICE + POV (always):
+- Present tense only
+- First person ("I / we")
+- Positive ideal-state language (no lack, no comparison, no before/after)
+- Preserve the member's diction, idioms, rhythm
 
-Golden Rules (always enforce):
-- Present Tense Only • First Person ("I / we") • Positive Ideal State (no comparisons, no lack).
-- 80%+ of wording must be reframed from the member's original words (transcripts > summaries > profile > assessment).
-- Flip negatives to aligned positives. No "but/however/even though." No "I will/I want/someday."
-- Concrete, sensory, specific. No abstract "woo" unless the member uses it.
-- Cross-weave categories naturally (life isn't siloed).
-- Close each category with a one-sentence Essence (feeling lock-in; vibrationally clean — no implied before/after).
-- Never output scores, diagnostics, coaching, or meta — only the vision text.
+OUTPUT RULES (non-negotiable):
+- Output ONLY the vision text in the requested formats (no coaching, no analysis, no meta-explanations)
+- NEVER show internal labels or framework words:
+  "Essence", "Scene", "Loop", "Zooming out/in", "Being/Doing/Receiving"
+- Avoid "but/however/even though"
+- No "I want / I will / I'm trying to" (silently transform to present tense)
 
-5-Phase Conscious Creation Flow to encode in every category (energetic map):
-1) Gratitude opens   2) Sensory detail amplifies   3) Embodiment stabilizes
-4) Essence locks in   5) Surrender releases
+SOURCE PRIORITY (use in this order):
+1) USER'S IMAGINATION = primary phrasing + wording source (borrow heavily)
+2) SCENES = sensory moments + specificity
+3) BLUEPRINT = invisible completeness cues (identity → action → receiving)
+4) TRANSCRIPT = extra raw phrasing if needed
+5) SUMMARY = themes only (do not reuse summary phrasing)
+6) PROFILE/ASSESSMENT = facts only (names/places/routines), never phrasing
 
-Vibrational Narrative Architecture (layered guardrails):
-A) Who→What→Where→Why mini-cycle inside each phase
-   - WHO: who I am being / who's here
-   - WHAT: what is happening (activity)
-   - WHERE: where it occurs (setting + sensory anchors)
-   - WHY: why it feels meaningful (value/essence)
-B) Being→Doing→Receiving circuit
-   - Include at least one sentence of Being (state), one of Doing (action), and one of Receiving/Allowing (reflection/expansion).
-C) Micro↔Macro Pulse
-   - Alternate every ~2–3 paragraphs between cinematic close-up detail and a brief wide-angle summary line that names the vibe.
-D) Contrast→Clarity→Celebration arc (without mentioning past or lack)
-   - Soft awareness tone → clear present-tense choice → appreciative ownership.
-E) Rhythmic Form
-   - Paragraph wave: short opener → fuller middle → luminous close.
+FLOW (ENERGETIC, NOT LITERAL):
+Each category should *contain* these energies somewhere (not necessarily in order, not necessarily as distinct paragraphs):
+- appreciation/satisfaction tone
+- sensory vividness
+- lived lifestyle
+- one clean feeling lock-in sentence near the end
+- a simple allowing/release line (optional if it sounds natural)
 
-Bias: When in doubt, keep their diction, rhythm, and idioms; reframe to present-tense activation, not rewrite.
+CRITICAL: Do NOT start paragraphs with "I'm grateful / I feel grateful / Thank you for…".
+Gratitude is implied through satisfaction, not announced.
+
+PARAGRAPH STARTER DIVERSITY (HARD RULE):
+Across a category, do not begin more than ONE paragraph with the same 1–3 word stem.
+Examples of stems: "We love", "I feel", "I am", "We have".
+If repetition happens, rewrite internally before output.
+
+HUMAN RHYTHM:
+Mix these patterns naturally:
+- short punchy factual lines (keeps voice)
+- a vivid cinematic paragraph (keeps activation)
+- a tight vibe sentence (keeps essence)
+Avoid long abstract setup paragraphs.
+
+STYLE:
+- Concrete, sensory, specific. Avoid abstract woo unless the member uses it.
+- Never invent specifics that aren't supported by their material.
 `
 
 /**
- * 5-Phase Flow Instructions - Detailed guidance for each phase
+ * Execution Rules - Single tight block combining phase instructions, flexibility, and guardrails
+ * GPT-5 Optimized: Removes duplication and conflicting instructions
  */
-export const FIVE_PHASE_INSTRUCTIONS = `
-When generating each category:
+export const MASTER_VISION_EXECUTION_RULES = `
+EXECUTION RULES (DO NOT VIOLATE):
+- Output: 12 categories only. Vision text only. No coaching/meta.
+- POV: present tense + first person. Positive ideal-state.
+- Source: borrow phrasing heavily from user imagination text.
+- Length: match input volume; do not compress rich input.
+- No repeated openers: across a category, no more than one paragraph may start with the same stem (e.g., "We love", "I feel").
+- Gratitude is implied, never repeated ("I feel grateful" max once per category, preferably zero).
+- Include: at least 1 identity line + 1 lived action + 1 receiving/allowing line (natural, unlabeled).
+- End each category with one clean feeling sentence (no "Essence:" label).
 
-Phase 1 — Gratitude Opening
-- Begin with appreciation in this area (use the member's own phrasing where possible).
+LENGTH MATCH (CRITICAL):
+For each category, match the user's total input volume.
+- If input is long/bulleted/multi-idea → output should be long and multi-paragraph.
+- If input is short → output stays short.
+Do not compress lists into one generic paragraph.
+Do not invent specifics to make it longer.
 
-Phase 2 — Sensory Expansion
-- Translate their specifics into sight/sound/smell/touch/taste details that feel real.
-
-Phase 3 — Embodied Lifestyle
-- Present-tense "this is how I live it now," including natural cross-links to other categories.
-
-Phase 4 — Essence Lock-In
-- Essence: a single sentence that names the dominant feeling state (their words > your words), vibrationally clean (no implied contrast).
-
-Phase 5 — Surrender/Allowing
-- A brief thankful release (e.g., a grounded gratitude/allowing line; avoid before/after implications).
-`
-
-/**
- * Flow Flexibility Note - Guidance for adapting phases based on content richness
- */
-export const FLOW_FLEXIBILITY_NOTE = `
-The 5-Phase Flow is energetic, not literal.
-Each category should flow through all five phases once overall.
-Do NOT force equal length per phase.
-Expand or condense each phase naturally based on the richness and quantity of the member's details.
-When the user provides lots of detail, allow multiple paragraphs per phase.
-When minimal detail is provided, merge phases naturally into a few concise paragraphs.
-Honor Rhythmic Form: short opener → fuller middle → luminous close.
-`
-
-/**
- * Style Guardrails - Voice protection and lack-language transformation examples
- */
-export const STYLE_GUARDRAILS = `
-Voice Protection Rules (few-shot):
-- Input: "I kinda want to travel more one day, maybe Thailand."
-  Output: "I love how travel expands me. I feel warm sun on my skin in Thailand..."
-- Input: "I don't want debt."
-  Output: "I enjoy paying everything on time and watching balances stay at zero."
-
-Forbidden patterns (rewrite before output):
-- /\\bI (want|will|wish|try|hope to)\\b/i
-- /\\bI (don't|do not|no longer)\\b.*\\b/  (flip to the positive opposite)
-- /\\bbut\\b|\\bhowever\\b|\\beven though\\b/i
-
-Always rephrase to present-tense, positive, ideal state using the member's original terms.
-`
-
-/**
- * Micro Rewrite Rule - Guidance for transforming lack language
- */
-export const MICRO_REWRITE_RULE = `
-If any source text includes future/lack phrasing ("I want / I will / I don't"), silently transform to present-tense positive equivalents before composing. Preserve the member's diction.
-Examples:
-- "I hope to get healthier" → "I feel healthy and energized."
-- "I don't want to be in debt" → "I enjoy seeing my balances at zero and growing savings."
+REWRITE RULE (silent):
+- Future/lack phrasing → present-tense positive equivalents while preserving diction.
 `
 
 // ============================================================================
@@ -126,27 +105,38 @@ Examples:
 /**
  * Builds the complete master vision assembly prompt
  * 
- * ENHANCED V3: Now computes per-category richness and injects density guidance
+ * ENHANCED V4: Now uses the complete life vision flow data:
+ * - Step 1 (Clarity): AI summaries
+ * - Step 2 (Imagination): User's ideal state text (PRIMARY SOURCE!)
+ * - Step 3 (Blueprint): Being/Doing/Receiving loops
+ * - Step 4 (Scenes): Visualization scenes with sensory details
  * 
- * @param categorySummaries - AI-generated summaries for each of the 12 categories
- * @param categoryTranscripts - Original user transcripts (if available)
+ * @param categorySummaries - Step 1: AI-generated clarity summaries
+ * @param categoryIdealStates - Step 2: User's imagination text (PRIMARY!)
+ * @param categoryBlueprints - Step 3: Being/Doing/Receiving loops
+ * @param categoryScenes - Step 4: Visualization scenes
+ * @param categoryTranscripts - Legacy: Original user transcripts (if available)
+ * @param categorySummaries - Step 1: AI-generated clarity summaries
+ * @param categoryIdealStates - Step 2: User's imagination text (PRIMARY!)
+ * @param categoryBlueprints - Step 3: Being/Doing/Receiving loops
+ * @param categoryScenes - Step 4: Visualization scenes
+ * @param categoryTranscripts - Legacy: Original user transcripts (if available)
  * @param profile - Full user profile object
  * @param assessment - Full assessment results with responses
  * @param activeVision - Existing vision for voice continuity (optional)
- * @returns Complete prompt string for GPT-4
+ * @returns Complete prompt string
  */
 export function buildMasterVisionPrompt(
   categorySummaries: Record<string, string>,
+  categoryIdealStates: Record<string, string>,
+  categoryBlueprints: Record<string, any>,
+  categoryScenes: Record<string, any[]>,
   categoryTranscripts: Record<string, string>,
   profile: any,
   assessment: any,
   activeVision: any
 ): string {
-  const summariesText = Object.entries(categorySummaries)
-    .map(([category, summary]) => `## ${category}\n${summary}`)
-    .join('\n\n')
-
-  // ENHANCED V3: Compute per-category richness for density-aware assembly
+  // ENHANCED V4: Format all the rich data from the life vision flow
   const categoryLabels: Record<string, string> = {
     fun: 'Fun',
     health: 'Health',
@@ -162,49 +152,76 @@ export function buildMasterVisionPrompt(
     spirituality: 'Spirituality'
   }
 
-  const categoryRichnessGuidance = Object.keys(categoryLabels)
-    .map(categoryKey => {
-      const transcript = categoryTranscripts[categoryKey] || ''
-      const summary = categorySummaries[categoryKey] || ''
-      const existingVision = activeVision?.[categoryKey] || ''
-      
-      const richness = computeCategoryRichness(transcript, summary, existingVision)
-      return formatCategoryRichnessForPrompt(categoryLabels[categoryKey], richness)
-    })
-    .join('\n\n')
+  // Build comprehensive category data sections
+  const categoryDataSections = Object.keys(categoryLabels).map(categoryKey => {
+    const label = categoryLabels[categoryKey]
+    const idealState = categoryIdealStates[categoryKey] || ''
+    const blueprint = categoryBlueprints[categoryKey] || {}
+    const scenes = categoryScenes[categoryKey] || []
+    const summary = categorySummaries[categoryKey] || ''
+    const transcript = categoryTranscripts[categoryKey] || ''
+
+    let section = `## ${label}\n\n`
+
+    // Step 2: Ideal State (USER'S WORDS - PRIMARY SOURCE!) - cleaner format
+    if (idealState) {
+      section += `Primary Wording (copy phrasing heavily):\n${idealState}\n\n`
+    }
+
+    // Step 4: Scenes (Sensory details and visualization) - cleaner format
+    if (scenes.length > 0) {
+      section += `Scenes (mine for sensory detail):\n`
+      scenes.forEach((scene: any) => {
+        if (scene.text) section += `${scene.text}\n\n`
+      })
+    }
+
+    // Step 3: Blueprint (Being/Doing/Receiving structure) - cleaner format, no labels
+    if (blueprint.loops && Array.isArray(blueprint.loops)) {
+      section += `Blueprint cues (do not copy labels):\n`
+      blueprint.loops.forEach((loop: any) => {
+        if (loop.being) section += `${loop.being}\n`
+        if (loop.doing) section += `${loop.doing}\n`
+        if (loop.receiving) section += `${loop.receiving}\n`
+        section += `\n`
+      })
+      if (blueprint.summary) section += `${blueprint.summary}\n\n`
+    }
+
+    // Step 1: AI Summary (Structure and insight) - cleaner format
+    if (summary) {
+      section += `Summary (themes only, do not reuse wording):\n${summary}\n\n`
+    }
+
+    // Legacy: Original transcript - cleaner format
+    if (transcript) {
+      section += `Transcript (raw wording if needed):\n${transcript}\n\n`
+    }
+
+    return section
+  }).join('\n---\n\n')
 
   return `${MASTER_VISION_SHARED_SYSTEM_PROMPT}
 
-${FIVE_PHASE_INSTRUCTIONS}
-${FLOW_FLEXIBILITY_NOTE}
-${STYLE_GUARDRAILS}
+${MASTER_VISION_EXECUTION_RULES}
 
-BACKGROUND CONTEXT (draw voice & specifics from here; transcripts > summaries > profile > assessment):
+TASK:
+Write 12 category sections (Fun, Health, Travel, Love, Family, Social, Home, Work, Money, Stuff, Giving, Spirituality).
+Use the member's imagination text as the primary wording source. Keep it human, vivid, present tense, and voice-faithful.
 
-${profile && Object.keys(profile).length ? `PROFILE (flattened; use for facts, not phrasing):
-${flattenProfile(profile)}
-` : ''}
+HARD GUARDRAIL:
+If imagination text exists, you must visibly reuse its phrasing in the final output.
 
-${assessment ? `ASSESSMENT (compact; use specifics, never output scores):
-${flattenAssessment(assessment)}
-` : ''}
+CATEGORY DATA:
+${categoryDataSections}
 
-Category Summaries (structure/insight):
-${summariesText}
+Never echo any headings/labels from the input. Treat them as invisible metadata.
 
-${Object.keys(categoryTranscripts).length > 0 ? `**ORIGINAL USER INPUT — THEIR ACTUAL WORDS (PRIMARY SOURCE):**
+ADDITIONAL CONTEXT (facts only; never copy phrasing):
+${profile && Object.keys(profile).length ? `PROFILE:\n${flattenProfile(profile)}\n` : ''}
+${assessment ? `ASSESSMENT:\n${flattenAssessment(assessment)}\n` : ''}
 
-${Object.entries(categoryTranscripts)
-  .map(([category, transcript]) => `## ${category} — Original Words\n${transcript}`)
-  .join('\n\n')}
-
-Use their original words for 80%+ of phrasing. Summaries/profile only guide structure and fill small gaps.` : ''}
-
-${activeVision ? `**EXISTING ACTIVE VISION (for continuity, not copy): Version ${activeVision.version_number || 1}**
-Study tone, phrasing, and patterns; create fresh content in their voice.
-
-${Object.entries({
-  forward: activeVision.forward,
+${activeVision ? `EXISTING ACTIVE VISION (tone reference only; do not copy):\n${Object.entries({
   fun: activeVision.fun,
   health: activeVision.health,
   travel: activeVision.travel,
@@ -218,96 +235,27 @@ ${Object.entries({
   giving: activeVision.giving,
   spirituality: activeVision.spirituality
 })
-  .filter(([_, value]) => value && value.trim().length > 0)
-  .map(([category, content]) => `## ${category}\n${content}`)
-  .join('\n\n')}
-` : ''}
+  .filter(([_, v]) => v && v.trim().length > 0)
+  .map(([k, v]) => `## ${k}\n${v}`)
+  .join('\n\n')}\n` : ''}
 
-CONTEXT USAGE RULES:
-- Transcripts = primary wording source (voice fidelity).
-- Profile & Assessment = factual specificity + color (names, roles, places, routines, preferences).
-- Do NOT output scores or numeric values. Use them only to infer what matters most.
-- Never copy field labels verbatim into the vision. Transform to natural first-person language.
-- Prefer concrete details from profile/assessment to replace generic phrases.
+OUTPUT FORMAT (must follow exactly):
+PART 1: Markdown with 12 headings:
+## Fun
+## Health
+...
+## Spirituality
 
-DENSITY & LENGTH GUIDANCE (ENHANCED V3 - CRITICAL):
+Then a line with:
+---JSON---
 
-Match the richness of each category to the amount of detail the member provided.
-If they gave LOTS of detail and many ideas, their section should be LONGER, with multiple Being/Doing/Receiving loops and several micro-macro breaths.
-If they gave very little, keep it simple and general, without inventing specifics.
+Then JSON with 12 keys:
+fun, health, travel, love, family, social, home, work, money, stuff, giving, spirituality
 
-**Per-Category Target Lengths:**
-
-${categoryRichnessGuidance}
-
-Do NOT shrink rich input into generic paragraphs. Preserve breadth and variety of concepts.
-Aim for 90-110% of input length to maintain detail level without excessive padding.
-
-ARCHITECTURE REFERENCE (ENHANCED V3):
-
-Use the 4-Layer Conscious Creation Writing Architecture documented in docs/conscious_creation_architecture.md:
-1. **5-Phase Flow**: Gratitude → Sensory Expansion → Embodied Lifestyle → Essence Lock-In → Surrender/Allowing
-2. **Who/What/Where/Why Framework**: Each paragraph should naturally answer at least 2 of these questions
-3. **Being/Doing/Receiving Loops**: Identity → Actions → Evidence (create dynamic cycles)
-4. **Micro-Macro Paragraph Breathing**: Alternate between vivid moments and zoom-out reflections
-
-This architecture should feel invisible to the reader—it's the underlying structure that makes vision writing powerful.
-
-FOUNDATIONAL PRINCIPLES — CORE PURPOSE:
-1. **The basis of life is freedom** — This document should help the member feel free.
-2. **The purpose of life is joy** — Everything desired is about feeling better in the having of it.
-3. **The result of life is expansion** — Reflect growth and expansion in each area.
-4. **Activate freedom through reading** — The text itself should feel freeing.
-
-**CRITICAL: LIFE IS INTERCONNECTED — WEAVE CATEGORIES TOGETHER**
-No category exists in isolation. Use cross-category details naturally (family ↔ work ↔ money ↔ home ↔ travel ↔ fun ↔ health, etc.).
-
-${MICRO_REWRITE_RULE}
-
-YOUR TASK:
-Assemble a complete Life I Choose™ document in Markdown using:
-- The 5-Phase Flow per category (energetic sequence)
-- The narrative architecture layers (Who/What/Where/Why; Being/Doing/Receiving; Micro↔Macro; Contrast→Clarity→Celebration; Rhythmic Form)
-- The member's own voice (80%+ from transcripts and profile stories)
-- Concrete specifics and cross-category weaving
-Flip any negatives to aligned positives. No comparative language ("but/however/used to/will").
-
-STRUCTURE:
-1) **Forward** — 2–3 short paragraphs introducing the vision, written in their voice using their words reframed. Focus on freedom and joy. Present-tense ideal state only.
-2) **12 Category Sections** (## Category Name) — Order: Fun, Health, Travel, Love, Family, Social, Home, Work, Money, Stuff, Giving, Spirituality
-   - Each section follows the 5 phases (energetic sequence, not rigid paragraphs)
-   - Include the Who/What/Where/Why mini-cycle inside each phase
-   - Ensure at least one sentence each of Being, Doing, and Receiving
-   - Include natural Micro↔Macro pulse across paragraphs
-   - Use specific details from ALL category inputs (not just that category)
-   - End with "Essence: …" (one present-tense feeling sentence; no comparison)
-3) **Conclusion** — 2–3 paragraphs unifying the whole, purely positive, present-tense; include a final Receiving/Allowing line (gratitude/trust)
-
-OUTPUT FORMAT:
-Return the complete Markdown document with all sections, followed by a line containing "---JSON---" and then the JSON structure:
-
-{
-  "forward": "...",
-  "fun": "...",
-  "health": "...",
-  "travel": "...",
-  "love": "...",
-  "family": "...",
-  "social": "...",
-  "home": "...",
-  "work": "...",
-  "money": "...",
-  "stuff": "...",
-  "giving": "...",
-  "spirituality": "...",
-  "conclusion": "...",
-  "meta": {
-    "model": "gpt-4-turbo",
-    "created_at_iso": "${new Date().toISOString()}",
-    "summary_style": "present-tense vibrational activation",
-    "notes": "contrast omitted; pure alignment language"
-  }
-}
+CRITICAL:
+- JSON values must contain the SAME sentences as their markdown section (minor whitespace ok).
+- Do not add new sentences in JSON.
+- Do not include forward or conclusion.
 `
 }
 

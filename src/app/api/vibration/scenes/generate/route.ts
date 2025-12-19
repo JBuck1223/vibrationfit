@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { category, profileGoesWellText, profileNotWellTextFlipped, assessmentSnippets, existingVisionParagraph, dataRichnessTier } =
+    const { category, profileGoesWellText, profileNotWellTextFlipped, assessmentSnippets, existingVisionParagraph, dataRichnessTier, numScenesToGenerate } =
       body ?? {}
 
     if (!category) {
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       assessmentSnippets,
       existingVisionParagraph,
       dataRichnessTier,
+      numScenesToGenerate,
     })
 
     return NextResponse.json({ scenes })

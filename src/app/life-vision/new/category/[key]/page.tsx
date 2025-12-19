@@ -3,65 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text, Container, Stack, PageHero, CategoryGrid } from '@/lib/design-system/components'
+import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text, Container, Stack, PageHero, CategoryGrid, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { ProfileClarityCard, ProfileContrastCard, ClarityFromContrastCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, CheckCircle, ArrowLeft, ArrowRight, ChevronDown, User, TrendingUp, RefreshCw, Mic, AlertCircle, Loader2, Video } from 'lucide-react'
 import { VISION_CATEGORIES, getVisionCategory, getCategoryFields, getCategoryStoryField } from '@/lib/design-system/vision-categories'
 import { deleteSavedRecording, getRecordingsForCategory, loadSavedRecording, saveRecordingChunks } from '@/lib/storage/indexed-db-recording'
-
-interface VIVAActionCardProps {
-  stage: string
-  className?: string
-}
-
-function VIVAActionCard({ stage, message, className = '' }: VIVAActionCardProps & { message?: string }) {
-  const stageData: Record<string, { title: string; defaultDescription: string; icon: typeof Sparkles }> = {
-    'evaluating': {
-      title: 'Evaluating your input',
-      defaultDescription: 'Understanding your vision...',
-      icon: Sparkles
-    },
-    'profile': {
-      title: 'Compiling profile information',
-      defaultDescription: 'Gathering your background context...',
-      icon: Sparkles
-    },
-    'assessment': {
-      title: 'Compiling assessment data',
-      defaultDescription: 'Analyzing your alignment insights...',
-      icon: Sparkles
-    },
-    'reasoning': {
-      title: 'Reasoning and synthesizing',
-      defaultDescription: 'Weaving together your complete picture...',
-      icon: Sparkles
-    },
-    'creating': {
-      title: 'Creating your summary',
-      defaultDescription: 'Crafting your personalized vision...',
-      icon: Sparkles
-    }
-  }
-
-  const data = stageData[stage] || stageData.evaluating
-  const Icon = data.icon
-  const description = message || data.defaultDescription
-
-  return (
-    <Card className={`${className} border-2 border-primary-500/50 bg-primary-500/10`}>
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center">
-          <Icon className="w-6 h-6 text-primary-500 animate-pulse" />
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-1">{data.title}</h3>
-          <p className="text-sm text-neutral-400">{description}</p>
-        </div>
-      </div>
-    </Card>
-  )
-}
 
 export default function CategoryPage() {
   const router = useRouter()
@@ -82,6 +29,7 @@ export default function CategoryPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [vivaStage, setVivaStage] = useState('')
   const [vivaMessage, setVivaMessage] = useState('')
+  const [vivaProgress, setVivaProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [fullProfile, setFullProfile] = useState<any>(null)
   const [fullAssessment, setFullAssessment] = useState<any>(null)
@@ -106,6 +54,19 @@ export default function CategoryPage() {
   
   // Track completion across all categories for the grid
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
+  
+  // Track completion of individual steps (clarity, imagination, blueprint, scenes)
+  const [completedSteps, setCompletedSteps] = useState<{
+    clarity: boolean
+    imagination: boolean
+    blueprint: boolean
+    scenes: boolean
+  }>({
+    clarity: false,
+    imagination: false,
+    blueprint: false,
+    scenes: false
+  })
 
   // No longer needed - using getCategoryFields() from vision-categories
 
@@ -205,10 +166,10 @@ export default function CategoryPage() {
         setContrastFromProfile(contrastValue)
       }
 
-      // Check for existing summary in life_vision_category_state table
+      // Check for existing data in life_vision_category_state table (all steps)
       const { data: categoryState } = await supabase
         .from('life_vision_category_state')
-        .select('ai_summary')
+        .select('ai_summary, ideal_state, blueprint_data')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
@@ -218,6 +179,22 @@ export default function CategoryPage() {
         // Start sections collapsed when loading with existing summary
         setShowClarityCards(false)
       }
+      
+      // Check for existing scenes for this category
+      const { data: existingScenes } = await supabase
+        .from('scenes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('category', categoryKey)
+        .limit(1)
+      
+      // Set step completion status based on actual data
+      setCompletedSteps({
+        clarity: !!(categoryState?.ai_summary && categoryState.ai_summary.trim().length > 0),
+        imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0),
+        blueprint: !!(categoryState?.blueprint_data && Object.keys(categoryState.blueprint_data).length > 0),
+        scenes: !!(existingScenes && existingScenes.length > 0)
+      })
       
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
@@ -298,6 +275,7 @@ export default function CategoryPage() {
     }
 
     setIsProcessing(true)
+    setVivaProgress(0)
     setVivaStage('creating')
     setVivaMessage('Merging your clarity statements...')
     setError(null)
@@ -322,6 +300,9 @@ export default function CategoryPage() {
       const data = await response.json()
       
       if (data.mergedClarity) {
+        // Slide progress to 100%
+        setVivaProgress(100)
+        
         // Save to database
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
@@ -341,6 +322,9 @@ export default function CategoryPage() {
         setVivaMessage('')
         // Collapse clarity cards when summary is generated
         setShowClarityCards(false)
+        
+        // Wait briefly to show 100% completion, then hide overlay
+        await new Promise(resolve => setTimeout(resolve, 600))
       }
     } catch (err) {
       console.error('Error processing with VIVA:', err)
@@ -349,6 +333,7 @@ export default function CategoryPage() {
       setVivaMessage('')
     } finally {
       setIsProcessing(false)
+      setVivaProgress(0)
     }
   }
 
@@ -455,9 +440,12 @@ export default function CategoryPage() {
             <div className="flex items-center gap-2 md:gap-3">
               {/* Steps */}
               {categorySteps.map((step, index) => {
-                const isCompleted = index < currentStepIndex
+                // Check actual completion status from database
+                const stepKey = step.key as keyof typeof completedSteps
+                const isCompleted = completedSteps[stepKey]
                 const isCurrent = index === currentStepIndex
-                const isClickable = index <= currentStepIndex
+                // Step is clickable if it's completed, current, or the next step after last completed
+                const isClickable = isCompleted || isCurrent || index <= currentStepIndex
 
                 return (
                   <button
@@ -869,10 +857,20 @@ export default function CategoryPage() {
         </Card>
       )}
 
-      {/* VIVA Processing State */}
-      {isProcessing && vivaStage && (
-        <VIVAActionCard stage={vivaStage} message={vivaMessage} />
-      )}
+      {/* VIVA Processing Overlay */}
+      <VIVALoadingOverlay
+        isVisible={isProcessing}
+        messages={[
+          "VIVA is merging your clarity statements...",
+          "Weaving together your insights...",
+          "Creating your unified vision...",
+          "Crafting your personalized summary..."
+        ]}
+        cycleDuration={4000}
+        estimatedTime="Usually takes 10-20 seconds"
+        estimatedDuration={15000}
+        progress={vivaProgress}
+      />
 
       {/* AI Summary Display */}
       {aiSummary && !isProcessing && (

@@ -66,3 +66,6 @@ COMMENT ON COLUMN vision_board_ideas.suggestions IS 'Array of {name, description
 COMMENT ON COLUMN vision_board_ideas.items_created IS 'Count of items user actually created from these suggestions';
 COMMENT ON COLUMN vision_board_ideas.created_item_ids IS 'Array of vision_board_items.id that came from these suggestions';
 
+
+
+

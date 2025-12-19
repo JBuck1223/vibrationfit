@@ -28,3 +28,6 @@ CREATE POLICY "household_members_can_access_household_visions"
 -- Existing policies handle personal visions (user_id = auth.uid())
 -- New policy handles household visions (household member access)
 
+
+
+

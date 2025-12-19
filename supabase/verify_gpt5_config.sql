@@ -8,3 +8,6 @@ SELECT
 FROM ai_model_pricing
 WHERE model_name = 'gpt-5';
 
+
+
+

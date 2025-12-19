@@ -38,7 +38,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
   
   // Form state
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format in local timezone
     title: '',
     content: '',
     categories: [] as string[]
@@ -84,7 +84,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
       setEntry(entryData)
       setFormData({
-        date: entryData.date || new Date().toISOString().split('T')[0],
+        date: entryData.date || new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format in local timezone
         title: entryData.title || '',
         content: entryData.content || '',
         categories: entryData.categories || []

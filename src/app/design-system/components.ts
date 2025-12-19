@@ -367,6 +367,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     exportName: 'ProgressBar',
     path: '/design-system/component/progress-bar'
   },
+  {
+    id: 'viva-loading-overlay',
+    name: 'VIVA Loading Overlay',
+    description: 'Beautiful full-screen loading overlay with branded spinner, cycling messages, and progress bar - perfect for AI operations',
+    category: 'Feedback',
+    icon: Sparkles,
+    exportName: 'VIVALoadingOverlay',
+    path: '/design-system/component/viva-loading-overlay'
+  },
 
   // Media Components
   {

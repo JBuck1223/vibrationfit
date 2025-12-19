@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { clearVibrationalSourceCache } from '@/lib/vibration/sources'
 
 const ADMIN_EMAILS = ['buckinghambliss@gmail.com', 'admin@vibrationfit.com']
@@ -12,21 +13,24 @@ function isAdminUser(user: { email?: string | null; user_metadata?: Record<strin
 }
 
 async function getAdminSupabase() {
-  const supabase = await createClient()
+  // First verify the user is an admin using regular client
+  const userSupabase = await createClient()
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser()
+  } = await userSupabase.auth.getUser()
 
   if (error || !user) {
-    return { supabase, user: null }
+    return { supabase: null, user: null }
   }
 
   if (!isAdminUser(user)) {
-    return { supabase, user: null }
+    return { supabase: null, user: null }
   }
 
-  return { supabase, user }
+  // Return admin client for database operations
+  const adminSupabase = createAdminClient()
+  return { supabase: adminSupabase, user }
 }
 
 export async function PATCH(
@@ -37,7 +41,7 @@ export async function PATCH(
     const { id } = await params
     const { supabase, user } = await getAdminSupabase()
 
-    if (!user) {
+    if (!user || !supabase) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
@@ -131,7 +135,7 @@ export async function DELETE(
     const { id } = await params
     const { supabase, user } = await getAdminSupabase()
 
-    if (!user) {
+    if (!user || !supabase) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 

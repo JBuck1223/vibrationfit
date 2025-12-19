@@ -33,6 +33,7 @@ import {
   VIVAButton,
   Spinner,
   ProgressBar,
+  VIVALoadingOverlay,
   Video,
   Modal,
   ItemListCard,
@@ -212,6 +213,153 @@ function SelectExamples() {
               Mobile responsive design
             </ListItem>
           </BulletedList>
+        </Stack>
+      </Card>
+    </Stack>
+  )
+}
+
+// Demo component for VIVA Loading Overlay with proper state management
+function VIVALoadingOverlayDemo() {
+  const [showDemo1, setShowDemo1] = useState(false)
+  const [showDemo2, setShowDemo2] = useState(false)
+  const [showDemo3, setShowDemo3] = useState(false)
+  const [showDemoSm, setShowDemoSm] = useState(false)
+  const [showDemoMd, setShowDemoMd] = useState(false)
+  const [showDemoLg, setShowDemoLg] = useState(false)
+
+  const triggerDemo = (setter: (value: boolean) => void, duration: number) => {
+    setter(true)
+    setTimeout(() => setter(false), duration)
+  }
+
+  return (
+    <Stack gap="md">
+      {/* Example 1: Default Overlay */}
+      <Card variant="default" className="p-4 md:p-6">
+        <Stack gap="sm">
+          <h4 className="text-base md:text-lg font-medium text-white">Default Loading Overlay</h4>
+          <p className="text-xs md:text-sm text-neutral-400 mb-4">
+            Click the button to show the overlay with default messages (cycles every 3 seconds)
+          </p>
+          <div className="relative h-64 bg-neutral-900 rounded-xl border-2 border-neutral-700 flex items-center justify-center">
+            <Button onClick={() => triggerDemo(setShowDemo1, 8000)}>
+              Show Default Overlay (8s)
+            </Button>
+            <VIVALoadingOverlay isVisible={showDemo1} />
+          </div>
+        </Stack>
+      </Card>
+
+      {/* Example 2: Custom Messages */}
+      <Card variant="default" className="p-4 md:p-6">
+        <Stack gap="sm">
+          <h4 className="text-base md:text-lg font-medium text-white">Custom Messages & Fast Cycle</h4>
+          <p className="text-xs md:text-sm text-neutral-400 mb-4">
+            Custom messages with 2-second cycle duration
+          </p>
+          <div className="relative h-64 bg-neutral-900 rounded-xl border-2 border-neutral-700 flex items-center justify-center">
+            <Button onClick={() => triggerDemo(setShowDemo2, 8000)}>
+              Show Custom Messages (8s)
+            </Button>
+            <VIVALoadingOverlay 
+              isVisible={showDemo2}
+              messages={[
+                "Analyzing your input...",
+                "Generating blueprint...",
+                "Almost ready...",
+                "Finalizing your vision..."
+              ]}
+              cycleDuration={2000}
+              estimatedTime="Usually takes 10-15 seconds"
+            />
+          </div>
+        </Stack>
+      </Card>
+
+      {/* Example 3: Without Progress Bar */}
+      <Card variant="default" className="p-4 md:p-6">
+        <Stack gap="sm">
+          <h4 className="text-base md:text-lg font-medium text-white">Without Progress Bar</h4>
+          <p className="text-xs md:text-sm text-neutral-400 mb-4">
+            Simple overlay with just spinner and message
+          </p>
+          <div className="relative h-64 bg-neutral-900 rounded-xl border-2 border-neutral-700 flex items-center justify-center">
+            <Button onClick={() => triggerDemo(setShowDemo3, 6000)}>
+              Show Simple Overlay (6s)
+            </Button>
+            <VIVALoadingOverlay 
+              isVisible={showDemo3}
+              showProgressBar={false}
+              messages={["Processing your request..."]}
+              estimatedTime="Just a moment..."
+            />
+          </div>
+        </Stack>
+      </Card>
+
+      {/* Example 4: Different Sizes */}
+      <Card variant="default" className="p-4 md:p-6">
+        <Stack gap="sm">
+          <h4 className="text-base md:text-lg font-medium text-white">Size Variants</h4>
+          <p className="text-xs md:text-sm text-neutral-400 mb-4">
+            Small, medium, and large sizes
+          </p>
+          <Grid minWidth="180px" gap="md">
+            <div className="relative h-48 bg-neutral-900 rounded-xl border-2 border-neutral-700 flex items-center justify-center">
+              <Button size="sm" onClick={() => triggerDemo(setShowDemoSm, 5000)}>
+                Small (5s)
+              </Button>
+              <VIVALoadingOverlay 
+                isVisible={showDemoSm}
+                size="sm"
+                messages={["Loading..."]}
+              />
+            </div>
+            <div className="relative h-48 bg-neutral-900 rounded-xl border-2 border-neutral-700 flex items-center justify-center">
+              <Button size="sm" onClick={() => triggerDemo(setShowDemoMd, 5000)}>
+                Medium (5s)
+              </Button>
+              <VIVALoadingOverlay 
+                isVisible={showDemoMd}
+                size="md"
+                messages={["Processing..."]}
+              />
+            </div>
+            <div className="relative h-48 bg-neutral-900 rounded-xl border-2 border-neutral-700 flex items-center justify-center">
+              <Button size="sm" onClick={() => triggerDemo(setShowDemoLg, 5000)}>
+                Large (5s)
+              </Button>
+              <VIVALoadingOverlay 
+                isVisible={showDemoLg}
+                size="lg"
+                messages={["Creating magic..."]}
+              />
+            </div>
+          </Grid>
+        </Stack>
+      </Card>
+
+      {/* Use Cases */}
+      <Card variant="default" className="p-4 md:p-6 bg-primary-500/5 border-2 border-primary-500/30">
+        <Stack gap="sm">
+          <h4 className="text-base md:text-lg font-medium text-white">💡 Common Use Cases</h4>
+          <ul className="space-y-2 text-xs md:text-sm text-neutral-300">
+            <li>• Life Vision creation flows (merging clarity, generating blueprints)</li>
+            <li>• AI image generation</li>
+            <li>• Audio/video processing</li>
+            <li>• Long-running API operations</li>
+            <li>• Data synchronization</li>
+          </ul>
+          <div className="mt-4 p-3 bg-black/30 rounded-lg">
+            <code className="text-xs text-primary-500">
+              {`<VIVALoadingOverlay 
+  isVisible={isProcessing}
+  messages={["Custom message 1...", "Custom message 2..."]}
+  cycleDuration={3000}
+/>`}
+            </code>
+          </div>
         </Stack>
       </Card>
     </Stack>
@@ -1210,6 +1358,9 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
           </Card>
         </Stack>
       )
+
+    case 'viva-loading-overlay':
+      return <VIVALoadingOverlayDemo />
 
     case 'heading':
       return (

@@ -15,3 +15,6 @@ WITH CHECK (auth.uid() = user_id);
 COMMENT ON POLICY "Users can update own intensive checklist" ON intensive_checklist IS 
 'Allows users to update their own intensive checklist records (status, started_at, completed_at, step completions)';
 
+
+
+

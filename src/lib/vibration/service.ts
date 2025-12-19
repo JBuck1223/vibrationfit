@@ -88,6 +88,7 @@ export interface SceneGenerationInput {
   assessmentSnippets?: string[] | null
   existingVisionParagraph?: string | null
   dataRichnessTier?: 'A' | 'B' | 'C'
+  numScenesToGenerate?: number
 }
 
 export interface GeneratedSceneResult {
@@ -103,13 +104,25 @@ export async function generateScenesForCategory(input: SceneGenerationInput): Pr
     Boolean(input.existingVisionParagraph)
   )
   
-  const sceneRecommendation = inferSceneCountFromData(
-    input.profileGoesWellText,
-    input.profileNotWellTextFlipped,
-    input.assessmentSnippets,
-    input.existingVisionParagraph,
-    tier
-  )
+  // If a specific number is requested (e.g., regenerating 1 scene), use that
+  // Otherwise, use the smart calculation based on data richness
+  let sceneRecommendation
+  if (input.numScenesToGenerate !== undefined) {
+    sceneRecommendation = {
+      targetScenes: input.numScenesToGenerate,
+      minScenes: input.numScenesToGenerate,
+      maxScenes: input.numScenesToGenerate,
+      distinctIdeas: input.numScenesToGenerate
+    }
+  } else {
+    sceneRecommendation = inferSceneCountFromData(
+      input.profileGoesWellText,
+      input.profileNotWellTextFlipped,
+      input.assessmentSnippets,
+      input.existingVisionParagraph,
+      tier
+    )
+  }
 
   console.log(`[Scene Generation V3] Category: ${input.category}, Tier: ${tier}, Target Scenes: ${sceneRecommendation.targetScenes} (${sceneRecommendation.minScenes}-${sceneRecommendation.maxScenes})`)
 

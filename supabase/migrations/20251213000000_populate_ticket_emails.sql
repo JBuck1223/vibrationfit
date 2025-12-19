@@ -12,3 +12,6 @@ SET guest_email = (
 WHERE user_id IS NOT NULL 
   AND guest_email IS NULL;
 
+
+
+

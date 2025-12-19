@@ -63,6 +63,7 @@ export {
   
   // Overlay Components
   Modal,
+  VIVALoadingOverlay,
   
   // Specialized Cards
   ItemListCard,
