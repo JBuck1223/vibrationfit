@@ -97,6 +97,17 @@ export async function GET(request: NextRequest) {
 
     console.log(`💾 Total storage: ${(totalSize / 1024 / 1024).toFixed(2)} MB across ${totalFiles} files`)
 
+    // Get user storage quota from database
+    const { data: storageQuotaData, error: storageQuotaError } = await supabase
+      .rpc('get_user_storage_quota', { p_user_id: user.id })
+    
+    if (storageQuotaError) {
+      console.error('Error getting storage quota:', storageQuotaError)
+    }
+    
+    const storageQuotaGB = storageQuotaData?.[0]?.total_quota_gb || 5 // Default to 5GB if no quota found
+    const storageQuotaBytes = storageQuotaGB * 1024 * 1024 * 1024
+
     // Get recent uploads (last 10)
     const recentFiles = [...allFiles]
       .sort((a, b) => {
@@ -117,6 +128,8 @@ export async function GET(request: NextRequest) {
       totalSize,
       storageByType,
       recentFiles,
+      storageQuotaGB,
+      storageQuotaBytes,
     })
 
   } catch (error: any) {

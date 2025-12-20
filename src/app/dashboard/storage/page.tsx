@@ -22,6 +22,8 @@ interface StorageData {
     size: number
     created_at: string
   }>
+  storageQuotaGB: number
+  storageQuotaBytes: number
 }
 
 const FOLDER_LABELS: Record<string, { label: string; icon: any; color: string }> = {
@@ -73,9 +75,9 @@ export default function StoragePage() {
     }
   }
 
-  // Assuming 10GB storage limit per user
-  const STORAGE_LIMIT = 10 * 1024 * 1024 * 1024 // 10GB in bytes
-  const usagePercentage = data ? (data.totalSize / STORAGE_LIMIT) * 100 : 0
+  // Get storage limit from API response (defaults to 5GB if not available)
+  const storageLimit = data?.storageQuotaBytes || (5 * 1024 * 1024 * 1024) // Default to 5GB in bytes
+  const usagePercentage = data ? (data.totalSize / storageLimit) * 100 : 0
 
   return (
     <Container size="xl">
@@ -115,7 +117,7 @@ export default function StoragePage() {
                     />
                     <TrackingMilestoneCard
                       label="Storage Used"
-                      value={`${formatBytes(data?.totalSize || 0)} / ${formatBytes(STORAGE_LIMIT)}`}
+                      value={`${formatBytes(data?.totalSize || 0)} / ${formatBytes(storageLimit)}`}
                       theme="secondary"
                     />
                   </div>
@@ -320,7 +322,7 @@ export default function StoragePage() {
                   <div>
                     <h3 className="text-sm font-semibold text-white mb-1">Storage Limit</h3>
                     <p className="text-xs text-neutral-400">
-                      Each account includes 10GB of storage. Contact us if you need more!
+                      Your account includes {data?.storageQuotaGB || 5}GB of storage. Contact us if you need more!
                     </p>
                   </div>
                 </div>

@@ -111,6 +111,16 @@ export default async function DashboardPage() {
   
   const refinementsCount = refinementsData?.[0]?.total_refinement_count || 0
 
+  // Get user storage quota
+  const { data: storageQuotaData, error: storageQuotaError } = await supabase
+    .rpc('get_user_storage_quota', { p_user_id: user.id })
+  
+  if (storageQuotaError) {
+    console.error('Error getting storage quota:', storageQuotaError)
+  }
+  
+  const storageQuotaGB = storageQuotaData?.[0]?.total_quota_gb || 5 // Default to 5GB if no quota found
+
   return (
     <DashboardContent 
       user={user}
@@ -122,6 +132,7 @@ export default async function DashboardPage() {
       profileCount={profileCount || 0}
       audioSetsCount={audioSetsCount || 0}
       refinementsCount={refinementsCount || 0}
+      storageQuotaGB={storageQuotaGB}
     />
   )
 }

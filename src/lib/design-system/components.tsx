@@ -7778,23 +7778,23 @@ export const TrackingMilestoneCard: React.FC<TrackingMilestoneCardProps> = ({
   return (
     <div className={`rounded-2xl border-2 p-4 md:p-6 lg:p-8 ${themeColors[theme]} ${className}`}>
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2 flex-1">
+        <div className="space-y-2 flex-1 min-w-0">
           {mobileLabel ? (
             <>
-              <p className={`text-xs uppercase tracking-[0.2em] ${textColors[theme]} md:hidden`}>
+              <p className={`text-xs uppercase tracking-wider ${textColors[theme]} md:hidden break-words leading-tight`}>
                 {mobileLabel}
               </p>
-              <p className={`text-xs uppercase tracking-[0.2em] ${textColors[theme]} hidden md:block`}>
+              <p className={`text-xs uppercase tracking-[0.2em] ${textColors[theme]} hidden md:block break-words leading-tight`}>
                 {label}
               </p>
             </>
           ) : (
-            <p className={`text-xs uppercase tracking-[0.2em] ${textColors[theme]}`}>
+            <p className={`text-xs uppercase tracking-wider md:tracking-[0.2em] ${textColors[theme]} break-words leading-tight`}>
               {label}
             </p>
           )}
           {value !== undefined && (
-            <p className="text-2xl md:text-3xl font-bold text-white">
+            <p className="text-2xl md:text-3xl font-bold text-white break-words">
               {value}
             </p>
           )}
