@@ -30,10 +30,10 @@ const config: Config = {
         
         // Accent Colors
         accent: {
-          50: '#C4B5FD',   // Purple Lighter
-          100: '#A78BFA',  // Purple Light
-          500: '#8B5CF6',  // Accent Purple (bright)
-          600: '#7C3AED',  // Button Purple
+          50: '#BF00FF',   // Neon Purple
+          100: '#A855F7',  // Brighter Purple
+          500: '#BF00FF',  // Neon Purple (main)
+          600: '#A855F7',  // Brighter Purple Dark
           700: '#601B9F',  // Primary Purple
           800: '#B629D4',  // Violet
         },
@@ -83,7 +83,7 @@ const config: Config = {
           info: '#14B8A6',      // Teal
           warning: '#FFB701',   // Energy Yellow
           error: '#D03739',     // Vibrant Red
-          premium: '#8B5CF6',   // Accent Purple
+          premium: '#BF00FF',   // Neon Purple / Premium
         },
         
         // Interactive States

@@ -95,6 +95,7 @@ interface VoiceProfileVersion {
   depth_preference?: string | null
   style_label?: string | null
   forbidden_styles?: string[] | null
+  forbidden_words?: string[] | null
   sample_phrases?: string[] | null
   source?: string | null
   is_active?: boolean | null
@@ -121,6 +122,7 @@ interface FormState {
   depth_preference: string
   style_label: string
   forbidden_styles_text: string
+  forbidden_words_text: string
   sample_phrases_text: string
 }
 
@@ -137,6 +139,7 @@ const defaultForm: FormState = {
   depth_preference: 'balanced',
   style_label: 'Balanced, warm, and expressive in a natural way.',
   forbidden_styles_text: '',
+  forbidden_words_text: '',
   sample_phrases_text: '',
 }
 
@@ -218,6 +221,7 @@ export default function VoiceProfilePage() {
           depth_preference: data.profile.depth_preference ?? 'balanced',
           style_label: data.profile.style_label ?? defaultForm.style_label,
           forbidden_styles_text: toMultiline(data.profile.forbidden_styles),
+          forbidden_words_text: toMultiline(data.profile.forbidden_words),
           sample_phrases_text: toMultiline(data.profile.sample_phrases),
         })
         setSelectedVersionId(data.profile.id ?? '')
@@ -251,6 +255,7 @@ export default function VoiceProfilePage() {
       depth_preference: form.depth_preference,
       style_label: form.style_label,
       forbidden_styles: parseMultiline(form.forbidden_styles_text),
+      forbidden_words: parseMultiline(form.forbidden_words_text),
       sample_phrases: parseMultiline(form.sample_phrases_text),
     }
     return renderVoiceProfileForPrompt(current as any)
@@ -287,6 +292,7 @@ export default function VoiceProfilePage() {
             depth_preference: form.depth_preference,
             style_label: form.style_label,
             forbidden_styles: parseMultiline(form.forbidden_styles_text),
+            forbidden_words: parseMultiline(form.forbidden_words_text),
             sample_phrases: parseMultiline(form.sample_phrases_text),
           },
         }),
@@ -324,6 +330,7 @@ export default function VoiceProfilePage() {
         depth_preference: version.depth_preference ?? 'balanced',
         style_label: version.style_label ?? defaultForm.style_label,
         forbidden_styles_text: toMultiline(version.forbidden_styles),
+        forbidden_words_text: toMultiline(version.forbidden_words),
         sample_phrases_text: toMultiline(version.sample_phrases),
       })
     }
@@ -494,14 +501,24 @@ stiff corporate
 therapy-speak`}
                 />
                 <Textarea
-                  label="Sample Phrases (one per line)"
-                  value={form.sample_phrases_text}
-                  onChange={handleFormChange('sample_phrases_text')}
+                  label="Forbidden Words (one per line)"
+                  value={form.forbidden_words_text}
+                  onChange={handleFormChange('forbidden_words_text')}
                   rows={3}
-                  placeholder={`I love how it feels to…
-This is the life I choose.`}
+                  placeholder={`jargon
+buzzword
+corporate-speak`}
                 />
               </div>
+
+              <Textarea
+                label="Sample Phrases (one per line)"
+                value={form.sample_phrases_text}
+                onChange={handleFormChange('sample_phrases_text')}
+                rows={3}
+                placeholder={`I love how it feels to…
+This is the life I choose.`}
+              />
 
               <div className="flex gap-2 justify-end">
                 <Button variant="ghost" size="sm" onClick={() => loadData()}>
@@ -629,6 +646,7 @@ This is the life I choose.`}
                                 depth_preference: version.depth_preference ?? 'balanced',
                                 style_label: version.style_label ?? defaultForm.style_label,
                                 forbidden_styles_text: toMultiline(version.forbidden_styles),
+                                forbidden_words_text: toMultiline(version.forbidden_words),
                                 sample_phrases_text: toMultiline(version.sample_phrases),
                               })
                             }}

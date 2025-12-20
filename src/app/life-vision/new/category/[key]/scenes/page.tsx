@@ -103,17 +103,17 @@ export default function ScenesPage() {
         setSelectedScenes(new Set(existingScenes.map(s => s.id)))
       }
       
-      // Load existing data for all steps from life_vision_category_state table
+      // Load existing data for all steps from vision_new_category_state table
       const { data: categoryState } = await supabase
-        .from('life_vision_category_state')
-        .select('ai_summary, ideal_state, blueprint_data')
+        .from('vision_new_category_state')
+        .select('clarity_keys, ideal_state, blueprint_data')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
       
       // Set step completion status based on actual data
       setCompletedSteps({
-        clarity: !!(categoryState?.ai_summary && categoryState.ai_summary.trim().length > 0),
+        clarity: !!(categoryState?.clarity_keys && Array.isArray(categoryState.clarity_keys) && categoryState.clarity_keys.length > 0),
         imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0),
         blueprint: !!(categoryState?.blueprint_data && Object.keys(categoryState.blueprint_data).length > 0),
         scenes: !!(existingScenes && existingScenes.length > 0)
@@ -121,12 +121,12 @@ export default function ScenesPage() {
       
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
-        .from('life_vision_category_state')
-        .select('category, ai_summary')
+        .from('vision_new_category_state')
+        .select('category, clarity_keys')
         .eq('user_id', user.id)
       
       const completed = allCategoryStates
-        ?.filter(state => state.ai_summary && state.ai_summary.trim().length > 0)
+        ?.filter(state => state.clarity_keys && Array.isArray(state.clarity_keys) && state.clarity_keys.length > 0)
         .map(state => state.category) || []
       
       setCompletedCategoryKeys(completed)
@@ -151,7 +151,7 @@ export default function ScenesPage() {
 
       // Get all category data
       const { data: categoryState } = await supabase
-        .from('life_vision_category_state')
+        .from('vision_new_category_state')
         .select('*')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
@@ -192,7 +192,7 @@ export default function ScenesPage() {
           profileGoesWellText: profileStory,
           profileNotWellTextFlipped: '', // Flipped contrast is in frequency_flip table
           assessmentSnippets: categoryResponses.map((r: any) => r.response_text),
-          existingVisionParagraph: categoryState?.ai_summary || '',
+          existingVisionParagraph: Array.isArray(categoryState?.clarity_keys) ? categoryState.clarity_keys.join('\n\n') : '',
           dataRichnessTier: 'B', // Will be calculated by API
           numScenesToGenerate: numToGenerate // Pass the specific count if provided
         })
@@ -762,7 +762,7 @@ export default function ScenesPage() {
                 disabled={selectedCount === 0}
                 className="flex-1"
               >
-                {nextCategory ? `Continue to ${nextCategory.label}` : 'Complete All Categories'}
+                {nextCategory ? `Save and Continue to ${nextCategory.label}` : 'Complete All Categories'}
                 <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
               </Button>
             </div>

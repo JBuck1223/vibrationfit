@@ -69,6 +69,13 @@ body {
   --color-accent-600: #7C3AED;
   --color-accent-700: #601B9F;
   --color-accent-800: #B629D4;
+  
+  /* Status Colors */
+  --color-status-success: #199D67;
+  --color-status-info: #14B8A6;
+  --color-status-warning: #FFB701;
+  --color-status-error: #D03739;
+  --color-status-premium: #BF00FF;
 }
 
 @media (prefers-color-scheme: dark) {

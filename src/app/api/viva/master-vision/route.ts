@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
     // SAFETY: Save raw output to database before returning
     try {
       await supabase
-        .from('life_vision_category_state')
+        .from('vision_new_category_state')
         .upsert({
           user_id: user.id,
           category: '_master',

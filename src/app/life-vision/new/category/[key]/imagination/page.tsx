@@ -86,10 +86,10 @@ export default function ImaginationPage() {
       const filteredQuestions = getFilteredQuestionsForCategory(categoryKey, profile || {})
       setInspirationQuestions(filteredQuestions.map(q => q.text))
 
-      // Load existing data for all steps from life_vision_category_state table
+      // Load existing data for all steps from vision_new_category_state table
       const { data: categoryState } = await supabase
-        .from('life_vision_category_state')
-        .select('ai_summary, ideal_state, blueprint_data')
+        .from('vision_new_category_state')
+        .select('clarity_keys, ideal_state, blueprint_data')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
@@ -120,7 +120,7 @@ export default function ImaginationPage() {
       
       // Set step completion status based on actual data
       setCompletedSteps({
-        clarity: !!(categoryState?.ai_summary && categoryState.ai_summary.trim().length > 0),
+        clarity: !!(categoryState?.clarity_keys && Array.isArray(categoryState.clarity_keys) && categoryState.clarity_keys.length > 0),
         imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0),
         blueprint: !!(categoryState?.blueprint_data && Object.keys(categoryState.blueprint_data).length > 0),
         scenes: !!(existingScenes && existingScenes.length > 0)
@@ -128,12 +128,12 @@ export default function ImaginationPage() {
       
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
-        .from('life_vision_category_state')
-        .select('category, ai_summary')
+        .from('vision_new_category_state')
+        .select('category, clarity_keys')
         .eq('user_id', user.id)
       
       const completed = allCategoryStates
-        ?.filter(state => state.ai_summary && state.ai_summary.trim().length > 0)
+        ?.filter(state => state.clarity_keys && Array.isArray(state.clarity_keys) && state.clarity_keys.length > 0)
         .map(state => state.category) || []
       
       setCompletedCategoryKeys(completed)
@@ -158,7 +158,7 @@ export default function ImaginationPage() {
 
       // Save to database as plain text
       const { error: updateError } = await supabase
-        .from('life_vision_category_state')
+        .from('vision_new_category_state')
         .upsert({
           user_id: user.id,
           category: categoryKey,
@@ -346,27 +346,16 @@ export default function ImaginationPage() {
 
       {/* Actions */}
       <Card variant="elevated" className="p-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => router.push(`/life-vision/new/category/${categoryKey}`)}
-            className="flex-1"
-          >
-            <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-            Back to Clarity
-          </Button>
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handleSaveAndContinue}
-            disabled={!freeFlowText.trim()}
-            className="flex-1"
-          >
-            Save and Continue
-            <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
-          </Button>
-        </div>
+        <Button
+          variant="primary"
+          size="lg"
+          onClick={handleSaveAndContinue}
+          disabled={!freeFlowText.trim()}
+          className="w-full"
+        >
+          Save and Continue
+          <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
+        </Button>
       </Card>
       </Stack>
     </Container>

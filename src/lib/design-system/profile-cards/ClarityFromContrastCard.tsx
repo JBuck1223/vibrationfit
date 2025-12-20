@@ -1,4 +1,4 @@
-import { Card, Badge, Button } from '@/lib/design-system/components'
+import { Card, Badge, Button, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { Wand2, Sparkles } from 'lucide-react'
 
 interface ClarityFromContrastCardProps {
@@ -17,20 +17,21 @@ export function ClarityFromContrastCard({
   hasContrastData = false
 }: ClarityFromContrastCardProps) {
   return (
-    <Card 
-      variant="outlined" 
-      className="border-[#BF00FF] bg-[#BF00FF]/5 hover:bg-[#BF00FF]/10 transition-all duration-300"
-    >
+    <>
+      <Card 
+        variant="outlined" 
+        className="!border-status-premium bg-status-premium/5"
+      >
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <div className="w-8 h-8 bg-[#BF00FF]/20 rounded-lg flex items-center justify-center shrink-0">
-          <Wand2 className="w-5 h-5 text-[#BF00FF]" />
+        <div className="w-8 h-8 bg-status-premium/20 rounded-lg flex items-center justify-center shrink-0">
+          <Wand2 className="w-5 h-5 text-status-premium" />
         </div>
-        <h3 className="text-base md:text-lg font-semibold text-[#BF00FF]">
+        <h3 className="text-base md:text-lg font-semibold text-status-premium">
           Clarity from Contrast
         </h3>
         <Badge 
           variant="premium" 
-          className="!bg-[#BF00FF]/20 !text-[#BF00FF] !border-[#BF00FF]/30 ml-auto"
+          className="ml-auto"
         >
           <Sparkles className="w-3 h-3 mr-1" />
           VIVA Generated
@@ -39,15 +40,15 @@ export function ClarityFromContrastCard({
       
       {clarityFromContrast ? (
         <div>
-          <p className="text-xs text-[#BF00FF]/70 mb-2 font-medium">Generated Clarity</p>
+          <p className="text-xs text-status-premium/70 mb-2 font-medium">Generated Clarity</p>
           <p className="text-sm md:text-base text-neutral-200 leading-relaxed">{clarityFromContrast}</p>
           
           {onGenerateClarity && (
             <Button
               onClick={onGenerateClarity}
-              variant="ghost"
+              variant="outline-purple"
               size="sm"
-              className="mt-4 !text-[#BF00FF] hover:!bg-[#BF00FF]/10"
+              className="mt-4"
               loading={isGenerating}
             >
               Regenerate Clarity
@@ -60,22 +61,23 @@ export function ClarityFromContrastCard({
             <p className="text-neutral-400 text-sm">
               VIVA can automatically generate clarity from your contrast and worries.
             </p>
-            <p className="text-[#BF00FF]/70 text-xs italic">
+            <p className="text-status-premium/70 text-xs italic">
               This helps transform "what's not working" into "what you truly want."
             </p>
           </div>
           
           {hasContrastData && onGenerateClarity && (
-            <Button
-              onClick={onGenerateClarity}
-              variant="accent"
-              size="sm"
-              className="w-full !bg-gradient-to-r !from-[#BF00FF] !to-[#8B5CF6] hover:opacity-90"
-              loading={isGenerating}
-            >
-              <Wand2 className="w-4 h-4 mr-2" />
-              Generate Clarity from Contrast
-            </Button>
+            <div className="flex justify-center">
+              <Button
+                onClick={onGenerateClarity}
+                variant="outline-purple"
+                size="sm"
+                loading={isGenerating}
+              >
+                <Wand2 className="w-4 h-4 mr-2" />
+                Generate Clarity from Contrast
+              </Button>
+            </div>
           )}
           
           {!hasContrastData && (
@@ -86,6 +88,21 @@ export function ClarityFromContrastCard({
         </div>
       )}
     </Card>
+
+    {/* VIVA Loading Overlay */}
+    <VIVALoadingOverlay
+      isVisible={isGenerating}
+      messages={[
+        "VIVA is analyzing your contrast...",
+        "Transforming worries into clarity...",
+        "Generating aligned vision...",
+        "Crafting your positive clarity statement..."
+      ]}
+      cycleDuration={3500}
+      estimatedTime="Usually takes 10-20 seconds"
+      estimatedDuration={15000}
+    />
+    </>
   )
 }
 

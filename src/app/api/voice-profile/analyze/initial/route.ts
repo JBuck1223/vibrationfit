@@ -135,6 +135,7 @@ export async function POST() {
           depth_preference: existingProfileRow.depth_preference ?? undefined,
           style_label: existingProfileRow.style_label ?? undefined,
           forbidden_styles: normalizeArray(existingProfileRow.forbidden_styles),
+          forbidden_words: normalizeArray(existingProfileRow.forbidden_words),
           sample_phrases: normalizeArray(existingProfileRow.sample_phrases),
           source: existingProfileRow.source ?? undefined,
           last_refined_at: existingProfileRow.last_refined_at ?? undefined,
@@ -207,6 +208,7 @@ export async function POST() {
       style_label:
         analysis.style_label ?? currentProfile?.style_label ?? 'Balanced, warm, and expressive in a natural way.',
       forbidden_styles: analysisForbidden.length ? analysisForbidden : currentProfile?.forbidden_styles ?? [],
+      forbidden_words: currentProfile?.forbidden_words ?? [],
       sample_phrases: analysisPhrases.length ? analysisPhrases : currentProfile?.sample_phrases ?? [],
       source: currentProfile ? 'hybrid' : 'ai_analysis',
       last_refined_at: nowIso,
@@ -229,6 +231,7 @@ export async function POST() {
         depth_preference: merged.depth_preference,
         style_label: merged.style_label,
         forbidden_styles: merged.forbidden_styles,
+        forbidden_words: merged.forbidden_words,
         sample_phrases: merged.sample_phrases,
         source: merged.source,
         last_refined_at: merged.last_refined_at,

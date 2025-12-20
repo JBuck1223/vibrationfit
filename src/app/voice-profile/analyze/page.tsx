@@ -63,6 +63,7 @@ interface VoiceProfileVersion {
   depth_preference?: string | null
   style_label?: string | null
   forbidden_styles?: string[] | null
+  forbidden_words?: string[] | null
   sample_phrases?: string[] | null
   source?: string | null
   created_at?: string | null
@@ -248,6 +249,7 @@ export default function VoiceProfileAnalyzePage() {
       depth_preference: profile.depth_preference as any,
       style_label: profile.style_label,
       forbidden_styles: profile.forbidden_styles ?? [],
+      forbidden_words: profile.forbidden_words ?? [],
       sample_phrases: profile.sample_phrases ?? [],
     })
   }, [profile])

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, Button, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
 import { Sparkles, CheckCircle, Circle, Clock } from 'lucide-react'
-import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getCategoryClarityField } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
 interface CategoryProgress {
@@ -36,18 +36,50 @@ export default function VIVALifeVisionLandingPage() {
 
       // Get all category states
       const { data: categoryStates } = await supabase
-        .from('life_vision_category_state')
-        .select('category, ai_summary, ideal_state, blueprint_data')
+        .from('vision_new_category_state')
+        .select('category, clarity_keys, ideal_state, blueprint_data')
         .eq('user_id', user.id)
 
+      // Also get user profile to check for profile clarity as fallback
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('is_draft', false)
+        .maybeSingle()
+
       const progressMap: CategoryProgress = {}
+      
+      // First, populate from category states
       categoryStates?.forEach(state => {
         progressMap[state.category] = {
-          hasClarity: !!state.ai_summary,
+          hasClarity: !!(state.clarity_keys && Array.isArray(state.clarity_keys) && state.clarity_keys.length > 0),
           hasImagination: !!state.ideal_state,
           hasBlueprint: !!state.blueprint_data
         }
       })
+      
+      // Then check profile clarity as fallback for categories without clarity_keys
+      if (profile) {
+        VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13).forEach(cat => {
+          const clarityField = getCategoryClarityField(cat.key)
+          const hasProfileClarity = profile[clarityField] && String(profile[clarityField]).trim().length > 0
+          
+          // If we don't have clarity in category state but we have it in profile, mark as having clarity
+          if (hasProfileClarity) {
+            if (!progressMap[cat.key]) {
+              progressMap[cat.key] = {
+                hasClarity: true,
+                hasImagination: false,
+                hasBlueprint: false
+              }
+            } else if (!progressMap[cat.key].hasClarity) {
+              progressMap[cat.key].hasClarity = true
+            }
+          }
+        })
+      }
 
       setProgress(progressMap)
       setLoading(false)
