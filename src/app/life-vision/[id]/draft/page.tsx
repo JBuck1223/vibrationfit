@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, Eye, Gem, Download, VolumeX, Edit3, Trash2 } from 'lucide-react'
+import { CheckCircle, Eye, Gem, Download, VolumeX, Edit3, Trash2, Copy, Sparkles, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getDraftVision, commitDraft, getDraftCategories } from '@/lib/life-vision/draft-helpers'
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
@@ -87,6 +87,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [user, setUser] = useState<any>(null)
   const [deletingDraft, setDeletingDraft] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showCloneDialog, setShowCloneDialog] = useState(false)
+  const [isCloning, setIsCloning] = useState(false)
 
   // Show commit confirmation dialog
   const handleCommitAsActive = () => {
@@ -285,64 +287,183 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
     loadVisionById()
   }, [params, router, supabase, loadDraftVision])
 
-  // Handle creating a draft from active vision
-  const handleCreateDraft = async () => {
-    if (!vision || !user) return
+  // Handle creating a draft from active vision (with clone dialog if draft exists)
+  const handleCreateDraft = async (e?: React.MouseEvent) => {
+    e?.preventDefault()
+    e?.stopPropagation()
+    
+    console.log('handleCreateDraft called', { user: !!user })
+    
+    // Get user if not already set
+    let currentUser = user
+    if (!currentUser) {
+      const { data: { user: fetchedUser } } = await supabase.auth.getUser()
+      if (!fetchedUser) {
+        console.error('User not found')
+        alert('You must be logged in to create a draft')
+        return
+      }
+      currentUser = fetchedUser
+      setUser(fetchedUser)
+    }
 
     try {
-      setLoading(true)
-      
-      // Check if draft already exists
+      console.log('Checking for existing drafts...')
+      // Check if a draft already exists
       const { data: existingDraft } = await supabase
         .from('vision_versions')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', currentUser.id)
         .eq('is_draft', true)
         .eq('is_active', false)
         .maybeSingle()
 
       if (existingDraft) {
-        router.push(`/life-vision/${existingDraft.id}/draft`)
+        console.log('Existing draft found, showing dialog')
+        // Show override dialog
+        setShowCloneDialog(true)
         return
       }
 
-      // Clone this vision as a draft
-      const { data: newDraft, error } = await supabase
+      console.log('No existing draft, proceeding with clone')
+      // No existing draft, proceed with clone
+      await performClone()
+    } catch (error) {
+      console.error('Error checking for drafts:', error)
+      alert('Failed to check for existing drafts. Please try again.')
+    }
+  }
+
+  // Perform the actual clone operation
+  const performClone = async () => {
+    console.log('performClone called', { user: !!user })
+    
+    // Get user if not already set
+    let currentUser = user
+    if (!currentUser) {
+      const { data: { user: fetchedUser } } = await supabase.auth.getUser()
+      if (!fetchedUser) {
+        console.error('User not found in performClone')
+        alert('You must be logged in to create a draft')
+        return
+      }
+      currentUser = fetchedUser
+      setUser(fetchedUser)
+    }
+
+    setIsCloning(true)
+    try {
+      // Get vision ID from URL params
+      const resolvedParams = await params
+      const versionId = resolvedParams.id
+      console.log('Cloning vision with ID:', versionId)
+
+      // Delete ALL existing drafts using API route (bypasses RLS recursion issues)
+      // First, fetch all existing drafts
+      const { data: existingDrafts, error: draftsFetchError } = await supabase
+        .from('vision_versions')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .eq('is_draft', true)
+        .eq('is_active', false)
+
+      if (draftsFetchError) {
+        console.error('Error fetching existing drafts:', draftsFetchError)
+        // Continue anyway - might not be any drafts
+      } else if (existingDrafts && existingDrafts.length > 0) {
+        console.log(`Found ${existingDrafts.length} existing draft(s) to delete`)
+        // Delete each draft using the API route (bypasses RLS)
+        for (const draft of existingDrafts) {
+          try {
+            const deleteResponse = await fetch(`/api/vision?id=${draft.id}`, {
+              method: 'DELETE',
+            })
+            if (!deleteResponse.ok) {
+              const errorData = await deleteResponse.json()
+              console.error(`Failed to delete draft ${draft.id}:`, errorData.error)
+            } else {
+              console.log(`Deleted draft ${draft.id}`)
+            }
+          } catch (err) {
+            console.error(`Error deleting draft ${draft.id}:`, err)
+          }
+        }
+      }
+
+      // Fetch the version to clone
+      const { data: sourceVersion, error: sourceFetchError } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('id', versionId)
+        .eq('user_id', currentUser.id)
+        .single()
+
+      if (sourceFetchError || !sourceVersion) {
+        alert('Failed to fetch version to clone')
+        setIsCloning(false)
+        return
+      }
+
+      // Create new version with copied data
+      const { data: newVersion, error: insertError } = await supabase
         .from('vision_versions')
         .insert({
-          user_id: user.id,
-          parent_id: vision.id, // Track where this draft came from
-          title: vision.title,
-          perspective: vision.perspective,
-          forward: vision.forward,
-          conclusion: vision.conclusion,
-          fun: vision.fun,
-          health: vision.health,
-          travel: vision.travel,
-          love: vision.love,
-          family: vision.family,
-          social: vision.social,
-          home: vision.home,
-          work: vision.work,
-          money: vision.money,
-          stuff: vision.stuff,
-          giving: vision.giving,
-          spirituality: vision.spirituality,
+          user_id: currentUser.id,
+          parent_id: sourceVersion.id, // Track where this draft came from
+          title: sourceVersion.title || 'Vision Draft',
+          perspective: sourceVersion.perspective || 'singular',
+          forward: sourceVersion.forward,
+          fun: sourceVersion.fun,
+          travel: sourceVersion.travel,
+          home: sourceVersion.home,
+          family: sourceVersion.family,
+          love: sourceVersion.love,
+          health: sourceVersion.health,
+          money: sourceVersion.money,
+          work: sourceVersion.work,
+          social: sourceVersion.social,
+          stuff: sourceVersion.stuff,
+          giving: sourceVersion.giving,
+          spirituality: sourceVersion.spirituality,
+          conclusion: sourceVersion.conclusion,
           is_draft: true,
           is_active: false
         })
         .select()
         .single()
 
-      if (error) throw error
+      if (insertError) {
+        console.error('Clone insert error:', insertError)
+        console.error('Insert error details:', JSON.stringify(insertError, null, 2))
+        alert(`Failed to clone version: ${insertError.message || 'Unknown error'}`)
+        setIsCloning(false)
+        return
+      }
 
-      router.push(`/life-vision/${newDraft.id}/draft`)
-    } catch (err) {
-      console.error('Error creating draft:', err)
-      alert('Failed to create draft')
-    } finally {
-      setLoading(false)
+      if (!newVersion) {
+        console.error('No new version returned from insert')
+        alert('Failed to clone version: No data returned')
+        setIsCloning(false)
+        return
+      }
+
+      // Navigate directly to the draft page to avoid redirect bounce
+      // No need to refresh since we're navigating away
+      router.push(`/life-vision/${newVersion.id}/draft`)
+      // Don't set isCloning(false) - keep loading overlay visible during navigation
+    } catch (error) {
+      console.error('Error cloning version:', error)
+      alert('Failed to clone version. Please try again.')
+      setIsCloning(false)
     }
+  }
+
+  // Confirm clone from dialog
+  const confirmClone = async () => {
+    // Set isCloning to true BEFORE dismissing dialog to prevent flash
+    setIsCloning(true)
+    setShowCloneDialog(false)
+    await performClone()
   }
 
   // Handle edit category
@@ -413,24 +534,100 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
 
   if (error && isNotDraft && vision) {
     return (
-      <Card className="text-center py-16">
-        <div className="text-secondary-400 mb-4">
-          <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-4">This Life Vision is Not a Draft</h2>
-        <p className="text-neutral-400 mb-6">{error}</p>
-        <p className="text-neutral-400 mb-6">Would you like to create a draft from this vision?</p>
-        <div className="flex gap-4 justify-center">
-          <Button onClick={handleCreateDraft} variant="primary">
-            Create Draft
-          </Button>
-          <Button onClick={() => router.push('/life-vision')} variant="outline">
-            Back to Life Vision
-          </Button>
-        </div>
-      </Card>
+      <>
+        <Card className="text-center py-16">
+          <div className="text-secondary-400 mb-4">
+            <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-4">This Life Vision is Not a Draft</h2>
+          <p className="text-neutral-400 mb-6">{error}</p>
+          <p className="text-neutral-400 mb-6">Would you like to create a draft from this vision?</p>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              onClick={(e) => {
+                console.log('Button clicked')
+                handleCreateDraft(e)
+              }} 
+              variant="primary"
+              disabled={isCloning}
+            >
+              {isCloning ? 'Creating...' : 'Create Draft'}
+            </Button>
+            <Button onClick={() => router.push('/life-vision')} variant="outline">
+              Back to Life Vision
+            </Button>
+          </div>
+        </Card>
+
+        {/* Clone Override Dialog */}
+        {showCloneDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white">
+                  Override Existing Draft?
+                </h3>
+                <button
+                  onClick={() => setShowCloneDialog(false)}
+                  className="text-neutral-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <p className="text-neutral-300 mb-6">
+                Only one draft at a time. This will override any existing draft and create a new draft from the selected version.
+              </p>
+              
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCloneDialog(false)}
+                  disabled={isCloning}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={confirmClone}
+                  disabled={isCloning}
+                  className="flex-1 gap-2"
+                >
+                  {isCloning ? (
+                    <>
+                      <Sparkles className="w-4 h-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Create Draft
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Cloning Loading Overlay */}
+        {isCloning && !showCloneDialog && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+            <Card className="max-w-md w-full">
+              <div className="text-center py-8">
+                <Sparkles className="w-12 h-12 text-primary-500 animate-spin mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-white mb-2">Creating Draft...</h3>
+                <p className="text-neutral-400">
+                  Cloning your vision as a draft
+                </p>
+              </div>
+            </Card>
+          </div>
+        )}
+      </>
     )
   }
 
@@ -479,6 +676,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
           title="Refine Your Life Vision"
           subtitle="Refined categories will show in yellow. Once you are happy with your refinements, click 'Commit as Active Vision'."
         >
+          {/* Version Info Badges */}
           <div className="text-center">
             <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
               <VersionBadge 
@@ -499,50 +697,50 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
               )}
             </div>
           </div>
-        </PageHero>
 
-              {/* Action Buttons - Enhanced with Hover Effects */}
-              <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-                <Button
-                  onClick={() => router.push('/life-vision')}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  <Icon icon={Eye} size="sm" className="shrink-0" />
-                  <span>All Visions</span>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline-purple"
-                  size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  <Link href={`/life-vision/${vision.id}/refine`}>
-                    <Icon icon={Gem} size="sm" className="shrink-0" />
-                    <span>Refine with VIVA</span>
-                  </Link>
-                </Button>
-                <Button
-                  onClick={handleCommitAsActive}
-                  disabled={isCommitting || refinedCount === 0}
-                  variant="primary"
-                  size="sm"
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  {isCommitting ? (
-                    <>
-                      <Spinner variant="primary" size="sm" />
-                      <span>Committing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Icon icon={CheckCircle} size="sm" className="shrink-0" />
-                      <span>Commit as Active Vision</span>
-                    </>
-                  )}
-                </Button>
-              </div>
+          {/* Action Buttons */}
+          <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+            <Button
+              onClick={() => router.push('/life-vision')}
+              variant="outline"
+              size="sm"
+              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Icon icon={Eye} size="sm" className="shrink-0" />
+              <span>All Visions</span>
+            </Button>
+            <Button
+              asChild
+              variant="outline-purple"
+              size="sm"
+              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href={`/life-vision/${vision.id}/refine`}>
+                <Icon icon={Gem} size="sm" className="shrink-0" />
+                <span>Refine with VIVA</span>
+              </Link>
+            </Button>
+            <Button
+              onClick={handleCommitAsActive}
+              disabled={isCommitting || refinedCount === 0}
+              variant="primary"
+              size="sm"
+              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              {isCommitting ? (
+                <>
+                  <Spinner variant="primary" size="sm" />
+                  <span>Committing...</span>
+                </>
+              ) : (
+                <>
+                  <Icon icon={CheckCircle} size="sm" className="shrink-0" />
+                  <span>Commit as Active Vision</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </PageHero>
 
       {/* Vision Categories Grid */}
       <div className="grid grid-cols-1 gap-6 mb-8">
@@ -606,6 +804,73 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                 type="delete"
                 isLoading={deletingDraft}
               />
+
+      {/* Clone Override Dialog */}
+      {showCloneDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">
+                Override Existing Draft?
+              </h3>
+              <button
+                onClick={() => setShowCloneDialog(false)}
+                className="text-neutral-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-neutral-300 mb-6">
+              Only one draft at a time. This will override any existing draft and create a new draft from the selected version.
+            </p>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowCloneDialog(false)}
+                disabled={isCloning}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmClone}
+                disabled={isCloning}
+                className="flex-1 gap-2"
+              >
+                {isCloning ? (
+                  <>
+                    <Sparkles className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Create Draft
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Cloning Loading Overlay */}
+      {isCloning && !showCloneDialog && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <Card className="max-w-md w-full">
+            <div className="text-center py-8">
+              <Sparkles className="w-12 h-12 text-primary-500 animate-spin mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2">Creating Draft...</h3>
+              <p className="text-neutral-400">
+                Cloning your vision as a draft
+              </p>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Commit Confirmation Dialog */}
       <WarningConfirmationDialog

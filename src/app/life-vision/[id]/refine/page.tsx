@@ -1292,12 +1292,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           )}
 
           {/* Action Buttons */}
-          <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-3xl mx-auto">
+          <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-3xl mx-auto justify-center">
             <Button
               onClick={() => router.push(draftVision ? `/life-vision/${draftVision.id}/draft` : '/life-vision')}
               variant="outline"
               size="sm"
-              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
             >
               <Icon icon={Eye} size="sm" className="shrink-0" />
               <span>View Draft</span>
