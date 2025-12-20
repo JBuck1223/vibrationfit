@@ -800,7 +800,7 @@ export default function CategoryPage() {
       {/* Let's Get Clear - Three Card-Based Text Blocks */}
 
       {/* Error Message */}
-      {error && !aiSummary && (
+      {error && (
         <Card className="border-2 border-[#D03739]/30 bg-[#D03739]/10">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-[#D03739] flex-shrink-0 mt-0.5" />

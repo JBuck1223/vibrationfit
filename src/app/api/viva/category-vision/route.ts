@@ -96,12 +96,14 @@ export async function POST(request: NextRequest) {
     console.log(`[CategoryVision] Streaming with model ${toolConfig.model_name}`)
 
     // Use Vercel AI SDK for streaming
+    // Note: maxTokens is set via the model provider, not streamText() options
+    const maxTokens = toolConfig.max_tokens * toolConfig.token_multiplier
+    
     const result = streamText({
       model: openai(toolConfig.model_name),
       system: toolConfig.system_prompt || 'You are VIVA, a vibrationally intelligent assistant that writes beautiful, human-sounding life vision text.',
       prompt: prompt,
       temperature: toolConfig.supports_temperature ? toolConfig.temperature : undefined,
-      maxTokens: toolConfig.max_tokens * toolConfig.token_multiplier,
       
       async onFinish({ text, usage }) {
         const elapsedMs = Date.now() - startTime
@@ -114,15 +116,19 @@ export async function POST(request: NextRequest) {
 
         const finalOutput = text.trim()
 
-        // Track token usage
+        // Track token usage (AI SDK v4 usage object properties)
         if (usage) {
+          const promptTokens = (usage as any).prompt || (usage as any).promptTokens || 0
+          const completionTokens = (usage as any).completion || (usage as any).completionTokens || 0
+          const totalTokens = (usage as any).total || (usage as any).totalTokens || (promptTokens + completionTokens)
+          
           trackTokenUsage({
             user_id: user.id,
             action_type: 'life_vision_category_generation',
             model_used: toolConfig.model_name,
-            tokens_used: usage.totalTokens || 0,
-            input_tokens: usage.promptTokens || 0,
-            output_tokens: usage.completionTokens || 0,
+            tokens_used: totalTokens,
+            input_tokens: promptTokens,
+            output_tokens: completionTokens,
             actual_cost_cents: 0,
             success: true,
             metadata: {
