@@ -784,32 +784,35 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                         <Icon icon={Download} size="sm" className="shrink-0" />
                         <span>Download PDF</span>
                       </Button>
-                      <Button
-                        onClick={async () => {
-                          // Check if a draft already exists for this vision
-                          const { data: existingDraft } = await supabase
-                            .from('vision_versions')
-                            .select('id')
-                            .eq('parent_id', vision.id)
-                            .eq('is_draft', true)
-                            .eq('is_active', false)
-                            .maybeSingle()
-                          
-                          if (existingDraft) {
-                            // Open existing draft
-                            router.push(`/life-vision/${existingDraft.id}/refine`)
-                          } else {
-                            // Create new draft
-                            router.push(`/life-vision/${vision.id}/refine`)
-                          }
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                      >
-                        <Icon icon={Gem} size="sm" className="shrink-0" />
-                        <span>Refine</span>
-                      </Button>
+                      {/* Only show Refine button if not a complete, inactive, non-draft vision */}
+                      {!(displayStatus === 'complete' && vision.is_active === false && vision.is_draft === false) && (
+                        <Button
+                          onClick={async () => {
+                            // Check if a draft already exists for this vision
+                            const { data: existingDraft } = await supabase
+                              .from('vision_versions')
+                              .select('id')
+                              .eq('parent_id', vision.id)
+                              .eq('is_draft', true)
+                              .eq('is_active', false)
+                              .maybeSingle()
+                            
+                            if (existingDraft) {
+                              // Open existing draft
+                              router.push(`/life-vision/${existingDraft.id}/refine`)
+                            } else {
+                              // Create new draft
+                              router.push(`/life-vision/${vision.id}/refine`)
+                            }
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                        >
+                          <Icon icon={Gem} size="sm" className="shrink-0" />
+                          <span>Refine</span>
+                        </Button>
+                      )}
                       <Button
                         asChild
                         variant="outline"
