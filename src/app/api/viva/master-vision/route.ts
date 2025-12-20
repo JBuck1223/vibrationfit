@@ -9,8 +9,8 @@ import { buildMasterVisionPrompt, MASTER_VISION_SHARED_SYSTEM_PROMPT } from '@/l
 import { getBookendTemplate, determineWooLevel, type Perspective } from '@/lib/viva/bookend-templates'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
 
-// Allow longer execution time for master vision generation (up to 15 minutes)
-export const maxDuration = 900 // 15 minutes in seconds
+// Allow longer execution time for master vision generation (up to 13 minutes for Vercel Pro)
+export const maxDuration = 780 // 13 minutes in seconds (under 800s Pro limit)
 export const runtime = 'nodejs'
 
 const openai = new OpenAI({
