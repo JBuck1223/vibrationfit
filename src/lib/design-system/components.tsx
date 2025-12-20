@@ -3152,12 +3152,15 @@ export const VIVALoadingOverlay = React.forwardRef<HTMLDivElement, VIVALoadingOv
     const [autoProgress, setAutoProgress] = useState(0)
 
     // Cycle through messages once, then stay on final message
+    const [reachedEnd, setReachedEnd] = useState(false)
+    
     useEffect(() => {
-      if (isVisible && messages.length > 1) {
+      if (isVisible && messages.length > 1 && !reachedEnd) {
         const interval = setInterval(() => {
           setMessageIndex((prev) => {
             // Stop at the last message instead of wrapping around
             if (prev >= messages.length - 1) {
+              setReachedEnd(true) // Mark as done to clear interval
               return prev // Stay on final message
             }
             return prev + 1
@@ -3165,7 +3168,7 @@ export const VIVALoadingOverlay = React.forwardRef<HTMLDivElement, VIVALoadingOv
         }, cycleDuration)
         return () => clearInterval(interval)
       }
-    }, [isVisible, messages.length, cycleDuration])
+    }, [isVisible, messages.length, cycleDuration, reachedEnd])
 
     // Auto-calculate progress based on elapsed time
     // Only use auto-progress if estimatedDuration is provided AND progress is not manually set to 100
@@ -3195,6 +3198,7 @@ export const VIVALoadingOverlay = React.forwardRef<HTMLDivElement, VIVALoadingOv
       if (isVisible) {
         setMessageIndex(0)
         setAutoProgress(0)
+        setReachedEnd(false)
       }
     }, [isVisible])
 
@@ -3245,11 +3249,11 @@ export const VIVALoadingOverlay = React.forwardRef<HTMLDivElement, VIVALoadingOv
           {/* Progress Indicator */}
           {showProgressBar && (
             <div className="flex justify-center">
-              <div className="w-80 bg-neutral-800 rounded-full h-2 overflow-hidden">
+              <div className="w-80 max-w-full bg-neutral-800 rounded-full h-2.5 overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-full transition-all duration-500 ease-out"
+                  className="h-full bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-full transition-all duration-300 ease-out"
                   style={{ 
-                    width: `${progress === 100 ? 100 : autoProgress}%`
+                    width: `${progress !== undefined ? progress : autoProgress}%`
                   }}
                 ></div>
               </div>

@@ -1,0 +1,402 @@
+# Life Vision Queue‑Based Assembly
+
+This document defines the **full scope** for converting `life-vision/new/assembly` into a **queue‑driven, category‑by‑category system** with high‑fidelity writing, zero washout, and maximum emotional power.
+
+The core goal is simple:
+
+> **Each category should feel freeing, powerful, and emotionally good to read or hear.**
+
+The system honors the principle:
+
+* **Basis of life:** Freedom
+* **Purpose of life:** Joy
+* **Result of life:** Expansion
+
+Emotional response is the success metric. Structure exists only to support embodiment.
+
+---
+
+## 1. Why Queue the Life Vision Assembly
+
+### Problem Being Solved
+
+Single‑pass, all‑category generation creates:
+
+* Compression of rich inputs
+* Repetition patterns (e.g. identical paragraph openers)
+* Loss of cross‑category nuance
+* Cognitive overload for the model
+* Reduced scene density
+
+### Queue‑Based Solution
+
+Process **each category independently**, allowing:
+
+* Full context window per category
+* Deeper scene expansion
+* Preservation of original phrasing
+* Cleaner refinement cycles
+* Natural Venn‑diagram overlap across categories *over time*, not in one pass
+
+Each category becomes:
+
+* A **standalone emotional experience**
+* A reusable unit for refinement, audio, and tuning
+
+---
+
+## 2. Overall Queue Flow (High Level)
+
+For a given user:
+
+1. Create / update `life_vision_category_state` rows (one per category)
+2. Enqueue **12 category jobs** (Fun → Spirituality)
+3. Each job:
+
+   * Reads only its category inputs
+   * Writes only its category output
+   * Stores `master_vision_raw` + `category_vision_text`
+4. Final assembly step (lightweight):
+
+   * Stitches completed categories into `vision_versions`
+   * No rewriting, no summarizing
+
+This keeps **generation heavy, assembly light**.
+
+### Queue UI Contract (match `/life-vision/[id]/audio/queue`)
+
+Each category job should display:
+
+* Category label
+* Status: `queued | processing | completed | failed | paused`
+* Progress timestamps
+* Retry button (if failed)
+* View output (when completed)
+
+### Data Contract (per category)
+
+Use `life_vision_category_state` as the single source of truth during processing:
+
+* Inputs: `transcript`, `ideal_state`, `clarity_keys`, `contrast_flips`, `blueprint_data`, `ideal_state_prompts`
+* Outputs: `category_vision_text`, `master_vision_raw`
+
+## 3. Source Philosophy (Non‑Negotiable)
+
+### AI Washout Rule
+
+AI should never process AI‑written **abstractions or interpretations**.
+
+This includes:
+
+* Clarity summaries
+* Paragraph guides
+* Synthesized explanations
+* Emotional interpretations
+* Thematic labeling
+
+These collapse dimensionality and lead to generic output.
+
+### What *Is* Allowed (Primitives Only)
+
+AI **may** process AI‑generated primitives, including:
+
+* Scene fragments
+* Sensory notes
+* Environmental details
+* Blueprint completeness cues
+* Structural or systemic checklists
+* Moment‑based inputs
+
+Primitives are raw ingredients.
+They do not explain meaning — they **create space for meaning to emerge**.
+
+### Governing Principle
+
+* If an input *explains* the vision → ❌ reject
+* If an input *creates* the vision → ✅ allow
+
+---
+
+## 4. Source Priority (Final)
+
+Per category, sources are used in this exact order:
+
+1. **What’s Already Going Well** (user’s words, literal)
+2. **User Imagination** (expansion, literal)
+3. **Contrast Flips** (silent replacement)
+4. **Scenes / Sensory Notes**
+5. **Blueprint Data** (invisible completeness check)
+6. **Raw Transcript** (voice support)
+
+### Notes
+
+* **No profile facts** in vision mode.
+* **No assessment** in this pipeline.
+* “What’s already going well” must be woven in as lived truth (not just guardrails).
+* Do not turn clarity keys into prose; they shape scenes and tone.
+
+## 5. Category Micro‑Tuning (Conceptual Layer)
+
+This layer is **internal only**.
+It is never shown to the user and is never referenced explicitly in output.
+
+Its purpose is to quietly steer tone, word choice, pacing, and scene selection so each section feels good to read or listen to.
+
+### Universal Frame (Applies to All Categories)
+
+* The basis of life is freedom.
+* The purpose of life is joy.
+* The result of life is expansion.
+
+Success metric: **emotional relief + alignment** (not eloquence, length, or explanation).
+
+Language should create:
+
+* Ease
+* Capability
+* Self‑trust
+* Openness
+
+Avoid:
+
+* Obligation
+* Pressure
+* Performance
+* Self‑improvement tone
+
+### Category Micro‑Tuning Library (Inject only the matching block)
+
+#### Love
+
+Primary emotional target: Freedom to be fully myself — emotionally, creatively, sexually, spiritually.
+Tone: mutual allowance; encouragement over expectation; passion without pressure.
+Avoid: validation‑seeking; completion narratives; sacrifice framing.
+Internal guide: This relationship expands who I am. I do not shrink, perform, or manage myself here.
+
+#### Money
+
+Primary emotional target: Freedom of choice.
+Tone: ease; spaciousness; calm confidence; optionality.
+Avoid: hustle/proving; money as identity or safety replacement.
+Internal guide: Money removes friction from life and amplifies fun, presence, generosity.
+
+#### Work
+
+Primary emotional target: Creative freedom + feeling seen and valued.
+Tone: self‑directed flow; impact without urgency; choice over obligation.
+Avoid: grind culture; “hard but worth it”; external validation loops.
+Internal guide: I choose how I create, when I create, and what matters — and my work responds accordingly.
+
+#### Health
+
+Primary emotional target: Freedom of movement, energy, enjoyment.
+Tone: capability; pride without comparison; vitality as play.
+Avoid: fixing the body; discipline as control; fear motivation.
+Internal guide: My body supports my joy. Health expands what I am available for.
+
+#### Family
+
+Primary emotional target: Emotional freedom + mutual allowance.
+Tone: leadership through alignment; joyful presence; trust in individuality.
+Avoid: responsibility for others’ emotions; perfectionism; martyrdom.
+Internal guide: I am free to enjoy my family without carrying emotional weight that is not mine.
+
+#### Fun
+
+Primary emotional target: Permission.
+Tone: lightness; spontaneity; play without justification.
+Avoid: earned joy; scheduled happiness; productivity framing.
+Internal guide: Fun is allowed. Joy does not need to be justified.
+
+#### Travel
+
+Primary emotional target: Expansion through experience.
+Tone: curiosity; wonder; flow.
+Avoid: escapism; over‑planning; status travel.
+Internal guide: The world opens me, and I move through it freely.
+
+#### Home
+
+Primary emotional target: Safety and ease.
+Tone: exhale; comfort; flow.
+Avoid: impressing others; maintenance stress; perfection pressure.
+Internal guide: My home supports me. It does not demand from me.
+
+#### Social
+
+Primary emotional target: Freedom to be authentic.
+Tone: mutual enthusiasm; ease; emotional reciprocity.
+Avoid: obligation; over‑giving; managing dynamics.
+Internal guide: I am wanted for who I am, not for what I provide.
+
+#### Giving
+
+Primary emotional target: Overflow.
+Tone: joyful generosity; choice; appreciation.
+Avoid: duty; guilt; saving others.
+Internal guide: I give because I want to, not because I should.
+
+#### Spirituality
+
+Primary emotional target: Freedom of alignment.
+Tone: soft knowing; trust; presence.
+Avoid: seeking; hierarchies; spiritual effort.
+Internal guide: Alignment is natural. I return to it easily.
+
+#### Stuff
+
+Primary emotional target: Ease and enjoyment.
+Tone: utility with delight; playfulness; simplicity.
+Avoid: accumulation; status signaling; attachment.
+Internal guide: Things support my life. They do not define it.
+
+---
+
+## 6. Category Agent Prompt (FINAL)
+
+This is the **exact prompt structure** used per queue item, producing **one category** at a time.
+
+### Runtime Variables
+
+* `{USER_ID}`
+* `{CATEGORY_KEY}` one of: fun, health, travel, love, family, social, home, work, money, stuff, giving, spirituality
+* `{CATEGORY_LABEL}` display label (Fun, Health, etc.)
+* `{PERSPECTIVE}` singular or plural
+* `{CATEGORY_MICRO_TUNING_BLOCK}` selected from the library below
+
+### Required Inputs (pulled from `life_vision_category_state`)
+
+* `{CLARITY_PRESENT_STATE_TEXT}` (your “what’s already going well” in the member’s own words)
+* `{IDEAL_STATE_TEXT}`
+* `{CONTRAST_FLIPS_ARRAY}` (json array or newline list)
+* `{SCENES_TEXT}` (compiled from stored scenes)
+* `{BLUEPRINT_TEXT}` (compiled from `blueprint_data`)
+
+### Optional Input
+
+* `{ACTIVE_VISION_CATEGORY_TEXT}` (style continuity only; do not copy)
+
+---
+
+### CATEGORY VISION ASSEMBLY — SINGLE CATEGORY (Prompt Template)
+
+```
+TASK
+Write the Life I Choose™ vision text for the single category: {CATEGORY_LABEL}.
+
+Return ONLY the finished category text.
+No headings. No bullet points. No JSON. No meta commentary.
+
+PERSPECTIVE
+- Preferred perspective: {PERSPECTIVE}
+- If inputs mix “I / we”, choose the dominant voice and stay consistent.
+
+CATEGORY MICRO-TUNING (internal guidance, do not mention explicitly)
+{CATEGORY_MICRO_TUNING_BLOCK}
+
+PRIMARY WRITING MATERIAL (USE LITERALLY)
+
+WHAT IS ALREADY GOING WELL (CRITICAL)
+This is the member’s own wording describing what is currently working.
+Weave this in directly.
+Preserve phrasing wherever possible.
+Treat as lived truth, not guidance.
+
+{CLARITY_PRESENT_STATE_TEXT}
+
+USER IMAGINATION (EXPANSION)
+This is how they describe more of what they want.
+Blend seamlessly with what’s already working.
+Preserve tone, rhythm, and wording.
+
+{IDEAL_STATE_TEXT}
+
+CONTRAST FLIPS (SILENT)
+These represent patterns that no longer have energy.
+Do NOT reference contrast or growth.
+Write entirely from the flipped state as normal life.
+
+{CONTRAST_FLIPS_ARRAY}
+
+ENRICHMENT INPUTS
+
+SCENES / SENSORY NOTES
+Expand into lived moments with concrete detail.
+Scenes should feel like extensions of what’s already working.
+
+{SCENES_TEXT}
+
+BLUEPRINT (INVISIBLE)
+Use only as completeness cues.
+Ensure natural inclusion of:
+- identity
+- lived action
+- receiving / allowing
+Do NOT reference structure or labels.
+
+{BLUEPRINT_TEXT}
+
+OPTIONAL CONTINUITY (style reference only; do not copy)
+EXISTING ACTIVE VISION FOR THIS CATEGORY:
+{ACTIVE_VISION_CATEGORY_TEXT}
+
+HARD CONSTRAINTS
+- Present tense only
+- Ideal‑state language only
+- No gratitude padding / wallpaper
+- Do not repeat paragraph openings
+- Preserve richness; do not compress rich input
+- Do not invent specifics to pad sparse input
+- You may add or remove at most 1–3 sentences total to improve continuity/reduce repetition
+- Keep the category largely intact
+- Demonstrate alignment through scenes, never explanation
+
+FINAL SILENT CHECK
+Does this feel like:
+- A real person describing their life
+- Emotionally freeing and empowering
+- A natural blend of present truth + expansion
+- Not edited, coached, or templated
+```
+
+---
+
+## 7. Final Assembly Step (Post‑Queue)
+
+Once all 12 categories are complete:
+
+1. Read `category_vision_text` for each category (verbatim)
+2. Create a new `vision_versions` row:
+
+   * `forward` and `conclusion` from your bookends/templates
+   * each category field populated from the queue outputs
+   * `is_active = TRUE`, `is_draft = FALSE`
+   * `parent_id` set (optional) if versioning from a previous vision
+   * `refined_categories = []` initially
+   * `richness_metadata` should capture: model, prompt version, timestamps, and per‑category token usage if available
+3. Do not rewrite, smooth, or summarize during assembly.
+
+Assembly is **mechanical**, not creative.
+
+---
+
+## 8. Why This System Works
+
+* Present success grounds credibility
+* Expansion feels believable
+* Scenes carry meaning instead of explanation
+* Blueprint ensures completeness invisibly
+* Queue architecture preserves richness
+
+This system produces writing that feels:
+
+* Human
+* Free
+* Powerful
+* Alive
+
+And most importantly:
+
+> **It feels good to read.**
+
+That’s the win condition.

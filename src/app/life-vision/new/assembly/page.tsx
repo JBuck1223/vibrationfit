@@ -155,11 +155,12 @@ export default function AssemblyPage() {
         setPerspective(profile.perspective as 'singular' | 'plural')
       }
 
-      // Check for active or recent batch
+      // Check for active batch (only pending/processing/retrying - not completed/failed/cancelled)
       const { data: batch } = await supabase
         .from('vision_generation_batches')
         .select('*')
         .eq('user_id', user.id)
+        .in('status', ['pending', 'processing', 'retrying'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -624,7 +625,12 @@ export default function AssemblyPage() {
       }
 
     } catch (err: any) {
-      if (err.name === 'AbortError') {
+      // Check if this was an abort (either AbortError or abort controller signal)
+      const isAborted = err?.name === 'AbortError' || 
+                        abortControllerRef.current?.signal.aborted ||
+                        !isProcessingRef.current // If we're no longer processing, it was cancelled
+      
+      if (isAborted) {
         console.log('[Assembly] Processing aborted by user')
         // Batch status is already updated by handleCancelGeneration
         // Reset any streaming/waiting categories
@@ -636,6 +642,13 @@ export default function AssemblyPage() {
       } else {
         console.error('Queue processing error:', err)
         setError(err instanceof Error ? err.message : 'Failed to process queue')
+        
+        // Reset waiting/streaming categories on error too
+        setCategories(prev => prev.map(cat => 
+          cat.status === 'streaming' || cat.status === 'waiting'
+            ? { ...cat, status: 'error', error: err instanceof Error ? err.message : 'Generation failed' }
+            : cat
+        ))
         
         if (batchId) {
           await supabase

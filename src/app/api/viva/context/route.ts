@@ -114,7 +114,7 @@ async function buildRollingContext(userId: string, supabase: any): Promise<Rolli
 
   // 6. Get recent category states as "recent wins"
   const { data: recentCategoryStates } = await supabase
-    .from('life_vision_category_state')
+    .from('vision_new_category_state')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })

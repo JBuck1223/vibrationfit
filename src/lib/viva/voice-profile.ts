@@ -28,6 +28,7 @@ export interface VoiceProfile {
   depth_preference?: DepthPreference | null
   style_label?: string | null
   forbidden_styles?: string[] | null
+  forbidden_words?: string[] | null
   sample_phrases?: string[] | null
   source?: 'quiz' | 'ai_analysis' | 'hybrid' | 'manual_edit' | null
   last_refined_at?: string | null
@@ -204,6 +205,10 @@ VOICE PROFILE (default):
 
   if (profile.forbidden_styles?.length) {
     lines.push(`- Forbidden styles: ${profile.forbidden_styles.join(', ')}.`)
+  }
+
+  if (profile.forbidden_words?.length) {
+    lines.push(`- Forbidden words: ${profile.forbidden_words.join(', ')}. Never use these words.`)
   }
 
   if (profile.sample_phrases?.length) {

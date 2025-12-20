@@ -1,0 +1,217 @@
+# VibrationFit Project Rules
+
+## 🔒 FEATURE REGISTRY (READ THIS FIRST!)
+
+**CRITICAL:** Before modifying ANY feature, check `FEATURE_REGISTRY.md` in the project root.
+
+| Status | Your Action |
+|--------|-------------|
+| 🔒 **LOCKED** | **DO NOT MODIFY** without explicit user permission. Feature is working in production. |
+| ✅ **STABLE** | Modify with extreme caution. Test thoroughly after any changes. |
+| 🚧 **IN PROGRESS** | Safe to modify. |
+| ⚠️ **NEEDS REVIEW** | Verify it works before relying on it. |
+
+**Before touching Life Vision, Token System, Design System, or Database Schema:**
+1. Read `FEATURE_REGISTRY.md` 
+2. Check feature status
+3. If 🔒 LOCKED, ask user for permission
+4. Document current behavior
+5. Create test plan
+6. Make changes incrementally
+7. Test ENTIRE feature (not just your change)
+8. Update version in registry
+
+---
+
+## 📁 File Organization (CRITICAL - READ FIRST)
+
+### Documentation Files
+**NEVER create documentation files in project root!** Always use the appropriate folder:
+
+| File Type | Location | Examples |
+|-----------|----------|----------|
+| **Database docs** | `supabase/` | Schema dumps, migration guides |
+| **Feature docs** | `docs/` | Implementation guides, expert guides |
+| **API docs** | `docs/api/` | API endpoint documentation |
+| **Design docs** | `docs/design/` | Design system, brand guidelines |
+| **Deployment docs** | `docs/deployment/` | Deployment checklists, strategies |
+| **Architecture docs** | `docs/architecture/` | System architecture, data flow |
+| **Project planning** | `docs/planning/` | Feature plans, roadmaps |
+
+### Database Files
+**ALL database-related files go in `supabase/`:**
+
+```
+supabase/
+├── COMPLETE_SCHEMA_DUMP.sql    ← Production schema dump (source of truth)
+├── CURRENT_SCHEMA.md           ← Human-readable schema docs
+├── MIGRATION_STRATEGY.md       ← Migration workflow guide
+├── migrations/                 ← Active migration files
+│   └── YYYYMMDDHHMMSS_description.sql
+└── archive/                    ← Archived/old files
+```
+
+**Reference for schema questions:**
+- ✅ `supabase/CURRENT_SCHEMA.md` (human-readable)
+- ✅ `supabase/COMPLETE_SCHEMA_DUMP.sql` (exact definitions)
+- ❌ DO NOT reference files in `supabase/archive/` (outdated)
+
+### Source Code Files
+**Application code structure:**
+
+```
+src/
+├── app/                        ← Next.js pages & API routes
+│   ├── api/                    ← API endpoints
+│   ├── (auth)/                 ← Auth-related pages
+│   ├── dashboard/              ← Dashboard pages
+│   └── life-vision/            ← Life vision features
+├── components/                 ← React components
+├── lib/                        ← Utility libraries
+│   ├── design-system/          ← Design system components
+│   ├── viva/                   ← VIVA AI system
+│   │   ├── prompts/            ← Centralized AI prompts
+│   │   └── ...
+│   ├── supabase/               ← Supabase client utilities
+│   └── ...
+└── hooks/                      ← React hooks
+```
+
+### Rules for Creating New Files
+
+**Documentation:**
+1. ❌ NEVER create `.md` files in project root
+2. ✅ ALWAYS place in appropriate `docs/` subfolder
+3. ✅ Update `docs/README.md` if creating new category
+4. ✅ ALWAYS add date header to guide docs (Last Updated: Month Day, Year)
+
+**Migrations:**
+1. ❌ NEVER create migration files outside `supabase/migrations/`
+2. ✅ Use timestamp format: `YYYYMMDDHHMMSS_description.sql`
+3. ✅ Create the migration file, then STOP - user will run it manually
+4. ⚠️ NEVER update `supabase/COMPLETE_SCHEMA_DUMP.sql` or `supabase/CURRENT_SCHEMA.md` automatically
+5. ℹ️ User will update schema docs after manually running the migration
+
+**AI Prompts:**
+1. ❌ NEVER embed prompts directly in API routes
+2. ✅ Centralize in `src/lib/viva/prompts/`
+3. ✅ Export through `src/lib/viva/prompts/index.ts`
+
+**Temporary/Debug Files:**
+1. ❌ NEVER commit debug files to root
+2. ✅ Use `temp/` folder (gitignored)
+3. ✅ One-off scripts go in `scripts/[category]/`
+4. ✅ Clean up after debugging
+
+**Utility Scripts:**
+1. ✅ Place in `scripts/database/`, `scripts/lambda/`, `scripts/video/`, etc.
+2. ✅ After running successfully, move to `scripts/archive/`
+3. ❌ NEVER commit large zip files (add to .gitignore)
+
+**AWS Deployment:**
+1. ❌ NEVER commit Lambda layers to git (use AWS deployment)
+2. ❌ NEVER commit Lambda functions (functions/) - deploy to AWS
+3. ❌ NEVER commit production data dumps (production-*.json)
+4. ✅ Place AWS configs in `scripts/aws/`
+5. ✅ Keep AWS scripts for deployment automation
+
+### Before Creating Any File, Ask:
+1. **Is this documentation?** → `docs/[category]/`
+2. **Is this database-related?** → `supabase/`
+3. **Is this a component?** → `src/components/`
+4. **Is this a utility?** → `src/lib/`
+5. **Is this a page?** → `src/app/`
+6. **Is this an API?** → `src/app/api/`
+
+### File Naming Conventions
+- **Components:** PascalCase (`UserProfile.tsx`)
+- **Utilities:** kebab-case (`text-metrics.ts`)
+- **API routes:** kebab-case (`route.ts` in folder)
+- **Docs:** SCREAMING_SNAKE_CASE or kebab-case (`MIGRATION_STRATEGY.md`)
+- **Migrations:** `YYYYMMDDHHMMSS_description.sql`
+
+---
+
+## 🎨 VibrationFit Design System Rules
+
+### Core Principle
+Always reference `vibrationfit-brand-kit.html` for design patterns and visual style. This is the single source of truth for VibrationFit's brand aesthetic.
+
+**For detailed component examples, color system, and design patterns, see:**
+- `docs/agent-guides/DESIGN_SYSTEM_REFERENCE.md` (complete reference)
+
+### Quick Reference
+
+**Components:** Import from `@/lib/design-system/components`
+- `Button` variants: `primary`, `secondary`, `accent`, `ghost`, `outline`, `danger`
+- `GradientButton` for hero sections (gradients: `brand`, `green`, `teal`, `purple`, `cosmic`)
+- `AIButton` for AI Assistant features
+- `Card` variants: `default`, `elevated`, `outlined`
+- Other: `Input`, `Textarea`, `Badge`, `ProgressBar`, `Spinner`, `Container`, `PageLayout`, `Footer`
+
+**Brand Colors:**
+- Primary Green: `#199D67` (growth, alignment, "above the Green Line")
+- Secondary Teal: `#14B8A6` (clarity, flow)
+- Accent Purple: `#8B5CF6` (premium, AI)
+- Energy Yellow: `#FFB701` (celebration, wins)
+- Contrast Red: `#D03739` (alerts, "below Green Line")
+
+**Design Principles:**
+- Buttons: Always pill-shaped (`rounded-full`), hover lift 2px, 300ms transitions
+- Cards: `rounded-2xl`, 2px borders (#333), hover lift 4px, `p-8` padding
+- Spacing: Container `px-6`, sections `mb-12` to `mb-16`, cards `gap-6` to `gap-8`
+
+**Brand Voice:**
+- Use "Above the Green Line" for aligned/success states
+- Use "Below the Green Line" for contrast/awareness moments
+- Say "Actualize" not "Complete" or "Finish"
+- Say "Vision" not "Goal" or "Plan"
+- Say "Alignment" not "Progress"
+
+**File References:**
+- Brand Kit: `vibrationfit-brand-kit.html` (visual reference)
+- Components: `/src/lib/design-system/components.tsx`
+- Tokens: `/src/lib/design-system/tokens.ts`
+
+---
+
+## 📝 Documentation Guidelines
+
+**IMPORTANT:** Only create docs when they provide lasting value. Avoid doc debt!
+
+**For complete documentation guidelines, see:**
+- `docs/agent-guides/DOCUMENTATION_GUIDELINES.md` (complete reference)
+
+### Quick Reference
+
+**Auto-Generated Docs:**
+- Database Schema: Run `npm run docs:schema`
+- API Endpoints: Run `npm run docs:api`
+- Constants: Run `npm run docs:constants`
+- **DO NOT** edit `docs/generated/` files manually
+
+**Never Create:**
+- Status docs ("COMPLETE", "SUCCESS", "STATUS", "FIXED") - use git commits
+- Docs in project root - use appropriate `/docs/` subfolder
+- Dated docs - use descriptive names
+
+**Where to Put Docs:**
+- Architecture → `docs/architecture/`
+- Features → `docs/features/[feature-name]/`
+- Database → `docs/database/` or `supabase/`
+- VIVA/AI → `docs/viva/`
+- Design System → `docs/design-system/`
+- Technical Decisions → `docs/technical/`
+
+**Doc Headers Required:**
+```markdown
+# Document Title
+
+**Last Updated:** Month Day, Year  
+**Status:** Active | Archived | Deprecated
+```
+
+---
+
+**Remember:** Reference detailed guides in `docs/agent-guides/` for complete examples and patterns.
+

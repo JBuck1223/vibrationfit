@@ -82,10 +82,10 @@ export default function BlueprintPage() {
         return
       }
 
-      // Load existing data for all steps from life_vision_category_state table
+      // Load existing data for all steps from vision_new_category_state table
       const { data: categoryState } = await supabase
-        .from('life_vision_category_state')
-        .select('ai_summary, ideal_state, blueprint_data')
+        .from('vision_new_category_state')
+        .select('clarity_keys, ideal_state, blueprint_data')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
@@ -104,7 +104,7 @@ export default function BlueprintPage() {
       
       // Set step completion status based on actual data
       setCompletedSteps({
-        clarity: !!(categoryState?.ai_summary && categoryState.ai_summary.trim().length > 0),
+        clarity: !!(categoryState?.clarity_keys && Array.isArray(categoryState.clarity_keys) && categoryState.clarity_keys.length > 0),
         imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0),
         blueprint: !!(categoryState?.blueprint_data && Object.keys(categoryState.blueprint_data).length > 0),
         scenes: !!(existingScenes && existingScenes.length > 0)
@@ -112,12 +112,12 @@ export default function BlueprintPage() {
       
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
-        .from('life_vision_category_state')
-        .select('category, ai_summary')
+        .from('vision_new_category_state')
+        .select('category, clarity_keys')
         .eq('user_id', user.id)
       
       const completed = allCategoryStates
-        ?.filter(state => state.ai_summary && state.ai_summary.trim().length > 0)
+        ?.filter(state => state.clarity_keys && Array.isArray(state.clarity_keys) && state.clarity_keys.length > 0)
         .map(state => state.category) || []
       
       setCompletedCategoryKeys(completed)
@@ -142,7 +142,7 @@ export default function BlueprintPage() {
 
       // Get ideal state and other context
       const { data: categoryState } = await supabase
-        .from('life_vision_category_state')
+        .from('vision_new_category_state')
         .select('*')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
@@ -179,7 +179,7 @@ export default function BlueprintPage() {
           category: categoryKey,
           categoryName: category?.label || categoryKey,
           idealState: categoryState.ideal_state,
-          currentClarity: categoryState.ai_summary || '',
+          currentClarity: Array.isArray(categoryState.clarity_keys) ? categoryState.clarity_keys.join('\n\n') : '',
           flippedContrast: '', // Optional
           profile,
           assessment
@@ -229,7 +229,7 @@ export default function BlueprintPage() {
 
       // Save to database
       const { error: updateError } = await supabase
-        .from('life_vision_category_state')
+        .from('vision_new_category_state')
         .upsert({
           user_id: user.id,
           category: categoryKey,
@@ -616,7 +616,7 @@ export default function BlueprintPage() {
                 onClick={handleContinueToScenes}
                 className="flex-1"
               >
-                Continue to Scenes
+                Save and Continue
                 <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
               </Button>
             </div>

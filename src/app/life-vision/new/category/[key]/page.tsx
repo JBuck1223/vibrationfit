@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text, Container, Stack, PageHero, CategoryGrid, VIVALoadingOverlay } from '@/lib/design-system/components'
+import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text, Container, Stack, PageHero, CategoryGrid } from '@/lib/design-system/components'
 import { ProfileClarityCard, ProfileContrastCard, ClarityFromContrastCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, CheckCircle, ArrowLeft, ArrowRight, ChevronDown, User, TrendingUp, RefreshCw, Mic, AlertCircle, Loader2, Video } from 'lucide-react'
@@ -23,13 +23,6 @@ export default function CategoryPage() {
   const [contrastFromProfile, setContrastFromProfile] = useState('')
   const [showContrastToggle, setShowContrastToggle] = useState(false)
   const [isFlippingContrast, setIsFlippingContrast] = useState(false)
-  const [aiSummary, setAiSummary] = useState('')
-  const [editingSummary, setEditingSummary] = useState(false)
-  const [editedSummary, setEditedSummary] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [vivaStage, setVivaStage] = useState('')
-  const [vivaMessage, setVivaMessage] = useState('')
-  const [vivaProgress, setVivaProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [fullProfile, setFullProfile] = useState<any>(null)
   const [fullAssessment, setFullAssessment] = useState<any>(null)
@@ -87,12 +80,52 @@ export default function CategoryPage() {
     loadExistingData()
   }, [categoryKey])
 
-  // Initialize editedSummary when aiSummary changes
+  // Auto-save clarity_keys and contrast_flips when they change
   useEffect(() => {
-    if (aiSummary && !editingSummary) {
-      setEditedSummary(aiSummary)
+    const saveClarityAndContrast = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // clarity_keys: Only profile clarity (currentClarity)
+      const clarityKeys: string[] = []
+      if (currentClarity.trim()) {
+        clarityKeys.push(currentClarity.trim())
+      }
+
+      // contrast_flips: Only flipped contrast (clarityFromContrast)
+      const contrastFlips: string[] = []
+      if (clarityFromContrast.trim()) {
+        contrastFlips.push(clarityFromContrast.trim())
+      }
+
+      // Only save if we have data
+      // Note: We do NOT save contrastFromProfile (raw profile contrast) to this table
+      if (clarityKeys.length > 0 || contrastFlips.length > 0) {
+        const { error } = await supabase
+          .from('vision_new_category_state')
+          .upsert({
+            user_id: user.id,
+            category: categoryKey,
+            clarity_keys: clarityKeys,
+            contrast_flips: contrastFlips
+          }, {
+            onConflict: 'user_id,category'
+          })
+        
+        // Update completed steps state after successful save
+        if (!error && clarityKeys.length > 0) {
+          setCompletedSteps(prev => ({
+            ...prev,
+            clarity: true
+          }))
+        }
+      }
     }
-  }, [aiSummary])
+
+    // Debounce the save
+    const timeoutId = setTimeout(saveClarityAndContrast, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [currentClarity, clarityFromContrast, categoryKey])
 
   const loadExistingData = async () => {
     try {
@@ -160,24 +193,64 @@ export default function CategoryPage() {
         hasData: categoryScore !== undefined || categoryResponses.length > 0
       })
 
-      // Set clarity and contrast state variables (already loaded in profileData above)
-      if (profile) {
-        setCurrentClarity(clarityValue)
-        setContrastFromProfile(contrastValue)
-      }
-
-      // Check for existing data in life_vision_category_state table (all steps)
+      // Check for existing data in vision_new_category_state table (all steps)
       const { data: categoryState } = await supabase
-        .from('life_vision_category_state')
-        .select('ai_summary, ideal_state, blueprint_data')
+        .from('vision_new_category_state')
+        .select('clarity_keys, contrast_flips, ideal_state, blueprint_data')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
 
-      if (categoryState?.ai_summary) {
-        setAiSummary(categoryState.ai_summary)
-        // Start sections collapsed when loading with existing summary
-        setShowClarityCards(false)
+      // Load existing clarity_keys and contrast_flips
+      let hasClarity = false
+      if (categoryState?.clarity_keys && Array.isArray(categoryState.clarity_keys)) {
+        const keys = categoryState.clarity_keys.filter((k: string) => k && k.trim())
+        if (keys.length > 0) {
+          // clarity_keys contains profile clarity - set to currentClarity
+          setCurrentClarity(keys[0] || '')
+          hasClarity = true
+        }
+      } else if (profile && clarityValue && clarityValue.trim()) {
+        // No clarity_keys saved yet, but we have clarity from profile - save it
+        const clarityKeys: string[] = [clarityValue.trim()]
+        const { error: saveError } = await supabase
+          .from('vision_new_category_state')
+          .upsert({
+            user_id: user.id,
+            category: categoryKey,
+            clarity_keys: clarityKeys
+          }, {
+            onConflict: 'user_id,category'
+          })
+        if (!saveError) {
+          setCurrentClarity(clarityValue)
+          hasClarity = true
+        } else {
+          console.error('Error saving profile clarity to category state:', saveError)
+        }
+      } else if (profile) {
+        // No clarity_keys and no profile clarity - just set state
+        setCurrentClarity('')
+      }
+      
+      // Also check if we have profile clarity (currentClarity from profile) as a fallback
+      // This ensures the step shows as complete even if database sync is delayed
+      if (!hasClarity && clarityValue && clarityValue.trim()) {
+        hasClarity = true
+        setCurrentClarity(clarityValue)
+      }
+
+      // Load contrast_flips (flipped contrast) into clarityFromContrast
+      if (categoryState?.contrast_flips && Array.isArray(categoryState.contrast_flips)) {
+        const flips = categoryState.contrast_flips.filter((f: string) => f && f.trim())
+        if (flips.length > 0) {
+          setClarityFromContrast(flips.join('\n\n'))
+        }
+      }
+
+      // Set contrast from profile for display only (not saved to category_state)
+      if (profile) {
+        setContrastFromProfile(contrastValue || '')
       }
       
       // Check for existing scenes for this category
@@ -190,7 +263,7 @@ export default function CategoryPage() {
       
       // Set step completion status based on actual data
       setCompletedSteps({
-        clarity: !!(categoryState?.ai_summary && categoryState.ai_summary.trim().length > 0),
+        clarity: hasClarity,
         imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0),
         blueprint: !!(categoryState?.blueprint_data && Object.keys(categoryState.blueprint_data).length > 0),
         scenes: !!(existingScenes && existingScenes.length > 0)
@@ -198,12 +271,12 @@ export default function CategoryPage() {
       
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
-        .from('life_vision_category_state')
-        .select('category, ai_summary')
+        .from('vision_new_category_state')
+        .select('category, clarity_keys')
         .eq('user_id', user.id)
       
       const completed = allCategoryStates
-        ?.filter(state => state.ai_summary && state.ai_summary.trim().length > 0)
+        ?.filter(state => state.clarity_keys && Array.isArray(state.clarity_keys) && state.clarity_keys.length > 0)
         .map(state => state.category) || []
       
       setCompletedCategoryKeys(completed)
@@ -263,124 +336,6 @@ export default function CategoryPage() {
       console.error('Error flipping contrast:', err)
     } finally {
       setIsFlippingContrast(false)
-    }
-  }
-
-
-  const handleProcessWithVIVA = async () => {
-    // Merge Current Clarity + Clarity from Contrast
-    if (!currentClarity.trim() && !clarityFromContrast.trim()) {
-      setError('Please provide at least one clarity text to merge')
-      return
-    }
-
-    setIsProcessing(true)
-    setVivaProgress(0)
-    setVivaStage('creating')
-    setVivaMessage('Merging your clarity statements...')
-    setError(null)
-
-    try {
-      const response = await fetch('/api/viva/merge-clarity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentClarity: currentClarity.trim(),
-          clarityFromContrast: clarityFromContrast.trim(),
-          category: categoryKey,
-          categoryName: category.label
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to merge clarity')
-      }
-
-      const data = await response.json()
-      
-      if (data.mergedClarity) {
-        // Slide progress to 100%
-        setVivaProgress(100)
-        
-        // Save to database
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          await supabase
-            .from('life_vision_category_state')
-            .upsert({
-              user_id: user.id,
-              category: categoryKey,
-              ai_summary: data.mergedClarity
-            }, {
-              onConflict: 'user_id,category'
-            })
-        }
-
-        setAiSummary(data.mergedClarity)
-        setVivaStage('')
-        setVivaMessage('')
-        // Collapse clarity cards when summary is generated
-        setShowClarityCards(false)
-        
-        // Wait briefly to show 100% completion, then hide overlay
-        await new Promise(resolve => setTimeout(resolve, 600))
-      }
-    } catch (err) {
-      console.error('Error processing with VIVA:', err)
-      setError(err instanceof Error ? err.message : 'Failed to merge clarity')
-      setVivaStage('')
-      setVivaMessage('')
-    } finally {
-      setIsProcessing(false)
-      setVivaProgress(0)
-    }
-  }
-
-  const handleRegenerate = async () => {
-    await handleProcessWithVIVA()
-  }
-
-  const handleEditSummary = () => {
-    setEditedSummary(aiSummary)
-    setEditingSummary(true)
-  }
-
-  const handleSaveEditedSummary = async () => {
-    setAiSummary(editedSummary)
-    setEditingSummary(false)
-    
-    // Save edited summary to database
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase
-        .from('life_vision_category_state')
-        .upsert({
-          user_id: user.id,
-          category: categoryKey,
-          ai_summary: editedSummary
-        }, {
-          onConflict: 'user_id,category'
-        })
-    }
-  }
-
-  const handleCancelEdit = () => {
-    setEditingSummary(false)
-    setEditedSummary(aiSummary)
-  }
-
-  const handleSaveAndContinue = async () => {
-    // Summary is already saved, go to Step 2: Imagination
-    router.push(`/life-vision/new/category/${categoryKey}/imagination`)
-  }
-
-  const handleContinue = () => {
-    if (nextCategory) {
-      router.push(`/life-vision/new/category/${nextCategory.key}`)
-    } else {
-      // All categories complete - go to assembly
-      router.push('/life-vision/new/assembly')
     }
   }
 
@@ -857,131 +812,30 @@ export default function CategoryPage() {
         </Card>
       )}
 
-      {/* VIVA Processing Overlay */}
-      <VIVALoadingOverlay
-        isVisible={isProcessing}
-        messages={[
-          "VIVA is merging your clarity statements...",
-          "Weaving together your insights...",
-          "Creating your unified vision...",
-          "Crafting your personalized summary..."
-        ]}
-        cycleDuration={4000}
-        estimatedTime="Usually takes 10-20 seconds"
-        estimatedDuration={15000}
-        progress={vivaProgress}
-      />
 
-      {/* AI Summary Display */}
-      {aiSummary && !isProcessing && (
-        <Card>
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-primary-500 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-white">Your {category.label} Summary</h3>
-                <p className="text-sm text-neutral-400">Crafted by VIVA in your voice</p>
-              </div>
-            </div>
-
-            {editingSummary ? (
-              <div className="space-y-4 mb-6">
-                <AutoResizeTextarea
-                  value={editedSummary}
-                  onChange={(value) => setEditedSummary(value)}
-                  minHeight={200}
-                  className="w-full bg-neutral-800 border-2 border-neutral-700 text-white"
-                />
-                <div className="flex flex-col md:flex-row gap-3">
-                  <Button
-                    variant="primary"
-                    onClick={handleSaveEditedSummary}
-                    className="w-full md:w-auto md:flex-1"
-                  >
-                    Save Changes
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={handleCancelEdit}
-                    className="w-full md:w-auto md:flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="prose prose-invert max-w-none mb-6">
-                  <div className="bg-neutral-800 rounded-lg p-6">
-                    <AutoResizeTextarea
-                      value={aiSummary}
-                      onChange={(value) => setAiSummary(value)}
-                      minHeight={200}
-                      className="w-full bg-transparent border-none text-neutral-200 resize-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col md:flex-row gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={handleRegenerate}
-                    disabled={isProcessing}
-                    className="w-full md:w-auto md:flex-1"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Regenerate
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={handleSaveAndContinue}
-                    className="w-full md:w-auto md:flex-1"
-                  >
-                    Save and Continue
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Action Buttons - Generate Summary */}
-      {!aiSummary && !isProcessing && (currentClarity || contrastFromProfile || clarityFromContrast) && (
+      {/* Continue Button - Clarity step is complete when we have profile clarity */}
+      {currentClarity && currentClarity.trim() && (
         <Card className="border-2 border-primary-500/30 bg-primary-500/5">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-primary-500/20 rounded-xl flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-primary-500" />
+                <CheckCircle className="w-5 h-5 text-primary-500" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Ready to Create Your Summary?</h3>
-                <p className="text-sm text-neutral-400">VIVA will craft a unified vision statement from your clarity</p>
+                <h3 className="text-lg font-semibold text-white">Clarity Step Complete</h3>
+                <p className="text-sm text-neutral-400">Your clarity keys have been saved. Continue to the next step.</p>
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3">
-              <Button
-                variant="primary"
-                onClick={handleProcessWithVIVA}
-                disabled={isProcessing}
-                className="w-full md:flex-1"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate Summary
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => router.push(`/life-vision/new/category/${categoryKey}/imagination`)}
-                className="w-full md:flex-1"
-              >
-                Skip to Imagination
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={() => router.push(`/life-vision/new/category/${categoryKey}/imagination`)}
+            >
+              Save and Continue
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
           </div>
         </Card>
       )}
