@@ -56,9 +56,10 @@ interface DashboardContentProps {
   profileCount: number
   audioSetsCount: number
   refinementsCount: number
+  storageQuotaGB: number
 }
 
-export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount }: DashboardContentProps) {
+export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB }: DashboardContentProps) {
   const [storageUsed, setStorageUsed] = useState(0)
 
   useEffect(() => {
@@ -675,7 +676,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 {(storageUsed / (1024 * 1024 * 1024)).toFixed(2)} GB
               </p>
               <p className="text-sm text-neutral-400 mt-2">
-                of {profileData?.storage_quota_gb ?? 5} GB total
+                of {storageQuotaGB} GB total
               </p>
               <Link href="/dashboard/storage" className="mt-6">
                 <Button variant="secondary" size="sm">
