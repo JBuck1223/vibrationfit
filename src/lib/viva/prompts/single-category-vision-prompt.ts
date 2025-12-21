@@ -7,6 +7,17 @@
  * Used by: /api/viva/category-vision (queue system)
  */
 
+import { VisionCategoryKey } from '@/lib/design-system/vision-categories'
+
+export interface IndividualCategoryParams {
+  categoryKey: VisionCategoryKey
+  categoryLabel: string
+  idealStateText: string
+  clarityPresentStateText?: string
+  contrastFlips: string[]
+  perspective?: 'singular' | 'plural'
+}
+
 /**
  * Category Micro-Tuning Blocks
  * Internal guidance for each category to shape tone and emotional targets
@@ -314,4 +325,3 @@ ${categoryMicroTuning}
 OUTPUT: Match their input length. Rich input = rich output.
 Output ONLY the polished vision text. No headers, labels, or commentary.`
 }
-
