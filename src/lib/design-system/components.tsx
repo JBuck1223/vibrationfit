@@ -7902,6 +7902,10 @@ interface FileUploadProps {
   // Messages
   dragDropText?: string
   dragDropSubtext?: string
+  
+  // Mobile capture options - bypasses "Preparing..." on iOS
+  capture?: 'user' | 'environment' | false // 'user' = front camera, 'environment' = back camera
+  showCaptureOption?: boolean // Show separate "Record" button for direct camera access
 }
 
 export const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
