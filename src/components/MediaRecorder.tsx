@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors, Save, ChevronDown, ChevronUp } from 'lucide-react'
+import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors, Save, ChevronDown, ChevronUp, SwitchCamera, Maximize, Minimize } from 'lucide-react'
 import { Button, Checkbox } from '@/lib/design-system/components'
 import {
   saveRecordingChunks,
@@ -32,6 +32,9 @@ interface MediaRecorderProps {
   storageFolder?: keyof typeof USER_FOLDERS // S3 folder for uploads
   recordingPurpose?: RecordingPurpose // 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'
   enableEditor?: boolean // Explicitly enable/disable audio editor (default: true, overrides automatic behavior)
+  initialFacingMode?: 'user' | 'environment' // Initial camera direction (front/back)
+  allowCameraSwitch?: boolean // Show camera switch button for video mode
+  fullscreenVideo?: boolean // Make video preview fullscreen during recording
   /**
    * Recording modes:
    * - 'quick': Small snippets (VIVA chat) - No S3, no player, instant transcript, discard immediately
@@ -54,7 +57,10 @@ export function MediaRecorderComponent({
   instanceId, // Unique identifier for this instance
   storageFolder = 'journalAudioRecordings',
   recordingPurpose = 'withFile', // Default to full file storage
-  enableEditor = true // Default to enabled (can be overridden)
+  enableEditor = true, // Default to enabled (can be overridden)
+  initialFacingMode = 'user', // Default to front camera
+  allowCameraSwitch = true, // Show camera switch by default for video
+  fullscreenVideo = true // Make video fullscreen during recording by default
 }: MediaRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -78,6 +84,9 @@ export function MediaRecorderComponent({
   const micDropdownRef = useRef<HTMLDivElement>(null) // Ref for microphone dropdown
   const [showEditor, setShowEditor] = useState(false) // Show audio editor
   const [showInstructions, setShowInstructions] = useState(false) // Show recording complete instructions
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>(initialFacingMode) // Camera direction
+  const [isFullscreen, setIsFullscreen] = useState(false) // Fullscreen state
+  const containerRef = useRef<HTMLDivElement>(null) // Container for fullscreen
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -417,7 +426,7 @@ export function MediaRecorderComponent({
             video: { 
               width: { ideal: 1280 },
               height: { ideal: 720 },
-              facingMode: 'user'
+              facingMode: facingMode
             }, 
             audio: selectedMic ? { deviceId: { exact: selectedMic } } : true 
           }
@@ -838,6 +847,74 @@ export function MediaRecorderComponent({
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
+  // Switch between front and back camera
+  const switchCamera = async () => {
+    const newFacingMode = facingMode === 'user' ? 'environment' : 'user'
+    setFacingMode(newFacingMode)
+    
+    // If currently recording or preparing, restart with new camera
+    if (streamRef.current && (isRecording || isPreparing)) {
+      // Stop current stream
+      streamRef.current.getTracks().forEach(track => track.stop())
+      
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: newFacingMode
+          },
+          audio: selectedMic ? { deviceId: { exact: selectedMic } } : true
+        })
+        
+        streamRef.current = newStream
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = newStream
+          await videoRef.current.play()
+        }
+        
+        // If recording, update the media recorder with new stream
+        if (isRecording && mediaRecorderRef.current) {
+          // Note: Can't change stream mid-recording, camera switch only works during preview
+          console.log('⚠️ Camera switch during recording - will take effect on next recording')
+        }
+      } catch (err) {
+        console.error('Failed to switch camera:', err)
+        setError('Failed to switch camera. Please try again.')
+        // Revert facing mode
+        setFacingMode(facingMode)
+      }
+    }
+  }
+
+  // Toggle fullscreen for video recording
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return
+    
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen()
+        setIsFullscreen(true)
+      } else {
+        await document.exitFullscreen()
+        setIsFullscreen(false)
+      }
+    } catch (err) {
+      console.error('Fullscreen error:', err)
+    }
+  }
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Recording Controls */}
@@ -854,14 +931,53 @@ export function MediaRecorderComponent({
         }`}>
           {/* Video Preview */}
           {mode === 'video' && (isRecording || isPreparing) && (
-            <div className="mb-4 rounded-xl overflow-hidden bg-black relative">
+            <div 
+              ref={containerRef}
+              className={`mb-4 rounded-xl overflow-hidden bg-black relative ${
+                isFullscreen ? 'fixed inset-0 z-50 rounded-none flex items-center justify-center' : ''
+              }`}
+            >
               <video
                 ref={videoRef}
-                className="w-full aspect-video object-cover"
+                className={`object-cover ${
+                  isFullscreen 
+                    ? 'w-full h-full' 
+                    : 'w-full aspect-video'
+                }`}
                 autoPlay
                 muted
                 playsInline
               />
+              
+              {/* Top Controls - Camera Switch & Fullscreen */}
+              <div className="absolute top-4 right-4 flex gap-2 z-10">
+                {allowCameraSwitch && (
+                  <button
+                    type="button"
+                    onClick={switchCamera}
+                    className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
+                    title={facingMode === 'user' ? 'Switch to back camera' : 'Switch to front camera'}
+                  >
+                    <SwitchCamera className="w-5 h-5" />
+                  </button>
+                )}
+                {fullscreenVideo && (
+                  <button
+                    type="button"
+                    onClick={toggleFullscreen}
+                    className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
+                    title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                  >
+                    {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                  </button>
+                )}
+              </div>
+
+              {/* Camera indicator */}
+              <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
+                {facingMode === 'user' ? '🤳 Front' : '📷 Back'}
+              </div>
+              
               {/* Countdown Overlay */}
               {countdown !== null && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -870,6 +986,48 @@ export function MediaRecorderComponent({
                   }}>
                     {countdown}
                   </div>
+                </div>
+              )}
+
+              {/* Fullscreen Recording Controls */}
+              {isFullscreen && isRecording && countdown === null && (
+                <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6">
+                  {/* Pause/Resume */}
+                  {!isPaused ? (
+                    <button
+                      type="button"
+                      onClick={pauseRecording}
+                      className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-all"
+                    >
+                      <div className="flex gap-1">
+                        <div className="w-1.5 h-5 bg-white rounded-sm" />
+                        <div className="w-1.5 h-5 bg-white rounded-sm" />
+                      </div>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={resumeRecording}
+                      className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-all"
+                    >
+                      <Play className="w-6 h-6 text-white fill-white" />
+                    </button>
+                  )}
+                  
+                  {/* Timer */}
+                  <div className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-full">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                    <span className="font-mono text-lg">{formatDuration(duration)}</span>
+                  </div>
+                  
+                  {/* Stop */}
+                  <button
+                    type="button"
+                    onClick={stopRecording}
+                    className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all"
+                  >
+                    <div className="w-5 h-5 bg-white rounded-sm" />
+                  </button>
                 </div>
               )}
             </div>

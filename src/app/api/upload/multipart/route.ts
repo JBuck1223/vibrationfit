@@ -11,7 +11,7 @@ const s3Client = new S3Client({
   },
 })
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'vibrationfit-media'
+const BUCKET_NAME = 'vibration-fit-client-storage'
 
 export async function POST(request: NextRequest) {
   try {
