@@ -108,7 +108,6 @@ export async function POST(request: NextRequest) {
     // Generate unique filename
     const timestamp = Date.now()
     const randomStr = Math.random().toString(36).substring(2, 15)
-    const extension = file.name.split('.').pop()
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.]/g, '-').toLowerCase()
     
     const s3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${sanitizedName}`
