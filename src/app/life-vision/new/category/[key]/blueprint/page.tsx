@@ -5,7 +5,7 @@ import { useRouter, useParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Container, Card, Button, Spinner, Badge, AutoResizeTextarea, Stack, PageHero, CategoryGrid, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { Sparkles, CheckCircle, ArrowRight, ArrowLeft, Edit2, Save, X, RefreshCw, AlertCircle } from 'lucide-react'
-import { getVisionCategory, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { getVisionCategory, VISION_CATEGORIES, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 
 interface BeingDoingReceivingLoop {
   being: string
@@ -18,7 +18,7 @@ export default function BlueprintPage() {
   const router = useRouter()
   const params = useParams()
   const pathname = usePathname()
-  const categoryKey = params.key as string
+  const categoryKey = params.key as LifeCategoryKey
   const supabase = createClient()
 
   const [loading, setLoading] = useState(true)

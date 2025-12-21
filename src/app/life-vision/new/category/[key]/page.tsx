@@ -7,14 +7,14 @@ import { Card, Button, Spinner, Badge, AutoResizeTextarea, Text, Container, Stac
 import { ProfileClarityCard, ProfileContrastCard, ClarityFromContrastCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, CheckCircle, ArrowLeft, ArrowRight, ChevronDown, User, TrendingUp, RefreshCw, Mic, AlertCircle, Loader2, Video } from 'lucide-react'
-import { VISION_CATEGORIES, getVisionCategory, getCategoryFields, getCategoryStoryField } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getCategoryFields, getCategoryStoryField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { deleteSavedRecording, getRecordingsForCategory, loadSavedRecording, saveRecordingChunks } from '@/lib/storage/indexed-db-recording'
 
 export default function CategoryPage() {
   const router = useRouter()
   const params = useParams()
   const pathname = usePathname()
-  const categoryKey = params.key as string
+  const categoryKey = params.key as LifeCategoryKey
   const supabase = createClient()
 
   const [loading, setLoading] = useState(true)

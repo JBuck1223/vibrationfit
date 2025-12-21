@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, Button, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
 import { Sparkles, CheckCircle, Circle, Clock } from 'lucide-react'
-import { VISION_CATEGORIES, getCategoryClarityField } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getCategoryClarityField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
 interface CategoryProgress {
@@ -63,7 +63,7 @@ export default function VIVALifeVisionLandingPage() {
       // Then check profile clarity as fallback for categories without clarity_keys
       if (profile) {
         VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13).forEach(cat => {
-          const clarityField = getCategoryClarityField(cat.key)
+          const clarityField = getCategoryClarityField(cat.key as LifeCategoryKey)
           const hasProfileClarity = profile[clarityField] && String(profile[clarityField]).trim().length > 0
           
           // If we don't have clarity in category state but we have it in profile, mark as having clarity

@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Badge, Container, Stack, PageHero, VIVALoadingOverlay, Toggle, Spinner } from '@/lib/design-system/components'
 import { Sparkles, CheckCircle, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react'
-import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
 
 interface CategoryState {
-  key: string
+  key: VisionCategoryKey
   label: string
   status: 'pending' | 'waiting' | 'streaming' | 'complete' | 'error'
   text: string
@@ -359,7 +359,7 @@ export default function AssemblyPage() {
         })
       })
 
-      const failedCategories: string[] = []
+      const failedCategories: VisionCategoryKey[] = []
 
       // Process each category
       for (let i = 0; i < categoryKeys.length; i++) {

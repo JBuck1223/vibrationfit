@@ -66,7 +66,7 @@ export default function ProfileEditPage() {
   // Helper function to get category info from design system
   const getCategoryInfo = (categoryId: string) => {
     // Use vision category directly for all categories except 'personal' and 'photos-notes'
-    const category = getVisionCategory(categoryId)
+    const category = getVisionCategory(categoryId as any)
     
     if (category) {
       return {

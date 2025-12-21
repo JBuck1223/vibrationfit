@@ -29,8 +29,8 @@ const getCategoryInfo = (categoryId: string) => {
   }
   
   // Use centralized category mapping
-  const visionCategoryKey = profileSectionToVisionKey(categoryId)
-  const category = getVisionCategory(visionCategoryKey)
+  const visionCategoryKey = profileSectionToVisionKey(categoryId as any)
+  const category = getVisionCategory(visionCategoryKey as any)
   
   if (category) {
     return {
