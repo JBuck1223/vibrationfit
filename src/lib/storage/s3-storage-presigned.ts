@@ -278,46 +278,8 @@ export async function uploadFileWithPresignedUrl(
 
     if (onProgress) onProgress(100)
 
-    // For videos, MediaConvert will automatically create thumbnails
-    if (file.type.startsWith('video/')) {
-      if (file.size > 20 * 1024 * 1024) {
-        // Large videos: trigger MediaConvert
-        console.log('🎬 Triggering MediaConvert for presigned upload:', key)
-        try {
-          await fetch('/api/mediaconvert/trigger', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              inputKey: key,
-              filename: file.name,
-              userId: userId || '',
-              folder: USER_FOLDERS[folder]
-            })
-          })
-          console.log('✅ MediaConvert job triggered')
-        } catch (error) {
-          console.error('⚠️ Failed to trigger MediaConvert:', error)
-          // Continue - file is uploaded, processing can happen later
-        }
-      } else {
-        // Small videos: Trigger compression to convert .mov to .mp4
-        console.log('🎬 Triggering compression for .mov file:', file.name)
-        try {
-          await fetch('/api/upload/process-existing', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              inputKey: key,
-              userId: userId || '',
-              folder: USER_FOLDERS[folder]
-            })
-          })
-          console.log('✅ Compression job triggered')
-        } catch (error) {
-          console.error('⚠️ Failed to trigger compression:', error)
-        }
-      }
-    }
+    // Note: MediaConvert is triggered automatically via S3 event listener in AWS
+    // No manual trigger needed from the app
 
     return { url: finalUrl, key }
   } catch (error) {
@@ -524,25 +486,8 @@ export async function uploadFileWithMultipart(
 
     if (onProgress) onProgress(100)
 
-    // Trigger video processing if needed
-    if (file.type.startsWith('video/')) {
-      console.log('🎬 Triggering MediaConvert for multipart upload:', key)
-      try {
-        await fetch('/api/mediaconvert/trigger', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            inputKey: key,
-            filename: file.name,
-            userId: userId || '',
-            folder: USER_FOLDERS[folder]
-          })
-        })
-        console.log('✅ MediaConvert job triggered')
-      } catch (error) {
-        console.error('⚠️ Failed to trigger MediaConvert:', error)
-      }
-    }
+    // Note: MediaConvert is triggered automatically via AWS Lambda when files land in S3
+    // No manual trigger needed
 
     return { url: finalUrl, key }
   } catch (error) {

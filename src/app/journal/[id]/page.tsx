@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import {  Card, Button, DeleteConfirmationDialog, Container, Stack, PageHero, Spinner } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { SavedRecordings } from '@/components/SavedRecordings'
 import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -476,6 +477,17 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                 <p className="text-neutral-300 whitespace-pre-wrap">{entry.content}</p>
               )}
             </div>
+
+            {/* Audio/Video Recordings */}
+            {entry.audio_recordings && entry.audio_recordings.length > 0 && (
+              <div className="space-y-3">
+                <SavedRecordings
+                  recordings={entry.audio_recordings}
+                  categoryFilter={undefined}
+                  onDelete={() => {}} // View only mode - no deletion
+                />
+              </div>
+            )}
 
             {/* Created Date and Categories */}
             <div className="flex flex-wrap items-center gap-4">

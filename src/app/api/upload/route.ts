@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
-import { MediaConvertClient, CreateJobCommand, AudioDefaultSelection, OutputGroupType, AacCodingMode } from '@aws-sdk/client-mediaconvert'
 import { optimizeImage, shouldOptimizeImage, getOptimalDimensions, generateThumbnail } from '@/lib/utils/imageOptimization'
 import { generateVideoThumbnail } from '@/lib/utils/videoOptimization'
+
+// Note: MediaConvert is triggered automatically via AWS Lambda when files land in S3
+// No client-side MediaConvert triggers needed
 
 // Configure runtime for large file uploads
 export const runtime = 'nodejs'
@@ -26,14 +28,6 @@ const s3Client = new S3Client({
   },
 })
 
-const mediaConvertClient = new MediaConvertClient({
-  region: process.env.AWS_REGION || 'us-east-2',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-  endpoint: process.env.MEDIACONVERT_ENDPOINT, // Required for MediaConvert
-})
 
 const BUCKET_NAME = 'vibration-fit-client-storage'
 const MULTIPART_THRESHOLD = 50 * 1024 * 1024 // 50MB
@@ -128,26 +122,17 @@ export async function POST(request: NextRequest) {
     })
     
     // Use multipart upload for large files (including videos!)
-    // For videos, we'll trigger MediaConvert AFTER the multipart upload completes
+    // Use multipart upload for large files
+    // MediaConvert is triggered automatically via AWS Lambda when file lands in S3
     if (file.size > MULTIPART_THRESHOLD || useMultipart) {
       console.log(`🚀 Using multipart upload for ${file.name}`)
       const result = await multipartUpload(s3Key, file)
       
-      // If it's a video, trigger MediaConvert after successful multipart upload
       if (isVideoFile) {
-        console.log('🎬 Triggering MediaConvert for multipart-uploaded video:', s3Key)
-        try {
-          await triggerMediaConvertJob(s3Key, file.name, userId, folder)
-          console.log('✅ MediaConvert job triggered successfully after multipart upload')
-        } catch (mediaConvertError) {
-          console.error('⚠️ MediaConvert job failed after multipart upload:', mediaConvertError)
-          // Continue - file is uploaded, processing can happen later
-        }
-        
         return NextResponse.json({
           ...result,
           processing: 'pending',
-          message: 'Video uploaded successfully! Processing in progress...'
+          message: 'Video uploaded successfully! Processing will start automatically.'
         })
       }
       
@@ -163,13 +148,12 @@ export async function POST(request: NextRequest) {
 
     // Check if file needs optimization
     const needsImageOptimization = file.type.startsWith('image/') && shouldOptimizeImage(file)
-    // All videos go through MediaConvert
+    // Videos are uploaded as-is, MediaConvert processes them via AWS Lambda
     const needsVideoProcessing = isVideoFile
-    console.log('📹 Video processing check:', {
+    console.log('📹 Video upload:', {
       isVideo: isVideoFile,
       fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-      needsProcessing: needsVideoProcessing,
-      processingStrategy: 'All videos go through MediaConvert',
+      processingStrategy: 'AWS Lambda triggers MediaConvert automatically',
       filename: file.name
     })
     const audioExtensions = ['mp3', 'wav', 'ogg', 'webm', 'm4a', 'aac']
@@ -254,23 +238,7 @@ export async function POST(request: NextRequest) {
         console.error('⚠️ Video thumbnail generation failed:', thumbError)
       }
 
-      // Trigger MediaConvert job
-      try {
-        console.log('🚀 Attempting to trigger MediaConvert job...')
-        console.log('   Input S3 key:', s3Key)
-        console.log('   User ID:', userId)
-        console.log('   Folder:', folder)
-        console.log('   MediaConvert Role ARN:', process.env.MEDIACONVERT_ROLE_ARN ? 'Set' : '⚠️ NOT SET')
-        console.log('   MediaConvert Endpoint:', process.env.MEDIACONVERT_ENDPOINT ? 'Set' : '⚠️ NOT SET')
-        
-        const jobId = await triggerMediaConvertJob(s3Key, file.name, userId, folder)
-        console.log(`✅ MediaConvert job triggered successfully! Job ID: ${jobId}`)
-      } catch (mediaConvertError) {
-        console.error('❌ MediaConvert job failed:', mediaConvertError)
-        console.error('   Error details:', mediaConvertError instanceof Error ? mediaConvertError.message : String(mediaConvertError))
-        // Continue with original file if MediaConvert fails
-      }
-
+      // MediaConvert is triggered automatically via AWS Lambda when file lands in S3
       // Return immediate success with original URL
       const originalUrl = `https://media.vibrationfit.com/${s3Key}`
       
@@ -420,228 +388,8 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// Trigger MediaConvert job for video processing
-async function triggerMediaConvertJob(
-  inputKey: string,
-  filename: string,
-  userId: string,
-  folder: string
-) {
-  console.log('🎬 Creating MediaConvert job settings...')
-  
-  // Extract base filename without extension
-  const baseName = filename.replace(/\.[^/.]+$/, '')
-  
-  const jobSettings = {
-    Role: process.env.MEDIACONVERT_ROLE_ARN!,
-    Settings: {
-      Inputs: [{
-        FileInput: `s3://${BUCKET_NAME}/${inputKey}`,
-        VideoSelector: {},
-        AudioSelectors: {
-          'Audio Selector 1': {
-            DefaultSelection: AudioDefaultSelection.DEFAULT
-          }
-        }
-      }],
-        OutputGroups: [
-          // THUMBNAIL OUTPUT (processed first)
-          {
-            Name: 'Thumbnail Group',
-            OutputGroupSettings: {
-              Type: OutputGroupType.FILE_GROUP_SETTINGS,
-              FileGroupSettings: {
-                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`,
-                CustomName: `${baseName}`
-              }
-            },
-            Outputs: [{
-              NameModifier: '-thumb',
-              // Generate thumbnail at 1 second mark
-              VideoDescription: {
-                Width: 1920,
-                Height: 1080,
-                CodecSettings: {
-                  Codec: 'FRAME_CAPTURE',
-                  FrameCaptureSettings: {
-                    Quality: 90,
-                    MaxCaptures: 1,
-                    CaptureTimecode: '00:00:01:00' // 1 second timestamp
-                  }
-                }
-              },
-              ContainerSettings: {
-                Container: 'RAW'
-              }
-            }]
-          },
-          // ORIGINAL COMPRESSED OUTPUT (MP4, source quality)
-          {
-            Name: 'File Group Original',
-            OutputGroupSettings: {
-              Type: OutputGroupType.FILE_GROUP_SETTINGS,
-              FileGroupSettings: {
-                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
-              }
-            },
-            Outputs: [{
-              NameModifier: '-original',
-              VideoDescription: {
-                CodecSettings: {
-                  Codec: 'H_264',
-                  H264Settings: {
-                    QualityTuningLevel: 'SINGLE_PASS_HQ',
-                    RateControlMode: 'QVBR',
-                    QvbrSettings: {
-                      QvbrQualityLevel: 8 // High quality, balances size/quality
-                    },
-                    CodecProfile: 'HIGH',
-                    CodecLevel: 'AUTO'
-                  }
-                }
-              },
-              AudioDescriptions: [{
-                CodecSettings: {
-                  Codec: 'AAC',
-                  AacSettings: {
-                    Bitrate: 192000,
-                    SampleRate: 48000,
-                    CodingMode: AacCodingMode.CODING_MODE_2_0
-                  }
-                }
-              }],
-              ContainerSettings: {
-                Container: 'MP4',
-                Mp4Settings: {
-                  CslgAtom: 'INCLUDE',
-                  FreeSpaceBox: 'EXCLUDE',
-                  MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
-                }
-              }
-            }]
-          },
-          // 1080p VIDEO OUTPUT
-          {
-            Name: 'File Group 1080p',
-            OutputGroupSettings: {
-              Type: OutputGroupType.FILE_GROUP_SETTINGS,
-              FileGroupSettings: {
-                Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
-              }
-            },
-            Outputs: [{
-              NameModifier: '-1080p',
-            VideoDescription: {
-              Width: 1920,
-              Height: 1080,
-              CodecSettings: {
-                Codec: 'H_264',
-                H264Settings: {
-                  Bitrate: 5000000, // 5Mbps for high quality 1080p
-                  RateControlMode: 'VBR',
-                  CodecProfile: 'HIGH',
-                  CodecLevel: 'LEVEL_4_1',
-                  MaxBitrate: 6000000,
-                  BufSize: 7500000
-                }
-              }
-            },
-            AudioDescriptions: [{
-              CodecSettings: {
-                Codec: 'AAC',
-                AacSettings: {
-                  Bitrate: 192000,
-                  SampleRate: 48000,
-                  CodingMode: AacCodingMode.CODING_MODE_2_0
-                }
-              }
-            }],
-            ContainerSettings: {
-              Container: 'MP4',
-              Mp4Settings: {
-                CslgAtom: 'INCLUDE',
-                FreeSpaceBox: 'EXCLUDE',
-                MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
-              }
-            }
-          }]
-        },
-        // 720p VIDEO OUTPUT
-        {
-          Name: 'File Group 720p',
-          OutputGroupSettings: {
-            Type: OutputGroupType.FILE_GROUP_SETTINGS,
-            FileGroupSettings: {
-              Destination: `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`
-            }
-          },
-          Outputs: [{
-            NameModifier: '-720p',
-            VideoDescription: {
-              Width: 1280,
-              Height: 720,
-              CodecSettings: {
-                Codec: 'H_264',
-                H264Settings: {
-                  Bitrate: 2500000, // 2.5Mbps for 720p
-                  RateControlMode: 'VBR',
-                  CodecProfile: 'MAIN',
-                  CodecLevel: 'LEVEL_4',
-                  MaxBitrate: 3000000,
-                  BufSize: 3750000
-                }
-              }
-            },
-            AudioDescriptions: [{
-              CodecSettings: {
-                Codec: 'AAC',
-                AacSettings: {
-                  Bitrate: 128000,
-                  SampleRate: 48000,
-                  CodingMode: AacCodingMode.CODING_MODE_2_0
-                }
-              }
-            }],
-            ContainerSettings: {
-              Container: 'MP4',
-              Mp4Settings: {
-                CslgAtom: 'INCLUDE',
-                FreeSpaceBox: 'EXCLUDE',
-                MoovPlacement: 'PROGRESSIVE_DOWNLOAD'
-              }
-            }
-          }]
-        }
-      ],
-      TimecodeConfig: {
-        Source: 'ZEROBASED'
-      }
-    },
-    Tags: {
-      'user-id': userId,
-      'folder': folder,
-      'original-filename': filename
-    }
-  }
-
-  console.log('🎬 Job settings created, sending to MediaConvert...')
-  console.log('   Destination folder:', `s3://${BUCKET_NAME}/user-uploads/${userId}/${folder}/processed/`)
-  
-  try {
-    const command = new CreateJobCommand(jobSettings as any)
-    console.log('🎬 Sending CreateJobCommand to MediaConvert...')
-    const response = await mediaConvertClient.send(command)
-    
-    console.log(`✅ MediaConvert job created successfully! Job ID: ${response.Job?.Id}`)
-    console.log('   Status:', response.Job?.Status)
-    console.log('   Created at:', response.Job?.CreatedAt)
-    console.log('   Outputs: Thumbnail, Original MP4, 1080p, 720p')
-    return response.Job?.Id
-  } catch (error) {
-    console.error('❌ MediaConvert job creation failed:', error)
-    throw error
-  }
-}
+// Note: MediaConvert is triggered automatically via AWS Lambda when files land in S3
+// The triggerMediaConvertJob function has been removed - AWS handles this
 
 // Multipart upload implementation
 async function multipartUpload(
