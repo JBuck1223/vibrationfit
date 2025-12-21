@@ -47,7 +47,7 @@ function buildVisionBoardIdeasPrompt(vision: any, selectedCategories: string[]):
   // Vision content is stored in individual columns, not a vision JSONB column
   // Only include selected life categories (exclude forward/conclusion)
   const sections = VISION_CATEGORIES
-    .filter(cat => LIFE_CATEGORY_KEYS.includes(cat.key) && selectedCategories.includes(cat.key))
+    .filter(cat => LIFE_CATEGORY_KEYS.includes(cat.key as any) && selectedCategories.includes(cat.key))
     .map(cat => {
       const categoryVision = vision[cat.key] // Read directly from column
       if (!categoryVision || !String(categoryVision).trim()) return null
