@@ -9,7 +9,7 @@ import { SavedRecordings } from '@/components/SavedRecordings'
 import { UploadProgress } from '@/components/UploadProgress'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { JournalSuccessScreen } from '@/components/JournalSuccessScreen'
-import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
+import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload, Save } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -153,23 +153,14 @@ export default function NewJournalEntryPage() {
         if (errors.length > 0) {
           console.error('❌ Upload errors:', errors)
           
-          // Check if it's a CORS/405 error
-          const hasCorsError = errors.some((e: { error?: string }) => 
-            e.error?.includes('405') || e.error?.includes('CORS')
+          // Use user-friendly error messages
+          const errorMessages = errors.map((e: { error?: string }) => 
+            getUploadErrorMessage(new Error(e.error || 'Unknown error'))
           )
           
-          if (hasCorsError) {
-            alert(
-              `Upload failed: S3 CORS configuration issue detected.\n\n` +
-              `This usually happens with larger files. The system attempted automatic fallback but it also failed.\n\n` +
-              `Please try:\n` +
-              `1. Use smaller images (under 10MB)\n` +
-              `2. Contact support if the issue persists\n\n` +
-              `Technical details: ${errors.map((e: { error?: string }) => e.error).join(', ')}`
-            )
-          } else {
-            alert(`Upload failed: ${errors.map((e: { error?: string }) => e.error).join(', ')}`)
-          }
+          // Show unique error messages (avoid duplicates)
+          const uniqueMessages = [...new Set(errorMessages)]
+          alert(uniqueMessages.join('\n\n'))
           return
         }
 
@@ -213,7 +204,9 @@ export default function NewJournalEntryPage() {
       }
     } catch (error) {
       console.error('Error creating journal entry:', error)
-      alert('Failed to create journal entry')
+      // Use user-friendly error message
+      const friendlyMessage = getUploadErrorMessage(error)
+      alert(`Failed to save journal entry: ${friendlyMessage}`)
       // Hide progress bar on error
       setUploadProgress(prev => ({ ...prev, isVisible: false }))
     } finally {

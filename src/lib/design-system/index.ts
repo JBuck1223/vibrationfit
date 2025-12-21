@@ -76,6 +76,9 @@ export {
   Sidebar,
   MobileBottomNav,
   SidebarLayout,
+  
+  // Upload Components
+  FileUpload,
 } from './components'
 
 // Legacy alias for backward compatibility

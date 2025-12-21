@@ -115,21 +115,43 @@ export async function POST(request: NextRequest) {
 
     console.log(`Starting upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
 
-    // Use multipart upload for large files
-    // BUT: If it's a video that needs MediaConvert, we must use regular upload
-    const isVideoNeedingProcessing = file.type.startsWith('video/') // ALL videos go through MediaConvert
+    // Check if this is a video file (by MIME type or extension for mobile compatibility)
+    const extension = file.name.split('.').pop()?.toLowerCase() || ''
+    const videoExtensions = ['mp4', 'mov', 'webm', 'avi', 'm4v', '3gp', '3g2']
+    const isVideoFile = file.type.startsWith('video/') || videoExtensions.includes(extension)
     
     console.log('🔍 Upload decision:', {
-      fileType: file.type,
-      isVideo: isVideoNeedingProcessing,
+      fileType: file.type || '(empty)',
+      extension: extension,
+      isVideo: isVideoFile,
       fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-      useMultipart: file.size > MULTIPART_THRESHOLD,
-      willSkipMultipart: isVideoNeedingProcessing
+      useMultipart: file.size > MULTIPART_THRESHOLD || useMultipart
     })
     
-    if ((file.size > MULTIPART_THRESHOLD || useMultipart) && !isVideoNeedingProcessing) {
-      console.log(`Using multipart upload for ${file.name}`)
+    // Use multipart upload for large files (including videos!)
+    // For videos, we'll trigger MediaConvert AFTER the multipart upload completes
+    if (file.size > MULTIPART_THRESHOLD || useMultipart) {
+      console.log(`🚀 Using multipart upload for ${file.name}`)
       const result = await multipartUpload(s3Key, file)
+      
+      // If it's a video, trigger MediaConvert after successful multipart upload
+      if (isVideoFile) {
+        console.log('🎬 Triggering MediaConvert for multipart-uploaded video:', s3Key)
+        try {
+          await triggerMediaConvertJob(s3Key, file.name, userId, folder)
+          console.log('✅ MediaConvert job triggered successfully after multipart upload')
+        } catch (mediaConvertError) {
+          console.error('⚠️ MediaConvert job failed after multipart upload:', mediaConvertError)
+          // Continue - file is uploaded, processing can happen later
+        }
+        
+        return NextResponse.json({
+          ...result,
+          processing: 'pending',
+          message: 'Video uploaded successfully! Processing in progress...'
+        })
+      }
+      
       return NextResponse.json(result)
     }
 
@@ -142,16 +164,17 @@ export async function POST(request: NextRequest) {
 
     // Check if file needs optimization
     const needsImageOptimization = file.type.startsWith('image/') && shouldOptimizeImage(file)
-    // needsVideoProcessing is already determined above
-    const needsVideoProcessing = isVideoNeedingProcessing
+    // All videos go through MediaConvert
+    const needsVideoProcessing = isVideoFile
     console.log('📹 Video processing check:', {
-      isVideo: file.type.startsWith('video/'),
+      isVideo: isVideoFile,
       fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
       needsProcessing: needsVideoProcessing,
       processingStrategy: 'All videos go through MediaConvert',
       filename: file.name
     })
-    const isAudioFile = file.type.startsWith('audio/')
+    const audioExtensions = ['mp3', 'wav', 'ogg', 'webm', 'm4a', 'aac']
+    const isAudioFile = file.type.startsWith('audio/') || audioExtensions.includes(extension)
 
     if (needsImageOptimization) {
       console.log(`Optimizing image: ${file.name} for folder: ${folder}`)
