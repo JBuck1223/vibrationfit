@@ -29,7 +29,7 @@ export interface VisionCategory {
   order: number
 }
 
-export const VISION_CATEGORIES: VisionCategory[] = [
+export const VISION_CATEGORIES = [
   {
     key: 'forward',
     label: 'Forward',
@@ -128,101 +128,127 @@ export const VISION_CATEGORIES: VisionCategory[] = [
     icon: CheckCircle,
     order: 13
   }
-]
+] as const satisfies readonly VisionCategory[]
 
-// Helper functions for working with vision categories
-export function getVisionCategory(key: string): VisionCategory | undefined {
+// ============================================================================
+// TYPE-SAFE CATEGORY KEYS
+// ============================================================================
+
+// Extract the union type of all category keys (compile-time safe)
+export type VisionCategoryKey = (typeof VISION_CATEGORIES)[number]['key']
+
+// Meta categories (forward/conclusion) vs life categories
+export const META_CATEGORY_KEYS = ['forward', 'conclusion'] as const
+export type MetaCategoryKey = typeof META_CATEGORY_KEYS[number]
+
+// Life category keys (excludes meta categories)
+export type LifeCategoryKey = Exclude<VisionCategoryKey, MetaCategoryKey>
+
+// ============================================================================
+// DERIVED CONSTANTS
+// ============================================================================
+
+// Pre-sorted categories (memoized for performance)
+export const ORDERED_VISION_CATEGORIES = [...VISION_CATEGORIES].sort((a, b) => a.order - b.order)
+
+// All life category keys (excludes forward/conclusion)
+export const LIFE_CATEGORY_KEYS = VISION_CATEGORIES
+  .map(c => c.key)
+  .filter((k): k is LifeCategoryKey => 
+    !META_CATEGORY_KEYS.includes(k as MetaCategoryKey)
+  )
+
+// Individual category key constants (for convenience)
+export const CATEGORY_KEYS = {
+  FORWARD: 'forward',
+  FUN: 'fun',
+  HEALTH: 'health',
+  TRAVEL: 'travel',
+  LOVE: 'love',
+  FAMILY: 'family',
+  SOCIAL: 'social',
+  HOME: 'home',
+  WORK: 'work',
+  MONEY: 'money',
+  STUFF: 'stuff',
+  GIVING: 'giving',
+  SPIRITUALITY: 'spirituality',
+  CONCLUSION: 'conclusion',
+} as const satisfies Record<string, VisionCategoryKey>
+
+// ============================================================================
+// HELPER FUNCTIONS (Type-safe)
+// ============================================================================
+
+export function getVisionCategory(key: VisionCategoryKey): VisionCategory | undefined {
   return VISION_CATEGORIES.find(category => category.key === key)
 }
 
-export function getVisionCategoryLabel(key: string): string {
+export function getVisionCategoryLabel(key: VisionCategoryKey): string {
   const category = getVisionCategory(key)
   return category ? category.label : key
 }
 
-export function getVisionCategoryIcon(key: string): LucideIcon {
+export function getVisionCategoryIcon(key: VisionCategoryKey): LucideIcon {
   const category = getVisionCategory(key)
   return category ? category.icon : Sparkles // Default fallback
 }
 
-export function getVisionCategoryDescription(key: string): string {
+export function getVisionCategoryDescription(key: VisionCategoryKey): string {
   const category = getVisionCategory(key)
   return category ? category.description : ''
 }
 
-// Get categories in order
-export function getOrderedVisionCategories(): VisionCategory[] {
-  return [...VISION_CATEGORIES].sort((a, b) => a.order - b.order)
+// Get categories in order (already memoized as ORDERED_VISION_CATEGORIES)
+export function getOrderedVisionCategories(): readonly VisionCategory[] {
+  return ORDERED_VISION_CATEGORIES
 }
 
 // Get category keys in order
-export function getVisionCategoryKeys(): string[] {
-  return getOrderedVisionCategories().map(category => category.key)
+export function getVisionCategoryKeys(): VisionCategoryKey[] {
+  return ORDERED_VISION_CATEGORIES.map(category => category.key)
 }
 
-// Check if a key is a valid vision category
-export function isValidVisionCategory(key: string): boolean {
+// Type guard: check if a string is a valid vision category key
+export function isValidVisionCategory(key: string): key is VisionCategoryKey {
   return VISION_CATEGORIES.some(category => category.key === key)
 }
 
 // ============================================================================
-// CATEGORY KEY CONSTANTS - Single Source of Truth
-// ============================================================================
-// Use these instead of hardcoding category keys throughout the codebase
-
-// All category keys (excluding forward/conclusion)
-export const LIFE_CATEGORY_KEYS = VISION_CATEGORIES
-  .filter(c => c.order > 0 && c.order < 13)
-  .map(c => c.key)
-
-// Individual category key constants
-export const CATEGORY_KEYS = {
-  FORWARD: 'forward' as const,
-  FUN: 'fun' as const,
-  HEALTH: 'health' as const,
-  TRAVEL: 'travel' as const,
-  LOVE: 'love' as const,
-  FAMILY: 'family' as const,
-  SOCIAL: 'social' as const,
-  HOME: 'home' as const,
-  WORK: 'work' as const,
-  MONEY: 'money' as const,
-  STUFF: 'stuff' as const,
-  GIVING: 'giving' as const,
-  SPIRITUALITY: 'spirituality' as const,
-  CONCLUSION: 'conclusion' as const,
-} as const
-
-// ============================================================================
-// FIELD NAME MAPPING HELPERS
+// FIELD NAME MAPPING HELPERS (Type-safe, life categories only)
 // ============================================================================
 // Map category keys to their corresponding database field names
+// These only work with life categories (not forward/conclusion)
 
 /**
- * Get the story field name for a category (e.g., 'fun' -> 'fun_story')
+ * Get the story field name for a life category (e.g., 'fun' -> 'fun_story')
+ * Only accepts life category keys (excludes forward/conclusion)
  */
-export function getCategoryStoryField(categoryKey: string): string {
+export function getCategoryStoryField(categoryKey: LifeCategoryKey): string {
   return `${categoryKey}_story`
 }
 
 /**
- * Get the clarity field name for a category (e.g., 'fun' -> 'clarity_fun')
+ * Get the clarity field name for a life category (e.g., 'fun' -> 'clarity_fun')
+ * Only accepts life category keys (excludes forward/conclusion)
  */
-export function getCategoryClarityField(categoryKey: string): string {
+export function getCategoryClarityField(categoryKey: LifeCategoryKey): string {
   return `clarity_${categoryKey}`
 }
 
 /**
- * Get the contrast field name for a category (e.g., 'fun' -> 'contrast_fun')
+ * Get the contrast field name for a life category (e.g., 'fun' -> 'contrast_fun')
+ * Only accepts life category keys (excludes forward/conclusion)
  */
-export function getCategoryContrastField(categoryKey: string): string {
+export function getCategoryContrastField(categoryKey: LifeCategoryKey): string {
   return `contrast_${categoryKey}`
 }
 
 /**
- * Get clarity and contrast field names for a category
+ * Get clarity and contrast field names for a life category
+ * Only accepts life category keys (excludes forward/conclusion)
  */
-export function getCategoryFields(categoryKey: string): { 
+export function getCategoryFields(categoryKey: LifeCategoryKey): { 
   clarity: string
   contrast: string
 } {
@@ -232,193 +258,124 @@ export function getCategoryFields(categoryKey: string): {
   }
 }
 
-// Map of all category story fields for batch operations
-export const CATEGORY_STORY_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
-  acc[key] = getCategoryStoryField(key)
-  return acc
-}, {} as Record<string, string>)
+// Strongly-typed maps of all category fields for batch operations
+export const CATEGORY_STORY_FIELDS: Record<LifeCategoryKey, string> = 
+  LIFE_CATEGORY_KEYS.reduce((acc, key) => {
+    acc[key] = getCategoryStoryField(key)
+    return acc
+  }, {} as Record<LifeCategoryKey, string>)
 
-// Map of all category clarity fields for batch operations
-export const CATEGORY_CLARITY_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
-  acc[key] = getCategoryClarityField(key)
-  return acc
-}, {} as Record<string, string>)
+export const CATEGORY_CLARITY_FIELDS: Record<LifeCategoryKey, string> = 
+  LIFE_CATEGORY_KEYS.reduce((acc, key) => {
+    acc[key] = getCategoryClarityField(key)
+    return acc
+  }, {} as Record<LifeCategoryKey, string>)
 
-// Map of all category contrast fields for batch operations
-export const CATEGORY_CONTRAST_FIELDS = LIFE_CATEGORY_KEYS.reduce((acc, key) => {
-  acc[key] = getCategoryContrastField(key)
-  return acc
-}, {} as Record<string, string>)
+export const CATEGORY_CONTRAST_FIELDS: Record<LifeCategoryKey, string> = 
+  LIFE_CATEGORY_KEYS.reduce((acc, key) => {
+    acc[key] = getCategoryContrastField(key)
+    return acc
+  }, {} as Record<LifeCategoryKey, string>)
 
 // ============================================================================
-// COMPREHENSIVE CATEGORY MAPPING - SINGLE SOURCE OF TRUTH
+// CATEGORY MAPPING - AUTO-GENERATED FROM VISION_CATEGORIES
 // ============================================================================
-// Different parts of the app use different category key formats
-// This mapping ensures consistency across all systems
+// All category formats use the same keys now (single source of truth)
+// This mapping exists for API compatibility but is derived, not duplicated
 
 /**
  * Complete category mapping for each life area
- * Vision keys are the canonical source of truth
+ * Auto-generated from VISION_CATEGORIES to prevent drift
+ * All formats use the same keys (vision/assessment/recording/profileSection are identical)
  */
 export interface CategoryMapping {
-  vision: string           // Canonical key (e.g., 'love', 'work', 'stuff')
-  assessment: string       // Same as vision
-  recording: string        // Same as vision
-  profileSection: string   // Same as vision - ONE set of clean keys everywhere!
-  label: string           // Display name
+  vision: LifeCategoryKey
+  assessment: LifeCategoryKey
+  recording: LifeCategoryKey
+  profileSection: LifeCategoryKey
+  label: string
 }
 
-export const CATEGORY_MAPPINGS: CategoryMapping[] = [
-  {
-    vision: 'fun',
-    assessment: 'fun',
-    recording: 'fun',
-    profileSection: 'fun',
-    label: 'Fun'
-  },
-  {
-    vision: 'health',
-    assessment: 'health',
-    recording: 'health',
-    profileSection: 'health',
-    label: 'Health'
-  },
-  {
-    vision: 'travel',
-    assessment: 'travel',
-    recording: 'travel',
-    profileSection: 'travel',
-    label: 'Travel'
-  },
-  {
-    vision: 'love',
-    assessment: 'love',
-    recording: 'love',
-    profileSection: 'love',
-    label: 'Love'
-  },
-  {
-    vision: 'family',
-    assessment: 'family',
-    recording: 'family',
-    profileSection: 'family',
-    label: 'Family'
-  },
-  {
-    vision: 'social',
-    assessment: 'social',
-    recording: 'social',
-    profileSection: 'social',
-    label: 'Social'
-  },
-  {
-    vision: 'home',
-    assessment: 'home',
-    recording: 'home',
-    profileSection: 'home',
-    label: 'Home'
-  },
-  {
-    vision: 'work',
-    assessment: 'work',
-    recording: 'work',
-    profileSection: 'work',
-    label: 'Work'
-  },
-  {
-    vision: 'money',
-    assessment: 'money',
-    recording: 'money',
-    profileSection: 'money',
-    label: 'Money'
-  },
-  {
-    vision: 'stuff',
-    assessment: 'stuff',
-    recording: 'stuff',
-    profileSection: 'stuff',
-    label: 'Stuff'
-  },
-  {
-    vision: 'giving',
-    assessment: 'giving',
-    recording: 'giving',
-    profileSection: 'giving',
-    label: 'Giving'
-  },
-  {
-    vision: 'spirituality',
-    assessment: 'spirituality',
-    recording: 'spirituality',
-    profileSection: 'spirituality',
-    label: 'Spirituality'
-  }
-]
+/**
+ * Category mappings - auto-generated from LIFE_CATEGORY_KEYS
+ * Cannot drift from VISION_CATEGORIES since it's derived
+ */
+export const CATEGORY_MAPPINGS: CategoryMapping[] = LIFE_CATEGORY_KEYS.map((key) => ({
+  vision: key,
+  assessment: key,
+  recording: key,
+  profileSection: key,
+  label: getVisionCategoryLabel(key),
+})) satisfies CategoryMapping[]
 
 // ============================================================================
-// CONVERSION HELPER FUNCTIONS
+// CONVERSION HELPER FUNCTIONS (Simplified - all keys are identical)
 // ============================================================================
 
 /**
  * Convert between any category key format
+ * Since all formats now use the same keys, this just returns the key
  */
 export function convertCategoryKey(
-  key: string,
-  from: keyof Omit<CategoryMapping, 'label'>,
-  to: keyof Omit<CategoryMapping, 'label'>
-): string {
-  const mapping = CATEGORY_MAPPINGS.find(m => m[from] === key)
-  return mapping ? mapping[to] : key
+  key: LifeCategoryKey,
+  _from: keyof Omit<CategoryMapping, 'label'>,
+  _to: keyof Omit<CategoryMapping, 'label'>
+): LifeCategoryKey {
+  return key // All formats use the same keys now
 }
 
 /**
  * Convert vision category key to assessment category key
+ * (Identity function - keys are identical)
  */
-export function visionToAssessmentKey(visionKey: string): string {
-  return convertCategoryKey(visionKey, 'vision', 'assessment')
+export function visionToAssessmentKey(visionKey: LifeCategoryKey): LifeCategoryKey {
+  return visionKey
 }
 
 /**
  * Convert assessment category key to vision category key
+ * (Identity function - keys are identical)
  */
-export function assessmentToVisionKey(assessmentKey: string): string {
-  return convertCategoryKey(assessmentKey, 'assessment', 'vision')
+export function assessmentToVisionKey(assessmentKey: LifeCategoryKey): LifeCategoryKey {
+  return assessmentKey
 }
 
 /**
  * Convert vision category key to recording category key
+ * (Identity function - keys are identical)
  */
-export function visionToRecordingKey(visionKey: string): string {
-  return convertCategoryKey(visionKey, 'vision', 'recording')
+export function visionToRecordingKey(visionKey: LifeCategoryKey): LifeCategoryKey {
+  return visionKey
 }
 
 /**
  * Convert recording category key to vision category key
+ * (Identity function - keys are identical)
  */
-export function recordingToVisionKey(recordingKey: string): string {
-  return convertCategoryKey(recordingKey, 'recording', 'vision')
+export function recordingToVisionKey(recordingKey: LifeCategoryKey): LifeCategoryKey {
+  return recordingKey
 }
 
 /**
  * Convert vision category key to profile section key
+ * (Identity function - keys are identical)
  */
-export function visionToProfileSectionKey(visionKey: string): string {
-  return convertCategoryKey(visionKey, 'vision', 'profileSection')
+export function visionToProfileSectionKey(visionKey: LifeCategoryKey): LifeCategoryKey {
+  return visionKey
 }
 
 /**
  * Convert profile section key to vision category key
+ * (Identity function - keys are identical)
  */
-export function profileSectionToVisionKey(profileSectionKey: string): string {
-  return convertCategoryKey(profileSectionKey, 'profileSection', 'vision')
+export function profileSectionToVisionKey(profileSectionKey: LifeCategoryKey): LifeCategoryKey {
+  return profileSectionKey
 }
 
 /**
- * Get the full mapping for a category by any key type
+ * Get the full mapping for a category
+ * Type-safe lookup with auto-complete
  */
-export function getCategoryMapping(
-  key: string,
-  keyType: keyof Omit<CategoryMapping, 'label'>
-): CategoryMapping | undefined {
-  return CATEGORY_MAPPINGS.find(m => m[keyType] === key)
+export function getCategoryMapping(key: LifeCategoryKey): CategoryMapping | undefined {
+  return CATEGORY_MAPPINGS.find(m => m.vision === key)
 }
