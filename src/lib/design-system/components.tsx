@@ -1631,9 +1631,23 @@ interface DatePickerProps extends Omit<React.InputHTMLAttributes<HTMLInputElemen
 
 export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
   ({ label, error, helperText, value, onChange, minDate, maxDate, className = '', ...props }, ref) => {
+    // Parse ISO date string (YYYY-MM-DD) as local date, not UTC
+    const parseLocalDate = (dateStr: string): Date => {
+      const [year, month, day] = dateStr.split('-').map(Number)
+      return new Date(year, month - 1, day)
+    }
+    
+    // Format date as local ISO string (YYYY-MM-DD)
+    const formatLocalISO = (date: Date): string => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    
     const [isOpen, setIsOpen] = useState(false)
-    const [selectedDate, setSelectedDate] = useState<Date | null>(value ? new Date(value) : null)
-    const [currentMonth, setCurrentMonth] = useState<Date>(value ? new Date(value) : new Date())
+    const [selectedDate, setSelectedDate] = useState<Date | null>(value ? parseLocalDate(value) : null)
+    const [currentMonth, setCurrentMonth] = useState<Date>(value ? parseLocalDate(value) : new Date())
     const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false)
     const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -1687,7 +1701,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
 
     const handleDateSelect = (day: number) => {
       const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
-      const isoString = newDate.toISOString().split('T')[0]
+      const isoString = formatLocalISO(newDate)
       
       // Check if date is within min/max range
       if (minDate && isoString < minDate) return
@@ -1731,7 +1745,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
 
     // Check if date is disabled
     const isDateDisabled = (day: number) => {
-      const dateStr = new Date(year, month, day).toISOString().split('T')[0]
+      const dateStr = formatLocalISO(new Date(year, month, day))
       if (minDate && dateStr < minDate) return true
       if (maxDate && dateStr > maxDate) return true
       return false

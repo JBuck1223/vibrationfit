@@ -6,8 +6,8 @@ import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
 import { getAIToolConfig } from '@/lib/ai/database-config'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
-import { buildIndividualCategoryPrompt } from '@/lib/viva/prompts/master-vision-prompts'
-import { getVisionCategory } from '@/lib/design-system/vision-categories'
+import { buildIndividualCategoryPrompt } from '@/lib/viva/prompts/single-category-vision-prompt'
+import { getVisionCategory, isValidVisionCategory } from '@/lib/design-system/vision-categories'
 
 export const maxDuration = 300 // 5 minutes per category
 export const dynamic = 'force-dynamic'
@@ -48,9 +48,18 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Type guard: validate category key
+    if (!isValidVisionCategory(categoryKey)) {
+      return new Response(JSON.stringify({ error: `Invalid category: ${categoryKey}` }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Now TypeScript knows categoryKey is a valid VisionCategoryKey
     const category = getVisionCategory(categoryKey)
     if (!category) {
-      return new Response(JSON.stringify({ error: `Invalid category: ${categoryKey}` }), { 
+      return new Response(JSON.stringify({ error: `Category not found: ${categoryKey}` }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
