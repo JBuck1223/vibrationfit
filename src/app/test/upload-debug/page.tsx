@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Container, Button, Card, PageHero } from '@/lib/design-system'
-import { VideoRecorder } from '@/components/VideoRecorder'
+import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 import type { User } from '@supabase/supabase-js'
 
@@ -12,7 +12,6 @@ export default function UploadDebugPage() {
   const [debugLogs, setDebugLogs] = useState<string[]>([])
   const [savedVideoUrl, setSavedVideoUrl] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'upload' | 'record'>('upload')
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
   
   // File upload state
   const [files, setFiles] = useState<File[]>([])
@@ -127,29 +126,65 @@ export default function UploadDebugPage() {
       const { presignedUrl } = await partUrlResponse.json()
       addLog(`✅ Got presigned URL: ${presignedUrl.substring(0, 80)}...`)
       
-      // Step 3: Try uploading first 10MB chunk
+      // Step 3: Try uploading first 10MB chunk using XHR for better error info
       addLog(`📤 Step 3: Uploading first 10MB chunk...`)
       const chunk = file.slice(0, 10 * 1024 * 1024) // First 10MB
       addLog(`   Chunk size: ${(chunk.size / 1024 / 1024).toFixed(2)}MB`)
+      addLog(`   Presigned URL host: ${new URL(presignedUrl).host}`)
       
       try {
-        const uploadResponse = await fetch(presignedUrl, {
-          method: 'PUT',
-          body: chunk,
-          headers: {
-            'Content-Type': file.type,
-          },
+        // Use XHR for better error details
+        const uploadResult = await new Promise<{ success: boolean; status?: number; error?: string }>((resolve) => {
+          const xhr = new XMLHttpRequest()
+          
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100)
+              if (pct % 25 === 0) addLog(`   📊 Chunk progress: ${pct}%`)
+            }
+          }
+          
+          xhr.onload = () => {
+            addLog(`   XHR onload: status=${xhr.status} statusText=${xhr.statusText}`)
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const etag = xhr.getResponseHeader('ETag')
+              addLog(`✅ Chunk uploaded! ETag: ${etag}`)
+              resolve({ success: true, status: xhr.status })
+            } else {
+              addLog(`❌ XHR failed: ${xhr.status} ${xhr.statusText}`)
+              addLog(`   Response: ${xhr.responseText?.substring(0, 200)}`)
+              resolve({ success: false, status: xhr.status, error: xhr.statusText })
+            }
+          }
+          
+          xhr.onerror = () => {
+            addLog(`❌ XHR onerror triggered (usually CORS)`)
+            addLog(`   readyState: ${xhr.readyState}`)
+            addLog(`   status: ${xhr.status}`)
+            addLog(`   statusText: ${xhr.statusText || '(empty)'}`)
+            resolve({ success: false, error: 'Network/CORS error' })
+          }
+          
+          xhr.ontimeout = () => {
+            addLog(`❌ XHR timeout`)
+            resolve({ success: false, error: 'Timeout' })
+          }
+          
+          xhr.onabort = () => {
+            addLog(`❌ XHR aborted`)
+            resolve({ success: false, error: 'Aborted' })
+          }
+          
+          xhr.timeout = 60000 // 60 seconds
+          xhr.open('PUT', presignedUrl)
+          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+          addLog(`   Sending XHR PUT request...`)
+          xhr.send(chunk)
         })
         
-        addLog(`   Upload response: ${uploadResponse.status} ${uploadResponse.statusText}`)
-        
-        if (uploadResponse.ok) {
-          const etag = uploadResponse.headers.get('ETag')
-          addLog(`✅ Chunk uploaded! ETag: ${etag}`)
+        if (uploadResult.success) {
           return { uploadId, key, success: true }
         } else {
-          const errorText = await uploadResponse.text()
-          addLog(`❌ Chunk upload failed: ${errorText}`)
           return null
         }
       } catch (chunkError) {
@@ -363,50 +398,28 @@ export default function UploadDebugPage() {
           {/* VIDEO RECORD TAB */}
           {activeTab === 'record' && (
             <Card className="p-6 mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-white">Record Video</h2>
-                
-                {/* Camera Selection */}
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setFacingMode('user')}
-                    variant={facingMode === 'user' ? 'primary' : 'outline'}
-                    size="sm"
-                  >
-                    🤳 Front
-                  </Button>
-                  <Button
-                    onClick={() => setFacingMode('environment')}
-                    variant={facingMode === 'environment' ? 'primary' : 'outline'}
-                    size="sm"
-                  >
-                    📷 Back
-                  </Button>
-                </div>
-              </div>
-              
+              <h2 className="text-lg font-semibold text-white mb-2">Record Video</h2>
               <p className="text-sm text-neutral-400 mb-4">
-                This records directly in the browser (bypasses iOS "Preparing..." phase).
+                Records directly in the browser with live preview. Tap 📷 to switch cameras, tap ⛶ for fullscreen.
               </p>
               
-              <VideoRecorder
-                key={facingMode} // Force remount when camera changes
+              <MediaRecorderComponent
+                mode="video"
+                maxDuration={300}
                 storageFolder="journalVideoRecordings"
-                maxDuration={120}
-                facingMode={facingMode}
-                onRecordingStart={() => {
-                  addLog(`🎬 Recording started (${facingMode} camera)`)
-                }}
-                onRecordingStop={(blob) => {
-                  addLog(`⏹️ Recording stopped - ${(blob.size / 1024 / 1024).toFixed(2)} MB`)
-                }}
-                onProgress={(progress, status) => {
-                  addLog(`📊 ${status} (${Math.round(progress)}%)`)
-                }}
-                onVideoSaved={(url, duration) => {
-                  addLog(`✅ Video saved! Duration: ${duration}s`)
-                  addLog(`   URL: ${url.substring(0, 60)}...`)
-                  setSavedVideoUrl(url)
+                recordingPurpose="withFile"
+                showSaveOption={false}
+                category="test-video"
+                initialFacingMode="user"
+                allowCameraSwitch={true}
+                fullscreenVideo={true}
+                onRecordingComplete={(blob, transcript, shouldSave, s3Url) => {
+                  addLog(`✅ Video recording complete!`)
+                  addLog(`   Blob size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`)
+                  if (s3Url) {
+                    addLog(`   S3 URL: ${s3Url.substring(0, 60)}...`)
+                    setSavedVideoUrl(s3Url)
+                  }
                 }}
               />
             </Card>
