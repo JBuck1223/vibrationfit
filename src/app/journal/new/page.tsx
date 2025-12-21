@@ -9,9 +9,10 @@ import { SavedRecordings } from '@/components/SavedRecordings'
 import { UploadProgress } from '@/components/UploadProgress'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { JournalSuccessScreen } from '@/components/JournalSuccessScreen'
+import { JournalVideoRecorder } from '@/components/JournalVideoRecorder'
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Sparkles, Upload, Save } from 'lucide-react'
+import { Sparkles, Upload, Save, Video as VideoIcon } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { colors } from '@/lib/design-system/tokens'
 
@@ -34,6 +35,8 @@ export default function NewJournalEntryPage() {
   const [aiGeneratedImageUrls, setAiGeneratedImageUrls] = useState<string[]>([])
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [audioRecordings, setAudioRecordings] = useState<any[]>([])
+  const [videoRecordings, setVideoRecordings] = useState<any[]>([])
+  const [showVideoRecorder, setShowVideoRecorder] = useState(false)
   const [formData, setFormData] = useState({
     date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format in local timezone
     title: '',
@@ -63,6 +66,7 @@ export default function NewJournalEntryPage() {
     setAiGeneratedImageUrls([])
     setImageSource(null)
     setAudioRecordings([])
+    setVideoRecordings([])
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -102,6 +106,25 @@ export default function NewJournalEntryPage() {
 
   const handleDeleteRecording = (index: number) => {
     setAudioRecordings(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleVideoSaved = (url: string, blob: Blob) => {
+    console.log('🎥 Video saved:', url)
+    
+    const newRecording = {
+      url,
+      type: 'video',
+      category: 'journal',
+      created_at: new Date().toISOString(),
+      size: blob.size
+    }
+    
+    setVideoRecordings(prev => [...prev, newRecording])
+    setShowVideoRecorder(false)
+  }
+
+  const handleDeleteVideo = (index: number) => {
+    setVideoRecordings(prev => prev.filter((_, i) => i !== index))
   }
 
 
@@ -172,6 +195,9 @@ export default function NewJournalEntryPage() {
         console.log('✅ Upload successful, image URLs:', imageUrls)
       }
 
+      // Combine audio and video recordings
+      const allRecordings = [...audioRecordings, ...videoRecordings]
+
       // Create journal entry
       const { error } = await supabase
         .from('journal_entries')
@@ -182,7 +208,7 @@ export default function NewJournalEntryPage() {
           content: formData.content,
           categories: formData.categories,
           image_urls: imageUrls,
-          audio_recordings: audioRecordings
+          audio_recordings: allRecordings
         })
 
       if (error) throw error
@@ -226,12 +252,30 @@ export default function NewJournalEntryPage() {
   }
 
   return (
-    <Container size="xl">
-      <Stack gap="lg">
-        <PageHero
-          title="New Journal Entry"
-          subtitle="Capture your thoughts, evidence, and insights"
+    <>
+      {/* Video Recorder Modal */}
+      {showVideoRecorder && (
+        <JournalVideoRecorder
+          onVideoSaved={handleVideoSaved}
+          onClose={() => setShowVideoRecorder(false)}
+          onUploadProgress={(progress, status, fileName, fileSize) => {
+            setUploadProgress({
+              progress,
+              status,
+              fileName,
+              fileSize,
+              isVisible: true
+            })
+          }}
         />
+      )}
+
+      <Container size="xl">
+        <Stack gap="lg">
+          <PageHero
+            title="New Journal Entry"
+            subtitle="Capture your thoughts, evidence, and insights"
+          />
 
         <Card>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -360,6 +404,65 @@ export default function NewJournalEntryPage() {
                 )}
               </div>
 
+              {/* Video Recording */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-200 mb-3 text-center">
+                  Record Video (Optional)
+                </label>
+                
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="lg"
+                  onClick={() => setShowVideoRecorder(true)}
+                  className="w-full"
+                >
+                  <VideoIcon className="w-5 h-5 mr-2" />
+                  Record Video
+                </Button>
+
+                {/* Display Video Recordings */}
+                {videoRecordings.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    {videoRecordings.map((recording, index) => (
+                      <div key={index} className="relative bg-neutral-900 border border-neutral-700 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-12 h-12 bg-secondary-500/20 rounded-lg flex items-center justify-center">
+                            <VideoIcon className="w-6 h-6 text-secondary-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white">Video Recording</p>
+                            <p className="text-xs text-neutral-400 mt-1">
+                              {new Date(recording.created_at).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-neutral-500 mt-1">
+                              Size: {(recording.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteVideo(index)}
+                            className="flex-shrink-0 p-2 text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            <Upload className="w-4 h-4 rotate-45" />
+                          </button>
+                        </div>
+                        
+                        {/* Video Preview */}
+                        <div className="mt-3">
+                          <video
+                            src={recording.url}
+                            controls
+                            className="w-full rounded-lg bg-black"
+                            style={{ maxHeight: '300px' }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Journal Content */}
               <RecordingTextarea
                 label="Journal Entry"
@@ -424,7 +527,8 @@ export default function NewJournalEntryPage() {
               </div>
             </form>
           </Card>
-      </Stack>
-    </Container>
+        </Stack>
+      </Container>
+    </>
   )
 }

@@ -135,14 +135,19 @@ export function OptimizedVideo({
       return url
     }
 
-    // For processed videos, select quality variant
-    // Check if URL already has a quality suffix
+    // If URL already has a quality suffix, use it as-is
     if (url.match(/-(720p|1080p|original)\.(mp4|mov)$/i)) {
-      return url // Already has quality suffix
+      return url
     }
 
-    // Add quality suffix to base URL
-    return url.replace(/\.(mp4|mov)$/i, `-${quality}.mp4`)
+    // Only try to add quality suffix if this is a processed video URL
+    // Original uploads (not in /processed/) should play as-is until MediaConvert processes them
+    if (url.includes('/processed/')) {
+      return url.replace(/\.(mp4|mov)$/i, `-${quality}.mp4`)
+    }
+
+    // Return original URL as-is (original .mov/.mp4 before MediaConvert processing)
+    return url
   }
 
   // Smart preload strategy based on context
@@ -263,6 +268,12 @@ export function getOptimizedVideoUrl(url: string, preferredQuality?: '720p' | '1
 
   // If URL already has quality suffix, return as-is
   if (url.match(/-(720p|1080p|original)\.(mp4|mov)$/i)) {
+    return url
+  }
+
+  // Only add quality suffix if this is a processed video URL
+  // Original uploads should play as-is until MediaConvert processes them
+  if (!url.includes('/processed/')) {
     return url
   }
 

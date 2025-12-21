@@ -346,8 +346,14 @@ export const adminNavigation: NavItem[] = [
  */
 export const mobileNavigation: NavItem[] = [
   {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: Home,
+    description: 'Dashboard',
+  },
+  {
     name: 'Vision',
-    href: '/life-vision/active',
+    href: '/life-vision',
     icon: Target,
     description: 'Life Vision',
   },
@@ -362,12 +368,6 @@ export const mobileNavigation: NavItem[] = [
     href: '/journal',
     icon: BookOpen,
     description: 'Journal',
-  },
-  {
-    name: 'VIVA',
-    href: '/viva',
-    icon: Sparkles,
-    description: 'VIVA Assistant',
   },
   {
     name: 'More',

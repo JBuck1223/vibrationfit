@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import * as Diff from 'diff'
 import { 
   Sparkles, 
   MessageCircle, 
@@ -24,7 +25,8 @@ import {
   Clock,
   Eye,
   Gem,
-  CheckCircle
+  CheckCircle,
+  X
 } from 'lucide-react'
 import { 
    
@@ -279,7 +281,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [user, setUser] = useState<any>(null)
   const [visionId, setVisionId] = useState<string | null>(null)
-  const [showCurrentVision, setShowCurrentVision] = useState(true)
+  const [showCurrentVision, setShowCurrentVision] = useState(false)
   const [showRefinement, setShowRefinement] = useState(true)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isInitializingChat, setIsInitializingChat] = useState(false)
@@ -292,6 +294,27 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [isNonDraft, setIsNonDraft] = useState(false)
   const [nonDraftVision, setNonDraftVision] = useState<VisionData | null>(null)
   const [isCloning, setIsCloning] = useState(false)
+
+  // VIVA Refine (Refine + Weave) state
+  const [showVivaRefine, setShowVivaRefine] = useState(true)
+  const [vivaRevision, setVivaRevision] = useState('')
+  const [isVivaRefining, setIsVivaRefining] = useState(false)
+  const [currentRefinementId, setCurrentRefinementId] = useState<string | null>(null)
+  const [addItems, setAddItems] = useState<string[]>([])
+  const [addInput, setAddInput] = useState('')
+  const [removeItems, setRemoveItems] = useState<string[]>([])
+  const [removeInput, setRemoveInput] = useState('')
+  const [emphasize, setEmphasize] = useState('')
+  const [deemphasize, setDeemphasize] = useState('')
+  const [intensity, setIntensity] = useState<'less' | 'same' | 'more'>('same')
+  const [detail, setDetail] = useState<'simpler' | 'same' | 'richer'>('same')
+  const [weaveEnabled, setWeaveEnabled] = useState(false)
+  const [weaveStrength, setWeaveStrength] = useState<'light' | 'medium' | 'deep'>('light')
+  const [weaveStyle, setWeaveStyle] = useState<'inline' | 'addon'>('inline')
+  const [weaveNote, setWeaveNote] = useState('')
+  const [refinementNotes, setRefinementNotes] = useState('')
+  const [viewMode, setViewMode] = useState<'edit' | 'highlight'>('edit')
+  const [originalVisionText, setOriginalVisionText] = useState('')
 
   const supabase = createClient()
 
@@ -526,6 +549,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       if (validCategory) {
         setSelectedCategory(categoryParam)
         console.log('Category selected from URL:', categoryParam)
+        
+        // Set original vision text from active vision for diff comparison
+        if (vision) {
+          const activeValue = getCategoryValue(categoryParam)
+          setOriginalVisionText(activeValue)
+        }
         
         // Load content from draft vision for this category
         if (draftVision) {
@@ -1097,6 +1126,25 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setLastSaved(new Date())
       console.log('Draft saved successfully, refined categories:', updatedDraft.refined_categories)
       
+      // Mark refinement as applied if there's a current refinement ID
+      if (currentRefinementId) {
+        try {
+          await supabase
+            .from('vision_refinements')
+            .update({
+              applied: true,
+              applied_at: new Date().toISOString(),
+            })
+            .eq('id', currentRefinementId)
+          
+          console.log('Refinement marked as applied:', currentRefinementId)
+          setCurrentRefinementId(null) // Clear the ID after applying
+        } catch (refinementError) {
+          console.error('Error marking refinement as applied:', refinementError)
+          // Don't fail the save if this fails
+        }
+      }
+      
       // Restore scroll position and focus after React re-renders
       setTimeout(() => {
         window.scrollTo({ top: scrollPosition, behavior: 'instant' })
@@ -1110,6 +1158,158 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     } finally {
       setIsDraftSaving(false)
     }
+  }
+
+  // VIVA Refine (Refine + Weave) handler
+  const handleVivaRefine = async () => {
+    if (!selectedCategory || !draftVision || !vision) return
+    
+    // Get the active vision text for this category
+    const activeVisionText = getCategoryValue(selectedCategory)
+    if (!activeVisionText.trim()) return
+    
+    setIsVivaRefining(true)
+    setOriginalVisionText(activeVisionText) // Store original active vision
+    setCurrentRefinement('') // Clear refinement field to stream into it
+    setShowCurrentVision(true) // Show current vision for comparison
+    setShowRefinement(true) // Show refinement field
+    setViewMode('edit') // Reset to edit mode
+    
+    try {
+      // Map intensity to numeric value
+      const intensityMap = { less: 2, same: 3, more: 4 } as const
+      
+      // Build refinement inputs
+      const refinement = {
+        add: addItems.filter(item => item.trim()),
+        remove: removeItems.filter(item => item.trim()),
+        emphasize: emphasize.trim() || undefined,
+        deemphasize: deemphasize.trim() || undefined,
+        intensity: intensityMap[intensity] as 1 | 2 | 3 | 4 | 5,
+        detail,
+        notes: refinementNotes.trim() || undefined
+      }
+      
+      // Build weave inputs
+      const weave = {
+        enabled: weaveEnabled,
+        strength: weaveStrength,
+        style: weaveStyle,
+        note: weaveNote.trim() || undefined
+      }
+      
+      // Get user perspective from profile
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('perspective')
+        .eq('user_id', user.id)
+        .single()
+      
+      const perspective = profile?.perspective || 'singular'
+      
+      // Call the API
+      const response = await fetch('/api/viva/refine-category-weave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visionId: draftVision.id,
+          category: selectedCategory,
+          currentVisionText: activeVisionText,
+          refinement,
+          weave,
+          perspective
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to refine category')
+      }
+      
+      if (!response.body) {
+        throw new Error('No response body')
+      }
+      
+      // Stream the response
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ''
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n')
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6))
+            
+            if (data.error) {
+              throw new Error(data.error)
+            }
+            
+            if (data.content) {
+              fullText += data.content
+              setCurrentRefinement(fullText) // Stream into refinement field
+            }
+            
+            if (data.done) {
+              console.log('VIVA Refine complete')
+              if (data.refinementId) {
+                setCurrentRefinementId(data.refinementId)
+                console.log('Refinement saved with ID:', data.refinementId)
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('VIVA Refine error:', error)
+      alert(`Failed to refine: ${error}`)
+    } finally {
+      setIsVivaRefining(false)
+    }
+  }
+  
+  // Copy VIVA revision to refinement field
+  const copyVivaRevisionToRefinement = () => {
+    setCurrentRefinement(vivaRevision)
+    setVivaRevision('')
+  }
+
+  // Render diff with highlights
+  const renderDiff = (oldText: string, newText: string) => {
+    const diff = Diff.diffWords(oldText, newText)
+    
+    return (
+      <div className="prose prose-invert max-w-none p-4 bg-neutral-800/50 rounded-lg border-2 min-h-[120px] whitespace-pre-wrap text-sm" style={{ borderColor: colors.accent[500] }}>
+        {diff.map((part, index) => {
+          if (part.added) {
+            return (
+              <span
+                key={index}
+                className="bg-green-500/30 text-green-200 px-1 rounded"
+                style={{ textDecoration: 'none' }}
+              >
+                {part.value}
+              </span>
+            )
+          }
+          if (part.removed) {
+            return (
+              <span
+                key={index}
+                className="bg-red-500/30 text-red-300 px-1 rounded line-through"
+              >
+                {part.value}
+              </span>
+            )
+          }
+          return <span key={index}>{part.value}</span>
+        })}
+      </div>
+    )
   }
 
 
@@ -1349,6 +1549,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     const currentPath = window.location.pathname
                     router.replace(`${currentPath}?category=${category.key}`, { scroll: false })
                     
+                    // Set original vision text from active vision for diff comparison
+                    if (vision) {
+                      const activeValue = getCategoryValue(category.key)
+                      setOriginalVisionText(activeValue)
+                    }
+                    
                     // Load content from draft vision
                     if (draftVision) {
                       const draftValue = draftVision[category.key as keyof VisionData] as string
@@ -1364,6 +1570,341 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           })}
         </div>
       </div>
+
+      {/* VIVA Refine (Refine + Weave) Tool */}
+      {selectedCategory && (
+        <div className="space-y-6">
+          <Card>
+            <div className={`flex items-center justify-between ${showVivaRefine ? 'mb-6' : ''}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                  <Wand2 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">VIVA Refine</h3>
+                  <p className="text-sm text-neutral-400">Structured refinement with AI assistance</p>
+                </div>
+              </div>
+              <Button
+                onClick={() => setShowVivaRefine(!showVivaRefine)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                {showVivaRefine ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                {showVivaRefine ? 'Hide' : 'Show'} Tool
+              </Button>
+            </div>
+
+            {showVivaRefine && (
+              <div className="space-y-6">
+                {/* Section Divider */}
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t-2 border-neutral-700"></div>
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-[#1F1F1F] px-4 text-xs font-semibold text-neutral-400 tracking-widest">
+                      REFINEMENT
+                    </span>
+                  </div>
+                </div>
+
+                {/* Add Items */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
+                    Add
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {addItems.map((item, index) => (
+                      <span key={index} className="px-3 py-1 bg-primary-500/20 text-primary-300 rounded-full text-sm flex items-center gap-2">
+                        {item}
+                        <button
+                          onClick={() => setAddItems(addItems.filter((_, i) => i !== index))}
+                          className="hover:text-red-400 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={addInput}
+                      onChange={(e) => setAddInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && addInput.trim()) {
+                          setAddItems([...addItems, addInput.trim()])
+                          setAddInput('')
+                        }
+                      }}
+                      placeholder="What to add..."
+                      className="flex-1 bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none"
+                    />
+                    <button
+                      onClick={() => {
+                        if (addInput.trim()) {
+                          setAddItems([...addItems, addInput.trim()])
+                          setAddInput('')
+                        }
+                      }}
+                      className="w-8 h-8 rounded-full border-2 border-primary-500 text-primary-500 hover:bg-primary-500/10 transition-colors flex items-center justify-center flex-shrink-0"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Remove Items */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
+                    Remove
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {removeItems.map((item, index) => (
+                      <span key={index} className="px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-sm flex items-center gap-2">
+                        {item}
+                        <button
+                          onClick={() => setRemoveItems(removeItems.filter((_, i) => i !== index))}
+                          className="hover:text-red-400 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={removeInput}
+                      onChange={(e) => setRemoveInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && removeInput.trim()) {
+                          setRemoveItems([...removeItems, removeInput.trim()])
+                          setRemoveInput('')
+                        }
+                      }}
+                      placeholder="What to remove..."
+                      className="flex-1 bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none"
+                    />
+                    <button
+                      onClick={() => {
+                        if (removeInput.trim()) {
+                          setRemoveItems([...removeItems, removeInput.trim()])
+                          setRemoveInput('')
+                        }
+                      }}
+                      className="w-8 h-8 rounded-full border-2 border-primary-500 text-primary-500 hover:bg-primary-500/10 transition-colors flex items-center justify-center flex-shrink-0"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Emphasize / De-emphasize */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Emphasize
+                    </label>
+                    <AutoResizeTextarea
+                      value={emphasize}
+                      onChange={setEmphasize}
+                      placeholder="What to emphasize more..."
+                      className="!bg-neutral-800 !border-neutral-700"
+                      minHeight={80}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      De-emphasize
+                    </label>
+                    <AutoResizeTextarea
+                      value={deemphasize}
+                      onChange={setDeemphasize}
+                      placeholder="What to de-emphasize..."
+                      className="!bg-neutral-800 !border-neutral-700"
+                      minHeight={80}
+                    />
+                  </div>
+                </div>
+
+                {/* Intensity & Detail */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Intensity
+                    </label>
+                    <select
+                      value={intensity}
+                      onChange={(e) => setIntensity(e.target.value as 'less' | 'same' | 'more')}
+                      className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white focus:border-purple-500 focus:outline-none"
+                    >
+                      <option value="less">Less</option>
+                      <option value="same">Same</option>
+                      <option value="more">More</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Detail Level
+                    </label>
+                    <select
+                      value={detail}
+                      onChange={(e) => setDetail(e.target.value as 'simpler' | 'same' | 'richer')}
+                      className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white focus:border-purple-500 focus:outline-none"
+                    >
+                      <option value="simpler">Simpler</option>
+                      <option value="same">Same</option>
+                      <option value="richer">Richer</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Section Divider */}
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t-2 border-accent-500/30"></div>
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-[#1F1F1F] px-4 text-xs font-semibold text-accent-500 tracking-widest">
+                      WEAVE SECTION
+                    </span>
+                  </div>
+                </div>
+
+                {/* Weave */}
+                <div>
+                  <div className="text-center mb-3">
+                    <h4 className="text-base font-semibold text-accent-500 tracking-wide mb-2">
+                      Cross-Category Connections
+                    </h4>
+                    <p className="text-sm text-neutral-400">
+                      Connect this category with other life areas
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="inline-flex rounded-lg border-2 border-accent-500 bg-neutral-800 p-1">
+                      <button
+                        onClick={() => setWeaveEnabled(false)}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                          !weaveEnabled
+                            ? 'bg-neutral-700 text-white'
+                            : 'text-neutral-300 hover:text-white'
+                        }`}
+                      >
+                        <X className="w-4 h-4 inline mr-2" />
+                        No Weave
+                      </button>
+                      <button
+                        onClick={() => setWeaveEnabled(true)}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                          weaveEnabled
+                            ? 'bg-accent-500 text-white'
+                            : 'text-neutral-300 hover:text-white'
+                        }`}
+                      >
+                        <Sparkles className="w-4 h-4 inline mr-2" />
+                        Enable Weave
+                      </button>
+                    </div>
+                  </div>
+
+                  {weaveEnabled && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-neutral-300 mb-2">
+                            Weave Strength
+                          </label>
+                          <select
+                            value={weaveStrength}
+                            onChange={(e) => setWeaveStrength(e.target.value as 'light' | 'medium' | 'deep')}
+                            className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white focus:border-purple-500 focus:outline-none"
+                          >
+                            <option value="light">Light</option>
+                            <option value="medium">Medium</option>
+                            <option value="deep">Deep</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-neutral-300 mb-2">
+                            Weave Style
+                          </label>
+                          <select
+                            value={weaveStyle}
+                            onChange={(e) => setWeaveStyle(e.target.value as 'inline' | 'addon')}
+                            className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white focus:border-purple-500 focus:outline-none"
+                          >
+                            <option value="inline">Inline (blend into text)</option>
+                            <option value="addon">Add-on (separate section)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-300 mb-2">
+                          Weave Note (optional)
+                        </label>
+                        <AutoResizeTextarea
+                          value={weaveNote}
+                          onChange={setWeaveNote}
+                          placeholder="Any specific guidance for weaving..."
+                          className="!bg-neutral-800 !border-neutral-700"
+                          minHeight={60}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section Divider */}
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t-2 border-neutral-700"></div>
+                  </div>
+                </div>
+
+                {/* Freeform Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
+                    Additional Notes
+                  </label>
+                  <AutoResizeTextarea
+                    value={refinementNotes}
+                    onChange={setRefinementNotes}
+                    placeholder="Any other refinement instructions..."
+                    className="!bg-neutral-800 !border-neutral-700"
+                    minHeight={80}
+                  />
+                </div>
+
+                {/* Generate Button */}
+                <div className="flex justify-center pt-4">
+                  <Button
+                    onClick={handleVivaRefine}
+                    disabled={isVivaRefining || !selectedCategory || !getCategoryValue(selectedCategory).trim()}
+                    variant="accent"
+                    size="lg"
+                    className="flex items-center gap-2"
+                  >
+                    {isVivaRefining ? (
+                      <>
+                        <Spinner variant="secondary" size="sm" />
+                        Refining with VIVA...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-5 h-5" />
+                        Generate VIVA Revision
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
 
       {/* Current Vision & Refinement Display */}
       {selectedCategory && (
@@ -1381,7 +1922,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </Button>
             <Button
               onClick={() => setShowRefinement(!showRefinement)}
-              variant={showRefinement ? "draft" : "outline-yellow"}
+              variant={showRefinement ? "accent" : "outline"}
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
@@ -1403,7 +1944,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </Button>
             <Button
               onClick={() => setShowRefinement(!showRefinement)}
-              variant={showRefinement ? "draft" : "outline-yellow"}
+              variant={showRefinement ? "accent" : "outline"}
               size="sm"
               className="flex-1 flex items-center justify-center gap-2"
             >
@@ -1436,6 +1977,22 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   </div>
                 </div>
                 
+                {/* Active Vision Info */}
+                <div className="flex items-center justify-center mb-4" style={{ minHeight: '48px' }}>
+                  {vision && (
+                    <div className="inline-flex rounded-lg border-2 border-primary-500 bg-neutral-800 px-4 py-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-primary-500">
+                          Active V{vision.version_number ?? 1}
+                        </span>
+                        <span className="text-sm text-neutral-400">
+                          {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
                 {/* Text Area */}
                 <AutoResizeTextarea
                   value={getCategoryValue(selectedCategory) || "No vision content available for this category."}
@@ -1465,16 +2022,16 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               <Card data-refinement-section>
                 {/* Centered Header */}
                 <div className="text-center mb-4 md:mb-6 lg:mb-8">
-                  <h3 className="text-sm font-semibold tracking-widest mb-3" style={{ color: '#FFFF00' }}>
-                    REFINEMENT
+                  <h3 className="text-sm font-semibold tracking-widest mb-3" style={{ color: colors.accent[500] }}>
+                    VIVA REFINEMENT
                   </h3>
                   <div className="flex flex-row items-center justify-center gap-2">
                     {(() => {
                       const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
                       return categoryInfo && (
                         <>
-                          <categoryInfo.icon className="w-6 h-6" style={{ color: '#FFFF00' }} />
-                          <span className="text-base font-semibold" style={{ color: '#FFFF00' }}>
+                          <categoryInfo.icon className="w-6 h-6" style={{ color: colors.accent[500] }} />
+                          <span className="text-base font-semibold" style={{ color: colors.accent[500] }}>
                             {categoryInfo.label}
                           </span>
                         </>
@@ -1483,22 +2040,55 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   </div>
                 </div>
                 
-                {/* Text Area */}
-                <AutoResizeTextarea
-                  value={currentRefinement}
-                  onChange={setCurrentRefinement}
-                  placeholder="Start refining your vision here, or let VIVA help you through conversation..."
-                  className="!bg-neutral-800/50 text-sm !rounded-lg !px-4 !py-3"
-                  style={{ overflowAnchor: 'none', borderColor: '#FFFF00', borderWidth: '2px' } as React.CSSProperties}
-                  minHeight={120}
-                />
+                {/* Edit / Highlight Toggle */}
+                <div className="flex items-center justify-center mb-4" style={{ minHeight: '48px' }}>
+                  <div className="inline-flex rounded-lg border-2 border-accent-500 bg-neutral-800 p-1">
+                    <button
+                      onClick={() => setViewMode('edit')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                        viewMode === 'edit'
+                          ? 'bg-accent-500 text-white'
+                          : 'text-neutral-300 hover:text-white'
+                      }`}
+                    >
+                      <Edit className="w-4 h-4 inline mr-2" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => setViewMode('highlight')}
+                      disabled={!originalVisionText || !currentRefinement}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                        viewMode === 'highlight'
+                          ? 'bg-accent-500 text-white'
+                          : 'text-neutral-300 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4 inline mr-2" />
+                      Highlight
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Text Area or Diff View */}
+                {viewMode === 'highlight' && originalVisionText && currentRefinement && !isVivaRefining ? (
+                  renderDiff(originalVisionText, currentRefinement)
+                ) : (
+                  <AutoResizeTextarea
+                    value={currentRefinement}
+                    onChange={setCurrentRefinement}
+                    placeholder="VIVA refinement will stream here..."
+                    className="!bg-neutral-800/50 text-sm !rounded-lg !px-4 !py-3"
+                    style={{ overflowAnchor: 'none', borderColor: colors.accent[500], borderWidth: '2px' } as React.CSSProperties}
+                    minHeight={120}
+                  />
+                )}
                 
                 {/* Centered Save Button */}
                 <div className="flex justify-center mt-4 md:mt-5 lg:mt-6">
                   <Button
                     onClick={saveDraft}
                     disabled={isDraftSaving}
-                    variant="draft"
+                    variant="accent"
                     size="sm"
                     className="flex items-center gap-2"
                   >
@@ -1516,8 +2106,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      {/* Chat Interface */}
-      {selectedCategory && (
+      {/* Chat Interface - REMOVED */}
+      {false && selectedCategory && (
         <div className="space-y-6">
           {isInitializingChat ? (
             <div className="text-center py-12">

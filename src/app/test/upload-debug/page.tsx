@@ -12,14 +12,18 @@ export default function UploadDebugPage() {
   const [debugLogs, setDebugLogs] = useState<string[]>([])
   const [savedVideoUrl, setSavedVideoUrl] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'upload' | 'record'>('upload')
+  const [userAgent, setUserAgent] = useState<string>('Loading...')
   
   // File upload state
   const [files, setFiles] = useState<File[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
 
-  // Get user on mount
+  // Get user and device info on mount (client-side only)
   useEffect(() => {
+    // Set user agent on client
+    setUserAgent(navigator.userAgent)
+    
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
@@ -312,7 +316,7 @@ export default function UploadDebugPage() {
       <Card className="p-6 mb-6">
         <h2 className="text-lg font-semibold text-white mb-4">Device Info</h2>
         <div className="text-sm text-neutral-400 font-mono bg-black rounded p-3 overflow-x-auto">
-          <p>User Agent: {typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}</p>
+          <p>User Agent: {userAgent}</p>
           <p>Logged in: {user ? `Yes (${user.id.substring(0, 8)}...)` : 'No ⚠️'}</p>
         </div>
       </Card>
