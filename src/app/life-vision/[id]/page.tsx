@@ -207,16 +207,16 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         health: 'health',
         family: 'family',
         love: 'love',
-        romance: assessmentToVisionKey('romance'), // Legacy support: map romance to love
+        romance: 'love', // Legacy support: map romance to love
         social: 'social',
         fun: 'fun',
         travel: 'travel',
         home: 'home',
         money: 'money',
         work: 'work',
-        business: assessmentToVisionKey('business'), // Legacy support: map business to work
+        business: 'work', // Legacy support: map business to work
         stuff: 'stuff',
-        possessions: assessmentToVisionKey('possessions'), // Legacy support: map possessions to stuff
+        possessions: 'stuff', // Legacy support: map possessions to stuff
         giving: 'giving',
         spirituality: 'spirituality',
       }

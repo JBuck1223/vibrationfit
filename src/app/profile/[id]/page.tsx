@@ -52,8 +52,8 @@ import NextImage from 'next/image'
 // Helper function to get category info from design system
 const getCategoryInfo = (categoryId: string) => {
   // Use centralized category mapping
-  const visionCategoryKey = convertCategoryKey(categoryId, 'vision', 'vision') // If already vision key
-  const category = getVisionCategory(visionCategoryKey || categoryId)
+  const visionCategoryKey = convertCategoryKey(categoryId as any, 'vision', 'vision') // If already vision key
+  const category = getVisionCategory(visionCategoryKey || categoryId as any)
   
   if (category) {
     return {
@@ -62,7 +62,7 @@ const getCategoryInfo = (categoryId: string) => {
       icon: category.icon,
       color: 'text-primary-500',
       order: category.order,
-      recordingCategory: visionToRecordingKey(categoryId)
+      recordingCategory: visionToRecordingKey(categoryId as any)
     }
   }
   
