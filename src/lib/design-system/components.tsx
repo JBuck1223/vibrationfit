@@ -706,10 +706,10 @@ FeatureCard.displayName = 'FeatureCard'
 
 // CategoryGrid Component - Responsive grid for category cards with selection/completion states
 interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
-  categories: Array<{
-    key: string
-    label: string
-    icon: React.ElementType
+  categories: ReadonlyArray<{
+    readonly key: string
+    readonly label: string
+    readonly icon: React.ElementType
   }>
   selectedCategories?: string[]
   completedCategories?: string[]

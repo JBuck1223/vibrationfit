@@ -5,7 +5,7 @@ import { useRouter, useParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Container, Card, Button, Spinner, Stack, PageHero, CategoryGrid, Badge, IconList } from '@/lib/design-system/components'
 import { ArrowRight, ArrowLeft, Sparkles, Lightbulb, CheckCircle } from 'lucide-react'
-import { getVisionCategory, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { getVisionCategory, VISION_CATEGORIES, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 
@@ -13,7 +13,7 @@ export default function ImaginationPage() {
   const router = useRouter()
   const params = useParams()
   const pathname = usePathname()
-  const categoryKey = params.key as string
+  const categoryKey = params.key as LifeCategoryKey
   const supabase = createClient()
 
   const [loading, setLoading] = useState(true)

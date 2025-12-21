@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
         const completion = await openai.chat.completions.create({
           ...openaiParams,
           stream: true,
-        });
+        }) as unknown as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
 
         let fullText = '';
         let inputTokens = 0;

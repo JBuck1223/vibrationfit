@@ -11,7 +11,7 @@
 
 import { VIVA_PERSONA } from './shared/viva-persona'
 import { flattenAssessmentResponsesNumbered } from '../prompt-flatteners'
-import { getCategoryClarityField, getCategoryContrastField } from '@/lib/design-system/vision-categories'
+import { getCategoryClarityField, getCategoryContrastField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { computeTargetLengthRange, combineTextSources } from '../text-metrics'
 
 export const CATEGORY_SUMMARY_SYSTEM_PROMPT = `${VIVA_PERSONA}
@@ -22,15 +22,15 @@ All responses must be in present tense, first person, and vibrationally activati
  * Builds the category summary prompt with user data
  */
 export function buildCategorySummaryPrompt(
-  category: string,
+  category: LifeCategoryKey | string,
   transcript: string,
   categoryName: string,
   profile: any,
   assessment: any
 ): string {
   // Get clarity and contrast profile fields for this category
-  const clarityField = getCategoryClarityField(category)
-  const contrastField = getCategoryContrastField(category)
+  const clarityField = getCategoryClarityField(category as LifeCategoryKey)
+  const contrastField = getCategoryContrastField(category as LifeCategoryKey)
   
   const profileClarity = profile?.[clarityField]?.trim() || null
   const profileContrast = profile?.[contrastField]?.trim() || null
