@@ -17,7 +17,7 @@ function getCategoryProfileFields(category: string, profile: any): string {
   const fields: string[] = []
   
   // Add the user's own clarity text for this category (highest priority context)
-  const clarityField = getCategoryClarityField(category)
+  const clarityField = getCategoryClarityField(category as any)
   if (profile[clarityField] && profile[clarityField].trim().length > 0) {
     fields.push(`User's own words about ${category}:\n"${profile[clarityField]}"`)
   }
