@@ -42,6 +42,113 @@ const MULTIPART_THRESHOLD = 100 * 1024 * 1024 // 100MB
 // Chunk size for multipart uploads (10MB per chunk)
 const CHUNK_SIZE = 10 * 1024 * 1024 // 10MB
 
+// Retry configuration
+const MAX_RETRIES = 3
+const INITIAL_RETRY_DELAY = 1000 // 1 second
+
+// Retry wrapper with exponential backoff
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries?: number
+    initialDelay?: number
+    onRetry?: (attempt: number, error: Error) => void
+    shouldRetry?: (error: Error) => boolean
+  } = {}
+): Promise<T> {
+  const {
+    maxRetries = MAX_RETRIES,
+    initialDelay = INITIAL_RETRY_DELAY,
+    onRetry,
+    shouldRetry = (error) => {
+      // Retry on network errors, timeouts, and 5xx server errors
+      const message = error.message.toLowerCase()
+      return (
+        message.includes('network') ||
+        message.includes('timeout') ||
+        message.includes('timed out') ||
+        message.includes('500') ||
+        message.includes('502') ||
+        message.includes('503') ||
+        message.includes('504')
+      )
+    }
+  } = options
+
+  let lastError: Error = new Error('Unknown error')
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+
+      if (attempt === maxRetries || !shouldRetry(lastError)) {
+        throw lastError
+      }
+
+      const delay = initialDelay * Math.pow(2, attempt)
+      console.log(`⚠️ Attempt ${attempt + 1} failed, retrying in ${delay}ms...`, lastError.message)
+
+      if (onRetry) {
+        onRetry(attempt + 1, lastError)
+      }
+
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+
+  throw lastError
+}
+
+// Convert technical error messages to user-friendly messages
+export function getUploadErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+
+  // Timeout errors
+  if (message.includes('timeout') || message.includes('timed out')) {
+    return 'Upload timed out. Please check your internet connection and try again with a smaller file if needed.'
+  }
+
+  // Network errors
+  if (message.includes('network') || message.includes('failed to fetch') || message.includes('net::')) {
+    return 'Network error. Please check your internet connection and try again.'
+  }
+
+  // CORS errors
+  if (message.includes('cors') || message.includes('405')) {
+    return 'Upload blocked by server configuration. Please try again or contact support.'
+  }
+
+  // File size errors
+  if (message.includes('too large') || message.includes('413') || message.includes('payload')) {
+    return 'File is too large. Please try a smaller file.'
+  }
+
+  // File type errors
+  if (message.includes('invalid') && (message.includes('type') || message.includes('format'))) {
+    return 'This file format is not supported. Please use common image, video, or audio formats.'
+  }
+
+  // Authentication errors
+  if (message.includes('authenticated') || message.includes('unauthorized') || message.includes('401')) {
+    return 'Your session has expired. Please refresh the page and try again.'
+  }
+
+  // Server errors
+  if (message.includes('500') || message.includes('502') || message.includes('503') || message.includes('server')) {
+    return 'Server error. Please wait a moment and try again.'
+  }
+
+  // Storage quota errors
+  if (message.includes('quota') || message.includes('storage')) {
+    return 'Storage limit reached. Please delete some files and try again.'
+  }
+
+  // Generic fallback
+  return 'Upload failed. Please try again. If the problem persists, try a smaller file or different format.'
+}
+
 // Get presigned URL for direct S3 upload
 export async function getPresignedUploadUrl(
   folder: UserFolder,
@@ -83,6 +190,48 @@ export async function getPresignedUploadUrl(
   }
 }
 
+// XHR-based upload with real progress tracking
+async function uploadWithXHRProgress(
+  url: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<{ status: number; statusText: string }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    
+    // Track upload progress
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) {
+        const progress = Math.round((event.loaded / event.total) * 100)
+        onProgress(progress)
+      }
+    }
+    
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve({ status: xhr.status, statusText: xhr.statusText })
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`))
+      }
+    }
+    
+    xhr.onerror = () => {
+      reject(new Error('Network error during upload'))
+    }
+    
+    xhr.ontimeout = () => {
+      reject(new Error('Upload timed out'))
+    }
+    
+    // Set a long timeout for large files (10 minutes)
+    xhr.timeout = 600000
+    
+    xhr.open('PUT', url)
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+    xhr.send(file)
+  })
+}
+
 // Upload file using presigned URL (for large files)
 export async function uploadFileWithPresignedUrl(
   folder: UserFolder,
@@ -106,39 +255,26 @@ export async function uploadFileWithPresignedUrl(
       key: key
     })
 
-    // Clone file to avoid "body is disturbed or locked" error
-    const fileClone = new File([file], file.name, { type: file.type })
-
-    // Upload directly to S3 with CORS-compliant headers
-    const response = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: fileClone,
-      headers: {
-        'Content-Type': file.type,
-      },
-      mode: 'cors', // Explicitly set CORS mode
-    })
-
-    // Check for 405 specifically
-    if (response.status === 405) {
-      console.error('❌ 405 Method Not Allowed from S3. This usually means:')
-      console.error('   1. S3 bucket CORS configuration is missing or incorrect')
-      console.error('   2. The presigned URL may be malformed')
-      console.error('   3. The bucket policy may be blocking PUT requests')
-      throw new Error('S3 upload blocked (405). Please check S3 CORS configuration. Attempting fallback...')
+    // Use XHR for real progress tracking
+    try {
+      await uploadWithXHRProgress(uploadUrl, file, onProgress)
+      console.log('✅ Presigned upload successful')
+    } catch (xhrError) {
+      // Check for specific error types
+      if (xhrError instanceof Error) {
+        if (xhrError.message.includes('405')) {
+          console.error('❌ 405 Method Not Allowed from S3. This usually means:')
+          console.error('   1. S3 bucket CORS configuration is missing or incorrect')
+          console.error('   2. The presigned URL may be malformed')
+          console.error('   3. The bucket policy may be blocking PUT requests')
+          throw new Error('S3 upload blocked (405). Please check S3 CORS configuration. Attempting fallback...')
+        }
+        if (xhrError.message.includes('Network error') || xhrError.message.includes('timed out')) {
+          throw xhrError // Propagate for retry logic
+        }
+      }
+      throw xhrError
     }
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'No error details')
-      console.error('❌ S3 upload failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      })
-      throw new Error(`Upload failed: ${response.status} ${response.statusText}`)
-    }
-
-    console.log('✅ Presigned upload successful')
 
     if (onProgress) onProgress(100)
 
@@ -442,21 +578,32 @@ export async function uploadUserFile(
   // Choose upload method based on file size
   const fileSizeMB = file.size / 1024 / 1024
 
-  // Use multipart upload for very large files (>100MB)
-  if (file.size > MULTIPART_THRESHOLD) {
-    console.log(`🚀 Using multipart upload for ${file.name} (${fileSizeMB.toFixed(2)}MB)`)
-    return uploadFileWithMultipart(folder, file, userId, onProgress)
+  // Wrap all upload methods with retry logic for better reliability
+  const uploadFn = async (): Promise<{ url: string; key: string }> => {
+    // Use multipart upload for very large files (>100MB)
+    if (file.size > MULTIPART_THRESHOLD) {
+      console.log(`🚀 Using multipart upload for ${file.name} (${fileSizeMB.toFixed(2)}MB)`)
+      return uploadFileWithMultipart(folder, file, userId, onProgress)
+    }
+
+    // Use presigned URL for medium files (500KB - 100MB)
+    if (file.size > PRESIGNED_THRESHOLD) {
+      console.log(`📤 Using presigned URL upload for ${file.name} (${fileSizeMB.toFixed(2)}MB)`)
+      return uploadFileWithPresignedUrl(folder, file, userId, onProgress)
+    }
+
+    // Use API route for small files (<500KB - more reliable, no CORS issues)
+    console.log(`📦 Using API route upload for ${file.name} (${fileSizeMB.toFixed(2)}MB)`)
+    return uploadViaApiRoute(folder, file, userId, onProgress)
   }
 
-  // Use presigned URL for medium files (500KB - 100MB)
-  if (file.size > PRESIGNED_THRESHOLD) {
-    console.log(`📤 Using presigned URL upload for ${file.name} (${fileSizeMB.toFixed(2)}MB)`)
-    return uploadFileWithPresignedUrl(folder, file, userId, onProgress)
-  }
-
-  // Use API route for small files (<500KB - more reliable, no CORS issues)
-  console.log(`📦 Using API route upload for ${file.name} (${fileSizeMB.toFixed(2)}MB)`)
-  return uploadViaApiRoute(folder, file, userId, onProgress)
+  // Execute with retry logic
+  return withRetry(uploadFn, {
+    maxRetries: MAX_RETRIES,
+    onRetry: (attempt, error) => {
+      console.log(`🔄 Retry attempt ${attempt} for ${file.name}: ${error.message}`)
+    }
+  })
 }
 
 // Upload via API route (for smaller files with compression)
@@ -538,7 +685,16 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     journal: {
       maxSize: 5 * 1024 * 1024 * 1024, // 5GB for videos/audio/images (supports multipart upload)
-      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+      types: [
+        // Images
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
+        // Videos - standard
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        // Videos - iPhone/mobile specific
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+        // Audio
+        'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg',
+      ],
     },
     journalAudioRecordings: {
       maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
@@ -546,7 +702,11 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     journalVideoRecordings: {
       maxSize: 5 * 1024 * 1024 * 1024, // 5GB for video recordings (supports multipart upload)
-      types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
+      types: [
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        // iPhone/mobile specific formats
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+      ],
     },
     lifeVision: {
       maxSize: 500 * 1024 * 1024, // 500MB for audio/docs
@@ -558,7 +718,11 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     lifeVisionVideoRecordings: {
       maxSize: 5 * 1024 * 1024 * 1024, // 5GB for video recordings (supports multipart upload)
-      types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
+      types: [
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        // iPhone/mobile specific formats
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+      ],
     },
     alignmentPlan: {
       maxSize: 500 * 1024 * 1024, // 500MB for media/docs
@@ -570,11 +734,24 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     alignmentPlanVideoRecordings: {
       maxSize: 5 * 1024 * 1024 * 1024, // 5GB for video recordings (supports multipart upload)
-      types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
+      types: [
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        // iPhone/mobile specific formats
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+      ],
     },
     profile: {
       maxSize: 5 * 1024 * 1024 * 1024, // 5GB for profile files (supports multipart upload)
-      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi', 'audio/webm', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/ogg'],
+      types: [
+        // Images
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
+        // Videos - standard
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        // Videos - iPhone/mobile specific
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+        // Audio
+        'audio/webm', 'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/ogg',
+      ],
     },
     profileAudioRecordings: {
       maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
@@ -582,7 +759,11 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     profileVideoRecordings: {
       maxSize: 5 * 1024 * 1024 * 1024, // 5GB for video recordings (supports multipart upload)
-      types: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi'],
+      types: [
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        // iPhone/mobile specific formats
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+      ],
     },
     profilePicture: {
       maxSize: 20 * 1024 * 1024, // 20MB for profile pictures
@@ -612,18 +793,59 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     return { valid: false, error: `File too large. Max: ${maxSize / 1024 / 1024}MB` }
   }
 
-  if (!types.includes(file.type)) {
-    console.log('File validation failed:', {
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      folder: folder,
-      allowedTypes: types
-    })
-    return { valid: false, error: `Invalid type. Allowed: ${types.join(', ')}` }
+  // Check MIME type first
+  if (types.includes(file.type)) {
+    return { valid: true }
   }
 
-  return { valid: true }
+  // Fallback: Check by file extension when MIME type is missing or unrecognized
+  // This handles mobile browsers that don't properly detect MIME types
+  const extension = file.name.split('.').pop()?.toLowerCase() || ''
+  const extensionToMimeMap: Record<string, string[]> = {
+    // Video extensions
+    'mp4': ['video/mp4'],
+    'mov': ['video/quicktime'],
+    'webm': ['video/webm', 'audio/webm'],
+    'avi': ['video/x-msvideo', 'video/avi'],
+    'm4v': ['video/x-m4v'],
+    '3gp': ['video/3gpp'],
+    '3g2': ['video/3gpp2'],
+    // Image extensions
+    'jpg': ['image/jpeg'],
+    'jpeg': ['image/jpeg'],
+    'png': ['image/png'],
+    'gif': ['image/gif'],
+    'webp': ['image/webp'],
+    'heic': ['image/heic'],
+    'heif': ['image/heif'],
+    // Audio extensions
+    'mp3': ['audio/mpeg', 'audio/mp3'],
+    'wav': ['audio/wav'],
+    'ogg': ['audio/ogg'],
+  }
+
+  const possibleTypes = extensionToMimeMap[extension] || []
+  const hasValidExtension = possibleTypes.some(t => types.includes(t))
+
+  if (hasValidExtension) {
+    console.log('File validated by extension fallback:', {
+      fileName: file.name,
+      extension: extension,
+      reportedMimeType: file.type || '(empty)',
+      folder: folder
+    })
+    return { valid: true }
+  }
+
+  console.log('File validation failed:', {
+    fileName: file.name,
+    fileType: file.type || '(empty)',
+    extension: extension,
+    fileSize: file.size,
+    folder: folder,
+    allowedTypes: types
+  })
+  return { valid: false, error: `Invalid file type. Supported formats: images, videos, audio` }
 }
 
 export async function deleteUserFile(s3Key: string): Promise<void> {
