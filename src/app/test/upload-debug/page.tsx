@@ -67,6 +67,102 @@ export default function UploadDebugPage() {
     })
   }
 
+  // Direct multipart upload test (bypasses uploadMultipleUserFiles)
+  const testMultipartUpload = async (file: File) => {
+    addLog(`🧪 Testing multipart upload directly...`)
+    
+    const timestamp = Date.now()
+    const randomStr = Math.random().toString(36).substring(2, 15)
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.]/g, '-').toLowerCase()
+    const key = `user-uploads/${user!.id}/journal/uploads/${timestamp}-${randomStr}-${sanitizedName}`
+    
+    addLog(`   Key: ${key}`)
+    
+    // Step 1: Create multipart upload
+    addLog(`📤 Step 1: Creating multipart upload...`)
+    try {
+      const createResponse = await fetch('/api/upload/multipart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          key,
+          fileType: file.type,
+          fileName: file.name,
+        }),
+      })
+      
+      addLog(`   Response status: ${createResponse.status}`)
+      
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text()
+        addLog(`❌ Create multipart failed: ${errorText}`)
+        return null
+      }
+      
+      const { uploadId } = await createResponse.json()
+      addLog(`✅ Multipart created: ${uploadId}`)
+      
+      // Step 2: Test getting presigned URL for part 1
+      addLog(`📤 Step 2: Getting presigned URL for part 1...`)
+      const partUrlResponse = await fetch('/api/upload/multipart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'getPartUrl',
+          key,
+          uploadId,
+          partNumber: 1,
+        }),
+      })
+      
+      addLog(`   Response status: ${partUrlResponse.status}`)
+      
+      if (!partUrlResponse.ok) {
+        const errorText = await partUrlResponse.text()
+        addLog(`❌ Get part URL failed: ${errorText}`)
+        return null
+      }
+      
+      const { presignedUrl } = await partUrlResponse.json()
+      addLog(`✅ Got presigned URL: ${presignedUrl.substring(0, 80)}...`)
+      
+      // Step 3: Try uploading first 10MB chunk
+      addLog(`📤 Step 3: Uploading first 10MB chunk...`)
+      const chunk = file.slice(0, 10 * 1024 * 1024) // First 10MB
+      addLog(`   Chunk size: ${(chunk.size / 1024 / 1024).toFixed(2)}MB`)
+      
+      try {
+        const uploadResponse = await fetch(presignedUrl, {
+          method: 'PUT',
+          body: chunk,
+          headers: {
+            'Content-Type': file.type,
+          },
+        })
+        
+        addLog(`   Upload response: ${uploadResponse.status} ${uploadResponse.statusText}`)
+        
+        if (uploadResponse.ok) {
+          const etag = uploadResponse.headers.get('ETag')
+          addLog(`✅ Chunk uploaded! ETag: ${etag}`)
+          return { uploadId, key, success: true }
+        } else {
+          const errorText = await uploadResponse.text()
+          addLog(`❌ Chunk upload failed: ${errorText}`)
+          return null
+        }
+      } catch (chunkError) {
+        addLog(`💥 Chunk upload exception: ${chunkError instanceof Error ? chunkError.message : String(chunkError)}`)
+        return null
+      }
+      
+    } catch (error) {
+      addLog(`💥 Multipart test exception: ${error instanceof Error ? error.message : String(error)}`)
+      return null
+    }
+  }
+
   // Handle file upload
   const handleUpload = async () => {
     if (!user) {
@@ -86,9 +182,37 @@ export default function UploadDebugPage() {
     addLog(`User ID: ${user.id}`)
     addLog(`Folder: journal`)
     addLog(`File count: ${files.length}`)
+    
+    const file = files[0]
+    const fileSizeMB = file.size / 1024 / 1024
+    
+    // Determine which upload path will be used
+    if (fileSizeMB > 100) {
+      addLog(`📦 File > 100MB → Will use MULTIPART upload`)
+    } else if (fileSizeMB > 0.5) {
+      addLog(`📦 File > 500KB → Will use PRESIGNED URL upload`)
+    } else {
+      addLog(`📦 File < 500KB → Will use API ROUTE upload`)
+    }
 
     try {
       const startTime = Date.now()
+      
+      // For large files, first test the multipart flow step by step
+      if (fileSizeMB > 100) {
+        addLog(``)
+        addLog(`🧪 TESTING MULTIPART FLOW (step by step)`)
+        addLog(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+        const testResult = await testMultipartUpload(file)
+        if (!testResult) {
+          addLog(`❌ Multipart test failed - skipping full upload`)
+          setIsUploading(false)
+          return
+        }
+        addLog(`✅ Multipart test passed!`)
+        addLog(``)
+        addLog(`📤 Now running full upload...`)
+      }
       
       const results = await uploadMultipleUserFiles(
         'journal',
