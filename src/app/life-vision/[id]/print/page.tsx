@@ -99,6 +99,7 @@ export default function PrintPreviewPage() {
   }, [visionId, colors])
 
   const handleDownload = async () => {
+    console.log('[Download] Starting PDF download, visionId:', visionId)
     setIsGenerating(true)
     try {
       // Build API URL with color parameters
@@ -111,9 +112,11 @@ export default function PrintPreviewPage() {
       })
 
       const apiUrl = `/api/pdf/vision?${colorParams.toString()}`
+      console.log('[Download] Fetching from:', apiUrl)
 
       // Fetch PDF from API
       const response = await fetch(apiUrl)
+      console.log('[Download] Response status:', response.status, 'ok:', response.ok)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))

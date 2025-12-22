@@ -176,11 +176,12 @@ export async function GET(req: NextRequest) {
       }
     }
     
-    console.log('PDF Generation - Vision:', { 
+    console.log('[PDF] Generation starting:', { 
       id: vision.id, 
       isHousehold: isHouseholdVision, 
       title, 
-      userName 
+      userName,
+      preview 
     })
     const createdDate = new Date(vision.created_at).toLocaleDateString('en-US', {
       month: 'long',
@@ -553,6 +554,7 @@ ${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}
 
   } catch (error) {
     console.error('PDF generation error:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     return NextResponse.json(
       { error: 'PDF generation failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
